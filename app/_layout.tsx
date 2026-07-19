@@ -8,6 +8,11 @@ import "react-native-reanimated";
 import { Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
+import "@/lib/notifications"; // registers setNotificationHandler at module level
+import { requestNotificationPermissions, setupAndroidNotificationChannel } from "@/lib/notifications";
+import { getWatchlist, addToWatchlist, updateProductListings } from "@/lib/storage";
+import { PRODUCT_CATALOG } from "@/lib/catalog";
+import { DistributorListing } from "@/lib/types";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -36,6 +41,32 @@ export default function RootLayout() {
   // Initialize Manus runtime for cookie injection from parent container
   useEffect(() => {
     initManusRuntime();
+  }, []);
+
+  // Request notification permissions and set up Android channel on first load
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    setupAndroidNotificationChannel().then(() => {
+      requestNotificationPermissions();
+    });
+  }, []);
+
+  // Seed CRS804 into watchlist on first launch if watchlist is empty
+  useEffect(() => {
+    async function seedCRS804() {
+      const watchlist = await getWatchlist();
+      if (watchlist.length > 0) return; // already seeded or user has their own items
+      const crs804 = PRODUCT_CATALOG.find((p) => p.id === "mikrotik-crs804-4ddq-hrm");
+      if (!crs804) return;
+      const product = {
+        ...crs804,
+        isWatched: true,
+        addedAt: new Date().toISOString(),
+        listings: [] as DistributorListing[],
+      };
+      await addToWatchlist(product);
+    }
+    seedCRS804();
   }, []);
 
   const handleSafeAreaUpdate = useCallback((metrics: Metrics) => {

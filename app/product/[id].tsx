@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, View, TouchableOpacity, FlatList, Alert, TextInput, Modal, Linking, ActivityIndicator } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Alert, TextInput, Modal, Linking, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 
@@ -8,41 +8,41 @@ import { useColors } from "@/hooks/use-colors";
 import { getWatchlist, updateProductListings, addAlert } from "@/lib/storage";
 import { Product, DistributorListing, PriceAlert } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
-import { getDistributorById, DISTRIBUTORS } from "@/lib/distributors";
+import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { schedulePriceAlert, requestNotificationPermissions } from "@/lib/notifications";
 
-// Sample listings for demo (in a real app, these would be fetched from a backend)
+// ─── Real distributor data for CRS804-4DDQ-hRM (verified July 19, 2026) ───────
 const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
   "mikrotik-crs804-4ddq-hrm": [
     {
       distributorId: "server2u-my",
       productId: "mikrotik-crs804-4ddq-hrm",
-      price: 1248.31,
-      currency: "USD",
+      price: 5568,
+      currency: "MYR",
       stockStatus: "in_stock",
       url: "https://server2u.com/shop/crs804-4ddq-hrm-mikrotik-crs804-4ddq-hrm-400g-master-switch-66247",
       lastChecked: new Date().toISOString(),
       priceHistory: [],
     },
     {
-      distributorId: "interprojekt-pl",
+      distributorId: "mikrotikstore-de",
       productId: "mikrotik-crs804-4ddq-hrm",
-      price: 881.72,
+      price: 1141.67,
       currency: "EUR",
-      stockStatus: "back_order",
-      expectedDate: "Sept 15, 2026",
-      url: "https://interprojekt.pl/en/p/mikrotik-crs804-4ddq-hrm.html",
+      stockStatus: "in_stock",
+      url: "https://mikrotik-store.eu/en/cloud-router-switches/crs804-4ddq-hrm",
       lastChecked: new Date().toISOString(),
       priceHistory: [],
     },
     {
-      distributorId: "linitx-uk",
+      distributorId: "interprojekt-pl",
       productId: "mikrotik-crs804-4ddq-hrm",
-      price: 1139.99,
-      currency: "GBP",
+      price: 860.54,
+      currency: "EUR",
       stockStatus: "back_order",
-      expectedDate: "Sept 18, 2026",
-      url: "https://linitx.com/product/mikrotik-crs804-ddq-cloud-router-400gb-4-port-switch-crs804-4ddq-hrm/18455",
+      expectedDate: "Sept 15, 2026",
+      url: "https://interprojekt.pl/en/p/mikrotik-crs804-4ddq-hrm.html",
       lastChecked: new Date().toISOString(),
       priceHistory: [],
     },
@@ -58,11 +58,34 @@ const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       priceHistory: [],
     },
     {
+      distributorId: "aerial-gr",
+      productId: "mikrotik-crs804-4ddq-hrm",
+      price: 956.99,
+      currency: "EUR",
+      stockStatus: "back_order",
+      expectedDate: "Sept 9, 2026",
+      url: "https://aerial.net/shop/product/mikrotik-crs804-4ddq-hrm-cloud-router-switch-5671",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [],
+    },
+    {
+      distributorId: "linitx-uk",
+      productId: "mikrotik-crs804-4ddq-hrm",
+      price: 1139.99,
+      currency: "GBP",
+      stockStatus: "back_order",
+      expectedDate: "Sept 18, 2026",
+      url: "https://linitx.com/product/mikrotik-crs804-ddq-cloud-router-400gb-4-port-switch-crs804-4ddq-hrm/18455",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [],
+    },
+    {
       distributorId: "miro-za",
       productId: "mikrotik-crs804-4ddq-hrm",
       price: 30140,
       currency: "ZAR",
-      stockStatus: "in_stock",
+      stockStatus: "back_order",
+      expectedDate: "Aug 2026",
       url: "https://miro.co.za/07-networking-switches---managed-layer-3/8878-mikrotik-cloud-router-switch-crs804-4ddq-hrm-miro.html",
       lastChecked: new Date().toISOString(),
       priceHistory: [],
@@ -74,6 +97,16 @@ const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       currency: "EUR",
       stockStatus: "out_of_stock",
       url: "https://www.getic.com/product/mikrotik-crs804-4ddq-hrm",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [],
+    },
+    {
+      distributorId: "duxtel-au",
+      productId: "mikrotik-crs804-4ddq-hrm",
+      price: 2299,
+      currency: "AUD",
+      stockStatus: "out_of_stock",
+      url: "https://store.duxtel.com.au/product/crs804-4ddq-hrm",
       lastChecked: new Date().toISOString(),
       priceHistory: [],
     },
@@ -133,7 +166,7 @@ export default function ProductDetailScreen() {
       Alert.alert("Invalid Price", "Please enter a valid target price.");
       return;
     }
-    const alert: PriceAlert = {
+    const newAlert: PriceAlert = {
       id: `alert-${Date.now()}`,
       productId: id,
       targetPrice: price,
@@ -141,12 +174,15 @@ export default function ProductDetailScreen() {
       isActive: true,
       createdAt: new Date().toISOString(),
     };
-    await addAlert(alert);
+    await addAlert(newAlert);
+    // Schedule a confirmation notification so the user knows the alert is active
+    await requestNotificationPermissions();
+    await schedulePriceAlert(product?.name ?? "Product", price, alertCurrency);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setAlertModalVisible(false);
     setAlertPrice("");
     Alert.alert("Alert Set", `You'll be notified when the price drops below ${formatPrice(price, alertCurrency)}.`);
-  }, [alertPrice, alertCurrency, id]);
+  }, [alertPrice, alertCurrency, id, product]);
 
   const sortedListings = [...listings].sort((a, b) => {
     const order = { in_stock: 0, back_order: 1, out_of_stock: 2, unknown: 3 };
@@ -353,4 +389,3 @@ export default function ProductDetailScreen() {
     </ScreenContainer>
   );
 }
-

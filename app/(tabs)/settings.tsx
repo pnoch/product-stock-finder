@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, View, TouchableOpacity, Switch, Linking } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Switch, Linking, Alert } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -7,6 +7,7 @@ import { useColors } from "@/hooks/use-colors";
 import { getSettings, saveSettings } from "@/lib/storage";
 import { AppSettings } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { sendTestNotification } from "@/lib/notifications";
 
 function SettingRow({ icon, label, description, right }: { icon: string; label: string; description?: string; right: React.ReactNode }) {
   const colors = useColors();
@@ -55,7 +56,19 @@ export default function SettingsScreen() {
     await saveSettings(updated);
   }, [settings]);
 
-  const currencies = ["USD", "EUR", "GBP", "THB", "MYR", "AUD", "SGD"];
+  const handleTestNotification = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const sent = await sendTestNotification();
+    if (!sent) {
+      Alert.alert(
+        "Permission Required",
+        "Please enable notifications in your device settings to receive stock and price alerts.",
+        [{ text: "OK" }]
+      );
+    }
+  }, []);
+
+  const currencies = ["USD", "EUR", "GBP", "THB", "MYR", "AUD", "SGD", "ZAR"];
   const intervals = [
     { value: "manual", label: "Manual only" },
     { value: "hourly", label: "Every hour" },
@@ -110,6 +123,20 @@ export default function SettingsScreen() {
               />
             }
           />
+          {/* Test Notification — useful for verifying permissions on device */}
+          <TouchableOpacity
+            onPress={handleTestNotification}
+            style={{ flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16 }}
+          >
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: colors.success + "22", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+              <IconSymbol name="bell.badge.fill" size={18} color={colors.success} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.foreground, fontWeight: "500", fontSize: 15 }}>Test Notification</Text>
+              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>Send a test alert to verify setup</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+          </TouchableOpacity>
         </View>
 
         <SectionHeader title="Display" />

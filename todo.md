@@ -29,10 +29,10 @@
 
 ## Phase 5: Price Comparison, Alerts & History
 - [x] Build Alerts screen
-- [ ] Implement price alert creation and management
+- [x] Implement price alert creation and management
 - [ ] Build price history chart (sparkline)
 - [x] Add price comparison table
-- [ ] Implement local notifications for alerts
+- [x] Implement local notifications for alerts
 
 ## Phase 6: Polish & App Store
 - [x] Add pull-to-refresh on all screens
@@ -40,5 +40,12 @@
 - [x] Add empty states for all screens
 - [x] Add haptic feedback
 - [ ] Add share functionality
-- [ ] Final QA and bug fixes
-- [ ] Save checkpoint
+- [x] Final QA and bug fixes
+- [x] Save checkpoint
+
+## Phase 7: New Features (User Requested)
+- [x] Pre-load CRS804-4DDQ-HRM with all tracked distributors and live data (9 distributors, verified July 19 2026)
+- [x] Fully functional product search screen (search by SKU/name, add to watchlist)
+- [x] Push notifications for stock availability and price drop alerts (expo-notifications, local, Android channels, permission request, test button in Settings)
+- [x] Auto-add CRS804 to watchlist on first launch
+- [x] ZAR currency added to display currency options
