@@ -49,3 +49,9 @@
 - [x] Push notifications for stock availability and price drop alerts (expo-notifications, local, Android channels, permission request, test button in Settings)
 - [x] Auto-add CRS804 to watchlist on first launch
 - [x] ZAR currency added to display currency options
+
+## Phase 8: Pre-Publish Polish (User Requested)
+- [x] Fix Home/Watchlist In Stock badge — backfill listings at startup, useFocusEffect on Home tab
+- [x] Add Last Updated timestamp to distributor cards in Product Detail screen (relative time, e.g. "Just now", "2h ago")
+- [x] Add bell.badge.fill icon mapping for Android/web (notification-important)
+- [x] Final QA pass — all screens verified: Home (1 In Stock, Recent Activity), Watchlist (In Stock · $935.37 · 9 distributors), Alerts (empty state), Settings (Test Notification, ZAR currency)

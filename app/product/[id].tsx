@@ -113,6 +113,24 @@ const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
   ],
 };
 
+function formatLastChecked(isoString: string): string {
+  try {
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  } catch {
+    return "Unknown";
+  }
+}
+
 function StockBadge({ status, expectedDate }: { status: string; expectedDate?: string }) {
   const colors = useColors();
   const config: Record<string, { bg: string; text: string; label: string }> = {
@@ -335,6 +353,9 @@ export default function ProductDetailScreen() {
                       💳 {distributor.paymentMethods.join(" · ")}
                     </Text>
                   )}
+                  <Text style={{ color: colors.muted, fontSize: 11, marginTop: distributor?.paymentMethods ? 2 : 8, opacity: 0.7 }}>
+                    🕐 Updated {formatLastChecked(listing.lastChecked)}
+                  </Text>
                 </View>
               );
             })

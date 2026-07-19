@@ -20,6 +20,7 @@ const MAPPING = {
   "chevron.right": "chevron-right",
   "list.bullet": "format-list-bulleted",
   "bell.fill": "notifications",
+  "bell.badge.fill": "notification-important",
   "gearshape.fill": "settings",
   "magnifyingglass": "search",
   "plus": "add",

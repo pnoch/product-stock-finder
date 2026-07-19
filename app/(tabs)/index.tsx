@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { ScrollView, Text, View, TouchableOpacity, RefreshControl, FlatList } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -62,6 +62,13 @@ export default function HomeScreen() {
     setWatchlist(list);
   }, []);
 
+  // Reload whenever the tab is focused so seed/backfill changes are reflected immediately
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -76,6 +83,15 @@ export default function HomeScreen() {
     const hasInStock = p.listings?.some((l) => l.stockStatus === "in_stock");
     return hasInStock ? count + 1 : count;
   }, 0);
+
+  // Derive best stock status across all listings for a product
+  function getBestStatus(product: Product): string {
+    const listings = product.listings ?? [];
+    if (listings.some((l) => l.stockStatus === "in_stock")) return "in_stock";
+    if (listings.some((l) => l.stockStatus === "back_order")) return "back_order";
+    if (listings.length > 0) return "out_of_stock";
+    return "unknown";
+  }
 
   const recentActivity = watchlist
     .flatMap((p) =>
@@ -165,7 +181,7 @@ export default function HomeScreen() {
             <Text className="text-base font-semibold text-foreground mb-3">Your Watchlist</Text>
             {watchlist.slice(0, 3).map((product) => {
               const bestPrice = getBestPrice(product.listings ?? [], "USD");
-              const inStock = product.listings?.some((l) => l.stockStatus === "in_stock");
+              const bestStatus = getBestStatus(product);
               return (
                 <TouchableOpacity
                   key={product.id}
@@ -183,7 +199,7 @@ export default function HomeScreen() {
                       </Text>
                     )}
                     <View style={{ marginTop: 4 }}>
-                      <StockBadge status={inStock ? "in_stock" : "out_of_stock"} />
+                      <StockBadge status={bestStatus} />
                     </View>
                   </View>
                 </TouchableOpacity>

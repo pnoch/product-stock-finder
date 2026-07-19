@@ -13,6 +13,19 @@ import { requestNotificationPermissions, setupAndroidNotificationChannel } from 
 import { getWatchlist, addToWatchlist, updateProductListings } from "@/lib/storage";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
 import { DistributorListing } from "@/lib/types";
+
+// CRS804 listings seeded at first launch so Home/Watchlist badges show real status immediately
+const CRS804_SEED_LISTINGS: DistributorListing[] = [
+  { distributorId: "server2u-my", productId: "mikrotik-crs804-4ddq-hrm", price: 5568, currency: "MYR", stockStatus: "in_stock", url: "https://server2u.com/shop/crs804-4ddq-hrm-mikrotik-crs804-4ddq-hrm-400g-master-switch-66247", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "mikrotikstore-de", productId: "mikrotik-crs804-4ddq-hrm", price: 1141.67, currency: "EUR", stockStatus: "in_stock", url: "https://mikrotik-store.eu/en/cloud-router-switches/crs804-4ddq-hrm", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "interprojekt-pl", productId: "mikrotik-crs804-4ddq-hrm", price: 860.54, currency: "EUR", stockStatus: "back_order", expectedDate: "Sept 15, 2026", url: "https://interprojekt.pl/en/p/mikrotik-crs804-4ddq-hrm.html", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "nasstore-eu", productId: "mikrotik-crs804-4ddq-hrm", price: 956.0, currency: "EUR", stockStatus: "back_order", expectedDate: "Aug 13, 2026", url: "https://nasstore.eu/product/mikrotik-cloud-router-switch-crs804-4ddq-hrm/", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "aerial-gr", productId: "mikrotik-crs804-4ddq-hrm", price: 956.99, currency: "EUR", stockStatus: "back_order", expectedDate: "Sept 9, 2026", url: "https://aerial.net/shop/product/mikrotik-crs804-4ddq-hrm-cloud-router-switch-5671", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "linitx-uk", productId: "mikrotik-crs804-4ddq-hrm", price: 1139.99, currency: "GBP", stockStatus: "back_order", expectedDate: "Sept 18, 2026", url: "https://linitx.com/product/mikrotik-crs804-ddq-cloud-router-400gb-4-port-switch-crs804-4ddq-hrm/18455", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "miro-za", productId: "mikrotik-crs804-4ddq-hrm", price: 30140, currency: "ZAR", stockStatus: "back_order", expectedDate: "Aug 2026", url: "https://miro.co.za/07-networking-switches---managed-layer-3/8878-mikrotik-cloud-router-switch-crs804-4ddq-hrm-miro.html", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "getic-gr", productId: "mikrotik-crs804-4ddq-hrm", price: 877.64, currency: "EUR", stockStatus: "out_of_stock", url: "https://www.getic.com/product/mikrotik-crs804-4ddq-hrm", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "duxtel-au", productId: "mikrotik-crs804-4ddq-hrm", price: 2299, currency: "AUD", stockStatus: "out_of_stock", url: "https://store.duxtel.com.au/product/crs804-4ddq-hrm", lastChecked: new Date().toISOString(), priceHistory: [] },
+];
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -55,16 +68,23 @@ export default function RootLayout() {
   useEffect(() => {
     async function seedCRS804() {
       const watchlist = await getWatchlist();
-      if (watchlist.length > 0) return; // already seeded or user has their own items
+      const existing = watchlist.find((p) => p.id === "mikrotik-crs804-4ddq-hrm");
+      if (existing) {
+        // Backfill listings if the product was seeded without listing data
+        if (!existing.listings || existing.listings.length === 0) {
+          await updateProductListings("mikrotik-crs804-4ddq-hrm", CRS804_SEED_LISTINGS);
+        }
+        return;
+      }
+      // First launch: add CRS804 with full listing data
       const crs804 = PRODUCT_CATALOG.find((p) => p.id === "mikrotik-crs804-4ddq-hrm");
       if (!crs804) return;
-      const product = {
+      await addToWatchlist({
         ...crs804,
         isWatched: true,
         addedAt: new Date().toISOString(),
-        listings: [] as DistributorListing[],
-      };
-      await addToWatchlist(product);
+        listings: CRS804_SEED_LISTINGS,
+      });
     }
     seedCRS804();
   }, []);
