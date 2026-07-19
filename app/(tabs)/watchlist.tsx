@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, Text, View, TouchableOpacity, RefreshControl, Alert } from "react-native";
+import { Animated } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 
@@ -9,6 +10,7 @@ import { getWatchlist, removeFromWatchlist } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { formatPrice, getBestPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Swipeable, GestureHandlerRootView } from "react-native-gesture-handler";
 
 function StockBadge({ status }: { status: string }) {
   const colors = useColors();
@@ -35,7 +37,26 @@ function ProductCard({ product, onPress, onDelete }: { product: Product; onPress
   const distributorCount = product.listings?.length ?? 0;
 
   return (
-    <TouchableOpacity
+    <Swipeable
+      renderRightActions={(_progress, dragX) => {
+        const scale = dragX.interpolate({ inputRange: [-80, 0], outputRange: [1, 0], extrapolate: "clamp" });
+        return (
+          <TouchableOpacity
+            onPress={onDelete}
+            style={{ backgroundColor: colors.error, borderRadius: 16, marginBottom: 12, width: 72, alignItems: "center", justifyContent: "center" }}
+          >
+            <Animated.View style={{ transform: [{ scale }] }}>
+              <IconSymbol name="trash.fill" size={20} color="#fff" />
+            </Animated.View>
+          </TouchableOpacity>
+        );
+      }}
+      onSwipeableOpen={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        onDelete();
+      }}
+    >
+      <TouchableOpacity
       style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border }}
       onPress={onPress}
     >
@@ -69,6 +90,7 @@ function ProductCard({ product, onPress, onDelete }: { product: Product; onPress
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
+    </Swipeable>
   );
 }
 

@@ -14,6 +14,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { schedulePriceAlert, requestNotificationPermissions } from "@/lib/notifications";
 
 // ─── Real distributor data for CRS804-4DDQ-hRM (verified July 19, 2026) ───────
+// ─── Listings for all tracked products ────────────────────────────────────────
 const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
   "mikrotik-crs804-4ddq-hrm": [
     {
@@ -153,6 +154,210 @@ const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
   ],
 };
 
+const EXTRA_LISTINGS: Record<string, DistributorListing[]> = {
+  "ubiquiti-udm-pro": [
+    {
+      distributorId: "bhphoto-us",
+      productId: "ubiquiti-udm-pro",
+      price: 379.00,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://bhphotovideo.com/c/product/1552916-REG/ubiquiti_udm_pro_unifi_dream_machine_pro.html",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 30).toISOString(), price: 399, currency: "USD", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 389, currency: "USD", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 379, currency: "USD", stockStatus: "in_stock" },
+      ],
+    },
+    {
+      distributorId: "neobits-us",
+      productId: "ubiquiti-udm-pro",
+      price: 382.50,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://neobits.com/ubiquiti_udm_pro.html",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 21).toISOString(), price: 395, currency: "USD", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 7).toISOString(), price: 385, currency: "USD", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 382.50, currency: "USD", stockStatus: "in_stock" },
+      ],
+    },
+    {
+      distributorId: "pbtech-nz",
+      productId: "ubiquiti-udm-pro",
+      price: 699.00,
+      currency: "NZD",
+      stockStatus: "in_stock",
+      url: "https://pbtech.co.nz/product/NETUBI0235/Ubiquiti-UniFi-Dream-Machine-Pro",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 729, currency: "NZD", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 699, currency: "NZD", stockStatus: "in_stock" },
+      ],
+    },
+    {
+      distributorId: "duxtel-au",
+      productId: "ubiquiti-udm-pro",
+      price: 599.00,
+      currency: "AUD",
+      stockStatus: "back_order",
+      expectedDate: "Aug 2026",
+      url: "https://store.duxtel.com.au/product/udm-pro",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 21).toISOString(), price: 619, currency: "AUD", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 599, currency: "AUD", stockStatus: "back_order" },
+      ],
+    },
+  ],
+  "ubiquiti-usw-pro-48": [
+    {
+      distributorId: "bhphoto-us",
+      productId: "ubiquiti-usw-pro-48",
+      price: 499.00,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://bhphotovideo.com/c/product/1591087-REG/ubiquiti_usw_pro_48_unifi_switch_pro_48.html",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 30).toISOString(), price: 529, currency: "USD", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 509, currency: "USD", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 499, currency: "USD", stockStatus: "in_stock" },
+      ],
+    },
+    {
+      distributorId: "neobits-us",
+      productId: "ubiquiti-usw-pro-48",
+      price: 502.00,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://neobits.com/ubiquiti_usw_pro_48.html",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 515, currency: "USD", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 502, currency: "USD", stockStatus: "in_stock" },
+      ],
+    },
+    {
+      distributorId: "linitx-uk",
+      productId: "ubiquiti-usw-pro-48",
+      price: 449.99,
+      currency: "GBP",
+      stockStatus: "in_stock",
+      url: "https://linitx.com/product/ubiquiti-unifi-switch-pro-48/16234",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 21).toISOString(), price: 469, currency: "GBP", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 7).toISOString(), price: 455, currency: "GBP", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 449.99, currency: "GBP", stockStatus: "in_stock" },
+      ],
+    },
+  ],
+  "intel-x710-da2": [
+    {
+      distributorId: "bhphoto-us",
+      productId: "intel-x710-da2",
+      price: 289.00,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://bhphotovideo.com/c/product/1648212-REG/intel_x710da2blk_ethernet-converged-network-adapter.html",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 30).toISOString(), price: 310, currency: "USD", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 299, currency: "USD", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 289, currency: "USD", stockStatus: "in_stock" },
+      ],
+    },
+    {
+      distributorId: "neobits-us",
+      productId: "intel-x710-da2",
+      price: 292.00,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://neobits.com/intel_x710_da2.html",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 305, currency: "USD", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 292, currency: "USD", stockStatus: "in_stock" },
+      ],
+    },
+    {
+      distributorId: "getic-gr",
+      productId: "intel-x710-da2",
+      price: 265.00,
+      currency: "EUR",
+      stockStatus: "in_stock",
+      url: "https://getic.com/product/intel-x710-da2",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 21).toISOString(), price: 280, currency: "EUR", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 7).toISOString(), price: 270, currency: "EUR", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 265, currency: "EUR", stockStatus: "in_stock" },
+      ],
+    },
+    {
+      distributorId: "linitx-uk",
+      productId: "intel-x710-da2",
+      price: 245.00,
+      currency: "GBP",
+      stockStatus: "back_order",
+      expectedDate: "Sept 2026",
+      url: "https://linitx.com/product/intel-x710-da2/15890",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 258, currency: "GBP", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 245, currency: "GBP", stockStatus: "back_order" },
+      ],
+    },
+  ],
+  "mellanox-cx6": [
+    {
+      distributorId: "bhphoto-us",
+      productId: "mellanox-cx6",
+      price: 1299.00,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://bhphotovideo.com/c/product/1571234-REG/mellanox_mcx653106a_ecat_connectx_6_vpi_adapter.html",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 30).toISOString(), price: 1350, currency: "USD", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 1320, currency: "USD", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 1299, currency: "USD", stockStatus: "in_stock" },
+      ],
+    },
+    {
+      distributorId: "neobits-us",
+      productId: "mellanox-cx6",
+      price: 1315.00,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://neobits.com/mellanox_connectx6.html",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 1340, currency: "USD", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 1315, currency: "USD", stockStatus: "in_stock" },
+      ],
+    },
+    {
+      distributorId: "getic-gr",
+      productId: "mellanox-cx6",
+      price: 1189.00,
+      currency: "EUR",
+      stockStatus: "back_order",
+      expectedDate: "Oct 2026",
+      url: "https://getic.com/product/mellanox-connectx-6",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 21).toISOString(), price: 1220, currency: "EUR", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 1189, currency: "EUR", stockStatus: "back_order" },
+      ],
+    },
+  ],
+
+};
+
 function formatLastChecked(isoString: string): string {
   try {
     const date = new Date(isoString);
@@ -205,10 +410,11 @@ export default function ProductDetailScreen() {
     if (found) {
       setProduct(found);
       // Use existing listings or load sample data for demo
-      const existingListings = found.listings?.length ? found.listings : (SAMPLE_LISTINGS[id] ?? []);
+      const allSamples = { ...SAMPLE_LISTINGS, ...EXTRA_LISTINGS };
+      const existingListings = found.listings?.length ? found.listings : (allSamples[id] ?? []);
       setListings(existingListings);
-      if (!found.listings?.length && SAMPLE_LISTINGS[id]) {
-        await updateProductListings(id, SAMPLE_LISTINGS[id]);
+      if (!found.listings?.length && allSamples[id]) {
+        await updateProductListings(id, allSamples[id]);
       }
     }
     setLoading(false);

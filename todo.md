@@ -65,3 +65,8 @@
 - [x] Expand product catalog with 5 more networking products and realistic listings with price history
 - [x] Price history sparkline on distributor cards using react-native-svg
 - [x] Copy Link clipboard fallback on Share handler (expo-clipboard, toast confirmation)
+
+## Phase 11: Feature Polish (User Requested)
+- [x] Seed listings for 5 new catalog products (UDM-Pro, USW-Pro-48, X710-DA2, ConnectX-6, M4350-24X4V)
+- [x] Price drop % badge on sparklines (shows ▲/▼ X.X% trend)
+- [x] Swipe-to-delete on Watchlist cards (Swipeable with red trash action + haptic)
