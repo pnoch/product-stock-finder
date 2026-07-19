@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, View, TouchableOpacity, Alert, TextInput, Modal, Linking, ActivityIndicator } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Alert, TextInput, Modal, Linking, ActivityIndicator, Share, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 
@@ -207,6 +207,48 @@ export default function ProductDetailScreen() {
     return (order[a.stockStatus] ?? 3) - (order[b.stockStatus] ?? 3);
   });
 
+  const handleShare = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const inStockListings = sortedListings.filter((l) => l.stockStatus === "in_stock");
+    const bestListing = inStockListings[0] ?? sortedListings[0];
+    const distributor = bestListing ? getDistributorById(bestListing.distributorId) : null;
+    const priceStr = bestListing ? formatPrice(bestListing.price, bestListing.currency) : "N/A";
+    const statusStr = inStockListings.length > 0
+      ? `✅ In Stock at ${distributor?.name ?? "a distributor"} for ${priceStr}`
+      : `⏳ Back Order — best price ${priceStr}`;
+    const url = bestListing?.url ?? "";
+    const message = `${product?.name} (${product?.modelNumber})\n${statusStr}\n${url}`;
+    try {
+      await Share.share({ message, title: product?.name ?? "Product" });
+    } catch {
+      // User cancelled share — no action needed
+    }
+  }, [product, sortedListings]);
+
+  const handleTestStockNotification = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS === "web") {
+      Alert.alert("Not Available", "Push notifications are only available on iOS and Android devices.");
+      return;
+    }
+    const granted = await requestNotificationPermissions();
+    if (!granted) {
+      Alert.alert("Permission Denied", "Please enable notifications in your device settings to receive stock alerts.");
+      return;
+    }
+    const inStockListing = sortedListings.find((l) => l.stockStatus === "in_stock");
+    const targetListing = inStockListing ?? sortedListings[0];
+    const distributor = targetListing ? getDistributorById(targetListing.distributorId) : null;
+    await scheduleStockAlert(
+      product?.name ?? "Product",
+      distributor?.name ?? "a distributor",
+      targetListing?.price ?? 0,
+      targetListing?.currency ?? "USD"
+    );
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert("Notification Sent!", `A "Back In Stock" alert for ${product?.name} has been sent to your device.`);
+  }, [product, sortedListings]);
+
   if (loading) {
     return (
       <ScreenContainer>
@@ -304,6 +346,23 @@ export default function ProductDetailScreen() {
 
         {/* Distributor Listings */}
         <View style={{ paddingHorizontal: 16 }}>
+          {/* Secondary Action Buttons */}
+          <View style={{ flexDirection: "row", marginBottom: 16, gap: 10 }}>
+            <TouchableOpacity
+              onPress={handleShare}
+              style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 14, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border, flexDirection: "row", justifyContent: "center", gap: 6 }}
+            >
+              <IconSymbol name="square.and.arrow.up" size={16} color={colors.foreground} />
+              <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }}>Share</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleTestStockNotification}
+              style={{ flex: 1, backgroundColor: colors.success + "18", borderRadius: 14, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.success + "44", flexDirection: "row", justifyContent: "center", gap: 6 }}
+            >
+              <IconSymbol name="bell.badge.fill" size={16} color={colors.success} />
+              <Text style={{ color: colors.success, fontWeight: "600", fontSize: 14 }}>Test Stock Alert</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16, marginBottom: 12 }}>
             Distributor Prices
           </Text>
@@ -410,3 +469,4 @@ export default function ProductDetailScreen() {
     </ScreenContainer>
   );
 }
+import { scheduleStockAlert } from "@/lib/notifications";

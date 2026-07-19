@@ -55,3 +55,8 @@
 - [x] Add Last Updated timestamp to distributor cards in Product Detail screen (relative time, e.g. "Just now", "2h ago")
 - [x] Add bell.badge.fill icon mapping for Android/web (notification-important)
 - [x] Final QA pass — all screens verified: Home (1 In Stock, Recent Activity), Watchlist (In Stock · $935.37 · 9 distributors), Alerts (empty state), Settings (Test Notification, ZAR currency)
+
+## Phase 9: Feature Polish (User Requested)
+- [x] Wire live Alerts counter on Home dashboard (active & not triggered)
+- [x] Share button on Product Detail screen (native share sheet)
+- [x] Back In Stock test notification button on Product Detail screen

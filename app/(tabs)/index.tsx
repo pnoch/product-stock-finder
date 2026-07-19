@@ -5,7 +5,7 @@ import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { getWatchlist } from "@/lib/storage";
+import { getWatchlist, getAlerts } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { formatPrice, convertPrice, getBestPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -55,11 +55,14 @@ export default function HomeScreen() {
   const router = useRouter();
   const colors = useColors();
   const [watchlist, setWatchlist] = useState<Product[]>([]);
+  const [alertCount, setAlertCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
     const list = await getWatchlist();
     setWatchlist(list);
+    const alerts = await getAlerts();
+    setAlertCount(alerts.filter((a) => a.isActive && !a.triggeredAt).length);
   }, []);
 
   // Reload whenever the tab is focused so seed/backfill changes are reflected immediately
@@ -127,7 +130,7 @@ export default function HomeScreen() {
         <View className="flex-row px-4 mt-3 mb-4">
           <SummaryCard label="Tracked" value={watchlist.length} color={colors.primary} icon="list.bullet" />
           <SummaryCard label="In Stock" value={inStockCount} color={colors.success} icon="checkmark.circle.fill" />
-          <SummaryCard label="Alerts" value={0} color={colors.warning} icon="bell.fill" />
+          <SummaryCard label="Alerts" value={alertCount} color={colors.warning} icon="bell.fill" />
         </View>
 
         {/* Recent Activity */}
