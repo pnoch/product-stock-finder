@@ -97,6 +97,46 @@ export const PRODUCT_CATALOG: Omit<Product, "addedAt" | "isWatched" | "listings"
     category: "Networking Switch",
     description: "48-port PoE+ Gigabit switch with 4x SFP uplinks.",
   },
+  {
+    id: "mikrotik-crs326-24s",
+    name: "MikroTik CRS326-24S+2Q+RM",
+    modelNumber: "CRS326-24S+2Q+RM",
+    brand: "MikroTik",
+    category: "Networking Switch",
+    description: "24x 10G SFP+ and 2x 40G QSFP+ rack-mount cloud router switch.",
+  },
+  {
+    id: "mikrotik-ccr2004",
+    name: "MikroTik CCR2004-1G-12S+2XS",
+    modelNumber: "CCR2004-1G-12S+2XS",
+    brand: "MikroTik",
+    category: "Router",
+    description: "Cloud Core Router with 12x 10G SFP+ and 2x 25G SFP28 ports.",
+  },
+  {
+    id: "ubiquiti-usg-pro-4",
+    name: "Ubiquiti UniFi Security Gateway Pro 4",
+    modelNumber: "USG-PRO-4",
+    brand: "Ubiquiti",
+    category: "Network Gateway",
+    description: "Enterprise gateway with dual Gigabit SFP WAN and 2x Gigabit LAN ports.",
+  },
+  {
+    id: "netgear-m4300-96x",
+    name: "NETGEAR M4300-96X",
+    modelNumber: "XSM4396K0-100NES",
+    brand: "NETGEAR",
+    category: "Networking Switch",
+    description: "96-port 10G/25G modular switch with 8x 100G QSFP28 uplinks.",
+  },
+  {
+    id: "fs-s5860-20sq",
+    name: "FS S5860-20SQ",
+    modelNumber: "S5860-20SQ",
+    brand: "FS.com",
+    category: "Networking Switch",
+    description: "20-port 25G SFP28 switch with 2x 100G QSFP28 uplinks, ONIE support.",
+  },
 ];
 
 export function searchCatalog(query: string): typeof PRODUCT_CATALOG {

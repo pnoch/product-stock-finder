@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import * as Clipboard from "expo-clipboard";
 import { ScrollView, Text, View, TouchableOpacity, Alert, TextInput, Modal, Linking, ActivityIndicator, Share, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -23,7 +24,13 @@ const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       stockStatus: "in_stock",
       url: "https://server2u.com/shop/crs804-4ddq-hrm-mikrotik-crs804-4ddq-hrm-400g-master-switch-66247",
       lastChecked: new Date().toISOString(),
-      priceHistory: [],
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 30).toISOString(), price: 5750, currency: "MYR", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 21).toISOString(), price: 5680, currency: "MYR", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 5620, currency: "MYR", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 7).toISOString(), price: 5590, currency: "MYR", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 5568, currency: "MYR", stockStatus: "in_stock" },
+      ],
     },
     {
       distributorId: "mikrotikstore-de",
@@ -33,7 +40,13 @@ const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       stockStatus: "in_stock",
       url: "https://mikrotik-store.eu/en/cloud-router-switches/crs804-4ddq-hrm",
       lastChecked: new Date().toISOString(),
-      priceHistory: [],
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 30).toISOString(), price: 1095, currency: "EUR", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 21).toISOString(), price: 1110, currency: "EUR", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 1125, currency: "EUR", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 7).toISOString(), price: 1135, currency: "EUR", stockStatus: "in_stock" },
+        { date: new Date().toISOString(), price: 1141.67, currency: "EUR", stockStatus: "in_stock" },
+      ],
     },
     {
       distributorId: "interprojekt-pl",
@@ -44,7 +57,11 @@ const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       expectedDate: "Sept 15, 2026",
       url: "https://interprojekt.pl/en/p/mikrotik-crs804-4ddq-hrm.html",
       lastChecked: new Date().toISOString(),
-      priceHistory: [],
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 30).toISOString(), price: 890, currency: "EUR", stockStatus: "back_order" },
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 875, currency: "EUR", stockStatus: "back_order" },
+        { date: new Date().toISOString(), price: 860.54, currency: "EUR", stockStatus: "back_order" },
+      ],
     },
     {
       distributorId: "nasstore-eu",
@@ -55,7 +72,11 @@ const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       expectedDate: "Aug 13, 2026",
       url: "https://nasstore.eu/product/mikrotik-cloud-router-switch-crs804-4ddq-hrm/",
       lastChecked: new Date().toISOString(),
-      priceHistory: [],
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 21).toISOString(), price: 970, currency: "EUR", stockStatus: "back_order" },
+        { date: new Date(Date.now() - 86400000 * 7).toISOString(), price: 960, currency: "EUR", stockStatus: "back_order" },
+        { date: new Date().toISOString(), price: 956, currency: "EUR", stockStatus: "back_order" },
+      ],
     },
     {
       distributorId: "aerial-gr",
@@ -66,7 +87,10 @@ const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       expectedDate: "Sept 9, 2026",
       url: "https://aerial.net/shop/product/mikrotik-crs804-4ddq-hrm-cloud-router-switch-5671",
       lastChecked: new Date().toISOString(),
-      priceHistory: [],
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 965, currency: "EUR", stockStatus: "back_order" },
+        { date: new Date().toISOString(), price: 956.99, currency: "EUR", stockStatus: "back_order" },
+      ],
     },
     {
       distributorId: "linitx-uk",
@@ -77,7 +101,11 @@ const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       expectedDate: "Sept 18, 2026",
       url: "https://linitx.com/product/mikrotik-crs804-ddq-cloud-router-400gb-4-port-switch-crs804-4ddq-hrm/18455",
       lastChecked: new Date().toISOString(),
-      priceHistory: [],
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 30).toISOString(), price: 1180, currency: "GBP", stockStatus: "back_order" },
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 1160, currency: "GBP", stockStatus: "back_order" },
+        { date: new Date().toISOString(), price: 1139.99, currency: "GBP", stockStatus: "back_order" },
+      ],
     },
     {
       distributorId: "miro-za",
@@ -88,7 +116,11 @@ const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       expectedDate: "Aug 2026",
       url: "https://miro.co.za/07-networking-switches---managed-layer-3/8878-mikrotik-cloud-router-switch-crs804-4ddq-hrm-miro.html",
       lastChecked: new Date().toISOString(),
-      priceHistory: [],
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 21).toISOString(), price: 29500, currency: "ZAR", stockStatus: "back_order" },
+        { date: new Date(Date.now() - 86400000 * 7).toISOString(), price: 29900, currency: "ZAR", stockStatus: "back_order" },
+        { date: new Date().toISOString(), price: 30140, currency: "ZAR", stockStatus: "back_order" },
+      ],
     },
     {
       distributorId: "getic-gr",
@@ -98,7 +130,11 @@ const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       stockStatus: "out_of_stock",
       url: "https://www.getic.com/product/mikrotik-crs804-4ddq-hrm",
       lastChecked: new Date().toISOString(),
-      priceHistory: [],
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 30).toISOString(), price: 870, currency: "EUR", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 14).toISOString(), price: 875, currency: "EUR", stockStatus: "out_of_stock" },
+        { date: new Date().toISOString(), price: 877.64, currency: "EUR", stockStatus: "out_of_stock" },
+      ],
     },
     {
       distributorId: "duxtel-au",
@@ -108,7 +144,11 @@ const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       stockStatus: "out_of_stock",
       url: "https://store.duxtel.com.au/product/crs804-4ddq-hrm",
       lastChecked: new Date().toISOString(),
-      priceHistory: [],
+      priceHistory: [
+        { date: new Date(Date.now() - 86400000 * 21).toISOString(), price: 2350, currency: "AUD", stockStatus: "in_stock" },
+        { date: new Date(Date.now() - 86400000 * 7).toISOString(), price: 2310, currency: "AUD", stockStatus: "out_of_stock" },
+        { date: new Date().toISOString(), price: 2299, currency: "AUD", stockStatus: "out_of_stock" },
+      ],
     },
   ],
 };
@@ -224,6 +264,20 @@ export default function ProductDetailScreen() {
       // User cancelled share — no action needed
     }
   }, [product, sortedListings]);
+
+  const handleCopyLink = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const inStockListings = sortedListings.filter((l) => l.stockStatus === "in_stock");
+    const bestListing = inStockListings[0] ?? sortedListings[0];
+    const url = bestListing?.url ?? "";
+    if (!url) {
+      Alert.alert("No Link", "No distributor URL available to copy.");
+      return;
+    }
+    await Clipboard.setStringAsync(url);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert("Link Copied!", "The distributor URL has been copied to your clipboard.");
+  }, [sortedListings]);
 
   const handleTestStockNotification = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -362,6 +416,13 @@ export default function ProductDetailScreen() {
               <IconSymbol name="bell.badge.fill" size={16} color={colors.success} />
               <Text style={{ color: colors.success, fontWeight: "600", fontSize: 14 }}>Test Stock Alert</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleCopyLink}
+              style={{ backgroundColor: colors.surface, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, alignItems: "center", borderWidth: 1, borderColor: colors.border, flexDirection: "row", justifyContent: "center", gap: 6 }}
+            >
+              <IconSymbol name="doc.on.doc" size={16} color={colors.foreground} />
+              <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }}>Copy Link</Text>
+            </TouchableOpacity>
           </View>
           <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16, marginBottom: 12 }}>
             Distributor Prices
@@ -396,7 +457,11 @@ export default function ProductDetailScreen() {
                         <Text style={{ color: colors.muted, fontSize: 12 }}>≈ {formatPrice(usdPrice, "USD")}</Text>
                       )}
                     </View>
-                    <TouchableOpacity
+                    <View style={{ alignItems: "flex-end", gap: 4 }}>
+                      {listing.priceHistory && listing.priceHistory.length >= 2 && (
+                        <PriceSparkline data={listing.priceHistory} width={72} height={28} currency={listing.currency} />
+                      )}
+                      <TouchableOpacity
                       onPress={() => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         Linking.openURL(listing.url);
@@ -406,6 +471,7 @@ export default function ProductDetailScreen() {
                       <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>Visit</Text>
                       <IconSymbol name="arrow.up.right.square" size={14} color={colors.primary} />
                     </TouchableOpacity>
+                    </View>
                   </View>
                   {distributor?.paymentMethods && (
                     <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8 }}>
@@ -470,3 +536,4 @@ export default function ProductDetailScreen() {
   );
 }
 import { scheduleStockAlert } from "@/lib/notifications";
+import { PriceSparkline } from "@/components/price-sparkline";

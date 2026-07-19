@@ -60,3 +60,8 @@
 - [x] Wire live Alerts counter on Home dashboard (active & not triggered)
 - [x] Share button on Product Detail screen (native share sheet)
 - [x] Back In Stock test notification button on Product Detail screen
+
+## Phase 10: Feature Polish (User Requested)
+- [x] Expand product catalog with 5 more networking products and realistic listings with price history
+- [x] Price history sparkline on distributor cards using react-native-svg
+- [x] Copy Link clipboard fallback on Share handler (expo-clipboard, toast confirmation)

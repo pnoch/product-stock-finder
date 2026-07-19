@@ -59,6 +59,7 @@ const MAPPING = {
   "network": "hub",
   "cpu": "memory",
   "server.rack": "dns",
+  "doc.on.doc": "content-copy",
 } as IconMapping;
 
 /**
