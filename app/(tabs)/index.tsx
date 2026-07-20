@@ -7,6 +7,16 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useThemeContext } from "@/lib/theme-provider";
 import { getWatchlist, getAlerts } from "@/lib/storage";
+
+function getPriceDrop(listing: { price: number; priceHistory?: { price: number }[] }): number | null {
+  const h = listing.priceHistory;
+  if (!h || h.length < 2) return null;
+  const prev = h[h.length - 2].price;
+  const curr = listing.price;
+  if (prev <= 0) return null;
+  const pct = ((curr - prev) / prev) * 100;
+  return Math.abs(pct) >= 0.1 ? pct : null;
+}
 import { Product } from "@/lib/types";
 import { formatPrice, convertPrice, getBestPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -178,10 +188,24 @@ export default function HomeScreen() {
                   </View>
                   <StockBadge status={listing.stockStatus} expectedDate={listing.expectedDate} />
                 </View>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8 }}>
-                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 15 }}>
-                    {formatPrice(listing.price, listing.currency)}
-                  </Text>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 15 }}>
+                      {formatPrice(listing.price, listing.currency)}
+                    </Text>
+                    {(() => {
+                      const drop = getPriceDrop(listing);
+                      if (drop === null) return null;
+                      const isDown = drop < 0;
+                      return (
+                        <View style={{ backgroundColor: (isDown ? colors.success : colors.error) + "22", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
+                          <Text style={{ color: isDown ? colors.success : colors.error, fontSize: 11, fontWeight: "700" }}>
+                            {isDown ? "▼" : "▲"} {Math.abs(drop).toFixed(1)}%
+                          </Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
                   <Text style={{ color: colors.muted, fontSize: 11 }}>
                     {new Date(listing.lastChecked).toLocaleDateString()}
                   </Text>
@@ -232,4 +256,3 @@ export default function HomeScreen() {
     </ScreenContainer>
   );
 }
-<Text className="text-2xl font-bold text-foreground">Product Stock Finder</Text>

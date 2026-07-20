@@ -5,8 +5,9 @@ import { useFocusEffect } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { getAlerts, removeAlert, toggleAlert, getWatchlist, markAlertPurchased } from "@/lib/storage";
+import { getAlerts, removeAlert, toggleAlert, getWatchlist, markAlertPurchased, getDistributorWatches, toggleDistributorWatch } from "@/lib/storage";
 import { PriceAlert, Product } from "@/lib/types";
+import { getDistributorById } from "@/lib/distributors";
 import { formatPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
@@ -15,11 +16,14 @@ export default function AlertsScreen() {
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [watchedDistributors, setWatchedDistributors] = useState<Record<string, boolean>>({});
 
   const loadData = useCallback(async () => {
     const [a, p] = await Promise.all([getAlerts(), getWatchlist()]);
     setAlerts(a);
     setProducts(p);
+    const watches = await getDistributorWatches();
+    setWatchedDistributors(watches);
   }, []);
 
   useEffect(() => {
@@ -49,6 +53,16 @@ export default function AlertsScreen() {
     await markAlertPurchased(alertId);
     await loadData();
   }, [loadData]);
+
+  const handleRemoveDistributorWatch = useCallback(async (key: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const [productId, distributorId] = key.split("::");
+    await toggleDistributorWatch(productId, distributorId);
+    const watches = await getDistributorWatches();
+    setWatchedDistributors(watches);
+  }, []);
+
+  const activeWatches = Object.entries(watchedDistributors).filter(([, v]) => v);
 
   const getProductName = (productId: string) =>
     products.find((p) => p.id === productId)?.name ?? "Unknown Product";
@@ -91,8 +105,38 @@ export default function AlertsScreen() {
           </View>
         }
         ListFooterComponent={
-          triggeredAlerts.length > 0 ? (
+          (triggeredAlerts.length > 0 || activeWatches.length > 0) ? (
             <View style={{ marginTop: 8 }}>
+              {activeWatches.length > 0 && (
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>
+                    Watched Distributors
+                  </Text>
+                  {activeWatches.map(([key]) => {
+                    const [productId, distributorId] = key.split("::");
+                    const product = products.find((p) => p.id === productId);
+                    const distributor = getDistributorById(distributorId);
+                    return (
+                      <View key={key} style={{ backgroundColor: colors.surface, borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.primary + "44", flexDirection: "row", alignItems: "center" }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }} numberOfLines={1}>
+                            {distributor?.countryFlag} {distributor?.name ?? distributorId}
+                          </Text>
+                          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
+                            {product?.name ?? productId}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => handleRemoveDistributorWatch(key)}
+                          style={{ padding: 8, backgroundColor: colors.error + "22", borderRadius: 10 }}
+                        >
+                          <IconSymbol name="bell.slash.fill" size={16} color={colors.error} />
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
               <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>
                 History
               </Text>
