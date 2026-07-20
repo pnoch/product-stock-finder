@@ -1,10 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Product, PriceAlert, AppSettings, DistributorListing } from "./types";
+import { Product, PriceAlert, AppSettings, DistributorListing, BackOrderReminder } from "./types";
 
 const KEYS = {
   WATCHLIST: "watchlist_products",
   ALERTS: "price_alerts",
   SETTINGS: "app_settings",
+  REMINDERS: "back_order_reminders",
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -90,77 +91,6 @@ export async function toggleAlert(alertId: string): Promise<void> {
   await saveAlerts(updated);
 }
 
-export async function markAlertPurchased(alertId: string): Promise<void> {
-  const alerts = await getAlerts();
-  const updated = alerts.map((a) =>
-    a.id === alertId ? { ...a, purchasedAt: new Date().toISOString(), isActive: false } : a
-  );
-  await saveAlerts(updated);
-}
-
-// ─── Onboarding ───────────────────────────────────────────────────────────────
-
-export async function hasSeenOnboarding(): Promise<boolean> {
-  try {
-    const val = await AsyncStorage.getItem("onboarding_complete");
-    return val === "true";
-  } catch {
-    return false;
-  }
-}
-
-export async function markOnboardingComplete(): Promise<void> {
-  await AsyncStorage.setItem("onboarding_complete", "true");
-}
-
-// ─── Recently Viewed ──────────────────────────────────────────────────────────
-
-const RECENTLY_VIEWED_KEY = "recently_viewed";
-const MAX_RECENTLY_VIEWED = 5;
-
-export async function getRecentlyViewed(): Promise<string[]> {
-  try {
-    const raw = await AsyncStorage.getItem(RECENTLY_VIEWED_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-export async function addRecentlyViewed(productId: string): Promise<void> {
-  const list = await getRecentlyViewed();
-  const filtered = list.filter((id) => id !== productId);
-  filtered.unshift(productId);
-  await AsyncStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(filtered.slice(0, MAX_RECENTLY_VIEWED)));
-}
-
-// ─── Per-distributor stock watches ────────────────────────────────────────────
-
-const DISTRIBUTOR_WATCHES_KEY = "distributor_watches";
-
-export async function getDistributorWatches(): Promise<Record<string, boolean>> {
-  try {
-    const raw = await AsyncStorage.getItem(DISTRIBUTOR_WATCHES_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-export async function toggleDistributorWatch(productId: string, distributorId: string): Promise<boolean> {
-  const watches = await getDistributorWatches();
-  const key = `${productId}::${distributorId}`;
-  const next = !watches[key];
-  watches[key] = next;
-  await AsyncStorage.setItem(DISTRIBUTOR_WATCHES_KEY, JSON.stringify(watches));
-  return next;
-}
-
-export async function isDistributorWatched(productId: string, distributorId: string): Promise<boolean> {
-  const watches = await getDistributorWatches();
-  return !!watches[`${productId}::${distributorId}`];
-}
-
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 export async function getSettings(): Promise<AppSettings> {
@@ -176,74 +106,49 @@ export async function saveSettings(settings: AppSettings): Promise<void> {
   await AsyncStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
 }
 
-// ─── Product Notes ────────────────────────────────────────────────────────────
-
-export async function getProductNote(productId: string): Promise<string> {
-  try {
-    const raw = await AsyncStorage.getItem(`@product_note_${productId}`);
-    return raw ?? "";
-  } catch {
-    return "";
-  }
-}
-
-export async function saveProductNote(productId: string, note: string): Promise<void> {
-  try {
-    await AsyncStorage.setItem(`@product_note_${productId}`, note);
-  } catch {}
-}
-
-// ─── Clear All Data ───────────────────────────────────────────────────────────
-
-export async function clearAllData(): Promise<void> {
-  const keys = await AsyncStorage.getAllKeys();
-  const noteKeys = keys.filter((k) => k.startsWith("@product_note_"));
-  await AsyncStorage.multiRemove([
-    KEYS.WATCHLIST,
-    KEYS.ALERTS,
-    KEYS.SETTINGS,
-    "onboarding_complete",
-    RECENTLY_VIEWED_KEY,
-    DISTRIBUTOR_WATCHES_KEY,
-    "back_order_reminders",
-    ...noteKeys,
-  ]);
-}
-
 // ─── Back-Order Reminders ─────────────────────────────────────────────────────
-
-export interface BackOrderReminder {
-  productId: string;
-  distributorId: string;
-  productName: string;
-  distributorName: string;
-  reminderDate: string; // ISO string
-  notificationId?: string;
-}
-
-const REMINDERS_KEY = "back_order_reminders";
 
 export async function getBackOrderReminders(): Promise<BackOrderReminder[]> {
   try {
-    const raw = await AsyncStorage.getItem(REMINDERS_KEY);
+    const raw = await AsyncStorage.getItem(KEYS.REMINDERS);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 }
 
-export async function saveBackOrderReminder(reminder: BackOrderReminder): Promise<void> {
-  const existing = await getBackOrderReminders();
-  const filtered = existing.filter(
-    (r) => !(r.productId === reminder.productId && r.distributorId === reminder.distributorId)
-  );
-  await AsyncStorage.setItem(REMINDERS_KEY, JSON.stringify([...filtered, reminder]));
+export async function saveBackOrderReminders(reminders: BackOrderReminder[]): Promise<void> {
+  await AsyncStorage.setItem(KEYS.REMINDERS, JSON.stringify(reminders));
 }
 
-export async function removeBackOrderReminder(productId: string, distributorId: string): Promise<void> {
-  const existing = await getBackOrderReminders();
-  const filtered = existing.filter(
-    (r) => !(r.productId === productId && r.distributorId === distributorId)
-  );
-  await AsyncStorage.setItem(REMINDERS_KEY, JSON.stringify(filtered));
+export async function addBackOrderReminder(reminder: BackOrderReminder): Promise<void> {
+  const reminders = await getBackOrderReminders();
+  const existing = reminders.findIndex((r) => r.productId === reminder.productId && r.distributorId === reminder.distributorId);
+  if (existing >= 0) {
+    reminders[existing] = reminder; // update existing
+  } else {
+    reminders.unshift(reminder);
+  }
+  await saveBackOrderReminders(reminders);
+}
+
+export async function removeBackOrderReminder(reminderId: string): Promise<void> {
+  const reminders = await getBackOrderReminders();
+  await saveBackOrderReminders(reminders.filter((r) => r.id !== reminderId));
+}
+
+// ─── Clear All Data ───────────────────────────────────────────────────────────
+
+export async function clearAllData(): Promise<void> {
+  await AsyncStorage.multiRemove([
+    KEYS.WATCHLIST,
+    KEYS.ALERTS,
+    KEYS.SETTINGS,
+    KEYS.REMINDERS,
+    "recently_viewed",
+    "distributor_watches",
+    "triggered_alert_history",
+    "product_notes",
+    "has_seen_onboarding",
+  ]);
 }

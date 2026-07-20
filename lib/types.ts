@@ -41,7 +41,6 @@ export interface Product {
   addedAt: string; // ISO date string
   isWatched: boolean;
   listings: DistributorListing[];
-  note?: string;
 }
 
 export interface PriceAlert {
@@ -52,8 +51,18 @@ export interface PriceAlert {
   isActive: boolean;
   createdAt: string;
   triggeredAt?: string;
-  purchasedAt?: string;
   distributorId?: string; // optional: alert for specific distributor
+}
+
+export interface BackOrderReminder {
+  id: string;
+  productId: string;
+  productName: string;
+  distributorId: string;
+  distributorName: string;
+  reminderDate: string; // ISO date string
+  notificationId?: string; // expo-notifications identifier
+  createdAt: string;
 }
 
 export interface AppSettings {

@@ -1,22 +1,11 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ScrollView, Text, View, TouchableOpacity, RefreshControl, FlatList } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { useThemeContext } from "@/lib/theme-provider";
 import { getWatchlist, getAlerts } from "@/lib/storage";
-
-function getPriceDrop(listing: { price: number; priceHistory?: { price: number }[] }): number | null {
-  const h = listing.priceHistory;
-  if (!h || h.length < 2) return null;
-  const prev = h[h.length - 2].price;
-  const curr = listing.price;
-  if (prev <= 0) return null;
-  const pct = ((curr - prev) / prev) * 100;
-  return Math.abs(pct) >= 0.1 ? pct : null;
-}
 import { Product } from "@/lib/types";
 import { formatPrice, convertPrice, getBestPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -65,7 +54,6 @@ function SummaryCard({ label, value, color, icon }: { label: string; value: stri
 export default function HomeScreen() {
   const router = useRouter();
   const colors = useColors();
-  const { colorScheme, setColorScheme } = useThemeContext();
   const [watchlist, setWatchlist] = useState<Product[]>([]);
   const [alertCount, setAlertCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -124,20 +112,10 @@ export default function HomeScreen() {
         {/* Header */}
         <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
           <View>
-            <Text className="text-2xl font-bold text-foreground">Product Stock Finder</Text>
-            <Text className="text-muted text-sm">Find it. Track it. Get notified.</Text>
+            <Text className="text-2xl font-bold text-foreground">Stock Tracker</Text>
+            <Text className="text-muted text-sm">Global availability monitor</Text>
           </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <TouchableOpacity
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setColorScheme(colorScheme === "dark" ? "light" : "dark");
-              }}
-              style={{ backgroundColor: colors.surface, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.border }}
-            >
-              <Text style={{ fontSize: 18 }}>{colorScheme === "dark" ? "☀️" : "🌙"}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+          <TouchableOpacity
             style={{ backgroundColor: colors.primary, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -145,8 +123,7 @@ export default function HomeScreen() {
             }}
           >
             <IconSymbol name="plus" size={22} color="#fff" />
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Summary Cards */}
@@ -188,24 +165,10 @@ export default function HomeScreen() {
                   </View>
                   <StockBadge status={listing.stockStatus} expectedDate={listing.expectedDate} />
                 </View>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                    <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 15 }}>
-                      {formatPrice(listing.price, listing.currency)}
-                    </Text>
-                    {(() => {
-                      const drop = getPriceDrop(listing);
-                      if (drop === null) return null;
-                      const isDown = drop < 0;
-                      return (
-                        <View style={{ backgroundColor: (isDown ? colors.success : colors.error) + "22", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
-                          <Text style={{ color: isDown ? colors.success : colors.error, fontSize: 11, fontWeight: "700" }}>
-                            {isDown ? "▼" : "▲"} {Math.abs(drop).toFixed(1)}%
-                          </Text>
-                        </View>
-                      );
-                    })()}
-                  </View>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8 }}>
+                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 15 }}>
+                    {formatPrice(listing.price, listing.currency)}
+                  </Text>
                   <Text style={{ color: colors.muted, fontSize: 11 }}>
                     {new Date(listing.lastChecked).toLocaleDateString()}
                   </Text>

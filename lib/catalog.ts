@@ -1,14 +1,5 @@
 import { Product } from "./types";
 
-// Products with a catalogAddedAt date are considered "new" (added within the last 7 days in the catalog)
-export const CATALOG_ADDED_AT: Record<string, string> = {
-  "ubiquiti-udm-pro": "2026-07-18T00:00:00.000Z",
-  "ubiquiti-usw-pro-48": "2026-07-18T00:00:00.000Z",
-  "intel-x710-da2": "2026-07-18T00:00:00.000Z",
-  "mellanox-cx6": "2026-07-18T00:00:00.000Z",
-  "cisco-c9300-48p": "2026-07-18T00:00:00.000Z",
-};
-
 export const PRODUCT_CATALOG: Omit<Product, "addedAt" | "isWatched" | "listings">[] = [
   {
     id: "mikrotik-crs804-4ddq-hrm",

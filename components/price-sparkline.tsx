@@ -37,8 +37,7 @@ export function PriceSparkline({ data, width = 80, height = 32, currency }: Pric
     const last = coords[coords.length - 1];
     const first = coords[0];
     const trend = last.price >= first.price ? "up" : "down";
-    const pctChange = ((last.price - first.price) / first.price) * 100;
-    return { coords, polylineStr, last, trend, pctChange };
+    return { coords, polylineStr, last, trend };
   }, [data, width, height]);
 
   if (!points) return null;
@@ -65,7 +64,7 @@ export function PriceSparkline({ data, width = 80, height = 32, currency }: Pric
       </Svg>
       {currency && (
         <Text style={{ color: lineColor, fontSize: 9, fontWeight: "600", opacity: 0.8 }}>
-          {points.trend === "up" ? "▲" : "▼"} {Math.abs(points.pctChange).toFixed(1)}%
+          {points.trend === "up" ? "▲" : "▼"} {currency}
         </Text>
       )}
     </View>

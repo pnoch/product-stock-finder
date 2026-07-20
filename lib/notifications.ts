@@ -114,7 +114,7 @@ export async function sendTestNotification(): Promise<boolean> {
   }
 }
 
-// ─── Schedule a date-based back-order reminder ────────────────────────────────
+// ─── Schedule a back-order reminder notification ──────────────────────────────
 export async function scheduleBackOrderReminder(
   productName: string,
   distributorName: string,
@@ -122,16 +122,19 @@ export async function scheduleBackOrderReminder(
 ): Promise<string | null> {
   if (Platform.OS === "web") return null;
   try {
-    const { status } = await Notifications.getPermissionsAsync();
-    if (status !== "granted") return null;
+    const granted = await requestNotificationPermissions();
+    if (!granted) return null;
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "📦 Back Order Reminder",
-        body: `Check ${productName} at ${distributorName} — your reminder date has arrived.`,
+        title: "📦 Back-Order Reminder",
+        body: `Check ${distributorName} for ${productName} — your reminder date is here!`,
+        data: { type: "back_order_reminder", productName, distributorName },
         sound: "default",
-        data: { type: "back_order_reminder" },
       },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: reminderDate },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: reminderDate,
+      },
     });
     return id;
   } catch {
@@ -139,8 +142,12 @@ export async function scheduleBackOrderReminder(
   }
 }
 
+// ─── Cancel a scheduled notification ─────────────────────────────────────────
 export async function cancelNotification(notificationId: string): Promise<void> {
+  if (Platform.OS === "web") return;
   try {
     await Notifications.cancelScheduledNotificationAsync(notificationId);
-  } catch {}
+  } catch {
+    // ignore
+  }
 }

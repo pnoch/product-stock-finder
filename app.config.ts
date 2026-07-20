@@ -28,9 +28,9 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "Product Stock Finder",
+  appName: "Stock Tracker Pro",
   appSlug: "stock-tracker-pro",
-  logoUrl: "https://8081-ib0hcfp597ouinbt9u4x1-e83f862e.sg1.manus.computer/manus-storage/icon_v4a_6836f8f6.png",
+  logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/113777709/LQQHlfCzGHTyzqJJ.png",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
@@ -84,14 +84,6 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
-    [
-      "expo-camera",
-      {
-        "cameraPermission": "Allow $(PRODUCT_NAME) to scan barcodes.",
-        "microphonePermission": false,
-        "recordAudioAndroid": false
-      }
-    ],
     [
       "expo-audio",
       {

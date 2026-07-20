@@ -10,10 +10,9 @@ import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import "@/lib/notifications"; // registers setNotificationHandler at module level
 import { requestNotificationPermissions, setupAndroidNotificationChannel } from "@/lib/notifications";
-import { getWatchlist, addToWatchlist, updateProductListings, hasSeenOnboarding } from "@/lib/storage";
+import { getWatchlist, addToWatchlist, updateProductListings } from "@/lib/storage";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
 import { DistributorListing } from "@/lib/types";
-import { useRouter } from "expo-router";
 
 // CRS804 listings seeded at first launch so Home/Watchlist badges show real status immediately
 const CRS804_SEED_LISTINGS: DistributorListing[] = [
@@ -51,7 +50,6 @@ export default function RootLayout() {
 
   const [insets, setInsets] = useState<EdgeInsets>(initialInsets);
   const [frame, setFrame] = useState<Rect>(initialFrame);
-  const router = useRouter();
 
   // Initialize Manus runtime for cookie injection from parent container
   useEffect(() => {
@@ -69,11 +67,6 @@ export default function RootLayout() {
   // Seed CRS804 into watchlist on first launch if watchlist is empty
   useEffect(() => {
     async function seedCRS804() {
-      // Check onboarding first
-      const seen = await hasSeenOnboarding();
-      if (!seen && Platform.OS !== "web") {
-        router.replace("/onboarding" as any);
-      }
       const watchlist = await getWatchlist();
       const existing = watchlist.find((p) => p.id === "mikrotik-crs804-4ddq-hrm");
       if (existing) {
@@ -146,8 +139,6 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="oauth/callback" />
-            <Stack.Screen name="onboarding" />
-            <Stack.Screen name="compare" />
           </Stack>
           <StatusBar style="auto" />
         </QueryClientProvider>

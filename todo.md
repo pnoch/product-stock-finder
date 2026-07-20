@@ -66,7 +66,10 @@
 - [x] Price history sparkline on distributor cards using react-native-svg
 - [x] Copy Link clipboard fallback on Share handler (expo-clipboard, toast confirmation)
 
-## Phase 11: Feature Polish (User Requested)
-- [x] Seed listings for 5 new catalog products (UDM-Pro, USW-Pro-48, X710-DA2, ConnectX-6, M4350-24X4V)
-- [x] Price drop % badge on sparklines (shows ▲/▼ X.X% trend)
-- [x] Swipe-to-delete on Watchlist cards (Swipeable with red trash action + haptic)
+## Phase 11: v2.5 Features (User Requested)
+- [x] Reminders tab on Alerts screen — tab switcher (Alerts / Reminders), list active back-order reminders with product name, distributor, date, past-due badge, cancel with confirmation dialog
+- [x] BackOrderReminder type in types.ts, getBackOrderReminders / addBackOrderReminder / removeBackOrderReminder / clearAllData helpers in storage.ts
+- [x] scheduleBackOrderReminder and cancelNotification helpers in notifications.ts
+- [x] Best Distributor highlight card on Product Detail — crown badge "BEST PRICE", cheapest in-stock distributor pinned above full list with Buy Now CTA
+- [x] Sort bar on Watchlist with haptic feedback — Recent / Best Price / A–Z chips with light haptic on tap
+- [x] calendar and crown.fill icon mappings added to icon-symbol.tsx

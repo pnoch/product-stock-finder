@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, View, TouchableOpacity, Switch, Linking, Alert, Share } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Switch, Linking, Alert } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { getSettings, saveSettings, getWatchlist } from "@/lib/storage";
+import { getSettings, saveSettings } from "@/lib/storage";
 import { AppSettings } from "@/lib/types";
-import { clearAllData } from "@/lib/storage";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { sendTestNotification } from "@/lib/notifications";
 
@@ -45,50 +44,6 @@ export default function SettingsScreen() {
     stockAlerts: true,
     priceAlerts: true,
   });
-
-  const handleClearAllData = useCallback(async () => {
-    Alert.alert(
-      "Clear All Data",
-      "This will permanently delete your watchlist, alerts, notes, and all app data. This cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Clear Everything",
-          style: "destructive",
-          onPress: async () => {
-            await clearAllData();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            Alert.alert("Done", "All data has been cleared. Restart the app to see changes.");
-          },
-        },
-      ]
-    );
-  }, []);
-
-  const handleExportWatchlist = useCallback(async () => {
-    try {
-      const watchlist = await getWatchlist();
-      if (watchlist.length === 0) {
-        Alert.alert("Empty Watchlist", "Add some products to your watchlist first.");
-        return;
-      }
-      const lines = watchlist.map((p) => {
-        const bestListing = [...(p.listings ?? [])].sort((a, b) => {
-          if (a.stockStatus === "in_stock" && b.stockStatus !== "in_stock") return -1;
-          if (b.stockStatus === "in_stock" && a.stockStatus !== "in_stock") return 1;
-          return a.price - b.price;
-        })[0];
-        const status = bestListing?.stockStatus === "in_stock" ? "In Stock" : bestListing?.stockStatus === "back_order" ? "Back Order" : "Out of Stock";
-        const price = bestListing ? `${bestListing.currency} ${bestListing.price.toFixed(2)}` : "N/A";
-        return `${p.name} | ${p.modelNumber} | ${status} | Best: ${price}`;
-      });
-      const text = `Product Stock Finder — Watchlist Export\n${new Date().toLocaleDateString()}\n\n${lines.join("\n")}`;
-      await Share.share({ message: text, title: "Watchlist Export" });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch {
-      Alert.alert("Export Failed", "Could not export watchlist.");
-    }
-  }, []);
 
   useEffect(() => {
     getSettings().then(setSettings);
@@ -225,38 +180,12 @@ export default function SettingsScreen() {
           ))}
         </View>
 
-        <SectionHeader title="Data" />
-        <View style={{ backgroundColor: colors.surface, borderRadius: 16, marginHorizontal: 16, borderWidth: 1, borderColor: colors.border, overflow: "hidden", marginBottom: 8 }}>
-          <TouchableOpacity onPress={handleExportWatchlist}>
-            <SettingRow
-              icon="square.and.arrow.up"
-              label="Export Watchlist"
-              description="Share as plain text via system share sheet"
-              right={<IconSymbol name="chevron.right" size={16} color={colors.muted} />}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <SectionHeader title="Danger Zone" />
-        <View style={{ backgroundColor: colors.error + "11", borderRadius: 16, marginHorizontal: 16, borderWidth: 1, borderColor: colors.error + "44", overflow: "hidden", marginBottom: 8 }}>
-          <TouchableOpacity onPress={handleClearAllData} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16 }}>
-            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: colors.error + "22", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
-              <IconSymbol name="trash.fill" size={18} color={colors.error} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.error, fontWeight: "600", fontSize: 15 }}>Clear All Data</Text>
-              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>Delete watchlist, alerts, notes and history</Text>
-            </View>
-            <IconSymbol name="chevron.right" size={16} color={colors.error} />
-          </TouchableOpacity>
-        </View>
-
         <SectionHeader title="About" />
         <View style={{ backgroundColor: colors.surface, borderRadius: 16, marginHorizontal: 16, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
           <SettingRow
             icon="info.circle.fill"
             label="Version"
-            description="Product Stock Finder"
+            description="Stock Tracker Pro"
             right={<Text style={{ color: colors.muted, fontSize: 14 }}>1.0.0</Text>}
           />
           <TouchableOpacity onPress={() => Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")}>
@@ -276,7 +205,7 @@ export default function SettingsScreen() {
         </View>
 
         <View style={{ alignItems: "center", marginTop: 32 }}>
-          <Text style={{ color: colors.muted, fontSize: 12 }}>Product Stock Finder · v1.0.0</Text>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>Stock Tracker Pro · v1.0.0</Text>
           <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>Track smarter. Buy better.</Text>
         </View>
       </ScrollView>
