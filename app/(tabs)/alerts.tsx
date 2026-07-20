@@ -5,7 +5,7 @@ import { useFocusEffect } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { getAlerts, removeAlert, toggleAlert, getWatchlist } from "@/lib/storage";
+import { getAlerts, removeAlert, toggleAlert, getWatchlist, markAlertPurchased } from "@/lib/storage";
 import { PriceAlert, Product } from "@/lib/types";
 import { formatPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -44,11 +44,18 @@ export default function AlertsScreen() {
     await loadData();
   }, [loadData]);
 
+  const handleMarkPurchased = useCallback(async (alertId: string) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await markAlertPurchased(alertId);
+    await loadData();
+  }, [loadData]);
+
   const getProductName = (productId: string) =>
     products.find((p) => p.id === productId)?.name ?? "Unknown Product";
 
   const activeAlerts = alerts.filter((a) => a.isActive && !a.triggeredAt);
-  const triggeredAlerts = alerts.filter((a) => a.triggeredAt);
+  const triggeredAlerts = alerts.filter((a) => a.triggeredAt && !a.purchasedAt);
+  const purchasedAlerts = alerts.filter((a) => a.purchasedAt);
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
@@ -116,8 +123,43 @@ export default function AlertsScreen() {
                       <IconSymbol name="trash.fill" size={16} color={colors.error} />
                     </TouchableOpacity>
                   </View>
+                  {/* Mark as Purchased button */}
+                  <TouchableOpacity
+                    onPress={() => handleMarkPurchased(item.id)}
+                    style={{ marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: colors.success + "22", borderRadius: 10, paddingVertical: 8 }}
+                  >
+                    <IconSymbol name="checkmark.circle.fill" size={16} color={colors.success} />
+                    <Text style={{ color: colors.success, fontWeight: "600", fontSize: 13 }}>Mark as Purchased</Text>
+                  </TouchableOpacity>
                 </View>
               ))}
+              {purchasedAlerts.length > 0 && (
+                <View style={{ marginTop: 16 }}>
+                  <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>
+                    Purchased
+                  </Text>
+                  {purchasedAlerts.map((item) => (
+                    <View
+                      key={item.id}
+                      style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border, opacity: 0.7 }}
+                    >
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                        <View style={{ flex: 1, marginRight: 10 }}>
+                          <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }} numberOfLines={1}>
+                            {getProductName(item.productId)}
+                          </Text>
+                          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 3 }}>
+                            Target: {formatPrice(item.targetPrice, item.currency)} · Purchased {new Date(item.purchasedAt!).toLocaleDateString()}
+                          </Text>
+                        </View>
+                        <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ padding: 4 }}>
+                          <IconSymbol name="trash.fill" size={14} color={colors.muted} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
           ) : null
         }

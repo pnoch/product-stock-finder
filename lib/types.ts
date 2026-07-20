@@ -51,6 +51,7 @@ export interface PriceAlert {
   isActive: boolean;
   createdAt: string;
   triggeredAt?: string;
+  purchasedAt?: string;
   distributorId?: string; // optional: alert for specific distributor
 }
 

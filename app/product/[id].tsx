@@ -6,6 +6,7 @@ import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { LinearGradient } from "expo-linear-gradient";
 import { getWatchlist, updateProductListings, addAlert } from "@/lib/storage";
 import { Product, DistributorListing, PriceAlert } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
@@ -536,15 +537,52 @@ export default function ProductDetailScreen() {
     <ScreenContainer>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Header */}
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, gap: 12 }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
-            <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "700" }} numberOfLines={2}>{product.name}</Text>
-            <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}>{product.modelNumber}</Text>
-          </View>
-        </View>
+        {/* Hero Banner */}
+        {(() => {
+          const brandColors: Record<string, [string, string]> = {
+            MikroTik: ["#0a7ea4", "#005f7a"],
+            Ubiquiti: ["#0559C9", "#033a8a"],
+            Intel: ["#0071C5", "#004a82"],
+            Cisco: ["#1BA0D7", "#0d6e94"],
+            Juniper: ["#84BD00", "#5a8200"],
+            "Aruba (HPE)": ["#00B388", "#007a5e"],
+            NETGEAR: ["#E31837", "#a01025"],
+            "NVIDIA/Mellanox": ["#76B900", "#4d7a00"],
+          };
+          const [c1, c2] = brandColors[product.brand] ?? ["#334155", "#1e293b"];
+          const categoryIcon: Record<string, string> = {
+            "Networking Switch": "network",
+            Router: "wifi",
+            "Network Gateway": "lock.shield.fill",
+            "Network Card": "cpu",
+          };
+          const icon = categoryIcon[product.category] ?? "server.rack";
+          return (
+            <LinearGradient
+              colors={[c1, c2]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ height: 140, justifyContent: "flex-end", paddingHorizontal: 16, paddingBottom: 16 }}
+            >
+              {/* Back button overlay */}
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={{ position: "absolute", top: 12, left: 12, backgroundColor: "rgba(0,0,0,0.25)", borderRadius: 20, padding: 8 }}
+              >
+                <IconSymbol name="arrow.left" size={20} color="#fff" />
+              </TouchableOpacity>
+              {/* Category icon */}
+              <View style={{ position: "absolute", top: 12, right: 16, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 16, padding: 10 }}>
+                <IconSymbol name={icon as any} size={28} color="rgba(255,255,255,0.9)" />
+              </View>
+              {/* Title */}
+              <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800", textShadowColor: "rgba(0,0,0,0.3)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }} numberOfLines={2}>
+                {product.name}
+              </Text>
+              <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, marginTop: 2 }}>{product.modelNumber}</Text>
+            </LinearGradient>
+          );
+        })()}
 
         {/* Product Info Card */}
         <View style={{ marginHorizontal: 16, backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>

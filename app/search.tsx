@@ -9,14 +9,21 @@ import { searchCatalog, PRODUCT_CATALOG } from "@/lib/catalog";
 import { addToWatchlist } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { ScrollView } from "react-native";
 
 export default function SearchScreen() {
   const router = useRouter();
   const colors = useColors();
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  const results = query.trim().length > 0 ? searchCatalog(query) : PRODUCT_CATALOG;
+  const CATEGORIES = ["All", ...Array.from(new Set(PRODUCT_CATALOG.map((p) => p.category))).sort()];
+
+  const baseResults = query.trim().length > 0 ? searchCatalog(query) : PRODUCT_CATALOG;
+  const results = activeCategory && activeCategory !== "All"
+    ? baseResults.filter((p) => p.category === activeCategory)
+    : baseResults;
 
   const handleAdd = useCallback(async (item: typeof PRODUCT_CATALOG[0]) => {
     setAdding(item.id);
@@ -60,6 +67,38 @@ export default function SearchScreen() {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Category Filter Chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 12, gap: 8, flexDirection: "row" }}
+      >
+        {CATEGORIES.map((cat) => {
+          const isActive = (activeCategory === null && cat === "All") || activeCategory === cat;
+          return (
+            <TouchableOpacity
+              key={cat}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setActiveCategory(cat === "All" ? null : cat);
+              }}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                borderRadius: 20,
+                backgroundColor: isActive ? colors.primary : colors.surface,
+                borderWidth: 1,
+                borderColor: isActive ? colors.primary : colors.border,
+              }}
+            >
+              <Text style={{ color: isActive ? "#fff" : colors.foreground, fontSize: 13, fontWeight: "600" }}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
       {/* Results */}
       <FlatList

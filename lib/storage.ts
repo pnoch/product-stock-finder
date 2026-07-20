@@ -90,6 +90,14 @@ export async function toggleAlert(alertId: string): Promise<void> {
   await saveAlerts(updated);
 }
 
+export async function markAlertPurchased(alertId: string): Promise<void> {
+  const alerts = await getAlerts();
+  const updated = alerts.map((a) =>
+    a.id === alertId ? { ...a, purchasedAt: new Date().toISOString(), isActive: false } : a
+  );
+  await saveAlerts(updated);
+}
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 export async function getSettings(): Promise<AppSettings> {
