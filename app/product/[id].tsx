@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import * as Clipboard from "expo-clipboard";
-import { ScrollView, Text, View, TouchableOpacity, Alert, TextInput, Modal, Linking, ActivityIndicator, Share, Platform } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Alert, TextInput, Modal, Linking, ActivityIndicator, Share, Platform, Dimensions } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import { useMemo } from "react";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -20,7 +21,7 @@ import { cancelNotification } from "@/lib/notifications";
 import { PriceSparkline } from "@/components/price-sparkline";
 
 // ─── Best Distributor Highlight Card ─────────────────────────────────────────
-function BestDistributorCard({ listing }: { listing: DistributorListing }) {
+function BestDistributorCard({ listing, onSetAlert, product: prod }: { listing: DistributorListing; onSetAlert: () => void; product: { name: string } | null }) {
   const colors = useColors();
   const distributor = getDistributorById(listing.distributorId);
   const usdPrice = convertPrice(listing.price, listing.currency, "USD");
@@ -130,6 +131,32 @@ function BestDistributorCard({ listing }: { listing: DistributorListing }) {
           💳 {distributor.paymentMethods.join(" · ")}
         </Text>
       )}
+      {/* Quick-set price alert row */}
+      {(() => {
+        const suggestedPrice = Math.round(listing.price * 0.95 * 100) / 100;
+        return (
+          <TouchableOpacity
+            onPress={onSetAlert}
+            style={{
+              marginTop: 10,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              backgroundColor: colors.primary + "12",
+              borderRadius: 12,
+              paddingVertical: 9,
+              borderWidth: 1,
+              borderColor: colors.primary + "44",
+            }}
+          >
+            <IconSymbol name="bell.fill" size={14} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
+              Set Alert at {formatPrice(suggestedPrice, listing.currency)} (−5%)
+            </Text>
+          </TouchableOpacity>
+        );
+      })()}
     </View>
   );
 }
@@ -331,6 +358,11 @@ export default function ProductDetailScreen() {
 
   // Back-in-stock watch state
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
+
+  // Price history chart modal state
+  const [chartListing, setChartListing] = useState<DistributorListing | null>(null);
+  const chartWidth = Dimensions.get("window").width - 48;
+  const chartHeight = 200;
 
   const bestInStockListing = (() => {
     const inStock = listings.filter((l) => l.stockStatus === "in_stock");
@@ -693,7 +725,28 @@ export default function ProductDetailScreen() {
           ) : (
             <>
               {bestInStockListing && (
-                <BestDistributorCard listing={bestInStockListing} />
+                <BestDistributorCard
+                  listing={bestInStockListing}
+                  product={product}
+                  onSetAlert={async () => {
+                    if (!product) return;
+                    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    const suggestedPrice = Math.round(bestInStockListing.price * 0.95 * 100) / 100;
+                    const newAlert: PriceAlert = {
+                      id: `alert-${Date.now()}`,
+                      productId: bestInStockListing.productId,
+                      targetPrice: suggestedPrice,
+                      currency: bestInStockListing.currency,
+                      isActive: true,
+                      createdAt: new Date().toISOString(),
+                    };
+                    await addAlert(newAlert);
+                    await requestNotificationPermissions();
+                    await schedulePriceAlert(product.name, suggestedPrice, bestInStockListing.currency);
+                    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    Alert.alert("Alert Set ✅", `You'll be notified when the price drops below ${formatPrice(suggestedPrice, bestInStockListing.currency)} (5% off current).`);
+                  }}
+                />
               )}
               {bestInStockListing && (
                 <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600", marginBottom: 10, marginTop: 4, letterSpacing: 0.5 }}>
@@ -727,7 +780,15 @@ export default function ProductDetailScreen() {
                     </View>
                     <View style={{ alignItems: "flex-end", gap: 4 }}>
                       {listing.priceHistory && listing.priceHistory.length >= 2 && (
-                       <PriceSparkline data={listing.priceHistory} width={72} height={28} currency={listing.currency} />
+                       <TouchableOpacity
+                         onPress={() => {
+                           if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                           setChartListing(listing);
+                         }}
+                         activeOpacity={0.7}
+                       >
+                         <PriceSparkline data={listing.priceHistory} width={72} height={28} currency={listing.currency} />
+                       </TouchableOpacity>
                      )}
                      <TouchableOpacity
                      onPress={() => {
@@ -846,6 +907,62 @@ export default function ProductDetailScreen() {
         </View>
       </Modal>
 
+      {/* Price History Chart Modal */}
+      <Modal visible={!!chartListing} transparent animationType="slide" onRequestClose={() => setChartListing(null)}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.55)" }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "700" }}>Price History 📈</Text>
+              <TouchableOpacity onPress={() => setChartListing(null)} style={{ padding: 4 }}>
+                <IconSymbol name="xmark.circle.fill" size={24} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            {chartListing && (
+              <>
+                <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 16 }}>
+                  {getDistributorById(chartListing.distributorId)?.name ?? chartListing.distributorId} · {chartListing.currency}
+                </Text>
+                {chartListing.priceHistory && chartListing.priceHistory.length >= 2 ? (
+                  <PriceHistoryChart
+                    data={chartListing.priceHistory}
+                    currency={chartListing.currency}
+                    width={chartWidth}
+                    height={chartHeight}
+                  />
+                ) : (
+                  <View style={{ height: 120, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ color: colors.muted, fontSize: 14 }}>Not enough data to display chart.</Text>
+                  </View>
+                )}
+                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 16 }}>
+                  <View>
+                    <Text style={{ color: colors.muted, fontSize: 11 }}>Current Price</Text>
+                    <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 16 }}>
+                      {formatPrice(chartListing.price, chartListing.currency)}
+                    </Text>
+                  </View>
+                  {chartListing.priceHistory && chartListing.priceHistory.length >= 2 && (() => {
+                    const sorted = [...chartListing.priceHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                    const oldest = sorted[0].price;
+                    const current = sorted[sorted.length - 1].price;
+                    const pct = Math.abs(Math.round(((current - oldest) / oldest) * 100));
+                    const dir = current < oldest ? "down" : current > oldest ? "up" : "flat";
+                    return (
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={{ color: colors.muted, fontSize: 11 }}>vs. oldest recorded</Text>
+                        <Text style={{ color: dir === "down" ? colors.success : dir === "up" ? colors.error : colors.muted, fontWeight: "700", fontSize: 16 }}>
+                          {dir === "down" ? "▼" : dir === "up" ? "▲" : "—"} {pct}%
+                        </Text>
+                      </View>
+                    );
+                  })()}
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
       {/* Price Alert Modal */}
       <Modal visible={alertModalVisible} transparent animationType="slide">
         <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
@@ -891,5 +1008,74 @@ export default function ProductDetailScreen() {
         </View>
       </Modal>
     </ScreenContainer>
+  );
+}
+import Svg, { Polyline, Circle, Line, Text as SvgText, Rect } from "react-native-svg";
+import { PricePoint } from "@/lib/types";
+
+// ─── Full-Screen Price History Chart ─────────────────────────────────────────
+function PriceHistoryChart({ data, currency, width, height }: { data: PricePoint[]; currency: string; width: number; height: number }) {
+  const colors = useColors();
+  const points = useMemo(() => {
+    if (!data || data.length < 2) return null;
+    const sorted = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const prices = sorted.map((p) => p.price);
+    const minP = Math.min(...prices);
+    const maxP = Math.max(...prices);
+    const range = maxP - minP || 1;
+    const padL = 52, padR = 16, padT = 24, padB = 44;
+    const usableW = width - padL - padR;
+    const usableH = height - padT - padB;
+    const coords = sorted.map((p, i) => {
+      const x = padL + (i / (sorted.length - 1)) * usableW;
+      const y = padT + (1 - (p.price - minP) / range) * usableH;
+      return { x, y, price: p.price, date: p.date };
+    });
+    const polylineStr = coords.map((c) => `${c.x},${c.y}`).join(" ");
+    const trend = coords[coords.length - 1].price >= coords[0].price ? "up" : "down";
+    return { coords, polylineStr, trend, minP, maxP, padL, padT, padB, usableH };
+  }, [data, width, height]);
+
+  if (!points) return null;
+
+  const lineColor = points.trend === "up" ? colors.success : colors.error;
+  const { coords, polylineStr, minP, maxP, padL, padT, padB, usableH } = points;
+  const midP = (minP + maxP) / 2;
+  const midY = padT + usableH / 2;
+  const minY = padT + usableH;
+  const maxY = padT;
+
+  return (
+    <Svg width={width} height={height}>
+      {[maxY, midY, minY].map((y, i) => (
+        <Line key={i} x1={padL} y1={y} x2={width - 16} y2={y} stroke={colors.border} strokeWidth={0.5} strokeDasharray="4,4" />
+      ))}
+      <SvgText x={padL - 6} y={maxY + 4} fontSize={10} fill={colors.muted} textAnchor="end">{maxP.toFixed(0)}</SvgText>
+      <SvgText x={padL - 6} y={midY + 4} fontSize={10} fill={colors.muted} textAnchor="end">{midP.toFixed(0)}</SvgText>
+      <SvgText x={padL - 6} y={minY + 4} fontSize={10} fill={colors.muted} textAnchor="end">{minP.toFixed(0)}</SvgText>
+      <Polyline points={polylineStr} fill="none" stroke={lineColor} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      {coords.map((c, i) => (
+        <Circle key={i} cx={c.x} cy={c.y} r={3} fill={lineColor} />
+      ))}
+      {[0, Math.floor((coords.length - 1) / 2), coords.length - 1].map((idx) => {
+        const c = coords[idx];
+        const label = new Date(c.date).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        return (
+          <SvgText key={idx} x={c.x} y={height - padB + 16} fontSize={10} fill={colors.muted} textAnchor="middle">{label}</SvgText>
+        );
+      })}
+      {(() => {
+        const minCoord = coords.reduce((a, b) => b.price < a.price ? b : a);
+        const maxCoord = coords.reduce((a, b) => b.price > a.price ? b : a);
+        return (
+          <>
+            <Rect x={minCoord.x - 22} y={minCoord.y - 16} width={44} height={14} rx={4} fill={colors.error + "33"} />
+            <SvgText x={minCoord.x} y={minCoord.y - 5} fontSize={9} fill={colors.error} textAnchor="middle" fontWeight="700">LOW {minP.toFixed(0)}</SvgText>
+            <Rect x={maxCoord.x - 24} y={maxCoord.y + 4} width={48} height={14} rx={4} fill={colors.success + "33"} />
+            <SvgText x={maxCoord.x} y={maxCoord.y + 14} fontSize={9} fill={colors.success} textAnchor="middle" fontWeight="700">HIGH {maxP.toFixed(0)}</SvgText>
+          </>
+        );
+      })()}
+    </Svg>
   );
 }

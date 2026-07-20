@@ -12,6 +12,8 @@ import {
   getBackOrderReminders,
   removeBackOrderReminder,
   addBackOrderReminder,
+  getStockWatches,
+  removeStockWatch,
 } from "@/lib/storage";
 import { PriceAlert, Product, BackOrderReminder } from "@/lib/types";
 import { formatPrice } from "@/lib/currency";
@@ -26,6 +28,7 @@ export default function AlertsScreen() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("alerts");
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [reminders, setReminders] = useState<BackOrderReminder[]>([]);
+  const [stockWatches, setStockWatches] = useState<BackOrderReminder[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -35,10 +38,16 @@ export default function AlertsScreen() {
   const [showReschedulePicker, setShowReschedulePicker] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [a, p, r] = await Promise.all([getAlerts(), getWatchlist(), getBackOrderReminders()]);
+    const [a, p, r, w] = await Promise.all([
+      getAlerts(),
+      getWatchlist(),
+      getBackOrderReminders(),
+      getStockWatches(),
+    ]);
     setAlerts(a);
     setProducts(p);
     setReminders(r);
+    setStockWatches(w);
   }, []);
 
   useEffect(() => {
@@ -85,20 +94,36 @@ export default function AlertsScreen() {
     );
   }, [loadData]);
 
+  const handleRemoveStockWatch = useCallback(async (watch: BackOrderReminder) => {
+    Alert.alert(
+      "Remove Watch",
+      `Stop watching ${watch.distributorName} for ${watch.productName}?`,
+      [
+        { text: "Keep", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            await removeStockWatch(watch.id);
+            await loadData();
+          },
+        },
+      ]
+    );
+  }, [loadData]);
+
   const handleReschedule = useCallback(async () => {
     if (!rescheduleTarget) return;
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Cancel old notification
     if (rescheduleTarget.notificationId) {
       await cancelNotification(rescheduleTarget.notificationId);
     }
-    // Schedule new notification
     const notifId = await scheduleBackOrderReminder(
       rescheduleTarget.productName,
       rescheduleTarget.distributorName,
       rescheduleDate
     );
-    // Update the reminder in storage
     await addBackOrderReminder({
       ...rescheduleTarget,
       reminderDate: rescheduleDate.toISOString(),
@@ -118,11 +143,10 @@ export default function AlertsScreen() {
     products.find((p) => p.id === productId)?.name ?? "Unknown Product";
 
   const activeAlerts = alerts.filter((a) => a.isActive && !a.triggeredAt);
-  const triggeredAlerts = alerts.filter((a) => a.triggeredAt);
 
   const tabCount = {
     alerts: activeAlerts.length,
-    reminders: reminders.length,
+    reminders: reminders.length + stockWatches.length,
   };
 
   return (
@@ -242,13 +266,73 @@ export default function AlertsScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, flexGrow: 1 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-          ListEmptyComponent={
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 60 }}>
-              <IconSymbol name="calendar" size={48} color={colors.muted} />
-              <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 18, marginTop: 16 }}>No reminders set</Text>
-              <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 8, paddingHorizontal: 20 }}>
-                Open a back-order product listing and tap "Remind me" to schedule a reminder.
-              </Text>
+          ListHeaderComponent={
+            <View>
+              {/* Stock Watches section */}
+              {stockWatches.length > 0 && (
+                <View style={{ marginBottom: 16 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                    <IconSymbol name="eye.fill" size={15} color={colors.warning} />
+                    <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14 }}>
+                      Watching for Restock ({stockWatches.length})
+                    </Text>
+                  </View>
+                  {stockWatches.map((watch) => (
+                    <View key={watch.id} style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.warning + "44" }}>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <View style={{ flex: 1, marginRight: 12 }}>
+                          <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }} numberOfLines={2}>
+                            {watch.productName}
+                          </Text>
+                          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5, gap: 5 }}>
+                            <IconSymbol name="globe" size={13} color={colors.muted} />
+                            <Text style={{ color: colors.muted, fontSize: 13 }}>{watch.distributorName}</Text>
+                          </View>
+                          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4, gap: 5 }}>
+                            <View style={{
+                              width: 8, height: 8, borderRadius: 4,
+                              backgroundColor: watch.lastKnownStatus === "in_stock" ? colors.success : colors.warning,
+                            }} />
+                            <Text style={{ color: colors.muted, fontSize: 12 }}>
+                              {watch.lastKnownStatus === "back_order" ? "Back Order" :
+                               watch.lastKnownStatus === "out_of_stock" ? "Out of Stock" :
+                               watch.lastKnownStatus === "in_stock" ? "In Stock" : "Unknown"}
+                            </Text>
+                            <Text style={{ color: colors.muted, fontSize: 12, opacity: 0.6 }}>· last checked</Text>
+                          </View>
+                        </View>
+                        <View style={{ alignItems: "flex-end", gap: 8 }}>
+                          <View style={{ backgroundColor: colors.warning + "22", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                            <Text style={{ color: colors.warning, fontSize: 11, fontWeight: "600" }}>👀 Watching</Text>
+                          </View>
+                          <TouchableOpacity onPress={() => handleRemoveStockWatch(watch)} style={{ padding: 4 }}>
+                            <IconSymbol name="trash.fill" size={16} color={colors.error} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+              {/* Date Reminders header (only if both sections present) */}
+              {stockWatches.length > 0 && reminders.length > 0 && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                  <IconSymbol name="calendar" size={15} color={colors.primary} />
+                  <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14 }}>
+                    Date Reminders ({reminders.length})
+                  </Text>
+                </View>
+              )}
+              {/* Empty state when both lists are empty */}
+              {stockWatches.length === 0 && reminders.length === 0 && (
+                <View style={{ alignItems: "center", justifyContent: "center", paddingTop: 60 }}>
+                  <IconSymbol name="calendar" size={48} color={colors.muted} />
+                  <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 18, marginTop: 16 }}>No reminders set</Text>
+                  <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 8, paddingHorizontal: 20 }}>
+                    Open a back-order product listing and tap "Remind me" or "Watch for Restock".
+                  </Text>
+                </View>
+              )}
             </View>
           }
           renderItem={({ item }) => {
@@ -273,13 +357,12 @@ export default function AlertsScreen() {
                       </Text>
                     </View>
                   </View>
-<View style={{ alignItems: "flex-end", gap: 8 }}>
+                  <View style={{ alignItems: "flex-end", gap: 8 }}>
                     {isPast && (
                       <View style={{ backgroundColor: colors.warning + "22", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
                         <Text style={{ color: colors.warning, fontSize: 11, fontWeight: "600" }}>Past Due</Text>
                       </View>
                     )}
-                    {/* Reschedule button */}
                     <TouchableOpacity
                       onPress={() => {
                         if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -293,10 +376,7 @@ export default function AlertsScreen() {
                     >
                       <IconSymbol name="pencil" size={16} color={colors.primary} />
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteReminder(item)}
-                      style={{ padding: 4 }}
-                    >
+                    <TouchableOpacity onPress={() => handleDeleteReminder(item)} style={{ padding: 4 }}>
                       <IconSymbol name="trash.fill" size={16} color={colors.error} />
                     </TouchableOpacity>
                   </View>
