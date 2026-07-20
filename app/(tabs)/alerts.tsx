@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { FlatList, Text, View, TouchableOpacity, Switch, RefreshControl, Platform, Alert } from "react-native";
+import { FlatList, Text, View, TouchableOpacity, Switch, RefreshControl, Platform, Alert, Modal } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -11,11 +11,13 @@ import {
   getWatchlist,
   getBackOrderReminders,
   removeBackOrderReminder,
+  addBackOrderReminder,
 } from "@/lib/storage";
 import { PriceAlert, Product, BackOrderReminder } from "@/lib/types";
 import { formatPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { cancelNotification } from "@/lib/notifications";
+import { cancelNotification, scheduleBackOrderReminder } from "@/lib/notifications";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 type ActiveTab = "alerts" | "reminders";
 
@@ -26,6 +28,11 @@ export default function AlertsScreen() {
   const [reminders, setReminders] = useState<BackOrderReminder[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Reschedule modal state
+  const [rescheduleTarget, setRescheduleTarget] = useState<BackOrderReminder | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState<Date>(new Date());
+  const [showReschedulePicker, setShowReschedulePicker] = useState(false);
 
   const loadData = useCallback(async () => {
     const [a, p, r] = await Promise.all([getAlerts(), getWatchlist(), getBackOrderReminders()]);
@@ -77,6 +84,35 @@ export default function AlertsScreen() {
       ]
     );
   }, [loadData]);
+
+  const handleReschedule = useCallback(async () => {
+    if (!rescheduleTarget) return;
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Cancel old notification
+    if (rescheduleTarget.notificationId) {
+      await cancelNotification(rescheduleTarget.notificationId);
+    }
+    // Schedule new notification
+    const notifId = await scheduleBackOrderReminder(
+      rescheduleTarget.productName,
+      rescheduleTarget.distributorName,
+      rescheduleDate
+    );
+    // Update the reminder in storage
+    await addBackOrderReminder({
+      ...rescheduleTarget,
+      reminderDate: rescheduleDate.toISOString(),
+      notificationId: notifId ?? undefined,
+    });
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setRescheduleTarget(null);
+    setShowReschedulePicker(false);
+    await loadData();
+    Alert.alert(
+      "Reminder Rescheduled ✅",
+      `You'll be reminded on ${rescheduleDate.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}.`
+    );
+  }, [rescheduleTarget, rescheduleDate, loadData]);
 
   const getProductName = (productId: string) =>
     products.find((p) => p.id === productId)?.name ?? "Unknown Product";
@@ -237,12 +273,26 @@ export default function AlertsScreen() {
                       </Text>
                     </View>
                   </View>
-                  <View style={{ alignItems: "flex-end", gap: 8 }}>
+<View style={{ alignItems: "flex-end", gap: 8 }}>
                     {isPast && (
                       <View style={{ backgroundColor: colors.warning + "22", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
                         <Text style={{ color: colors.warning, fontSize: 11, fontWeight: "600" }}>Past Due</Text>
                       </View>
                     )}
+                    {/* Reschedule button */}
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        const nextWeek = new Date();
+                        nextWeek.setDate(nextWeek.getDate() + 7);
+                        setRescheduleDate(nextWeek);
+                        setShowReschedulePicker(false);
+                        setRescheduleTarget(item);
+                      }}
+                      style={{ padding: 4 }}
+                    >
+                      <IconSymbol name="pencil" size={16} color={colors.primary} />
+                    </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => handleDeleteReminder(item)}
                       style={{ padding: 4 }}
@@ -256,6 +306,58 @@ export default function AlertsScreen() {
           }}
         />
       )}
+
+      {/* Reschedule Reminder Modal */}
+      <Modal visible={!!rescheduleTarget} transparent animationType="slide" onRequestClose={() => setRescheduleTarget(null)}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
+            <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700", marginBottom: 4 }}>Reschedule Reminder 📅</Text>
+            <Text style={{ color: colors.muted, fontSize: 14, marginBottom: 20 }}>
+              Choose a new date for{" "}
+              <Text style={{ fontWeight: "600", color: colors.foreground }}>{rescheduleTarget?.distributorName}</Text>
+              {" "}· {rescheduleTarget?.productName}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowReschedulePicker(true)}
+              style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <IconSymbol name="calendar" size={20} color={colors.primary} />
+                <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: "600" }}>
+                  {rescheduleDate.toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" })}
+                </Text>
+              </View>
+              <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+            </TouchableOpacity>
+            {showReschedulePicker && (
+              <DateTimePicker
+                value={rescheduleDate}
+                mode="date"
+                display={Platform.OS === "ios" ? "inline" : "default"}
+                minimumDate={new Date()}
+                onChange={(_, selected) => {
+                  setShowReschedulePicker(Platform.OS === "ios");
+                  if (selected) setRescheduleDate(selected);
+                }}
+              />
+            )}
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => { setRescheduleTarget(null); setShowReschedulePicker(false); }}
+                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 14, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleReschedule}
+                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 14, alignItems: "center" }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "600" }}>Reschedule</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }

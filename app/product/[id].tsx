@@ -12,12 +12,36 @@ import { formatPrice, convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { schedulePriceAlert, requestNotificationPermissions } from "@/lib/notifications";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { addBackOrderReminder } from "@/lib/storage";
+import { scheduleBackOrderReminder } from "@/lib/notifications";
+import { scheduleStockAlert } from "@/lib/notifications";
+import { PriceSparkline } from "@/components/price-sparkline";
 
 // ─── Best Distributor Highlight Card ─────────────────────────────────────────
 function BestDistributorCard({ listing }: { listing: DistributorListing }) {
   const colors = useColors();
   const distributor = getDistributorById(listing.distributorId);
   const usdPrice = convertPrice(listing.price, listing.currency, "USD");
+
+  // Price-drop indicator: compare oldest vs current price in history
+  const priceTrend = (() => {
+    const hist = listing.priceHistory;
+    if (!hist || hist.length < 2) return null;
+    const sorted = [...hist].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const oldest = sorted[0].price;
+    const current = sorted[sorted.length - 1].price;
+    if (current < oldest) {
+      const pct = Math.round(((oldest - current) / oldest) * 100);
+      return { dir: "down" as const, pct };
+    }
+    if (current > oldest) {
+      const pct = Math.round(((current - oldest) / oldest) * 100);
+      return { dir: "up" as const, pct };
+    }
+    return null;
+  })();
+
   return (
     <View style={{ backgroundColor: colors.primary + "12", borderRadius: 16, padding: 16, marginBottom: 10, borderWidth: 1.5, borderColor: colors.primary + "55" }}>
       {/* Crown badge */}
@@ -26,7 +50,18 @@ function BestDistributorCard({ listing }: { listing: DistributorListing }) {
           <IconSymbol name="crown.fill" size={12} color="#fff" />
           <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>BEST PRICE</Text>
         </View>
-        <Text style={{ color: colors.muted, fontSize: 12 }}>Cheapest in-stock option</Text>
+        <Text style={{ color: colors.muted, fontSize: 12, flex: 1 }}>Cheapest in-stock option</Text>
+        {priceTrend && (
+          <View style={{
+            backgroundColor: priceTrend.dir === "down" ? colors.success + "22" : colors.error + "22",
+            borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3,
+            flexDirection: "row", alignItems: "center", gap: 3,
+          }}>
+            <Text style={{ color: priceTrend.dir === "down" ? colors.success : colors.error, fontSize: 11, fontWeight: "700" }}>
+              {priceTrend.dir === "down" ? "▼" : "▲"} {priceTrend.pct}%
+            </Text>
+          </View>
+        )}
       </View>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
         <View style={{ flex: 1 }}>
@@ -256,6 +291,15 @@ export default function ProductDetailScreen() {
   const [alertCurrency, setAlertCurrency] = useState("USD");
 
   // Best in-stock distributor (cheapest by USD equivalent)
+  // Reminder modal state
+  const [reminderListing, setReminderListing] = useState<DistributorListing | null>(null);
+  const [reminderDate, setReminderDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d;
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
   const bestInStockListing = (() => {
     const inStock = listings.filter((l) => l.stockStatus === "in_stock");
     if (inStock.length === 0) return null;
@@ -368,6 +412,39 @@ export default function ProductDetailScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert("Notification Sent!", `A "Back In Stock" alert for ${product?.name} has been sent to your device.`);
   }, [product, sortedListings]);
+
+  const handleSetReminder = useCallback(async () => {
+    if (!reminderListing || !product) return;
+    const distributor = getDistributorById(reminderListing.distributorId);
+    const distributorName = distributor?.name ?? reminderListing.distributorId;
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Cancel old notification if one exists for this product+distributor combo
+    const { getBackOrderReminders: getReminders } = await import("@/lib/storage");
+    const existing = (await getReminders()).find(
+      (r) => r.productId === product.id && r.distributorId === reminderListing.distributorId
+    );
+    if (existing?.notificationId) {
+      const { cancelNotification: cancel } = await import("@/lib/notifications");
+      await cancel(existing.notificationId);
+    }
+    const notifId = await scheduleBackOrderReminder(product.name, distributorName, reminderDate);
+    await addBackOrderReminder({
+      id: existing?.id ?? `reminder-${Date.now()}`,
+      productId: product.id,
+      productName: product.name,
+      distributorId: reminderListing.distributorId,
+      distributorName,
+      reminderDate: reminderDate.toISOString(),
+      notificationId: notifId ?? undefined,
+      createdAt: existing?.createdAt ?? new Date().toISOString(),
+    });
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setReminderListing(null);
+    Alert.alert(
+      "Reminder Set! 📅",
+      `You'll be reminded to check ${distributorName} for ${product.name} on ${reminderDate.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}.`
+    );
+  }, [reminderListing, reminderDate, product]);
 
   if (loading) {
     return (
@@ -534,35 +611,89 @@ export default function ProductDetailScreen() {
                     </View>
                     <View style={{ alignItems: "flex-end", gap: 4 }}>
                       {listing.priceHistory && listing.priceHistory.length >= 2 && (
-                        <PriceSparkline data={listing.priceHistory} width={72} height={28} currency={listing.currency} />
-                      )}
-                      <TouchableOpacity
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        Linking.openURL(listing.url);
-                      }}
-                      style={{ backgroundColor: colors.primary + "22", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 4 }}
-                    >
-                      <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>Visit</Text>
-                      <IconSymbol name="arrow.up.right.square" size={14} color={colors.primary} />
-                    </TouchableOpacity>
-                    </View>
-                  </View>
-                  {distributor?.paymentMethods && (
-                    <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8 }}>
-                      💳 {distributor.paymentMethods.join(" · ")}
-                    </Text>
-                  )}
-                  <Text style={{ color: colors.muted, fontSize: 11, marginTop: distributor?.paymentMethods ? 2 : 8, opacity: 0.7 }}>
-                    🕐 Updated {formatLastChecked(listing.lastChecked)}
-                  </Text>
-                </View>
-              );
-            })}
+                       <PriceSparkline data={listing.priceHistory} width={72} height={28} currency={listing.currency} />
+                     )}
+                     <TouchableOpacity
+                     onPress={() => {
+                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                       Linking.openURL(listing.url);
+                     }}
+                     style={{ backgroundColor: colors.primary + "22", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 4 }}
+                   >
+                     <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>Visit</Text>
+                     <IconSymbol name="arrow.up.right.square" size={14} color={colors.primary} />
+                   </TouchableOpacity>
+                   </View>
+                 </View>
+                 {distributor?.paymentMethods && (
+                   <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8 }}>
+                     💳 {distributor.paymentMethods.join(" · ")}
+                   </Text>
+                 )}
+                 <Text style={{ color: colors.muted, fontSize: 11, marginTop: distributor?.paymentMethods ? 2 : 8, opacity: 0.7 }}>
+                   🕐 Updated {formatLastChecked(listing.lastChecked)}
+                 </Text>
+               </View>
+             );
+           })}
             </>
           )}
         </View>
       </ScrollView>
+
+      {/* Reminder Date Picker Modal */}
+      <Modal visible={!!reminderListing} transparent animationType="slide" onRequestClose={() => setReminderListing(null)}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
+            <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700", marginBottom: 4 }}>Set Reminder 📅</Text>
+            <Text style={{ color: colors.muted, fontSize: 14, marginBottom: 20 }}>
+              Pick a date to be reminded to check{" "}
+              <Text style={{ fontWeight: "600", color: colors.foreground }}>
+                {reminderListing ? (getDistributorById(reminderListing.distributorId)?.name ?? reminderListing.distributorId) : ""}
+              </Text>
+              {" "}for {product?.name}.
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowDatePicker(true)}
+              style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <IconSymbol name="calendar" size={20} color={colors.primary} />
+                <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: "600" }}>
+                  {reminderDate.toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" })}
+                </Text>
+              </View>
+              <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={reminderDate}
+                mode="date"
+                display={Platform.OS === "ios" ? "inline" : "default"}
+                minimumDate={new Date()}
+                onChange={(_, selected) => {
+                  setShowDatePicker(Platform.OS === "ios");
+                  if (selected) setReminderDate(selected);
+                }}
+              />
+            )}
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => { setReminderListing(null); setShowDatePicker(false); }}
+                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 14, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSetReminder}
+                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 14, alignItems: "center" }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "600" }}>Set Reminder</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Price Alert Modal */}
       <Modal visible={alertModalVisible} transparent animationType="slide">
@@ -611,5 +742,3 @@ export default function ProductDetailScreen() {
     </ScreenContainer>
   );
 }
-import { scheduleStockAlert } from "@/lib/notifications";
-import { PriceSparkline } from "@/components/price-sparkline";
