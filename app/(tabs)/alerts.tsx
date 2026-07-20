@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, Text, View, TouchableOpacity, Switch, RefreshControl } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useFocusEffect } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -49,6 +50,8 @@ export default function AlertsScreen() {
   const activeAlerts = alerts.filter((a) => a.isActive && !a.triggeredAt);
   const triggeredAlerts = alerts.filter((a) => a.triggeredAt);
 
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+
   return (
     <ScreenContainer>
       <View className="px-5 pt-4 pb-2">
@@ -57,12 +60,12 @@ export default function AlertsScreen() {
       </View>
 
       <FlatList
-        data={alerts}
+        data={activeAlerts}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, flexGrow: 1 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListHeaderComponent={
-          alerts.length > 0 ? (
+          activeAlerts.length > 0 ? (
             <View style={{ backgroundColor: colors.primary + "15", borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: "row", alignItems: "center", gap: 8 }}>
               <IconSymbol name="info.circle.fill" size={18} color={colors.primary} />
               <Text style={{ color: colors.primary, fontSize: 13, flex: 1 }}>
@@ -80,6 +83,44 @@ export default function AlertsScreen() {
             </Text>
           </View>
         }
+        ListFooterComponent={
+          triggeredAlerts.length > 0 ? (
+            <View style={{ marginTop: 8 }}>
+              <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>
+                History
+              </Text>
+              {triggeredAlerts.map((item) => (
+                <View
+                  key={item.id}
+                  style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.success + "44" }}
+                >
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <View style={{ flex: 1, marginRight: 10 }}>
+                      <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }} numberOfLines={2}>
+                        {getProductName(item.productId)}
+                      </Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", marginTop: 6, gap: 6 }}>
+                        <IconSymbol name="tag.fill" size={14} color={colors.muted} />
+                        <Text style={{ color: colors.muted, fontSize: 13 }}>
+                          Target: {formatPrice(item.targetPrice, item.currency)}
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4, gap: 6 }}>
+                        <IconSymbol name="checkmark.circle.fill" size={14} color={colors.success} />
+                        <Text style={{ color: colors.success, fontSize: 12 }}>
+                          Triggered {new Date(item.triggeredAt!).toLocaleDateString()}
+                        </Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ padding: 4 }}>
+                      <IconSymbol name="trash.fill" size={16} color={colors.error} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null
+        }
         renderItem={({ item }) => (
           <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: item.triggeredAt ? colors.success + "44" : colors.border }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -93,24 +134,14 @@ export default function AlertsScreen() {
                     Target: {formatPrice(item.targetPrice, item.currency)}
                   </Text>
                 </View>
-                {item.triggeredAt && (
-                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4, gap: 6 }}>
-                    <IconSymbol name="checkmark.circle.fill" size={14} color={colors.success} />
-                    <Text style={{ color: colors.success, fontSize: 12 }}>
-                      Triggered {new Date(item.triggeredAt).toLocaleDateString()}
-                    </Text>
-                  </View>
-                )}
               </View>
               <View style={{ alignItems: "flex-end", gap: 8 }}>
-                {!item.triggeredAt && (
-                  <Switch
-                    value={item.isActive}
-                    onValueChange={() => handleToggle(item.id)}
-                    trackColor={{ false: colors.border, true: colors.primary + "88" }}
-                    thumbColor={item.isActive ? colors.primary : colors.muted}
-                  />
-                )}
+                <Switch
+                  value={item.isActive}
+                  onValueChange={() => handleToggle(item.id)}
+                  trackColor={{ false: colors.border, true: colors.primary + "88" }}
+                  thumbColor={item.isActive ? colors.primary : colors.muted}
+                />
                 <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ padding: 4 }}>
                   <IconSymbol name="trash.fill" size={16} color={colors.error} />
                 </TouchableOpacity>

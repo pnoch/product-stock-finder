@@ -113,7 +113,7 @@ export default function HomeScreen() {
         <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
           <View>
             <Text className="text-2xl font-bold text-foreground">Product Stock Finder</Text>
-            <Text className="text-muted text-sm">Global availability monitor</Text>
+            <Text className="text-muted text-sm">Find it. Track it. Get notified.</Text>
           </View>
           <TouchableOpacity
             style={{ backgroundColor: colors.primary, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center" }}

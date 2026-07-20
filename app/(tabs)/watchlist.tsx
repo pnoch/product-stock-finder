@@ -3,6 +3,7 @@ import { FlatList, Text, View, TouchableOpacity, RefreshControl, Alert } from "r
 import { Animated } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { useFocusEffect } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -99,6 +100,7 @@ export default function WatchlistScreen() {
   const colors = useColors();
   const [watchlist, setWatchlist] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [sortMode, setSortMode] = useState<"best_price" | "alphabetical" | "recently_added">("recently_added");
 
   const loadData = useCallback(async () => {
     const list = await getWatchlist();
@@ -109,11 +111,30 @@ export default function WatchlistScreen() {
     loadData();
   }, [loadData]);
 
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
   }, [loadData]);
+
+  const sortedWatchlist = [...watchlist].sort((a, b) => {
+    if (sortMode === "alphabetical") return a.name.localeCompare(b.name);
+    if (sortMode === "best_price") {
+      const pa = a.listings?.find((l) => l.stockStatus === "in_stock")?.price ?? Infinity;
+      const pb = b.listings?.find((l) => l.stockStatus === "in_stock")?.price ?? Infinity;
+      return pa - pb;
+    }
+    // recently_added: preserve original order (most recent first from storage)
+    return 0;
+  });
+
+  const SORT_OPTIONS: { key: typeof sortMode; label: string }[] = [
+    { key: "recently_added", label: "Recent" },
+    { key: "best_price", label: "Best Price" },
+    { key: "alphabetical", label: "A–Z" },
+  ];
 
   const handleDelete = useCallback((productId: string, productName: string) => {
     Alert.alert(
@@ -152,8 +173,35 @@ export default function WatchlistScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Sort bar */}
+      {watchlist.length > 1 && (
+        <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 20, paddingBottom: 10 }}>
+          {SORT_OPTIONS.map((opt) => (
+            <TouchableOpacity
+              key={opt.key}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSortMode(opt.key);
+              }}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                borderRadius: 20,
+                backgroundColor: sortMode === opt.key ? colors.primary : colors.surface,
+                borderWidth: 1,
+                borderColor: sortMode === opt.key ? colors.primary : colors.border,
+              }}
+            >
+              <Text style={{ color: sortMode === opt.key ? "#fff" : colors.foreground, fontSize: 13, fontWeight: "600" }}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       <FlatList
-        data={watchlist}
+        data={sortedWatchlist}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, flexGrow: 1 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
