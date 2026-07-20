@@ -7,12 +7,13 @@ import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { LinearGradient } from "expo-linear-gradient";
-import { getWatchlist, updateProductListings, addAlert, getDistributorWatches, toggleDistributorWatch, addRecentlyViewed, getProductNote, saveProductNote } from "@/lib/storage";
+import { getWatchlist, updateProductListings, addAlert, getDistributorWatches, toggleDistributorWatch, addRecentlyViewed, getProductNote, saveProductNote, saveBackOrderReminder, removeBackOrderReminder, getBackOrderReminders, BackOrderReminder } from "@/lib/storage";
 import { Product, DistributorListing, PriceAlert, PricePoint } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { schedulePriceAlert, scheduleStockAlert, requestNotificationPermissions } from "@/lib/notifications";
+import { schedulePriceAlert, scheduleStockAlert, requestNotificationPermissions, scheduleBackOrderReminder, cancelNotification } from "@/lib/notifications";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { PriceSparkline } from "@/components/price-sparkline";
 
 // ─── Real distributor data for CRS804-4DDQ-hRM (verified July 19, 2026) ───────
@@ -407,6 +408,9 @@ export default function ProductDetailScreen() {
   const [alertCurrency, setAlertCurrency] = useState("USD");
   const [regionFilter, setRegionFilter] = useState<string | null>(null);
   const [distributorWatches, setDistributorWatches] = useState<Record<string, boolean>>({});
+  const [reminderModal, setReminderModal] = useState<{ listing: DistributorListing; distributorName: string } | null>(null);
+  const [reminderDate, setReminderDate] = useState(new Date(Date.now() + 86400000 * 7));
+  const [reminders, setReminders] = useState<BackOrderReminder[]>([]);
   const [chartModal, setChartModal] = useState<{ distributorName: string; data: PricePoint[]; currency: string } | null>(null);
   const [note, setNote] = useState("");
   const [noteSaved, setNoteSaved] = useState(false);
@@ -427,6 +431,8 @@ export default function ProductDetailScreen() {
     }
     const watches = await getDistributorWatches();
     setDistributorWatches(watches);
+    const savedReminders = await getBackOrderReminders();
+    setReminders(savedReminders.filter((r) => r.productId === String(id)));
     await addRecentlyViewed(id);
     getProductNote(id).then(setNote);
     setLoading(false);
@@ -445,6 +451,8 @@ export default function ProductDetailScreen() {
     const isNowWatched = await toggleDistributorWatch(id, distributorId);
     const watches = await getDistributorWatches();
     setDistributorWatches(watches);
+    const savedReminders = await getBackOrderReminders();
+    setReminders(savedReminders.filter((r) => r.productId === String(id)));
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (isNowWatched) {
       await scheduleStockAlert(product?.name ?? "Product", distributorName, listing.price, listing.currency);
@@ -800,6 +808,36 @@ export default function ProductDetailScreen() {
                     </Text>
                   )}
                   <TouchableOpacity onPress={() => handleToggleDistributorWatch(listing.distributorId, distributor?.name ?? listing.distributorId, listing)} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, paddingVertical: 4 }}><IconSymbol name={distributorWatches[`${id}::${listing.distributorId}`] ? "bell.fill" : "bell.slash.fill"} size={14} color={distributorWatches[`${id}::${listing.distributorId}`] ? colors.primary : colors.muted} /><Text style={{ color: distributorWatches[`${id}::${listing.distributorId}`] ? colors.primary : colors.muted, fontSize: 12, fontWeight: "500" }}>{distributorWatches[`${id}::${listing.distributorId}`] ? "Watching this distributor" : "Notify when back in stock"}</Text></TouchableOpacity>
+                  {listing.stockStatus === "back_order" && (() => {
+                    const hasReminder = reminders.some((r) => r.distributorId === listing.distributorId);
+                    return (
+                      <TouchableOpacity
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          if (hasReminder) {
+                            Alert.alert("Remove Reminder", "Remove the reminder for this distributor?", [
+                              { text: "Cancel", style: "cancel" },
+                              { text: "Remove", style: "destructive", onPress: async () => {
+                                const r = reminders.find((rem) => rem.distributorId === listing.distributorId);
+                                if (r?.notificationId) await cancelNotification(r.notificationId);
+                                await removeBackOrderReminder(String(id), listing.distributorId);
+                                setReminders((prev) => prev.filter((rem) => rem.distributorId !== listing.distributorId));
+                              }},
+                            ]);
+                          } else {
+                            setReminderDate(new Date(Date.now() + 86400000 * 7));
+                            setReminderModal({ listing, distributorName: distributor?.name ?? listing.distributorId });
+                          }
+                        }}
+                        style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, paddingVertical: 4 }}
+                      >
+                        <IconSymbol name="calendar" size={14} color={hasReminder ? colors.warning : colors.muted} />
+                        <Text style={{ color: hasReminder ? colors.warning : colors.muted, fontSize: 12, fontWeight: "500" }}>
+                          {hasReminder ? "Reminder set — tap to remove" : "Remind me on a date"}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })()}
                   <Text style={{ color: colors.muted, fontSize: 11, marginTop: distributor?.paymentMethods ? 2 : 8, opacity: 0.7 }}>
                     🕐 Updated {formatLastChecked(listing.lastChecked)}
                   </Text>
@@ -879,6 +917,54 @@ export default function ProductDetailScreen() {
           </View>
         </View>
       </Modal>
+      {/* Reminder Date Picker Modal */}
+      {reminderModal && (
+        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, borderTopWidth: 1, borderTopColor: colors.border }}>
+          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 17, marginBottom: 4 }}>Set Reminder</Text>
+          <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 16 }}>
+            Remind me about {reminderModal.distributorName} on:
+          </Text>
+          <DateTimePicker
+            value={reminderDate}
+            mode="date"
+            display="spinner"
+            minimumDate={new Date()}
+            onChange={(_e, date) => { if (date) setReminderDate(date); }}
+            style={{ marginBottom: 16 }}
+          />
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <TouchableOpacity onPress={() => setReminderModal(null)} style={{ flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: "center", backgroundColor: colors.border }}>
+              <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={async () => {
+                if (!reminderModal) return;
+                const notifId = await scheduleBackOrderReminder(
+                  product?.name ?? String(id),
+                  reminderModal.distributorName,
+                  reminderDate
+                );
+                const reminder: BackOrderReminder = {
+                  productId: String(id),
+                  distributorId: reminderModal.listing.distributorId,
+                  productName: product?.name ?? String(id),
+                  distributorName: reminderModal.distributorName,
+                  reminderDate: reminderDate.toISOString(),
+                  notificationId: notifId ?? undefined,
+                };
+                await saveBackOrderReminder(reminder);
+                setReminders((prev) => [...prev, reminder]);
+                setReminderModal(null);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                Alert.alert("Reminder Set", `You'll be reminded about ${reminderModal.distributorName} on ${reminderDate.toLocaleDateString()}.`);
+              }}
+              style={{ flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: "center", backgroundColor: colors.primary }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "600" }}>Set Reminder</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
       {/* Price History Chart Modal */}
       <Modal visible={!!chartModal} animationType="slide" transparent onRequestClose={() => setChartModal(null)}>
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>

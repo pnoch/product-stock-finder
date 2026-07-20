@@ -192,3 +192,58 @@ export async function saveProductNote(productId: string, note: string): Promise<
     await AsyncStorage.setItem(`@product_note_${productId}`, note);
   } catch {}
 }
+
+// ─── Clear All Data ───────────────────────────────────────────────────────────
+
+export async function clearAllData(): Promise<void> {
+  const keys = await AsyncStorage.getAllKeys();
+  const noteKeys = keys.filter((k) => k.startsWith("@product_note_"));
+  await AsyncStorage.multiRemove([
+    KEYS.WATCHLIST,
+    KEYS.ALERTS,
+    KEYS.SETTINGS,
+    "onboarding_complete",
+    RECENTLY_VIEWED_KEY,
+    DISTRIBUTOR_WATCHES_KEY,
+    "back_order_reminders",
+    ...noteKeys,
+  ]);
+}
+
+// ─── Back-Order Reminders ─────────────────────────────────────────────────────
+
+export interface BackOrderReminder {
+  productId: string;
+  distributorId: string;
+  productName: string;
+  distributorName: string;
+  reminderDate: string; // ISO string
+  notificationId?: string;
+}
+
+const REMINDERS_KEY = "back_order_reminders";
+
+export async function getBackOrderReminders(): Promise<BackOrderReminder[]> {
+  try {
+    const raw = await AsyncStorage.getItem(REMINDERS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveBackOrderReminder(reminder: BackOrderReminder): Promise<void> {
+  const existing = await getBackOrderReminders();
+  const filtered = existing.filter(
+    (r) => !(r.productId === reminder.productId && r.distributorId === reminder.distributorId)
+  );
+  await AsyncStorage.setItem(REMINDERS_KEY, JSON.stringify([...filtered, reminder]));
+}
+
+export async function removeBackOrderReminder(productId: string, distributorId: string): Promise<void> {
+  const existing = await getBackOrderReminders();
+  const filtered = existing.filter(
+    (r) => !(r.productId === productId && r.distributorId === distributorId)
+  );
+  await AsyncStorage.setItem(REMINDERS_KEY, JSON.stringify(filtered));
+}

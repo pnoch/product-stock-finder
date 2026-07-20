@@ -113,3 +113,34 @@ export async function sendTestNotification(): Promise<boolean> {
     return false;
   }
 }
+
+// ─── Schedule a date-based back-order reminder ────────────────────────────────
+export async function scheduleBackOrderReminder(
+  productName: string,
+  distributorName: string,
+  reminderDate: Date
+): Promise<string | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== "granted") return null;
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "📦 Back Order Reminder",
+        body: `Check ${productName} at ${distributorName} — your reminder date has arrived.`,
+        sound: "default",
+        data: { type: "back_order_reminder" },
+      },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: reminderDate },
+    });
+    return id;
+  } catch {
+    return null;
+  }
+}
+
+export async function cancelNotification(notificationId: string): Promise<void> {
+  try {
+    await Notifications.cancelScheduledNotificationAsync(notificationId);
+  } catch {}
+}

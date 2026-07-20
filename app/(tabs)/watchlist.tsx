@@ -9,6 +9,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { getWatchlist, removeFromWatchlist } from "@/lib/storage";
 import { Product } from "@/lib/types";
+import { getProductNote } from "@/lib/storage";
 import { formatPrice, getBestPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Swipeable, GestureHandlerRootView } from "react-native-gesture-handler";
@@ -29,13 +30,14 @@ function StockBadge({ status }: { status: string }) {
   );
 }
 
-function ProductCard({ product, onPress, onDelete, selected, onToggleSelect, compareMode }: {
+function ProductCard({ product, onPress, onDelete, selected, onToggleSelect, compareMode, note }: {
   product: Product;
   onPress: () => void;
   onDelete: () => void;
   selected?: boolean;
   onToggleSelect?: () => void;
   compareMode?: boolean;
+  note?: string;
 }) {
   const colors = useColors();
   const bestPrice = getBestPrice(product.listings ?? [], "USD");
@@ -81,6 +83,11 @@ function ProductCard({ product, onPress, onDelete, selected, onToggleSelect, com
           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>{product.brand} · {product.category}</Text>
         </View>
         <View style={{ alignItems: "flex-end", gap: 6 }}>
+        {note ? (
+          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4, fontStyle: "italic" }} numberOfLines={1}>
+            📝 {note}
+          </Text>
+        ) : null}
           <StockBadge status={bestStatus} />
           {bestPrice && (
             <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 16 }}>
@@ -113,6 +120,7 @@ export default function WatchlistScreen() {
   const colors = useColors();
   const [watchlist, setWatchlist] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [sortMode, setSortMode] = useState<"best_price" | "alphabetical" | "recently_added">("recently_added");
   const [compareMode, setCompareMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -120,6 +128,10 @@ export default function WatchlistScreen() {
   const loadData = useCallback(async () => {
     const list = await getWatchlist();
     setWatchlist(list);
+    const noteEntries = await Promise.all(
+      list.map(async (p) => [p.id, await getProductNote(p.id)] as [string, string])
+    );
+    setNotes(Object.fromEntries(noteEntries.filter(([, v]) => v)));
   }, []);
 
   useEffect(() => {
@@ -293,6 +305,7 @@ export default function WatchlistScreen() {
             compareMode={compareMode}
             selected={selectedIds.includes(item.id)}
             onToggleSelect={() => toggleSelect(item.id)}
+            note={notes[item.id]}
           />
         )}
       />
