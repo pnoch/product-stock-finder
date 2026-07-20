@@ -100,3 +100,6 @@
 - [x] Seed 10-point 90-day price history for all 9 distributors in SAMPLE_LISTINGS
 - [x] Add 1W/1M/3M/All time-range filter chips to Compare screen
 - [x] Add Cheapest Region summary card to Compare screen
+- [x] Extract SAMPLE_LISTINGS to lib/sample-data.ts shared module
+- [x] Wire SAMPLE_LISTINGS fallback in Compare screen (no Product Detail visit required)
+- [x] Add Price Trend ▲/▼ arrows to distributor selector in Compare screen

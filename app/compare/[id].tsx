@@ -7,6 +7,7 @@ import Svg, { Polyline, Circle, Line, Text as SvgText } from "react-native-svg";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { getWatchlist } from "@/lib/storage";
+import { SAMPLE_LISTINGS } from "@/lib/sample-data";
 import { DistributorListing, PricePoint } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
@@ -208,14 +209,21 @@ export default function CompareScreen() {
       const product = wl.find((p) => p.id === id);
       if (!product) return;
       setProductName(product.name);
-      // Use stored listings; fallback to SAMPLE_LISTINGS if empty or no price history
       let ls = product.listings ?? [];
       const hasHistory = ls.some((l) => l.priceHistory && l.priceHistory.length >= 2);
       if (!hasHistory) {
-        // Dynamically import SAMPLE_LISTINGS from product detail — use inline fallback
-        // since we can't import from a screen file. The data is seeded when product detail loads.
-        // For the compare screen we just show what's in storage; if empty show placeholder.
-        ls = ls.length > 0 ? ls : [];
+        const sampleLs = SAMPLE_LISTINGS[id as string] ?? [];
+        if (sampleLs.length > 0) {
+          ls = ls.length > 0
+            ? ls.map((l) => {
+                if (!l.priceHistory || l.priceHistory.length < 2) {
+                  const sample = sampleLs.find((s) => s.distributorId === l.distributorId);
+                  return sample ? { ...l, priceHistory: sample.priceHistory } : l;
+                }
+                return l;
+              })
+            : sampleLs;
+        }
       }
       setListings(ls);
       const withHistory = ls.filter((l) => l.priceHistory && l.priceHistory.length >= 2);
@@ -255,6 +263,22 @@ export default function CompareScreen() {
       };
     });
   }, [listings, selected, timeRange]);
+
+  const priceTrends = useMemo(() => {
+    const map = new Map<string, { pct: number; dir: "up" | "down" | "flat" }>();
+    for (const l of listings) {
+      if (!l.priceHistory || l.priceHistory.length < 2) {
+        map.set(l.distributorId, { pct: 0, dir: "flat" });
+        continue;
+      }
+      const sorted = [...l.priceHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const oldest = sorted[0].price;
+      const current = l.price;
+      const pct = ((current - oldest) / oldest) * 100;
+      map.set(l.distributorId, { pct: Math.abs(pct), dir: pct > 0.5 ? "up" : pct < -0.5 ? "down" : "flat" });
+    }
+    return map;
+  }, [listings]);
 
   return (
     <ScreenContainer>
@@ -365,6 +389,7 @@ export default function CompareScreen() {
             const hasHistory = l.priceHistory && l.priceHistory.length >= 2;
             const colorIdx = Array.from(selected).indexOf(l.distributorId);
             const chipColor = isSelected ? CHART_COLORS[colorIdx % CHART_COLORS.length] : colors.border;
+            const trend = priceTrends.get(l.distributorId);
             return (
               <TouchableOpacity
                 key={l.distributorId}
@@ -394,6 +419,11 @@ export default function CompareScreen() {
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
                   <Text style={{ color: isSelected ? chipColor : colors.foreground, fontWeight: "700", fontSize: 14 }}>{formatPrice(l.price, l.currency)}</Text>
+                  {trend && trend.dir !== "flat" && (
+                    <Text style={{ color: trend.dir === "down" ? colors.success : colors.error, fontSize: 11, fontWeight: "600", marginTop: 1 }}>
+                      {trend.dir === "down" ? "▼" : "▲"} {trend.pct.toFixed(1)}%
+                    </Text>
+                  )}
                   <View style={{ backgroundColor: l.stockStatus === "in_stock" ? colors.success + "22" : colors.warning + "22", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2, marginTop: 2 }}>
                     <Text style={{ color: l.stockStatus === "in_stock" ? colors.success : colors.warning, fontSize: 10, fontWeight: "600" }}>
                       {l.stockStatus === "in_stock" ? "In Stock" : l.stockStatus === "back_order" ? "Back Order" : "Out of Stock"}
