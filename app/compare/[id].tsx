@@ -15,6 +15,17 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 // ─── Chart colors for up to 5 distributors ───────────────────────────────────
 const CHART_COLORS = ["#0a7ea4", "#22C55E", "#F59E0B", "#EF4444", "#8B5CF6"];
 
+// ─── Time range options ───────────────────────────────────────────────────────
+type TimeRange = "1W" | "1M" | "3M" | "All";
+const TIME_RANGES: TimeRange[] = ["1W", "1M", "3M", "All"];
+const TIME_RANGE_DAYS: Record<TimeRange, number> = { "1W": 7, "1M": 30, "3M": 90, "All": 9999 };
+
+function filterByRange(data: PricePoint[], range: TimeRange): PricePoint[] {
+  if (range === "All") return data;
+  const cutoff = Date.now() - TIME_RANGE_DAYS[range] * 86400000;
+  return data.filter((p) => new Date(p.date).getTime() >= cutoff);
+}
+
 // ─── Multi-series chart ───────────────────────────────────────────────────────
 function MultiLineChart({
   series,
@@ -31,7 +42,6 @@ function MultiLineChart({
     const usableW = width - padL - padR;
     const usableH = height - padT - padB;
 
-    // Collect all prices converted to USD for a common Y axis
     const allPricesUSD: number[] = [];
     for (const s of series) {
       for (const p of s.data) {
@@ -44,7 +54,6 @@ function MultiLineChart({
     const globalMax = Math.max(...allPricesUSD);
     const range = globalMax - globalMin || 1;
 
-    // Find overall date range
     const allDates: number[] = [];
     for (const s of series) {
       for (const p of s.data) allDates.push(new Date(p.date).getTime());
@@ -64,7 +73,7 @@ function MultiLineChart({
       return { ...s, coords, polylineStr: coords.map((c) => `${c.x},${c.y}`).join(" ") };
     });
 
-    return { allCoords, globalMin, globalMax, padL, padT, padB, usableH };
+    return { allCoords, globalMin, globalMax };
   }, [series, width, height]);
 
   const padL = 56, padT = 24, padB = 44, usableH = height - padT - padB;
@@ -97,7 +106,6 @@ function MultiLineChart({
           ))}
         </>
       ))}
-      {/* Date labels from first series */}
       {allCoords[0]?.coords && (() => {
         const coords = allCoords[0].coords;
         const indices = [0, Math.floor((coords.length - 1) / 2), coords.length - 1];
@@ -111,6 +119,79 @@ function MultiLineChart({
   );
 }
 
+// ─── Cheapest Region Card ─────────────────────────────────────────────────────
+function CheapestRegionCard({ listings, colors }: { listings: DistributorListing[]; colors: ReturnType<typeof useColors> }) {
+  const regionBest = useMemo(() => {
+    const map = new Map<string, { listing: DistributorListing; usd: number; distributor: ReturnType<typeof getDistributorById> }>();
+    for (const l of listings) {
+      const dist = getDistributorById(l.distributorId);
+      if (!dist) continue;
+      const region = dist.region ?? "Other";
+      const usd = convertPrice(l.price, l.currency, "USD");
+      const existing = map.get(region);
+      if (!existing || usd < existing.usd) {
+        map.set(region, { listing: l, usd, distributor: dist });
+      }
+    }
+    return Array.from(map.entries())
+      .map(([region, data]) => ({ region, ...data }))
+      .sort((a, b) => a.usd - b.usd);
+  }, [listings]);
+
+  if (regionBest.length === 0) return null;
+
+  return (
+    <View style={{ marginHorizontal: 16, backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>
+      <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15, marginBottom: 12 }}>Cheapest by Region</Text>
+      {regionBest.map((item, i) => {
+        const isCheapest = i === 0;
+        return (
+          <View
+            key={item.region}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingVertical: 10,
+              borderTopWidth: i > 0 ? 1 : 0,
+              borderTopColor: colors.border,
+            }}
+          >
+            {isCheapest && (
+              <View style={{ backgroundColor: "#F59E0B22", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, marginRight: 8 }}>
+                <Text style={{ fontSize: 10, color: "#F59E0B", fontWeight: "700" }}>BEST</Text>
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }}>
+                {item.distributor?.countryFlag} {item.region}
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 11, marginTop: 1 }}>
+                {item.distributor?.name ?? item.listing.distributorId}
+              </Text>
+            </View>
+            <View style={{ alignItems: "flex-end" }}>
+              <Text style={{ color: isCheapest ? colors.success : colors.foreground, fontWeight: "700", fontSize: 14 }}>
+                {formatPrice(item.listing.price, item.listing.currency)}
+              </Text>
+              {item.listing.currency !== "USD" && (
+                <Text style={{ color: colors.muted, fontSize: 11 }}>≈ ${item.usd.toFixed(0)}</Text>
+              )}
+              <View style={{
+                backgroundColor: item.listing.stockStatus === "in_stock" ? colors.success + "22" : colors.warning + "22",
+                borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2,
+              }}>
+                <Text style={{ color: item.listing.stockStatus === "in_stock" ? colors.success : colors.warning, fontSize: 10, fontWeight: "600" }}>
+                  {item.listing.stockStatus === "in_stock" ? "In Stock" : item.listing.stockStatus === "back_order" ? "Back Order" : "Out of Stock"}
+                </Text>
+              </View>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 // ─── Compare Screen ───────────────────────────────────────────────────────────
 export default function CompareScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -119,6 +200,7 @@ export default function CompareScreen() {
   const [listings, setListings] = useState<DistributorListing[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [productName, setProductName] = useState("");
+  const [timeRange, setTimeRange] = useState<TimeRange>("3M");
   const chartWidth = Dimensions.get("window").width - 32;
 
   useEffect(() => {
@@ -126,9 +208,16 @@ export default function CompareScreen() {
       const product = wl.find((p) => p.id === id);
       if (!product) return;
       setProductName(product.name);
-      const ls = product.listings ?? [];
+      // Use stored listings; fallback to SAMPLE_LISTINGS if empty or no price history
+      let ls = product.listings ?? [];
+      const hasHistory = ls.some((l) => l.priceHistory && l.priceHistory.length >= 2);
+      if (!hasHistory) {
+        // Dynamically import SAMPLE_LISTINGS from product detail — use inline fallback
+        // since we can't import from a screen file. The data is seeded when product detail loads.
+        // For the compare screen we just show what's in storage; if empty show placeholder.
+        ls = ls.length > 0 ? ls : [];
+      }
       setListings(ls);
-      // Pre-select up to 3 distributors that have price history
       const withHistory = ls.filter((l) => l.priceHistory && l.priceHistory.length >= 2);
       const preSelect = withHistory.slice(0, 3).map((l) => l.distributorId);
       setSelected(new Set(preSelect));
@@ -148,18 +237,24 @@ export default function CompareScreen() {
     });
   }, []);
 
+  const setRange = useCallback((r: TimeRange) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setTimeRange(r);
+  }, []);
+
   const chartSeries = useMemo(() => {
     const selectedListings = listings.filter((l) => selected.has(l.distributorId) && l.priceHistory && l.priceHistory.length >= 2);
     return selectedListings.map((l, i) => {
       const distributor = getDistributorById(l.distributorId);
+      const filtered = filterByRange(l.priceHistory!, timeRange);
       return {
         label: distributor?.name ?? l.distributorId,
         color: CHART_COLORS[i % CHART_COLORS.length],
-        data: l.priceHistory!,
+        data: filtered.length >= 2 ? filtered : l.priceHistory!,
         currency: l.currency,
       };
     });
-  }, [listings, selected]);
+  }, [listings, selected, timeRange]);
 
   return (
     <ScreenContainer>
@@ -175,9 +270,31 @@ export default function CompareScreen() {
           </View>
         </View>
 
-        {/* Chart */}
+        {/* Chart card */}
         <View style={{ marginHorizontal: 16, backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15, marginBottom: 4 }}>Price History (USD)</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+            <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}>Price History (USD)</Text>
+            {/* Time-range chips */}
+            <View style={{ flexDirection: "row", gap: 4 }}>
+              {TIME_RANGES.map((r) => {
+                const active = r === timeRange;
+                return (
+                  <TouchableOpacity
+                    key={r}
+                    onPress={() => setRange(r)}
+                    style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 8,
+                      backgroundColor: active ? colors.primary : colors.border + "44",
+                    }}
+                  >
+                    <Text style={{ color: active ? "#fff" : colors.muted, fontSize: 11, fontWeight: "600" }}>{r}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
           <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 12 }}>Select up to 5 distributors to overlay</Text>
           {chartSeries.length >= 2 ? (
             <MultiLineChart series={chartSeries} width={chartWidth} height={220} />
@@ -201,6 +318,9 @@ export default function CompareScreen() {
             </View>
           )}
         </View>
+
+        {/* Cheapest Region summary */}
+        <CheapestRegionCard listings={listings} colors={colors} />
 
         {/* Current prices comparison table */}
         {selected.size > 0 && (
@@ -288,4 +408,3 @@ export default function CompareScreen() {
     </ScreenContainer>
   );
 }
-

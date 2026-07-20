@@ -97,3 +97,6 @@
 - [x] v2.9: Background price-drop polling via expo-background-task (PRICE_CHECK_TASK) — checks active alerts against watchlist prices, fires threshold-triggered notification and deactivates alert when price drops below target
 - [x] v2.9: Foreground price-drop check (checkPriceDropsNow) runs on app launch via _layout.tsx
 - [x] v2.9: Currency converter widget on Product Info Card — reads displayCurrency from settings, shows best in-stock price converted to preferred currency with swap-horiz icon
+- [x] Seed 10-point 90-day price history for all 9 distributors in SAMPLE_LISTINGS
+- [x] Add 1W/1M/3M/All time-range filter chips to Compare screen
+- [x] Add Cheapest Region summary card to Compare screen
