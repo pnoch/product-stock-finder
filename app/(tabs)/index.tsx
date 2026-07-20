@@ -219,3 +219,4 @@ export default function HomeScreen() {
     </ScreenContainer>
   );
 }
+<Text className="text-2xl font-bold text-foreground">Product Stock Finder</Text>
