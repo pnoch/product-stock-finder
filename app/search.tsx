@@ -1,5 +1,5 @@
-import { useCallback, useState, useEffect } from "react";
-import { FlatList, Text, View, TouchableOpacity, TextInput, ActivityIndicator } from "react-native";
+import { useCallback, useState, useEffect, useRef } from "react";
+import { FlatList, Text, View, TouchableOpacity, TextInput, ActivityIndicator, Modal, Alert, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 
@@ -10,6 +10,12 @@ import { addToWatchlist, getRecentlyViewed } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ScrollView } from "react-native";
+// expo-camera is not available on web; guard with Platform check
+const isNative = Platform.OS !== "web";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const CameraModule: any = isNative ? require("expo-camera") : {};
+const CameraView = CameraModule.CameraView ?? (() => null);
+const useCameraPermissions: () => [any, () => Promise<any>] = CameraModule.useCameraPermissions ?? (() => [{ granted: false }, async () => ({ granted: false })]);
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -18,6 +24,9 @@ export default function SearchScreen() {
   const [adding, setAdding] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>([]);
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const scanLock = useRef(false);
 
   useEffect(() => {
     getRecentlyViewed().then(setRecentlyViewedIds);
@@ -28,6 +37,40 @@ export default function SearchScreen() {
     .filter(Boolean) as typeof PRODUCT_CATALOG;
 
   const CATEGORIES = ["All", ...Array.from(new Set(PRODUCT_CATALOG.map((p) => p.category))).sort()];
+
+  const handleOpenScanner = useCallback(async () => {
+    if (Platform.OS === "web") {
+      Alert.alert("Not Available", "Barcode scanning requires a physical device.");
+      return;
+    }
+    if (!cameraPermission?.granted) {
+      const result = await requestCameraPermission();
+      if (!result.granted) {
+        Alert.alert("Camera Permission Required", "Please allow camera access to scan barcodes.");
+        return;
+      }
+    }
+    scanLock.current = false;
+    setScannerVisible(true);
+  }, [cameraPermission, requestCameraPermission]);
+
+  const handleBarcodeScan = useCallback(({ data }: { data: string }) => {
+    if (scanLock.current) return;
+    scanLock.current = true;
+    setScannerVisible(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const match = PRODUCT_CATALOG.find(
+      (p) => p.modelNumber.toLowerCase() === data.toLowerCase() || p.id === data.toLowerCase()
+    );
+    if (match) {
+      Alert.alert("Product Found!", match.name, [
+        { text: "View Product", onPress: () => router.push(`/product/${match.id}` as any) },
+        { text: "Cancel", style: "cancel" },
+      ]);
+    } else {
+      setQuery(data);
+    }
+  }, [router]);
 
   const baseResults = query.trim().length > 0 ? searchCatalog(query) : PRODUCT_CATALOG;
   const results = activeCategory && activeCategory !== "All"
@@ -55,7 +98,10 @@ export default function SearchScreen() {
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
           <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
         </TouchableOpacity>
-        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700", flex: 1 }}>Add Product</Text>
+      <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700", flex: 1 }}>Add Product</Text>
+        <TouchableOpacity onPress={handleOpenScanner} style={{ padding: 4 }}>
+          <IconSymbol name="barcode.viewfinder" size={26} color={colors.primary} />
+        </TouchableOpacity>
       </View>
 
       {/* Search Bar */}
@@ -184,6 +230,30 @@ export default function SearchScreen() {
           </View>
         )}
       />
+      {/* Barcode Scanner Modal */}
+      <Modal visible={scannerVisible} animationType="slide" onRequestClose={() => setScannerVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: "#000" }}>
+          <CameraView
+            style={{ flex: 1 }}
+            facing="back"
+            barcodeScannerSettings={{ barcodeTypes: ["qr", "ean13", "ean8", "code128", "code39", "upc_a", "upc_e"] }}
+            onBarcodeScanned={handleBarcodeScan}
+          />
+          <View style={{ position: "absolute", top: 60, left: 0, right: 0, alignItems: "center" }}>
+            <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}>
+              Point camera at a barcode
+            </Text>
+          </View>
+          <View style={{ position: "absolute", bottom: 60, left: 0, right: 0, alignItems: "center" }}>
+            <TouchableOpacity
+              onPress={() => setScannerVisible(false)}
+              style={{ backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 30, paddingHorizontal: 32, paddingVertical: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.4)" }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }

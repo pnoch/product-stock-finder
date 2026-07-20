@@ -7,7 +7,7 @@ import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { LinearGradient } from "expo-linear-gradient";
-import { getWatchlist, updateProductListings, addAlert, getDistributorWatches, toggleDistributorWatch, addRecentlyViewed } from "@/lib/storage";
+import { getWatchlist, updateProductListings, addAlert, getDistributorWatches, toggleDistributorWatch, addRecentlyViewed, getProductNote, saveProductNote } from "@/lib/storage";
 import { Product, DistributorListing, PriceAlert, PricePoint } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
@@ -408,6 +408,8 @@ export default function ProductDetailScreen() {
   const [regionFilter, setRegionFilter] = useState<string | null>(null);
   const [distributorWatches, setDistributorWatches] = useState<Record<string, boolean>>({});
   const [chartModal, setChartModal] = useState<{ distributorName: string; data: PricePoint[]; currency: string } | null>(null);
+  const [note, setNote] = useState("");
+  const [noteSaved, setNoteSaved] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -426,8 +428,17 @@ export default function ProductDetailScreen() {
     const watches = await getDistributorWatches();
     setDistributorWatches(watches);
     await addRecentlyViewed(id);
+    getProductNote(id).then(setNote);
     setLoading(false);
   }, [id]);
+
+  const handleSaveNote = useCallback(async () => {
+    if (!product) return;
+    await saveProductNote(product.id, note);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setNoteSaved(true);
+    setTimeout(() => setNoteSaved(false), 2000);
+  }, [product, note]);
 
   const handleToggleDistributorWatch = useCallback(async (distributorId: string, distributorName: string, listing: DistributorListing) => {
     await requestNotificationPermissions();
@@ -796,6 +807,31 @@ export default function ProductDetailScreen() {
               );
             })
           )}
+        </View>
+      {/* Notes Section */}
+        <View style={{ marginHorizontal: 16, marginBottom: 16, backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border }}>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+            <IconSymbol name="square.and.pencil" size={18} color={colors.primary} />
+            <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15, marginLeft: 8, flex: 1 }}>My Notes</Text>
+            {noteSaved && <Text style={{ color: colors.success, fontSize: 12, fontWeight: "600" }}>Saved ✓</Text>}
+          </View>
+          <TextInput
+            value={note}
+            onChangeText={setNote}
+            onBlur={handleSaveNote}
+            placeholder="Add a private note about this product..."
+            placeholderTextColor={colors.muted}
+            multiline
+            numberOfLines={3}
+            style={{ color: colors.foreground, fontSize: 14, lineHeight: 20, minHeight: 60, textAlignVertical: "top" }}
+            returnKeyType="done"
+          />
+          <TouchableOpacity
+            onPress={handleSaveNote}
+            style={{ marginTop: 10, backgroundColor: colors.primary + "22", borderRadius: 10, paddingVertical: 8, alignItems: "center" }}
+          >
+            <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>Save Note</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 

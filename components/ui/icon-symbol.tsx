@@ -18,6 +18,7 @@ const MAPPING = {
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
+  "barcode.viewfinder": "qr-code-scanner",
   "arrow.left.arrow.right": "compare-arrows",
   "checkmark": "check",
   "list.bullet": "format-list-bulleted",
@@ -61,6 +62,7 @@ const MAPPING = {
   "cpu": "memory",
   "server.rack": "dns",
   "doc.on.doc": "content-copy",
+  "square.and.pencil": "edit",
   "lock.shield.fill": "security",
   "arrow.left": "arrow-back",
 } as unknown as IconMapping;

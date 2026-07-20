@@ -41,6 +41,7 @@ export interface Product {
   addedAt: string; // ISO date string
   isWatched: boolean;
   listings: DistributorListing[];
+  note?: string;
 }
 
 export interface PriceAlert {

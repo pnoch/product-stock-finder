@@ -175,3 +175,20 @@ export async function getSettings(): Promise<AppSettings> {
 export async function saveSettings(settings: AppSettings): Promise<void> {
   await AsyncStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
 }
+
+// ─── Product Notes ────────────────────────────────────────────────────────────
+
+export async function getProductNote(productId: string): Promise<string> {
+  try {
+    const raw = await AsyncStorage.getItem(`@product_note_${productId}`);
+    return raw ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export async function saveProductNote(productId: string, note: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(`@product_note_${productId}`, note);
+  } catch {}
+}
