@@ -403,6 +403,7 @@ export default function ProductDetailScreen() {
   const [alertModalVisible, setAlertModalVisible] = useState(false);
   const [alertPrice, setAlertPrice] = useState("");
   const [alertCurrency, setAlertCurrency] = useState("USD");
+  const [regionFilter, setRegionFilter] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -453,6 +454,18 @@ export default function ProductDetailScreen() {
     const order = { in_stock: 0, back_order: 1, out_of_stock: 2, unknown: 3 };
     return (order[a.stockStatus] ?? 3) - (order[b.stockStatus] ?? 3);
   });
+
+  const REGIONS = ["All", ...Array.from(new Set(listings.map((l) => {
+    const d = getDistributorById(l.distributorId);
+    return d?.region ?? "Other";
+  }))).sort()];
+
+  const filteredListings = regionFilter && regionFilter !== "All"
+    ? sortedListings.filter((l) => {
+        const d = getDistributorById(l.distributorId);
+        return d?.region === regionFilter;
+      })
+    : sortedListings;
 
   const handleShare = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -671,12 +684,36 @@ export default function ProductDetailScreen() {
           <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16, marginBottom: 12 }}>
             Distributor Prices
           </Text>
-          {sortedListings.length === 0 ? (
+          {/* Region filter chips */}
+          {REGIONS.length > 2 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, flexDirection: "row", paddingBottom: 12 }}
+            >
+              {REGIONS.map((region) => {
+                const isActive = (regionFilter === null && region === "All") || regionFilter === region;
+                return (
+                  <TouchableOpacity
+                    key={region}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setRegionFilter(region === "All" ? null : region);
+                    }}
+                    style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: isActive ? colors.primary : colors.surface, borderWidth: 1, borderColor: isActive ? colors.primary : colors.border }}
+                  >
+                    <Text style={{ color: isActive ? "#fff" : colors.foreground, fontSize: 13, fontWeight: "600" }}>{region}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+          {filteredListings.length === 0 ? (
             <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 24, alignItems: "center", borderWidth: 1, borderColor: colors.border }}>
-              <Text style={{ color: colors.muted, fontSize: 14 }}>No distributor data available yet.</Text>
+              <Text style={{ color: colors.muted, fontSize: 14 }}>No distributors in this region.</Text>
             </View>
           ) : (
-            sortedListings.map((listing) => {
+            filteredListings.map((listing) => {
               const distributor = getDistributorById(listing.distributorId);
               const usdPrice = convertPrice(listing.price, listing.currency, "USD");
               return (

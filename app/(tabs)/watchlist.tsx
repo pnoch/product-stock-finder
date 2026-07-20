@@ -29,7 +29,14 @@ function StockBadge({ status }: { status: string }) {
   );
 }
 
-function ProductCard({ product, onPress, onDelete }: { product: Product; onPress: () => void; onDelete: () => void }) {
+function ProductCard({ product, onPress, onDelete, selected, onToggleSelect, compareMode }: {
+  product: Product;
+  onPress: () => void;
+  onDelete: () => void;
+  selected?: boolean;
+  onToggleSelect?: () => void;
+  compareMode?: boolean;
+}) {
   const colors = useColors();
   const bestPrice = getBestPrice(product.listings ?? [], "USD");
   const bestStatus = product.listings?.find((l) => l.stockStatus === "in_stock")?.stockStatus
@@ -39,6 +46,7 @@ function ProductCard({ product, onPress, onDelete }: { product: Product; onPress
 
   return (
     <Swipeable
+      enabled={!compareMode}
       renderRightActions={(_progress, dragX) => {
         const scale = dragX.interpolate({ inputRange: [-80, 0], outputRange: [1, 0], extrapolate: "clamp" });
         return (
@@ -58,9 +66,14 @@ function ProductCard({ product, onPress, onDelete }: { product: Product; onPress
       }}
     >
       <TouchableOpacity
-      style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border }}
-      onPress={onPress}
+      style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: compareMode && selected ? colors.primary : colors.border, opacity: compareMode && !selected ? 0.7 : 1 }}
+      onPress={compareMode ? onToggleSelect : onPress}
     >
+      {compareMode && (
+        <View style={{ position: "absolute", top: 12, right: 12, width: 22, height: 22, borderRadius: 11, backgroundColor: selected ? colors.primary : colors.surface, borderWidth: 2, borderColor: selected ? colors.primary : colors.border, alignItems: "center", justifyContent: "center" }}>
+          {selected && <IconSymbol name="checkmark" size={12} color="#fff" />}
+        </View>
+      )}
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
         <View style={{ flex: 1, marginRight: 10 }}>
           <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }} numberOfLines={2}>{product.name}</Text>
@@ -101,6 +114,8 @@ export default function WatchlistScreen() {
   const [watchlist, setWatchlist] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [sortMode, setSortMode] = useState<"best_price" | "alphabetical" | "recently_added">("recently_added");
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const loadData = useCallback(async () => {
     const list = await getWatchlist();
@@ -155,6 +170,21 @@ export default function WatchlistScreen() {
     );
   }, [loadData]);
 
+  const toggleSelect = useCallback((id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 3 ? [...prev, id] : prev
+    );
+  }, []);
+
+  const handleCompare = useCallback(() => {
+    if (selectedIds.length < 2) {
+      Alert.alert("Select Products", "Please select 2 or 3 products to compare.");
+      return;
+    }
+    router.push(`/compare?ids=${selectedIds.join(",")}` as any);
+  }, [selectedIds, router]);
+
   return (
     <ScreenContainer>
       <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
@@ -162,16 +192,48 @@ export default function WatchlistScreen() {
           <Text className="text-2xl font-bold text-foreground">Watchlist</Text>
           <Text className="text-muted text-sm">{watchlist.length} product{watchlist.length !== 1 ? "s" : ""} tracked</Text>
         </View>
-        <TouchableOpacity
-          style={{ backgroundColor: colors.primary, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/search" as any);
-          }}
-        >
-          <IconSymbol name="plus" size={22} color="#fff" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {watchlist.length >= 2 && (
+            <TouchableOpacity
+              style={{ backgroundColor: compareMode ? colors.primary : colors.surface, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: compareMode ? colors.primary : colors.border }}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setCompareMode((v) => !v);
+                setSelectedIds([]);
+              }}
+            >
+              <IconSymbol name="arrow.left.arrow.right" size={18} color={compareMode ? "#fff" : colors.foreground} />
+            </TouchableOpacity>
+          )}
+          {!compareMode && (
+            <TouchableOpacity
+              style={{ backgroundColor: colors.primary, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push("/search" as any);
+              }}
+            >
+              <IconSymbol name="plus" size={22} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
+
+      {/* Compare mode banner */}
+      {compareMode && (
+        <View style={{ marginHorizontal: 20, marginBottom: 10, backgroundColor: colors.primary + "18", borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 1, borderColor: colors.primary + "44" }}>
+          <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>
+            {selectedIds.length === 0 ? "Select 2–3 products to compare" : `${selectedIds.length} selected`}
+          </Text>
+          <TouchableOpacity
+            onPress={handleCompare}
+            disabled={selectedIds.length < 2}
+            style={{ backgroundColor: selectedIds.length >= 2 ? colors.primary : colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 6 }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>Compare</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Sort bar */}
       {watchlist.length > 1 && (
@@ -228,6 +290,9 @@ export default function WatchlistScreen() {
             product={item}
             onPress={() => router.push(`/product/${item.id}` as any)}
             onDelete={() => handleDelete(item.id, item.name)}
+            compareMode={compareMode}
+            selected={selectedIds.includes(item.id)}
+            onToggleSelect={() => toggleSelect(item.id)}
           />
         )}
       />

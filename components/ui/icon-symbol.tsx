@@ -18,6 +18,8 @@ const MAPPING = {
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
+  "arrow.left.arrow.right": "compare-arrows",
+  "checkmark": "check",
   "list.bullet": "format-list-bulleted",
   "bell.fill": "notifications",
   "bell.badge.fill": "notification-important",
@@ -49,9 +51,8 @@ const MAPPING = {
   "chevron.down": "expand-more",
   "chevron.up": "expand-less",
   "chevron.left": "chevron-left",
-  "arrow.left": "arrow-back",
+  "arrow.back": "arrow-back",
   "xmark": "close",
-  "checkmark": "check",
   "minus": "remove",
   "circle.fill": "circle",
   "square.fill": "square",
@@ -60,7 +61,9 @@ const MAPPING = {
   "cpu": "memory",
   "server.rack": "dns",
   "doc.on.doc": "content-copy",
-} as IconMapping;
+  "lock.shield.fill": "security",
+  "arrow.left": "arrow-back",
+} as unknown as IconMapping;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.

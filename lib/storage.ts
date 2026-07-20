@@ -98,6 +98,21 @@ export async function markAlertPurchased(alertId: string): Promise<void> {
   await saveAlerts(updated);
 }
 
+// ─── Onboarding ───────────────────────────────────────────────────────────────
+
+export async function hasSeenOnboarding(): Promise<boolean> {
+  try {
+    const val = await AsyncStorage.getItem("onboarding_complete");
+    return val === "true";
+  } catch {
+    return false;
+  }
+}
+
+export async function markOnboardingComplete(): Promise<void> {
+  await AsyncStorage.setItem("onboarding_complete", "true");
+}
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 export async function getSettings(): Promise<AppSettings> {
