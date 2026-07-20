@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, View, TouchableOpacity, Switch, Linking, Alert } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Switch, Linking, Alert, Share } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { getSettings, saveSettings } from "@/lib/storage";
+import { getSettings, saveSettings, getWatchlist } from "@/lib/storage";
 import { AppSettings } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { sendTestNotification } from "@/lib/notifications";
@@ -44,6 +44,31 @@ export default function SettingsScreen() {
     stockAlerts: true,
     priceAlerts: true,
   });
+
+  const handleExportWatchlist = useCallback(async () => {
+    try {
+      const watchlist = await getWatchlist();
+      if (watchlist.length === 0) {
+        Alert.alert("Empty Watchlist", "Add some products to your watchlist first.");
+        return;
+      }
+      const lines = watchlist.map((p) => {
+        const bestListing = [...(p.listings ?? [])].sort((a, b) => {
+          if (a.stockStatus === "in_stock" && b.stockStatus !== "in_stock") return -1;
+          if (b.stockStatus === "in_stock" && a.stockStatus !== "in_stock") return 1;
+          return a.price - b.price;
+        })[0];
+        const status = bestListing?.stockStatus === "in_stock" ? "In Stock" : bestListing?.stockStatus === "back_order" ? "Back Order" : "Out of Stock";
+        const price = bestListing ? `${bestListing.currency} ${bestListing.price.toFixed(2)}` : "N/A";
+        return `${p.name} | ${p.modelNumber} | ${status} | Best: ${price}`;
+      });
+      const text = `Product Stock Finder — Watchlist Export\n${new Date().toLocaleDateString()}\n\n${lines.join("\n")}`;
+      await Share.share({ message: text, title: "Watchlist Export" });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      Alert.alert("Export Failed", "Could not export watchlist.");
+    }
+  }, []);
 
   useEffect(() => {
     getSettings().then(setSettings);
@@ -178,6 +203,18 @@ export default function SettingsScreen() {
               )}
             </TouchableOpacity>
           ))}
+        </View>
+
+        <SectionHeader title="Data" />
+        <View style={{ backgroundColor: colors.surface, borderRadius: 16, marginHorizontal: 16, borderWidth: 1, borderColor: colors.border, overflow: "hidden", marginBottom: 8 }}>
+          <TouchableOpacity onPress={handleExportWatchlist}>
+            <SettingRow
+              icon="square.and.arrow.up"
+              label="Export Watchlist"
+              description="Share as plain text via system share sheet"
+              right={<IconSymbol name="chevron.right" size={16} color={colors.muted} />}
+            />
+          </TouchableOpacity>
         </View>
 
         <SectionHeader title="About" />

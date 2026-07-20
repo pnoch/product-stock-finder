@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import * as Clipboard from "expo-clipboard";
 import { ScrollView, Text, View, TouchableOpacity, Alert, TextInput, Modal, Linking, ActivityIndicator, Share, Platform, RefreshControl } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -8,7 +8,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { LinearGradient } from "expo-linear-gradient";
 import { getWatchlist, updateProductListings, addAlert, getDistributorWatches, toggleDistributorWatch, addRecentlyViewed } from "@/lib/storage";
-import { Product, DistributorListing, PriceAlert } from "@/lib/types";
+import { Product, DistributorListing, PriceAlert, PricePoint } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -407,6 +407,7 @@ export default function ProductDetailScreen() {
   const [alertCurrency, setAlertCurrency] = useState("USD");
   const [regionFilter, setRegionFilter] = useState<string | null>(null);
   const [distributorWatches, setDistributorWatches] = useState<Record<string, boolean>>({});
+  const [chartModal, setChartModal] = useState<{ distributorName: string; data: PricePoint[]; currency: string } | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -766,7 +767,9 @@ export default function ProductDetailScreen() {
                     </View>
                     <View style={{ alignItems: "flex-end", gap: 4 }}>
                       {listing.priceHistory && listing.priceHistory.length >= 2 && (
-                        <PriceSparkline data={listing.priceHistory} width={72} height={28} currency={listing.currency} />
+                        <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setChartModal({ distributorName: distributor?.name ?? listing.distributorId, data: listing.priceHistory, currency: listing.currency }); }}>
+                          <PriceSparkline data={listing.priceHistory} width={72} height={28} currency={listing.currency} />
+                        </TouchableOpacity>
                       )}
                       <TouchableOpacity
                       onPress={() => {
@@ -837,6 +840,76 @@ export default function ProductDetailScreen() {
                 <Text style={{ color: "#fff", fontWeight: "600" }}>Set Alert</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+      {/* Price History Chart Modal */}
+      <Modal visible={!!chartModal} animationType="slide" transparent onRequestClose={() => setChartModal(null)}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+              <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "700", flex: 1 }}>
+                {chartModal?.distributorName} — Price History
+              </Text>
+              <TouchableOpacity onPress={() => setChartModal(null)}>
+                <IconSymbol name="xmark.circle.fill" size={24} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            {chartModal && (() => {
+              const SvgLib = require("react-native-svg");
+              const SvgComp = SvgLib.default || SvgLib.Svg;
+              const { Polyline: SVGPolyline, Circle: SVGCircle, Line: SVGLine } = SvgLib;
+              const sorted = [...chartModal.data].sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+              const prices = sorted.map((p: any) => p.price);
+              const minP = Math.min(...prices);
+              const maxP = Math.max(...prices);
+              const range = maxP - minP || 1;
+              const W = 300, H = 140, pad = 16;
+              const usableW = W - pad * 2, usableH = H - pad * 2;
+              const coords = sorted.map((p: any, i: number) => ({
+                x: pad + (i / Math.max(sorted.length - 1, 1)) * usableW,
+                y: pad + (1 - (p.price - minP) / range) * usableH,
+                price: p.price,
+                date: p.date,
+              }));
+              const polylineStr = coords.map((c: any) => `${c.x},${c.y}`).join(" ");
+              const last = coords[coords.length - 1];
+              const first = coords[0];
+              const trend = last.price >= first.price ? "up" : "down";
+              const lineColor = trend === "up" ? colors.success : colors.error;
+              const pctChange = ((last.price - first.price) / first.price) * 100;
+              return (
+                <View>
+                  <SvgComp width={W} height={H} style={{ alignSelf: "center" }}>
+                    <SVGLine x1={pad} y1={pad} x2={pad} y2={pad + usableH} stroke={colors.border} strokeWidth={1} />
+                    <SVGLine x1={pad} y1={pad + usableH} x2={pad + usableW} y2={pad + usableH} stroke={colors.border} strokeWidth={1} />
+                    <SVGPolyline points={polylineStr} fill="none" stroke={lineColor} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                    <SVGCircle cx={last.x} cy={last.y} r={4} fill={lineColor} />
+                  </SvgComp>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8 }}>
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>{sorted[0]?.date ? new Date(sorted[0].date).toLocaleDateString() : ""}</Text>
+                    <Text style={{ color: lineColor, fontSize: 13, fontWeight: "700" }}>
+                      {trend === "up" ? "▲" : "▼"} {Math.abs(pctChange).toFixed(1)}% · {sorted.length} pts
+                    </Text>
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>{sorted[sorted.length - 1]?.date ? new Date(sorted[sorted.length - 1].date).toLocaleDateString() : ""}</Text>
+                  </View>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 12 }}>
+                    <View style={{ alignItems: "center" }}>
+                      <Text style={{ color: colors.muted, fontSize: 11 }}>Low</Text>
+                      <Text style={{ color: colors.success, fontSize: 14, fontWeight: "700" }}>{formatPrice(minP, chartModal.currency)}</Text>
+                    </View>
+                    <View style={{ alignItems: "center" }}>
+                      <Text style={{ color: colors.muted, fontSize: 11 }}>Current</Text>
+                      <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "700" }}>{formatPrice(last.price, chartModal.currency)}</Text>
+                    </View>
+                    <View style={{ alignItems: "center" }}>
+                      <Text style={{ color: colors.muted, fontSize: 11 }}>High</Text>
+                      <Text style={{ color: colors.error, fontSize: 14, fontWeight: "700" }}>{formatPrice(maxP, chartModal.currency)}</Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })()}
           </View>
         </View>
       </Modal>

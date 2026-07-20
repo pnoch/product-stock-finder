@@ -5,7 +5,7 @@ import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { searchCatalog, PRODUCT_CATALOG } from "@/lib/catalog";
+import { searchCatalog, PRODUCT_CATALOG, CATALOG_ADDED_AT } from "@/lib/catalog";
 import { addToWatchlist, getRecentlyViewed } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -148,7 +148,20 @@ export default function SearchScreen() {
         renderItem={({ item }) => (
           <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center" }}>
             <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 15 }} numberOfLines={2}>{item.name}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 15, flexShrink: 1 }} numberOfLines={2}>{item.name}</Text>
+                {(() => {
+                  const addedAt = CATALOG_ADDED_AT[item.id];
+                  if (!addedAt) return null;
+                  const daysAgo = (Date.now() - new Date(addedAt).getTime()) / (1000 * 60 * 60 * 24);
+                  if (daysAgo > 7) return null;
+                  return (
+                    <View style={{ backgroundColor: colors.success + "22", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                      <Text style={{ color: colors.success, fontSize: 10, fontWeight: "700" }}>NEW</Text>
+                    </View>
+                  );
+                })()}
+              </View>
               <Text style={{ color: colors.muted, fontSize: 12, marginTop: 3 }}>{item.modelNumber}</Text>
               <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4, gap: 6 }}>
                 <View style={{ backgroundColor: colors.primary + "22", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>
