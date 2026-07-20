@@ -30,7 +30,7 @@ const env = {
   // App branding - update these values directly (do not use env vars)
   appName: "Stock Tracker Pro",
   appSlug: "stock-tracker-pro",
-  logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/113777709/LQQHlfCzGHTyzqJJ.png",
+  logoUrl: "https://8081-ib0hcfp597ouinbt9u4x1-e83f862e.sg1.manus.computer/manus-storage/icon_v4a_6836f8f6.png",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
