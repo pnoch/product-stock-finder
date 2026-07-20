@@ -185,7 +185,7 @@ export default function SettingsScreen() {
           <SettingRow
             icon="info.circle.fill"
             label="Version"
-            description="Stock Tracker Pro"
+            description="Product Stock Finder"
             right={<Text style={{ color: colors.muted, fontSize: 14 }}>1.0.0</Text>}
           />
           <TouchableOpacity onPress={() => Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")}>
@@ -205,7 +205,7 @@ export default function SettingsScreen() {
         </View>
 
         <View style={{ alignItems: "center", marginTop: 32 }}>
-          <Text style={{ color: colors.muted, fontSize: 12 }}>Stock Tracker Pro · v1.0.0</Text>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>Product Stock Finder · v1.0.0</Text>
           <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>Track smarter. Buy better.</Text>
         </View>
       </ScrollView>
