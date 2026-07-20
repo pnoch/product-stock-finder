@@ -7,12 +7,13 @@ import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { LinearGradient } from "expo-linear-gradient";
-import { getWatchlist, updateProductListings, addAlert } from "@/lib/storage";
+import { getWatchlist, updateProductListings, addAlert, getDistributorWatches, toggleDistributorWatch, addRecentlyViewed } from "@/lib/storage";
 import { Product, DistributorListing, PriceAlert } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { schedulePriceAlert, requestNotificationPermissions } from "@/lib/notifications";
+import { schedulePriceAlert, scheduleStockAlert, requestNotificationPermissions } from "@/lib/notifications";
+import { PriceSparkline } from "@/components/price-sparkline";
 
 // ─── Real distributor data for CRS804-4DDQ-hRM (verified July 19, 2026) ───────
 // ─── Listings for all tracked products ────────────────────────────────────────
@@ -404,6 +405,7 @@ export default function ProductDetailScreen() {
   const [alertPrice, setAlertPrice] = useState("");
   const [alertCurrency, setAlertCurrency] = useState("USD");
   const [regionFilter, setRegionFilter] = useState<string | null>(null);
+  const [distributorWatches, setDistributorWatches] = useState<Record<string, boolean>>({});
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -419,8 +421,25 @@ export default function ProductDetailScreen() {
         await updateProductListings(id, allSamples[id]);
       }
     }
+    const watches = await getDistributorWatches();
+    setDistributorWatches(watches);
+    await addRecentlyViewed(id);
     setLoading(false);
   }, [id]);
+
+  const handleToggleDistributorWatch = useCallback(async (distributorId: string, distributorName: string, listing: DistributorListing) => {
+    await requestNotificationPermissions();
+    const isNowWatched = await toggleDistributorWatch(id, distributorId);
+    const watches = await getDistributorWatches();
+    setDistributorWatches(watches);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (isNowWatched) {
+      await scheduleStockAlert(product?.name ?? "Product", distributorName, listing.price, listing.currency);
+      Alert.alert("Watching", `You'll be notified when ${distributorName} gets this back in stock.`);
+    } else {
+      Alert.alert("Removed", `Stopped watching ${distributorName} for this product.`);
+    }
+  }, [id, product]);
 
   useEffect(() => {
     loadData();
@@ -759,6 +778,7 @@ export default function ProductDetailScreen() {
                       💳 {distributor.paymentMethods.join(" · ")}
                     </Text>
                   )}
+                  <TouchableOpacity onPress={() => handleToggleDistributorWatch(listing.distributorId, distributor?.name ?? listing.distributorId, listing)} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, paddingVertical: 4 }}><IconSymbol name={distributorWatches[`${id}::${listing.distributorId}`] ? "bell.fill" : "bell.slash.fill"} size={14} color={distributorWatches[`${id}::${listing.distributorId}`] ? colors.primary : colors.muted} /><Text style={{ color: distributorWatches[`${id}::${listing.distributorId}`] ? colors.primary : colors.muted, fontSize: 12, fontWeight: "500" }}>{distributorWatches[`${id}::${listing.distributorId}`] ? "Watching this distributor" : "Notify when back in stock"}</Text></TouchableOpacity>
                   <Text style={{ color: colors.muted, fontSize: 11, marginTop: distributor?.paymentMethods ? 2 : 8, opacity: 0.7 }}>
                     🕐 Updated {formatLastChecked(listing.lastChecked)}
                   </Text>
@@ -816,5 +836,3 @@ export default function ProductDetailScreen() {
     </ScreenContainer>
   );
 }
-import { scheduleStockAlert } from "@/lib/notifications";
-import { PriceSparkline } from "@/components/price-sparkline";

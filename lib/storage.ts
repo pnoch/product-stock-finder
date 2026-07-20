@@ -113,6 +113,54 @@ export async function markOnboardingComplete(): Promise<void> {
   await AsyncStorage.setItem("onboarding_complete", "true");
 }
 
+// ─── Recently Viewed ──────────────────────────────────────────────────────────
+
+const RECENTLY_VIEWED_KEY = "recently_viewed";
+const MAX_RECENTLY_VIEWED = 5;
+
+export async function getRecentlyViewed(): Promise<string[]> {
+  try {
+    const raw = await AsyncStorage.getItem(RECENTLY_VIEWED_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function addRecentlyViewed(productId: string): Promise<void> {
+  const list = await getRecentlyViewed();
+  const filtered = list.filter((id) => id !== productId);
+  filtered.unshift(productId);
+  await AsyncStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(filtered.slice(0, MAX_RECENTLY_VIEWED)));
+}
+
+// ─── Per-distributor stock watches ────────────────────────────────────────────
+
+const DISTRIBUTOR_WATCHES_KEY = "distributor_watches";
+
+export async function getDistributorWatches(): Promise<Record<string, boolean>> {
+  try {
+    const raw = await AsyncStorage.getItem(DISTRIBUTOR_WATCHES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function toggleDistributorWatch(productId: string, distributorId: string): Promise<boolean> {
+  const watches = await getDistributorWatches();
+  const key = `${productId}::${distributorId}`;
+  const next = !watches[key];
+  watches[key] = next;
+  await AsyncStorage.setItem(DISTRIBUTOR_WATCHES_KEY, JSON.stringify(watches));
+  return next;
+}
+
+export async function isDistributorWatched(productId: string, distributorId: string): Promise<boolean> {
+  const watches = await getDistributorWatches();
+  return !!watches[`${productId}::${distributorId}`];
+}
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 export async function getSettings(): Promise<AppSettings> {

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { FlatList, Text, View, TouchableOpacity, TextInput, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -6,7 +6,7 @@ import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { searchCatalog, PRODUCT_CATALOG } from "@/lib/catalog";
-import { addToWatchlist } from "@/lib/storage";
+import { addToWatchlist, getRecentlyViewed } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ScrollView } from "react-native";
@@ -17,6 +17,15 @@ export default function SearchScreen() {
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    getRecentlyViewed().then(setRecentlyViewedIds);
+  }, []);
+
+  const recentlyViewed = recentlyViewedIds
+    .map((id) => PRODUCT_CATALOG.find((p) => p.id === id))
+    .filter(Boolean) as typeof PRODUCT_CATALOG;
 
   const CATEGORIES = ["All", ...Array.from(new Set(PRODUCT_CATALOG.map((p) => p.category))).sort()];
 
@@ -106,9 +115,28 @@ export default function SearchScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         ListHeaderComponent={
-          <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>
-            {query.trim() ? `${results.length} result${results.length !== 1 ? "s" : ""}` : "All Products"}
-          </Text>
+          <>
+            {!query.trim() && recentlyViewed.length > 0 && (
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>Recently Viewed</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, flexDirection: "row" }}>
+                  {recentlyViewed.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      onPress={() => router.push(`/product/${item.id}` as any)}
+                      style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border, width: 140 }}
+                    >
+                      <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }} numberOfLines={2}>{item.name}</Text>
+                      <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>{item.brand}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>
+              {query.trim() ? `${results.length} result${results.length !== 1 ? "s" : ""}` : "All Products"}
+            </Text>
+          </>
         }
         ListEmptyComponent={
           <View style={{ alignItems: "center", paddingTop: 60 }}>

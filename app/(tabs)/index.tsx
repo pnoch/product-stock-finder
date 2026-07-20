@@ -1,10 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { ScrollView, Text, View, TouchableOpacity, RefreshControl, FlatList } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { useThemeContext } from "@/lib/theme-provider";
 import { getWatchlist, getAlerts } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { formatPrice, convertPrice, getBestPrice } from "@/lib/currency";
@@ -54,6 +55,7 @@ function SummaryCard({ label, value, color, icon }: { label: string; value: stri
 export default function HomeScreen() {
   const router = useRouter();
   const colors = useColors();
+  const { colorScheme, setColorScheme } = useThemeContext();
   const [watchlist, setWatchlist] = useState<Product[]>([]);
   const [alertCount, setAlertCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -115,7 +117,17 @@ export default function HomeScreen() {
             <Text className="text-2xl font-bold text-foreground">Product Stock Finder</Text>
             <Text className="text-muted text-sm">Find it. Track it. Get notified.</Text>
           </View>
-          <TouchableOpacity
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setColorScheme(colorScheme === "dark" ? "light" : "dark");
+              }}
+              style={{ backgroundColor: colors.surface, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.border }}
+            >
+              <Text style={{ fontSize: 18 }}>{colorScheme === "dark" ? "☀️" : "🌙"}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
             style={{ backgroundColor: colors.primary, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -123,7 +135,8 @@ export default function HomeScreen() {
             }}
           >
             <IconSymbol name="plus" size={22} color="#fff" />
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Summary Cards */}
