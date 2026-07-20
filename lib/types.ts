@@ -63,6 +63,8 @@ export interface BackOrderReminder {
   reminderDate: string; // ISO date string
   notificationId?: string; // expo-notifications identifier
   createdAt: string;
+  reminderType?: "date" | "back_in_stock"; // "date" = scheduled date reminder, "back_in_stock" = watch for restock
+  lastKnownStatus?: string; // cached stock status for change detection
 }
 
 export interface AppSettings {

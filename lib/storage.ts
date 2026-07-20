@@ -6,6 +6,7 @@ const KEYS = {
   ALERTS: "price_alerts",
   SETTINGS: "app_settings",
   REMINDERS: "back_order_reminders",
+  STOCK_WATCHES: "back_in_stock_watches",
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -137,6 +138,47 @@ export async function removeBackOrderReminder(reminderId: string): Promise<void>
   await saveBackOrderReminders(reminders.filter((r) => r.id !== reminderId));
 }
 
+// ─── Back-In-Stock Watches ────────────────────────────────────────────────────
+
+export async function getStockWatches(): Promise<BackOrderReminder[]> {
+  try {
+    const raw = await AsyncStorage.getItem(KEYS.STOCK_WATCHES);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveStockWatches(watches: BackOrderReminder[]): Promise<void> {
+  await AsyncStorage.setItem(KEYS.STOCK_WATCHES, JSON.stringify(watches));
+}
+
+export async function addStockWatch(watch: BackOrderReminder): Promise<void> {
+  const watches = await getStockWatches();
+  const existing = watches.findIndex((w) => w.productId === watch.productId && w.distributorId === watch.distributorId);
+  if (existing >= 0) {
+    watches[existing] = watch;
+  } else {
+    watches.unshift(watch);
+  }
+  await saveStockWatches(watches);
+}
+
+export async function removeStockWatch(watchId: string): Promise<void> {
+  const watches = await getStockWatches();
+  await saveStockWatches(watches.filter((w) => w.id !== watchId));
+}
+
+export async function updateStockWatchStatus(productId: string, distributorId: string, status: string): Promise<void> {
+  const watches = await getStockWatches();
+  const updated = watches.map((w) =>
+    w.productId === productId && w.distributorId === distributorId
+      ? { ...w, lastKnownStatus: status }
+      : w
+  );
+  await saveStockWatches(updated);
+}
+
 // ─── Clear All Data ───────────────────────────────────────────────────────────
 
 export async function clearAllData(): Promise<void> {
@@ -145,6 +187,7 @@ export async function clearAllData(): Promise<void> {
     KEYS.ALERTS,
     KEYS.SETTINGS,
     KEYS.REMINDERS,
+    KEYS.STOCK_WATCHES,
     "recently_viewed",
     "distributor_watches",
     "triggered_alert_history",

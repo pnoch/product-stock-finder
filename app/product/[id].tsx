@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import * as Clipboard from "expo-clipboard";
 import { ScrollView, Text, View, TouchableOpacity, Alert, TextInput, Modal, Linking, ActivityIndicator, Share, Platform } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { getWatchlist, updateProductListings, addAlert } from "@/lib/storage";
+import { getWatchlist, updateProductListings, addAlert, getStockWatches, addStockWatch, removeStockWatch, updateStockWatchStatus } from "@/lib/storage";
 import { Product, DistributorListing, PriceAlert } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
@@ -16,6 +16,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { addBackOrderReminder } from "@/lib/storage";
 import { scheduleBackOrderReminder } from "@/lib/notifications";
 import { scheduleStockAlert } from "@/lib/notifications";
+import { cancelNotification } from "@/lib/notifications";
 import { PriceSparkline } from "@/components/price-sparkline";
 
 // ─── Best Distributor Highlight Card ─────────────────────────────────────────
@@ -42,6 +43,16 @@ function BestDistributorCard({ listing }: { listing: DistributorListing }) {
     return null;
   })();
 
+  // Lowest Price Ever: compare current price against minimum across all history points
+  const isLowestEver = (() => {
+    const hist = listing.priceHistory;
+    if (!hist || hist.length < 2) return false;
+    // Convert all prices to USD for fair comparison
+    const historicalMin = Math.min(...hist.map((p) => convertPrice(p.price, p.currency, "USD")));
+    const currentUsd = convertPrice(listing.price, listing.currency, "USD");
+    return currentUsd <= historicalMin;
+  })();
+
   return (
     <View style={{ backgroundColor: colors.primary + "12", borderRadius: 16, padding: 16, marginBottom: 10, borderWidth: 1.5, borderColor: colors.primary + "55" }}>
       {/* Crown badge */}
@@ -63,6 +74,24 @@ function BestDistributorCard({ listing }: { listing: DistributorListing }) {
           </View>
         )}
       </View>
+      {isLowestEver && (
+        <View style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 5,
+          backgroundColor: colors.success + "18",
+          borderRadius: 10,
+          paddingHorizontal: 10,
+          paddingVertical: 5,
+          marginBottom: 10,
+          alignSelf: "flex-start",
+          borderWidth: 1,
+          borderColor: colors.success + "44",
+        }}>
+          <Text style={{ fontSize: 14 }}>🎉</Text>
+          <Text style={{ color: colors.success, fontSize: 12, fontWeight: "700" }}>Lowest Price Ever</Text>
+        </View>
+      )}
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}>
@@ -300,6 +329,9 @@ export default function ProductDetailScreen() {
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  // Back-in-stock watch state
+  const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
+
   const bestInStockListing = (() => {
     const inStock = listings.filter((l) => l.stockStatus === "in_stock");
     if (inStock.length === 0) return null;
@@ -327,6 +359,90 @@ export default function ProductDetailScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Load stock watches and poll for status changes on focus
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      async function pollStockWatches() {
+        const watches = await getStockWatches();
+        const productWatches = watches.filter((w) => w.productId === id);
+        // Build a map of distributorId -> isWatched
+        const watchMap: Record<string, boolean> = {};
+        for (const w of productWatches) watchMap[w.distributorId] = true;
+        if (active) setStockWatches(watchMap);
+
+        // Poll: check if any watched distributor has come back in stock
+        const watchlist = await getWatchlist();
+        const found = watchlist.find((p) => p.id === id);
+        if (!found) return;
+        const currentListings = found.listings?.length ? found.listings : (SAMPLE_LISTINGS[id] ?? []);
+        for (const watch of productWatches) {
+          const currentListing = currentListings.find((l) => l.distributorId === watch.distributorId);
+          if (!currentListing) continue;
+          const prevStatus = watch.lastKnownStatus ?? "back_order";
+          const newStatus = currentListing.stockStatus;
+          if (prevStatus !== "in_stock" && newStatus === "in_stock") {
+            // Status changed to in-stock — fire notification and remove watch
+            if (Platform.OS !== "web") {
+              await requestNotificationPermissions();
+              const distrib = getDistributorById(watch.distributorId);
+              await scheduleStockAlert(
+                watch.productName,
+                distrib?.name ?? watch.distributorName,
+                currentListing.price,
+                currentListing.currency
+              );
+            }
+            await removeStockWatch(watch.id);
+            if (active) setStockWatches((prev) => { const n = { ...prev }; delete n[watch.distributorId]; return n; });
+          } else if (prevStatus !== newStatus) {
+            // Update cached status
+            await updateStockWatchStatus(id, watch.distributorId, newStatus);
+          }
+        }
+      }
+      pollStockWatches();
+      return () => { active = false; };
+    }, [id])
+  );
+
+  const handleToggleStockWatch = useCallback(async (listing: DistributorListing) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const isWatching = stockWatches[listing.distributorId];
+    if (isWatching) {
+      // Remove watch
+      const watches = await getStockWatches();
+      const existing = watches.find((w) => w.productId === id && w.distributorId === listing.distributorId);
+      if (existing) {
+        if (existing.notificationId) await cancelNotification(existing.notificationId);
+        await removeStockWatch(existing.id);
+      }
+      setStockWatches((prev) => { const n = { ...prev }; delete n[listing.distributorId]; return n; });
+      Alert.alert("Watch Removed", `You'll no longer be notified when ${getDistributorById(listing.distributorId)?.name ?? listing.distributorId} gets ${product?.name} back in stock.`);
+    } else {
+      // Add watch
+      const distributor = getDistributorById(listing.distributorId);
+      const watchEntry = {
+        id: `watch-${Date.now()}-${listing.distributorId}`,
+        productId: id,
+        productName: product?.name ?? "Product",
+        distributorId: listing.distributorId,
+        distributorName: distributor?.name ?? listing.distributorId,
+        reminderDate: new Date().toISOString(),
+        reminderType: "back_in_stock" as const,
+        lastKnownStatus: listing.stockStatus,
+        createdAt: new Date().toISOString(),
+      };
+      await addStockWatch(watchEntry);
+      setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(
+        "Watching for Restock 👀",
+        `You'll be notified the next time you open the app and ${distributor?.name ?? listing.distributorId} has ${product?.name} back in stock.`
+      );
+    }
+  }, [stockWatches, id, product]);
 
   const handleSetAlert = useCallback(async () => {
     const price = parseFloat(alertPrice);
@@ -631,11 +747,46 @@ export default function ProductDetailScreen() {
                    </Text>
                  )}
                  <Text style={{ color: colors.muted, fontSize: 11, marginTop: distributor?.paymentMethods ? 2 : 8, opacity: 0.7 }}>
-                   🕐 Updated {formatLastChecked(listing.lastChecked)}
-                 </Text>
-               </View>
-             );
-           })}
+                  🕐 Updated {formatLastChecked(listing.lastChecked)}
+                </Text>
+                 {/* Watch for Restock button on back-order cards */}
+                 {listing.stockStatus === "back_order" && (
+                   <TouchableOpacity
+                     onPress={() => handleToggleStockWatch(listing)}
+                     style={{
+                       marginTop: 10,
+                       flexDirection: "row",
+                       alignItems: "center",
+                       justifyContent: "center",
+                       gap: 6,
+                       backgroundColor: stockWatches[listing.distributorId]
+                         ? colors.warning + "22"
+                         : colors.surface,
+                       borderRadius: 12,
+                       paddingVertical: 9,
+                       borderWidth: 1,
+                       borderColor: stockWatches[listing.distributorId]
+                         ? colors.warning + "88"
+                         : colors.border,
+                     }}
+                   >
+                     <IconSymbol
+                       name={stockWatches[listing.distributorId] ? "eye.fill" : "eye.slash.fill"}
+                       size={15}
+                       color={stockWatches[listing.distributorId] ? colors.warning : colors.muted}
+                     />
+                     <Text style={{
+                       color: stockWatches[listing.distributorId] ? colors.warning : colors.muted,
+                       fontSize: 13,
+                       fontWeight: "600",
+                     }}>
+                       {stockWatches[listing.distributorId] ? "Watching for Restock" : "Watch for Restock"}
+                     </Text>
+                   </TouchableOpacity>
+                 )}
+              </View>
+            );
+          })}
             </>
           )}
         </View>
