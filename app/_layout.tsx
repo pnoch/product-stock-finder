@@ -11,6 +11,9 @@ import { ThemeProvider } from "@/lib/theme-provider";
 import "@/lib/notifications"; // registers setNotificationHandler at module level
 import { requestNotificationPermissions, setupAndroidNotificationChannel } from "@/lib/notifications";
 import { getWatchlist, addToWatchlist, updateProductListings } from "@/lib/storage";
+import { registerPriceCheckTask, checkPriceDropsNow } from "@/lib/background-price-check";
+// Import background task module at root level so TaskManager.defineTask runs in global scope
+import "@/lib/background-price-check";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
 import { DistributorListing } from "@/lib/types";
 
@@ -61,6 +64,10 @@ export default function RootLayout() {
     if (Platform.OS === "web") return;
     setupAndroidNotificationChannel().then(() => {
       requestNotificationPermissions();
+      // Register background price-check task
+      registerPriceCheckTask();
+      // Run a foreground check immediately on app launch
+      checkPriceDropsNow();
     });
   }, []);
 

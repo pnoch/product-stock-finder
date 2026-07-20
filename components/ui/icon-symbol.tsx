@@ -63,6 +63,9 @@ const MAPPING = {
   "server.rack": "dns",
   "doc.on.doc": "content-copy",
   "pencil": "edit",
+  "arrow.left.arrow.right": "swap-horiz",
+  "chart.bar.xaxis": "bar-chart",
+  "square.and.pencil": "edit-note",
 } as IconMapping;
 
 /**

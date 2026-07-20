@@ -10,6 +10,8 @@ import { useColors } from "@/hooks/use-colors";
 import { getWatchlist, updateProductListings, addAlert, getStockWatches, addStockWatch, removeStockWatch, updateStockWatchStatus } from "@/lib/storage";
 import { Product, DistributorListing, PriceAlert } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
+import { getBestPrice } from "@/lib/currency";
+import { getSettings } from "@/lib/storage";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { schedulePriceAlert, requestNotificationPermissions } from "@/lib/notifications";
@@ -345,6 +347,7 @@ export default function ProductDetailScreen() {
   const [alertModalVisible, setAlertModalVisible] = useState(false);
   const [alertPrice, setAlertPrice] = useState("");
   const [alertCurrency, setAlertCurrency] = useState("USD");
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
 
   // Best in-stock distributor (cheapest by USD equivalent)
   // Reminder modal state
@@ -397,6 +400,10 @@ export default function ProductDetailScreen() {
     useCallback(() => {
       let active = true;
       async function pollStockWatches() {
+        // Load preferred currency from settings
+        const settings = await getSettings();
+        if (active) setDisplayCurrency(settings.displayCurrency ?? "USD");
+
         const watches = await getStockWatches();
         const productWatches = watches.filter((w) => w.productId === id);
         // Build a map of distributorId -> isWatched
@@ -663,6 +670,32 @@ export default function ProductDetailScreen() {
               </Text>
             </View>
           </View>
+          {/* Currency Converter Widget — shows best in-stock price in user's preferred currency */}
+          {(() => {
+            if (displayCurrency === "USD") return null;
+            const best = getBestPrice(listings, displayCurrency);
+            if (!best) return null;
+            return (
+              <View style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                marginTop: 10,
+                paddingTop: 10,
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+              }}>
+                <IconSymbol name="arrow.left.arrow.right" size={14} color={colors.muted} />
+                <Text style={{ color: colors.muted, fontSize: 12 }}>Best in-stock price in</Text>
+                <View style={{ backgroundColor: colors.primary + "22", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}>
+                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>{displayCurrency}</Text>
+                </View>
+                <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14, marginLeft: "auto" }}>
+                  {formatPrice(best.price, displayCurrency)}
+                </Text>
+              </View>
+            );
+          })()}
         </View>
 
         {/* Action Buttons */}
@@ -715,6 +748,17 @@ export default function ProductDetailScreen() {
               <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }}>Copy Link</Text>
             </TouchableOpacity>
           </View>
+          {/* Compare button */}
+          <TouchableOpacity
+            onPress={() => {
+              if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push(`/compare/${id}` as any);
+            }}
+            style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: colors.primary + "12", borderRadius: 14, paddingVertical: 12, borderWidth: 1, borderColor: colors.primary + "44", marginBottom: 16 }}
+          >
+            <IconSymbol name="arrow.left.arrow.right" size={16} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}>Compare Distributors</Text>
+          </TouchableOpacity>
           <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16, marginBottom: 12 }}>
             Distributor Prices
           </Text>
