@@ -28,7 +28,7 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "Stock Tracker Pro",
+  appName: "Product Stock Finder",
   appSlug: "stock-tracker-pro",
   logoUrl: "https://8081-ib0hcfp597ouinbt9u4x1-e83f862e.sg1.manus.computer/manus-storage/icon_v4a_6836f8f6.png",
   scheme: schemeFromBundleId,
