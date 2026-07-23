@@ -29,6 +29,18 @@ const CRS804_SEED_LISTINGS: DistributorListing[] = [
   { distributorId: "getic-gr", productId: "mikrotik-crs804-4ddq-hrm", price: 877.64, currency: "EUR", stockStatus: "out_of_stock", url: "https://www.getic.com/product/mikrotik-crs804-4ddq-hrm", lastChecked: new Date().toISOString(), priceHistory: [] },
   { distributorId: "duxtel-au", productId: "mikrotik-crs804-4ddq-hrm", price: 2299, currency: "AUD", stockStatus: "out_of_stock", url: "https://store.duxtel.com.au/product/crs804-4ddq-hrm", lastChecked: new Date().toISOString(), priceHistory: [] },
 ];
+
+// CRS326 listings seeded at first launch
+const CRS326_SEED_LISTINGS: DistributorListing[] = [
+  { distributorId: "balticnetworks-us", productId: "mikrotik-crs326-24s", price: 499, currency: "USD", stockStatus: "in_stock", url: "https://balticnetworks.com/mikrotik-crs326-24s-2q-rm.html", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "interprojekt-pl", productId: "mikrotik-crs326-24s", price: 389, currency: "EUR", stockStatus: "in_stock", url: "https://interprojekt.pl/en/p/mikrotik-crs326-24s.html", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "mikrotikstore-de", productId: "mikrotik-crs326-24s", price: 415, currency: "EUR", stockStatus: "in_stock", url: "https://mikrotik-store.eu/en/cloud-router-switches/crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "linitx-uk", productId: "mikrotik-crs326-24s", price: 449, currency: "GBP", stockStatus: "in_stock", url: "https://linitx.com/product/mikrotik-crs326-24s-2q-rm/17890", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "server2u-my", productId: "mikrotik-crs326-24s", price: 2180, currency: "MYR", stockStatus: "in_stock", url: "https://server2u.com/shop/crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "duxtel-au", productId: "mikrotik-crs326-24s", price: 899, currency: "AUD", stockStatus: "back_order", expectedDate: "Aug 30, 2026", url: "https://store.duxtel.com.au/product/crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "miro-za", productId: "mikrotik-crs326-24s", price: 11500, currency: "ZAR", stockStatus: "back_order", expectedDate: "Sept 5, 2026", url: "https://miro.co.za/networking/crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [] },
+  { distributorId: "getic-gr", productId: "mikrotik-crs326-24s", price: 398, currency: "EUR", stockStatus: "out_of_stock", url: "https://www.getic.com/product/mikrotik-crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [] },
+];
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -94,6 +106,25 @@ export default function RootLayout() {
       });
     }
     seedCRS804();
+    async function seedCRS326() {
+      const watchlist = await getWatchlist();
+      const existing = watchlist.find((p) => p.id === "mikrotik-crs326-24s");
+      if (existing) {
+        if (!existing.listings || existing.listings.length === 0) {
+          await updateProductListings("mikrotik-crs326-24s", CRS326_SEED_LISTINGS);
+        }
+        return;
+      }
+      const crs326 = PRODUCT_CATALOG.find((p) => p.id === "mikrotik-crs326-24s");
+      if (!crs326) return;
+      await addToWatchlist({
+        ...crs326,
+        isWatched: true,
+        addedAt: new Date().toISOString(),
+        listings: CRS326_SEED_LISTINGS,
+      });
+    }
+    seedCRS326();
   }, []);
 
   const handleSafeAreaUpdate = useCallback((metrics: Metrics) => {

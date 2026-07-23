@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ScrollView, Text, View, TouchableOpacity, Dimensions, Platform } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Dimensions, Platform, Alert as RNAlert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Svg, { Polyline, Circle, Line, Text as SvgText } from "react-native-svg";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { getWatchlist } from "@/lib/storage";
+import { getWatchlist, addAlert } from "@/lib/storage";
+import { schedulePriceAlert, requestNotificationPermissions } from "@/lib/notifications";
 import { SAMPLE_LISTINGS } from "@/lib/sample-data";
 import { DistributorListing, PricePoint } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
@@ -19,6 +20,7 @@ const CHART_COLORS = ["#0a7ea4", "#22C55E", "#F59E0B", "#EF4444", "#8B5CF6"];
 // ─── Time range options ───────────────────────────────────────────────────────
 type TimeRange = "1W" | "1M" | "3M" | "All";
 const TIME_RANGES: TimeRange[] = ["1W", "1M", "3M", "All"];
+type SortBy = "trend" | "price" | "name";
 const TIME_RANGE_DAYS: Record<TimeRange, number> = { "1W": 7, "1M": 30, "3M": 90, "All": 9999 };
 
 function filterByRange(data: PricePoint[], range: TimeRange): PricePoint[] {
@@ -202,6 +204,7 @@ export default function CompareScreen() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [productName, setProductName] = useState("");
   const [timeRange, setTimeRange] = useState<TimeRange>("3M");
+  const [sortBy, setSortBy] = useState<SortBy>("trend");
   const chartWidth = Dimensions.get("window").width - 32;
 
   useEffect(() => {
@@ -250,19 +253,33 @@ export default function CompareScreen() {
     setTimeRange(r);
   }, []);
 
-  const chartSeries = useMemo(() => {
-    const selectedListings = listings.filter((l) => selected.has(l.distributorId) && l.priceHistory && l.priceHistory.length >= 2);
-    return selectedListings.map((l, i) => {
-      const distributor = getDistributorById(l.distributorId);
-      const filtered = filterByRange(l.priceHistory!, timeRange);
-      return {
-        label: distributor?.name ?? l.distributorId,
-        color: CHART_COLORS[i % CHART_COLORS.length],
-        data: filtered.length >= 2 ? filtered : l.priceHistory!,
-        currency: l.currency,
-      };
-    });
-  }, [listings, selected, timeRange]);
+  const setSortByMode = useCallback((s: SortBy) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSortBy(s);
+  }, []);
+
+  const handleCrossAlert = useCallback(async () => {
+    const inStock = listings.filter((l) => l.stockStatus === "in_stock");
+    if (inStock.length === 0) { RNAlert.alert("No in-stock distributors", "There are no in-stock distributors to set an alert for."); return; }
+    const bestUSD = Math.min(...inStock.map((l) => convertPrice(l.price, l.currency, "USD")));
+    const targetUSD = parseFloat((bestUSD * 0.95).toFixed(2));
+    const bestListing = inStock.find((l) => convertPrice(l.price, l.currency, "USD") === bestUSD)!;
+    const dist = getDistributorById(bestListing.distributorId);
+    await requestNotificationPermissions();
+    const alert = {
+      id: `cross-${id}-${Date.now()}`,
+      productId: id as string,
+      distributorId: bestListing.distributorId,
+      targetPrice: targetUSD,
+      currency: "USD",
+      createdAt: new Date().toISOString(),
+      triggered: false,
+      isActive: true,
+    };
+    await addAlert(alert);
+    await schedulePriceAlert(dist?.name ?? bestListing.distributorId, targetUSD, "USD");
+    RNAlert.alert("Alert Set!", `You'll be notified when any distributor drops below $${targetUSD.toFixed(2)} (5% below current best of $${bestUSD.toFixed(2)}).`);
+  }, [listings, id]);
 
   const priceTrends = useMemo(() => {
     const map = new Map<string, { pct: number; dir: "up" | "down" | "flat" }>();
@@ -279,6 +296,35 @@ export default function CompareScreen() {
     }
     return map;
   }, [listings]);
+
+  const sortedListings = useMemo(() => {
+    const ls = [...listings];
+    if (sortBy === "price") return ls.sort((a, b) => convertPrice(a.price, a.currency, "USD") - convertPrice(b.price, b.currency, "USD"));
+    if (sortBy === "name") return ls.sort((a, b) => (getDistributorById(a.distributorId)?.name ?? a.distributorId).localeCompare(getDistributorById(b.distributorId)?.name ?? b.distributorId));
+    // trend: biggest drop first
+    return ls.sort((a, b) => {
+      const ta = priceTrends.get(a.distributorId);
+      const tb = priceTrends.get(b.distributorId);
+      const scoreA = ta?.dir === "down" ? ta.pct : ta?.dir === "up" ? -ta.pct : 0;
+      const scoreB = tb?.dir === "down" ? tb.pct : tb?.dir === "up" ? -tb.pct : 0;
+      return scoreB - scoreA;
+    });
+  }, [listings, sortBy, priceTrends]);
+
+  const chartSeries = useMemo(() => {
+    const selectedListings = listings.filter((l) => selected.has(l.distributorId) && l.priceHistory && l.priceHistory.length >= 2);
+    return selectedListings.map((l, i) => {
+      const distributor = getDistributorById(l.distributorId);
+      const filtered = filterByRange(l.priceHistory!, timeRange);
+      return {
+        label: distributor?.name ?? l.distributorId,
+        color: CHART_COLORS[i % CHART_COLORS.length],
+        data: filtered.length >= 2 ? filtered : l.priceHistory!,
+        currency: l.currency,
+      };
+    });
+  }, [listings, selected, timeRange]);
+
 
   return (
     <ScreenContainer>
@@ -346,6 +392,25 @@ export default function CompareScreen() {
         {/* Cheapest Region summary */}
         <CheapestRegionCard listings={listings} colors={colors} />
 
+        {/* Cross-distributor alert CTA */}
+        {listings.some((l) => l.stockStatus === "in_stock") && (() => {
+          const inStock = listings.filter((l) => l.stockStatus === "in_stock");
+          const bestUSD = Math.min(...inStock.map((l) => convertPrice(l.price, l.currency, "USD")));
+          return (
+            <TouchableOpacity
+              onPress={handleCrossAlert}
+              style={{ marginHorizontal: 16, marginBottom: 16, backgroundColor: colors.primary + "18", borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.primary + "44", flexDirection: "row", alignItems: "center", gap: 10 }}
+            >
+              <IconSymbol name="bell.fill" size={18} color={colors.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>Alert me if any distributor drops below</Text>
+                <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>${(bestUSD * 0.95).toFixed(2)} (5% below current best of ${bestUSD.toFixed(2)})</Text>
+              </View>
+              <IconSymbol name="chevron.right" size={16} color={colors.primary} />
+            </TouchableOpacity>
+          );
+        })()}
+
         {/* Current prices comparison table */}
         {selected.size > 0 && (
           <View style={{ marginHorizontal: 16, backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>
@@ -380,10 +445,25 @@ export default function CompareScreen() {
 
         {/* Distributor selector */}
         <View style={{ paddingHorizontal: 16 }}>
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15, marginBottom: 12 }}>
-            Select Distributors ({selected.size}/5)
-          </Text>
-          {listings.map((l) => {
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}>
+              Select Distributors ({selected.size}/5)
+            </Text>
+            <View style={{ flexDirection: "row", gap: 4 }}>
+              {(["trend", "price", "name"] as SortBy[]).map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  onPress={() => setSortByMode(s)}
+                  style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: sortBy === s ? colors.primary : colors.border + "44" }}
+                >
+                  <Text style={{ color: sortBy === s ? "#fff" : colors.muted, fontSize: 11, fontWeight: "600" }}>
+                    {s === "trend" ? "Trend ▼" : s === "price" ? "Price" : "A–Z"}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+          {sortedListings.map((l) => {
             const distributor = getDistributorById(l.distributorId);
             const isSelected = selected.has(l.distributorId);
             const hasHistory = l.priceHistory && l.priceHistory.length >= 2;

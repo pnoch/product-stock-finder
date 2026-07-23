@@ -103,3 +103,8 @@
 - [x] Extract SAMPLE_LISTINGS to lib/sample-data.ts shared module
 - [x] Wire SAMPLE_LISTINGS fallback in Compare screen (no Product Detail visit required)
 - [x] Add Price Trend ▲/▼ arrows to distributor selector in Compare screen
+- [x] Sort by Trend/Price/A-Z toggle on Compare distributor selector
+- [x] Cross-distributor price alert CTA on Compare screen (5% below best)
+- [x] Price trend arrows on Watchlist product cards
+- [x] MikroTik CRS326-24S+2Q+RM as second test product (8 distributors, seeded at launch)
+- [x] CRS326 sample data with 10-point price history in sample-data.ts

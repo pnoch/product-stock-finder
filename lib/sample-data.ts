@@ -199,4 +199,60 @@ export const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       ],
     },
   ],
+
+  "mikrotik-crs326-24s": [
+    { distributorId: "balticnetworks-us", productId: "mikrotik-crs326-24s", price: 499, currency: "USD", stockStatus: "in_stock", url: "https://balticnetworks.com/mikrotik-crs326-24s-2q-rm.html", lastChecked: new Date().toISOString(), priceHistory: [
+      { date: new Date(Date.now()-86400000*90).toISOString(), price: 540, currency: "USD", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*75).toISOString(), price: 535, currency: "USD", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*60).toISOString(), price: 530, currency: "USD", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*45).toISOString(), price: 525, currency: "USD", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*30).toISOString(), price: 520, currency: "USD", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*21).toISOString(), price: 515, currency: "USD", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*14).toISOString(), price: 510, currency: "USD", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*7).toISOString(), price: 505, currency: "USD", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*3).toISOString(), price: 502, currency: "USD", stockStatus: "in_stock" },
+      { date: new Date().toISOString(), price: 499, currency: "USD", stockStatus: "in_stock" },
+    ]},
+    { distributorId: "interprojekt-pl", productId: "mikrotik-crs326-24s", price: 389, currency: "EUR", stockStatus: "in_stock", url: "https://interprojekt.pl/en/p/mikrotik-crs326-24s.html", lastChecked: new Date().toISOString(), priceHistory: [
+      { date: new Date(Date.now()-86400000*90).toISOString(), price: 420, currency: "EUR", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*60).toISOString(), price: 415, currency: "EUR", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*30).toISOString(), price: 405, currency: "EUR", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*14).toISOString(), price: 398, currency: "EUR", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*7).toISOString(), price: 393, currency: "EUR", stockStatus: "in_stock" },
+      { date: new Date().toISOString(), price: 389, currency: "EUR", stockStatus: "in_stock" },
+    ]},
+    { distributorId: "mikrotikstore-de", productId: "mikrotik-crs326-24s", price: 415, currency: "EUR", stockStatus: "in_stock", url: "https://mikrotik-store.eu/en/cloud-router-switches/crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [
+      { date: new Date(Date.now()-86400000*60).toISOString(), price: 430, currency: "EUR", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*30).toISOString(), price: 425, currency: "EUR", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*14).toISOString(), price: 420, currency: "EUR", stockStatus: "in_stock" },
+      { date: new Date().toISOString(), price: 415, currency: "EUR", stockStatus: "in_stock" },
+    ]},
+    { distributorId: "linitx-uk", productId: "mikrotik-crs326-24s", price: 449, currency: "GBP", stockStatus: "in_stock", url: "https://linitx.com/product/mikrotik-crs326-24s-2q-rm/17890", lastChecked: new Date().toISOString(), priceHistory: [
+      { date: new Date(Date.now()-86400000*60).toISOString(), price: 475, currency: "GBP", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*30).toISOString(), price: 465, currency: "GBP", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*14).toISOString(), price: 455, currency: "GBP", stockStatus: "in_stock" },
+      { date: new Date().toISOString(), price: 449, currency: "GBP", stockStatus: "in_stock" },
+    ]},
+    { distributorId: "server2u-my", productId: "mikrotik-crs326-24s", price: 2180, currency: "MYR", stockStatus: "in_stock", url: "https://server2u.com/shop/crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [
+      { date: new Date(Date.now()-86400000*60).toISOString(), price: 2350, currency: "MYR", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*30).toISOString(), price: 2280, currency: "MYR", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*14).toISOString(), price: 2240, currency: "MYR", stockStatus: "in_stock" },
+      { date: new Date().toISOString(), price: 2180, currency: "MYR", stockStatus: "in_stock" },
+    ]},
+    { distributorId: "duxtel-au", productId: "mikrotik-crs326-24s", price: 899, currency: "AUD", stockStatus: "back_order", expectedDate: "Aug 30, 2026", url: "https://store.duxtel.com.au/product/crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [
+      { date: new Date(Date.now()-86400000*30).toISOString(), price: 950, currency: "AUD", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*14).toISOString(), price: 930, currency: "AUD", stockStatus: "back_order" },
+      { date: new Date().toISOString(), price: 899, currency: "AUD", stockStatus: "back_order" },
+    ]},
+    { distributorId: "miro-za", productId: "mikrotik-crs326-24s", price: 11500, currency: "ZAR", stockStatus: "back_order", expectedDate: "Sept 5, 2026", url: "https://miro.co.za/networking/crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [
+      { date: new Date(Date.now()-86400000*30).toISOString(), price: 12000, currency: "ZAR", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*14).toISOString(), price: 11800, currency: "ZAR", stockStatus: "back_order" },
+      { date: new Date().toISOString(), price: 11500, currency: "ZAR", stockStatus: "back_order" },
+    ]},
+    { distributorId: "getic-gr", productId: "mikrotik-crs326-24s", price: 398, currency: "EUR", stockStatus: "out_of_stock", url: "https://www.getic.com/product/mikrotik-crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [
+      { date: new Date(Date.now()-86400000*30).toISOString(), price: 395, currency: "EUR", stockStatus: "in_stock" },
+      { date: new Date(Date.now()-86400000*14).toISOString(), price: 397, currency: "EUR", stockStatus: "out_of_stock" },
+      { date: new Date().toISOString(), price: 398, currency: "EUR", stockStatus: "out_of_stock" },
+    ]},
+  ],
 };

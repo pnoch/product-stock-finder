@@ -79,6 +79,21 @@ function ProductCard({ product, onPress, onDelete }: { product: Product; onPress
               {formatPrice(bestPrice.price, bestPrice.currency)}
             </Text>
           )}
+          {(() => {
+            const allHistory = (product.listings ?? []).flatMap((l) => l.priceHistory ?? []);
+            if (allHistory.length < 2) return null;
+            const sorted = [...allHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            const oldest = sorted[0].price;
+            const current = bestPrice?.price ?? oldest;
+            const pct = ((current - oldest) / oldest) * 100;
+            if (Math.abs(pct) < 0.5) return null;
+            const isDown = pct < 0;
+            return (
+              <Text style={{ color: isDown ? "#22C55E" : "#EF4444", fontSize: 11, fontWeight: "600" }}>
+                {isDown ? "▼" : "▲"} {Math.abs(pct).toFixed(1)}%
+              </Text>
+            );
+          })()}
         </View>
       </View>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
