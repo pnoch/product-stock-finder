@@ -108,3 +108,6 @@
 - [x] Price trend arrows on Watchlist product cards
 - [x] MikroTik CRS326-24S+2Q+RM as second test product (8 distributors, seeded at launch)
 - [x] CRS326 sample data with 10-point price history in sample-data.ts
+- [x] Pull-to-refresh with last-updated timestamp on Watchlist
+- [x] Catalog search/filter bar (already existed in Add Product screen)
+- [x] Price Drop History section in Alerts tab (with triggeredAt/triggeredPrice fix)

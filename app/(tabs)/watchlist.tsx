@@ -7,6 +7,7 @@ import { Platform } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { getWatchlist, removeFromWatchlist } from "@/lib/storage";
+import { refreshWatchlistPrices } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { formatPrice, getBestPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -100,6 +101,19 @@ function ProductCard({ product, onPress, onDelete }: { product: Product; onPress
         <Text style={{ color: colors.muted, fontSize: 12 }}>
           {distributorCount} distributor{distributorCount !== 1 ? "s" : ""} tracked
         </Text>
+        {product.lastRefreshed && (
+          <Text style={{ color: colors.muted, fontSize: 11 }}>
+            {(() => {
+              const diffMs = Date.now() - new Date(product.lastRefreshed!).getTime();
+              const diffMin = Math.floor(diffMs / 60000);
+              if (diffMin < 1) return "Updated just now";
+              if (diffMin < 60) return `Updated ${diffMin}m ago`;
+              const diffH = Math.floor(diffMin / 60);
+              if (diffH < 24) return `Updated ${diffH}h ago`;
+              return `Updated ${Math.floor(diffH / 24)}d ago`;
+            })()}
+          </Text>
+        )}
         <TouchableOpacity
           onPress={(e) => {
             e.stopPropagation();
@@ -132,6 +146,7 @@ export default function WatchlistScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    await refreshWatchlistPrices();
     await loadData();
     setRefreshing(false);
   }, [loadData]);

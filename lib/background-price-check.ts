@@ -44,6 +44,8 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
         triggered = true;
         // Deactivate the alert so it doesn't fire repeatedly
         alert.isActive = false;
+        alert.triggeredAt = new Date().toISOString();
+        alert.triggeredPrice = bestPrice;
       }
     }
 
@@ -100,6 +102,8 @@ export async function checkPriceDropsNow() {
         trigger: null,
       });
       alert.isActive = false;
+      alert.triggeredAt = new Date().toISOString();
+      alert.triggeredPrice = bestPrice;
       anyTriggered = true;
     }
   }

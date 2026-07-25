@@ -58,6 +58,18 @@ export async function updateProductListings(
   await saveWatchlist(updated);
 }
 
+/**
+ * Stamps `lastRefreshed` on every product in the watchlist (simulated refresh).
+ * In a real app this would re-fetch live prices; here it refreshes the timestamp
+ * so the "Updated X min ago" UI shows the correct time.
+ */
+export async function refreshWatchlistPrices(): Promise<void> {
+  const list = await getWatchlist();
+  const now = new Date().toISOString();
+  const updated = list.map((p) => ({ ...p, lastRefreshed: now }));
+  await saveWatchlist(updated);
+}
+
 // ─── Alerts ───────────────────────────────────────────────────────────────────
 
 export async function getAlerts(): Promise<PriceAlert[]> {

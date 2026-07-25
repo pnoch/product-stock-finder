@@ -17,14 +17,14 @@ export interface DistributorListing {
   price: number;
   currency: string;
   stockStatus: StockStatus;
-  expectedDate?: string; // ISO date string for back_order
+  expectedDate?: string;
   url: string;
-  lastChecked: string; // ISO date string
+  lastChecked: string;
   priceHistory: PricePoint[];
 }
 
 export interface PricePoint {
-  date: string; // ISO date string
+  date: string;
   price: number;
   currency: string;
   stockStatus: StockStatus;
@@ -38,7 +38,8 @@ export interface Product {
   category: string;
   description: string;
   imageUrl?: string;
-  addedAt: string; // ISO date string
+  addedAt: string;
+  lastRefreshed?: string; // ISO date string — set when listings are refreshed
   isWatched: boolean;
   listings: DistributorListing[];
 }
@@ -51,7 +52,8 @@ export interface PriceAlert {
   isActive: boolean;
   createdAt: string;
   triggeredAt?: string;
-  distributorId?: string; // optional: alert for specific distributor
+  triggeredPrice?: number; // actual price when alert fired
+  distributorId?: string;
 }
 
 export interface BackOrderReminder {
@@ -60,11 +62,11 @@ export interface BackOrderReminder {
   productName: string;
   distributorId: string;
   distributorName: string;
-  reminderDate: string; // ISO date string
-  notificationId?: string; // expo-notifications identifier
+  reminderDate: string;
+  notificationId?: string;
   createdAt: string;
-  reminderType?: "date" | "back_in_stock"; // "date" = scheduled date reminder, "back_in_stock" = watch for restock
-  lastKnownStatus?: string; // cached stock status for change detection
+  reminderType?: "date" | "back_in_stock";
+  lastKnownStatus?: string;
 }
 
 export interface AppSettings {
