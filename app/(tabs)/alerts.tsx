@@ -14,6 +14,7 @@ import {
   addBackOrderReminder,
   getStockWatches,
   removeStockWatch,
+  rearmAlert,
 } from "@/lib/storage";
 import { PriceAlert, Product, BackOrderReminder } from "@/lib/types";
 import { formatPrice } from "@/lib/currency";
@@ -145,6 +146,18 @@ export default function AlertsScreen() {
   const activeAlerts = alerts.filter((a) => a.isActive && !a.triggeredAt);
   const triggeredAlerts = alerts.filter((a) => a.triggeredAt);
 
+  const totalSaved = triggeredAlerts.reduce((sum, a) => {
+    if (a.triggeredPrice != null) return sum + (a.targetPrice - a.triggeredPrice);
+    return sum;
+  }, 0);
+
+  const handleRearmAlert = useCallback(async (alertId: string) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await rearmAlert(alertId);
+    await loadData();
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [loadData]);
+
   const tabCount = {
     alerts: activeAlerts.length,
     reminders: reminders.length + stockWatches.length,
@@ -213,6 +226,20 @@ export default function AlertsScreen() {
           ListFooterComponent={
             triggeredAlerts.length > 0 ? (
               <View style={{ marginTop: 24 }}>
+                {/* Savings Calculator Banner */}
+                {totalSaved > 0 && (
+                  <View style={{ backgroundColor: colors.success + "18", borderRadius: 14, padding: 14, marginBottom: 14, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: colors.success + "44" }}>
+                    <Text style={{ fontSize: 24 }}>🎉</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: colors.success, fontWeight: "700", fontSize: 15 }}>
+                        Total Saved: {formatPrice(totalSaved, "USD")}
+                      </Text>
+                      <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
+                        Across {triggeredAlerts.filter((a) => a.triggeredPrice != null).length} triggered alert{triggeredAlerts.filter((a) => a.triggeredPrice != null).length !== 1 ? "s" : ""}
+                      </Text>
+                    </View>
+                  </View>
+                )}
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 12 }}>
                   <IconSymbol name="checkmark.circle.fill" size={16} color={colors.success} />
                   <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}>
@@ -244,9 +271,18 @@ export default function AlertsScreen() {
                           </Text>
                         </View>
                       </View>
-                      <TouchableOpacity onPress={() => handleDeleteAlert(item.id)} style={{ padding: 4 }}>
-                        <IconSymbol name="trash.fill" size={15} color={colors.muted} />
-                      </TouchableOpacity>
+                      <View style={{ alignItems: "flex-end", gap: 8 }}>
+                        <TouchableOpacity
+                          onPress={() => handleRearmAlert(item.id)}
+                          style={{ backgroundColor: colors.primary + "18", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, flexDirection: "row", alignItems: "center", gap: 4 }}
+                        >
+                          <IconSymbol name="arrow.clockwise" size={12} color={colors.primary} />
+                          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>Watch Again</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => handleDeleteAlert(item.id)} style={{ padding: 4 }}>
+                          <IconSymbol name="trash.fill" size={15} color={colors.muted} />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
                 ))}

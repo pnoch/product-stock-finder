@@ -111,3 +111,6 @@
 - [x] Pull-to-refresh with last-updated timestamp on Watchlist
 - [x] Catalog search/filter bar (already existed in Add Product screen)
 - [x] Price Drop History section in Alerts tab (with triggeredAt/triggeredPrice fix)
+- [x] Savings Calculator total-saved banner in Price Drop History
+- [x] Re-arm Alert (Watch Again) button on triggered history items
+- [x] Last Checked timestamp on Product Detail distributor cards (already existed)

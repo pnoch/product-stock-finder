@@ -104,6 +104,16 @@ export async function toggleAlert(alertId: string): Promise<void> {
   await saveAlerts(updated);
 }
 
+export async function rearmAlert(alertId: string): Promise<void> {
+  const alerts = await getAlerts();
+  const updated = alerts.map((a) =>
+    a.id === alertId
+      ? { ...a, isActive: true, triggeredAt: undefined, triggeredPrice: undefined }
+      : a
+  );
+  await saveAlerts(updated);
+}
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 export async function getSettings(): Promise<AppSettings> {
