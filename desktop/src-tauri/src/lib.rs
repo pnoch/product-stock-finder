@@ -404,13 +404,13 @@ pub fn run() {
             Some(vec!["--autostart"]),
         ))
         .setup(|app| {
-            let open_item = MenuItemBuilder::new("Open").id("open").build()?;
+            let open_item = MenuItemBuilder::new("Open").id("open").build(app)?;
             let check_item = MenuItemBuilder::new("Check Now")
                 .id("check_now")
-                .build()?;
+                .build(app)?;
             let separator1 = PredefinedMenuItem::separator(app)?;
             let separator2 = PredefinedMenuItem::separator(app)?;
-            let quit_item = MenuItemBuilder::new("Quit").id("quit").build()?;
+            let quit_item = MenuItemBuilder::new("Quit").id("quit").build(app)?;
 
             let menu = MenuBuilder::new(app)
                 .item(&open_item)
@@ -420,10 +420,10 @@ pub fn run() {
                 .item(&quit_item)
                 .build()?;
 
-            let _tray = TrayIconBuilder::new("main")
+            let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
-                .on_menu_event(|app, event| match event.id.as_ref() {
+                .on_menu_event(|app: &tauri::AppHandle, event| match event.id.as_ref() {
                     "open" => {
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = window.show();
@@ -438,7 +438,7 @@ pub fn run() {
                     }
                     _ => {}
                 })
-                .on_tray_icon_event(|tray, event| {
+                .on_tray_icon_event(|tray: &tauri::tray::TrayIcon, event| {
                     if let TrayIconEvent::Click {
                         button: MouseButton::Left,
                         button_state: MouseButtonState::Up,
