@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" class="notranslate" translate="no"><!-- InstanceBegin template="/Templates/main.dwt" codeOutsideHTMLIsLocked="false" -->
+<head>
+<meta name="google" content="notranslate">
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+
+<!-- InstanceBeginEditable name="doctitle" -->
+<title>Duxtel | Page not found</title>
+<meta name="keywords" content="wireless,wifi,microwave,wired,adsl,fiber,optic,optical,data,internet,hotspot,hotel,cafe,hospitality,business,accountant,accounting,medical,education,manufacturing,service industry" />
+<meta name="description" content="Innovative Data Network Solutions for business, corporate and government environments" />
+<!-- InstanceEndEditable -->
+ 
+<!-- InstanceBeginEditable name="head" --><!-- InstanceEndEditable -->
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK" crossorigin="anonymous"></script>
+
+<script type="text/javascript" language="JavaScript" src="/includes/xpath.js"></script>
+<script type="text/javascript" language="JavaScript" src="/includes/SpryData.js"></script>
+<script type="text/javascript" language="JavaScript" src="/includes/SpryNestedXMLDataSet.js"></script>
+<script type="text/javascript" language="JavaScript" src="/widgets/menubar/sprymenubar.js" ></script>
+
+<script type="text/javascript">
+<!--
+var dsItems1 = new Spry.Data.XMLDataSet("/data/menu.xml", "/items/item");
+var dsToppings = new Spry.Data.NestedXMLDataSet(dsItems1, "topping/toppings");
+//-->
+</script>
+
+<!-- <link href="/thickbox/thickbox.css" rel="stylesheet" type="text/css"/> --->
+<link href="/css/main.css" rel="stylesheet" type="text/css">
+<link href="/widgets/menubar/sprymenubarhorizontal.css" rel="stylesheet" type="text/css">
+
+<script defer data-domain="duxtel.com.au" src="https://s.duxtel.com/js/script.js"></script>
+<script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
+</head>
+
+<body>
+<div id="shell" style="border-radius:5px;-moz-border-radius:5px;-webkit-border-radius:5px;
+	box-shadow:2px 2px 2px #ccc; -webkit-box-shadow:2px 2px 2px #ccc;">
+<div id="header">
+  <p align="right"> <a href="/"><img src="/images/duxtel_logo.gif" hspace="8" vspace="6" border="0"  /></a></p>
+
+<ul id="MenuBar2" class="MenuBarHorizontal SpryHiddenRegion"  spry:region="dsItems1 dsToppings">
+	    <li spry:repeat="dsItems1"> 
+	      <a class="menubartext" href="{url}" spry:if="{dsToppings::ds_RowCount} != 0">{name}</a> 
+	      <a href="{url}" class="submenubartext" spry:if="{dsToppings::ds_RowCount} == 0">{name}</a>
+	      <ul spry:if="{dsToppings::ds_RowCount} != 0">
+	        <li spry:repeat="dsToppings"><a href="{dsToppings::url}">{dsToppings::name}</a></li>  
+          </ul>
+        </li>
+    </ul>
+</div>
+
+<div id="content">
+  <!-- InstanceBeginEditable name="content" -->
+  
+  <div id="banner"><img src="/images/banner_become_a_reseller.jpg" width="825" height="200" /></div> 
+  
+  <div id="col_left" >
+     <div id="feature_navigation">
+       <p><img src="/images/feature_navigation_1.gif" align="absmiddle" />&nbsp; <a href="/case_studies">Case Studies</a>          </p>
+       <p><img src="/images/feature_navigation_4.gif" alt="Shop" align="absmiddle" />&nbsp; <a href="https://shop.duxtel.com.au">Shop</a>          </p>
+       <p><img src="/images/feature_navigation_2.gif" align="absmiddle" />&nbsp; <a href="/find_partner"> Find a DuxTel Partner&nbsp;</a>&nbsp;&nbsp;</p>
+       <p> <img src="/images/feature_navigation_5.gif" align="absmiddle" />&nbsp; <a href="/partner_program.cfm">DuxTel Partner Program  </a> </p>
+     </div>
+  </div>
+  
+  <div id="col_middle" >
+    <h1>Page not found </h1>
+    <p>You have attempted to access a file or document that does not exist!</p>
+	<p>Please check the location entered, or go back and try clicking the link again.  If the problem persists, please <a href="contact_us.cfm">contact us</a>!</p>
+  </div>
+  
+  <div id="col_right" >
+    <h1>&nbsp;</h1>
+    <p>&nbsp;</p>
+    <p>&nbsp;</p>
+  </div>
+  
+  <!-- InstanceEndEditable --> </div>
+<div id="footer">
+  <div align="center"><table width="100%" border="0" cellpadding="10" cellspacing="0" style="font-size:11px">
+  
+  <tr>
+    <td align="left"></td>
+    <td align="right">copyright duxtel </td>
+  </tr>
+</table>
+  </div>
+</div>
+</div>
+
+<script type="text/javascript">
+<!--
+Spry.Data.Region.addObserver('MenuBar2',{onPostUpdate:function(){var MenuBar2 = new Spry.Widget.MenuBar("MenuBar2");}});
+//-->
+</script>
+<script>
+  plausible("404",{ props: { url: location.href } });</script>
+</script>
+<script src="https://support.duxtel.com/assets/chat/chat.min.js"></script>
+<script>
+$(function() {
+  new ZammadChat({
+    title: 'Live Chat with a <strong>real human</strong> now!',
+    background: '#060602',
+    fontSize: '12px',
+    chatId: 1,
+    debug: true
+  });
+});
+</script>
+</body>
+
+<!-- InstanceEnd --></html>

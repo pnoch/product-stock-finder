@@ -17,6 +17,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "qr": "node scripts/generate_qr.mjs",
+    "generate-fixtures": "tsx scripts/generate-fixtures.ts",
     "dev:desktop": "pnpm --filter desktop dev",
     "build:desktop": "pnpm --filter desktop build",
     "check:desktop": "pnpm --filter desktop check"
