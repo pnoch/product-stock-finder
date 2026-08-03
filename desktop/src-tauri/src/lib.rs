@@ -173,7 +173,7 @@ fn import_watchlist(
 // ─── Background Polling ──────────────────────────────────────────────────────
 
 #[tauri::command]
-fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64) -> Result<String, String> {
+async fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64) -> Result<String, String> {
     let mut running = POLLER_RUNNING.lock().map_err(|e| e.to_string())?;
     if *running {
         return Ok("Poller already running".to_string());
@@ -182,18 +182,21 @@ fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64) -> Result<St
     drop(running);
 
     let handle = app.clone();
-    std::thread::spawn(move || loop {
-        {
-            let running = POLLER_RUNNING.lock().unwrap();
-            if !*running {
-                break;
+    tauri::async_runtime::spawn(async move {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(interval_minutes * 60));
+        interval.tick().await;
+        loop {
+            {
+                let running = POLLER_RUNNING.lock().unwrap();
+                if !*running {
+                    break;
+                }
             }
+
+            let _ = run_full_price_check(handle.clone()).await;
+
+            interval.tick().await;
         }
-
-        let _ = check_price_drops(handle.clone());
-        let _ = update_tray_badge(handle.clone());
-
-        std::thread::sleep(std::time::Duration::from_secs(interval_minutes * 60));
     });
 
     Ok(format!(
@@ -388,6 +391,111 @@ async fn check_all_prices(products: Vec<WatchedProduct>) -> Result<Vec<scrapers:
     Ok(results)
 }
 
+// ─── Full Price Check (scrape → compare → notify → update tray) ─────────────
+
+async fn run_full_price_check(app: tauri::AppHandle) -> Result<String, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+
+    let watchlist_val = read_json_file(&data_dir, "watchlist_products")?;
+    let watchlist: Vec<serde_json::Value> = watchlist_val
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+
+    if watchlist.is_empty() {
+        return Ok("No products in watchlist".to_string());
+    }
+
+    let products: Vec<WatchedProduct> = watchlist
+        .iter()
+        .filter_map(|p| {
+            let id = p.get("id")?.as_str()?.to_string();
+            let model_number = p.get("modelNumber")?.as_str()?.to_string();
+            let distributor_ids: Vec<String> = p
+                .get("listings")
+                .and_then(|v| v.as_array())?
+                .iter()
+                .filter_map(|l| l.get("distributorId")?.as_str().map(|s| s.to_string()))
+                .collect();
+            if distributor_ids.is_empty() {
+                None
+            } else {
+                Some(WatchedProduct {
+                    id,
+                    model_number,
+                    distributor_ids,
+                })
+            }
+        })
+        .collect();
+
+    if products.is_empty() {
+        return Ok("No products with scrapable distributors".to_string());
+    }
+
+    let results = check_all_prices(products).await?;
+
+    for job_result in &results {
+        if let Some(scrape) = &job_result.result {
+            update_listing_price(&data_dir, &job_result.product_id, &job_result.distributor_id, scrape)?;
+        }
+    }
+
+    let triggered = check_price_drops(app.clone())?;
+    let _ = update_tray_badge(app.clone());
+
+    Ok(format!(
+        "Full check: {} scrapes, {}",
+        results.len(),
+        triggered
+    ))
+}
+
+fn update_listing_price(
+    data_dir: &PathBuf,
+    product_id: &str,
+    distributor_id: &str,
+    scrape: &scrapers::ScrapeResult,
+) -> Result<(), String> {
+    let watchlist_val = read_json_file(data_dir, "watchlist_products")?;
+    let mut watchlist: Vec<serde_json::Value> = watchlist_val
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+
+    let mut updated = false;
+    for product in watchlist.iter_mut() {
+        if product.get("id").and_then(|v| v.as_str()) != Some(product_id) {
+            continue;
+        }
+        let listings = match product.get_mut("listings").and_then(|v| v.as_array_mut()) {
+            Some(l) => l,
+            None => continue,
+        };
+        for listing in listings.iter_mut() {
+            if listing.get("distributorId").and_then(|v| v.as_str()) != Some(distributor_id) {
+                continue;
+            }
+            if let Some(obj) = listing.as_object_mut() {
+                obj.insert("price".to_string(), serde_json::json!(scrape.price));
+                obj.insert("currency".to_string(), serde_json::json!(scrape.currency));
+                obj.insert("stockStatus".to_string(), serde_json::json!(scrape.stock_status));
+                if let Some(expected) = &scrape.expected_date {
+                    obj.insert("expectedDate".to_string(), serde_json::json!(expected));
+                }
+                obj.insert("lastChecked".to_string(), serde_json::json!(current_iso_timestamp()));
+                updated = true;
+            }
+        }
+    }
+
+    if updated {
+        let val = serde_json::Value::Array(watchlist);
+        write_json_file(data_dir, "watchlist_products", &val)?;
+    }
+    Ok(())
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 fn read_json_file(data_dir: &PathBuf, key: &str) -> Result<serde_json::Value, String> {
@@ -539,8 +647,10 @@ pub fn run() {
                         }
                     }
                     "check_now" => {
-                        let _ = check_price_drops(app.clone());
-                        let _ = update_tray_badge(app.clone());
+                        let app_handle = app.clone();
+                        tauri::async_runtime::spawn(async move {
+                            let _ = run_full_price_check(app_handle).await;
+                        });
                     }
                     "quit" => {
                         app.exit(0);
