@@ -163,7 +163,9 @@ export async function registerPriceCheckTask() {
   }
 }
 
-export async function checkPriceDropsNow() {
+export async function checkPriceDropsNow(
+  onProgress?: (current: number, total: number) => void,
+) {
   // Foreground check — same logic as background task, called on app focus
   const watchlist = await getWatchlist();
   if (watchlist.length === 0) return;
@@ -173,7 +175,8 @@ export async function checkPriceDropsNow() {
   for (let i = 0; i < watchlist.length; i += CONCURRENCY) {
     const batch = watchlist.slice(i, i + CONCURRENCY);
     await Promise.all(
-      batch.map(async (product) => {
+      batch.map(async (product, batchIdx) => {
+        onProgress?.(i + batchIdx + 1, watchlist.length);
         if (!product.listings?.length) return;
 
         const updatedListings: DistributorListing[] = [];

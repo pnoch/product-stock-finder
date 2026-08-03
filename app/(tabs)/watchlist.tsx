@@ -7,6 +7,7 @@ import {
   RefreshControl,
   Alert,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -25,6 +26,7 @@ import {
   getLastRefreshedColor,
 } from "@/lib/last-refreshed";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { checkPriceDropsNow } from "@/lib/background-price-check";
 
 type SortMode = "recent" | "best_price" | "az";
 
@@ -239,6 +241,11 @@ export default function WatchlistScreen() {
   const [watchlist, setWatchlist] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("recent");
+  const [checking, setChecking] = useState(false);
+  const [checkProgress, setCheckProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
 
   const loadData = useCallback(async () => {
     const list = await getWatchlist();
@@ -281,6 +288,23 @@ export default function WatchlistScreen() {
     [loadData],
   );
 
+  const handleCheckNow = useCallback(async () => {
+    if (checking || watchlist.length === 0) return;
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setChecking(true);
+    setCheckProgress({ current: 0, total: watchlist.length });
+    try {
+      await checkPriceDropsNow((current, total) => {
+        setCheckProgress({ current, total });
+      });
+      await loadData();
+    } finally {
+      setChecking(false);
+      setCheckProgress(null);
+    }
+  }, [checking, watchlist.length, loadData]);
+
   return (
     <ScreenContainer>
       <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
@@ -291,23 +315,50 @@ export default function WatchlistScreen() {
             tracked
           </Text>
         </View>
-        <TouchableOpacity
-          style={{
-            backgroundColor: colors.primary,
-            borderRadius: 20,
-            width: 40,
-            height: 40,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          onPress={() => {
-            if (Platform.OS !== "web")
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/search");
-          }}
-        >
-          <IconSymbol name="plus" size={22} color="#fff" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: checking ? colors.muted : colors.primary,
+              borderRadius: 20,
+              paddingHorizontal: 14,
+              height: 40,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              opacity: watchlist.length === 0 ? 0.5 : 1,
+            }}
+            onPress={handleCheckNow}
+            disabled={checking || watchlist.length === 0}
+          >
+            {checking ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <IconSymbol name="arrow.clockwise" size={16} color="#fff" />
+            )}
+            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+              {checkProgress
+                ? `Checking ${checkProgress.current}/${checkProgress.total}`
+                : "Check Now"}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onPress={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/search");
+            }}
+          >
+            <IconSymbol name="plus" size={22} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Sort Bar */}
