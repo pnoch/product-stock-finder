@@ -22,7 +22,7 @@ import {
 import { AppSettings, Product, DistributorListing } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { sendTestNotification } from "@/lib/notifications";
-import { DISTRIBUTORS, getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@/lib/distributors";
 import { getAllParserIds } from "@/lib/scrapers/registry";
 
 function SettingRow({
