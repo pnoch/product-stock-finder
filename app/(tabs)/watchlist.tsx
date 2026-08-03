@@ -361,6 +361,18 @@ export default function WatchlistScreen() {
         </View>
       </View>
 
+      {checking && checkProgress && (
+        <View className="h-1 mx-4 mb-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.primary + "20" }}>
+          <View
+            className="h-full rounded-full"
+            style={{
+              width: `${(checkProgress.current / checkProgress.total) * 100}%`,
+              backgroundColor: colors.primary,
+            }}
+          />
+        </View>
+      )}
+
       {/* Sort Bar */}
       {watchlist.length > 0 && (
         <View
