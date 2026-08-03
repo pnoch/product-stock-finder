@@ -1,7 +1,7 @@
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 import { Platform } from "react-native";
-import { getAlerts, getWatchlist, saveAlerts, updateProductListings } from "./storage";
+import { getAlerts, getSettings, getWatchlist, saveAlerts, updateProductListings } from "./storage";
 import { convertPrice, formatPrice } from "./currency";
 import { requestNotificationPermissions } from "./notifications";
 import * as Notifications from "expo-notifications";
@@ -18,59 +18,63 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
     if (watchlist.length === 0)
       return BackgroundTask.BackgroundTaskResult.Success;
 
-    // Scrape fresh prices for all products
-    for (const product of watchlist) {
-      if (!product.listings?.length) continue;
+    // Scrape fresh prices for all products in parallel batches
+    const CONCURRENCY = 3;
+    for (let i = 0; i < watchlist.length; i += CONCURRENCY) {
+      const batch = watchlist.slice(i, i + CONCURRENCY);
+      await Promise.all(
+        batch.map(async (product) => {
+          if (!product.listings?.length) return;
 
-      const updatedListings: DistributorListing[] = [];
+          const updatedListings: DistributorListing[] = [];
 
-      for (const listing of product.listings) {
-        const parser = getParserByDistributorId(listing.distributorId);
-        if (!parser) {
-          updatedListings.push(listing);
-          continue;
-        }
+          for (const listing of product.listings) {
+            const parser = getParserByDistributorId(listing.distributorId);
+            if (!parser) {
+              updatedListings.push(listing);
+              continue;
+            }
 
-        try {
-          const url = parser.buildSearchUrl(product.modelNumber);
-          const html = await fetchWithRateLimit(url, parser.rateLimitMs);
-          const result = parser.parsePrice(html);
+            try {
+              const url = parser.buildSearchUrl(product.modelNumber);
+              const html = await fetchWithRateLimit(url, parser.rateLimitMs);
+              const result = parser.parsePrice(html);
 
-          if (result) {
-            const now = new Date().toISOString();
-            const newPricePoint: PricePoint = {
-              date: now,
-              price: result.price,
-              currency: result.currency,
-              stockStatus: result.stockStatus,
-            };
+              if (result) {
+                const now = new Date().toISOString();
+                const newPricePoint: PricePoint = {
+                  date: now,
+                  price: result.price,
+                  currency: result.currency,
+                  stockStatus: result.stockStatus,
+                };
 
-            const updatedListing: DistributorListing = {
-              ...listing,
-              price: result.price,
-              currency: result.currency,
-              stockStatus: result.stockStatus,
-              expectedDate: result.expectedDate,
-              url: result.url,
-              lastChecked: now,
-              priceHistory: [...listing.priceHistory, newPricePoint],
-            };
+                const updatedListing: DistributorListing = {
+                  ...listing,
+                  price: result.price,
+                  currency: result.currency,
+                  stockStatus: result.stockStatus,
+                  expectedDate: result.expectedDate,
+                  url: result.url,
+                  lastChecked: now,
+                  priceHistory: [...listing.priceHistory, newPricePoint],
+                };
 
-            updatedListings.push(updatedListing);
-          } else {
-            updatedListings.push(listing);
+                updatedListings.push(updatedListing);
+              } else {
+                updatedListings.push(listing);
+              }
+            } catch {
+              updatedListings.push(listing);
+            }
+
+            // 2-second delay between scrapes
+            await new Promise((resolve) => setTimeout(resolve, 2000));
           }
-        } catch {
-          // If scraping fails, keep existing listing
-          updatedListings.push(listing);
-        }
 
-        // 2-second delay between scrapes
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      }
-
-      // Update product listings in storage
-      await updateProductListings(product.id, updatedListings);
+          await updateProductListings(product.id, updatedListings);
+        }),
+      );
     }
 
     // Now check price alerts against fresh prices
@@ -128,11 +132,30 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
 export async function registerPriceCheckTask() {
   if (Platform.OS === "web") return;
   try {
+    const settings = await getSettings();
     const isRegistered =
       await TaskManager.isTaskRegisteredAsync(PRICE_CHECK_TASK);
+
+    if (settings.checkInterval === "manual") {
+      // Manual mode — unregister if previously registered
+      if (isRegistered) {
+        await BackgroundTask.unregisterTaskAsync(PRICE_CHECK_TASK);
+      }
+      return;
+    }
+
+    const intervalMinutes =
+      settings.checkInterval === "hourly" ? 60 : 1440;
+
     if (!isRegistered) {
       await BackgroundTask.registerTaskAsync(PRICE_CHECK_TASK, {
-        minimumInterval: 15, // minutes — minimum allowed by the OS
+        minimumInterval: intervalMinutes,
+      });
+    } else {
+      // Re-register to update the interval if it changed
+      await BackgroundTask.unregisterTaskAsync(PRICE_CHECK_TASK);
+      await BackgroundTask.registerTaskAsync(PRICE_CHECK_TASK, {
+        minimumInterval: intervalMinutes,
       });
     }
   } catch {
@@ -145,59 +168,63 @@ export async function checkPriceDropsNow() {
   const watchlist = await getWatchlist();
   if (watchlist.length === 0) return;
 
-  // Scrape fresh prices for all products
-  for (const product of watchlist) {
-    if (!product.listings?.length) continue;
+  // Scrape fresh prices for all products in parallel batches
+  const CONCURRENCY = 3;
+  for (let i = 0; i < watchlist.length; i += CONCURRENCY) {
+    const batch = watchlist.slice(i, i + CONCURRENCY);
+    await Promise.all(
+      batch.map(async (product) => {
+        if (!product.listings?.length) return;
 
-    const updatedListings: DistributorListing[] = [];
+        const updatedListings: DistributorListing[] = [];
 
-    for (const listing of product.listings) {
-      const parser = getParserByDistributorId(listing.distributorId);
-      if (!parser) {
-        updatedListings.push(listing);
-        continue;
-      }
+        for (const listing of product.listings) {
+          const parser = getParserByDistributorId(listing.distributorId);
+          if (!parser) {
+            updatedListings.push(listing);
+            continue;
+          }
 
-      try {
-        const url = parser.buildSearchUrl(product.modelNumber);
-        const html = await fetchWithRateLimit(url, parser.rateLimitMs);
-        const result = parser.parsePrice(html);
+          try {
+            const url = parser.buildSearchUrl(product.modelNumber);
+            const html = await fetchWithRateLimit(url, parser.rateLimitMs);
+            const result = parser.parsePrice(html);
 
-        if (result) {
-          const now = new Date().toISOString();
-          const newPricePoint: PricePoint = {
-            date: now,
-            price: result.price,
-            currency: result.currency,
-            stockStatus: result.stockStatus,
-          };
+            if (result) {
+              const now = new Date().toISOString();
+              const newPricePoint: PricePoint = {
+                date: now,
+                price: result.price,
+                currency: result.currency,
+                stockStatus: result.stockStatus,
+              };
 
-          const updatedListing: DistributorListing = {
-            ...listing,
-            price: result.price,
-            currency: result.currency,
-            stockStatus: result.stockStatus,
-            expectedDate: result.expectedDate,
-            url: result.url,
-            lastChecked: now,
-            priceHistory: [...listing.priceHistory, newPricePoint],
-          };
+              const updatedListing: DistributorListing = {
+                ...listing,
+                price: result.price,
+                currency: result.currency,
+                stockStatus: result.stockStatus,
+                expectedDate: result.expectedDate,
+                url: result.url,
+                lastChecked: now,
+                priceHistory: [...listing.priceHistory, newPricePoint],
+              };
 
-          updatedListings.push(updatedListing);
-        } else {
-          updatedListings.push(listing);
+              updatedListings.push(updatedListing);
+            } else {
+              updatedListings.push(listing);
+            }
+          } catch {
+            updatedListings.push(listing);
+          }
+
+          // 2-second delay between scrapes
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         }
-      } catch {
-        // If scraping fails, keep existing listing
-        updatedListings.push(listing);
-      }
 
-      // 2-second delay between scrapes
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-    }
-
-    // Update product listings in storage
-    await updateProductListings(product.id, updatedListings);
+        await updateProductListings(product.id, updatedListings);
+      }),
+    );
   }
 
   // Now check price alerts against fresh prices
