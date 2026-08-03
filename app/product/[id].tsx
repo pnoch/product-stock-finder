@@ -1,29 +1,82 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import * as Clipboard from "expo-clipboard";
-import { ScrollView, Text, View, TouchableOpacity, Alert, TextInput, Modal, Linking, ActivityIndicator, Share, Platform, Dimensions } from "react-native";
+import {
+  ScrollView,
+  Text,
+  View,
+  TouchableOpacity,
+  Alert,
+  TextInput,
+  Modal,
+  Linking,
+  ActivityIndicator,
+  Share,
+  Platform,
+  Dimensions,
+} from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
-import { useMemo } from "react";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { getWatchlist, updateProductListings, addAlert, getStockWatches, addStockWatch, removeStockWatch, updateStockWatchStatus } from "@/lib/storage";
-import { Product, DistributorListing, PriceAlert } from "@/lib/types";
-import { formatPrice, convertPrice } from "@/lib/currency";
-import { getBestPrice } from "@/lib/currency";
-import { getSettings } from "@/lib/storage";
+import {
+  getWatchlist,
+  updateProductListings,
+  addAlert,
+  getStockWatches,
+  addStockWatch,
+  removeStockWatch,
+  updateStockWatchStatus,
+  getSettings,
+  addBackOrderReminder,
+  getBackOrderReminders,
+} from "@/lib/storage";
+import {
+  Product,
+  DistributorListing,
+  PriceAlert,
+  PricePoint,
+} from "@/lib/types";
+import {
+  formatPrice,
+  convertPrice,
+  getBestPrice,
+  EXCHANGE_RATES,
+} from "@/lib/currency";
+import {
+  formatLastRefreshed,
+  getLastRefreshedColor,
+} from "@/lib/last-refreshed";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { schedulePriceAlert, requestNotificationPermissions } from "@/lib/notifications";
+import {
+  schedulePriceAlert,
+  requestNotificationPermissions,
+  scheduleBackOrderReminder,
+  scheduleStockAlert,
+  cancelNotification,
+} from "@/lib/notifications";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { addBackOrderReminder } from "@/lib/storage";
-import { scheduleBackOrderReminder } from "@/lib/notifications";
-import { scheduleStockAlert } from "@/lib/notifications";
-import { cancelNotification } from "@/lib/notifications";
 import { PriceSparkline } from "@/components/price-sparkline";
+import { SAMPLE_LISTINGS } from "@/lib/sample-data";
+import Svg, {
+  Polyline,
+  Circle,
+  Line,
+  Text as SvgText,
+  Rect,
+} from "react-native-svg";
 
 // ─── Best Distributor Highlight Card ─────────────────────────────────────────
-function BestDistributorCard({ listing, onSetAlert, product: prod }: { listing: DistributorListing; onSetAlert: () => void; product: { name: string } | null }) {
+function BestDistributorCard({
+  listing,
+  onSetAlert,
+  product: prod,
+}: {
+  listing: DistributorListing;
+  onSetAlert: () => void;
+  product: { name: string } | null;
+}) {
   const colors = useColors();
   const distributor = getDistributorById(listing.distributorId);
   const usdPrice = convertPrice(listing.price, listing.currency, "USD");
@@ -32,7 +85,9 @@ function BestDistributorCard({ listing, onSetAlert, product: prod }: { listing: 
   const priceTrend = (() => {
     const hist = listing.priceHistory;
     if (!hist || hist.length < 2) return null;
-    const sorted = [...hist].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const sorted = [...hist].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
     const oldest = sorted[0].price;
     const current = sorted[sorted.length - 1].price;
     if (current < oldest) {
@@ -51,80 +106,180 @@ function BestDistributorCard({ listing, onSetAlert, product: prod }: { listing: 
     const hist = listing.priceHistory;
     if (!hist || hist.length < 2) return false;
     // Convert all prices to USD for fair comparison
-    const historicalMin = Math.min(...hist.map((p) => convertPrice(p.price, p.currency, "USD")));
+    const historicalMin = Math.min(
+      ...hist.map((p) => convertPrice(p.price, p.currency, "USD")),
+    );
     const currentUsd = convertPrice(listing.price, listing.currency, "USD");
     return currentUsd <= historicalMin;
   })();
 
   return (
-    <View style={{ backgroundColor: colors.primary + "12", borderRadius: 16, padding: 16, marginBottom: 10, borderWidth: 1.5, borderColor: colors.primary + "55" }}>
+    <View
+      style={{
+        backgroundColor: colors.primary + "12",
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 10,
+        borderWidth: 1.5,
+        borderColor: colors.primary + "55",
+      }}
+    >
       {/* Crown badge */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
-        <View style={{ backgroundColor: "#F59E0B", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          marginBottom: 8,
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: "#F59E0B",
+            borderRadius: 8,
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
           <IconSymbol name="crown.fill" size={12} color="#fff" />
-          <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>BEST PRICE</Text>
+          <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>
+            BEST PRICE
+          </Text>
         </View>
-        <Text style={{ color: colors.muted, fontSize: 12, flex: 1 }}>Cheapest in-stock option</Text>
+        <Text style={{ color: colors.muted, fontSize: 12, flex: 1 }}>
+          Cheapest in-stock option
+        </Text>
         {priceTrend && (
-          <View style={{
-            backgroundColor: priceTrend.dir === "down" ? colors.success + "22" : colors.error + "22",
-            borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3,
-            flexDirection: "row", alignItems: "center", gap: 3,
-          }}>
-            <Text style={{ color: priceTrend.dir === "down" ? colors.success : colors.error, fontSize: 11, fontWeight: "700" }}>
+          <View
+            style={{
+              backgroundColor:
+                priceTrend.dir === "down"
+                  ? colors.success + "22"
+                  : colors.error + "22",
+              borderRadius: 8,
+              paddingHorizontal: 7,
+              paddingVertical: 3,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 3,
+            }}
+          >
+            <Text
+              style={{
+                color:
+                  priceTrend.dir === "down" ? colors.success : colors.error,
+                fontSize: 11,
+                fontWeight: "700",
+              }}
+            >
               {priceTrend.dir === "down" ? "▼" : "▲"} {priceTrend.pct}%
             </Text>
           </View>
         )}
       </View>
       {isLowestEver && (
-        <View style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 5,
-          backgroundColor: colors.success + "18",
-          borderRadius: 10,
-          paddingHorizontal: 10,
-          paddingVertical: 5,
-          marginBottom: 10,
-          alignSelf: "flex-start",
-          borderWidth: 1,
-          borderColor: colors.success + "44",
-        }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 5,
+            backgroundColor: colors.success + "18",
+            borderRadius: 10,
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+            marginBottom: 10,
+            alignSelf: "flex-start",
+            borderWidth: 1,
+            borderColor: colors.success + "44",
+          }}
+        >
           <Text style={{ fontSize: 14 }}>🎉</Text>
-          <Text style={{ color: colors.success, fontSize: 12, fontWeight: "700" }}>Lowest Price Ever</Text>
+          <Text
+            style={{ color: colors.success, fontSize: 12, fontWeight: "700" }}
+          >
+            Lowest Price Ever
+          </Text>
         </View>
       )}
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
         <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}>
-            {distributor?.countryFlag} {distributor?.name ?? listing.distributorId}
+          <Text
+            style={{
+              color: colors.foreground,
+              fontWeight: "700",
+              fontSize: 15,
+            }}
+          >
+            {distributor?.countryFlag}{" "}
+            {distributor?.name ?? listing.distributorId}
           </Text>
           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
             {distributor?.country} · {distributor?.region}
           </Text>
         </View>
-        <View style={{ backgroundColor: colors.success + "22", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 }}>
-          <Text style={{ color: colors.success, fontSize: 12, fontWeight: "600" }}>● In Stock</Text>
+        <View
+          style={{
+            backgroundColor: colors.success + "22",
+            borderRadius: 12,
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+          }}
+        >
+          <Text
+            style={{ color: colors.success, fontSize: 12, fontWeight: "600" }}
+          >
+            ● In Stock
+          </Text>
         </View>
       </View>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: 10,
+        }}
+      >
         <View>
-          <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 22 }}>
+          <Text
+            style={{ color: colors.primary, fontWeight: "700", fontSize: 22 }}
+          >
             {formatPrice(listing.price, listing.currency)}
           </Text>
           {listing.currency !== "USD" && (
-            <Text style={{ color: colors.muted, fontSize: 12 }}>≈ {formatPrice(usdPrice, "USD")}</Text>
+            <Text style={{ color: colors.muted, fontSize: 12 }}>
+              ≈ {formatPrice(usdPrice, "USD")}
+            </Text>
           )}
         </View>
         <TouchableOpacity
           onPress={() => {
-            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            Linking.openURL(listing.url);
+            if (Platform.OS !== "web")
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            openListingUrl(listing.url);
           }}
-          style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 18, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 5 }}
+          style={{
+            backgroundColor: colors.primary,
+            borderRadius: 20,
+            paddingHorizontal: 18,
+            paddingVertical: 10,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 5,
+          }}
         >
-          <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>Buy Now</Text>
+          <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>
+            Buy Now
+          </Text>
           <IconSymbol name="arrow.up.right.square" size={14} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -153,7 +308,9 @@ function BestDistributorCard({ listing, onSetAlert, product: prod }: { listing: 
             }}
           >
             <IconSymbol name="bell.fill" size={14} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
+            <Text
+              style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}
+            >
               Set Alert at {formatPrice(suggestedPrice, listing.currency)} (−5%)
             </Text>
           </TouchableOpacity>
@@ -163,240 +320,63 @@ function BestDistributorCard({ listing, onSetAlert, product: prod }: { listing: 
   );
 }
 
-// ─── Real distributor data for CRS804-4DDQ-hRM (verified July 19, 2026) ───────
-const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
-  "mikrotik-crs804-4ddq-hrm": (() => {
-    const d = (daysAgo: number) => new Date(Date.now() - 86400000 * daysAgo).toISOString();
-    return [
-      {
-        distributorId: "server2u-my",
-        productId: "mikrotik-crs804-4ddq-hrm",
-        price: 5568,
-        currency: "MYR",
-        stockStatus: "in_stock",
-        url: "https://server2u.com/shop/crs804-4ddq-hrm-mikrotik-crs804-4ddq-hrm-400g-master-switch-66247",
-        lastChecked: new Date().toISOString(),
-        priceHistory: [
-          { date: d(90), price: 5900, currency: "MYR", stockStatus: "in_stock" },
-          { date: d(75), price: 5850, currency: "MYR", stockStatus: "in_stock" },
-          { date: d(60), price: 5800, currency: "MYR", stockStatus: "in_stock" },
-          { date: d(45), price: 5780, currency: "MYR", stockStatus: "in_stock" },
-          { date: d(30), price: 5750, currency: "MYR", stockStatus: "in_stock" },
-          { date: d(21), price: 5680, currency: "MYR", stockStatus: "in_stock" },
-          { date: d(14), price: 5620, currency: "MYR", stockStatus: "in_stock" },
-          { date: d(7), price: 5590, currency: "MYR", stockStatus: "in_stock" },
-          { date: d(3), price: 5575, currency: "MYR", stockStatus: "in_stock" },
-          { date: d(0), price: 5568, currency: "MYR", stockStatus: "in_stock" },
-        ],
-      },
-      {
-        distributorId: "mikrotikstore-de",
-        productId: "mikrotik-crs804-4ddq-hrm",
-        price: 1141.67,
-        currency: "EUR",
-        stockStatus: "in_stock",
-        url: "https://mikrotik-store.eu/en/cloud-router-switches/crs804-4ddq-hrm",
-        lastChecked: new Date().toISOString(),
-        priceHistory: [
-          { date: d(90), price: 1050, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(75), price: 1065, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(60), price: 1080, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(45), price: 1090, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(30), price: 1095, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(21), price: 1110, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(14), price: 1125, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(7), price: 1135, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(3), price: 1139, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(0), price: 1141.67, currency: "EUR", stockStatus: "in_stock" },
-        ],
-      },
-      {
-        distributorId: "interprojekt-pl",
-        productId: "mikrotik-crs804-4ddq-hrm",
-        price: 860.54,
-        currency: "EUR",
-        stockStatus: "back_order",
-        expectedDate: "Sept 15, 2026",
-        url: "https://interprojekt.pl/en/p/mikrotik-crs804-4ddq-hrm.html",
-        lastChecked: new Date().toISOString(),
-        priceHistory: [
-          { date: d(90), price: 920, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(75), price: 910, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(60), price: 900, currency: "EUR", stockStatus: "back_order" },
-          { date: d(45), price: 895, currency: "EUR", stockStatus: "back_order" },
-          { date: d(30), price: 890, currency: "EUR", stockStatus: "back_order" },
-          { date: d(21), price: 882, currency: "EUR", stockStatus: "back_order" },
-          { date: d(14), price: 875, currency: "EUR", stockStatus: "back_order" },
-          { date: d(7), price: 868, currency: "EUR", stockStatus: "back_order" },
-          { date: d(3), price: 863, currency: "EUR", stockStatus: "back_order" },
-          { date: d(0), price: 860.54, currency: "EUR", stockStatus: "back_order" },
-        ],
-      },
-      {
-        distributorId: "nasstore-eu",
-        productId: "mikrotik-crs804-4ddq-hrm",
-        price: 956.0,
-        currency: "EUR",
-        stockStatus: "back_order",
-        expectedDate: "Aug 13, 2026",
-        url: "https://nasstore.eu/product/mikrotik-cloud-router-switch-crs804-4ddq-hrm/",
-        lastChecked: new Date().toISOString(),
-        priceHistory: [
-          { date: d(90), price: 990, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(75), price: 985, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(60), price: 980, currency: "EUR", stockStatus: "back_order" },
-          { date: d(45), price: 975, currency: "EUR", stockStatus: "back_order" },
-          { date: d(30), price: 970, currency: "EUR", stockStatus: "back_order" },
-          { date: d(21), price: 968, currency: "EUR", stockStatus: "back_order" },
-          { date: d(14), price: 965, currency: "EUR", stockStatus: "back_order" },
-          { date: d(7), price: 960, currency: "EUR", stockStatus: "back_order" },
-          { date: d(3), price: 958, currency: "EUR", stockStatus: "back_order" },
-          { date: d(0), price: 956, currency: "EUR", stockStatus: "back_order" },
-        ],
-      },
-      {
-        distributorId: "aerial-gr",
-        productId: "mikrotik-crs804-4ddq-hrm",
-        price: 956.99,
-        currency: "EUR",
-        stockStatus: "back_order",
-        expectedDate: "Sept 9, 2026",
-        url: "https://aerial.net/shop/product/mikrotik-crs804-4ddq-hrm-cloud-router-switch-5671",
-        lastChecked: new Date().toISOString(),
-        priceHistory: [
-          { date: d(90), price: 995, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(75), price: 990, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(60), price: 985, currency: "EUR", stockStatus: "back_order" },
-          { date: d(45), price: 980, currency: "EUR", stockStatus: "back_order" },
-          { date: d(30), price: 975, currency: "EUR", stockStatus: "back_order" },
-          { date: d(21), price: 970, currency: "EUR", stockStatus: "back_order" },
-          { date: d(14), price: 965, currency: "EUR", stockStatus: "back_order" },
-          { date: d(7), price: 960, currency: "EUR", stockStatus: "back_order" },
-          { date: d(3), price: 958, currency: "EUR", stockStatus: "back_order" },
-          { date: d(0), price: 956.99, currency: "EUR", stockStatus: "back_order" },
-        ],
-      },
-      {
-        distributorId: "linitx-uk",
-        productId: "mikrotik-crs804-4ddq-hrm",
-        price: 1139.99,
-        currency: "GBP",
-        stockStatus: "back_order",
-        expectedDate: "Sept 18, 2026",
-        url: "https://linitx.com/product/mikrotik-crs804-ddq-cloud-router-400gb-4-port-switch-crs804-4ddq-hrm/18455",
-        lastChecked: new Date().toISOString(),
-        priceHistory: [
-          { date: d(90), price: 1220, currency: "GBP", stockStatus: "in_stock" },
-          { date: d(75), price: 1210, currency: "GBP", stockStatus: "in_stock" },
-          { date: d(60), price: 1200, currency: "GBP", stockStatus: "back_order" },
-          { date: d(45), price: 1195, currency: "GBP", stockStatus: "back_order" },
-          { date: d(30), price: 1180, currency: "GBP", stockStatus: "back_order" },
-          { date: d(21), price: 1170, currency: "GBP", stockStatus: "back_order" },
-          { date: d(14), price: 1160, currency: "GBP", stockStatus: "back_order" },
-          { date: d(7), price: 1150, currency: "GBP", stockStatus: "back_order" },
-          { date: d(3), price: 1144, currency: "GBP", stockStatus: "back_order" },
-          { date: d(0), price: 1139.99, currency: "GBP", stockStatus: "back_order" },
-        ],
-      },
-      {
-        distributorId: "miro-za",
-        productId: "mikrotik-crs804-4ddq-hrm",
-        price: 30140,
-        currency: "ZAR",
-        stockStatus: "back_order",
-        expectedDate: "Aug 2026",
-        url: "https://miro.co.za/07-networking-switches---managed-layer-3/8878-mikrotik-cloud-router-switch-crs804-4ddq-hrm-miro.html",
-        lastChecked: new Date().toISOString(),
-        priceHistory: [
-          { date: d(90), price: 28500, currency: "ZAR", stockStatus: "in_stock" },
-          { date: d(75), price: 28800, currency: "ZAR", stockStatus: "in_stock" },
-          { date: d(60), price: 29000, currency: "ZAR", stockStatus: "back_order" },
-          { date: d(45), price: 29200, currency: "ZAR", stockStatus: "back_order" },
-          { date: d(30), price: 29500, currency: "ZAR", stockStatus: "back_order" },
-          { date: d(21), price: 29700, currency: "ZAR", stockStatus: "back_order" },
-          { date: d(14), price: 29900, currency: "ZAR", stockStatus: "back_order" },
-          { date: d(7), price: 30000, currency: "ZAR", stockStatus: "back_order" },
-          { date: d(3), price: 30100, currency: "ZAR", stockStatus: "back_order" },
-          { date: d(0), price: 30140, currency: "ZAR", stockStatus: "back_order" },
-        ],
-      },
-      {
-        distributorId: "getic-gr",
-        productId: "mikrotik-crs804-4ddq-hrm",
-        price: 877.64,
-        currency: "EUR",
-        stockStatus: "out_of_stock",
-        url: "https://www.getic.com/product/mikrotik-crs804-4ddq-hrm",
-        lastChecked: new Date().toISOString(),
-        priceHistory: [
-          { date: d(90), price: 855, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(75), price: 858, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(60), price: 860, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(45), price: 865, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(30), price: 870, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(21), price: 872, currency: "EUR", stockStatus: "in_stock" },
-          { date: d(14), price: 875, currency: "EUR", stockStatus: "out_of_stock" },
-          { date: d(7), price: 876, currency: "EUR", stockStatus: "out_of_stock" },
-          { date: d(3), price: 877, currency: "EUR", stockStatus: "out_of_stock" },
-          { date: d(0), price: 877.64, currency: "EUR", stockStatus: "out_of_stock" },
-        ],
-      },
-      {
-        distributorId: "duxtel-au",
-        productId: "mikrotik-crs804-4ddq-hrm",
-        price: 2299,
-        currency: "AUD",
-        stockStatus: "out_of_stock",
-        url: "https://store.duxtel.com.au/product/crs804-4ddq-hrm",
-        lastChecked: new Date().toISOString(),
-        priceHistory: [
-          { date: d(90), price: 2450, currency: "AUD", stockStatus: "in_stock" },
-          { date: d(75), price: 2430, currency: "AUD", stockStatus: "in_stock" },
-          { date: d(60), price: 2410, currency: "AUD", stockStatus: "in_stock" },
-          { date: d(45), price: 2390, currency: "AUD", stockStatus: "in_stock" },
-          { date: d(30), price: 2370, currency: "AUD", stockStatus: "in_stock" },
-          { date: d(21), price: 2350, currency: "AUD", stockStatus: "in_stock" },
-          { date: d(14), price: 2330, currency: "AUD", stockStatus: "out_of_stock" },
-          { date: d(7), price: 2310, currency: "AUD", stockStatus: "out_of_stock" },
-          { date: d(3), price: 2305, currency: "AUD", stockStatus: "out_of_stock" },
-          { date: d(0), price: 2299, currency: "AUD", stockStatus: "out_of_stock" },
-        ],
-      },
-    ];
-  })(),
-};
-function formatLastChecked(isoString: string): string {
-  try {
-    const date = new Date(isoString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-  } catch {
-    return "Unknown";
-  }
-}
-
-function StockBadge({ status, expectedDate }: { status: string; expectedDate?: string }) {
+function StockBadge({
+  status,
+  expectedDate,
+}: {
+  status: string;
+  expectedDate?: string;
+}) {
   const colors = useColors();
   const config: Record<string, { bg: string; text: string; label: string }> = {
-    in_stock: { bg: colors.success + "22", text: colors.success, label: "In Stock" },
-    back_order: { bg: colors.warning + "22", text: colors.warning, label: `Back Order${expectedDate ? ` · ${expectedDate}` : ""}` },
-    out_of_stock: { bg: colors.error + "22", text: colors.error, label: "Out of Stock" },
+    in_stock: {
+      bg: colors.success + "22",
+      text: colors.success,
+      label: "In Stock",
+    },
+    back_order: {
+      bg: colors.warning + "22",
+      text: colors.warning,
+      label: `Back Order${expectedDate ? ` · ${expectedDate}` : ""}`,
+    },
+    out_of_stock: {
+      bg: colors.error + "22",
+      text: colors.error,
+      label: "Out of Stock",
+    },
     unknown: { bg: colors.muted + "22", text: colors.muted, label: "Unknown" },
   };
   const c = config[status] ?? config.unknown;
   return (
-    <View style={{ backgroundColor: c.bg, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 }}>
-      <Text style={{ color: c.text, fontSize: 12, fontWeight: "600" }}>● {c.label}</Text>
+    <View
+      style={{
+        backgroundColor: c.bg,
+        borderRadius: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+      }}
+    >
+      <Text style={{ color: c.text, fontSize: 12, fontWeight: "600" }}>
+        ● {c.label}
+      </Text>
     </View>
   );
+}
+
+async function openListingUrl(url: string) {
+  try {
+    const supported = await Linking.canOpenURL(url);
+    if (!supported) {
+      Alert.alert("Cannot Open Link", "No app is available to open this URL.");
+      return;
+    }
+    await Linking.openURL(url);
+  } catch {
+    Alert.alert(
+      "Error",
+      "Could not open the distributor link. Please try again later.",
+    );
+  }
 }
 
 export default function ProductDetailScreen() {
@@ -413,7 +393,8 @@ export default function ProductDetailScreen() {
 
   // Best in-stock distributor (cheapest by USD equivalent)
   // Reminder modal state
-  const [reminderListing, setReminderListing] = useState<DistributorListing | null>(null);
+  const [reminderListing, setReminderListing] =
+    useState<DistributorListing | null>(null);
   const [reminderDate, setReminderDate] = useState<Date>(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -425,7 +406,9 @@ export default function ProductDetailScreen() {
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
 
   // Price history chart modal state
-  const [chartListing, setChartListing] = useState<DistributorListing | null>(null);
+  const [chartListing, setChartListing] = useState<DistributorListing | null>(
+    null,
+  );
   const chartWidth = Dimensions.get("window").width - 48;
   const chartHeight = 200;
 
@@ -433,7 +416,10 @@ export default function ProductDetailScreen() {
     const inStock = listings.filter((l) => l.stockStatus === "in_stock");
     if (inStock.length === 0) return null;
     return inStock.reduce((best, l) =>
-      convertPrice(l.price, l.currency, "USD") < convertPrice(best.price, best.currency, "USD") ? l : best
+      convertPrice(l.price, l.currency, "USD") <
+      convertPrice(best.price, best.currency, "USD")
+        ? l
+        : best,
     );
   })();
 
@@ -444,7 +430,9 @@ export default function ProductDetailScreen() {
     if (found) {
       setProduct(found);
       // Use existing listings or load sample data for demo
-      const existingListings = found.listings?.length ? found.listings : (SAMPLE_LISTINGS[id] ?? []);
+      const existingListings = found.listings?.length
+        ? found.listings
+        : (SAMPLE_LISTINGS[id] ?? []);
       setListings(existingListings);
       if (!found.listings?.length && SAMPLE_LISTINGS[id]) {
         await updateProductListings(id, SAMPLE_LISTINGS[id]);
@@ -464,7 +452,10 @@ export default function ProductDetailScreen() {
       async function pollStockWatches() {
         // Load preferred currency from settings
         const settings = await getSettings();
-        if (active) setDisplayCurrency(settings.displayCurrency ?? "USD");
+        if (active) {
+          setDisplayCurrency(settings.displayCurrency ?? "USD");
+          setAlertCurrency(settings.displayCurrency ?? "USD");
+        }
 
         const watches = await getStockWatches();
         const productWatches = watches.filter((w) => w.productId === id);
@@ -477,9 +468,13 @@ export default function ProductDetailScreen() {
         const watchlist = await getWatchlist();
         const found = watchlist.find((p) => p.id === id);
         if (!found) return;
-        const currentListings = found.listings?.length ? found.listings : (SAMPLE_LISTINGS[id] ?? []);
+        const currentListings = found.listings?.length
+          ? found.listings
+          : (SAMPLE_LISTINGS[id] ?? []);
         for (const watch of productWatches) {
-          const currentListing = currentListings.find((l) => l.distributorId === watch.distributorId);
+          const currentListing = currentListings.find(
+            (l) => l.distributorId === watch.distributorId,
+          );
           if (!currentListing) continue;
           const prevStatus = watch.lastKnownStatus ?? "back_order";
           const newStatus = currentListing.stockStatus;
@@ -492,11 +487,16 @@ export default function ProductDetailScreen() {
                 watch.productName,
                 distrib?.name ?? watch.distributorName,
                 currentListing.price,
-                currentListing.currency
+                currentListing.currency,
               );
             }
             await removeStockWatch(watch.id);
-            if (active) setStockWatches((prev) => { const n = { ...prev }; delete n[watch.distributorId]; return n; });
+            if (active)
+              setStockWatches((prev) => {
+                const n = { ...prev };
+                delete n[watch.distributorId];
+                return n;
+              });
           } else if (prevStatus !== newStatus) {
             // Update cached status
             await updateStockWatchStatus(id, watch.distributorId, newStatus);
@@ -504,46 +504,64 @@ export default function ProductDetailScreen() {
         }
       }
       pollStockWatches();
-      return () => { active = false; };
-    }, [id])
+      return () => {
+        active = false;
+      };
+    }, [id]),
   );
 
-  const handleToggleStockWatch = useCallback(async (listing: DistributorListing) => {
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const isWatching = stockWatches[listing.distributorId];
-    if (isWatching) {
-      // Remove watch
-      const watches = await getStockWatches();
-      const existing = watches.find((w) => w.productId === id && w.distributorId === listing.distributorId);
-      if (existing) {
-        if (existing.notificationId) await cancelNotification(existing.notificationId);
-        await removeStockWatch(existing.id);
+  const handleToggleStockWatch = useCallback(
+    async (listing: DistributorListing) => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const isWatching = stockWatches[listing.distributorId];
+      if (isWatching) {
+        // Remove watch
+        const watches = await getStockWatches();
+        const existing = watches.find(
+          (w) =>
+            w.productId === id && w.distributorId === listing.distributorId,
+        );
+        if (existing) {
+          if (existing.notificationId)
+            await cancelNotification(existing.notificationId);
+          await removeStockWatch(existing.id);
+        }
+        setStockWatches((prev) => {
+          const n = { ...prev };
+          delete n[listing.distributorId];
+          return n;
+        });
+        Alert.alert(
+          "Watch Removed",
+          `You'll no longer be notified when ${getDistributorById(listing.distributorId)?.name ?? listing.distributorId} gets ${product?.name} back in stock.`,
+        );
+      } else {
+        // Add watch
+        const distributor = getDistributorById(listing.distributorId);
+        const watchEntry = {
+          id: `watch-${Date.now()}-${listing.distributorId}`,
+          productId: id,
+          productName: product?.name ?? "Product",
+          distributorId: listing.distributorId,
+          distributorName: distributor?.name ?? listing.distributorId,
+          reminderDate: new Date().toISOString(),
+          reminderType: "back_in_stock" as const,
+          lastKnownStatus: listing.stockStatus,
+          createdAt: new Date().toISOString(),
+        };
+        await addStockWatch(watchEntry);
+        setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
+        if (Platform.OS !== "web")
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(
+          "Watching for Restock 👀",
+          `You'll be notified the next time you open the app and ${distributor?.name ?? listing.distributorId} has ${product?.name} back in stock.`,
+        );
       }
-      setStockWatches((prev) => { const n = { ...prev }; delete n[listing.distributorId]; return n; });
-      Alert.alert("Watch Removed", `You'll no longer be notified when ${getDistributorById(listing.distributorId)?.name ?? listing.distributorId} gets ${product?.name} back in stock.`);
-    } else {
-      // Add watch
-      const distributor = getDistributorById(listing.distributorId);
-      const watchEntry = {
-        id: `watch-${Date.now()}-${listing.distributorId}`,
-        productId: id,
-        productName: product?.name ?? "Product",
-        distributorId: listing.distributorId,
-        distributorName: distributor?.name ?? listing.distributorId,
-        reminderDate: new Date().toISOString(),
-        reminderType: "back_in_stock" as const,
-        lastKnownStatus: listing.stockStatus,
-        createdAt: new Date().toISOString(),
-      };
-      await addStockWatch(watchEntry);
-      setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
-      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        "Watching for Restock 👀",
-        `You'll be notified the next time you open the app and ${distributor?.name ?? listing.distributorId} has ${product?.name} back in stock.`
-      );
-    }
-  }, [stockWatches, id, product]);
+    },
+    [stockWatches, id, product],
+  );
 
   const handleSetAlert = useCallback(async () => {
     const price = parseFloat(alertPrice);
@@ -563,10 +581,14 @@ export default function ProductDetailScreen() {
     // Schedule a confirmation notification so the user knows the alert is active
     await requestNotificationPermissions();
     await schedulePriceAlert(product?.name ?? "Product", price, alertCurrency);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (Platform.OS !== "web")
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setAlertModalVisible(false);
     setAlertPrice("");
-    Alert.alert("Alert Set", `You'll be notified when the price drops below ${formatPrice(price, alertCurrency)}.`);
+    Alert.alert(
+      "Alert Set",
+      `You'll be notified when the price drops below ${formatPrice(price, alertCurrency)}.`,
+    );
   }, [alertPrice, alertCurrency, id, product]);
 
   const sortedListings = [...listings].sort((a, b) => {
@@ -575,14 +597,22 @@ export default function ProductDetailScreen() {
   });
 
   const handleShare = useCallback(async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const inStockListings = sortedListings.filter((l) => l.stockStatus === "in_stock");
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const inStockListings = sortedListings.filter(
+      (l) => l.stockStatus === "in_stock",
+    );
     const bestListing = inStockListings[0] ?? sortedListings[0];
-    const distributor = bestListing ? getDistributorById(bestListing.distributorId) : null;
-    const priceStr = bestListing ? formatPrice(bestListing.price, bestListing.currency) : "N/A";
-    const statusStr = inStockListings.length > 0
-      ? `✅ In Stock at ${distributor?.name ?? "a distributor"} for ${priceStr}`
-      : `⏳ Back Order — best price ${priceStr}`;
+    const distributor = bestListing
+      ? getDistributorById(bestListing.distributorId)
+      : null;
+    const priceStr = bestListing
+      ? formatPrice(bestListing.price, bestListing.currency)
+      : "N/A";
+    const statusStr =
+      inStockListings.length > 0
+        ? `✅ In Stock at ${distributor?.name ?? "a distributor"} for ${priceStr}`
+        : `⏳ Back Order — best price ${priceStr}`;
     const url = bestListing?.url ?? "";
     const message = `${product?.name} (${product?.modelNumber})\n${statusStr}\n${url}`;
     try {
@@ -593,8 +623,11 @@ export default function ProductDetailScreen() {
   }, [product, sortedListings]);
 
   const handleCopyLink = useCallback(async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const inStockListings = sortedListings.filter((l) => l.stockStatus === "in_stock");
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const inStockListings = sortedListings.filter(
+      (l) => l.stockStatus === "in_stock",
+    );
     const bestListing = inStockListings[0] ?? sortedListings[0];
     const url = bestListing?.url ?? "";
     if (!url) {
@@ -602,49 +635,72 @@ export default function ProductDetailScreen() {
       return;
     }
     await Clipboard.setStringAsync(url);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert("Link Copied!", "The distributor URL has been copied to your clipboard.");
+    if (Platform.OS !== "web")
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert(
+      "Link Copied!",
+      "The distributor URL has been copied to your clipboard.",
+    );
   }, [sortedListings]);
 
   const handleTestStockNotification = useCallback(async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (Platform.OS === "web") {
-      Alert.alert("Not Available", "Push notifications are only available on iOS and Android devices.");
+      Alert.alert(
+        "Not Available",
+        "Push notifications are only available on iOS and Android devices.",
+      );
       return;
     }
     const granted = await requestNotificationPermissions();
     if (!granted) {
-      Alert.alert("Permission Denied", "Please enable notifications in your device settings to receive stock alerts.");
+      Alert.alert(
+        "Permission Denied",
+        "Please enable notifications in your device settings to receive stock alerts.",
+      );
       return;
     }
-    const inStockListing = sortedListings.find((l) => l.stockStatus === "in_stock");
+    const inStockListing = sortedListings.find(
+      (l) => l.stockStatus === "in_stock",
+    );
     const targetListing = inStockListing ?? sortedListings[0];
-    const distributor = targetListing ? getDistributorById(targetListing.distributorId) : null;
+    const distributor = targetListing
+      ? getDistributorById(targetListing.distributorId)
+      : null;
     await scheduleStockAlert(
       product?.name ?? "Product",
       distributor?.name ?? "a distributor",
       targetListing?.price ?? 0,
-      targetListing?.currency ?? "USD"
+      targetListing?.currency ?? "USD",
     );
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert("Notification Sent!", `A "Back In Stock" alert for ${product?.name} has been sent to your device.`);
+    Alert.alert(
+      "Notification Sent!",
+      `A "Back In Stock" alert for ${product?.name} has been sent to your device.`,
+    );
   }, [product, sortedListings]);
 
   const handleSetReminder = useCallback(async () => {
     if (!reminderListing || !product) return;
     const distributor = getDistributorById(reminderListing.distributorId);
     const distributorName = distributor?.name ?? reminderListing.distributorId;
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     // Cancel old notification if one exists for this product+distributor combo
-    const { getBackOrderReminders: getReminders } = await import("@/lib/storage");
-    const existing = (await getReminders()).find(
-      (r) => r.productId === product.id && r.distributorId === reminderListing.distributorId
+    const existing = (await getBackOrderReminders()).find(
+      (r) =>
+        r.productId === product.id &&
+        r.distributorId === reminderListing.distributorId,
     );
     if (existing?.notificationId) {
-      const { cancelNotification: cancel } = await import("@/lib/notifications");
-      await cancel(existing.notificationId);
+      await cancelNotification(existing.notificationId);
     }
-    const notifId = await scheduleBackOrderReminder(product.name, distributorName, reminderDate);
+    const notifId = await scheduleBackOrderReminder(
+      product.name,
+      distributorName,
+      reminderDate,
+    );
     await addBackOrderReminder({
       id: existing?.id ?? `reminder-${Date.now()}`,
       productId: product.id,
@@ -655,18 +711,21 @@ export default function ProductDetailScreen() {
       notificationId: notifId ?? undefined,
       createdAt: existing?.createdAt ?? new Date().toISOString(),
     });
-    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (Platform.OS !== "web")
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setReminderListing(null);
     Alert.alert(
       "Reminder Set! 📅",
-      `You'll be reminded to check ${distributorName} for ${product.name} on ${reminderDate.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}.`
+      `You'll be reminded to check ${distributorName} for ${product.name} on ${reminderDate.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}.`,
     );
   }, [reminderListing, reminderDate, product]);
 
   if (loading) {
     return (
       <ScreenContainer>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </ScreenContainer>
@@ -676,9 +735,16 @@ export default function ProductDetailScreen() {
   if (!product) {
     return (
       <ScreenContainer>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: colors.foreground, fontSize: 16 }}>Product not found</Text>
-          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
+          <Text style={{ color: colors.foreground, fontSize: 16 }}>
+            Product not found
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{ marginTop: 16 }}
+          >
             <Text style={{ color: colors.primary }}>Go back</Text>
           </TouchableOpacity>
         </View>
@@ -690,69 +756,230 @@ export default function ProductDetailScreen() {
     <ScreenContainer>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Header */}
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, gap: 12 }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingTop: 8,
+            paddingBottom: 16,
+            gap: 12,
+          }}
+        >
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{ padding: 4 }}
+          >
             <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "700" }} numberOfLines={2}>{product.name}</Text>
-            <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}>{product.modelNumber}</Text>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 18,
+                fontWeight: "700",
+              }}
+              numberOfLines={2}
+            >
+              {product.name}
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}>
+              {product.modelNumber}
+            </Text>
           </View>
         </View>
 
         {/* Product Info Card */}
-        <View style={{ marginHorizontal: 16, backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <View style={{ backgroundColor: colors.primary + "22", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 5 }}>
-              <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>{product.brand}</Text>
+        <View
+          style={{
+            marginHorizontal: 16,
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            marginBottom: 16,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 10,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: colors.primary + "22",
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                paddingVertical: 5,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.primary,
+                  fontWeight: "600",
+                  fontSize: 13,
+                }}
+              >
+                {product.brand}
+              </Text>
             </View>
-            <Text style={{ color: colors.muted, fontSize: 13 }}>{product.category}</Text>
+            <Text style={{ color: colors.muted, fontSize: 13 }}>
+              {product.category}
+            </Text>
           </View>
-          <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>{product.description}</Text>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border }}>
+          <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
+            {product.description}
+          </Text>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginTop: 14,
+              paddingTop: 14,
+              borderTopWidth: 1,
+              borderTopColor: colors.border,
+            }}
+          >
             <View>
-              <Text style={{ color: colors.muted, fontSize: 11 }}>Distributors</Text>
-              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 20 }}>{listings.length}</Text>
+              <Text style={{ color: colors.muted, fontSize: 11 }}>
+                Distributors
+              </Text>
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontWeight: "700",
+                  fontSize: 20,
+                }}
+              >
+                {listings.length}
+              </Text>
             </View>
             <View>
-              <Text style={{ color: colors.muted, fontSize: 11 }}>In Stock</Text>
-              <Text style={{ color: colors.success, fontWeight: "700", fontSize: 20 }}>
+              <Text style={{ color: colors.muted, fontSize: 11 }}>
+                In Stock
+              </Text>
+              <Text
+                style={{
+                  color: colors.success,
+                  fontWeight: "700",
+                  fontSize: 20,
+                }}
+              >
                 {listings.filter((l) => l.stockStatus === "in_stock").length}
               </Text>
             </View>
             <View>
-              <Text style={{ color: colors.muted, fontSize: 11 }}>Best Price</Text>
-              <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 20 }}>
-                {listings.length > 0
-                  ? formatPrice(
-                      Math.min(...listings.filter((l) => l.price > 0).map((l) => convertPrice(l.price, l.currency, "USD"))),
-                      "USD"
-                    )
-                  : "N/A"}
+              <Text style={{ color: colors.muted, fontSize: 11 }}>
+                Best Price
+              </Text>
+              <Text
+                style={{
+                  color: colors.primary,
+                  fontWeight: "700",
+                  fontSize: 20,
+                }}
+              >
+                {(() => {
+                  const best = getBestPrice(listings, "USD");
+                  return best ? formatPrice(best.price, "USD") : "N/A";
+                })()}
               </Text>
             </View>
           </View>
+          {/* Last Refreshed Indicator */}
+          {(() => {
+            const refreshColor = getLastRefreshedColor(product.lastRefreshed);
+            const colorMap = {
+              green: colors.success,
+              yellow: colors.warning,
+              red: colors.error,
+              gray: colors.muted,
+            };
+            return (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  marginTop: 12,
+                  paddingTop: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: colors.border,
+                }}
+              >
+                <IconSymbol
+                  name="arrow.clockwise"
+                  size={14}
+                  color={colorMap[refreshColor]}
+                />
+                <Text
+                  style={{
+                    color: colorMap[refreshColor],
+                    fontSize: 12,
+                    fontWeight: "500",
+                  }}
+                >
+                  Last refreshed:{" "}
+                  {formatLastRefreshed(product.lastRefreshed)}
+                </Text>
+              </View>
+            );
+          })()}
           {/* Currency Converter Widget — shows best in-stock price in user's preferred currency */}
           {(() => {
             if (displayCurrency === "USD") return null;
             const best = getBestPrice(listings, displayCurrency);
             if (!best) return null;
             return (
-              <View style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                marginTop: 10,
-                paddingTop: 10,
-                borderTopWidth: 1,
-                borderTopColor: colors.border,
-              }}>
-                <IconSymbol name="arrow.left.arrow.right" size={14} color={colors.muted} />
-                <Text style={{ color: colors.muted, fontSize: 12 }}>Best in-stock price in</Text>
-                <View style={{ backgroundColor: colors.primary + "22", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}>
-                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>{displayCurrency}</Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  marginTop: 10,
+                  paddingTop: 10,
+                  borderTopWidth: 1,
+                  borderTopColor: colors.border,
+                }}
+              >
+                <IconSymbol
+                  name="arrow.left.arrow.right"
+                  size={14}
+                  color={colors.muted}
+                />
+                <Text style={{ color: colors.muted, fontSize: 12 }}>
+                  Best in-stock price in
+                </Text>
+                <View
+                  style={{
+                    backgroundColor: colors.primary + "22",
+                    borderRadius: 8,
+                    paddingHorizontal: 7,
+                    paddingVertical: 2,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.primary,
+                      fontSize: 12,
+                      fontWeight: "700",
+                    }}
+                  >
+                    {displayCurrency}
+                  </Text>
                 </View>
-                <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14, marginLeft: "auto" }}>
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontWeight: "700",
+                    fontSize: 14,
+                    marginLeft: "auto",
+                  }}
+                >
                   {formatPrice(best.price, displayCurrency)}
                 </Text>
               </View>
@@ -761,26 +988,68 @@ export default function ProductDetailScreen() {
         </View>
 
         {/* Action Buttons */}
-        <View style={{ flexDirection: "row", marginHorizontal: 16, gap: 10, marginBottom: 20 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            marginHorizontal: 16,
+            gap: 10,
+            marginBottom: 20,
+          }}
+        >
           <TouchableOpacity
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setAlertModalVisible(true);
             }}
-            style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 13, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+            style={{
+              flex: 1,
+              backgroundColor: colors.primary,
+              borderRadius: 14,
+              paddingVertical: 13,
+              alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 6,
+            }}
           >
             <IconSymbol name="bell.fill" size={16} color="#fff" />
-            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>Set Price Alert</Text>
+            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
+              Set Price Alert
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               loadData();
             }}
-            style={{ backgroundColor: colors.surface, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 16, alignItems: "center", borderWidth: 1, borderColor: colors.border, flexDirection: "row", gap: 6 }}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 14,
+              paddingVertical: 13,
+              paddingHorizontal: 16,
+              alignItems: "center",
+              borderWidth: 1,
+              borderColor: colors.border,
+              flexDirection: "row",
+              gap: 6,
+            }}
           >
-            <IconSymbol name="arrow.clockwise" size={16} color={colors.foreground} />
-            <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 15 }}>Refresh</Text>
+            <IconSymbol
+              name="arrow.clockwise"
+              size={16}
+              color={colors.foreground}
+            />
+            <Text
+              style={{
+                color: colors.foreground,
+                fontWeight: "600",
+                fontSize: 15,
+              }}
+            >
+              Refresh
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -790,43 +1059,150 @@ export default function ProductDetailScreen() {
           <View style={{ flexDirection: "row", marginBottom: 16, gap: 10 }}>
             <TouchableOpacity
               onPress={handleShare}
-              style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 14, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border, flexDirection: "row", justifyContent: "center", gap: 6 }}
+              style={{
+                flex: 1,
+                backgroundColor: colors.surface,
+                borderRadius: 14,
+                paddingVertical: 12,
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: colors.border,
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 6,
+              }}
             >
-              <IconSymbol name="square.and.arrow.up" size={16} color={colors.foreground} />
-              <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }}>Share</Text>
+              <IconSymbol
+                name="square.and.arrow.up"
+                size={16}
+                color={colors.foreground}
+              />
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontWeight: "600",
+                  fontSize: 14,
+                }}
+              >
+                Share
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleTestStockNotification}
-              style={{ flex: 1, backgroundColor: colors.success + "18", borderRadius: 14, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.success + "44", flexDirection: "row", justifyContent: "center", gap: 6 }}
+              style={{
+                flex: 1,
+                backgroundColor: colors.success + "18",
+                borderRadius: 14,
+                paddingVertical: 12,
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: colors.success + "44",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 6,
+              }}
             >
-              <IconSymbol name="bell.badge.fill" size={16} color={colors.success} />
-              <Text style={{ color: colors.success, fontWeight: "600", fontSize: 14 }}>Test Stock Alert</Text>
+              <IconSymbol
+                name="bell.badge.fill"
+                size={16}
+                color={colors.success}
+              />
+              <Text
+                style={{
+                  color: colors.success,
+                  fontWeight: "600",
+                  fontSize: 14,
+                }}
+              >
+                Test Stock Alert
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleCopyLink}
-              style={{ backgroundColor: colors.surface, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, alignItems: "center", borderWidth: 1, borderColor: colors.border, flexDirection: "row", justifyContent: "center", gap: 6 }}
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 14,
+                paddingVertical: 12,
+                paddingHorizontal: 14,
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: colors.border,
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 6,
+              }}
             >
-              <IconSymbol name="doc.on.doc" size={16} color={colors.foreground} />
-              <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }}>Copy Link</Text>
+              <IconSymbol
+                name="doc.on.doc"
+                size={16}
+                color={colors.foreground}
+              />
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontWeight: "600",
+                  fontSize: 14,
+                }}
+              >
+                Copy Link
+              </Text>
             </TouchableOpacity>
           </View>
           {/* Compare button */}
           <TouchableOpacity
             onPress={() => {
-              if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push(`/compare/${id}` as any);
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push(`/compare/${id}`);
             }}
-            style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: colors.primary + "12", borderRadius: 14, paddingVertical: 12, borderWidth: 1, borderColor: colors.primary + "44", marginBottom: 16 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              backgroundColor: colors.primary + "12",
+              borderRadius: 14,
+              paddingVertical: 12,
+              borderWidth: 1,
+              borderColor: colors.primary + "44",
+              marginBottom: 16,
+            }}
           >
-            <IconSymbol name="arrow.left.arrow.right" size={16} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}>Compare Distributors</Text>
+            <IconSymbol
+              name="arrow.left.arrow.right"
+              size={16}
+              color={colors.primary}
+            />
+            <Text
+              style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}
+            >
+              Compare Distributors
+            </Text>
           </TouchableOpacity>
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16, marginBottom: 12 }}>
+          <Text
+            style={{
+              color: colors.foreground,
+              fontWeight: "700",
+              fontSize: 16,
+              marginBottom: 12,
+            }}
+          >
             Distributor Prices
           </Text>
           {sortedListings.length === 0 ? (
-            <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 24, alignItems: "center", borderWidth: 1, borderColor: colors.border }}>
-              <Text style={{ color: colors.muted, fontSize: 14 }}>No distributor data available yet.</Text>
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 16,
+                padding: 24,
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <Text style={{ color: colors.muted, fontSize: 14 }}>
+                No distributor data available yet.
+              </Text>
             </View>
           ) : (
             <>
@@ -836,8 +1212,10 @@ export default function ProductDetailScreen() {
                   product={product}
                   onSetAlert={async () => {
                     if (!product) return;
-                    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    const suggestedPrice = Math.round(bestInStockListing.price * 0.95 * 100) / 100;
+                    if (Platform.OS !== "web")
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    const suggestedPrice =
+                      Math.round(bestInStockListing.price * 0.95 * 100) / 100;
                     const newAlert: PriceAlert = {
                       id: `alert-${Date.now()}`,
                       productId: bestInStockListing.productId,
@@ -848,137 +1226,334 @@ export default function ProductDetailScreen() {
                     };
                     await addAlert(newAlert);
                     await requestNotificationPermissions();
-                    await schedulePriceAlert(product.name, suggestedPrice, bestInStockListing.currency);
-                    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                    Alert.alert("Alert Set ✅", `You'll be notified when the price drops below ${formatPrice(suggestedPrice, bestInStockListing.currency)} (5% off current).`);
+                    await schedulePriceAlert(
+                      product.name,
+                      suggestedPrice,
+                      bestInStockListing.currency,
+                    );
+                    if (Platform.OS !== "web")
+                      Haptics.notificationAsync(
+                        Haptics.NotificationFeedbackType.Success,
+                      );
+                    Alert.alert(
+                      "Alert Set ✅",
+                      `You'll be notified when the price drops below ${formatPrice(suggestedPrice, bestInStockListing.currency)} (5% off current).`,
+                    );
                   }}
                 />
               )}
               {bestInStockListing && (
-                <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600", marginBottom: 10, marginTop: 4, letterSpacing: 0.5 }}>
+                <Text
+                  style={{
+                    color: colors.muted,
+                    fontSize: 12,
+                    fontWeight: "600",
+                    marginBottom: 10,
+                    marginTop: 4,
+                    letterSpacing: 0.5,
+                  }}
+                >
                   ALL DISTRIBUTORS
                 </Text>
               )}
               {sortedListings.map((listing) => {
-              const distributor = getDistributorById(listing.distributorId);
-              const usdPrice = convertPrice(listing.price, listing.currency, "USD");
-              return (
-                <View key={listing.distributorId} style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: colors.border }}>
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 15 }}>
-                        {distributor?.countryFlag} {distributor?.name ?? listing.distributorId}
-                      </Text>
-                      <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
-                        {distributor?.country} · {distributor?.region}
-                      </Text>
+                const distributor = getDistributorById(listing.distributorId);
+                const usdPrice = convertPrice(
+                  listing.price,
+                  listing.currency,
+                  "USD",
+                );
+                return (
+                  <View
+                    key={listing.distributorId}
+                    style={{
+                      backgroundColor: colors.surface,
+                      borderRadius: 16,
+                      padding: 16,
+                      marginBottom: 10,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={{
+                            color: colors.foreground,
+                            fontWeight: "600",
+                            fontSize: 15,
+                          }}
+                        >
+                          {distributor?.countryFlag}{" "}
+                          {distributor?.name ?? listing.distributorId}
+                        </Text>
+                        <Text
+                          style={{
+                            color: colors.muted,
+                            fontSize: 12,
+                            marginTop: 2,
+                          }}
+                        >
+                          {distributor?.country} · {distributor?.region}
+                        </Text>
+                      </View>
+                      <StockBadge
+                        status={listing.stockStatus}
+                        expectedDate={listing.expectedDate}
+                      />
                     </View>
-                    <StockBadge status={listing.stockStatus} expectedDate={listing.expectedDate} />
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <View>
+                        <Text
+                          style={{
+                            color: colors.primary,
+                            fontWeight: "700",
+                            fontSize: 18,
+                          }}
+                        >
+                          {formatPrice(listing.price, listing.currency)}
+                        </Text>
+                        {listing.currency !== "USD" && (
+                          <Text style={{ color: colors.muted, fontSize: 12 }}>
+                            ≈ {formatPrice(usdPrice, "USD")}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={{ alignItems: "flex-end", gap: 4 }}>
+                        {listing.priceHistory &&
+                          listing.priceHistory.length >= 2 && (
+                            <TouchableOpacity
+                              onPress={() => {
+                                if (Platform.OS !== "web")
+                                  Haptics.impactAsync(
+                                    Haptics.ImpactFeedbackStyle.Light,
+                                  );
+                                setChartListing(listing);
+                              }}
+                              activeOpacity={0.7}
+                            >
+                              <PriceSparkline
+                                data={listing.priceHistory}
+                                width={72}
+                                height={28}
+                                currency={listing.currency}
+                              />
+                            </TouchableOpacity>
+                          )}
+                        <TouchableOpacity
+                          onPress={() => {
+                            if (Platform.OS !== "web")
+                              Haptics.impactAsync(
+                                Haptics.ImpactFeedbackStyle.Light,
+                              );
+                            openListingUrl(listing.url);
+                          }}
+                          style={{
+                            backgroundColor: colors.primary + "22",
+                            borderRadius: 20,
+                            paddingHorizontal: 14,
+                            paddingVertical: 8,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: colors.primary,
+                              fontWeight: "600",
+                              fontSize: 13,
+                            }}
+                          >
+                            Visit
+                          </Text>
+                          <IconSymbol
+                            name="arrow.up.right.square"
+                            size={14}
+                            color={colors.primary}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    {distributor?.paymentMethods && (
+                      <Text
+                        style={{
+                          color: colors.muted,
+                          fontSize: 11,
+                          marginTop: 8,
+                        }}
+                      >
+                        💳 {distributor.paymentMethods.join(" · ")}
+                      </Text>
+                    )}
+                    {(() => {
+                      const refreshColor = getLastRefreshedColor(
+                        listing.lastChecked,
+                      );
+                      const colorMap = {
+                        green: colors.success,
+                        yellow: colors.warning,
+                        red: colors.error,
+                        gray: colors.muted,
+                      };
+                      return (
+                        <Text
+                          style={{
+                            color: colorMap[refreshColor],
+                            fontSize: 11,
+                            marginTop: distributor?.paymentMethods ? 2 : 8,
+                          }}
+                        >
+                          🕐 Updated{" "}
+                          {formatLastRefreshed(listing.lastChecked)}
+                        </Text>
+                      );
+                    })()}
+                    {/* Watch for Restock button on back-order cards */}
+                    {listing.stockStatus === "back_order" && (
+                      <TouchableOpacity
+                        onPress={() => handleToggleStockWatch(listing)}
+                        style={{
+                          marginTop: 10,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          backgroundColor: stockWatches[listing.distributorId]
+                            ? colors.warning + "22"
+                            : colors.surface,
+                          borderRadius: 12,
+                          paddingVertical: 9,
+                          borderWidth: 1,
+                          borderColor: stockWatches[listing.distributorId]
+                            ? colors.warning + "88"
+                            : colors.border,
+                        }}
+                      >
+                        <IconSymbol
+                          name={
+                            stockWatches[listing.distributorId]
+                              ? "eye.fill"
+                              : "eye.slash.fill"
+                          }
+                          size={15}
+                          color={
+                            stockWatches[listing.distributorId]
+                              ? colors.warning
+                              : colors.muted
+                          }
+                        />
+                        <Text
+                          style={{
+                            color: stockWatches[listing.distributorId]
+                              ? colors.warning
+                              : colors.muted,
+                            fontSize: 13,
+                            fontWeight: "600",
+                          }}
+                        >
+                          {stockWatches[listing.distributorId]
+                            ? "Watching for Restock"
+                            : "Watch for Restock"}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                    <View>
-                      <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 18 }}>
-                        {formatPrice(listing.price, listing.currency)}
-                      </Text>
-                      {listing.currency !== "USD" && (
-                        <Text style={{ color: colors.muted, fontSize: 12 }}>≈ {formatPrice(usdPrice, "USD")}</Text>
-                      )}
-                    </View>
-                    <View style={{ alignItems: "flex-end", gap: 4 }}>
-                      {listing.priceHistory && listing.priceHistory.length >= 2 && (
-                       <TouchableOpacity
-                         onPress={() => {
-                           if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                           setChartListing(listing);
-                         }}
-                         activeOpacity={0.7}
-                       >
-                         <PriceSparkline data={listing.priceHistory} width={72} height={28} currency={listing.currency} />
-                       </TouchableOpacity>
-                     )}
-                     <TouchableOpacity
-                     onPress={() => {
-                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                       Linking.openURL(listing.url);
-                     }}
-                     style={{ backgroundColor: colors.primary + "22", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 4 }}
-                   >
-                     <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>Visit</Text>
-                     <IconSymbol name="arrow.up.right.square" size={14} color={colors.primary} />
-                   </TouchableOpacity>
-                   </View>
-                 </View>
-                 {distributor?.paymentMethods && (
-                   <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8 }}>
-                     💳 {distributor.paymentMethods.join(" · ")}
-                   </Text>
-                 )}
-                 <Text style={{ color: colors.muted, fontSize: 11, marginTop: distributor?.paymentMethods ? 2 : 8, opacity: 0.7 }}>
-                  🕐 Updated {formatLastChecked(listing.lastChecked)}
-                </Text>
-                 {/* Watch for Restock button on back-order cards */}
-                 {listing.stockStatus === "back_order" && (
-                   <TouchableOpacity
-                     onPress={() => handleToggleStockWatch(listing)}
-                     style={{
-                       marginTop: 10,
-                       flexDirection: "row",
-                       alignItems: "center",
-                       justifyContent: "center",
-                       gap: 6,
-                       backgroundColor: stockWatches[listing.distributorId]
-                         ? colors.warning + "22"
-                         : colors.surface,
-                       borderRadius: 12,
-                       paddingVertical: 9,
-                       borderWidth: 1,
-                       borderColor: stockWatches[listing.distributorId]
-                         ? colors.warning + "88"
-                         : colors.border,
-                     }}
-                   >
-                     <IconSymbol
-                       name={stockWatches[listing.distributorId] ? "eye.fill" : "eye.slash.fill"}
-                       size={15}
-                       color={stockWatches[listing.distributorId] ? colors.warning : colors.muted}
-                     />
-                     <Text style={{
-                       color: stockWatches[listing.distributorId] ? colors.warning : colors.muted,
-                       fontSize: 13,
-                       fontWeight: "600",
-                     }}>
-                       {stockWatches[listing.distributorId] ? "Watching for Restock" : "Watch for Restock"}
-                     </Text>
-                   </TouchableOpacity>
-                 )}
-              </View>
-            );
-          })}
+                );
+              })}
             </>
           )}
         </View>
       </ScrollView>
 
       {/* Reminder Date Picker Modal */}
-      <Modal visible={!!reminderListing} transparent animationType="slide" onRequestClose={() => setReminderListing(null)}>
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
-            <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700", marginBottom: 4 }}>Set Reminder 📅</Text>
-            <Text style={{ color: colors.muted, fontSize: 14, marginBottom: 20 }}>
+      <Modal
+        visible={!!reminderListing}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReminderListing(null)}
+      >
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "flex-end",
+            backgroundColor: "rgba(0,0,0,0.5)",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.background,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 24,
+            }}
+          >
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 20,
+                fontWeight: "700",
+                marginBottom: 4,
+              }}
+            >
+              Set Reminder 📅
+            </Text>
+            <Text
+              style={{ color: colors.muted, fontSize: 14, marginBottom: 20 }}
+            >
               Pick a date to be reminded to check{" "}
               <Text style={{ fontWeight: "600", color: colors.foreground }}>
-                {reminderListing ? (getDistributorById(reminderListing.distributorId)?.name ?? reminderListing.distributorId) : ""}
-              </Text>
-              {" "}for {product?.name}.
+                {reminderListing
+                  ? (getDistributorById(reminderListing.distributorId)?.name ??
+                    reminderListing.distributorId)
+                  : ""}
+              </Text>{" "}
+              for {product?.name}.
             </Text>
             <TouchableOpacity
               onPress={() => setShowDatePicker(true)}
-              style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: colors.border,
+                padding: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 20,
+              }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+              >
                 <IconSymbol name="calendar" size={20} color={colors.primary} />
-                <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: "600" }}>
-                  {reminderDate.toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" })}
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontSize: 17,
+                    fontWeight: "600",
+                  }}
+                >
+                  {reminderDate.toLocaleDateString(undefined, {
+                    weekday: "short",
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
                 </Text>
               </View>
               <IconSymbol name="chevron.right" size={16} color={colors.muted} />
@@ -997,16 +1572,37 @@ export default function ProductDetailScreen() {
             )}
             <View style={{ flexDirection: "row", gap: 10 }}>
               <TouchableOpacity
-                onPress={() => { setReminderListing(null); setShowDatePicker(false); }}
-                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 14, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+                onPress={() => {
+                  setReminderListing(null);
+                  setShowDatePicker(false);
+                }}
+                style={{
+                  flex: 1,
+                  backgroundColor: colors.surface,
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
               >
-                <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
+                <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSetReminder}
-                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 14, alignItems: "center" }}
+                style={{
+                  flex: 1,
+                  backgroundColor: colors.primary,
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                }}
               >
-                <Text style={{ color: "#fff", fontWeight: "600" }}>Set Reminder</Text>
+                <Text style={{ color: "#fff", fontWeight: "600" }}>
+                  Set Reminder
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1014,21 +1610,70 @@ export default function ProductDetailScreen() {
       </Modal>
 
       {/* Price History Chart Modal */}
-      <Modal visible={!!chartListing} transparent animationType="slide" onRequestClose={() => setChartListing(null)}>
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.55)" }}>
-          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-              <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "700" }}>Price History 📈</Text>
-              <TouchableOpacity onPress={() => setChartListing(null)} style={{ padding: 4 }}>
-                <IconSymbol name="xmark.circle.fill" size={24} color={colors.muted} />
+      <Modal
+        visible={!!chartListing}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setChartListing(null)}
+      >
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "flex-end",
+            backgroundColor: "rgba(0,0,0,0.55)",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.background,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 24,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 4,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontSize: 18,
+                  fontWeight: "700",
+                }}
+              >
+                Price History 📈
+              </Text>
+              <TouchableOpacity
+                onPress={() => setChartListing(null)}
+                style={{ padding: 4 }}
+              >
+                <IconSymbol
+                  name="xmark.circle.fill"
+                  size={24}
+                  color={colors.muted}
+                />
               </TouchableOpacity>
             </View>
             {chartListing && (
               <>
-                <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 16 }}>
-                  {getDistributorById(chartListing.distributorId)?.name ?? chartListing.distributorId} · {chartListing.currency}
+                <Text
+                  style={{
+                    color: colors.muted,
+                    fontSize: 13,
+                    marginBottom: 16,
+                  }}
+                >
+                  {getDistributorById(chartListing.distributorId)?.name ??
+                    chartListing.distributorId}{" "}
+                  · {chartListing.currency}
                 </Text>
-                {chartListing.priceHistory && chartListing.priceHistory.length >= 2 ? (
+                {chartListing.priceHistory &&
+                chartListing.priceHistory.length >= 2 ? (
                   <PriceHistoryChart
                     data={chartListing.priceHistory}
                     currency={chartListing.currency}
@@ -1036,32 +1681,81 @@ export default function ProductDetailScreen() {
                     height={chartHeight}
                   />
                 ) : (
-                  <View style={{ height: 120, alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ color: colors.muted, fontSize: 14 }}>Not enough data to display chart.</Text>
+                  <View
+                    style={{
+                      height: 120,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ color: colors.muted, fontSize: 14 }}>
+                      Not enough data to display chart.
+                    </Text>
                   </View>
                 )}
-                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 16 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    marginTop: 16,
+                  }}
+                >
                   <View>
-                    <Text style={{ color: colors.muted, fontSize: 11 }}>Current Price</Text>
-                    <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 16 }}>
+                    <Text style={{ color: colors.muted, fontSize: 11 }}>
+                      Current Price
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.primary,
+                        fontWeight: "700",
+                        fontSize: 16,
+                      }}
+                    >
                       {formatPrice(chartListing.price, chartListing.currency)}
                     </Text>
                   </View>
-                  {chartListing.priceHistory && chartListing.priceHistory.length >= 2 && (() => {
-                    const sorted = [...chartListing.priceHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-                    const oldest = sorted[0].price;
-                    const current = sorted[sorted.length - 1].price;
-                    const pct = Math.abs(Math.round(((current - oldest) / oldest) * 100));
-                    const dir = current < oldest ? "down" : current > oldest ? "up" : "flat";
-                    return (
-                      <View style={{ alignItems: "flex-end" }}>
-                        <Text style={{ color: colors.muted, fontSize: 11 }}>vs. oldest recorded</Text>
-                        <Text style={{ color: dir === "down" ? colors.success : dir === "up" ? colors.error : colors.muted, fontWeight: "700", fontSize: 16 }}>
-                          {dir === "down" ? "▼" : dir === "up" ? "▲" : "—"} {pct}%
-                        </Text>
-                      </View>
-                    );
-                  })()}
+                  {chartListing.priceHistory &&
+                    chartListing.priceHistory.length >= 2 &&
+                    (() => {
+                      const sorted = [...chartListing.priceHistory].sort(
+                        (a, b) =>
+                          new Date(a.date).getTime() -
+                          new Date(b.date).getTime(),
+                      );
+                      const oldest = sorted[0].price;
+                      const current = sorted[sorted.length - 1].price;
+                      const pct = Math.abs(
+                        Math.round(((current - oldest) / oldest) * 100),
+                      );
+                      const dir =
+                        current < oldest
+                          ? "down"
+                          : current > oldest
+                            ? "up"
+                            : "flat";
+                      return (
+                        <View style={{ alignItems: "flex-end" }}>
+                          <Text style={{ color: colors.muted, fontSize: 11 }}>
+                            vs. oldest recorded
+                          </Text>
+                          <Text
+                            style={{
+                              color:
+                                dir === "down"
+                                  ? colors.success
+                                  : dir === "up"
+                                    ? colors.error
+                                    : colors.muted,
+                              fontWeight: "700",
+                              fontSize: 16,
+                            }}
+                          >
+                            {dir === "down" ? "▼" : dir === "up" ? "▲" : "—"}{" "}
+                            {pct}%
+                          </Text>
+                        </View>
+                      );
+                    })()}
                 </View>
               </>
             )}
@@ -1071,20 +1765,67 @@ export default function ProductDetailScreen() {
 
       {/* Price Alert Modal */}
       <Modal visible={alertModalVisible} transparent animationType="slide">
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
-            <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700", marginBottom: 6 }}>Set Price Alert</Text>
-            <Text style={{ color: colors.muted, fontSize: 14, marginBottom: 20 }}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "flex-end",
+            backgroundColor: "rgba(0,0,0,0.5)",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.background,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 24,
+            }}
+          >
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 20,
+                fontWeight: "700",
+                marginBottom: 6,
+              }}
+            >
+              Set Price Alert
+            </Text>
+            <Text
+              style={{ color: colors.muted, fontSize: 14, marginBottom: 20 }}
+            >
               Get notified when {product.name} drops below your target price.
             </Text>
-            <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
-              {["USD", "EUR", "GBP", "THB"].map((c) => (
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 10,
+                marginBottom: 16,
+              }}
+            >
+              {Object.keys(EXCHANGE_RATES).map((c) => (
                 <TouchableOpacity
                   key={c}
                   onPress={() => setAlertCurrency(c)}
-                  style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: alertCurrency === c ? colors.primary : colors.surface, borderWidth: 1, borderColor: alertCurrency === c ? colors.primary : colors.border }}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor:
+                      alertCurrency === c ? colors.primary : colors.surface,
+                    borderWidth: 1,
+                    borderColor:
+                      alertCurrency === c ? colors.primary : colors.border,
+                  }}
                 >
-                  <Text style={{ color: alertCurrency === c ? "#fff" : colors.foreground, fontWeight: "600" }}>{c}</Text>
+                  <Text
+                    style={{
+                      color: alertCurrency === c ? "#fff" : colors.foreground,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {c}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -1094,20 +1835,47 @@ export default function ProductDetailScreen() {
               placeholder={`Target price in ${alertCurrency}`}
               placeholderTextColor={colors.muted}
               keyboardType="decimal-pad"
-              style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 14, color: colors.foreground, fontSize: 18, marginBottom: 16 }}
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: colors.border,
+                padding: 14,
+                color: colors.foreground,
+                fontSize: 18,
+                marginBottom: 16,
+              }}
             />
             <View style={{ flexDirection: "row", gap: 10 }}>
               <TouchableOpacity
                 onPress={() => setAlertModalVisible(false)}
-                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 14, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+                style={{
+                  flex: 1,
+                  backgroundColor: colors.surface,
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
               >
-                <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
+                <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSetAlert}
-                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 14, alignItems: "center" }}
+                style={{
+                  flex: 1,
+                  backgroundColor: colors.primary,
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                }}
               >
-                <Text style={{ color: "#fff", fontWeight: "600" }}>Set Alert</Text>
+                <Text style={{ color: "#fff", fontWeight: "600" }}>
+                  Set Alert
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1116,20 +1884,33 @@ export default function ProductDetailScreen() {
     </ScreenContainer>
   );
 }
-import Svg, { Polyline, Circle, Line, Text as SvgText, Rect } from "react-native-svg";
-import { PricePoint } from "@/lib/types";
 
 // ─── Full-Screen Price History Chart ─────────────────────────────────────────
-function PriceHistoryChart({ data, currency, width, height }: { data: PricePoint[]; currency: string; width: number; height: number }) {
+function PriceHistoryChart({
+  data,
+  currency,
+  width,
+  height,
+}: {
+  data: PricePoint[];
+  currency: string;
+  width: number;
+  height: number;
+}) {
   const colors = useColors();
   const points = useMemo(() => {
     if (!data || data.length < 2) return null;
-    const sorted = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const sorted = [...data].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
     const prices = sorted.map((p) => p.price);
     const minP = Math.min(...prices);
     const maxP = Math.max(...prices);
     const range = maxP - minP || 1;
-    const padL = 52, padR = 16, padT = 24, padB = 44;
+    const padL = 52,
+      padR = 16,
+      padT = 24,
+      padB = 44;
     const usableW = width - padL - padR;
     const usableH = height - padT - padB;
     const coords = sorted.map((p, i) => {
@@ -1138,13 +1919,24 @@ function PriceHistoryChart({ data, currency, width, height }: { data: PricePoint
       return { x, y, price: p.price, date: p.date };
     });
     const polylineStr = coords.map((c) => `${c.x},${c.y}`).join(" ");
-    const trend = coords[coords.length - 1].price >= coords[0].price ? "up" : "down";
-    return { coords, polylineStr, trend, minP, maxP, padL, padT, padB, usableH };
+    const trend =
+      coords[coords.length - 1].price >= coords[0].price ? "up" : "down";
+    return {
+      coords,
+      polylineStr,
+      trend,
+      minP,
+      maxP,
+      padL,
+      padT,
+      padB,
+      usableH,
+    };
   }, [data, width, height]);
 
   if (!points) return null;
 
-  const lineColor = points.trend === "up" ? colors.success : colors.error;
+  const lineColor = points.trend === "down" ? colors.success : colors.error;
   const { coords, polylineStr, minP, maxP, padL, padT, padB, usableH } = points;
   const midP = (minP + maxP) / 2;
   const midY = padT + usableH / 2;
@@ -1154,31 +1946,117 @@ function PriceHistoryChart({ data, currency, width, height }: { data: PricePoint
   return (
     <Svg width={width} height={height}>
       {[maxY, midY, minY].map((y, i) => (
-        <Line key={i} x1={padL} y1={y} x2={width - 16} y2={y} stroke={colors.border} strokeWidth={0.5} strokeDasharray="4,4" />
+        <Line
+          key={i}
+          x1={padL}
+          y1={y}
+          x2={width - 16}
+          y2={y}
+          stroke={colors.border}
+          strokeWidth={0.5}
+          strokeDasharray="4,4"
+        />
       ))}
-      <SvgText x={padL - 6} y={maxY + 4} fontSize={10} fill={colors.muted} textAnchor="end">{maxP.toFixed(0)}</SvgText>
-      <SvgText x={padL - 6} y={midY + 4} fontSize={10} fill={colors.muted} textAnchor="end">{midP.toFixed(0)}</SvgText>
-      <SvgText x={padL - 6} y={minY + 4} fontSize={10} fill={colors.muted} textAnchor="end">{minP.toFixed(0)}</SvgText>
-      <Polyline points={polylineStr} fill="none" stroke={lineColor} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      <SvgText
+        x={padL - 6}
+        y={maxY + 4}
+        fontSize={10}
+        fill={colors.muted}
+        textAnchor="end"
+      >
+        {maxP.toFixed(0)}
+      </SvgText>
+      <SvgText
+        x={padL - 6}
+        y={midY + 4}
+        fontSize={10}
+        fill={colors.muted}
+        textAnchor="end"
+      >
+        {midP.toFixed(0)}
+      </SvgText>
+      <SvgText
+        x={padL - 6}
+        y={minY + 4}
+        fontSize={10}
+        fill={colors.muted}
+        textAnchor="end"
+      >
+        {minP.toFixed(0)}
+      </SvgText>
+      <Polyline
+        points={polylineStr}
+        fill="none"
+        stroke={lineColor}
+        strokeWidth={2}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
       {coords.map((c, i) => (
         <Circle key={i} cx={c.x} cy={c.y} r={3} fill={lineColor} />
       ))}
-      {[0, Math.floor((coords.length - 1) / 2), coords.length - 1].map((idx) => {
-        const c = coords[idx];
-        const label = new Date(c.date).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-        return (
-          <SvgText key={idx} x={c.x} y={height - padB + 16} fontSize={10} fill={colors.muted} textAnchor="middle">{label}</SvgText>
-        );
-      })}
+      {[0, Math.floor((coords.length - 1) / 2), coords.length - 1].map(
+        (idx) => {
+          const c = coords[idx];
+          const label = new Date(c.date).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+          });
+          return (
+            <SvgText
+              key={idx}
+              x={c.x}
+              y={height - padB + 16}
+              fontSize={10}
+              fill={colors.muted}
+              textAnchor="middle"
+            >
+              {label}
+            </SvgText>
+          );
+        },
+      )}
       {(() => {
-        const minCoord = coords.reduce((a, b) => b.price < a.price ? b : a);
-        const maxCoord = coords.reduce((a, b) => b.price > a.price ? b : a);
+        const minCoord = coords.reduce((a, b) => (b.price < a.price ? b : a));
+        const maxCoord = coords.reduce((a, b) => (b.price > a.price ? b : a));
         return (
           <>
-            <Rect x={minCoord.x - 22} y={minCoord.y - 16} width={44} height={14} rx={4} fill={colors.error + "33"} />
-            <SvgText x={minCoord.x} y={minCoord.y - 5} fontSize={9} fill={colors.error} textAnchor="middle" fontWeight="700">LOW {minP.toFixed(0)}</SvgText>
-            <Rect x={maxCoord.x - 24} y={maxCoord.y + 4} width={48} height={14} rx={4} fill={colors.success + "33"} />
-            <SvgText x={maxCoord.x} y={maxCoord.y + 14} fontSize={9} fill={colors.success} textAnchor="middle" fontWeight="700">HIGH {maxP.toFixed(0)}</SvgText>
+            <Rect
+              x={minCoord.x - 22}
+              y={minCoord.y - 16}
+              width={44}
+              height={14}
+              rx={4}
+              fill={colors.error + "33"}
+            />
+            <SvgText
+              x={minCoord.x}
+              y={minCoord.y - 5}
+              fontSize={9}
+              fill={colors.error}
+              textAnchor="middle"
+              fontWeight="700"
+            >
+              LOW {minP.toFixed(0)}
+            </SvgText>
+            <Rect
+              x={maxCoord.x - 24}
+              y={maxCoord.y + 4}
+              width={48}
+              height={14}
+              rx={4}
+              fill={colors.success + "33"}
+            />
+            <SvgText
+              x={maxCoord.x}
+              y={maxCoord.y + 14}
+              fontSize={9}
+              fill={colors.success}
+              textAnchor="middle"
+              fontWeight="700"
+            >
+              HIGH {maxP.toFixed(0)}
+            </SvgText>
           </>
         );
       })()}
