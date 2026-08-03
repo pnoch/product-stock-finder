@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { storage } from "../storage";
+import { onListingUpdated } from "../background";
 import type { Product, PriceAlert, AppSettings } from "../../../lib/types";
 
 export function useWatchlist() {
@@ -14,6 +15,11 @@ export function useWatchlist() {
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  useEffect(() => {
+    const unlisten = onListingUpdated(() => { refresh(); });
+    return () => { unlisten.then((fn) => fn()); };
+  }, [refresh]);
 
   return { products, loading, refresh };
 }

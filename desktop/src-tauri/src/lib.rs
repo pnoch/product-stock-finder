@@ -3,6 +3,7 @@ mod scrapers;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use tauri::Emitter;
 use tauri::Manager;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -343,8 +344,13 @@ struct WatchedProduct {
 #[tauri::command]
 async fn check_all_prices(products: Vec<WatchedProduct>) -> Result<Vec<scrapers::ScrapeJobResult>, String> {
     let mut results = Vec::new();
+    let mut first = true;
     for product in products {
         for distributor_id in product.distributor_ids {
+            if !first {
+                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+            }
+            first = false;
             let start = std::time::Instant::now();
             let scrape_result = match distributor_id.as_str() {
                 "server2u" | "server2u-my" => scrapers::server2u::scrape(&product.model_number).await,
@@ -438,11 +444,21 @@ async fn run_full_price_check(app: tauri::AppHandle) -> Result<String, String> {
     for job_result in &results {
         if let Some(scrape) = &job_result.result {
             update_listing_price(&data_dir, &job_result.product_id, &job_result.distributor_id, scrape)?;
+            let _ = app.emit("listing-updated", serde_json::json!({
+                "productId": job_result.product_id,
+                "distributorId": job_result.distributor_id,
+                "price": scrape.price,
+                "currency": scrape.currency,
+                "stockStatus": scrape.stock_status,
+                "expectedDate": scrape.expected_date,
+                "lastChecked": current_iso_timestamp(),
+            }));
         }
     }
 
     let triggered = check_price_drops(app.clone())?;
     let _ = update_tray_badge(app.clone());
+    let _ = app.emit("prices-checked", &results);
 
     Ok(format!(
         "Full check: {} scrapes, {}",

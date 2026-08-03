@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 export async function startPricePoller(
   intervalMinutes: number = 15,
@@ -24,4 +25,28 @@ export async function stopPricePoller(): Promise<void> {
   } catch (e) {
     console.error("Failed to stop price poller:", e);
   }
+}
+
+export function onListingUpdated(
+  callback: (listing: {
+    productId: string;
+    distributorId: string;
+    price: number;
+    currency: string;
+    stockStatus: string;
+    expectedDate?: string;
+    lastChecked: string;
+  }) => void,
+): Promise<UnlistenFn> {
+  return listen("listing-updated", (event) => {
+    callback(event.payload as any);
+  });
+}
+
+export function onPricesChecked(
+  callback: (results: any[]) => void,
+): Promise<UnlistenFn> {
+  return listen("prices-checked", (event) => {
+    callback(event.payload as any);
+  });
 }
