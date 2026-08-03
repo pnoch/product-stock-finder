@@ -16,7 +16,7 @@ fn send_notification(
         .body(&body);
 
     if sound {
-        notification = notification.sound(Some("default"));
+        notification = notification.sound("default".to_string());
     }
 
     notification.show().map_err(|e| e.to_string())
@@ -60,7 +60,7 @@ fn export_watchlist(
 
     let export = ExportData {
         version: 1,
-        exported_at: chrono_free_placeholder(),
+        exported_at: current_iso_timestamp(),
         watchlist,
         alerts,
         reminders,
@@ -131,12 +131,60 @@ fn write_json_file(
     fs::write(path, content).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn write_file(path: String, content: String) -> Result<(), String> {
+    if let Some(parent) = std::path::Path::new(&path).parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    fs::write(&path, content).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn read_file(path: String) -> Result<String, String> {
+    fs::read_to_string(&path).map_err(|e| e.to_string())
+}
+
 fn export_to_csv(_export: &ExportData) -> Result<String, String> {
     Err("CSV export not yet implemented".to_string())
 }
 
-fn chrono_free_placeholder() -> String {
-    "2026-01-01T00:00:00Z".to_string()
+fn current_iso_timestamp() -> String {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default();
+    let secs = now.as_secs();
+    let days = secs / 86400;
+    let mut year = 1970i64;
+    let mut remaining_days = days as i64;
+    loop {
+        let days_in_year = if (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 {
+            366
+        } else {
+            365
+        };
+        if remaining_days < days_in_year {
+            break;
+        }
+        remaining_days -= days_in_year;
+        year += 1;
+    }
+    let mut month = 1u32;
+    let mut remaining = remaining_days as u32;
+    let month_lengths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    for (i, &ml) in month_lengths.iter().enumerate() {
+        let dim = if i == 1 && ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0) {
+            29
+        } else {
+            ml
+        };
+        if remaining < dim {
+            break;
+        }
+        remaining -= dim;
+        month += 1;
+    }
+    let day = remaining + 1;
+    format!("{:04}-{:02}-{:02}T00:00:00Z", year, month, day)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -148,7 +196,9 @@ pub fn run() {
             send_notification,
             get_app_data_dir,
             export_watchlist,
-            import_watchlist
+            import_watchlist,
+            write_file,
+            read_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
