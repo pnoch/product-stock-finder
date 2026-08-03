@@ -1,3 +1,5 @@
+mod scrapers;
+
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -326,6 +328,42 @@ fn stop_price_poller() -> Result<String, String> {
     Ok("Price poller stopped".to_string())
 }
 
+// ─── Scrapers ───────────────────────────────────────────────────────────────
+
+#[derive(serde::Deserialize)]
+struct WatchedProduct {
+    id: String,
+    model_number: String,
+    distributor_ids: Vec<String>,
+}
+
+#[tauri::command]
+async fn check_all_prices(products: Vec<WatchedProduct>) -> Result<Vec<scrapers::ScrapeJobResult>, String> {
+    let mut results = Vec::new();
+    for product in products {
+        for distributor_id in product.distributor_ids {
+            let start = std::time::Instant::now();
+            let scrape_result = match distributor_id.as_str() {
+                "server2u" => scrapers::server2u::scrape(&product.model_number).await,
+                _ => Err(format!("No scraper for distributor: {}", distributor_id)),
+            };
+            let duration_ms = start.elapsed().as_millis() as u64;
+            let (result, error) = match scrape_result {
+                Ok(r) => (Some(r), None),
+                Err(e) => (None, Some(e)),
+            };
+            results.push(scrapers::ScrapeJobResult {
+                distributor_id,
+                product_id: product.id.clone(),
+                result,
+                error,
+                duration_ms,
+            });
+        }
+    }
+    Ok(results)
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 fn read_json_file(data_dir: &PathBuf, key: &str) -> Result<serde_json::Value, String> {
@@ -514,7 +552,8 @@ pub fn run() {
             start_price_poller,
             check_price_drops,
             stop_price_poller,
-            update_tray_badge
+            update_tray_badge,
+            check_all_prices
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
