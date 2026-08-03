@@ -1,4 +1,8 @@
-export type StockStatus = "in_stock" | "back_order" | "out_of_stock" | "unknown";
+export type StockStatus =
+  | "in_stock"
+  | "back_order"
+  | "out_of_stock"
+  | "unknown";
 
 export interface Distributor {
   id: string;
@@ -76,4 +80,6 @@ export interface AppSettings {
   notificationsEnabled: boolean;
   stockAlerts: boolean;
   priceAlerts: boolean;
+  enabledDistributors?: string[];
+  lastScrapeTime?: string;
 }
