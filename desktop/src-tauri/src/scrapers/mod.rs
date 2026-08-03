@@ -1,4 +1,28 @@
+pub mod aerial;
+pub mod bhphoto;
+pub mod balticnetworks;
+pub mod duxtel;
+pub mod flytec;
+pub mod getic;
+pub mod gowifi;
+pub mod gearup;
+pub mod hellascom;
+pub mod interprojekt;
+pub mod linitx;
+pub mod linktechs;
+pub mod miro;
+pub mod multilink;
+pub mod mbsiwav;
+pub mod mega;
+pub mod mikrotikstore;
+pub mod nasstore;
+pub mod neobits;
+pub mod networkdevices;
+pub mod pbtech;
+pub mod rocnoc;
 pub mod server2u;
+pub mod wisp;
+pub mod winncom;
 
 use serde::{Deserialize, Serialize};
 
