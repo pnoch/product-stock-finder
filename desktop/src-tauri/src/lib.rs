@@ -131,19 +131,6 @@ fn write_json_file(
     fs::write(path, content).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-fn write_file(path: String, content: String) -> Result<(), String> {
-    if let Some(parent) = std::path::Path::new(&path).parent() {
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-    fs::write(&path, content).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn read_file(path: String) -> Result<String, String> {
-    fs::read_to_string(&path).map_err(|e| e.to_string())
-}
-
 fn export_to_csv(_export: &ExportData) -> Result<String, String> {
     Err("CSV export not yet implemented".to_string())
 }
@@ -192,13 +179,12 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             send_notification,
             get_app_data_dir,
             export_watchlist,
-            import_watchlist,
-            write_file,
-            read_file
+            import_watchlist
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { save, open } from "@tauri-apps/plugin-dialog";
+import { readFile } from "@tauri-apps/plugin-fs";
 
 export async function exportWatchlistAsJson(): Promise<string> {
   const content = await invoke<string>("export_watchlist", { format: "json" });
@@ -10,7 +11,13 @@ export async function exportWatchlistAsJson(): Promise<string> {
   });
 
   if (filePath) {
-    await invoke("write_file", { path: filePath, content });
+    const blob = new Blob([content], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filePath.split(/[/\\]/).pop() ?? "export.json";
+    a.click();
+    URL.revokeObjectURL(url);
     return `Exported to ${filePath}`;
   }
   return "Export cancelled";
@@ -23,7 +30,8 @@ export async function importWatchlistFromJson(): Promise<string> {
   });
 
   if (filePath) {
-    const content = await invoke<string>("read_file", { path: filePath as string });
+    const bytes = await readFile(filePath as string);
+    const content = new TextDecoder().decode(bytes);
     const result = await invoke<string>("import_watchlist", {
       content,
       format: "json",
