@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-03
 **Status:** Approved
-**Scope:** Real-time price scraping from 26 global electronics distributors
+**Scope:** Real-time price scraping from 25 global electronics distributors
 
 ## Overview
 
@@ -12,7 +12,7 @@ Implement real price scraping so the app shows live prices, stock status, and pr
 
 ### Approach: Parallel Independent Scrapers
 
-Each platform implements its own set of 26 parsers independently:
+Each platform implements its own set of 25 parsers independently:
 - **Desktop:** Rust with `reqwest` + `scraper` crate
 - **Mobile:** TypeScript with `fetch` + `cheerio`
 
@@ -31,13 +31,13 @@ desktop/src-tauri/src/scrapers/   Desktop Rust scrapers
   server2u.rs              One file per distributor
   linitx.rs
   interprojekt.rs
-  ... (26 total)
+  ... (25 total)
 
 lib/scrapers/mobile/        Mobile TypeScript scrapers
   server2u.ts              One file per distributor
   linitx.ts
   interprojekt.ts
-  ... (26 total)
+  ... (25 total)
 ```
 
 ## Data Model
@@ -141,8 +141,8 @@ function parseHtml(html: string): ScrapeResult | null {
 
 ### Concurrency
 
-- Sequential per product (avoid hammering one distributor)
-- Parallel across products (up to 3 concurrent fetches)
+- Products processed in parallel (up to 3 concurrent fetches)
+- Within each product, distributors are checked sequentially (avoid hammering one site)
 - Per-distributor rate limit enforced via semaphore/delay
 
 ## Data Update Flow
@@ -270,13 +270,13 @@ Attempt 4+: skip this distributor this cycle, log warning
 
 ### Phase 2: Desktop Rust Scrapers
 - Add `reqwest`, `scraper` crates to Cargo.toml
-- Implement 26 distributor parsers
+- Implement 25 distributor parsers
 - Add `check_all_prices` Tauri command
 - Integrate with system tray and background timer
 
 ### Phase 3: Mobile TypeScript Scrapers
 - Add `cheerio` dependency
-- Implement 26 distributor parsers
+- Implement 25 distributor parsers
 - Update `background-price-check.ts` to use real scrapers
 - Add "Check Now" trigger
 
@@ -287,12 +287,12 @@ Attempt 4+: skip this distributor this cycle, log warning
 - Update StockBadge and PriceSparkline with live data
 
 ### Phase 5: Testing & Hardening
-- Write HTML fixtures for all 26 distributors
+- Write HTML fixtures for all 25 distributors
 - Unit tests for each parser
 - Integration tests for scrape cycle
 - Rate limiting and error handling tests
 
-## Distributors (26 total)
+## Distributors (25 total)
 
 | ID | Name | Country | Region | Website |
 |----|------|---------|--------|---------|
