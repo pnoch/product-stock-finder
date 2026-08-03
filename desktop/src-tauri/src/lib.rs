@@ -1,4 +1,15 @@
+use std::fs;
+use std::path::PathBuf;
+use std::sync::Mutex;
 use tauri::Manager;
+use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+
+// ─── Global State ────────────────────────────────────────────────────────────
+
+static POLLER_RUNNING: Mutex<bool> = Mutex::new(false);
+
+// ─── Commands ────────────────────────────────────────────────────────────────
 
 #[tauri::command]
 fn send_notification(
@@ -30,8 +41,7 @@ fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
         .map_err(|e| e.to_string())
 }
 
-use std::fs;
-use std::path::PathBuf;
+// ─── Import/Export ───────────────────────────────────────────────────────────
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct ExportData {
@@ -103,12 +113,65 @@ fn import_watchlist(
 
             Ok("Import successful".to_string())
         }
-        "csv" => {
-            Err("CSV import not yet implemented".to_string())
-        }
+        "csv" => Err("CSV import not yet implemented".to_string()),
         _ => Err(format!("Unsupported format: {}", format)),
     }
 }
+
+// ─── Background Polling ──────────────────────────────────────────────────────
+
+#[tauri::command]
+fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64) -> Result<String, String> {
+    let mut running = POLLER_RUNNING.lock().map_err(|e| e.to_string())?;
+    if *running {
+        return Ok("Poller already running".to_string());
+    }
+    *running = true;
+    drop(running);
+
+    let handle = app.clone();
+    std::thread::spawn(move || loop {
+        {
+            let running = POLLER_RUNNING.lock().unwrap();
+            if !*running {
+                break;
+            }
+        }
+
+        if let Ok(data_dir) = handle.path().app_data_dir() {
+            let _watchlist = read_json_file(&data_dir, "watchlist_products");
+            let _alerts = read_json_file(&data_dir, "price_alerts");
+
+            // TODO: Compare prices against alert thresholds and fire notifications
+        }
+
+        std::thread::sleep(std::time::Duration::from_secs(interval_minutes * 60));
+    });
+
+    Ok(format!(
+        "Price poller started with {} minute interval",
+        interval_minutes
+    ))
+}
+
+#[tauri::command]
+fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let _watchlist = read_json_file(&data_dir, "watchlist_products")?;
+    let _alerts = read_json_file(&data_dir, "price_alerts")?;
+
+    // TODO: Compare current prices against alert thresholds
+    Ok("Price check completed".to_string())
+}
+
+#[tauri::command]
+fn stop_price_poller() -> Result<String, String> {
+    let mut running = POLLER_RUNNING.lock().map_err(|e| e.to_string())?;
+    *running = false;
+    Ok("Price poller stopped".to_string())
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 fn read_json_file(data_dir: &PathBuf, key: &str) -> Result<serde_json::Value, String> {
     let path = data_dir.join(format!("{}.json", key));
@@ -174,17 +237,79 @@ fn current_iso_timestamp() -> String {
     format!("{:04}-{:02}-{:02}T00:00:00Z", year, month, day)
 }
 
+// ─── Entry Point ─────────────────────────────────────────────────────────────
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec!["--autostart"]),
+        ))
+        .setup(|app| {
+            let open_item = MenuItemBuilder::new("Open").id("open").build()?;
+            let check_item = MenuItemBuilder::new("Check Now")
+                .id("check_now")
+                .build()?;
+            let separator1 = PredefinedMenuItem::separator(app)?;
+            let separator2 = PredefinedMenuItem::separator(app)?;
+            let quit_item = MenuItemBuilder::new("Quit").id("quit").build()?;
+
+            let menu = MenuBuilder::new(app)
+                .item(&open_item)
+                .item(&separator1)
+                .item(&check_item)
+                .item(&separator2)
+                .item(&quit_item)
+                .build()?;
+
+            let _tray = TrayIconBuilder::new("main")
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "open" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                    "check_now" => {
+                        let _ = check_price_drops(app.clone());
+                    }
+                    "quit" => {
+                        app.exit(0);
+                    }
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
+
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             send_notification,
             get_app_data_dir,
             export_watchlist,
-            import_watchlist
+            import_watchlist,
+            start_price_poller,
+            check_price_drops,
+            stop_price_poller
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
