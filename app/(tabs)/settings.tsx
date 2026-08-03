@@ -13,8 +13,13 @@ import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { getSettings, saveSettings, getWatchlist } from "@/lib/storage";
-import { AppSettings, Product } from "@/lib/types";
+import {
+  getSettings,
+  saveSettings,
+  getWatchlist,
+  updateProductListings,
+} from "@/lib/storage";
+import { AppSettings, Product, DistributorListing } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { sendTestNotification } from "@/lib/notifications";
 import { DISTRIBUTORS, getDistributorById } from "@/lib/distributors";
@@ -133,6 +138,40 @@ export default function SettingsScreen() {
       );
     }
   }, []);
+
+  const handleReenableDistributor = useCallback(
+    async (distributorId: string) => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const now = new Date().toISOString();
+      for (const product of products) {
+        if (!product.listings) continue;
+        const updatedListings: DistributorListing[] = product.listings.map(
+          (l) =>
+            l.distributorId === distributorId
+              ? { ...l, lastChecked: now }
+              : l,
+        );
+        const changed = updatedListings.some(
+          (l, i) => l.lastChecked !== product.listings[i].lastChecked,
+        );
+        if (changed) {
+          await updateProductListings(product.id, updatedListings);
+        }
+      }
+      setProducts((prev) =>
+        prev.map((p) => ({
+          ...p,
+          listings: p.listings?.map((l) =>
+            l.distributorId === distributorId
+              ? { ...l, lastChecked: now }
+              : l,
+          ),
+        })),
+      );
+    },
+    [products],
+  );
 
   const distributorStatuses = (() => {
     const statuses: Record<
@@ -520,15 +559,37 @@ export default function SettingsScreen() {
                       : "Never checked"}
                   </Text>
                 </View>
-                <Text
-                  style={{
-                    color: health.color,
-                    fontSize: 12,
-                    fontWeight: "600",
-                  }}
-                >
-                  {health.label}
-                </Text>
+                {health.label !== "OK" ? (
+                  <TouchableOpacity
+                    onPress={() => handleReenableDistributor(id)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 12,
+                      backgroundColor: colors.primary + "22",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: colors.primary,
+                        fontSize: 12,
+                        fontWeight: "600",
+                      }}
+                    >
+                      Re-enable
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <Text
+                    style={{
+                      color: health.color,
+                      fontSize: 12,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {health.label}
+                  </Text>
+                )}
               </View>
             );
           })}
