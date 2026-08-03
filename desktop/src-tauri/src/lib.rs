@@ -189,6 +189,7 @@ fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64) -> Result<St
         }
 
         let _ = check_price_drops(handle.clone());
+        let _ = update_tray_badge(handle.clone());
 
         std::thread::sleep(std::time::Duration::from_secs(interval_minutes * 60));
     });
@@ -391,6 +392,51 @@ fn current_iso_timestamp() -> String {
     format!("{:04}-{:02}-{:02}T00:00:00Z", year, month, day)
 }
 
+// ─── Tray Badge ──────────────────────────────────────────────────────────────
+
+#[tauri::command]
+fn update_tray_badge(app: tauri::AppHandle) -> Result<String, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let alerts_val = read_json_file(&data_dir, "price_alerts")?;
+    let reminders_val = read_json_file(&data_dir, "back_order_reminders")?;
+
+    let active_alerts = alerts_val
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter(|a| {
+                    a.get("isActive").and_then(|v| v.as_bool()).unwrap_or(false)
+                        && a.get("triggeredAt").and_then(|v| v.as_str()).is_none()
+                })
+                .count()
+        })
+        .unwrap_or(0);
+
+    let active_reminders = reminders_val
+        .as_array()
+        .map(|r| r.len())
+        .unwrap_or(0);
+
+    let total = active_alerts + active_reminders;
+
+    if let Some(tray) = app.tray_by_id("main") {
+        let badge_text = if total > 0 {
+            total.to_string()
+        } else {
+            String::new()
+        };
+        let _ = tray.set_title(Some(&badge_text));
+        let tooltip = format!(
+            "Product Stock Finder — {} active alert{}",
+            total,
+            if total == 1 { "" } else { "s" }
+        );
+        let _ = tray.set_tooltip(Some(&tooltip));
+    }
+
+    Ok(format!("Tray badge updated: {} active", total))
+}
+
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -432,6 +478,7 @@ pub fn run() {
                     }
                     "check_now" => {
                         let _ = check_price_drops(app.clone());
+                        let _ = update_tray_badge(app.clone());
                     }
                     "quit" => {
                         app.exit(0);
@@ -454,6 +501,9 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // Update badge on startup
+            let _ = update_tray_badge(app.handle().clone());
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -463,7 +513,8 @@ pub fn run() {
             import_watchlist,
             start_price_poller,
             check_price_drops,
-            stop_price_poller
+            stop_price_poller,
+            update_tray_badge
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
