@@ -61,6 +61,10 @@ Thumbs.db
 *.tar.gz
 .cache/
 
+# Rust
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
 .project-config.json
