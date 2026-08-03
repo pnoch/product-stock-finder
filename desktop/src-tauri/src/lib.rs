@@ -5,6 +5,56 @@ use tauri::Manager;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 
+// ─── Exchange Rates (matching lib/currency.ts) ────────────────────────────────
+
+static EXCHANGE_RATES: [(&str, f64); 12] = [
+    ("USD", 1.0),
+    ("EUR", 0.92),
+    ("GBP", 0.79),
+    ("MYR", 4.47),
+    ("AUD", 1.53),
+    ("NZD", 1.65),
+    ("CAD", 1.36),
+    ("ZAR", 18.2),
+    ("THB", 34.5),
+    ("SGD", 1.34),
+    ("HKD", 7.82),
+    ("AED", 3.67),
+];
+
+fn convert_price(amount: f64, from_currency: &str, to_currency: &str) -> f64 {
+    let from_rate = EXCHANGE_RATES
+        .iter()
+        .find(|(c, _)| *c == from_currency)
+        .map(|(_, r)| *r)
+        .unwrap_or(1.0);
+    let to_rate = EXCHANGE_RATES
+        .iter()
+        .find(|(c, _)| *c == to_currency)
+        .map(|(_, r)| *r)
+        .unwrap_or(1.0);
+    (amount / from_rate) * to_rate
+}
+
+fn format_price(amount: f64, currency: &str) -> String {
+    let symbol = match currency {
+        "USD" => "$",
+        "EUR" => "€",
+        "GBP" => "£",
+        "MYR" => "RM",
+        "AUD" => "A$",
+        "NZD" => "NZ$",
+        "CAD" => "C$",
+        "ZAR" => "R",
+        "THB" => "฿",
+        "SGD" => "S$",
+        "HKD" => "HK$",
+        "AED" => "AED",
+        _ => "",
+    };
+    format!("{}{:.2}", symbol, amount)
+}
+
 // ─── Global State ────────────────────────────────────────────────────────────
 
 static POLLER_RUNNING: Mutex<bool> = Mutex::new(false);
@@ -138,12 +188,7 @@ fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64) -> Result<St
             }
         }
 
-        if let Ok(data_dir) = handle.path().app_data_dir() {
-            let _watchlist = read_json_file(&data_dir, "watchlist_products");
-            let _alerts = read_json_file(&data_dir, "price_alerts");
-
-            // TODO: Compare prices against alert thresholds and fire notifications
-        }
+        let _ = check_price_drops(handle.clone());
 
         std::thread::sleep(std::time::Duration::from_secs(interval_minutes * 60));
     });
@@ -157,11 +202,120 @@ fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64) -> Result<St
 #[tauri::command]
 fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let _watchlist = read_json_file(&data_dir, "watchlist_products")?;
-    let _alerts = read_json_file(&data_dir, "price_alerts")?;
 
-    // TODO: Compare current prices against alert thresholds
-    Ok("Price check completed".to_string())
+    let alerts_val = read_json_file(&data_dir, "price_alerts")?;
+    let watchlist_val = read_json_file(&data_dir, "watchlist_products")?;
+
+    let alerts: Vec<serde_json::Value> = alerts_val
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let watchlist: Vec<serde_json::Value> = watchlist_val
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+
+    let mut updated_count = 0u32;
+    let mut notifications: Vec<(String, String)> = Vec::new();
+
+    for alert in &alerts {
+        let is_active = alert.get("isActive").and_then(|v| v.as_bool()).unwrap_or(false);
+        let triggered_at = alert.get("triggeredAt").and_then(|v| v.as_str());
+        if !is_active || triggered_at.is_some() {
+            continue;
+        }
+
+        let product_id = alert.get("productId").and_then(|v| v.as_str()).unwrap_or("");
+        let target_price = alert.get("targetPrice").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let alert_currency = alert.get("currency").and_then(|v| v.as_str()).unwrap_or("USD");
+
+        let product = watchlist.iter().find(|p| {
+            p.get("id").and_then(|v| v.as_str()) == Some(product_id)
+        });
+        let product = match product {
+            Some(p) => p,
+            None => continue,
+        };
+
+        let listings = product.get("listings").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+        let in_stock: Vec<&serde_json::Value> = listings.iter().filter(|l| {
+            l.get("stockStatus").and_then(|v| v.as_str()) == Some("in_stock")
+        }).collect();
+
+        if in_stock.is_empty() {
+            continue;
+        }
+
+        let best_price = in_stock.iter().fold(f64::INFINITY, |best, listing| {
+            let price = listing.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let currency = listing.get("currency").and_then(|v| v.as_str()).unwrap_or("USD");
+            let converted = convert_price(price, currency, alert_currency);
+            if converted < best { converted } else { best }
+        });
+
+        if best_price <= target_price {
+            let product_name = product.get("name").and_then(|v| v.as_str()).unwrap_or("Unknown Product");
+            let body = format!(
+                "{} is now {} — below your target of {}!",
+                product_name,
+                format_price(best_price, alert_currency),
+                format_price(target_price, alert_currency)
+            );
+            notifications.push(("💸 Price Drop Alert!".to_string(), body));
+            updated_count += 1;
+        }
+    }
+
+    if !notifications.is_empty() {
+        use tauri_plugin_notification::NotificationExt;
+        for (title, body) in &notifications {
+            let _ = app.notification().builder().title(title).body(body).sound("default".to_string()).show();
+        }
+
+        let mut updated_alerts = alerts.clone();
+        for alert in updated_alerts.iter_mut() {
+            let is_active = alert.get("isActive").and_then(|v| v.as_bool()).unwrap_or(false);
+            let triggered_at = alert.get("triggeredAt").and_then(|v| v.as_str());
+            if !is_active || triggered_at.is_some() {
+                continue;
+            }
+
+            let product_id = alert.get("productId").and_then(|v| v.as_str()).unwrap_or("");
+            let target_price = alert.get("targetPrice").and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let alert_currency = alert.get("currency").and_then(|v| v.as_str()).unwrap_or("USD");
+
+            let product = watchlist.iter().find(|p| {
+                p.get("id").and_then(|v| v.as_str()) == Some(product_id)
+            });
+            let product = match product {
+                Some(p) => p,
+                None => continue,
+            };
+
+            let listings = product.get("listings").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+            let best_price = listings.iter().filter(|l| {
+                l.get("stockStatus").and_then(|v| v.as_str()) == Some("in_stock")
+            }).fold(f64::INFINITY, |best, listing| {
+                let price = listing.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                let currency = listing.get("currency").and_then(|v| v.as_str()).unwrap_or("USD");
+                let converted = convert_price(price, currency, alert_currency);
+                if converted < best { converted } else { best }
+            });
+
+            if best_price <= target_price {
+                if let Some(obj) = alert.as_object_mut() {
+                    obj.insert("isActive".to_string(), serde_json::Value::Bool(false));
+                    obj.insert("triggeredAt".to_string(), serde_json::Value::String(current_iso_timestamp()));
+                    obj.insert("triggeredPrice".to_string(), serde_json::json!(best_price));
+                }
+            }
+        }
+
+        let updated_val = serde_json::Value::Array(updated_alerts);
+        write_json_file(&data_dir, "price_alerts", &updated_val)?;
+    }
+
+    Ok(format!("Price check completed. {} alerts triggered.", updated_count))
 }
 
 #[tauri::command]
