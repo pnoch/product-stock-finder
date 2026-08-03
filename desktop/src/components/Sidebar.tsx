@@ -18,7 +18,7 @@ const navItems = [
 
 export function Sidebar() {
   return (
-    <aside className="flex flex-col w-16 lg:w-56 h-screen bg-surface-light dark:bg-surface-dark border-r border-gray-200 dark:border-gray-700">
+    <aside className="flex flex-col w-16 lg:w-56 h-screen bg-surface-light dark:bg-surface-dark border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out">
       <div className="flex items-center gap-2 px-4 py-4 border-b border-gray-200 dark:border-gray-700">
         <BarChart3 className="w-6 h-6 text-brand-600" />
         <span className="hidden lg:block font-semibold text-sm">
@@ -30,6 +30,7 @@ export function Sidebar() {
           <NavLink
             key={to}
             to={to}
+            title={label}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
                 isActive

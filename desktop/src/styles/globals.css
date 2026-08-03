@@ -14,3 +14,80 @@
     background-color: #0a0e1a;
   }
 }
+
+/* Smooth transitions for theme changes */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 150ms;
+  transition-timing-function: ease-in-out;
+}
+
+/* Reset transition for elements that handle their own transitions */
+a,
+button,
+input,
+select,
+[role="tab"],
+[role="button"],
+aside,
+main {
+  transition-property: none;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background-color: #374151;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #4b5563;
+  }
+}
+
+/* Focus ring styles for accessibility */
+*:focus-visible {
+  outline: 2px solid #0F52BA;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #0F52BA;
+  outline-offset: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  *:focus-visible,
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline-color: #3B7DD8;
+  }
+}
