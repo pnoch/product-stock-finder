@@ -25,6 +25,17 @@ pub mod wisp;
 pub mod winncom;
 
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
+
+fn get_client() -> &'static reqwest::Client {
+    static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+    CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
+            .build()
+            .expect("Failed to create HTTP client")
+    })
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScrapeResult {
@@ -46,10 +57,8 @@ pub struct ScrapeJobResult {
 
 pub async fn fetch_html(url: &str, rate_limit_ms: u64) -> Result<String, reqwest::Error> {
     tokio::time::sleep(tokio::time::Duration::from_millis(rate_limit_ms)).await;
-    let client = reqwest::Client::new();
-    let resp = client
+    let resp = get_client()
         .get(url)
-        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
         .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
         .send()
         .await?;

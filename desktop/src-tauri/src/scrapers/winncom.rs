@@ -2,7 +2,7 @@ use super::{ScrapeResult, fetch_html, infer_stock_status, parse_price_from_text}
 use scraper::{Html, Selector};
 
 pub async fn scrape(model: &str) -> Result<ScrapeResult, String> {
-    let url = format!("https://winncom.com/search?q={}", model);
+    let url = format!("https://winncom.com/search?q={}", urlencoding::encode(model));
     let html = fetch_html(&url, 3000)
         .await
         .map_err(|e| format!("Fetch failed: {}", e))?;
