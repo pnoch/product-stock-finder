@@ -1,0 +1,755 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Search results :: ICD Group, Inc</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=8" />
+  <meta http-equiv="Content-Script-Type" content="text/javascript" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta http-equiv="Content-Language" content="en" />
+  
+  
+
+
+
+  
+
+
+  
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+                    
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                            
+                                
+                                
+                                            
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+            
+
+  
+  
+
+  <base href="https://www.roc-noc.com/" />
+  <script type="text/javascript" src='https://www.google.com/recaptcha/api.js'></script>
+<script type="text/javascript">
+//<![CDATA[
+grc_public_key = '6Ldf1I8qAAAAAK7FZDuEBq5V7Dfg_pFvFcpWpDCj';
+//]]>
+</script>
+
+<link rel="stylesheet" type="text/css" href="https://www.roc-noc.com/var/cache/_d50d78d057b8b04a1041dab4a0448aaf.css" />
+<script type="text/javascript" src="https://www.roc-noc.com/var/cache/_e9a549781a40293498faf9574956e9a2.js"></script>
+
+</head>
+<body class="uo-container ">
+<div id="page-container">
+  <div id="page-container2">
+    <div id="content-container">
+      <div id="content-container2">
+
+                  <div id="fb-root"></div>
+        
+        <div id="center">
+  <div id="center-main">
+    <!-- central space -->
+
+    
+              <table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+  <td valign="top" align="left">
+  <div id="location">
+                        <a href="home.php" class="bread-crumb">Home</a>
+                          <span>::</span>
+                                <font class="bread-crumb last-bread-crumb">Search results</font>
+                        </div>
+  </td>
+  <td width="130" valign="top" align="right">
+    </td>
+</tr>
+</table>
+      
+                            
+      
+                
+      
+      
+      
+      
+  <h1>Advanced search</h1>
+
+  <script type="text/javascript" src="/skin/common_files/js/reset.js"></script>
+
+<script type="text/javascript">
+//<![CDATA[
+var searchform_def = [
+  ['posted_data[substring]', ''],
+  ['posted_data[including]', 'all'],
+  ['posted_data[search_in_subcategories]', true],
+  ['posted_data[by_title]', true],
+  ['posted_data[by_descr]', true],
+  ['posted_data[by_keywords]', true],
+  ['posted_data[by_sku]', true],
+  ['posted_data[price_min]', ''],
+  ['posted_data[price_max]', ''],
+  ['posted_data[avail_min]', '0'],
+  ['posted_data[weight_min]', ''],
+  ['posted_data[weight_max]', ''],
+  ['posted_data[manufacturers][]', ''],
+  ['posted_data[categoryid]', '']
+];
+//]]>
+</script>
+
+    <div class="dialog adv-search noborder">
+    <div class="content">	<br />
+    <form name="searchform" action="search.php" method="post">
+      <input type="hidden" name="mode" value="search" />
+
+      <table cellspacing="0" cellpadding="0" class="width-100" summary="Search for products">
+        <tbody>
+          <tr>
+            <td class="data-name">Search for pattern:</td>
+            <td class="data-input pattern"><input type="text" name="posted_data[substring]" value="" class="for_s input-field" /></td>
+            <td class="search-button">
+              
+  
+    
+
+
+  <button class="button main-button" type="submit" title="Search">
+  <span class="button-right"><span class="button-left">Search</span></span>
+  </button>
+
+            </td>
+          </tr>
+
+            <tr>
+              <td>&nbsp;</td>
+              <td colspan="2" class="input-row">
+
+                <label>
+                  <input type="radio" name="posted_data[including]" value="all" checked="checked" />
+                  All words
+                </label>
+
+                <label>
+                  <input type="radio" name="posted_data[including]" value="any" />
+                  Any word
+                </label>
+
+                <label>
+                  <input type="radio" name="posted_data[including]" value="phrase" />
+                  Exact phrase
+                </label>
+
+              </td>
+            </tr>
+
+          <tr>
+            <td class="data-name">Search in:</td>
+            <td class="input-row" colspan="2">
+
+              <label>
+                <input type="checkbox" name="posted_data[by_title]" checked="checked" />
+                Product title
+              </label>
+
+              <label>
+                <input type="checkbox" id="posted_data_by_descr" name="posted_data[by_descr]" checked="checked" />
+                Description
+              </label>
+
+              <label>
+                <input type="checkbox" id="posted_data_by_sku" name="posted_data[by_sku]" checked="checked" />
+                SKU
+              </label>
+
+            </td>
+          </tr>
+
+                  </tbody>
+
+        
+          <tbody>
+            <tr>
+              <td>&nbsp;</td>
+              <td colspan="2">
+                <div class="expand-section">
+  <img src="/skin/common_files/images/spacer.gif" class="plus" id="adv_search_box_plus" alt="Click to open" style="display: none;" onclick="javascript: switchVisibleBox('adv_search_box');" /><img src="/skin/common_files/images/spacer.gif" class="minus" id="adv_search_box_minus" alt="Click to close" onclick="javascript: switchVisibleBox('adv_search_box');" /><a href="javascript:void(0);" onclick="javascript: switchVisibleBox('adv_search_box');">More search options</a>
+</div>
+              </td>
+            </tr>
+          </tbody>
+
+          <tbody id="adv_search_box">
+
+                          <tr>
+                <td class="data-name">Search in category:</td>
+                <td class="data-input" colspan="2">
+                  <select name="posted_data[categoryid]" class="adv-search-select input-field">
+                    <option value="">&nbsp;</option>
+                                          <option value="" selected="selected">4G / LTE</option>
+                                          <option value="" selected="selected">60GHz</option>
+                                          <option value="" selected="selected">802.11ac - WiFi 5</option>
+                                          <option value="" selected="selected">802.11ax - WiFi 6</option>
+                                          <option value="" selected="selected">802.11be - WiFi 7</option>
+                                          <option value="" selected="selected">Antennas</option>
+                                          <option value="" selected="selected">Antennas/Indoor Antennas</option>
+                                          <option value="" selected="selected">Antennas/Outdoor Enclosure Antennas - ARC Wireless</option>
+                                          <option value="" selected="selected">Antennas/Outdoor Enclosure Antennas - ITelite</option>
+                                          <option value="" selected="selected">Antennas/Outdoor Enclosure Antennas - Laird / Pacific Wireless</option>
+                                          <option value="" selected="selected">Antennas/Outdoor Standalone Antennas</option>
+                                          <option value="" selected="selected">Antennas/Outdoor Standalone Antennas/Omnidirectional antennas</option>
+                                          <option value="" selected="selected">Antennas/Outdoor Standalone Antennas/Sector antennas</option>
+                                          <option value="" selected="selected">Antennas/Outdoor Standalone Antennas/Panel antennas</option>
+                                          <option value="" selected="selected">Antennas/Outdoor Standalone Antennas/Grid antennas</option>
+                                          <option value="" selected="selected">Antennas/Outdoor Standalone Antennas/Dish antennas</option>
+                                          <option value="" selected="selected">Antennas/Outdoor Standalone Antennas/Yagi antennas</option>
+                                          <option value="" selected="selected">Antennas/Outdoor Antenna Mounts</option>
+                                          <option value="" selected="selected">Cables/Connectors</option>
+                                          <option value="" selected="selected">Cables/Connectors/Coaxial Cable Assemblies</option>
+                                          <option value="" selected="selected">Cables/Connectors/Coaxial Connectors</option>
+                                          <option value="" selected="selected">Cables/Connectors/Connector Adapters</option>
+                                          <option value="" selected="selected">Cables/Connectors/Ethernet</option>
+                                          <option value="" selected="selected">Cables/Connectors/Pigtail Cables</option>
+                                          <option value="" selected="selected">Cases / Enclosures</option>
+                                          <option value="" selected="selected">EOL (End of Life - Sold Out)</option>
+                                          <option value="" selected="selected">ESD / Lightning Protection</option>
+                                          <option value="" selected="selected">Fiber and Ethernet</option>
+                                          <option value="" selected="selected">Indoor Radios</option>
+                                          <option value="" selected="selected">Labor and Support</option>
+                                          <option value="" selected="selected">LoRa / IoT</option>
+                                          <option value="" selected="selected">Mikrotik Data Servers</option>
+                                          <option value="" selected="selected">Mikrotik Desktop Routers</option>
+                                          <option value="" selected="selected">Mikrotik Rack Mount Routers</option>
+                                          <option value="" selected="selected">Mikrotik Switches</option>
+                                          <option value="" selected="selected">miniPCI/miniPCIe radios</option>
+                                          <option value="" selected="selected">Outdoor Radios</option>
+                                          <option value="" selected="selected">Outdoor Radios/ARC Wireless Outdoor Radios</option>
+                                          <option value="" selected="selected">Outdoor Radios/ITelite Outdoor Radios</option>
+                                          <option value="" selected="selected">Outdoor Radios/Mikrotik Outdoor Radios</option>
+                                          <option value="" selected="selected">Outdoor Radios/Motorola Canopy Radios</option>
+                                          <option value="" selected="selected">Outdoor Radios/Ubiquiti (UBNT) Outdoor Radios</option>
+                                          <option value="" selected="selected">Outdoor Radios/Ubiquiti (UBNT) Outdoor Radios/UBNT Radio Parts</option>
+                                          <option value="" selected="selected">Power Supplies / PoE</option>
+                                          <option value="" selected="selected">RouterOS Licenses</option>
+                                          <option value="" selected="selected">Single Board Computers</option>
+                                      </select>
+                </td>
+              </tr>
+
+              <tr>
+                <td>&nbsp;</td>
+                <td colspan="2">
+
+                  <label>
+                    <input type="checkbox" name="posted_data[search_in_subcategories]" checked="checked" />
+                    also search in subcategories
+                  </label>
+                </td>
+              </tr>
+
+            
+            
+              
+              <tr>
+                <td class="data-name">Manufacturers:</td>
+                <td class="data-input" colspan="2">
+                  <select name="posted_data[manufacturers][]" multiple="multiple" class="input-field" size="5">
+                     
+                                  <option value="0">Manufacturer is not specified</option>
+                                  <option value="10">ARC Wireless</option>
+                                  <option value="1">Cisco</option>
+                                  <option value="15">ITelite</option>
+                                  <option value="2">LinkSys</option>
+                                  <option value="4">MikroTik</option>
+                                  <option value="9">Motorola</option>
+                                  <option value="3">Laird / Pacific Wireless</option>
+                                  <option value="17">Quectel</option>
+                                  <option value="7">rOc-nOc</option>
+                                  <option value="6">3M</option>
+                                  <option value="8">Ubiquiti</option>
+                              
+                  </select>
+                </td>
+              </tr>
+
+            
+                          <tr>
+                <td class="data-name">Price ($):</td>
+                <td colspan="2">
+                  <input type="text" size="10" maxlength="15" name="posted_data[price_min]" value="" class="input-field" />
+                  &nbsp;-&nbsp;
+                  <input type="text" size="10" maxlength="15" name="posted_data[price_max]" value="" class="input-field" />
+                </td>
+              </tr>
+            
+                          <tr>
+                <td class="data-name">Weight (lbs):</td>
+                <td colspan="2">
+                  <input type="text" size="10" maxlength="10" name="posted_data[weight_min]" value="" class="input-field" />
+                  &nbsp;-&nbsp;
+                  <input type="text" size="10" maxlength="10" name="posted_data[weight_max]" value="" class="input-field" />
+                </td>
+              </tr>
+            
+            <tr>
+              <td class="button-row">
+                
+    
+                  
+  
+
+  
+    <a class="simple-button" href="javascript:void(0);" onclick="javascript: reset_form('searchform', searchform_def);; return false;" title="Reset filter"><span>Reset filter</span></a>
+
+  
+              </td>
+              <td class="button-row" colspan="2">
+                
+  
+    
+
+
+  <button class="button main-button" type="submit" title="Search">
+  <span class="button-right"><span class="button-left">Search</span></span>
+  </button>
+
+              </td>
+            </tr>
+          </tbody>
+
+              </table>
+
+    </form>
+
+  </div>
+</div>
+
+
+<a name="results"></a>
+
+
+
+
+    
+<!-- /central space -->
+
+  </div><!-- /center -->
+
+      <div class="block-news-links">
+      <div class="block-news-links-2">
+
+        <div class="imgv-box">
+          <img src="/skin/common_files/images/spacer.gif" alt="" class="imgv" />
+        </div>
+
+        <table cellpadding="0" cellspacing="0" summary="News">
+          <tr>
+			            <td>    <div class="menu-dialog menu-special">
+    <div class="title-bar valign-middle">
+    <h2>Special</h2>
+  </div>
+    <div class="content">
+        <ul>
+      <li>
+    <a href="https://www.roc-noc.com/offers.php">Special offers</a>
+  </li>
+  
+  
+  
+  
+      <li class="separator">&nbsp;</li>
+  
+  
+  
+      <li>
+    <a href="https://www.roc-noc.com/bonuses.php">Bonuses</a>
+  </li>
+  
+      <li>
+  <a href="https://www.roc-noc.com/sitemap.php">Sitemap</a>
+</li>
+  
+      <li>
+  <a href="https://www.roc-noc.com/products_map.php">Products Map</a>
+</li>
+    </ul>
+  
+  </div>
+</div>
+</td>
+            <td><div class="menu-dialog menu-help">
+    <div class="title-bar valign-middle">
+    <h2>Need help?</h2>
+  </div>
+    <div class="content">
+    
+  <ul>
+    <li><a href="help.php">Help zone</a></li>
+    <li><a href="help.php?section=contactus&amp;mode=update">Contact us</a></li>
+                </ul>
+
+
+  </div>
+</div>
+</td>
+          </tr>
+        </table>
+
+                  
+  <div class="uo-box">
+    <strong>Users online:</strong>&nbsp;
+
+          <span class="item nowrap">123
+                  anonymous customer(s)
+                ,       </span>
+          <span class="item nowrap">1
+                  registered customer(s) 
+                      </span>
+    
+  </div>
+
+        
+      </div>
+    </div>
+  
+</div><!-- /center-main -->
+
+<div id="left-bar">
+  <div class="menu-dialog menu-categories-list">
+    <div class="title-bar valign-middle">
+    <h2>Categories</h2>
+  </div>
+    <div class="content">
+    
+
+  <ul>
+          <li class="highlight first"><a href="https://www.roc-noc.com/mikrotik/LTE/" title="4G / LTE">4G / LTE</a></li>
+          <li><a href="https://www.roc-noc.com/60GHz-Radios/" title="60GHz">60GHz</a></li>
+          <li class="highlight"><a href="https://www.roc-noc.com/mikrotik/802.11ac/" title="802.11ac - WiFi 5">802.11ac - WiFi 5</a></li>
+          <li><a href="https://www.roc-noc.com/mikrotik/802.11ax/" title="802.11ax - WiFi 6">802.11ax - WiFi 6</a></li>
+          <li class="highlight"><a href="https://www.roc-noc.com/mikrotik/802.11be/" title="802.11be - WiFi 7">802.11be - WiFi 7</a></li>
+          <li><a href="home.php?cat=7" title="Antennas">Antennas</a></li>
+          <li class="highlight"><a href="home.php?cat=8" title="Cables/Connectors">Cables/Connectors</a></li>
+          <li><a href="home.php?cat=1" title="Cases / Enclosures">Cases / Enclosures</a></li>
+          <li class="highlight"><a href="home.php?cat=16" title="EOL (End of Life - Sold Out)">EOL (End of Life - Sold Out)</a></li>
+          <li><a href="home.php?cat=31" title="ESD / Lightning Protection">ESD / Lightning Protection</a></li>
+          <li class="highlight"><a href="https://www.roc-noc.com/fiber_and_ethernet/" title="Fiber and Ethernet">Fiber and Ethernet</a></li>
+          <li><a href="home.php?cat=43" title="Indoor Radios">Indoor Radios</a></li>
+          <li class="highlight"><a href="home.php?cat=23" title="Labor and Support">Labor and Support</a></li>
+          <li><a href="https://www.roc-noc.com/LoRa/" title="LoRa / IoT">LoRa / IoT</a></li>
+          <li class="highlight"><a href="https://www.roc-noc.com/mikrotik/rds/" title="Mikrotik Data Servers">Mikrotik Data Servers</a></li>
+          <li><a href="https://www.roc-noc.com/Mikrotik-Desktop-Routers/" title="Mikrotik Desktop Routers">Mikrotik Desktop Routers</a></li>
+          <li class="highlight"><a href="https://www.roc-noc.com/Mikrotik-Rack-Mount-Routers/" title="Mikrotik Rack Mount Routers">Mikrotik Rack Mount Routers</a></li>
+          <li><a href="https://www.roc-noc.com/Mikrotik-Switches/" title="Mikrotik Switches">Mikrotik Switches</a></li>
+          <li class="highlight"><a href="https://www.roc-noc.com/miniPCI-miniPCIe-radios/" title="miniPCI/miniPCIe radios">miniPCI/miniPCIe radios</a></li>
+          <li><a href="https://www.roc-noc.com/outdoor/radios/" title="Outdoor Radios">Outdoor Radios</a></li>
+          <li class="highlight"><a href="home.php?cat=3" title="Power Supplies / PoE">Power Supplies / PoE</a></li>
+          <li><a href="https://www.roc-noc.com/RouterOS_Licenses/" title="RouterOS Licenses">RouterOS Licenses</a></li>
+          <li class="highlight last"><a href="https://www.roc-noc.com/mikrotik/routerboard/sbc/" title="Single Board Computers">Single Board Computers</a></li>
+      </ul>
+
+  
+
+
+  </div>
+</div>
+
+
+    
+  
+    <div class="menu-dialog menu-manufacturers">
+    <div class="title-bar valign-middle">
+    <h2>Manufacturers</h2>
+  </div>
+    <div class="content">
+        <ul>
+
+               <li><a href="manufacturers.php?manufacturerid=10">ARC Wireless</a></li>
+               <li><a href="manufacturers.php?manufacturerid=1">Cisco</a></li>
+               <li><a href="https://www.roc-noc.com/antennas/outdoor/enclosure/itelite/">ITelite</a></li>
+               <li><a href="manufacturers.php?manufacturerid=2">LinkSys</a></li>
+               <li><a href="https://www.roc-noc.com/mikrotik/">MikroTik</a></li>
+               <li><a href="manufacturers.php?manufacturerid=9">Motorola</a></li>
+               <li><a href="manufacturers.php?manufacturerid=3">Laird / Pacific Wireless</a></li>
+               <li><a href="https://www.roc-noc.com/Quectel/">Quectel</a></li>
+               <li><a href="manufacturers.php?manufacturerid=7">rOc-nOc</a></li>
+               <li><a href="manufacturers.php?manufacturerid=6">3M</a></li>
+               <li><a href="manufacturers.php?manufacturerid=8">Ubiquiti</a></li>
+      
+      
+    </ul>
+  
+  </div>
+</div>
+
+
+  
+    <div class="menu-dialog menu-bestsellers">
+    <div class="title-bar valign-middle">
+    <h2>Bestsellers</h2>
+  </div>
+    <div class="content">
+        <ul>
+
+              <li class="highlight first">
+          <a href="https://www.roc-noc.com/mikrotik/power/18POW.html">18POW-US Mikrotik 24vdc, 19 watt universal switching power supply wirth 2.1mm DC plug and Type A USA plug</a>
+        </li>
+              <li>
+          <a href="https://www.roc-noc.com/mikrotik/minipci/radio/R52H.html">R52H Mikrotik 802.11a/b/g High Power MiniPCI card - 350mw output Atheros AR5414 chipset</a>
+        </li>
+              <li class="highlight">
+          <a href="https://www.roc-noc.com/mikrotik/routerboard/rb532a.html">RB/532A RB532A Mikrotik RouterBOARD 532 rev5 version A 64MB DDR RAM - EOL (End of Life)</a>
+        </li>
+              <li>
+          <a href="https://www.roc-noc.com/mikrotik/routerboard/RBD53iG-5HacD2HnD-US.html">Mikrotik RouterBoard hAP ac3 RBD53iG-5HacD2HnD-US low cost 5 port 10/100/1000 switch/router SOHO AP with dual radios - New!</a>
+        </li>
+              <li class="highlight last">
+          <a href="https://www.roc-noc.com/mikrotik/routerboard/power/rb-p54.html">RB/P54 Mikrotik Passive POE Injector with LED for use with RB/133, RB/133C, RB/150, RB/192, RB/230, RB/333, RB/532, RB/532a, RB/600</a>
+        </li>
+      
+    </ul>
+  
+  </div>
+</div>
+
+
+
+
+
+</div>
+
+      </div>
+    </div>
+
+    <div class="clearing">&nbsp;</div>
+
+    <div id="header">
+      <div class="head-bg">
+  <div class="head-bg2">
+
+    <div class="phones">
+              <span><b>CALL US</b>: 815-209-2224</span>
+                </div>
+
+    <div class="logo">
+      <a href="https://www.roc-noc.com/home.php"><img src="/skin/roc_noc/images/roc_noc/logo.png" alt="" /></a>
+    </div>
+    
+  <div class="fbLikeBtn" style = "top: 214px; left: 53px; width: 140px; height: 50px; position: absolute;">
+<iframe src="https://www.facebook.com/plugins/like.php?href=https%3A%2F%2Fwww.facebook.com%2Frocnoc%2F&width=126&layout=button_count&action=like&show_faces=false&share=true&height=46&appId" width="126" height="46" style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowTransparency="true"></iframe>
+ </div>
+
+    <img class="header-chromo" src="/skin/common_files/images/spacer.gif" alt="" />
+
+    <div class="cart-container">
+      <div class="cart-block">
+
+
+
+        <div class="menu-dialog menu-auth">
+    <div class="title-bar valign-middle">
+    <h2>Authentication</h2>
+  </div>
+    <div class="content">
+    
+<div class="login-text item">
+
+  
+  <ul>
+    <li><a href="https://www.roc-noc.com/login.php" title="Sign in"  onclick="javascript: return !popupOpen('login.php');">Sign in</a>
+</li>
+    <li><a href="register.php" title="Register">Register</a></li>
+    <li><a href="help.php?section=Password_Recovery" title="Forgot password?">Forgot password?</a></li>
+  </ul>
+
+
+</div>
+
+
+  </div>
+</div>
+
+          
+
+
+  <div class="menu-dialog menu-minicart">
+    <div class="title-bar valign-middle">
+    <h2>Your cart</h2>
+  </div>
+    <div class="content">
+    
+<div class="minicart-block">
+  <img src="/skin/common_files/images/spacer.gif" alt="" class="ajax-minicart-icon empty" />
+
+<div class="minicart">
+  
+    <div class="valign-middle empty">
+
+      <strong>Cart is empty</strong>
+
+    </div>
+
+  
+</div>
+
+</div>
+
+<div class="cart-checkout-links">
+<hr class="minicart" />
+</div>
+
+<ul>
+
+      <li><a href="cart.php?mode=wishlist">Wish list</a></li>
+
+      
+  
+</ul>
+
+  </div>
+</div>
+      </div>
+    </div>
+
+    <div class="line2">
+
+      <div class="search">
+  <div class="valign-middle">
+    <form method="post" action="search.php" name="productsearchform">
+
+      <input type="hidden" name="simple_search" value="Y" />
+      <input type="hidden" name="mode" value="search" />
+      <input type="hidden" name="posted_data[by_title]" value="Y" />
+      <input type="hidden" name="posted_data[by_descr]" value="Y" />
+      <input type="hidden" name="posted_data[by_sku]" value="Y" />
+      <input type="hidden" name="posted_data[search_in_subcategories]" value="Y" />
+      <input type="hidden" name="posted_data[including]" value="all" />
+
+      <a href="search.php" class="link"><img src="/skin/roc_noc/images/vivid_dreams/advsearch.gif" alt="" /></a><input type="text" name="posted_data[substring]" class="text" value="" />
+  
+    
+
+
+  
+    <input class="image-button" type="image" src="/skin/common_files/images/spacer.gif" alt="" />
+
+  
+
+
+    </form>
+
+  </div>
+</div>
+
+          
+        <div class="tabs">
+    <ul>
+
+              <li class="highlight first"><a href="help.php?section=contactus&amp;mode=update">Contact Us</a></li>
+              <li><a href="http://www.mikrotik.com/training">Training</a></li>
+              <li class="highlight"><a href="http://mum.mikrotik.com">Shows</a></li>
+              <li><a href="cart.php">Shopping Cart</a></li>
+              <li class="highlight"><a href="shipping-info.html">Shipping</a></li>
+              <li><a href="news.php">News</a></li>
+              <li class="highlight last"><a href="home.php">Home</a></li>
+      
+    </ul>
+  </div>
+    </div>
+
+  </div>
+</div>
+
+
+<noscript>
+  <div class="noscript-warning">
+    <div class="content">This site requires JavaScript to function properly.<br />Please enable JavaScript in your web browser.</div>
+  </div>
+</noscript>
+    </div>
+
+    <div id="footer">
+
+      <div class="box">
+	<img src="/skin/common_files/images/spacer.gif" alt="" id="left-c" />
+	<img src="/skin/common_files/images/spacer.gif" alt="" id="right-c" />
+  <div class="subbox">
+    <div class="left">Copyright &copy; 2007-2026 ICD Group, Inc
+
+</div>
+    <div class="right">  Powered by X-Cart shopping cart software
+</div>
+  </div>
+</div>
+
+    </div>
+
+    
+    
+  </div>
+</div>
+<script type="text/javascript" src="https://www.roc-noc.com/var/cache/_e8f1734a06c049edfcf7574e89172742.js"></script>
+
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a25963cb99e5430b',t:'MTc4NTgwMjc1OA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
