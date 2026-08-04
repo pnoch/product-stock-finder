@@ -14,6 +14,11 @@ export interface DistributorParser {
   buildSearchUrl: (model: string) => string;
   parsePrice: (html: string) => ScrapeResult | null;
   rateLimitMs: number;
+  useBrowser?: boolean;
+  browserOptions?: {
+    waitForSelector?: string;
+    timeout?: number;
+  };
 }
 
 export interface ScrapeJobResult {
