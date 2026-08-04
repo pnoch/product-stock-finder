@@ -21,7 +21,7 @@ Add a `useBrowser` flag to `DistributorParser` config. When true, the parser use
 **Modified files:**
 - `lib/scrapers/types.ts` — add `useBrowser?: boolean` and `browserOptions?` to DistributorParser
 - `lib/scrapers/utils.ts` — add `fetchWithBrowser()` function
-- 16 parser files — add `useBrowser: true` flag
+- 15 parser files — add `useBrowser: true` flag
 - `desktop/src-tauri/Cargo.toml` — add playwright crate
 
 ### Data Flow
@@ -118,7 +118,7 @@ interface DistributorParser {
 
 ## Parser Updates
 
-### Parsers with `useBrowser: true` (16 sites)
+### Parsers with `useBrowser: true` (15 sites)
 
 | Parser | Reason | browserOptions.waitForSelector |
 |--------|--------|-------------------------------|
