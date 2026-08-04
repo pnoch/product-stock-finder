@@ -27,6 +27,10 @@ export const megaParser: DistributorParser = {
     `https://100mega.cz/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://100mega.cz"),
   rateLimitMs: 3000,
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: ".product-price, .price",
+  },
 };
 
 export async function scrapeMega(
@@ -34,7 +38,13 @@ export async function scrapeMega(
 ): Promise<ScrapeResult | null> {
   try {
     const url = megaParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, megaParser.rateLimitMs);
+    let html: string;
+    if (megaParser.useBrowser) {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      html = await fetchWithBrowser(url, megaParser.browserOptions);
+    } else {
+      html = await fetchWithRateLimit(url, megaParser.rateLimitMs);
+    }
     return parseHtml(html, url);
   } catch {
     return null;

@@ -27,6 +27,10 @@ export const mbsiwavParser: DistributorParser = {
     `https://mbsiwav.com/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://mbsiwav.com"),
   rateLimitMs: 3000,
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: ".product-views-price",
+  },
 };
 
 export async function scrapeMbsiwav(
@@ -34,7 +38,13 @@ export async function scrapeMbsiwav(
 ): Promise<ScrapeResult | null> {
   try {
     const url = mbsiwavParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, mbsiwavParser.rateLimitMs);
+    let html: string;
+    if (mbsiwavParser.useBrowser) {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      html = await fetchWithBrowser(url, mbsiwavParser.browserOptions);
+    } else {
+      html = await fetchWithRateLimit(url, mbsiwavParser.rateLimitMs);
+    }
     return parseHtml(html, url);
   } catch {
     return null;

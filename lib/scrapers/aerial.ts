@@ -22,11 +22,15 @@ function parseHtml(html: string, url: string): ScrapeResult | null {
 
 export const aerialParser: DistributorParser = {
   id: "aerial-gr",
-  baseUrl: "https://aerial.gr",
+  baseUrl: "https://aerial.net",
   buildSearchUrl: (model) =>
-    `https://aerial.gr/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://aerial.gr"),
+    `https://aerial.net/shop?q=${encodeURIComponent(model)}`,
+  parsePrice: (html) => parseHtml(html, "https://aerial.net"),
   rateLimitMs: 3000,
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: ".ac-price, .product-price",
+  },
 };
 
 export async function scrapeAerial(
@@ -34,7 +38,13 @@ export async function scrapeAerial(
 ): Promise<ScrapeResult | null> {
   try {
     const url = aerialParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, aerialParser.rateLimitMs);
+    let html: string;
+    if (aerialParser.useBrowser) {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      html = await fetchWithBrowser(url, aerialParser.browserOptions);
+    } else {
+      html = await fetchWithRateLimit(url, aerialParser.rateLimitMs);
+    }
     return parseHtml(html, url);
   } catch {
     return null;

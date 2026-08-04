@@ -22,10 +22,10 @@ function parseHtml(html: string, url: string): ScrapeResult | null {
 
 export const mikrotikstoreParser: DistributorParser = {
   id: "mikrotikstore-de",
-  baseUrl: "https://mikrotikstore.de",
+  baseUrl: "https://mikrotik-store.eu",
   buildSearchUrl: (model) =>
-    `https://mikrotikstore.de/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://mikrotikstore.de"),
+    `https://mikrotik-store.eu/en/search?q=${encodeURIComponent(model)}`,
+  parsePrice: (html) => parseHtml(html, "https://mikrotik-store.eu"),
   rateLimitMs: 3000,
 };
 

@@ -67,9 +67,11 @@ export async function fetchWithRateLimit(
 }
 
 export function parsePriceFromText(text: string): number | null {
-  const cleaned = text.replace(/[^0-9.,]/g, "").replace(/,/g, "");
+  const match = text.match(/\d[\d,]*\.?\d*/);
+  if (!match) return null;
+  const cleaned = match[0].replace(/,/g, "");
   const num = parseFloat(cleaned);
-  return isNaN(num) ? null : num;
+  return isNaN(num) || num === 0 ? null : num;
 }
 
 export function extractExpectedDate(text: string): string | undefined {

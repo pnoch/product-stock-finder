@@ -27,6 +27,10 @@ export const linktechsParser: DistributorParser = {
     `https://linktechs.com/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://linktechs.com"),
   rateLimitMs: 3000,
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: ".product-price, .price",
+  },
 };
 
 export async function scrapeLinktechs(
@@ -34,7 +38,13 @@ export async function scrapeLinktechs(
 ): Promise<ScrapeResult | null> {
   try {
     const url = linktechsParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, linktechsParser.rateLimitMs);
+    let html: string;
+    if (linktechsParser.useBrowser) {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      html = await fetchWithBrowser(url, linktechsParser.browserOptions);
+    } else {
+      html = await fetchWithRateLimit(url, linktechsParser.rateLimitMs);
+    }
     return parseHtml(html, url);
   } catch {
     return null;

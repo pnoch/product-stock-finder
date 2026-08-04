@@ -27,6 +27,10 @@ export const geticParser: DistributorParser = {
     `https://getic.gr/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://getic.gr"),
   rateLimitMs: 3000,
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: ".price, [data-testid='price']",
+  },
 };
 
 export async function scrapeGetic(
@@ -34,7 +38,13 @@ export async function scrapeGetic(
 ): Promise<ScrapeResult | null> {
   try {
     const url = geticParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, geticParser.rateLimitMs);
+    let html: string;
+    if (geticParser.useBrowser) {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      html = await fetchWithBrowser(url, geticParser.browserOptions);
+    } else {
+      html = await fetchWithRateLimit(url, geticParser.rateLimitMs);
+    }
     return parseHtml(html, url);
   } catch {
     return null;

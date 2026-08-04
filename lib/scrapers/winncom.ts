@@ -27,6 +27,10 @@ export const winncomParser: DistributorParser = {
     `https://winncom.com/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://winncom.com"),
   rateLimitMs: 3000,
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: ".product-link, .price",
+  },
 };
 
 export async function scrapeWinncom(
@@ -34,7 +38,13 @@ export async function scrapeWinncom(
 ): Promise<ScrapeResult | null> {
   try {
     const url = winncomParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, winncomParser.rateLimitMs);
+    let html: string;
+    if (winncomParser.useBrowser) {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      html = await fetchWithBrowser(url, winncomParser.browserOptions);
+    } else {
+      html = await fetchWithRateLimit(url, winncomParser.rateLimitMs);
+    }
     return parseHtml(html, url);
   } catch {
     return null;

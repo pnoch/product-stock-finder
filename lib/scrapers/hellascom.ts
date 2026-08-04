@@ -27,6 +27,10 @@ export const hellascomParser: DistributorParser = {
     `https://hellascom.gr/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://hellascom.gr"),
   rateLimitMs: 3000,
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: ".product-price, .price",
+  },
 };
 
 export async function scrapeHellascom(
@@ -34,7 +38,13 @@ export async function scrapeHellascom(
 ): Promise<ScrapeResult | null> {
   try {
     const url = hellascomParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, hellascomParser.rateLimitMs);
+    let html: string;
+    if (hellascomParser.useBrowser) {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      html = await fetchWithBrowser(url, hellascomParser.browserOptions);
+    } else {
+      html = await fetchWithRateLimit(url, hellascomParser.rateLimitMs);
+    }
     return parseHtml(html, url);
   } catch {
     return null;

@@ -27,6 +27,10 @@ export const wispParser: DistributorParser = {
     `https://wisp.net.au/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://wisp.net.au"),
   rateLimitMs: 3000,
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: ".product-price, .price",
+  },
 };
 
 export async function scrapeWisp(
@@ -34,7 +38,13 @@ export async function scrapeWisp(
 ): Promise<ScrapeResult | null> {
   try {
     const url = wispParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, wispParser.rateLimitMs);
+    let html: string;
+    if (wispParser.useBrowser) {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      html = await fetchWithBrowser(url, wispParser.browserOptions);
+    } else {
+      html = await fetchWithRateLimit(url, wispParser.rateLimitMs);
+    }
     return parseHtml(html, url);
   } catch {
     return null;

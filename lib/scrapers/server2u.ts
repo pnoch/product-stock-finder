@@ -23,7 +23,7 @@ function parseHtml(html: string, url: string): ScrapeResult | null {
 export const server2uParser: DistributorParser = {
   id: "server2u-my",
   baseUrl: "https://server2u.com",
-  buildSearchUrl: (model) => `https://server2u.com/search?q=${encodeURIComponent(model)}`,
+  buildSearchUrl: (model) => `https://server2u.com/shop?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://server2u.com"),
   rateLimitMs: 2000,
 };

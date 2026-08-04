@@ -27,6 +27,10 @@ export const pbtechParser: DistributorParser = {
     `https://pbtech.co.nz/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://pbtech.co.nz"),
   rateLimitMs: 3000,
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: ".price, .product-price",
+  },
 };
 
 export async function scrapePbtech(
@@ -34,7 +38,13 @@ export async function scrapePbtech(
 ): Promise<ScrapeResult | null> {
   try {
     const url = pbtechParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, pbtechParser.rateLimitMs);
+    let html: string;
+    if (pbtechParser.useBrowser) {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      html = await fetchWithBrowser(url, pbtechParser.browserOptions);
+    } else {
+      html = await fetchWithRateLimit(url, pbtechParser.rateLimitMs);
+    }
     return parseHtml(html, url);
   } catch {
     return null;

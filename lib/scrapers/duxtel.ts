@@ -22,10 +22,10 @@ function parseHtml(html: string, url: string): ScrapeResult | null {
 
 export const duxtelParser: DistributorParser = {
   id: "duxtel-au",
-  baseUrl: "https://duxtel.com",
+  baseUrl: "https://store.duxtel.com",
   buildSearchUrl: (model) =>
-    `https://duxtel.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://duxtel.com"),
+    `https://store.duxtel.com/search?q=${encodeURIComponent(model)}`,
+  parsePrice: (html) => parseHtml(html, "https://store.duxtel.com"),
   rateLimitMs: 3000,
 };
 

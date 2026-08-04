@@ -27,6 +27,10 @@ export const miroParser: DistributorParser = {
     `https://miro.co.za/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://miro.co.za"),
   rateLimitMs: 3000,
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: "[itemprop='price']",
+  },
 };
 
 export async function scrapeMiro(
@@ -34,7 +38,13 @@ export async function scrapeMiro(
 ): Promise<ScrapeResult | null> {
   try {
     const url = miroParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, miroParser.rateLimitMs);
+    let html: string;
+    if (miroParser.useBrowser) {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      html = await fetchWithBrowser(url, miroParser.browserOptions);
+    } else {
+      html = await fetchWithRateLimit(url, miroParser.rateLimitMs);
+    }
     return parseHtml(html, url);
   } catch {
     return null;

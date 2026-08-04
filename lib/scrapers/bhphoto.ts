@@ -27,6 +27,10 @@ export const bhphotoParser: DistributorParser = {
     `https://bhphotovideo.com/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://bhphotovideo.com"),
   rateLimitMs: 3000,
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: ".price, [data-selenium]",
+  },
 };
 
 export async function scrapeBhphoto(
@@ -34,7 +38,13 @@ export async function scrapeBhphoto(
 ): Promise<ScrapeResult | null> {
   try {
     const url = bhphotoParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, bhphotoParser.rateLimitMs);
+    let html: string;
+    if (bhphotoParser.useBrowser) {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      html = await fetchWithBrowser(url, bhphotoParser.browserOptions);
+    } else {
+      html = await fetchWithRateLimit(url, bhphotoParser.rateLimitMs);
+    }
     return parseHtml(html, url);
   } catch {
     return null;

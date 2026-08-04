@@ -27,6 +27,10 @@ export const multilinkParser: DistributorParser = {
     `https://multilink.us/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://multilink.us"),
   rateLimitMs: 3000,
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: ".product-price, .price",
+  },
 };
 
 export async function scrapeMultilink(
@@ -34,7 +38,13 @@ export async function scrapeMultilink(
 ): Promise<ScrapeResult | null> {
   try {
     const url = multilinkParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, multilinkParser.rateLimitMs);
+    let html: string;
+    if (multilinkParser.useBrowser) {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      html = await fetchWithBrowser(url, multilinkParser.browserOptions);
+    } else {
+      html = await fetchWithRateLimit(url, multilinkParser.rateLimitMs);
+    }
     return parseHtml(html, url);
   } catch {
     return null;

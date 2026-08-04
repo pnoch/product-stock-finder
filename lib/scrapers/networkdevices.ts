@@ -27,6 +27,10 @@ export const networkdevicesParser: DistributorParser = {
     `https://networkdevices.com/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://networkdevices.com"),
   rateLimitMs: 3000,
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: ".product-price, .price",
+  },
 };
 
 export async function scrapeNetworkDevices(
@@ -34,7 +38,13 @@ export async function scrapeNetworkDevices(
 ): Promise<ScrapeResult | null> {
   try {
     const url = networkdevicesParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, networkdevicesParser.rateLimitMs);
+    let html: string;
+    if (networkdevicesParser.useBrowser) {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      html = await fetchWithBrowser(url, networkdevicesParser.browserOptions);
+    } else {
+      html = await fetchWithRateLimit(url, networkdevicesParser.rateLimitMs);
+    }
     return parseHtml(html, url);
   } catch {
     return null;
