@@ -130,14 +130,13 @@ interface DistributorParser {
 | gowifi | Cloudflare | `.product-price, .price` |
 | getic | Cloudflare | `.price, [data-testid='price']` |
 | mega | Cloudflare | `.product-price, .price` |
-| aerial | Cloudflare | `.ac-price, .product-price` |
+| aerial-gr | JS-rendered | `.ac-price, .product-price` |
 | linktechs | Cloudflare | `.product-price, .price` |
 | miro | JS-rendered | `[itemprop='price']` |
 | hellascom | JS-rendered | `.product-price, .price` |
 | networkdevices | JS-rendered | `.product-price, .price` |
 | mbsiwav | JS-rendered | `.product-views-price` |
 | multilink | JS-rendered | `.product-price, .price` |
-| aerial.net | JS-rendered | `.ac-price, .product-price` |
 
 ### Parsers that stay fetch-only (5 working)
 - server2u, interprojekt, mikrotikstore, balticnetworks, duxtel
