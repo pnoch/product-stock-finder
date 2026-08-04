@@ -17,7 +17,7 @@ export interface DistributorParser {
   useBrowser?: boolean;
   browserOptions?: {
     waitForSelector?: string;
-    timeout?: number;
+    timeoutMs?: number;
   };
 }
 

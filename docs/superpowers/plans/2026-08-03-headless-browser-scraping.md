@@ -43,7 +43,7 @@ export interface DistributorParser {
   useBrowser?: boolean;
   browserOptions?: {
     waitForSelector?: string;
-    timeout?: number;
+    timeoutMs?: number;
   };
 }
 ```
@@ -103,14 +103,14 @@ export const browserPool = new BrowserPool();
 
 export async function fetchWithBrowser(
   url: string,
-  options?: { waitForSelector?: string; timeout?: number },
+  options?: { waitForSelector?: string; timeoutMs?: number },
 ): Promise<string> {
   const browser = await browserPool.acquire();
   try {
     const page = await browser.newPage();
     await page.goto(url, {
       waitUntil: "networkidle",
-      timeout: options?.timeout || 30000,
+      timeout: options?.timeoutMs || 30000,
     });
 
     if (options?.waitForSelector) {
