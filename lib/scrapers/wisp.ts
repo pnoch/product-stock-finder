@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import { DistributorParser, ScrapeResult } from "./types";
-import { fetchWithRateLimit, parsePriceFromText, inferStockStatus } from "./utils";
+import { fetchWithParser, parsePriceFromText, inferStockStatus } from "./utils";
 
 function parseHtml(html: string, url: string): ScrapeResult | null {
   const $ = cheerio.load(html);
@@ -38,13 +38,7 @@ export async function scrapeWisp(
 ): Promise<ScrapeResult | null> {
   try {
     const url = wispParser.buildSearchUrl(model);
-    let html: string;
-    if (wispParser.useBrowser) {
-      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
-      html = await fetchWithBrowser(url, wispParser.browserOptions);
-    } else {
-      html = await fetchWithRateLimit(url, wispParser.rateLimitMs);
-    }
+    const html = await fetchWithParser(wispParser, url);
     return parseHtml(html, url);
   } catch {
     return null;

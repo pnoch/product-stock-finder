@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import { DistributorParser, ScrapeResult } from "./types";
-import { fetchWithRateLimit, parsePriceFromText, inferStockStatus } from "./utils";
+import { fetchWithParser, parsePriceFromText, inferStockStatus } from "./utils";
 
 function parseHtml(html: string, url: string): ScrapeResult | null {
   const $ = cheerio.load(html);
@@ -38,13 +38,7 @@ export async function scrapeAerial(
 ): Promise<ScrapeResult | null> {
   try {
     const url = aerialParser.buildSearchUrl(model);
-    let html: string;
-    if (aerialParser.useBrowser) {
-      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
-      html = await fetchWithBrowser(url, aerialParser.browserOptions);
-    } else {
-      html = await fetchWithRateLimit(url, aerialParser.rateLimitMs);
-    }
+    const html = await fetchWithParser(aerialParser, url);
     return parseHtml(html, url);
   } catch {
     return null;
