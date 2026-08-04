@@ -3,20 +3,35 @@ import { chromium, Browser } from "playwright";
 class BrowserPool {
   private browsers: Browser[] = [];
   private maxPoolSize = 3;
+  private maxRetries = 30; // 3 seconds max wait
 
   async acquire(): Promise<Browser> {
     if (this.browsers.length > 0) {
       return this.browsers.pop()!;
     }
     if (this.browsers.length < this.maxPoolSize) {
-      return chromium.launch({ headless: true });
+      try {
+        return await chromium.launch({ headless: true });
+      } catch (error) {
+        throw new Error(
+          `Failed to launch browser: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     }
-    await new Promise((r) => setTimeout(r, 100));
-    return this.acquire();
+    // Wait for a browser to be released
+    for (let i = 0; i < this.maxRetries; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      if (this.browsers.length > 0) {
+        return this.browsers.pop()!;
+      }
+    }
+    throw new Error("Browser pool exhausted: no browsers available after waiting");
   }
 
   release(browser: Browser): void {
-    this.browsers.push(browser);
+    if (browser.isConnected()) {
+      this.browsers.push(browser);
+    }
   }
 
   async shutdown(): Promise<void> {
@@ -34,8 +49,9 @@ export async function fetchWithBrowser(
   options?: { waitForSelector?: string; timeoutMs?: number },
 ): Promise<string> {
   const browser = await browserPool.acquire();
+  let page;
   try {
-    const page = await browser.newPage();
+    page = await browser.newPage();
     await page.goto(url, {
       waitUntil: "networkidle",
       timeout: options?.timeoutMs || 30000,
@@ -45,10 +61,11 @@ export async function fetchWithBrowser(
       await page.waitForSelector(options.waitForSelector, { timeout: 10000 });
     }
 
-    const html = await page.content();
-    await page.close();
-    return html;
+    return await page.content();
   } finally {
+    if (page) {
+      await page.close();
+    }
     browserPool.release(browser);
   }
 }
