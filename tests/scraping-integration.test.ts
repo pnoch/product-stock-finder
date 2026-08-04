@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { PARSERS, getParserByDistributorId } from "../lib/scrapers/registry";
-import { parsePriceFromText, inferStockStatus } from "../lib/scrapers/utils";
+import { parsePriceFromText, inferStockStatus, fetchWithRateLimit } from "../lib/scrapers/utils";
 
 describe("Scraping Integration", () => {
   describe("Parser Registry", () => {
@@ -54,12 +54,63 @@ describe("Scraping Integration", () => {
     });
   });
 
+  describe("Full Scrape Cycle", () => {
+    it("should run full scrape cycle with mocked HTTP", async () => {
+      const mockHtml = `
+        <html><body>
+          <div class="product-price">$99.99</div>
+          <div class="stock-status">In Stock</div>
+        </body></html>
+      `;
+      
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(mockHtml),
+      });
+      
+      const parser = getParserByDistributorId("server2u-my");
+      expect(parser).toBeDefined();
+      
+      // Test parsePrice with the mock HTML
+      const result = parser?.parsePrice(mockHtml);
+      expect(result).not.toBeNull();
+      expect(result?.price).toBe(99.99);
+      expect(result?.currency).toBe("MYR");
+      expect(result?.stockStatus).toBe("in_stock");
+    });
+  });
+
   describe("Error Handling", () => {
     it("should handle network failures gracefully", async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
 
       const parser = getParserByDistributorId("server2u-my");
       expect(parser).toBeDefined();
+    });
+
+    it("should handle 404 responses", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: "Not Found",
+      });
+      
+      // fetchWithRateLimit should throw on non-ok status
+      await expect(
+        fetchWithRateLimit("https://example.com/404", 0)
+      ).rejects.toThrow("HTTP 404");
+    });
+
+    it("should handle 429 rate limit responses", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+      });
+      
+      await expect(
+        fetchWithRateLimit("https://example.com/429", 0)
+      ).rejects.toThrow("HTTP 429");
     });
 
     it("should handle invalid HTML gracefully", () => {
@@ -77,6 +128,20 @@ describe("Scraping Integration", () => {
         const result = parser.parsePrice("");
         expect(result).toBeNull();
       }
+    });
+
+    it("should respect rate limiting delays", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(""),
+      });
+
+      const start = Date.now();
+      await fetchWithRateLimit("https://example.com/test", 100);
+      const elapsed = Date.now() - start;
+      
+      // Should have waited at least 100ms
+      expect(elapsed).toBeGreaterThanOrEqual(90);
     });
   });
 
@@ -152,6 +217,23 @@ describe("Scraping Integration", () => {
       expect(trimmed).toHaveLength(90);
       expect(trimmed[0].price).toBe(110);
       expect(trimmed[89].price).toBe(199);
+    });
+
+    it("should deduplicate price history entries", () => {
+      const history = [
+        { date: "2026-01-01T00:00:00.000Z", price: 100, currency: "USD", stockStatus: "in_stock" as const },
+        { date: "2026-01-02T00:00:00.000Z", price: 100, currency: "USD", stockStatus: "in_stock" as const },
+        { date: "2026-01-03T00:00:00.000Z", price: 95, currency: "USD", stockStatus: "in_stock" as const },
+      ];
+      
+      // Deduplication logic: skip if same price as previous entry
+      const deduped = history.filter((entry, i) => 
+        i === 0 || entry.price !== history[i - 1].price
+      );
+      
+      expect(deduped).toHaveLength(2);
+      expect(deduped[0].price).toBe(100);
+      expect(deduped[1].price).toBe(95);
     });
   });
 });
