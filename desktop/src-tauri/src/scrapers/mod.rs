@@ -1,6 +1,7 @@
 pub mod aerial;
 pub mod bhphoto;
 pub mod balticnetworks;
+pub mod browser;
 pub mod duxtel;
 pub mod flytec;
 pub mod getic;
