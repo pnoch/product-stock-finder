@@ -33,4 +33,13 @@ describe("Gearup Parser", () => {
     const result = gearupParser.parsePrice("<html><body>No price here</body></html>");
     expect(result).toBeNull();
   });
+
+  it("should extract price, stock status, and currency from valid HTML", () => {
+    const html = `<div><span class="price">1099.00 AED</span><span class="stock-status">In Stock</span></div>`;
+    const result = gearupParser.parsePrice(html);
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(1099.00);
+    expect(result!.currency).toBe("AED");
+    expect(result!.stockStatus).toBe("in_stock");
+  });
 });

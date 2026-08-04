@@ -1,13 +1,17 @@
 import { Product } from "./types";
 
-export const PRODUCT_CATALOG: Omit<Product, "addedAt" | "isWatched" | "listings">[] = [
+export const PRODUCT_CATALOG: Omit<
+  Product,
+  "addedAt" | "isWatched" | "listings"
+>[] = [
   {
     id: "mikrotik-crs804-4ddq-hrm",
     name: "MikroTik CRS804-4DDQ-hRM",
     modelNumber: "CRS804-4DDQ-hRM",
     brand: "MikroTik",
     category: "Networking Switch",
-    description: "400G Cloud Router Switch with 4x QSFP-DD ports, 2x 10G Ethernet, RouterOS v7. Ideal for AI/GPU clusters and high-performance aggregation.",
+    description:
+      "400G Cloud Router Switch with 4x QSFP-DD ports, 2x 10G Ethernet, RouterOS v7. Ideal for AI/GPU clusters and high-performance aggregation.",
   },
   {
     id: "mikrotik-ccr2216",
@@ -31,7 +35,8 @@ export const PRODUCT_CATALOG: Omit<Product, "addedAt" | "isWatched" | "listings"
     modelNumber: "RB5009UG+S+IN",
     brand: "MikroTik",
     category: "Router",
-    description: "High-performance router with 7x Gigabit, 1x 2.5G, 1x SFP+ ports.",
+    description:
+      "High-performance router with 7x Gigabit, 1x 2.5G, 1x SFP+ ports.",
   },
   {
     id: "mikrotik-hex-s",
@@ -47,7 +52,8 @@ export const PRODUCT_CATALOG: Omit<Product, "addedAt" | "isWatched" | "listings"
     modelNumber: "UDM-PRO",
     brand: "Ubiquiti",
     category: "Network Gateway",
-    description: "Enterprise network appliance with 10G SFP+ WAN and 8-port Gigabit switch.",
+    description:
+      "Enterprise network appliance with 10G SFP+ WAN and 8-port Gigabit switch.",
   },
   {
     id: "ubiquiti-usw-pro-48",
@@ -103,7 +109,8 @@ export const PRODUCT_CATALOG: Omit<Product, "addedAt" | "isWatched" | "listings"
     modelNumber: "CRS326-24S+2Q+RM",
     brand: "MikroTik",
     category: "Networking Switch",
-    description: "24x 10G SFP+ and 2x 40G QSFP+ rack-mount cloud router switch.",
+    description:
+      "24x 10G SFP+ and 2x 40G QSFP+ rack-mount cloud router switch.",
   },
   {
     id: "mikrotik-ccr2004",
@@ -119,7 +126,8 @@ export const PRODUCT_CATALOG: Omit<Product, "addedAt" | "isWatched" | "listings"
     modelNumber: "USG-PRO-4",
     brand: "Ubiquiti",
     category: "Network Gateway",
-    description: "Enterprise gateway with dual Gigabit SFP WAN and 2x Gigabit LAN ports.",
+    description:
+      "Enterprise gateway with dual Gigabit SFP WAN and 2x Gigabit LAN ports.",
   },
   {
     id: "netgear-m4300-96x",
@@ -135,7 +143,8 @@ export const PRODUCT_CATALOG: Omit<Product, "addedAt" | "isWatched" | "listings"
     modelNumber: "S5860-20SQ",
     brand: "FS.com",
     category: "Networking Switch",
-    description: "20-port 25G SFP28 switch with 2x 100G QSFP28 uplinks, ONIE support.",
+    description:
+      "20-port 25G SFP28 switch with 2x 100G QSFP28 uplinks, ONIE support.",
   },
 ];
 
@@ -146,6 +155,6 @@ export function searchCatalog(query: string): typeof PRODUCT_CATALOG {
       p.name.toLowerCase().includes(q) ||
       p.modelNumber.toLowerCase().includes(q) ||
       p.brand.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q)
+      p.category.toLowerCase().includes(q),
   );
 }

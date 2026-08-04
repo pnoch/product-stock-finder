@@ -17,4 +17,13 @@ describe("Neobits Parser", () => {
     const result = neobitsParser.parsePrice("<html><body>No price here</body></html>");
     expect(result).toBeNull();
   });
+
+  it("should extract price, stock status, and currency from valid HTML", () => {
+    const html = `<div><span class="price">$249.99</span><span class="stock-status">In Stock</span></div>`;
+    const result = neobitsParser.parsePrice(html);
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(249.99);
+    expect(result!.currency).toBe("USD");
+    expect(result!.stockStatus).toBe("in_stock");
+  });
 });

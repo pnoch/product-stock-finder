@@ -17,4 +17,13 @@ describe("Flytec Parser", () => {
     const result = flytecParser.parsePrice("<html><body>No price here</body></html>");
     expect(result).toBeNull();
   });
+
+  it("should extract price, stock status, and currency from valid HTML", () => {
+    const html = `<div><span class="price">$449.99</span><span class="stock-status">In Stock</span></div>`;
+    const result = flytecParser.parsePrice(html);
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(449.99);
+    expect(result!.currency).toBe("USD");
+    expect(result!.stockStatus).toBe("in_stock");
+  });
 });

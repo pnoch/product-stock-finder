@@ -33,4 +33,13 @@ describe("Gowifi Parser", () => {
     const result = gowifiParser.parsePrice("<html><body>No price here</body></html>");
     expect(result).toBeNull();
   });
+
+  it("should extract price, stock status, and currency from valid HTML", () => {
+    const html = `<div><span class="price">NZ$549.00</span><span class="stock-status">In Stock</span></div>`;
+    const result = gowifiParser.parsePrice(html);
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(549.00);
+    expect(result!.currency).toBe("NZD");
+    expect(result!.stockStatus).toBe("in_stock");
+  });
 });

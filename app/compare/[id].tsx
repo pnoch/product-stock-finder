@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ScrollView, Text, View, TouchableOpacity, Dimensions, Platform, Alert as RNAlert } from "react-native";
+import {
+  ScrollView,
+  Text,
+  View,
+  TouchableOpacity,
+  Dimensions,
+  Platform,
+  Alert as RNAlert,
+  ActivityIndicator,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Svg, { Polyline, Circle, Line, Text as SvgText } from "react-native-svg";
@@ -7,9 +16,13 @@ import Svg, { Polyline, Circle, Line, Text as SvgText } from "react-native-svg";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { getWatchlist, addAlert } from "@/lib/storage";
-import { schedulePriceAlert, requestNotificationPermissions } from "@/lib/notifications";
+import {
+  schedulePriceAlert,
+  requestNotificationPermissions,
+} from "@/lib/notifications";
 import { SAMPLE_LISTINGS } from "@/lib/sample-data";
-import { DistributorListing, PricePoint } from "@/lib/types";
+import { PRODUCT_CATALOG } from "@/lib/catalog";
+import { DistributorListing, PricePoint, PriceAlert } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -21,7 +34,12 @@ const CHART_COLORS = ["#0a7ea4", "#22C55E", "#F59E0B", "#EF4444", "#8B5CF6"];
 type TimeRange = "1W" | "1M" | "3M" | "All";
 const TIME_RANGES: TimeRange[] = ["1W", "1M", "3M", "All"];
 type SortBy = "trend" | "price" | "name";
-const TIME_RANGE_DAYS: Record<TimeRange, number> = { "1W": 7, "1M": 30, "3M": 90, "All": 9999 };
+const TIME_RANGE_DAYS: Record<TimeRange, number> = {
+  "1W": 7,
+  "1M": 30,
+  "3M": 90,
+  All: 9999,
+};
 
 function filterByRange(data: PricePoint[], range: TimeRange): PricePoint[] {
   if (range === "All") return data;
@@ -35,13 +53,21 @@ function MultiLineChart({
   width,
   height,
 }: {
-  series: { label: string; color: string; data: PricePoint[]; currency: string }[];
+  series: {
+    label: string;
+    color: string;
+    data: PricePoint[];
+    currency: string;
+  }[];
   width: number;
   height: number;
 }) {
   const colors = useColors();
   const { allCoords, globalMin, globalMax } = useMemo(() => {
-    const padL = 56, padR = 16, padT = 24, padB = 44;
+    const padL = 56,
+      padR = 16,
+      padT = 24,
+      padB = 44;
     const usableW = width - padL - padR;
     const usableH = height - padT - padB;
 
@@ -51,7 +77,8 @@ function MultiLineChart({
         allPricesUSD.push(convertPrice(p.price, p.currency, "USD"));
       }
     }
-    if (allPricesUSD.length === 0) return { allCoords: [], globalMin: 0, globalMax: 0 };
+    if (allPricesUSD.length === 0)
+      return { allCoords: [], globalMin: 0, globalMax: 0 };
 
     const globalMin = Math.min(...allPricesUSD);
     const globalMax = Math.max(...allPricesUSD);
@@ -66,20 +93,30 @@ function MultiLineChart({
     const dateRange = maxDate - minDate || 1;
 
     const allCoords = series.map((s) => {
-      const sorted = [...s.data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const sorted = [...s.data].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      );
       const coords = sorted.map((p) => {
         const usd = convertPrice(p.price, p.currency, "USD");
-        const x = padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
+        const x =
+          padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
         const y = padT + (1 - (usd - globalMin) / range) * usableH;
         return { x, y, price: p.price, usd, date: p.date };
       });
-      return { ...s, coords, polylineStr: coords.map((c) => `${c.x},${c.y}`).join(" ") };
+      return {
+        ...s,
+        coords,
+        polylineStr: coords.map((c) => `${c.x},${c.y}`).join(" "),
+      };
     });
 
     return { allCoords, globalMin, globalMax };
   }, [series, width, height]);
 
-  const padL = 56, padT = 24, padB = 44, usableH = height - padT - padB;
+  const padL = 56,
+    padT = 24,
+    padB = 44,
+    usableH = height - padT - padB;
   const midP = (globalMin + globalMax) / 2;
   const midY = padT + usableH / 2;
   const minY = padT + usableH;
@@ -87,8 +124,17 @@ function MultiLineChart({
 
   if (allCoords.length === 0) {
     return (
-      <View style={{ width, height, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ color: colors.muted, fontSize: 13 }}>No price history data</Text>
+      <View
+        style={{
+          width,
+          height,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Text style={{ color: colors.muted, fontSize: 13 }}>
+          No price history data
+        </Text>
       </View>
     );
   }
@@ -96,36 +142,115 @@ function MultiLineChart({
   return (
     <Svg width={width} height={height}>
       {[maxY, midY, minY].map((y, i) => (
-        <Line key={i} x1={padL} y1={y} x2={width - 16} y2={y} stroke={colors.border} strokeWidth={0.5} strokeDasharray="4,4" />
+        <Line
+          key={i}
+          x1={padL}
+          y1={y}
+          x2={width - 16}
+          y2={y}
+          stroke={colors.border}
+          strokeWidth={0.5}
+          strokeDasharray="4,4"
+        />
       ))}
-      <SvgText x={padL - 6} y={maxY + 4} fontSize={9} fill={colors.muted} textAnchor="end">${globalMax.toFixed(0)}</SvgText>
-      <SvgText x={padL - 6} y={midY + 4} fontSize={9} fill={colors.muted} textAnchor="end">${midP.toFixed(0)}</SvgText>
-      <SvgText x={padL - 6} y={minY + 4} fontSize={9} fill={colors.muted} textAnchor="end">${globalMin.toFixed(0)}</SvgText>
+      <SvgText
+        x={padL - 6}
+        y={maxY + 4}
+        fontSize={9}
+        fill={colors.muted}
+        textAnchor="end"
+      >
+        ${globalMax.toFixed(0)}
+      </SvgText>
+      <SvgText
+        x={padL - 6}
+        y={midY + 4}
+        fontSize={9}
+        fill={colors.muted}
+        textAnchor="end"
+      >
+        ${midP.toFixed(0)}
+      </SvgText>
+      <SvgText
+        x={padL - 6}
+        y={minY + 4}
+        fontSize={9}
+        fill={colors.muted}
+        textAnchor="end"
+      >
+        ${globalMin.toFixed(0)}
+      </SvgText>
       {allCoords.map((s) => (
         <>
-          <Polyline key={`line-${s.label}`} points={s.polylineStr} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          <Polyline
+            key={`line-${s.label}`}
+            points={s.polylineStr}
+            fill="none"
+            stroke={s.color}
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
           {s.coords.map((c, i) => (
-            <Circle key={`dot-${s.label}-${i}`} cx={c.x} cy={c.y} r={3} fill={s.color} />
+            <Circle
+              key={`dot-${s.label}-${i}`}
+              cx={c.x}
+              cy={c.y}
+              r={3}
+              fill={s.color}
+            />
           ))}
         </>
       ))}
-      {allCoords[0]?.coords && (() => {
-        const coords = allCoords[0].coords;
-        const indices = [0, Math.floor((coords.length - 1) / 2), coords.length - 1];
-        return indices.map((idx) => {
-          const c = coords[idx];
-          const label = new Date(c.date).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-          return <SvgText key={idx} x={c.x} y={height - padB + 16} fontSize={9} fill={colors.muted} textAnchor="middle">{label}</SvgText>;
-        });
-      })()}
+      {allCoords[0]?.coords &&
+        (() => {
+          const coords = allCoords[0].coords;
+          const indices = [
+            0,
+            Math.floor((coords.length - 1) / 2),
+            coords.length - 1,
+          ];
+          return indices.map((idx) => {
+            const c = coords[idx];
+            const label = new Date(c.date).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            });
+            return (
+              <SvgText
+                key={idx}
+                x={c.x}
+                y={height - padB + 16}
+                fontSize={9}
+                fill={colors.muted}
+                textAnchor="middle"
+              >
+                {label}
+              </SvgText>
+            );
+          });
+        })()}
     </Svg>
   );
 }
 
 // ─── Cheapest Region Card ─────────────────────────────────────────────────────
-function CheapestRegionCard({ listings, colors }: { listings: DistributorListing[]; colors: ReturnType<typeof useColors> }) {
+function CheapestRegionCard({
+  listings,
+  colors,
+}: {
+  listings: DistributorListing[];
+  colors: ReturnType<typeof useColors>;
+}) {
   const regionBest = useMemo(() => {
-    const map = new Map<string, { listing: DistributorListing; usd: number; distributor: ReturnType<typeof getDistributorById> }>();
+    const map = new Map<
+      string,
+      {
+        listing: DistributorListing;
+        usd: number;
+        distributor: ReturnType<typeof getDistributorById>;
+      }
+    >();
     for (const l of listings) {
       const dist = getDistributorById(l.distributorId);
       if (!dist) continue;
@@ -144,8 +269,27 @@ function CheapestRegionCard({ listings, colors }: { listings: DistributorListing
   if (regionBest.length === 0) return null;
 
   return (
-    <View style={{ marginHorizontal: 16, backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>
-      <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15, marginBottom: 12 }}>Cheapest by Region</Text>
+    <View
+      style={{
+        marginHorizontal: 16,
+        backgroundColor: colors.surface,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
+        marginBottom: 16,
+      }}
+    >
+      <Text
+        style={{
+          color: colors.foreground,
+          fontWeight: "700",
+          fontSize: 15,
+          marginBottom: 12,
+        }}
+      >
+        Cheapest by Region
+      </Text>
       {regionBest.map((item, i) => {
         const isCheapest = i === 0;
         return (
@@ -160,12 +304,30 @@ function CheapestRegionCard({ listings, colors }: { listings: DistributorListing
             }}
           >
             {isCheapest && (
-              <View style={{ backgroundColor: "#F59E0B22", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, marginRight: 8 }}>
-                <Text style={{ fontSize: 10, color: "#F59E0B", fontWeight: "700" }}>BEST</Text>
+              <View
+                style={{
+                  backgroundColor: "#F59E0B22",
+                  borderRadius: 8,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  marginRight: 8,
+                }}
+              >
+                <Text
+                  style={{ fontSize: 10, color: "#F59E0B", fontWeight: "700" }}
+                >
+                  BEST
+                </Text>
               </View>
             )}
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }}>
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontWeight: "600",
+                  fontSize: 13,
+                }}
+              >
                 {item.distributor?.countryFlag} {item.region}
               </Text>
               <Text style={{ color: colors.muted, fontSize: 11, marginTop: 1 }}>
@@ -173,18 +335,47 @@ function CheapestRegionCard({ listings, colors }: { listings: DistributorListing
               </Text>
             </View>
             <View style={{ alignItems: "flex-end" }}>
-              <Text style={{ color: isCheapest ? colors.success : colors.foreground, fontWeight: "700", fontSize: 14 }}>
+              <Text
+                style={{
+                  color: isCheapest ? colors.success : colors.foreground,
+                  fontWeight: "700",
+                  fontSize: 14,
+                }}
+              >
                 {formatPrice(item.listing.price, item.listing.currency)}
               </Text>
               {item.listing.currency !== "USD" && (
-                <Text style={{ color: colors.muted, fontSize: 11 }}>≈ ${item.usd.toFixed(0)}</Text>
+                <Text style={{ color: colors.muted, fontSize: 11 }}>
+                  ≈ ${item.usd.toFixed(0)}
+                </Text>
               )}
-              <View style={{
-                backgroundColor: item.listing.stockStatus === "in_stock" ? colors.success + "22" : colors.warning + "22",
-                borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2,
-              }}>
-                <Text style={{ color: item.listing.stockStatus === "in_stock" ? colors.success : colors.warning, fontSize: 10, fontWeight: "600" }}>
-                  {item.listing.stockStatus === "in_stock" ? "In Stock" : item.listing.stockStatus === "back_order" ? "Back Order" : "Out of Stock"}
+              <View
+                style={{
+                  backgroundColor:
+                    item.listing.stockStatus === "in_stock"
+                      ? colors.success + "22"
+                      : colors.warning + "22",
+                  borderRadius: 8,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  marginTop: 2,
+                }}
+              >
+                <Text
+                  style={{
+                    color:
+                      item.listing.stockStatus === "in_stock"
+                        ? colors.success
+                        : colors.warning,
+                    fontSize: 10,
+                    fontWeight: "600",
+                  }}
+                >
+                  {item.listing.stockStatus === "in_stock"
+                    ? "In Stock"
+                    : item.listing.stockStatus === "back_order"
+                      ? "Back Order"
+                      : "Out of Stock"}
                 </Text>
               </View>
             </View>
@@ -205,38 +396,71 @@ export default function CompareScreen() {
   const [productName, setProductName] = useState("");
   const [timeRange, setTimeRange] = useState<TimeRange>("3M");
   const [sortBy, setSortBy] = useState<SortBy>("trend");
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const chartWidth = Dimensions.get("window").width - 32;
 
   useEffect(() => {
     getWatchlist().then((wl) => {
       const product = wl.find((p) => p.id === id);
-      if (!product) return;
+      if (!product) {
+        // Fall back to sample data so Compare still works without a watchlist visit
+        const sampleLs = SAMPLE_LISTINGS[id as string] ?? [];
+        if (sampleLs.length === 0) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        setProductName(
+          PRODUCT_CATALOG.find((p) => p.id === id)?.name ?? (id as string),
+        );
+        setListings(sampleLs);
+        const withHistory = sampleLs.filter(
+          (l) => l.priceHistory && l.priceHistory.length >= 2,
+        );
+        setSelected(
+          new Set(withHistory.slice(0, 3).map((l) => l.distributorId)),
+        );
+        setLoading(false);
+        return;
+      }
       setProductName(product.name);
       let ls = product.listings ?? [];
-      const hasHistory = ls.some((l) => l.priceHistory && l.priceHistory.length >= 2);
+      const hasHistory = ls.some(
+        (l) => l.priceHistory && l.priceHistory.length >= 2,
+      );
       if (!hasHistory) {
         const sampleLs = SAMPLE_LISTINGS[id as string] ?? [];
         if (sampleLs.length > 0) {
-          ls = ls.length > 0
-            ? ls.map((l) => {
-                if (!l.priceHistory || l.priceHistory.length < 2) {
-                  const sample = sampleLs.find((s) => s.distributorId === l.distributorId);
-                  return sample ? { ...l, priceHistory: sample.priceHistory } : l;
-                }
-                return l;
-              })
-            : sampleLs;
+          ls =
+            ls.length > 0
+              ? ls.map((l) => {
+                  if (!l.priceHistory || l.priceHistory.length < 2) {
+                    const sample = sampleLs.find(
+                      (s) => s.distributorId === l.distributorId,
+                    );
+                    return sample
+                      ? { ...l, priceHistory: sample.priceHistory }
+                      : l;
+                  }
+                  return l;
+                })
+              : sampleLs;
         }
       }
       setListings(ls);
-      const withHistory = ls.filter((l) => l.priceHistory && l.priceHistory.length >= 2);
+      const withHistory = ls.filter(
+        (l) => l.priceHistory && l.priceHistory.length >= 2,
+      );
       const preSelect = withHistory.slice(0, 3).map((l) => l.distributorId);
       setSelected(new Set(preSelect));
+      setLoading(false);
     });
   }, [id]);
 
   const toggleSelect = useCallback((distributorId: string) => {
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(distributorId)) {
@@ -249,37 +473,58 @@ export default function CompareScreen() {
   }, []);
 
   const setRange = useCallback((r: TimeRange) => {
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setTimeRange(r);
   }, []);
 
   const setSortByMode = useCallback((s: SortBy) => {
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSortBy(s);
   }, []);
 
   const handleCrossAlert = useCallback(async () => {
     const inStock = listings.filter((l) => l.stockStatus === "in_stock");
-    if (inStock.length === 0) { RNAlert.alert("No in-stock distributors", "There are no in-stock distributors to set an alert for."); return; }
-    const bestUSD = Math.min(...inStock.map((l) => convertPrice(l.price, l.currency, "USD")));
+    if (inStock.length === 0) {
+      RNAlert.alert(
+        "No in-stock distributors",
+        "There are no in-stock distributors to set an alert for.",
+      );
+      return;
+    }
+    const bestUSD = Math.min(
+      ...inStock.map((l) => convertPrice(l.price, l.currency, "USD")),
+    );
     const targetUSD = parseFloat((bestUSD * 0.95).toFixed(2));
-    const bestListing = inStock.find((l) => convertPrice(l.price, l.currency, "USD") === bestUSD)!;
+    const bestListing = inStock.find(
+      (l) => convertPrice(l.price, l.currency, "USD") === bestUSD,
+    )!;
     const dist = getDistributorById(bestListing.distributorId);
-    await requestNotificationPermissions();
-    const alert = {
+    const granted = await requestNotificationPermissions();
+    if (!granted) {
+      RNAlert.alert(
+        "Permission Denied",
+        "Please enable notifications in your device settings to receive price alerts.",
+      );
+      return;
+    }
+    const alert: PriceAlert = {
       id: `cross-${id}-${Date.now()}`,
       productId: id as string,
       distributorId: bestListing.distributorId,
       targetPrice: targetUSD,
       currency: "USD",
       createdAt: new Date().toISOString(),
-      triggered: false,
       isActive: true,
     };
     await addAlert(alert);
-    await schedulePriceAlert(dist?.name ?? bestListing.distributorId, targetUSD, "USD");
-    RNAlert.alert("Alert Set!", `You'll be notified when any distributor drops below $${targetUSD.toFixed(2)} (5% below current best of $${bestUSD.toFixed(2)}).`);
-  }, [listings, id]);
+    await schedulePriceAlert(productName || "Product", targetUSD, "USD");
+    RNAlert.alert(
+      "Alert Set!",
+      `You'll be notified when any distributor drops below $${targetUSD.toFixed(2)} (5% below current best of $${bestUSD.toFixed(2)} at ${dist?.name ?? bestListing.distributorId}).`,
+    );
+  }, [listings, id, productName]);
 
   const priceTrends = useMemo(() => {
     const map = new Map<string, { pct: number; dir: "up" | "down" | "flat" }>();
@@ -288,31 +533,55 @@ export default function CompareScreen() {
         map.set(l.distributorId, { pct: 0, dir: "flat" });
         continue;
       }
-      const sorted = [...l.priceHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const sorted = [...l.priceHistory].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      );
       const oldest = sorted[0].price;
       const current = l.price;
       const pct = ((current - oldest) / oldest) * 100;
-      map.set(l.distributorId, { pct: Math.abs(pct), dir: pct > 0.5 ? "up" : pct < -0.5 ? "down" : "flat" });
+      map.set(l.distributorId, {
+        pct: Math.abs(pct),
+        dir: pct > 0.5 ? "up" : pct < -0.5 ? "down" : "flat",
+      });
     }
     return map;
   }, [listings]);
 
   const sortedListings = useMemo(() => {
     const ls = [...listings];
-    if (sortBy === "price") return ls.sort((a, b) => convertPrice(a.price, a.currency, "USD") - convertPrice(b.price, b.currency, "USD"));
-    if (sortBy === "name") return ls.sort((a, b) => (getDistributorById(a.distributorId)?.name ?? a.distributorId).localeCompare(getDistributorById(b.distributorId)?.name ?? b.distributorId));
+    if (sortBy === "price")
+      return ls.sort(
+        (a, b) =>
+          convertPrice(a.price, a.currency, "USD") -
+          convertPrice(b.price, b.currency, "USD"),
+      );
+    if (sortBy === "name")
+      return ls.sort((a, b) =>
+        (
+          getDistributorById(a.distributorId)?.name ?? a.distributorId
+        ).localeCompare(
+          getDistributorById(b.distributorId)?.name ?? b.distributorId,
+        ),
+      );
     // trend: biggest drop first
     return ls.sort((a, b) => {
       const ta = priceTrends.get(a.distributorId);
       const tb = priceTrends.get(b.distributorId);
-      const scoreA = ta?.dir === "down" ? ta.pct : ta?.dir === "up" ? -ta.pct : 0;
-      const scoreB = tb?.dir === "down" ? tb.pct : tb?.dir === "up" ? -tb.pct : 0;
+      const scoreA =
+        ta?.dir === "down" ? ta.pct : ta?.dir === "up" ? -ta.pct : 0;
+      const scoreB =
+        tb?.dir === "down" ? tb.pct : tb?.dir === "up" ? -tb.pct : 0;
       return scoreB - scoreA;
     });
   }, [listings, sortBy, priceTrends]);
 
   const chartSeries = useMemo(() => {
-    const selectedListings = listings.filter((l) => selected.has(l.distributorId) && l.priceHistory && l.priceHistory.length >= 2);
+    const selectedListings = listings.filter(
+      (l) =>
+        selected.has(l.distributorId) &&
+        l.priceHistory &&
+        l.priceHistory.length >= 2,
+    );
     return selectedListings.map((l, i) => {
       const distributor = getDistributorById(l.distributorId);
       const filtered = filterByRange(l.priceHistory!, timeRange);
@@ -325,196 +594,573 @@ export default function CompareScreen() {
     });
   }, [listings, selected, timeRange]);
 
-
   return (
     <ScreenContainer>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Header */}
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, gap: 12 }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
-            <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "700" }} numberOfLines={1}>Compare Prices</Text>
-            <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }} numberOfLines={1}>{productName}</Text>
-          </View>
+      {loading ? (
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
+      ) : notFound ? (
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: 32,
+          }}
+        >
+          <IconSymbol name="magnifyingglass" size={40} color={colors.muted} />
+          <Text
+            style={{
+              color: colors.foreground,
+              fontSize: 16,
+              fontWeight: "600",
+              marginTop: 12,
+            }}
+          >
+            Product not found
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{ marginTop: 16 }}
+          >
+            <Text style={{ color: colors.primary, fontWeight: "600" }}>
+              Go back
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+          {/* Header */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 16,
+              paddingTop: 8,
+              paddingBottom: 16,
+              gap: 12,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{ padding: 4 }}
+            >
+              <IconSymbol
+                name="arrow.left"
+                size={24}
+                color={colors.foreground}
+              />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontSize: 18,
+                  fontWeight: "700",
+                }}
+                numberOfLines={1}
+              >
+                Compare Prices
+              </Text>
+              <Text
+                style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}
+                numberOfLines={1}
+              >
+                {productName}
+              </Text>
+            </View>
+          </View>
 
-        {/* Chart card */}
-        <View style={{ marginHorizontal: 16, backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-            <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}>Price History (USD)</Text>
-            {/* Time-range chips */}
-            <View style={{ flexDirection: "row", gap: 4 }}>
-              {TIME_RANGES.map((r) => {
-                const active = r === timeRange;
-                return (
+          {/* Chart card */}
+          <View
+            style={{
+              marginHorizontal: 16,
+              backgroundColor: colors.surface,
+              borderRadius: 16,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: colors.border,
+              marginBottom: 16,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 4,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontWeight: "700",
+                  fontSize: 15,
+                }}
+              >
+                Price History (USD)
+              </Text>
+              {/* Time-range chips */}
+              <View style={{ flexDirection: "row", gap: 4 }}>
+                {TIME_RANGES.map((r) => {
+                  const active = r === timeRange;
+                  return (
+                    <TouchableOpacity
+                      key={r}
+                      onPress={() => setRange(r)}
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 8,
+                        backgroundColor: active
+                          ? colors.primary
+                          : colors.border + "44",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: active ? "#fff" : colors.muted,
+                          fontSize: 11,
+                          fontWeight: "600",
+                        }}
+                      >
+                        {r}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+            <Text
+              style={{ color: colors.muted, fontSize: 12, marginBottom: 12 }}
+            >
+              Select up to 5 distributors to overlay
+            </Text>
+            {chartSeries.length >= 2 ? (
+              <MultiLineChart
+                series={chartSeries}
+                width={chartWidth}
+                height={220}
+              />
+            ) : (
+              <View
+                style={{
+                  height: 120,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <IconSymbol
+                  name="chart.bar.xaxis"
+                  size={36}
+                  color={colors.muted}
+                />
+                <Text
+                  style={{
+                    color: colors.muted,
+                    fontSize: 13,
+                    marginTop: 8,
+                    textAlign: "center",
+                  }}
+                >
+                  Select at least 2 distributors{"\n"}with price history to
+                  compare
+                </Text>
+              </View>
+            )}
+            {/* Legend */}
+            {chartSeries.length > 0 && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  marginTop: 12,
+                }}
+              >
+                {chartSeries.map((s) => (
+                  <View
+                    key={s.label}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: 5,
+                        backgroundColor: s.color,
+                      }}
+                    />
+                    <Text style={{ color: colors.muted, fontSize: 11 }}>
+                      {s.label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* Cheapest Region summary */}
+          <CheapestRegionCard listings={listings} colors={colors} />
+
+          {/* Cross-distributor alert CTA */}
+          {listings.some((l) => l.stockStatus === "in_stock") &&
+            (() => {
+              const inStock = listings.filter(
+                (l) => l.stockStatus === "in_stock",
+              );
+              const bestUSD = Math.min(
+                ...inStock.map((l) => convertPrice(l.price, l.currency, "USD")),
+              );
+              return (
+                <TouchableOpacity
+                  onPress={handleCrossAlert}
+                  style={{
+                    marginHorizontal: 16,
+                    marginBottom: 16,
+                    backgroundColor: colors.primary + "18",
+                    borderRadius: 14,
+                    padding: 14,
+                    borderWidth: 1,
+                    borderColor: colors.primary + "44",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <IconSymbol
+                    name="bell.fill"
+                    size={18}
+                    color={colors.primary}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        color: colors.primary,
+                        fontWeight: "700",
+                        fontSize: 13,
+                      }}
+                    >
+                      Alert me if any distributor drops below
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.muted,
+                        fontSize: 12,
+                        marginTop: 1,
+                      }}
+                    >
+                      ${(bestUSD * 0.95).toFixed(2)} (5% below current best of $
+                      {bestUSD.toFixed(2)})
+                    </Text>
+                  </View>
+                  <IconSymbol
+                    name="chevron.right"
+                    size={16}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              );
+            })()}
+
+          {/* Current prices comparison table */}
+          {selected.size > 0 && (
+            <View
+              style={{
+                marginHorizontal: 16,
+                backgroundColor: colors.surface,
+                borderRadius: 16,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: colors.border,
+                marginBottom: 16,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontWeight: "700",
+                  fontSize: 15,
+                  marginBottom: 12,
+                }}
+              >
+                Current Prices
+              </Text>
+              {listings
+                .filter((l) => selected.has(l.distributorId))
+                .map((l, i) => {
+                  const distributor = getDistributorById(l.distributorId);
+                  const usd = convertPrice(l.price, l.currency, "USD");
+                  const color =
+                    CHART_COLORS[
+                      Array.from(selected).indexOf(l.distributorId) %
+                        CHART_COLORS.length
+                    ];
+                  return (
+                    <View
+                      key={l.distributorId}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        paddingVertical: 10,
+                        borderTopWidth: i > 0 ? 1 : 0,
+                        borderTopColor: colors.border,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 5,
+                          backgroundColor: color,
+                          marginRight: 10,
+                        }}
+                      />
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={{
+                            color: colors.foreground,
+                            fontWeight: "600",
+                            fontSize: 14,
+                          }}
+                        >
+                          {distributor?.countryFlag}{" "}
+                          {distributor?.name ?? l.distributorId}
+                        </Text>
+                        <Text style={{ color: colors.muted, fontSize: 12 }}>
+                          {distributor?.country}
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text
+                          style={{
+                            color: colors.foreground,
+                            fontWeight: "700",
+                            fontSize: 15,
+                          }}
+                        >
+                          {formatPrice(l.price, l.currency)}
+                        </Text>
+                        {l.currency !== "USD" && (
+                          <Text style={{ color: colors.muted, fontSize: 11 }}>
+                            ≈ ${usd.toFixed(2)}
+                          </Text>
+                        )}
+                        <View
+                          style={{
+                            backgroundColor:
+                              l.stockStatus === "in_stock"
+                                ? colors.success + "22"
+                                : colors.warning + "22",
+                            borderRadius: 8,
+                            paddingHorizontal: 7,
+                            paddingVertical: 2,
+                            marginTop: 2,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color:
+                                l.stockStatus === "in_stock"
+                                  ? colors.success
+                                  : colors.warning,
+                              fontSize: 10,
+                              fontWeight: "600",
+                            }}
+                          >
+                            {l.stockStatus === "in_stock"
+                              ? "In Stock"
+                              : l.stockStatus === "back_order"
+                                ? "Back Order"
+                                : "Out of Stock"}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+            </View>
+          )}
+
+          {/* Distributor selector */}
+          <View style={{ paddingHorizontal: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 12,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontWeight: "700",
+                  fontSize: 15,
+                }}
+              >
+                Select Distributors ({selected.size}/5)
+              </Text>
+              <View style={{ flexDirection: "row", gap: 4 }}>
+                {(["trend", "price", "name"] as SortBy[]).map((s) => (
                   <TouchableOpacity
-                    key={r}
-                    onPress={() => setRange(r)}
+                    key={s}
+                    onPress={() => setSortByMode(s)}
                     style={{
                       paddingHorizontal: 8,
                       paddingVertical: 4,
                       borderRadius: 8,
-                      backgroundColor: active ? colors.primary : colors.border + "44",
+                      backgroundColor:
+                        sortBy === s ? colors.primary : colors.border + "44",
                     }}
                   >
-                    <Text style={{ color: active ? "#fff" : colors.muted, fontSize: 11, fontWeight: "600" }}>{r}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-          <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 12 }}>Select up to 5 distributors to overlay</Text>
-          {chartSeries.length >= 2 ? (
-            <MultiLineChart series={chartSeries} width={chartWidth} height={220} />
-          ) : (
-            <View style={{ height: 120, alignItems: "center", justifyContent: "center" }}>
-              <IconSymbol name="chart.bar.xaxis" size={36} color={colors.muted} />
-              <Text style={{ color: colors.muted, fontSize: 13, marginTop: 8, textAlign: "center" }}>
-                Select at least 2 distributors{"\n"}with price history to compare
-              </Text>
-            </View>
-          )}
-          {/* Legend */}
-          {chartSeries.length > 0 && (
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-              {chartSeries.map((s) => (
-                <View key={s.label} style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: s.color }} />
-                  <Text style={{ color: colors.muted, fontSize: 11 }}>{s.label}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Cheapest Region summary */}
-        <CheapestRegionCard listings={listings} colors={colors} />
-
-        {/* Cross-distributor alert CTA */}
-        {listings.some((l) => l.stockStatus === "in_stock") && (() => {
-          const inStock = listings.filter((l) => l.stockStatus === "in_stock");
-          const bestUSD = Math.min(...inStock.map((l) => convertPrice(l.price, l.currency, "USD")));
-          return (
-            <TouchableOpacity
-              onPress={handleCrossAlert}
-              style={{ marginHorizontal: 16, marginBottom: 16, backgroundColor: colors.primary + "18", borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.primary + "44", flexDirection: "row", alignItems: "center", gap: 10 }}
-            >
-              <IconSymbol name="bell.fill" size={18} color={colors.primary} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>Alert me if any distributor drops below</Text>
-                <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>${(bestUSD * 0.95).toFixed(2)} (5% below current best of ${bestUSD.toFixed(2)})</Text>
-              </View>
-              <IconSymbol name="chevron.right" size={16} color={colors.primary} />
-            </TouchableOpacity>
-          );
-        })()}
-
-        {/* Current prices comparison table */}
-        {selected.size > 0 && (
-          <View style={{ marginHorizontal: 16, backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>
-            <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15, marginBottom: 12 }}>Current Prices</Text>
-            {listings.filter((l) => selected.has(l.distributorId)).map((l, i) => {
-              const distributor = getDistributorById(l.distributorId);
-              const usd = convertPrice(l.price, l.currency, "USD");
-              const color = CHART_COLORS[Array.from(selected).indexOf(l.distributorId) % CHART_COLORS.length];
-              return (
-                <View key={l.distributorId} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10, borderTopWidth: i > 0 ? 1 : 0, borderTopColor: colors.border }}>
-                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color, marginRight: 10 }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }}>
-                      {distributor?.countryFlag} {distributor?.name ?? l.distributorId}
+                    <Text
+                      style={{
+                        color: sortBy === s ? "#fff" : colors.muted,
+                        fontSize: 11,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {s === "trend"
+                        ? "Trend ▼"
+                        : s === "price"
+                          ? "Price"
+                          : "A–Z"}
                     </Text>
-                    <Text style={{ color: colors.muted, fontSize: 12 }}>{distributor?.country}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            {sortedListings.map((l) => {
+              const distributor = getDistributorById(l.distributorId);
+              const isSelected = selected.has(l.distributorId);
+              const hasHistory = l.priceHistory && l.priceHistory.length >= 2;
+              const colorIdx = Array.from(selected).indexOf(l.distributorId);
+              const chipColor = isSelected
+                ? CHART_COLORS[colorIdx % CHART_COLORS.length]
+                : colors.border;
+              const trend = priceTrends.get(l.distributorId);
+              return (
+                <TouchableOpacity
+                  key={l.distributorId}
+                  onPress={() => toggleSelect(l.distributorId)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: isSelected
+                      ? chipColor + "18"
+                      : colors.surface,
+                    borderRadius: 14,
+                    padding: 14,
+                    marginBottom: 8,
+                    borderWidth: 1.5,
+                    borderColor: isSelected ? chipColor : colors.border,
+                    opacity: !hasHistory && !isSelected ? 0.5 : 1,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 11,
+                      borderWidth: 2,
+                      borderColor: isSelected ? chipColor : colors.border,
+                      backgroundColor: isSelected ? chipColor : "transparent",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 12,
+                    }}
+                  >
+                    {isSelected && (
+                      <IconSymbol name="checkmark" size={12} color="#fff" />
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        color: colors.foreground,
+                        fontWeight: "600",
+                        fontSize: 14,
+                      }}
+                    >
+                      {distributor?.countryFlag}{" "}
+                      {distributor?.name ?? l.distributorId}
+                    </Text>
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>
+                      {hasHistory
+                        ? `${l.priceHistory!.length} price points`
+                        : "No price history"}
+                    </Text>
                   </View>
                   <View style={{ alignItems: "flex-end" }}>
-                    <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}>{formatPrice(l.price, l.currency)}</Text>
-                    {l.currency !== "USD" && <Text style={{ color: colors.muted, fontSize: 11 }}>≈ ${usd.toFixed(2)}</Text>}
-                    <View style={{ backgroundColor: l.stockStatus === "in_stock" ? colors.success + "22" : colors.warning + "22", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2, marginTop: 2 }}>
-                      <Text style={{ color: l.stockStatus === "in_stock" ? colors.success : colors.warning, fontSize: 10, fontWeight: "600" }}>
-                        {l.stockStatus === "in_stock" ? "In Stock" : l.stockStatus === "back_order" ? "Back Order" : "Out of Stock"}
+                    <Text
+                      style={{
+                        color: isSelected ? chipColor : colors.foreground,
+                        fontWeight: "700",
+                        fontSize: 14,
+                      }}
+                    >
+                      {formatPrice(l.price, l.currency)}
+                    </Text>
+                    {trend && trend.dir !== "flat" && (
+                      <Text
+                        style={{
+                          color:
+                            trend.dir === "down"
+                              ? colors.success
+                              : colors.error,
+                          fontSize: 11,
+                          fontWeight: "600",
+                          marginTop: 1,
+                        }}
+                      >
+                        {trend.dir === "down" ? "▼" : "▲"}{" "}
+                        {trend.pct.toFixed(1)}%
+                      </Text>
+                    )}
+                    <View
+                      style={{
+                        backgroundColor:
+                          l.stockStatus === "in_stock"
+                            ? colors.success + "22"
+                            : colors.warning + "22",
+                        borderRadius: 8,
+                        paddingHorizontal: 7,
+                        paddingVertical: 2,
+                        marginTop: 2,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color:
+                            l.stockStatus === "in_stock"
+                              ? colors.success
+                              : colors.warning,
+                          fontSize: 10,
+                          fontWeight: "600",
+                        }}
+                      >
+                        {l.stockStatus === "in_stock"
+                          ? "In Stock"
+                          : l.stockStatus === "back_order"
+                            ? "Back Order"
+                            : "Out of Stock"}
                       </Text>
                     </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })}
           </View>
-        )}
-
-        {/* Distributor selector */}
-        <View style={{ paddingHorizontal: 16 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}>
-              Select Distributors ({selected.size}/5)
-            </Text>
-            <View style={{ flexDirection: "row", gap: 4 }}>
-              {(["trend", "price", "name"] as SortBy[]).map((s) => (
-                <TouchableOpacity
-                  key={s}
-                  onPress={() => setSortByMode(s)}
-                  style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: sortBy === s ? colors.primary : colors.border + "44" }}
-                >
-                  <Text style={{ color: sortBy === s ? "#fff" : colors.muted, fontSize: 11, fontWeight: "600" }}>
-                    {s === "trend" ? "Trend ▼" : s === "price" ? "Price" : "A–Z"}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-          {sortedListings.map((l) => {
-            const distributor = getDistributorById(l.distributorId);
-            const isSelected = selected.has(l.distributorId);
-            const hasHistory = l.priceHistory && l.priceHistory.length >= 2;
-            const colorIdx = Array.from(selected).indexOf(l.distributorId);
-            const chipColor = isSelected ? CHART_COLORS[colorIdx % CHART_COLORS.length] : colors.border;
-            const trend = priceTrends.get(l.distributorId);
-            return (
-              <TouchableOpacity
-                key={l.distributorId}
-                onPress={() => toggleSelect(l.distributorId)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: isSelected ? chipColor + "18" : colors.surface,
-                  borderRadius: 14,
-                  padding: 14,
-                  marginBottom: 8,
-                  borderWidth: 1.5,
-                  borderColor: isSelected ? chipColor : colors.border,
-                  opacity: !hasHistory && !isSelected ? 0.5 : 1,
-                }}
-              >
-                <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: isSelected ? chipColor : colors.border, backgroundColor: isSelected ? chipColor : "transparent", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
-                  {isSelected && <IconSymbol name="checkmark" size={12} color="#fff" />}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }}>
-                    {distributor?.countryFlag} {distributor?.name ?? l.distributorId}
-                  </Text>
-                  <Text style={{ color: colors.muted, fontSize: 12 }}>
-                    {hasHistory ? `${l.priceHistory!.length} price points` : "No price history"}
-                  </Text>
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={{ color: isSelected ? chipColor : colors.foreground, fontWeight: "700", fontSize: 14 }}>{formatPrice(l.price, l.currency)}</Text>
-                  {trend && trend.dir !== "flat" && (
-                    <Text style={{ color: trend.dir === "down" ? colors.success : colors.error, fontSize: 11, fontWeight: "600", marginTop: 1 }}>
-                      {trend.dir === "down" ? "▼" : "▲"} {trend.pct.toFixed(1)}%
-                    </Text>
-                  )}
-                  <View style={{ backgroundColor: l.stockStatus === "in_stock" ? colors.success + "22" : colors.warning + "22", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2, marginTop: 2 }}>
-                    <Text style={{ color: l.stockStatus === "in_stock" ? colors.success : colors.warning, fontSize: 10, fontWeight: "600" }}>
-                      {l.stockStatus === "in_stock" ? "In Stock" : l.stockStatus === "back_order" ? "Back Order" : "Out of Stock"}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </ScrollView>
+        </ScrollView>
+      )}
     </ScreenContainer>
   );
 }

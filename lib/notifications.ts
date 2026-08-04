@@ -51,7 +51,7 @@ export async function scheduleStockAlert(
   productName: string,
   distributorName: string,
   price: number,
-  currency: string
+  currency: string,
 ): Promise<string | null> {
   if (Platform.OS === "web") return null;
   try {
@@ -74,7 +74,7 @@ export async function scheduleStockAlert(
 export async function schedulePriceAlert(
   productName: string,
   targetPrice: number,
-  currency: string
+  currency: string,
 ): Promise<string | null> {
   if (Platform.OS === "web") return null;
   try {
@@ -102,7 +102,7 @@ export async function sendTestNotification(): Promise<boolean> {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "✅ Notifications Working!",
-        body: "Stock Tracker Pro will alert you when prices drop or items come back in stock.",
+        body: "Product Stock Finder will alert you when prices drop or items come back in stock.",
         data: { type: "test" },
         sound: "default",
       },
@@ -118,7 +118,7 @@ export async function sendTestNotification(): Promise<boolean> {
 export async function scheduleBackOrderReminder(
   productName: string,
   distributorName: string,
-  reminderDate: Date
+  reminderDate: Date,
 ): Promise<string | null> {
   if (Platform.OS === "web") return null;
   try {
@@ -143,7 +143,9 @@ export async function scheduleBackOrderReminder(
 }
 
 // ─── Cancel a scheduled notification ─────────────────────────────────────────
-export async function cancelNotification(notificationId: string): Promise<void> {
+export async function cancelNotification(
+  notificationId: string,
+): Promise<void> {
   if (Platform.OS === "web") return;
   try {
     await Notifications.cancelScheduledNotificationAsync(notificationId);

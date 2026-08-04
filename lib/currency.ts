@@ -29,7 +29,11 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
   AED: "AED",
 };
 
-export function convertPrice(amount: number, fromCurrency: string, toCurrency: string): number {
+export function convertPrice(
+  amount: number,
+  fromCurrency: string,
+  toCurrency: string,
+): number {
   const fromRate = EXCHANGE_RATES[fromCurrency] ?? 1;
   const toRate = EXCHANGE_RATES[toCurrency] ?? 1;
   return (amount / fromRate) * toRate;
@@ -40,13 +44,19 @@ export function formatPrice(amount: number, currency: string): string {
   return `${symbol}${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function getBestPrice(listings: { price: number; currency: string; stockStatus: string }[], displayCurrency: string): { price: number; currency: string } | null {
-  const available = listings.filter((l) => l.stockStatus !== "out_of_stock" && l.price > 0);
+export function getBestPrice(
+  listings: { price: number; currency: string; stockStatus: string }[],
+  displayCurrency: string,
+): { price: number; currency: string } | null {
+  const available = listings.filter(
+    (l) => l.stockStatus !== "out_of_stock" && l.price > 0,
+  );
   if (!available.length) return null;
   const converted = available.map((l) => ({
     price: convertPrice(l.price, l.currency, displayCurrency),
     currency: displayCurrency,
   }));
-  return converted.reduce((best, curr) => (curr.price < best.price ? curr : best));
+  return converted.reduce((best, curr) =>
+    curr.price < best.price ? curr : best,
+  );
 }
-

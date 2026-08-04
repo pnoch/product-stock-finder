@@ -1,5 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
-import { ScrollView, Text, View, TouchableOpacity, RefreshControl, FlatList } from "react-native";
+import {
+  ScrollView,
+  Text,
+  View,
+  TouchableOpacity,
+  RefreshControl,
+  Platform,
+} from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 
@@ -7,22 +14,48 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { getWatchlist, getAlerts } from "@/lib/storage";
 import { Product } from "@/lib/types";
-import { formatPrice, convertPrice, getBestPrice } from "@/lib/currency";
+import { formatPrice, getBestPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
-function StockBadge({ status, expectedDate }: { status: string; expectedDate?: string }) {
+function StockBadge({
+  status,
+  expectedDate,
+}: {
+  status: string;
+  expectedDate?: string;
+}) {
   const colors = useColors();
   if (status === "in_stock") {
     return (
-      <View style={{ backgroundColor: colors.success + "22", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 }}>
-        <Text style={{ color: colors.success, fontSize: 11, fontWeight: "600" }}>● In Stock</Text>
+      <View
+        style={{
+          backgroundColor: colors.success + "22",
+          borderRadius: 12,
+          paddingHorizontal: 8,
+          paddingVertical: 3,
+        }}
+      >
+        <Text
+          style={{ color: colors.success, fontSize: 11, fontWeight: "600" }}
+        >
+          ● In Stock
+        </Text>
       </View>
     );
   }
   if (status === "back_order") {
     return (
-      <View style={{ backgroundColor: colors.warning + "22", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 }}>
-        <Text style={{ color: colors.warning, fontSize: 11, fontWeight: "600" }}>
+      <View
+        style={{
+          backgroundColor: colors.warning + "22",
+          borderRadius: 12,
+          paddingHorizontal: 8,
+          paddingVertical: 3,
+        }}
+      >
+        <Text
+          style={{ color: colors.warning, fontSize: 11, fontWeight: "600" }}
+        >
           ● Back Order{expectedDate ? ` · ${expectedDate}` : ""}
         </Text>
       </View>
@@ -30,19 +63,47 @@ function StockBadge({ status, expectedDate }: { status: string; expectedDate?: s
   }
   if (status === "out_of_stock") {
     return (
-      <View style={{ backgroundColor: colors.error + "22", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 }}>
-        <Text style={{ color: colors.error, fontSize: 11, fontWeight: "600" }}>● Out of Stock</Text>
+      <View
+        style={{
+          backgroundColor: colors.error + "22",
+          borderRadius: 12,
+          paddingHorizontal: 8,
+          paddingVertical: 3,
+        }}
+      >
+        <Text style={{ color: colors.error, fontSize: 11, fontWeight: "600" }}>
+          ● Out of Stock
+        </Text>
       </View>
     );
   }
   return (
-    <View style={{ backgroundColor: colors.muted + "22", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 }}>
-      <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600" }}>● Unknown</Text>
+    <View
+      style={{
+        backgroundColor: colors.muted + "22",
+        borderRadius: 12,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+      }}
+    >
+      <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600" }}>
+        ● Unknown
+      </Text>
     </View>
   );
 }
 
-function SummaryCard({ label, value, color, icon }: { label: string; value: string | number; color: string; icon: string }) {
+function SummaryCard({
+  label,
+  value,
+  color,
+  icon,
+}: {
+  label: string;
+  value: string | number;
+  color: string;
+  icon: string;
+}) {
   return (
     <View className="flex-1 bg-surface rounded-2xl p-4 border border-border mx-1">
       <Text style={{ color, fontSize: 24, fontWeight: "700" }}>{value}</Text>
@@ -69,7 +130,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [loadData])
+    }, [loadData]),
   );
 
   useEffect(() => {
@@ -91,35 +152,56 @@ export default function HomeScreen() {
   function getBestStatus(product: Product): string {
     const listings = product.listings ?? [];
     if (listings.some((l) => l.stockStatus === "in_stock")) return "in_stock";
-    if (listings.some((l) => l.stockStatus === "back_order")) return "back_order";
+    if (listings.some((l) => l.stockStatus === "back_order"))
+      return "back_order";
     if (listings.length > 0) return "out_of_stock";
     return "unknown";
   }
 
   const recentActivity = watchlist
-    .flatMap((p) =>
-      (p.listings ?? []).map((l) => ({ product: p, listing: l }))
+    .flatMap((p) => (p.listings ?? []).map((l) => ({ product: p, listing: l })))
+    .sort(
+      (a, b) =>
+        new Date(b.listing.lastChecked).getTime() -
+        new Date(a.listing.lastChecked).getTime(),
     )
-    .sort((a, b) => new Date(b.listing.lastChecked).getTime() - new Date(a.listing.lastChecked).getTime())
     .slice(0, 5);
 
   return (
     <ScreenContainer>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 24 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
       >
         {/* Header */}
         <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
           <View>
-            <Text className="text-2xl font-bold text-foreground">Stock Tracker</Text>
-            <Text className="text-muted text-sm">Global availability monitor</Text>
+            <Text className="text-2xl font-bold text-foreground">
+              Product Stock Finder
+            </Text>
+            <Text className="text-muted text-sm">
+              Global availability monitor
+            </Text>
           </View>
           <TouchableOpacity
-            style={{ backgroundColor: colors.primary, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/search" as any);
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/search");
             }}
           >
             <IconSymbol name="plus" size={22} color="#fff" />
@@ -128,45 +210,124 @@ export default function HomeScreen() {
 
         {/* Summary Cards */}
         <View className="flex-row px-4 mt-3 mb-4">
-          <SummaryCard label="Tracked" value={watchlist.length} color={colors.primary} icon="list.bullet" />
-          <SummaryCard label="In Stock" value={inStockCount} color={colors.success} icon="checkmark.circle.fill" />
-          <SummaryCard label="Alerts" value={alertCount} color={colors.warning} icon="bell.fill" />
+          <SummaryCard
+            label="Tracked"
+            value={watchlist.length}
+            color={colors.primary}
+            icon="list.bullet"
+          />
+          <SummaryCard
+            label="In Stock"
+            value={inStockCount}
+            color={colors.success}
+            icon="checkmark.circle.fill"
+          />
+          <SummaryCard
+            label="Alerts"
+            value={alertCount}
+            color={colors.warning}
+            icon="bell.fill"
+          />
         </View>
 
         {/* Recent Activity */}
         <View className="px-5 mb-3">
-          <Text className="text-base font-semibold text-foreground mb-3">Recent Activity</Text>
+          <Text className="text-base font-semibold text-foreground mb-3">
+            Recent Activity
+          </Text>
           {recentActivity.length === 0 ? (
             <View className="bg-surface rounded-2xl p-8 items-center border border-border">
-              <IconSymbol name="magnifyingglass" size={40} color={colors.muted} />
-              <Text className="text-foreground font-semibold mt-3 text-base">No products tracked yet</Text>
-              <Text className="text-muted text-sm text-center mt-1">Tap + to add a product to your watchlist</Text>
+              <IconSymbol
+                name="magnifyingglass"
+                size={40}
+                color={colors.muted}
+              />
+              <Text className="text-foreground font-semibold mt-3 text-base">
+                No products tracked yet
+              </Text>
+              <Text className="text-muted text-sm text-center mt-1">
+                Tap + to add a product to your watchlist
+              </Text>
               <TouchableOpacity
-                style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 20, paddingVertical: 10, marginTop: 16 }}
+                style={{
+                  backgroundColor: colors.primary,
+                  borderRadius: 20,
+                  paddingHorizontal: 20,
+                  paddingVertical: 10,
+                  marginTop: 16,
+                }}
                 onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push("/search" as any);
+                  if (Platform.OS !== "web")
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/search");
                 }}
               >
-                <Text style={{ color: "#fff", fontWeight: "600" }}>Add Product</Text>
+                <Text style={{ color: "#fff", fontWeight: "600" }}>
+                  Add Product
+                </Text>
               </TouchableOpacity>
             </View>
           ) : (
             recentActivity.map(({ product, listing }, idx) => (
               <TouchableOpacity
                 key={`${product.id}-${listing.distributorId}-${idx}`}
-                style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border }}
-                onPress={() => router.push(`/product/${product.id}` as any)}
+                style={{
+                  backgroundColor: colors.surface,
+                  borderRadius: 16,
+                  padding: 14,
+                  marginBottom: 10,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+                onPress={() => router.push(`/product/${product.id}`)}
               >
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                  }}
+                >
                   <View style={{ flex: 1, marginRight: 8 }}>
-                    <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }} numberOfLines={1}>{product.name}</Text>
-                    <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{product.modelNumber}</Text>
+                    <Text
+                      style={{
+                        color: colors.foreground,
+                        fontWeight: "600",
+                        fontSize: 14,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {product.name}
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.muted,
+                        fontSize: 12,
+                        marginTop: 2,
+                      }}
+                    >
+                      {product.modelNumber}
+                    </Text>
                   </View>
-                  <StockBadge status={listing.stockStatus} expectedDate={listing.expectedDate} />
+                  <StockBadge
+                    status={listing.stockStatus}
+                    expectedDate={listing.expectedDate}
+                  />
                 </View>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8 }}>
-                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 15 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    marginTop: 8,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.primary,
+                      fontWeight: "700",
+                      fontSize: 15,
+                    }}
+                  >
                     {formatPrice(listing.price, listing.currency)}
                   </Text>
                   <Text style={{ color: colors.muted, fontSize: 11 }}>
@@ -181,23 +342,57 @@ export default function HomeScreen() {
         {/* Quick Access */}
         {watchlist.length > 0 && (
           <View className="px-5">
-            <Text className="text-base font-semibold text-foreground mb-3">Your Watchlist</Text>
+            <Text className="text-base font-semibold text-foreground mb-3">
+              Your Watchlist
+            </Text>
             {watchlist.slice(0, 3).map((product) => {
               const bestPrice = getBestPrice(product.listings ?? [], "USD");
               const bestStatus = getBestStatus(product);
               return (
                 <TouchableOpacity
                   key={product.id}
-                  style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center" }}
-                  onPress={() => router.push(`/product/${product.id}` as any)}
+                  style={{
+                    backgroundColor: colors.surface,
+                    borderRadius: 16,
+                    padding: 14,
+                    marginBottom: 10,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                  onPress={() => router.push(`/product/${product.id}`)}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }} numberOfLines={1}>{product.name}</Text>
-                    <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{product.brand} · {product.category}</Text>
+                    <Text
+                      style={{
+                        color: colors.foreground,
+                        fontWeight: "600",
+                        fontSize: 14,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {product.name}
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.muted,
+                        fontSize: 12,
+                        marginTop: 2,
+                      }}
+                    >
+                      {product.brand} · {product.category}
+                    </Text>
                   </View>
                   <View style={{ alignItems: "flex-end" }}>
                     {bestPrice && (
-                      <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 15 }}>
+                      <Text
+                        style={{
+                          color: colors.primary,
+                          fontWeight: "700",
+                          fontSize: 15,
+                        }}
+                      >
                         {formatPrice(bestPrice.price, bestPrice.currency)}
                       </Text>
                     )}
@@ -209,8 +404,13 @@ export default function HomeScreen() {
               );
             })}
             {watchlist.length > 3 && (
-              <TouchableOpacity onPress={() => router.push("/watchlist" as any)} style={{ alignItems: "center", paddingVertical: 8 }}>
-                <Text style={{ color: colors.primary, fontWeight: "600" }}>View all {watchlist.length} products →</Text>
+              <TouchableOpacity
+                onPress={() => router.push("/watchlist")}
+                style={{ alignItems: "center", paddingVertical: 8 }}
+              >
+                <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                  View all {watchlist.length} products →
+                </Text>
               </TouchableOpacity>
             )}
           </View>

@@ -18,7 +18,13 @@ export const DISTRIBUTORS: Distributor[] = [
     countryFlag: "🇬🇧",
     region: "Europe",
     website: "https://linitx.com",
-    paymentMethods: ["Credit Card", "Bank Transfer", "Apple Pay", "Revolut Pay", "Invoice"],
+    paymentMethods: [
+      "Credit Card",
+      "Bank Transfer",
+      "Apple Pay",
+      "Revolut Pay",
+      "Invoice",
+    ],
   },
   {
     id: "interprojekt-pl",
@@ -37,7 +43,12 @@ export const DISTRIBUTORS: Distributor[] = [
     countryFlag: "🇪🇺",
     region: "Europe",
     website: "https://nasstore.eu",
-    paymentMethods: ["Credit Card", "Bank Transfer", "Apple Pay", "Revolut Pay"],
+    paymentMethods: [
+      "Credit Card",
+      "Bank Transfer",
+      "Apple Pay",
+      "Revolut Pay",
+    ],
     notes: "Best August price",
   },
   {

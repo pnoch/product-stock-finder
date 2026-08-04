@@ -1,6 +1,10 @@
 import { useState, useCallback } from "react";
 import { useFocusEffect } from "expo-router";
-import { getAlerts, getBackOrderReminders, getStockWatches } from "@/lib/storage";
+import {
+  getAlerts,
+  getBackOrderReminders,
+  getStockWatches,
+} from "@/lib/storage";
 
 /**
  * Returns the total count of active items for the Alerts tab badge:
@@ -22,14 +26,18 @@ export function useAlertBadge(): number {
           getBackOrderReminders(),
           getStockWatches(),
         ]);
-        const activeAlerts = alerts.filter((a) => a.isActive && !a.triggeredAt).length;
+        const activeAlerts = alerts.filter(
+          (a) => a.isActive && !a.triggeredAt,
+        ).length;
         const activeReminders = reminders.length;
         const activeWatches = watches.length;
         if (active) setCount(activeAlerts + activeReminders + activeWatches);
       }
       load();
-      return () => { active = false; };
-    }, [])
+      return () => {
+        active = false;
+      };
+    }, []),
   );
 
   return count;

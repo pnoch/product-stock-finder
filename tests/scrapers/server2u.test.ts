@@ -33,4 +33,13 @@ describe("Server2U Parser", () => {
     const result = server2uParser.parsePrice("<html><body>No price here</body></html>");
     expect(result).toBeNull();
   });
+
+  it("should extract price, stock status, and currency from valid HTML", () => {
+    const html = `<div><span class="price">RM 1,299.00</span><span class="stock-status">In Stock</span></div>`;
+    const result = server2uParser.parsePrice(html);
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(1299.00);
+    expect(result!.currency).toBe("MYR");
+    expect(result!.stockStatus).toBe("in_stock");
+  });
 });

@@ -5,7 +5,10 @@ import { SymbolWeight, SymbolViewProps } from "expo-symbols";
 import { ComponentProps } from "react";
 import { OpaqueColorValue, type StyleProp, type TextStyle } from "react-native";
 
-type IconMapping = Record<SymbolViewProps["name"], ComponentProps<typeof MaterialIcons>["name"]>;
+type IconMapping = Record<
+  SymbolViewProps["name"],
+  ComponentProps<typeof MaterialIcons>["name"]
+>;
 type IconSymbolName = keyof typeof MAPPING;
 
 /**
@@ -19,15 +22,15 @@ const MAPPING = {
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
-  "calendar": "calendar-today",
+  calendar: "calendar-today",
   "crown.fill": "workspace-premium",
   "list.bullet": "format-list-bulleted",
   "bell.fill": "notifications",
   "bell.badge.fill": "notification-important",
   "gearshape.fill": "settings",
-  "magnifyingglass": "search",
-  "plus": "add",
-  "globe": "language",
+  magnifyingglass: "search",
+  plus: "add",
+  globe: "language",
   "cart.fill": "shopping-cart",
   "star.fill": "star",
   "trash.fill": "delete",
@@ -47,22 +50,22 @@ const MAPPING = {
   "eye.slash.fill": "visibility-off",
   "heart.fill": "favorite",
   "bookmark.fill": "bookmark",
-  "ellipsis": "more-horiz",
+  ellipsis: "more-horiz",
   "chevron.down": "expand-more",
   "chevron.up": "expand-less",
   "chevron.left": "chevron-left",
   "arrow.left": "arrow-back",
-  "xmark": "close",
-  "checkmark": "check",
-  "minus": "remove",
+  xmark: "close",
+  checkmark: "check",
+  minus: "remove",
   "circle.fill": "circle",
   "square.fill": "square",
-  "wifi": "wifi",
-  "network": "hub",
-  "cpu": "memory",
+  wifi: "wifi",
+  network: "hub",
+  cpu: "memory",
   "server.rack": "dns",
   "doc.on.doc": "content-copy",
-  "pencil": "edit",
+  pencil: "edit",
   "arrow.left.arrow.right": "swap-horiz",
   "chart.bar.xaxis": "bar-chart",
   "square.and.pencil": "edit-note",
@@ -85,5 +88,12 @@ export function IconSymbol({
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  return (
+    <MaterialIcons
+      color={color}
+      size={size}
+      name={MAPPING[name]}
+      style={style}
+    />
+  );
 }

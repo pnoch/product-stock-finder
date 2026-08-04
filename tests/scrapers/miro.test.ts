@@ -33,4 +33,13 @@ describe("Miro Parser", () => {
     const result = miroParser.parsePrice("<html><body>No price here</body></html>");
     expect(result).toBeNull();
   });
+
+  it("should extract price, stock status, and currency from valid HTML", () => {
+    const html = `<div><span class="price">R 4,599.00</span><span class="stock-status">In Stock</span></div>`;
+    const result = miroParser.parsePrice(html);
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(4599.00);
+    expect(result!.currency).toBe("ZAR");
+    expect(result!.stockStatus).toBe("in_stock");
+  });
 });

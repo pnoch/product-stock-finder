@@ -33,4 +33,13 @@ describe("Multilink Parser", () => {
     const result = multilinkParser.parsePrice("<html><body>No price here</body></html>");
     expect(result).toBeNull();
   });
+
+  it("should extract price, stock status, and currency from valid HTML", () => {
+    const html = `<div><span class="price">$199.99</span><span class="stock-status">In Stock</span></div>`;
+    const result = multilinkParser.parsePrice(html);
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(199.99);
+    expect(result!.currency).toBe("USD");
+    expect(result!.stockStatus).toBe("in_stock");
+  });
 });

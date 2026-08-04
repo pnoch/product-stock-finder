@@ -6,14 +6,14 @@ This guide covers server-side features including authentication, database, tRPC 
 
 ## When Do You Need Backend?
 
-| Scenario | Backend Needed? | User Auth Required? | Solution |
-|----------|-----------------|---------------------|----------|
-| Data stays on device only | No | No | Use `AsyncStorage` |
-| Data syncs across devices | Yes | Yes | Database + tRPC |
-| User accounts / login | Yes | Yes | Manus OAuth |
-| AI-powered features | Yes | **Optional** | LLM Integration |
-| User uploads files | Yes | **Optional** | S3 Storage |
-| Server-side validation | Yes | **Optional** | tRPC procedures |
+| Scenario                  | Backend Needed? | User Auth Required? | Solution           |
+| ------------------------- | --------------- | ------------------- | ------------------ |
+| Data stays on device only | No              | No                  | Use `AsyncStorage` |
+| Data syncs across devices | Yes             | Yes                 | Database + tRPC    |
+| User accounts / login     | Yes             | Yes                 | Manus OAuth        |
+| AI-powered features       | Yes             | **Optional**        | LLM Integration    |
+| User uploads files        | Yes             | **Optional**        | S3 Storage         |
+| Server-side validation    | Yes             | **Optional**        | tRPC procedures    |
 
 > **Note:** Backend ≠ User Auth. You can run a backend with LLM/Storage/ImageGen capabilities without requiring user login — just use `publicProcedure` instead of `protectedProcedure`. User auth is only mandatory when you need to identify users or sync user-specific data.
 
@@ -54,10 +54,10 @@ Only touch the files with "←" markers. Anything under `_core/` directories is 
 
 The template uses **Manus OAuth** for user authentication. It works differently on native and web:
 
-| Platform | Auth Method | Token Storage |
-|----------|-------------|---------------|
-| iOS/Android | Bearer token | expo-secure-store |
-| Web | HTTP-only cookie | Browser cookie |
+| Platform    | Auth Method      | Token Storage     |
+| ----------- | ---------------- | ----------------- |
+| iOS/Android | Bearer token     | expo-secure-store |
+| Web         | HTTP-only cookie | Browser cookie    |
 
 ### Using the Auth Hook
 
@@ -68,7 +68,7 @@ function MyScreen() {
   const { user, isAuthenticated, loading, logout } = useAuth();
 
   if (loading) return <ActivityIndicator />;
-  
+
   if (!isAuthenticated) {
     return <LoginButton />;
   }
@@ -89,7 +89,7 @@ The `user` object contains:
 ```tsx
 interface User {
   id: number;
-  openId: string;        // Manus OAuth ID
+  openId: string; // Manus OAuth ID
   name: string | null;
   email: string | null;
   loginMethod: string;
@@ -132,16 +132,18 @@ export const appRouter = router({
     }),
   }),
 });
-
 ```
+
 ### Frontend: Handling Auth Errors
+
 protectedProcedure MUST HANDLE UNAUTHORIZED when user is not logged in. Always handle this in the frontend:
+
 ```tsx
 try {
   await trpc.someProtectedEndpoint.mutate(data);
 } catch (error) {
-  if (error.data?.code === 'UNAUTHORIZED') {
-    router.push('/login');
+  if (error.data?.code === "UNAUTHORIZED") {
+    router.push("/login");
     return;
   }
   throw error;
@@ -157,7 +159,13 @@ try {
 Define your tables in `drizzle/schema.ts`:
 
 ```tsx
-import { int, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import {
+  int,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 // Users table (already exists)
 export const users = mysqlTable("users", {
@@ -208,14 +216,14 @@ import { items, InsertItem } from "../drizzle/schema";
 export async function getUserItems(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  
+
   return db.select().from(items).where(eq(items.userId, userId));
 }
 
 export async function createItem(data: InsertItem) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const result = await db.insert(items).values(data);
   return result.insertId;
 }
@@ -223,14 +231,14 @@ export async function createItem(data: InsertItem) {
 export async function updateItem(id: number, data: Partial<InsertItem>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   await db.update(items).set(data).where(eq(items.id, id));
 }
 
 export async function deleteItem(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   await db.delete(items).where(eq(items.id, id));
 }
 ```
@@ -259,10 +267,12 @@ export const appRouter = router({
     }),
 
     create: protectedProcedure
-      .input(z.object({
-        title: z.string().min(1).max(255),
-        description: z.string().optional(),
-      }))
+      .input(
+        z.object({
+          title: z.string().min(1).max(255),
+          description: z.string().optional(),
+        }),
+      )
       .mutation(({ ctx, input }) => {
         return db.createItem({
           userId: ctx.user.id,
@@ -272,11 +282,13 @@ export const appRouter = router({
       }),
 
     update: protectedProcedure
-      .input(z.object({
-        id: z.number(),
-        title: z.string().min(1).max(255).optional(),
-        completed: z.boolean().optional(),
-      }))
+      .input(
+        z.object({
+          id: z.number(),
+          title: z.string().min(1).max(255).optional(),
+          completed: z.boolean().optional(),
+        }),
+      )
       .mutation(({ input }) => {
         return db.updateItem(input.id, input);
       }),
@@ -404,6 +416,7 @@ const response = await invokeLLM({
 ```
 
 Tips
+
 - Always call llm functions from server-side code (e.g., inside tRPC procedures), to avoid exposing your API key.
 - LLM calls deduct from this project's credit balance.
 - All models support streaming, but `invokeLLM()` doesn't expose `stream` — modify the helper to pass `stream: true` and parse the SSE response if you need it. When proxying SSE, listen on `res` close (not `req`) and guard with a `finished` flag, or the upstream gets aborted after the first event.
@@ -416,7 +429,7 @@ Tips
 import { listLLMModels } from "./server/_core/llm";
 
 const { data } = await listLLMModels();
-const ids = data.map(m => m.id);
+const ids = data.map((m) => m.id);
 ```
 
 Returns OpenAI-standard model metadata for each available ID. From the project shell you can also peek at it directly: `curl "$BUILT_IN_FORGE_API_URL/v1/models" -H "Authorization: Bearer $BUILT_IN_FORGE_API_KEY"`.
@@ -427,7 +440,7 @@ Returns OpenAI-standard model metadata for each available ID. From the project s
 import { invokeLLM, listLLMModels } from "./server/_core/llm";
 
 const { data } = await listLLMModels();
-const model = data.find(m => m.id.startsWith("claude-"))?.id;
+const model = data.find((m) => m.id.startsWith("claude-"))?.id;
 
 const response = await invokeLLM({
   model,
@@ -468,8 +481,15 @@ import { invokeLLM } from "./server/_core/llm";
 
 const structured = await invokeLLM({
   messages: [
-    { role: "system", content: "You are a helpful assistant designed to output JSON." },
-    { role: "user", content: "Extract the name and age from the following text: \"My name is Alice and I am 30 years old.\"" },
+    {
+      role: "system",
+      content: "You are a helpful assistant designed to output JSON.",
+    },
+    {
+      role: "user",
+      content:
+        'Extract the name and age from the following text: "My name is Alice and I am 30 years old."',
+    },
   ],
   response_format: {
     type: "json_schema",
@@ -492,9 +512,11 @@ const structured = await invokeLLM({
 // The model responds with JSON content matching the schema.
 // Access via `structured.choices[0].message.content` and JSON.parse if needed.
 ```
+
 The helpers mirror the Python SDK semantics but produce JavaScript-first code, keeping credentials inside the server and ensuring every environment has access to the same token.
 
 **CRITICAL Note:** `json_schema` works for flat structures. For nested arrays/objects, use `json_object` instead.
+
 ```ts
 const response = await invokeLLM({
   messages: [
@@ -504,17 +526,17 @@ const response = await invokeLLM({
 {
   "foods": [{ "name": "string", "calories": number }],
   "totalCalories": number
-}`
+}`,
     },
     {
       role: "user",
       content: [
         { type: "text", text: "What food is this?" },
-        { type: "image_url", image_url: { url: imageUrl } }
-      ]
-    }
+        { type: "image_url", image_url: { url: imageUrl } },
+      ],
+    },
   ],
-  response_format: { type: "json_object" }
+  response_format: { type: "json_object" },
 });
 const data = JSON.parse(response.choices[0].message.content);
 ```
@@ -526,13 +548,14 @@ const data = JSON.parse(response.choices[0].message.content);
 Use the preconfigured voice transcription helper that converts speech to text using Whisper API, no manual setup required.
 
 Example usage:
+
 ```ts
 import { transcribeAudio } from "./server/_core/voiceTranscription";
 
 const result = await transcribeAudio({
   audioUrl: "https://storage.example.com/audio/recording.mp3",
   language: "en", // Optional: helps improve accuracy
-  prompt: "Transcribe meeting notes" // Optional: context hint
+  prompt: "Transcribe meeting notes", // Optional: context hint
 });
 
 // Returns native Whisper API response
@@ -542,6 +565,7 @@ const result = await transcribeAudio({
 ```
 
 Tips
+
 - Accepts URL to pre-uploaded audio file
 - 16MB file size limit enforced during transcription, size flag to be set by frontend
 - Supported formats: webm, mp3, wav, ogg, m4a
@@ -555,19 +579,22 @@ Tips
 Use the preconfigured image generation helper that connects to the internal ImageService, no manual setup required.
 
 Example usage:
+
 ```ts
 import { generateImage } from "./server/_core/imageGeneration.ts";
 
 const { url: imageUrl } = await generateImage({
-  prompt: "A serene landscape with mountains"
+  prompt: "A serene landscape with mountains",
 });
 // For editing:
 const { url: imageUrl } = await generateImage({
   prompt: "Add a rainbow to this landscape",
-  originalImages: [{
-    url: "https://example.com/original.jpg",
-    mimeType: "image/jpeg"
-  }]
+  originalImages: [
+    {
+      url: "https://example.com/original.jpg",
+      mimeType: "image/jpeg",
+    },
+  ],
 });
 ```
 
@@ -597,6 +624,7 @@ const { models } = await listImageModels();
 Feed a `model` value from this list into `generateImage({ model })`.
 
 Tips
+
 - Always call from server-side code (e.g., inside tRPC procedures) to avoid exposing API keys
 - Image generation can take 5-20 seconds, implement proper loading states
 - Implement proper error handling as image generation can fail
@@ -611,17 +639,18 @@ Use the preconfigured storage helpers in `server/storage.ts`. Credentials are in
 import { storagePut } from "./server/storage";
 
 // Upload bytes to storage
-const fileKey = `${userId}-files/${fileName}.png`
+const fileKey = `${userId}-files/${fileName}.png`;
 const { key, url } = await storagePut(
   fileKey,
   fileBuffer, // Buffer | Uint8Array | string
-  "image/png"
+  "image/png",
 );
 // url = "/manus-storage/{key}" — use directly in frontend code
 // key = unique storage key — save in database
 ```
 
 Tips
+
 - Save the `key` or `url` in your database; use storage for the actual file bytes. This applies to all files including images, documents, and media.
 - For file uploads, have the client POST to your server, then call `storagePut` from your backend.
 - The returned `url` (e.g. `/manus-storage/...`) is automatically served via signed redirect — no manual URL signing needed.
@@ -650,24 +679,24 @@ Keep this channel for owner-facing alerts; end-user messaging should flow throug
 
 Available environment variables:
 
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | MySQL/TiDB connection string |
-| `JWT_SECRET` | Session signing secret |
-| `VITE_APP_ID` | Manus OAuth app ID |
-| `OAUTH_SERVER_URL` | Manus OAuth backend URL |
-| `VITE_OAUTH_PORTAL_URL` | Manus login portal URL |
-| `OWNER_OPEN_ID` | Owner's Manus ID |
-| `OWNER_NAME` | Owner's display name |
-| `BUILT_IN_FORGE_API_URL` | Manus API endpoint |
-| `BUILT_IN_FORGE_API_KEY` | Manus API key |
+| Variable                 | Description                  |
+| ------------------------ | ---------------------------- |
+| `DATABASE_URL`           | MySQL/TiDB connection string |
+| `JWT_SECRET`             | Session signing secret       |
+| `VITE_APP_ID`            | Manus OAuth app ID           |
+| `OAUTH_SERVER_URL`       | Manus OAuth backend URL      |
+| `VITE_OAUTH_PORTAL_URL`  | Manus login portal URL       |
+| `OWNER_OPEN_ID`          | Owner's Manus ID             |
+| `OWNER_NAME`             | Owner's display name         |
+| `BUILT_IN_FORGE_API_URL` | Manus API endpoint           |
+| `BUILT_IN_FORGE_API_KEY` | Manus API key                |
 
 Expo runtime variables (prefixed with `EXPO_PUBLIC_`):
 
-| Variable | Description |
-|----------|-------------|
-| `EXPO_PUBLIC_APP_ID` | App ID for OAuth |
-| `EXPO_PUBLIC_API_BASE_URL` | API server URL |
+| Variable                       | Description      |
+| ------------------------------ | ---------------- |
+| `EXPO_PUBLIC_APP_ID`           | App ID for OAuth |
+| `EXPO_PUBLIC_API_BASE_URL`     | API server URL   |
 | `EXPO_PUBLIC_OAUTH_PORTAL_URL` | Login portal URL |
 
 ---
@@ -709,8 +738,16 @@ pnpm test
 ## Core File References
 
 `drizzle/schema.ts`
+
 ```ts
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import {
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -741,6 +778,7 @@ export type InsertUser = typeof users.$inferInsert;
 ```
 
 `server/db.ts`
+
 ```ts
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
@@ -828,7 +866,11 @@ export async function getUserByOpenId(openId: string) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
@@ -837,6 +879,7 @@ export async function getUserByOpenId(openId: string) {
 ```
 
 `server/routers.ts`
+
 ```ts
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -869,6 +912,7 @@ export type AppRouter = typeof appRouter;
 ```
 
 `server/storage.ts`
+
 ```ts
 // Preconfigured storage helpers for Manus WebDev templates
 // Uploads via Forge Server presigned URL to S3 (PUT direct).
@@ -943,7 +987,9 @@ export async function storagePut(
   return { key, url: `/manus-storage/${key}` };
 }
 
-export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
+export async function storageGet(
+  relKey: string,
+): Promise<{ key: string; url: string }> {
   const key = normalizeKey(relKey);
   return { key, url: `/manus-storage/${key}` };
 }
@@ -970,6 +1016,7 @@ export async function storageGetSignedUrl(relKey: string): Promise<string> {
 ```
 
 `lib/trpc.ts`
+
 ```ts
 import { createTRPCReact } from "@trpc/react-query";
 import { httpBatchLink } from "@trpc/client";
@@ -1016,6 +1063,7 @@ export function createTRPCClient() {
 ```
 
 `hooks/use-auth.ts`
+
 ```ts
 import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
@@ -1070,7 +1118,9 @@ export function useAuth(options?: UseAuthOptions) {
       const sessionToken = await Auth.getSessionToken();
       console.log(
         "[useAuth] Session token:",
-        sessionToken ? `present (${sessionToken.substring(0, 20)}...)` : "missing",
+        sessionToken
+          ? `present (${sessionToken.substring(0, 20)}...)`
+          : "missing",
       );
       if (!sessionToken) {
         console.log("[useAuth] No session token, setting user to null");
@@ -1089,7 +1139,8 @@ export function useAuth(options?: UseAuthOptions) {
         setUser(null);
       }
     } catch (err) {
-      const error = err instanceof Error ? err : new Error("Failed to fetch user");
+      const error =
+        err instanceof Error ? err : new Error("Failed to fetch user");
       console.error("[useAuth] fetchUser error:", error);
       setError(error);
       setUser(null);
@@ -1116,7 +1167,12 @@ export function useAuth(options?: UseAuthOptions) {
   const isAuthenticated = useMemo(() => Boolean(user), [user]);
 
   useEffect(() => {
-    console.log("[useAuth] useEffect triggered, autoFetch:", autoFetch, "platform:", Platform.OS);
+    console.log(
+      "[useAuth] useEffect triggered, autoFetch:",
+      autoFetch,
+      "platform:",
+      Platform.OS,
+    );
     if (autoFetch) {
       if (Platform.OS === "web") {
         // Web: fetch user from API directly (user will login manually if needed)
@@ -1163,6 +1219,7 @@ export function useAuth(options?: UseAuthOptions) {
 ```
 
 `tests/auth.logout.test.ts`
+
 ```ts
 import { describe, expect, it } from "vitest";
 import { appRouter } from "../server/routers";
@@ -1176,9 +1233,12 @@ type CookieCall = {
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
-function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] } {
+function createAuthContext(): {
+  ctx: TrpcContext;
+  clearedCookies: CookieCall[];
+} {
   const clearedCookies: CookieCall[] = [];
-  
+
   const user: AuthenticatedUser = {
     id: 1,
     openId: "sample-user",
@@ -1190,7 +1250,7 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
     updatedAt: new Date(),
     lastSignedIn: new Date(),
   };
-  
+
   const ctx: TrpcContext = {
     user,
     req: {
@@ -1203,7 +1263,7 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
       },
     } as TrpcContext["res"],
   };
-  
+
   return { ctx, clearedCookies };
 }
 
@@ -1242,19 +1302,17 @@ const toggleComplete = trpc.items.update.useMutation({
   onMutate: async (input) => {
     // Cancel outgoing queries
     await utils.items.list.cancel();
-    
+
     // Snapshot previous value
     const previous = utils.items.list.getData();
-    
+
     // Optimistically update
     utils.items.list.setData(undefined, (old) =>
       old?.map((item) =>
-        item.id === input.id
-          ? { ...item, completed: input.completed }
-          : item
-      )
+        item.id === input.id ? { ...item, completed: input.completed } : item,
+      ),
     );
-    
+
     return { previous };
   },
   onError: (err, input, context) => {
@@ -1283,13 +1341,13 @@ list: protectedProcedure
       limit: input.limit + 1,
       cursor: input.cursor,
     });
-    
+
     let nextCursor: number | undefined;
     if (items.length > input.limit) {
       const next = items.pop();
       nextCursor = next?.id;
     }
-    
+
     return { items, nextCursor };
   }),
 
@@ -1304,10 +1362,10 @@ const { data, fetchNextPage, hasNextPage } = trpc.items.list.useInfiniteQuery(
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| "Database not available" | Check `DATABASE_URL` is set |
-| Auth not working | Verify OAuth callback URL matches |
-| tRPC type errors | Run `pnpm check` to verify types |
-| Mutations fail silently | Check browser console for errors |
-| Session expired | User needs to login again |
+| Issue                    | Solution                          |
+| ------------------------ | --------------------------------- |
+| "Database not available" | Check `DATABASE_URL` is set       |
+| Auth not working         | Verify OAuth callback URL matches |
+| tRPC type errors         | Run `pnpm check` to verify types  |
+| Mutations fail silently  | Check browser console for errors  |
+| Session expired          | User needs to login again         |

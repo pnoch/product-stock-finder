@@ -9,38 +9,24 @@ import { Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import "@/lib/notifications"; // registers setNotificationHandler at module level
-import { requestNotificationPermissions, setupAndroidNotificationChannel } from "@/lib/notifications";
-import { getWatchlist, addToWatchlist, updateProductListings } from "@/lib/storage";
-import { registerPriceCheckTask, checkPriceDropsNow } from "@/lib/background-price-check";
+import {
+  requestNotificationPermissions,
+  setupAndroidNotificationChannel,
+} from "@/lib/notifications";
+import {
+  getWatchlist,
+  addToWatchlist,
+  updateProductListings,
+} from "@/lib/storage";
+import {
+  registerPriceCheckTask,
+  checkPriceDropsNow,
+} from "@/lib/background-price-check";
 // Import background task module at root level so TaskManager.defineTask runs in global scope
 import "@/lib/background-price-check";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
+import { SAMPLE_LISTINGS } from "@/lib/sample-data";
 import { DistributorListing } from "@/lib/types";
-
-// CRS804 listings seeded at first launch so Home/Watchlist badges show real status immediately
-const CRS804_SEED_LISTINGS: DistributorListing[] = [
-  { distributorId: "server2u-my", productId: "mikrotik-crs804-4ddq-hrm", price: 5568, currency: "MYR", stockStatus: "in_stock", url: "https://server2u.com/shop/crs804-4ddq-hrm-mikrotik-crs804-4ddq-hrm-400g-master-switch-66247", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "mikrotikstore-de", productId: "mikrotik-crs804-4ddq-hrm", price: 1141.67, currency: "EUR", stockStatus: "in_stock", url: "https://mikrotik-store.eu/en/cloud-router-switches/crs804-4ddq-hrm", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "interprojekt-pl", productId: "mikrotik-crs804-4ddq-hrm", price: 860.54, currency: "EUR", stockStatus: "back_order", expectedDate: "Sept 15, 2026", url: "https://interprojekt.pl/en/p/mikrotik-crs804-4ddq-hrm.html", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "nasstore-eu", productId: "mikrotik-crs804-4ddq-hrm", price: 956.0, currency: "EUR", stockStatus: "back_order", expectedDate: "Aug 13, 2026", url: "https://nasstore.eu/product/mikrotik-cloud-router-switch-crs804-4ddq-hrm/", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "aerial-gr", productId: "mikrotik-crs804-4ddq-hrm", price: 956.99, currency: "EUR", stockStatus: "back_order", expectedDate: "Sept 9, 2026", url: "https://aerial.net/shop/product/mikrotik-crs804-4ddq-hrm-cloud-router-switch-5671", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "linitx-uk", productId: "mikrotik-crs804-4ddq-hrm", price: 1139.99, currency: "GBP", stockStatus: "back_order", expectedDate: "Sept 18, 2026", url: "https://linitx.com/product/mikrotik-crs804-ddq-cloud-router-400gb-4-port-switch-crs804-4ddq-hrm/18455", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "miro-za", productId: "mikrotik-crs804-4ddq-hrm", price: 30140, currency: "ZAR", stockStatus: "back_order", expectedDate: "Aug 2026", url: "https://miro.co.za/07-networking-switches---managed-layer-3/8878-mikrotik-cloud-router-switch-crs804-4ddq-hrm-miro.html", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "getic-gr", productId: "mikrotik-crs804-4ddq-hrm", price: 877.64, currency: "EUR", stockStatus: "out_of_stock", url: "https://www.getic.com/product/mikrotik-crs804-4ddq-hrm", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "duxtel-au", productId: "mikrotik-crs804-4ddq-hrm", price: 2299, currency: "AUD", stockStatus: "out_of_stock", url: "https://store.duxtel.com.au/product/crs804-4ddq-hrm", lastChecked: new Date().toISOString(), priceHistory: [] },
-];
-
-// CRS326 listings seeded at first launch
-const CRS326_SEED_LISTINGS: DistributorListing[] = [
-  { distributorId: "balticnetworks-us", productId: "mikrotik-crs326-24s", price: 499, currency: "USD", stockStatus: "in_stock", url: "https://balticnetworks.com/mikrotik-crs326-24s-2q-rm.html", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "interprojekt-pl", productId: "mikrotik-crs326-24s", price: 389, currency: "EUR", stockStatus: "in_stock", url: "https://interprojekt.pl/en/p/mikrotik-crs326-24s.html", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "mikrotikstore-de", productId: "mikrotik-crs326-24s", price: 415, currency: "EUR", stockStatus: "in_stock", url: "https://mikrotik-store.eu/en/cloud-router-switches/crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "linitx-uk", productId: "mikrotik-crs326-24s", price: 449, currency: "GBP", stockStatus: "in_stock", url: "https://linitx.com/product/mikrotik-crs326-24s-2q-rm/17890", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "server2u-my", productId: "mikrotik-crs326-24s", price: 2180, currency: "MYR", stockStatus: "in_stock", url: "https://server2u.com/shop/crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "duxtel-au", productId: "mikrotik-crs326-24s", price: 899, currency: "AUD", stockStatus: "back_order", expectedDate: "Aug 30, 2026", url: "https://store.duxtel.com.au/product/crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "miro-za", productId: "mikrotik-crs326-24s", price: 11500, currency: "ZAR", stockStatus: "back_order", expectedDate: "Sept 5, 2026", url: "https://miro.co.za/networking/crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [] },
-  { distributorId: "getic-gr", productId: "mikrotik-crs326-24s", price: 398, currency: "EUR", stockStatus: "out_of_stock", url: "https://www.getic.com/product/mikrotik-crs326-24s-2q-rm", lastChecked: new Date().toISOString(), priceHistory: [] },
-];
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -50,7 +36,17 @@ import {
 import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 
 import { trpc, createTRPCClient } from "@/lib/trpc";
-import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
+import {
+  initManusRuntime,
+  subscribeSafeAreaInsets,
+} from "@/lib/_core/manus-runtime";
+
+// CRS804 + CRS326 listings seeded at first launch from lib/sample-data.ts so Home/Watchlist
+// badges and Product Detail sparklines/charts have full price history immediately.
+const CRS804_SEED_LISTINGS: DistributorListing[] =
+  SAMPLE_LISTINGS["mikrotik-crs804-4ddq-hrm"] ?? [];
+const CRS326_SEED_LISTINGS: DistributorListing[] =
+  SAMPLE_LISTINGS["mikrotik-crs326-24s"] ?? [];
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -87,16 +83,23 @@ export default function RootLayout() {
   useEffect(() => {
     async function seedCRS804() {
       const watchlist = await getWatchlist();
-      const existing = watchlist.find((p) => p.id === "mikrotik-crs804-4ddq-hrm");
+      const existing = watchlist.find(
+        (p) => p.id === "mikrotik-crs804-4ddq-hrm",
+      );
       if (existing) {
         // Backfill listings if the product was seeded without listing data
         if (!existing.listings || existing.listings.length === 0) {
-          await updateProductListings("mikrotik-crs804-4ddq-hrm", CRS804_SEED_LISTINGS);
+          await updateProductListings(
+            "mikrotik-crs804-4ddq-hrm",
+            CRS804_SEED_LISTINGS,
+          );
         }
         return;
       }
       // First launch: add CRS804 with full listing data
-      const crs804 = PRODUCT_CATALOG.find((p) => p.id === "mikrotik-crs804-4ddq-hrm");
+      const crs804 = PRODUCT_CATALOG.find(
+        (p) => p.id === "mikrotik-crs804-4ddq-hrm",
+      );
       if (!crs804) return;
       await addToWatchlist({
         ...crs804,
@@ -105,17 +108,22 @@ export default function RootLayout() {
         listings: CRS804_SEED_LISTINGS,
       });
     }
-    seedCRS804();
+    seedCRS804().then(seedCRS326);
     async function seedCRS326() {
       const watchlist = await getWatchlist();
       const existing = watchlist.find((p) => p.id === "mikrotik-crs326-24s");
       if (existing) {
         if (!existing.listings || existing.listings.length === 0) {
-          await updateProductListings("mikrotik-crs326-24s", CRS326_SEED_LISTINGS);
+          await updateProductListings(
+            "mikrotik-crs326-24s",
+            CRS326_SEED_LISTINGS,
+          );
         }
         return;
       }
-      const crs326 = PRODUCT_CATALOG.find((p) => p.id === "mikrotik-crs326-24s");
+      const crs326 = PRODUCT_CATALOG.find(
+        (p) => p.id === "mikrotik-crs326-24s",
+      );
       if (!crs326) return;
       await addToWatchlist({
         ...crs326,
@@ -124,7 +132,6 @@ export default function RootLayout() {
         listings: CRS326_SEED_LISTINGS,
       });
     }
-    seedCRS326();
   }, []);
 
   const handleSafeAreaUpdate = useCallback((metrics: Metrics) => {
@@ -156,7 +163,10 @@ export default function RootLayout() {
 
   // Ensure minimum 8px padding for top and bottom on mobile
   const providerInitialMetrics = useMemo(() => {
-    const metrics = initialWindowMetrics ?? { insets: initialInsets, frame: initialFrame };
+    const metrics = initialWindowMetrics ?? {
+      insets: initialInsets,
+      frame: initialFrame,
+    };
     return {
       ...metrics,
       insets: {
@@ -202,7 +212,9 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <SafeAreaProvider initialMetrics={providerInitialMetrics}>{content}</SafeAreaProvider>
+      <SafeAreaProvider initialMetrics={providerInitialMetrics}>
+        {content}
+      </SafeAreaProvider>
     </ThemeProvider>
   );
 }

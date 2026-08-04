@@ -17,4 +17,13 @@ describe("Aerial Parser", () => {
     const result = aerialParser.parsePrice("<html><body>No price here</body></html>");
     expect(result).toBeNull();
   });
+
+  it("should extract price, stock status, and currency from valid HTML", () => {
+    const html = `<div><span class="price">€219.00</span><span class="stock-status">In Stock</span></div>`;
+    const result = aerialParser.parsePrice(html);
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(219.00);
+    expect(result!.currency).toBe("EUR");
+    expect(result!.stockStatus).toBe("in_stock");
+  });
 });

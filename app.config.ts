@@ -28,9 +28,10 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "Stock Tracker Pro",
-  appSlug: "stock-tracker-pro",
-  logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/113777709/LQQHlfCzGHTyzqJJ.png",
+  appName: "Product Stock Finder",
+  appSlug: "product-stock-finder",
+  logoUrl:
+    "https://files.manuscdn.com/user_upload_by_module/session_file/113777709/LQQHlfCzGHTyzqJJ.png",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
@@ -48,9 +49,9 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
-    "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
   android: {
     adaptiveIcon: {
@@ -87,7 +88,8 @@ const config: ExpoConfig = {
     [
       "expo-audio",
       {
-        microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
+        microphonePermission:
+          "Allow $(PRODUCT_NAME) to access your microphone.",
       },
     ],
     [

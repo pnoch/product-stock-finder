@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { View, Text } from "react-native";
-import Svg, { Polyline, Circle, Line } from "react-native-svg";
+import Svg, { Polyline, Circle } from "react-native-svg";
 import { useColors } from "@/hooks/use-colors";
 import { PricePoint } from "@/lib/types";
 
@@ -15,12 +15,19 @@ interface PriceSparklineProps {
  * A minimal inline sparkline that renders price history as an SVG polyline.
  * Shows up to the last 10 data points. Renders nothing if fewer than 2 points.
  */
-export function PriceSparkline({ data, width = 80, height = 32, currency }: PriceSparklineProps) {
+export function PriceSparkline({
+  data,
+  width = 80,
+  height = 32,
+  currency,
+}: PriceSparklineProps) {
   const colors = useColors();
 
   const points = useMemo(() => {
     if (!data || data.length < 2) return null;
-    const sorted = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-10);
+    const sorted = [...data]
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(-10);
     const prices = sorted.map((p) => p.price);
     const minP = Math.min(...prices);
     const maxP = Math.max(...prices);
@@ -42,7 +49,7 @@ export function PriceSparkline({ data, width = 80, height = 32, currency }: Pric
 
   if (!points) return null;
 
-  const lineColor = points.trend === "up" ? colors.success : colors.error;
+  const lineColor = points.trend === "down" ? colors.success : colors.error;
 
   return (
     <View style={{ alignItems: "flex-end" }}>
@@ -63,7 +70,14 @@ export function PriceSparkline({ data, width = 80, height = 32, currency }: Pric
         />
       </Svg>
       {currency && (
-        <Text style={{ color: lineColor, fontSize: 9, fontWeight: "600", opacity: 0.8 }}>
+        <Text
+          style={{
+            color: lineColor,
+            fontSize: 9,
+            fontWeight: "600",
+            opacity: 0.8,
+          }}
+        >
           {points.trend === "up" ? "▲" : "▼"} {currency}
         </Text>
       )}

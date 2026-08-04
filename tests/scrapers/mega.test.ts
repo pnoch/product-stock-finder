@@ -33,4 +33,13 @@ describe("100Mega Parser", () => {
     const result = megaParser.parsePrice("<html><body>No price here</body></html>");
     expect(result).toBeNull();
   });
+
+  it("should extract price, stock status, and currency from valid HTML", () => {
+    const html = `<div><span class="price">€189.00</span><span class="stock-status">In Stock</span></div>`;
+    const result = megaParser.parsePrice(html);
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(189.00);
+    expect(result!.currency).toBe("EUR");
+    expect(result!.stockStatus).toBe("in_stock");
+  });
 });
