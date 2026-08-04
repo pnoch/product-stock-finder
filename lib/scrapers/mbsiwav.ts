@@ -5,11 +5,11 @@ import { fetchWithRateLimit, parsePriceFromText, inferStockStatus } from "./util
 function parseHtml(html: string, url: string): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(".product-price, .price, [data-price]").first().text();
+  const priceText = $(".product-views-price, .product-views-price-exact, .product-views-price-lead, .price").first().text();
   const price = parsePriceFromText(priceText);
   if (!price) return null;
 
-  const stockText = $(".stock-status, .availability, .stock").first().text();
+  const stockText = $(".item-stock, .stock-status").first().text();
   const stockStatus = inferStockStatus(stockText);
 
   return {
