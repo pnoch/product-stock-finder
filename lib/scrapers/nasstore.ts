@@ -27,6 +27,10 @@ export const nasstoreParser: DistributorParser = {
     `https://nasstore.eu/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://nasstore.eu"),
   rateLimitMs: 3000,
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: ".product-price, .price",
+  },
 };
 
 export async function scrapeNasstore(
@@ -34,7 +38,13 @@ export async function scrapeNasstore(
 ): Promise<ScrapeResult | null> {
   try {
     const url = nasstoreParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, nasstoreParser.rateLimitMs);
+    let html: string;
+    if (nasstoreParser.useBrowser) {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      html = await fetchWithBrowser(url, nasstoreParser.browserOptions);
+    } else {
+      html = await fetchWithRateLimit(url, nasstoreParser.rateLimitMs);
+    }
     return parseHtml(html, url);
   } catch {
     return null;
