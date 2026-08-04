@@ -182,6 +182,14 @@ describe("Scraping Integration", () => {
     });
   });
 
+  describe("Browser Parser Integration", () => {
+    it("should parse with useBrowser flag", async () => {
+      const { nasstoreParser } = await import("@/lib/scrapers/nasstore");
+      expect(nasstoreParser.useBrowser).toBe(true);
+      expect(nasstoreParser.browserOptions?.waitForSelector).toBe(".product-price, .price");
+    });
+  });
+
   describe("Price History", () => {
     it("should append new price points", () => {
       const history = [
