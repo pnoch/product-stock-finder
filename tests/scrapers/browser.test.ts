@@ -7,9 +7,15 @@ const mockPage = {
   close: vi.fn(),
 };
 
+const mockContext = {
+  newPage: vi.fn().mockResolvedValue(mockPage),
+  addInitScript: vi.fn(),
+  close: vi.fn(),
+};
+
 const mockBrowser = {
   isConnected: vi.fn().mockReturnValue(true),
-  newPage: vi.fn().mockResolvedValue(mockPage),
+  newContext: vi.fn().mockResolvedValue(mockContext),
   close: vi.fn(),
 };
 
@@ -82,5 +88,11 @@ describe("fetchWithBrowser", () => {
     const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
     await fetchWithBrowser("https://example.com");
     expect(mockPage.close).toHaveBeenCalled();
+  });
+
+  it("should close context after fetching", async () => {
+    const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+    await fetchWithBrowser("https://example.com");
+    expect(mockContext.close).toHaveBeenCalled();
   });
 });
