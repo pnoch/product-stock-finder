@@ -10,6 +10,8 @@ const mockPage = {
 const mockContext = {
   newPage: vi.fn().mockResolvedValue(mockPage),
   addInitScript: vi.fn(),
+  addCookies: vi.fn(),
+  cookies: vi.fn().mockResolvedValue([]),
   close: vi.fn(),
 };
 

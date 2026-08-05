@@ -1,4 +1,6 @@
 import { chromium, Browser, BrowserContext } from "playwright";
+import { mkdir, readFile, writeFile } from "fs/promises";
+import { join } from "path";
 
 const USER_AGENTS = [
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
@@ -16,8 +18,38 @@ const VIEWPORTS = [
   { width: 1280, height: 720 },
 ];
 
+const COOKIE_DIR = join(process.env.HOME || "~", ".cache", "product-stock-finder", "cookies");
+
 function getRandomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+async function loadCookies(domain: string): Promise<any[]> {
+  try {
+    const filePath = join(COOKIE_DIR, `${domain.replace(/\./g, "_")}.json`);
+    const data = await readFile(filePath, "utf-8");
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+}
+
+async function saveCookies(domain: string, cookies: any[]): Promise<void> {
+  try {
+    await mkdir(COOKIE_DIR, { recursive: true });
+    const filePath = join(COOKIE_DIR, `${domain.replace(/\./g, "_")}.json`);
+    await writeFile(filePath, JSON.stringify(cookies, null, 2));
+  } catch {
+    // Ignore save errors
+  }
+}
+
+function extractDomain(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
 }
 
 class BrowserPool {
@@ -37,6 +69,8 @@ class BrowserPool {
             "--disable-blink-features=AutomationControlled",
             "--disable-dev-shm-usage",
             "--no-sandbox",
+            "--disable-web-security",
+            "--disable-features=IsolateOrigins,site-per-process",
           ],
         });
       } catch (error) {
@@ -71,9 +105,10 @@ class BrowserPool {
 
 export const browserPool = new BrowserPool();
 
-async function createStealthContext(browser: Browser): Promise<BrowserContext> {
+async function createStealthContext(browser: Browser, url: string): Promise<BrowserContext> {
   const userAgent = getRandomItem(USER_AGENTS);
   const viewport = getRandomItem(VIEWPORTS);
+  const domain = extractDomain(url);
 
   const context = await browser.newContext({
     userAgent,
@@ -83,6 +118,12 @@ async function createStealthContext(browser: Browser): Promise<BrowserContext> {
     geolocation: { latitude: 40.7128, longitude: -74.006 },
     permissions: ["geolocation"],
   });
+
+  // Load saved cookies for this domain
+  const cookies = await loadCookies(domain);
+  if (cookies.length > 0) {
+    await context.addCookies(cookies);
+  }
 
   // Add scripts to evade detection
   await context.addInitScript(() => {
@@ -112,9 +153,45 @@ async function createStealthContext(browser: Browser): Promise<BrowserContext> {
       parameters.name === "notifications"
         ? Promise.resolve({ state: Notification.permission } as PermissionStatus)
         : originalQuery(parameters);
+
+    // Override WebGL vendor and renderer
+    const getParameter = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function (parameter) {
+      if (parameter === 37445) {
+        return "Intel Inc.";
+      }
+      if (parameter === 37446) {
+        return "Intel Iris OpenGL Engine";
+      }
+      return getParameter.call(this, parameter);
+    };
   });
 
   return context;
+}
+
+async function waitForCloudflare(page: any, timeoutMs: number): Promise<boolean> {
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeoutMs) {
+    const content = await page.content();
+    
+    // Check for Cloudflare challenge
+    if (content.includes("cf-browser-verification") || 
+        content.includes("Checking your browser") ||
+        content.includes("Just a moment...")) {
+      await page.waitForTimeout(2000);
+      continue;
+    }
+    
+    // Check for 403
+    if (content.includes("403 Forbidden")) {
+      return false;
+    }
+    
+    // Page loaded successfully
+    return true;
+  }
+  return false;
 }
 
 export async function fetchWithBrowser(
@@ -124,18 +201,31 @@ export async function fetchWithBrowser(
   const browser = await browserPool.acquire();
   let context: BrowserContext | undefined;
   let page;
+  const domain = extractDomain(url);
+  
   try {
-    context = await createStealthContext(browser);
+    context = await createStealthContext(browser, url);
     page = await context.newPage();
 
     await page.goto(url, {
-      waitUntil: "networkidle",
+      waitUntil: "domcontentloaded",
       timeout: options?.timeoutMs || 30000,
     });
 
+    // Wait for Cloudflare challenge to resolve
+    await waitForCloudflare(page, options?.timeoutMs || 30000);
+
     if (options?.waitForSelector) {
-      await page.waitForSelector(options.waitForSelector, { timeout: 10000 });
+      try {
+        await page.waitForSelector(options.waitForSelector, { timeout: 10000 });
+      } catch {
+        // Selector not found, continue with whatever loaded
+      }
     }
+
+    // Save cookies for future requests
+    const cookies = await context.cookies();
+    await saveCookies(domain, cookies);
 
     return await page.content();
   } finally {
