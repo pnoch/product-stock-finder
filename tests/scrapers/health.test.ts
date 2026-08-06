@@ -56,7 +56,7 @@ describe("createHealthService", () => {
     const health = [
       {
         distributorId: "server2u-my",
-        status: "working",
+        status: "working" as const,
         lastChecked: new Date().toISOString(),
       },
     ];
