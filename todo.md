@@ -128,3 +128,18 @@
 - [x] Savings Calculator total-saved banner in Price Drop History
 - [x] Re-arm Alert (Watch Again) button on triggered history items
 - [x] Last Checked timestamp on Product Detail distributor cards (already existed)
+
+## Phase 15: Headless Browser Scraping
+
+- [x] Add `useBrowser` and `browserOptions` fields to DistributorParser interface
+- [x] Create BrowserPool class and fetchWithBrowser function (lib/scrapers/browser.ts)
+- [x] Add browser fingerprinting evasion (user-agent, viewport, webdriver disable)
+- [x] Add Cloudflare bypass with cookie persistence and challenge waiting
+- [x] Add fetchWithParser utility to reduce code duplication (lib/scrapers/utils.ts)
+- [x] Update 15 parsers with `useBrowser: true` flag
+- [x] Create Rust BrowserPool for desktop (desktop/src-tauri/src/scrapers/browser.rs)
+- [x] Update all desktop scrapers to use browser fetch
+- [x] Unit tests for BrowserPool (8 tests passing)
+- [x] Integration test for browser parsers
+- [x] Live testing: 5/15 sites working (bhphoto, mbsiwav, winncom, pbtech, getic)
+- [x] Remaining 10 sites have infrastructure issues (dead/parked, SSL errors, site-side JS problems)
