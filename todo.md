@@ -143,3 +143,16 @@
 - [x] Integration test for browser parsers
 - [x] Live testing: 5/15 sites working (bhphoto, mbsiwav, winncom, pbtech, getic)
 - [x] Remaining 10 sites have infrastructure issues (dead/parked, SSL errors, site-side JS problems)
+
+## Phase 16: Distributor Health Dashboard
+
+- [x] Create shared health module (lib/scrapers/health.ts) with classifyResult, createHealthService, testAllDistributors
+- [x] Health persistence via StorageAdapter pattern (distributor_health key)
+- [x] Mobile health screen (app/health.tsx) with filter chips, Test All button, progress bar
+- [x] Desktop health screen (desktop/src/pages/Health.tsx) using Rust check_distributor_health command
+- [x] Rust check_distributor_health command running all 25 scrapers
+- [x] Extract shared scrape_distributor helper (DRY with check_all_prices)
+- [x] Wire health updates into background scrape (batched flush)
+- [x] Unit tests for classification + persistence (10 tests)
+- [x] Desktop health component tests (4 tests)
+- [x] Desktop build regression fixed (Rust command instead of JS playwright module)
