@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import {
   ScrollView,
   Text,
@@ -100,6 +101,7 @@ function SectionHeader({ title }: { title: string }) {
 
 export default function SettingsScreen() {
   const colors = useColors();
+  const router = useRouter();
   const [settings, setSettings] = useState<AppSettings>({
     theme: "auto",
     displayCurrency: "USD",
@@ -601,6 +603,22 @@ export default function SettingsScreen() {
             </View>
           )}
         </View>
+
+        <TouchableOpacity
+          onPress={() => router.push("/health")}
+          style={{
+            marginHorizontal: 16,
+            marginTop: 12,
+            paddingVertical: 12,
+            borderRadius: 12,
+            backgroundColor: colors.primary + "22",
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}>
+            View Health Dashboard
+          </Text>
+        </TouchableOpacity>
 
         <SectionHeader title="About" />
         <View

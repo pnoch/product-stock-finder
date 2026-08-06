@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Palette, DollarSign, Bell, Clock, Download, Upload, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router";
+import { Palette, DollarSign, Bell, Clock, Download, Upload, Trash2, Activity } from "lucide-react";
 import { useSettings } from "../hooks/use-storage";
 import { useTheme } from "../hooks/use-theme";
 import { storage } from "../storage";
@@ -10,6 +11,7 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 export function Settings() {
   const { settings, loading, update } = useSettings();
   const { theme, toggle: toggleTheme } = useTheme();
+  const navigate = useNavigate();
   const [clearConfirm, setClearConfirm] = useState(false);
   const [importExportMessage, setImportExportMessage] = useState<string | null>(null);
 
@@ -44,6 +46,19 @@ export function Settings() {
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
+
+      <button
+        onClick={() => navigate("/health")}
+        className="flex items-center gap-2 w-full bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:border-brand-500 transition-colors"
+      >
+        <Activity className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+        <span className="text-left">
+          <span className="block text-lg font-semibold">Distributor Health</span>
+          <span className="block text-sm text-gray-500 dark:text-gray-400">
+            View scraper status and run a live check
+          </span>
+        </span>
+      </button>
 
       {/* Theme Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">

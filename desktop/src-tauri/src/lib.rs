@@ -407,6 +407,7 @@ async fn scrape_distributor(
 // ─── Distributor Health ──────────────────────────────────────────────────────
 
 #[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 struct DistributorHealth {
     distributor_id: String,
     status: String,
@@ -648,7 +649,14 @@ fn current_iso_timestamp() -> String {
         month += 1;
     }
     let day = remaining + 1;
-    format!("{:04}-{:02}-{:02}T00:00:00Z", year, month, day)
+    let secs_of_day = secs % 86400;
+    let hour = secs_of_day / 3600;
+    let minute = (secs_of_day % 3600) / 60;
+    let second = secs_of_day % 60;
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        year, month, day, hour, minute, second
+    )
 }
 
 // ─── Tray Badge ──────────────────────────────────────────────────────────────
