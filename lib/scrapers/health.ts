@@ -1,7 +1,7 @@
-import { DistributorParser, ScrapeResult } from "./types";
+import type { ScrapeResult } from "./types";
 import { PARSERS } from "./registry";
 import { fetchWithParser } from "./utils";
-import { StorageAdapter } from "@/lib/storage";
+import type { StorageAdapter } from "@/lib/storage";
 
 export type HealthStatus = "working" | "blocked" | "error";
 
@@ -14,6 +14,7 @@ export interface DistributorHealth {
 }
 
 const HEALTH_KEY = "distributor_health";
+const PROBE_MODEL = "CRS326";
 
 export function classifyResult(
   html: string,
@@ -37,7 +38,9 @@ export function createHealthService(adapter: StorageAdapter) {
   async function getDistributorHealth(): Promise<DistributorHealth[]> {
     try {
       const raw = await adapter.getItem(HEALTH_KEY);
-      return raw ? JSON.parse(raw) : [];
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
@@ -66,7 +69,7 @@ export function createHealthService(adapter: StorageAdapter) {
         batch.map(async (parser) => {
           const start = Date.now();
           try {
-            const url = parser.buildSearchUrl("CRS326");
+            const url = parser.buildSearchUrl(PROBE_MODEL);
             const html = await fetchWithParser(parser, url);
             const result = parser.parsePrice(html);
             const status = classifyResult(html, result);
@@ -76,7 +79,7 @@ export function createHealthService(adapter: StorageAdapter) {
               reason: status === "error" ? "no price found" : undefined,
               responseTimeMs: Date.now() - start,
               lastChecked: new Date().toISOString(),
-            } as DistributorHealth;
+            };
           } catch (error) {
             return {
               distributorId: parser.id,
@@ -84,7 +87,7 @@ export function createHealthService(adapter: StorageAdapter) {
               reason: error instanceof Error ? error.message : String(error),
               responseTimeMs: Date.now() - start,
               lastChecked: new Date().toISOString(),
-            } as DistributorHealth;
+            };
           }
         }),
       );

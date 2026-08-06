@@ -26,4 +26,9 @@ describe("classifyResult", () => {
   it("returns error when an error is thrown", () => {
     expect(classifyResult("", null, new Error("connection refused"))).toBe("error");
   });
+
+  it("returns blocked even when result has a price (blocked wins)", () => {
+    const result = { price: 100, currency: "USD", stockStatus: "in_stock" as const, url: "x" };
+    expect(classifyResult("Access Denied", result)).toBe("blocked");
+  });
 });
