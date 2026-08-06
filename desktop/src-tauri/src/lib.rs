@@ -705,6 +705,13 @@ pub fn run() {
             update_tray_badge,
             check_all_prices
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                tauri::async_runtime::block_on(async move {
+                    crate::scrapers::browser::browser_pool_shutdown().await;
+                });
+            }
+        });
 }

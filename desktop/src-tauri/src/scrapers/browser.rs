@@ -49,6 +49,11 @@ fn pool() -> &'static Mutex<BrowserPool> {
     POOL.get_or_init(|| Mutex::new(BrowserPool::new(3)))
 }
 
+pub async fn browser_pool_shutdown() {
+    let mut pool = pool().lock().await;
+    pool.shutdown().await;
+}
+
 pub async fn fetch_with_browser(
     url: &str,
     wait_for_selector: Option<&str>,
