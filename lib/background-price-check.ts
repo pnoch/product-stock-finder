@@ -15,26 +15,37 @@ export const PRICE_CHECK_TASK = "price-drop-check";
 
 const healthService = createHealthService(AsyncStorage);
 
-async function updateHealthForScrape(
-  parserId: string,
-  status: "working" | "error",
-  reason?: string,
-) {
-  try {
-    const current = await healthService.getDistributorHealth();
-    const entry: DistributorHealth = {
-      distributorId: parserId,
-      status,
-      reason,
-      lastChecked: new Date().toISOString(),
-    };
-    const updated = current.some((h) => h.distributorId === parserId)
-      ? current.map((h) => (h.distributorId === parserId ? entry : h))
-      : [...current, entry];
-    await healthService.saveDistributorHealth(updated);
-  } catch {
-    // Ignore health update errors
-  }
+function createHealthCollector() {
+  const updates = new Map<string, DistributorHealth>();
+  return {
+    record(
+      parserId: string,
+      status: "working" | "error",
+      reason?: string,
+    ) {
+      updates.set(parserId, {
+        distributorId: parserId,
+        status,
+        reason,
+        lastChecked: new Date().toISOString(),
+      });
+    },
+    async flush() {
+      if (updates.size === 0) return;
+      try {
+        const current = await healthService.getDistributorHealth();
+        const merged = current.map((h) => updates.get(h.distributorId) ?? h);
+        for (const [id, entry] of updates) {
+          if (!current.some((h) => h.distributorId === id)) {
+            merged.push(entry);
+          }
+        }
+        await healthService.saveDistributorHealth(merged);
+      } catch {
+        // Ignore health update errors
+      }
+    },
+  };
 }
 
 // Must be defined in global scope, outside any component
@@ -43,6 +54,8 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
     const watchlist = await getWatchlist();
     if (watchlist.length === 0)
       return BackgroundTask.BackgroundTaskResult.Success;
+
+    const healthCollector = createHealthCollector();
 
     // Scrape fresh prices for all products in parallel batches
     const CONCURRENCY = 3;
@@ -67,7 +80,7 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
               const result = parser.parsePrice(html);
 
               if (result) {
-                await updateHealthForScrape(parser.id, "working");
+                healthCollector.record(parser.id, "working");
                 const now = new Date().toISOString();
                 const newPricePoint: PricePoint = {
                   date: now,
@@ -89,11 +102,11 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
 
                 updatedListings.push(updatedListing);
               } else {
-                await updateHealthForScrape(parser.id, "error", "no price found");
+                healthCollector.record(parser.id, "error", "no price found");
                 updatedListings.push(listing);
               }
             } catch (error) {
-              await updateHealthForScrape(
+              healthCollector.record(
                 parser.id,
                 "error",
                 error instanceof Error ? error.message : String(error),
@@ -109,6 +122,8 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
         }),
       );
     }
+
+    await healthCollector.flush();
 
     // Now check price alerts against fresh prices
     const alerts = await getAlerts();
@@ -203,6 +218,8 @@ export async function checkPriceDropsNow(
   const watchlist = await getWatchlist();
   if (watchlist.length === 0) return;
 
+  const healthCollector = createHealthCollector();
+
   // Scrape fresh prices for all products in parallel batches
   const CONCURRENCY = 3;
   for (let i = 0; i < watchlist.length; i += CONCURRENCY) {
@@ -227,7 +244,7 @@ export async function checkPriceDropsNow(
             const result = parser.parsePrice(html);
 
             if (result) {
-              await updateHealthForScrape(parser.id, "working");
+              healthCollector.record(parser.id, "working");
               const now = new Date().toISOString();
               const newPricePoint: PricePoint = {
                 date: now,
@@ -249,11 +266,11 @@ export async function checkPriceDropsNow(
 
               updatedListings.push(updatedListing);
             } else {
-              await updateHealthForScrape(parser.id, "error", "no price found");
+              healthCollector.record(parser.id, "error", "no price found");
               updatedListings.push(listing);
             }
           } catch (error) {
-            await updateHealthForScrape(
+            healthCollector.record(
               parser.id,
               "error",
               error instanceof Error ? error.message : String(error),
@@ -269,6 +286,8 @@ export async function checkPriceDropsNow(
       }),
     );
   }
+
+  await healthCollector.flush();
 
   // Now check price alerts against fresh prices
   const alerts = await getAlerts();
