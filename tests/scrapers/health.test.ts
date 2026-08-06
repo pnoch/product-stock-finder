@@ -70,4 +70,11 @@ describe("createHealthService", () => {
     const service = createHealthService(adapter);
     expect(await service.getDistributorHealth()).toEqual([]);
   });
+
+  it("returns empty array when stored data is corrupt", async () => {
+    const adapter = createMockAdapter();
+    await adapter.setItem("distributor_health", "not json");
+    const service = createHealthService(adapter);
+    expect(await service.getDistributorHealth()).toEqual([]);
+  });
 });
