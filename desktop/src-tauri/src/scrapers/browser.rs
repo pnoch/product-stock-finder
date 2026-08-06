@@ -1,4 +1,6 @@
 use playwright_rs::{Browser, Playwright};
+use std::sync::OnceLock;
+use tokio::sync::Mutex;
 
 pub struct BrowserPool {
     browsers: Vec<Browser>,
@@ -15,7 +17,9 @@ impl BrowserPool {
 
     pub async fn acquire(&mut self) -> Result<Browser, String> {
         if let Some(browser) = self.browsers.pop() {
-            return Ok(browser);
+            if browser.is_connected() {
+                return Ok(browser);
+            }
         }
         if self.browsers.len() < self.max_pool_size {
             let pw = Playwright::launch().await
@@ -28,7 +32,9 @@ impl BrowserPool {
     }
 
     pub fn release(&mut self, browser: Browser) {
-        self.browsers.push(browser);
+        if browser.is_connected() {
+            self.browsers.push(browser);
+        }
     }
 
     pub async fn shutdown(&mut self) {
@@ -38,15 +44,31 @@ impl BrowserPool {
     }
 }
 
+fn pool() -> &'static Mutex<BrowserPool> {
+    static POOL: OnceLock<Mutex<BrowserPool>> = OnceLock::new();
+    POOL.get_or_init(|| Mutex::new(BrowserPool::new(3)))
+}
+
 pub async fn fetch_with_browser(
     url: &str,
     wait_for_selector: Option<&str>,
     timeout_ms: Option<u64>,
 ) -> Result<String, String> {
-    let pw = Playwright::launch().await
-        .map_err(|e| e.to_string())?;
-    let browser = pw.chromium().launch().await
-        .map_err(|e| e.to_string())?;
+    let mut pool = pool().lock().await;
+    let browser = pool.acquire().await?;
+
+    let result = fetch_with_browser_inner(&browser, url, wait_for_selector, timeout_ms).await;
+
+    pool.release(browser);
+    result
+}
+
+async fn fetch_with_browser_inner(
+    browser: &Browser,
+    url: &str,
+    wait_for_selector: Option<&str>,
+    timeout_ms: Option<u64>,
+) -> Result<String, String> {
     let context = browser.new_context().await
         .map_err(|e| e.to_string())?;
     let page = context.new_page().await
@@ -68,7 +90,7 @@ pub async fn fetch_with_browser(
         .map_err(|e| e.to_string())?;
 
     let _ = page.close().await;
-    let _ = browser.close().await;
+    let _ = context.close().await;
 
     Ok(html)
 }
