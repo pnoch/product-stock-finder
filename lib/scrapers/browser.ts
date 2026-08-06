@@ -216,10 +216,24 @@ export async function fetchWithBrowser(
     context = await createStealthContext(browser, url);
     page = await context.newPage();
 
-    await page.goto(url, {
-      waitUntil: "domcontentloaded",
-      timeout: options?.timeoutMs || 30000,
-    });
+    // Retry navigation once on failure
+    let navError: unknown;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await page.goto(url, {
+          waitUntil: "domcontentloaded",
+          timeout: options?.timeoutMs || 30000,
+        });
+        navError = undefined;
+        break;
+      } catch (error) {
+        navError = error;
+        await page.waitForTimeout(1000);
+      }
+    }
+    if (navError) {
+      throw navError;
+    }
 
     // Wait for Cloudflare challenge to resolve
     const cloudflareResolved = await waitForCloudflare(

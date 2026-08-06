@@ -4,6 +4,7 @@ const mockPage = {
   goto: vi.fn(),
   content: vi.fn().mockResolvedValue("<html></html>"),
   waitForSelector: vi.fn(),
+  waitForTimeout: vi.fn(),
   close: vi.fn(),
 };
 
@@ -66,9 +67,30 @@ describe("BrowserPool", () => {
     expect(newBrowser).toBeDefined();
     browserPool.release(newBrowser);
   });
+
+  it("should throw when pool is exhausted", async () => {
+    const { browserPool } = await import("@/lib/scrapers/browser");
+    // Acquire all 3 browsers
+    const b1 = await browserPool.acquire();
+    const b2 = await browserPool.acquire();
+    const b3 = await browserPool.acquire();
+    // 4th acquire should wait then throw
+    await expect(browserPool.acquire()).rejects.toThrow(
+      "Browser pool exhausted",
+    );
+    browserPool.release(b1);
+    browserPool.release(b2);
+    browserPool.release(b3);
+  });
 });
 
 describe("fetchWithBrowser", () => {
+  beforeEach(() => {
+    mockPage.goto.mockReset();
+    mockPage.content.mockReset();
+    mockPage.content.mockResolvedValue("<html></html>");
+  });
+
   it("should fetch HTML using browser", async () => {
     const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
     const html = await fetchWithBrowser("https://example.com");
@@ -96,5 +118,23 @@ describe("fetchWithBrowser", () => {
     const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
     await fetchWithBrowser("https://example.com");
     expect(mockContext.close).toHaveBeenCalled();
+  });
+
+  it("should retry goto once on failure", async () => {
+    const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+    mockPage.goto
+      .mockRejectedValueOnce(new Error("nav failed"))
+      .mockResolvedValueOnce(undefined);
+    const html = await fetchWithBrowser("https://example.com");
+    expect(html).toBe("<html></html>");
+    expect(mockPage.goto).toHaveBeenCalledTimes(2);
+  });
+
+  it("should throw when Cloudflare challenge cannot be resolved", async () => {
+    const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+    mockPage.content.mockResolvedValueOnce("403 Forbidden");
+    await expect(fetchWithBrowser("https://example.com")).rejects.toThrow(
+      "Cloudflare challenge could not be resolved",
+    );
   });
 });
