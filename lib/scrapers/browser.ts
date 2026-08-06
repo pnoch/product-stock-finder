@@ -26,11 +26,26 @@ function hashDomain(domain: string): string {
   return Math.abs(hash).toString(36);
 }
 
+function isCookieArray(value: unknown): value is any[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (c) =>
+        c &&
+        typeof c === "object" &&
+        typeof (c as any).name === "string" &&
+        typeof (c as any).value === "string" &&
+        typeof (c as any).domain === "string",
+    )
+  );
+}
+
 async function loadCookies(domain: string): Promise<any[]> {
   try {
     const filePath = join(COOKIE_DIR, `${hashDomain(domain)}.json`);
     const data = await readFile(filePath, "utf-8");
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    return isCookieArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -54,46 +69,66 @@ function extractDomain(url: string): string {
   }
 }
 
+class Mutex {
+  private tail: Promise<void> = Promise.resolve();
+
+  async runExclusive<T>(fn: () => Promise<T>): Promise<T> {
+    let release!: () => void;
+    const next = new Promise<void>((resolve) => (release = resolve));
+    const prev = this.tail;
+    this.tail = this.tail.then(() => next);
+    await prev;
+    try {
+      return await fn();
+    } finally {
+      release();
+    }
+  }
+}
+
 class BrowserPool {
   private browsers: Browser[] = [];
   private checkedOut = 0;
   private maxPoolSize = 3;
   private maxRetries = 30; // 3 seconds max wait
+  private mutex = new Mutex();
 
   async acquire(): Promise<Browser> {
-    if (this.browsers.length > 0) {
-      this.checkedOut++;
-      return this.browsers.pop()!;
-    }
-    if (this.checkedOut < this.maxPoolSize) {
-      this.checkedOut++;
-      try {
-        return await chromium.launch({
-          headless: true,
-          args: [
-            "--disable-blink-features=AutomationControlled",
-            "--disable-dev-shm-usage",
-            "--no-sandbox",
-            "--disable-web-security",
-            "--disable-features=IsolateOrigins,site-per-process",
-          ],
-        });
-      } catch (error) {
-        this.checkedOut--;
-        throw new Error(
-          `Failed to launch browser: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    }
-    // All browsers checked out — wait for one to be released
-    for (let i = 0; i < this.maxRetries; i++) {
-      await new Promise((r) => setTimeout(r, 100));
+    return this.mutex.runExclusive(async () => {
       if (this.browsers.length > 0) {
         this.checkedOut++;
         return this.browsers.pop()!;
       }
-    }
-    throw new Error("Browser pool exhausted: no browsers available after waiting");
+      if (this.checkedOut < this.maxPoolSize) {
+        this.checkedOut++;
+        try {
+          return await chromium.launch({
+            headless: true,
+            args: [
+              "--disable-blink-features=AutomationControlled",
+              "--disable-dev-shm-usage",
+              "--no-sandbox",
+              "--disable-web-security",
+              "--disable-features=IsolateOrigins,site-per-process",
+            ],
+          });
+        } catch (error) {
+          this.checkedOut--;
+          throw new Error(
+            `Failed to launch browser: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+      // All browsers checked out — wait for one to be released
+      for (let i = 0; i < this.maxRetries; i++) {
+        await new Promise((r) => setTimeout(r, 100));
+        if (this.browsers.length > 0) {
+          this.checkedOut++;
+          return this.browsers.pop()!;
+        }
+      }
+      throw new Error("Browser pool exhausted: no browsers available after waiting");
+    });
   }
 
   release(browser: Browser): void {
