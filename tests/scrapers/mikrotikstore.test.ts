@@ -4,13 +4,13 @@ import { mikrotikstoreParser, scrapeMikrotikStore } from "../../lib/scrapers/mik
 describe("MikroTik Store Parser", () => {
   it("should have correct parser config", () => {
     expect(mikrotikstoreParser.id).toBe("mikrotikstore-de");
-    expect(mikrotikstoreParser.baseUrl).toBe("https://mikrotikstore.de");
+    expect(mikrotikstoreParser.baseUrl).toBe("https://mikrotik-store.eu");
     expect(mikrotikstoreParser.rateLimitMs).toBe(3000);
   });
 
   it("should build correct search URL", () => {
     const url = mikrotikstoreParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://mikrotikstore.de/search?q=hAP%20ac3");
+    expect(url).toBe("https://mikrotik-store.eu/en/search?q=hAP%20ac3");
   });
 
   it("should return null for invalid HTML", () => {

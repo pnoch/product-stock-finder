@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import { DistributorParser, ScrapeResult } from "./types";
-import { fetchWithRateLimit, parsePriceFromText, inferStockStatus } from "./utils";
+import { fetchWithParser, parsePriceFromText, inferStockStatus } from "./utils";
 
 function parseHtml(html: string, url: string): ScrapeResult | null {
   const $ = cheerio.load(html);
@@ -38,13 +38,7 @@ export async function scrapeNasstore(
 ): Promise<ScrapeResult | null> {
   try {
     const url = nasstoreParser.buildSearchUrl(model);
-    let html: string;
-    if (nasstoreParser.useBrowser) {
-      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
-      html = await fetchWithBrowser(url, nasstoreParser.browserOptions);
-    } else {
-      html = await fetchWithRateLimit(url, nasstoreParser.rateLimitMs);
-    }
+    const html = await fetchWithParser(nasstoreParser, url);
     return parseHtml(html, url);
   } catch {
     return null;

@@ -4,13 +4,13 @@ import { aerialParser, scrapeAerial } from "../../lib/scrapers/aerial";
 describe("Aerial Parser", () => {
   it("should have correct parser config", () => {
     expect(aerialParser.id).toBe("aerial-gr");
-    expect(aerialParser.baseUrl).toBe("https://aerial.gr");
+    expect(aerialParser.baseUrl).toBe("https://aerial.net");
     expect(aerialParser.rateLimitMs).toBe(3000);
   });
 
   it("should build correct search URL", () => {
     const url = aerialParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://aerial.gr/search?q=hAP%20ac3");
+    expect(url).toBe("https://aerial.net/shop?q=hAP%20ac3");
   });
 
   it("should return null for invalid HTML", () => {

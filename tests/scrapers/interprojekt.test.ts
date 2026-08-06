@@ -14,7 +14,7 @@ describe("Interprojekt Parser", () => {
 
   it("should build correct search URL", () => {
     const url = interprojektParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://interprojekt.pl/search?q=hAP%20ac3");
+    expect(url).toBe("https://interprojekt.pl/en/catalogsearch/result/?q=hAP%20ac3");
   });
 
   it("should return null for 404 page fixture", () => {

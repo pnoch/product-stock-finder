@@ -1,4 +1,5 @@
 import { StockStatus } from "@/lib/types";
+import { DistributorParser } from "./types";
 
 const USER_AGENTS = [
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
@@ -85,4 +86,15 @@ export function extractExpectedDate(text: string): string | undefined {
     if (match) return match[1];
   }
   return undefined;
+}
+
+export async function fetchWithParser(
+  parser: DistributorParser,
+  url: string,
+): Promise<string> {
+  if (parser.useBrowser) {
+    const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+    return fetchWithBrowser(url, parser.browserOptions);
+  }
+  return fetchWithRateLimit(url, parser.rateLimitMs);
 }
