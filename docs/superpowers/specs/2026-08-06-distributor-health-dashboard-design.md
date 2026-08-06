@@ -51,7 +51,15 @@ export interface DistributorHealth {
 
 New AsyncStorage key: `distributor_health`. Stored as a JSON array of `DistributorHealth`.
 
-The shared `health.ts` module uses the `StorageAdapter` pattern (via `createStorage`) so it works on both mobile (AsyncStorage) and desktop (localStorage). It reads the default storage instance.
+The shared `health.ts` module uses the `StorageAdapter` pattern (via `createStorage`) so it works on both mobile (AsyncStorage) and desktop (localStorage). It accepts a `StorageAdapter` parameter so each platform passes its own adapter:
+
+```typescript
+export function createHealthService(adapter: StorageAdapter) {
+  // getDistributorHealth / saveDistributorHealth using adapter
+}
+```
+
+Mobile passes the AsyncStorage adapter; desktop passes the localStorage adapter. This keeps `health.ts` platform-agnostic.
 
 ### Screens
 
