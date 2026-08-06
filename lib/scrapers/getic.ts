@@ -29,7 +29,7 @@ export const geticParser: DistributorParser = {
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {
-    waitForSelector: ".price, [data-testid='price']",
+    waitForSelector: ".price",
   },
 };
 

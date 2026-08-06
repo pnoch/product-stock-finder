@@ -29,7 +29,7 @@ export const pbtechParser: DistributorParser = {
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {
-    waitForSelector: ".price, .product-price",
+    waitForSelector: ".price",
   },
 };
 
