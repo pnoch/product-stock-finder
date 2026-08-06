@@ -11,16 +11,14 @@ import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { createHealthService, DistributorHealth } from "@/lib/scrapers/health";
+import {
+  createHealthService,
+  DistributorHealth,
+  HealthStatus,
+} from "@/lib/scrapers/health";
 import { getDistributorById } from "@/lib/distributors";
 
 const healthService = createHealthService(AsyncStorage);
-
-const STATUS_COLORS: Record<string, string> = {
-  working: "#00C896",
-  blocked: "#F59E0B",
-  error: "#EF4444",
-};
 
 export default function HealthScreen() {
   const colors = useColors();
@@ -29,6 +27,12 @@ export default function HealthScreen() {
   const [filter, setFilter] = useState<"all" | "working" | "blocked" | "error">("all");
   const [testing, setTesting] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  const statusColors: Record<HealthStatus, string> = {
+    working: colors.success,
+    blocked: colors.warning,
+    error: colors.error,
+  };
 
   const loadHealth = useCallback(async () => {
     const data = await healthService.getDistributorHealth();
@@ -42,11 +46,14 @@ export default function HealthScreen() {
   const runTest = useCallback(async () => {
     setTesting(true);
     setProgress(0);
-    const results = await healthService.testAllDistributors((current, total) => {
-      setProgress(Math.round((current / total) * 100));
-    });
-    setHealth(results);
-    setTesting(false);
+    try {
+      const results = await healthService.testAllDistributors((current, total) => {
+        setProgress(Math.round((current / total) * 100));
+      });
+      setHealth(results);
+    } finally {
+      setTesting(false);
+    }
   }, []);
 
   const counts = {
@@ -159,7 +166,7 @@ export default function HealthScreen() {
                   width: 10,
                   height: 10,
                   borderRadius: 5,
-                  backgroundColor: STATUS_COLORS[h.status],
+                  backgroundColor: statusColors[h.status],
                   marginRight: 10,
                 }}
               />
