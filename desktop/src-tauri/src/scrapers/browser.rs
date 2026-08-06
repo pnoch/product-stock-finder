@@ -41,7 +41,7 @@ impl BrowserPool {
 pub async fn fetch_with_browser(
     url: &str,
     wait_for_selector: Option<&str>,
-    _timeout_ms: Option<u64>,
+    timeout_ms: Option<u64>,
 ) -> Result<String, String> {
     let pw = Playwright::launch().await
         .map_err(|e| e.to_string())?;
@@ -52,7 +52,10 @@ pub async fn fetch_with_browser(
     let page = context.new_page().await
         .map_err(|e| e.to_string())?;
 
-    page.goto(url, None).await
+    let timeout = timeout_ms.unwrap_or(30_000);
+    let goto_options = playwright_rs::GotoOptions::new()
+        .timeout(std::time::Duration::from_millis(timeout));
+    page.goto(url, Some(goto_options)).await
         .map_err(|e| e.to_string())?;
 
     if let Some(selector) = wait_for_selector {

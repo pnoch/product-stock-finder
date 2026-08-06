@@ -54,14 +54,17 @@ function extractDomain(url: string): string {
 
 class BrowserPool {
   private browsers: Browser[] = [];
+  private checkedOut = 0;
   private maxPoolSize = 3;
   private maxRetries = 30; // 3 seconds max wait
 
   async acquire(): Promise<Browser> {
     if (this.browsers.length > 0) {
+      this.checkedOut++;
       return this.browsers.pop()!;
     }
-    if (this.browsers.length < this.maxPoolSize) {
+    if (this.checkedOut < this.maxPoolSize) {
+      this.checkedOut++;
       try {
         return await chromium.launch({
           headless: true,
@@ -74,15 +77,17 @@ class BrowserPool {
           ],
         });
       } catch (error) {
+        this.checkedOut--;
         throw new Error(
           `Failed to launch browser: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
     }
-    // Wait for a browser to be released
+    // All browsers checked out — wait for one to be released
     for (let i = 0; i < this.maxRetries; i++) {
       await new Promise((r) => setTimeout(r, 100));
       if (this.browsers.length > 0) {
+        this.checkedOut++;
         return this.browsers.pop()!;
       }
     }
@@ -90,6 +95,7 @@ class BrowserPool {
   }
 
   release(browser: Browser): void {
+    this.checkedOut = Math.max(0, this.checkedOut - 1);
     if (browser.isConnected()) {
       this.browsers.push(browser);
     }
@@ -100,6 +106,7 @@ class BrowserPool {
       await b.close();
     }
     this.browsers = [];
+    this.checkedOut = 0;
   }
 }
 
@@ -213,7 +220,13 @@ export async function fetchWithBrowser(
     });
 
     // Wait for Cloudflare challenge to resolve
-    await waitForCloudflare(page, options?.timeoutMs || 30000);
+    const cloudflareResolved = await waitForCloudflare(
+      page,
+      options?.timeoutMs || 30000,
+    );
+    if (!cloudflareResolved) {
+      throw new Error("Cloudflare challenge could not be resolved");
+    }
 
     if (options?.waitForSelector) {
       try {

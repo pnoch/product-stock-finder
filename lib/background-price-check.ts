@@ -6,7 +6,7 @@ import { convertPrice, formatPrice } from "./currency";
 import { requestNotificationPermissions } from "./notifications";
 import * as Notifications from "expo-notifications";
 import { getParserByDistributorId } from "./scrapers/registry";
-import { fetchWithRateLimit } from "./scrapers/utils";
+import { fetchWithParser } from "./scrapers/utils";
 import { PricePoint, DistributorListing } from "./types";
 
 export const PRICE_CHECK_TASK = "price-drop-check";
@@ -37,7 +37,7 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
 
             try {
               const url = parser.buildSearchUrl(product.modelNumber);
-              const html = await fetchWithRateLimit(url, parser.rateLimitMs);
+              const html = await fetchWithParser(parser, url);
               const result = parser.parsePrice(html);
 
               if (result) {
@@ -190,7 +190,7 @@ export async function checkPriceDropsNow(
 
           try {
             const url = parser.buildSearchUrl(product.modelNumber);
-            const html = await fetchWithRateLimit(url, parser.rateLimitMs);
+            const html = await fetchWithParser(parser, url);
             const result = parser.parsePrice(html);
 
             if (result) {
