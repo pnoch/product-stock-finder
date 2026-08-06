@@ -92,7 +92,6 @@ export function Health() {
       <div>
         {filtered.map((h) => {
           const distributor = getDistributorById(h.distributorId);
-          if (!distributor) return null;
           return (
             <div
               key={h.distributorId}
@@ -104,7 +103,7 @@ export function Health() {
               />
               <div className="flex-1">
                 <p className="font-medium text-sm">
-                  {distributor.countryFlag} {distributor.name}
+                  {distributor ? `${distributor.countryFlag} ${distributor.name}` : h.distributorId}
                 </p>
                 <p className="text-xs text-gray-500">
                   {h.reason || h.status}

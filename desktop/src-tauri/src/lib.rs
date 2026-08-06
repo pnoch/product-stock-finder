@@ -352,34 +352,7 @@ async fn check_all_prices(products: Vec<WatchedProduct>) -> Result<Vec<scrapers:
             }
             first = false;
             let start = std::time::Instant::now();
-            let scrape_result = match distributor_id.as_str() {
-                "server2u" | "server2u-my" => scrapers::server2u::scrape(&product.model_number, false).await,
-                "linitx-uk" => scrapers::linitx::scrape(&product.model_number, false).await,
-                "interprojekt-pl" => scrapers::interprojekt::scrape(&product.model_number, false).await,
-                "nasstore-eu" => scrapers::nasstore::scrape(&product.model_number, false).await,
-                "aerial-gr" => scrapers::aerial::scrape(&product.model_number, false).await,
-                "mikrotikstore-de" => scrapers::mikrotikstore::scrape(&product.model_number, false).await,
-                "miro-za" => scrapers::miro::scrape(&product.model_number, false).await,
-                "gearup-ae" => scrapers::gearup::scrape(&product.model_number, false).await,
-                "balticnetworks-us" => scrapers::balticnetworks::scrape(&product.model_number, false).await,
-                "linktechs-us" => scrapers::linktechs::scrape(&product.model_number, false).await,
-                "winncom-us" => scrapers::winncom::scrape(&product.model_number, false).await,
-                "bhphoto-us" => scrapers::bhphoto::scrape(&product.model_number, false).await,
-                "duxtel-au" => scrapers::duxtel::scrape(&product.model_number, false).await,
-                "wisp-au" => scrapers::wisp::scrape(&product.model_number, false).await,
-                "pbtech-nz" => scrapers::pbtech::scrape(&product.model_number, false).await,
-                "gowifi-nz" => scrapers::gowifi::scrape(&product.model_number, false).await,
-                "getic-gr" => scrapers::getic::scrape(&product.model_number, false).await,
-                "100mega-cz" => scrapers::mega::scrape(&product.model_number, false).await,
-                "hellascom-gr" => scrapers::hellascom::scrape(&product.model_number, false).await,
-                "rocnoc-us" => scrapers::rocnoc::scrape(&product.model_number, false).await,
-                "networkdevices-us" => scrapers::networkdevices::scrape(&product.model_number, false).await,
-                "flytec-us" => scrapers::flytec::scrape(&product.model_number, false).await,
-                "mbsiwav-ca" => scrapers::mbsiwav::scrape(&product.model_number, false).await,
-                "multilink-us" => scrapers::multilink::scrape(&product.model_number, false).await,
-                "neobits-us" => scrapers::neobits::scrape(&product.model_number, false).await,
-                _ => Err(format!("No scraper for distributor: {}", distributor_id)),
-            };
+            let scrape_result = scrape_distributor(&distributor_id, &product.model_number).await;
             let duration_ms = start.elapsed().as_millis() as u64;
             let (result, error) = match scrape_result {
                 Ok(r) => (Some(r), None),
@@ -395,6 +368,40 @@ async fn check_all_prices(products: Vec<WatchedProduct>) -> Result<Vec<scrapers:
         }
     }
     Ok(results)
+}
+
+async fn scrape_distributor(
+    distributor_id: &str,
+    model: &str,
+) -> Result<scrapers::ScrapeResult, String> {
+    match distributor_id {
+        "server2u" | "server2u-my" => scrapers::server2u::scrape(model, false).await,
+        "linitx-uk" => scrapers::linitx::scrape(model, false).await,
+        "interprojekt-pl" => scrapers::interprojekt::scrape(model, false).await,
+        "nasstore-eu" => scrapers::nasstore::scrape(model, false).await,
+        "aerial-gr" => scrapers::aerial::scrape(model, false).await,
+        "mikrotikstore-de" => scrapers::mikrotikstore::scrape(model, false).await,
+        "miro-za" => scrapers::miro::scrape(model, false).await,
+        "gearup-ae" => scrapers::gearup::scrape(model, false).await,
+        "balticnetworks-us" => scrapers::balticnetworks::scrape(model, false).await,
+        "linktechs-us" => scrapers::linktechs::scrape(model, false).await,
+        "winncom-us" => scrapers::winncom::scrape(model, false).await,
+        "bhphoto-us" => scrapers::bhphoto::scrape(model, false).await,
+        "duxtel-au" => scrapers::duxtel::scrape(model, false).await,
+        "wisp-au" => scrapers::wisp::scrape(model, false).await,
+        "pbtech-nz" => scrapers::pbtech::scrape(model, false).await,
+        "gowifi-nz" => scrapers::gowifi::scrape(model, false).await,
+        "getic-gr" => scrapers::getic::scrape(model, false).await,
+        "100mega-cz" => scrapers::mega::scrape(model, false).await,
+        "hellascom-gr" => scrapers::hellascom::scrape(model, false).await,
+        "rocnoc-us" => scrapers::rocnoc::scrape(model, false).await,
+        "networkdevices-us" => scrapers::networkdevices::scrape(model, false).await,
+        "flytec-us" => scrapers::flytec::scrape(model, false).await,
+        "mbsiwav-ca" => scrapers::mbsiwav::scrape(model, false).await,
+        "multilink-us" => scrapers::multilink::scrape(model, false).await,
+        "neobits-us" => scrapers::neobits::scrape(model, false).await,
+        _ => Err(format!("No scraper for distributor: {}", distributor_id)),
+    }
 }
 
 // ─── Distributor Health ──────────────────────────────────────────────────────
@@ -442,34 +449,7 @@ async fn check_distributor_health() -> Result<Vec<DistributorHealth>, String> {
     let mut results = Vec::new();
     for distributor_id in distributor_ids {
         let start = std::time::Instant::now();
-        let scrape_result = match distributor_id {
-            "server2u-my" => scrapers::server2u::scrape(model, false).await,
-            "linitx-uk" => scrapers::linitx::scrape(model, false).await,
-            "interprojekt-pl" => scrapers::interprojekt::scrape(model, false).await,
-            "nasstore-eu" => scrapers::nasstore::scrape(model, false).await,
-            "aerial-gr" => scrapers::aerial::scrape(model, false).await,
-            "mikrotikstore-de" => scrapers::mikrotikstore::scrape(model, false).await,
-            "miro-za" => scrapers::miro::scrape(model, false).await,
-            "gearup-ae" => scrapers::gearup::scrape(model, false).await,
-            "balticnetworks-us" => scrapers::balticnetworks::scrape(model, false).await,
-            "linktechs-us" => scrapers::linktechs::scrape(model, false).await,
-            "winncom-us" => scrapers::winncom::scrape(model, false).await,
-            "bhphoto-us" => scrapers::bhphoto::scrape(model, false).await,
-            "duxtel-au" => scrapers::duxtel::scrape(model, false).await,
-            "wisp-au" => scrapers::wisp::scrape(model, false).await,
-            "pbtech-nz" => scrapers::pbtech::scrape(model, false).await,
-            "gowifi-nz" => scrapers::gowifi::scrape(model, false).await,
-            "getic-gr" => scrapers::getic::scrape(model, false).await,
-            "100mega-cz" => scrapers::mega::scrape(model, false).await,
-            "hellascom-gr" => scrapers::hellascom::scrape(model, false).await,
-            "rocnoc-us" => scrapers::rocnoc::scrape(model, false).await,
-            "networkdevices-us" => scrapers::networkdevices::scrape(model, false).await,
-            "flytec-us" => scrapers::flytec::scrape(model, false).await,
-            "mbsiwav-ca" => scrapers::mbsiwav::scrape(model, false).await,
-            "multilink-us" => scrapers::multilink::scrape(model, false).await,
-            "neobits-us" => scrapers::neobits::scrape(model, false).await,
-            _ => Err(format!("No scraper for distributor: {}", distributor_id)),
-        };
+        let scrape_result = scrape_distributor(distributor_id, model).await;
         let duration_ms = start.elapsed().as_millis() as u64;
 
         let (status, reason) = match scrape_result {
@@ -483,10 +463,7 @@ async fn check_distributor_health() -> Result<Vec<DistributorHealth>, String> {
             status,
             reason,
             response_time_ms: Some(duration_ms),
-            last_checked: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_millis().to_string())
-                .unwrap_or_default(),
+            last_checked: current_iso_timestamp(),
         });
     }
 
