@@ -397,6 +397,102 @@ async fn check_all_prices(products: Vec<WatchedProduct>) -> Result<Vec<scrapers:
     Ok(results)
 }
 
+// ─── Distributor Health ──────────────────────────────────────────────────────
+
+#[derive(serde::Serialize)]
+struct DistributorHealth {
+    distributor_id: String,
+    status: String,
+    reason: Option<String>,
+    response_time_ms: Option<u64>,
+    last_checked: String,
+}
+
+#[tauri::command]
+async fn check_distributor_health() -> Result<Vec<DistributorHealth>, String> {
+    let model = "CRS326";
+    let distributor_ids = [
+        "server2u-my",
+        "linitx-uk",
+        "interprojekt-pl",
+        "nasstore-eu",
+        "aerial-gr",
+        "mikrotikstore-de",
+        "miro-za",
+        "gearup-ae",
+        "balticnetworks-us",
+        "linktechs-us",
+        "winncom-us",
+        "bhphoto-us",
+        "duxtel-au",
+        "wisp-au",
+        "pbtech-nz",
+        "gowifi-nz",
+        "getic-gr",
+        "100mega-cz",
+        "hellascom-gr",
+        "rocnoc-us",
+        "networkdevices-us",
+        "flytec-us",
+        "mbsiwav-ca",
+        "multilink-us",
+        "neobits-us",
+    ];
+
+    let mut results = Vec::new();
+    for distributor_id in distributor_ids {
+        let start = std::time::Instant::now();
+        let scrape_result = match distributor_id {
+            "server2u-my" => scrapers::server2u::scrape(model, false).await,
+            "linitx-uk" => scrapers::linitx::scrape(model, false).await,
+            "interprojekt-pl" => scrapers::interprojekt::scrape(model, false).await,
+            "nasstore-eu" => scrapers::nasstore::scrape(model, false).await,
+            "aerial-gr" => scrapers::aerial::scrape(model, false).await,
+            "mikrotikstore-de" => scrapers::mikrotikstore::scrape(model, false).await,
+            "miro-za" => scrapers::miro::scrape(model, false).await,
+            "gearup-ae" => scrapers::gearup::scrape(model, false).await,
+            "balticnetworks-us" => scrapers::balticnetworks::scrape(model, false).await,
+            "linktechs-us" => scrapers::linktechs::scrape(model, false).await,
+            "winncom-us" => scrapers::winncom::scrape(model, false).await,
+            "bhphoto-us" => scrapers::bhphoto::scrape(model, false).await,
+            "duxtel-au" => scrapers::duxtel::scrape(model, false).await,
+            "wisp-au" => scrapers::wisp::scrape(model, false).await,
+            "pbtech-nz" => scrapers::pbtech::scrape(model, false).await,
+            "gowifi-nz" => scrapers::gowifi::scrape(model, false).await,
+            "getic-gr" => scrapers::getic::scrape(model, false).await,
+            "100mega-cz" => scrapers::mega::scrape(model, false).await,
+            "hellascom-gr" => scrapers::hellascom::scrape(model, false).await,
+            "rocnoc-us" => scrapers::rocnoc::scrape(model, false).await,
+            "networkdevices-us" => scrapers::networkdevices::scrape(model, false).await,
+            "flytec-us" => scrapers::flytec::scrape(model, false).await,
+            "mbsiwav-ca" => scrapers::mbsiwav::scrape(model, false).await,
+            "multilink-us" => scrapers::multilink::scrape(model, false).await,
+            "neobits-us" => scrapers::neobits::scrape(model, false).await,
+            _ => Err(format!("No scraper for distributor: {}", distributor_id)),
+        };
+        let duration_ms = start.elapsed().as_millis() as u64;
+
+        let (status, reason) = match scrape_result {
+            Ok(r) if r.price > 0.0 => ("working".to_string(), None),
+            Ok(_) => ("error".to_string(), Some("no price found".to_string())),
+            Err(e) => ("error".to_string(), Some(e)),
+        };
+
+        results.push(DistributorHealth {
+            distributor_id: distributor_id.to_string(),
+            status,
+            reason,
+            response_time_ms: Some(duration_ms),
+            last_checked: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_millis().to_string())
+                .unwrap_or_default(),
+        });
+    }
+
+    Ok(results)
+}
+
 // ─── Full Price Check (scrape → compare → notify → update tray) ─────────────
 
 async fn run_full_price_check(app: tauri::AppHandle) -> Result<String, String> {
@@ -703,7 +799,8 @@ pub fn run() {
             check_price_drops,
             stop_price_poller,
             update_tray_badge,
-            check_all_prices
+            check_all_prices,
+            check_distributor_health
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

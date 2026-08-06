@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { createHealthService, DistributorHealth, HealthStatus } from "../../../lib/scrapers/health";
+import { invoke } from "@tauri-apps/api/core";
 import { getDistributorById } from "../../../lib/distributors";
-import { storageAdapter } from "../storage";
 
-const healthService = createHealthService(storageAdapter);
+type HealthStatus = "working" | "blocked" | "error";
+
+interface DistributorHealth {
+  distributorId: string;
+  status: HealthStatus;
+  reason?: string;
+  responseTimeMs?: number;
+  lastChecked: string;
+}
 
 type Filter = "all" | "working" | "blocked" | "error";
 
@@ -13,29 +20,24 @@ export function Health() {
   const [health, setHealth] = useState<DistributorHealth[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [testing, setTesting] = useState(false);
-  const [progress, setProgress] = useState(0);
-
-  const loadHealth = useCallback(async () => {
-    const data = await healthService.getDistributorHealth();
-    setHealth(data);
-  }, []);
-
-  useEffect(() => {
-    loadHealth();
-  }, [loadHealth]);
 
   const runTest = useCallback(async () => {
     setTesting(true);
-    setProgress(0);
     try {
-      const results = await healthService.testAllDistributors((current, total) => {
-        setProgress(Math.round((current / total) * 100));
-      });
+      const results = await invoke<DistributorHealth[]>(
+        "check_distributor_health",
+      );
       setHealth(results);
+    } catch (error) {
+      console.error("Health check failed:", error);
     } finally {
       setTesting(false);
     }
   }, []);
+
+  useEffect(() => {
+    runTest();
+  }, [runTest]);
 
   const counts = {
     working: health.filter((h) => h.status === "working").length,
@@ -86,18 +88,6 @@ export function Health() {
       >
         {testing ? "Testing..." : "Test All Distributors"}
       </button>
-
-      {testing && (
-        <div className="mb-4">
-          <div className="h-1.5 rounded bg-gray-200 overflow-hidden">
-            <div
-              className="h-1.5 bg-blue-600"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <p className="text-xs text-gray-500 mt-1">{progress}%</p>
-        </div>
-      )}
 
       <div>
         {filtered.map((h) => {
