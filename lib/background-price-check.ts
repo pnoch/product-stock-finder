@@ -1,7 +1,9 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 import { Platform } from "react-native";
 import { getAlerts, getSettings, getWatchlist, saveAlerts, updateProductListings } from "./storage";
+import { createHealthService, DistributorHealth } from "./scrapers/health";
 import { convertPrice, formatPrice } from "./currency";
 import { requestNotificationPermissions } from "./notifications";
 import * as Notifications from "expo-notifications";
@@ -10,6 +12,30 @@ import { fetchWithParser } from "./scrapers/utils";
 import { PricePoint, DistributorListing } from "./types";
 
 export const PRICE_CHECK_TASK = "price-drop-check";
+
+const healthService = createHealthService(AsyncStorage);
+
+async function updateHealthForScrape(
+  parserId: string,
+  status: "working" | "error",
+  reason?: string,
+) {
+  try {
+    const current = await healthService.getDistributorHealth();
+    const entry: DistributorHealth = {
+      distributorId: parserId,
+      status,
+      reason,
+      lastChecked: new Date().toISOString(),
+    };
+    const updated = current.some((h) => h.distributorId === parserId)
+      ? current.map((h) => (h.distributorId === parserId ? entry : h))
+      : [...current, entry];
+    await healthService.saveDistributorHealth(updated);
+  } catch {
+    // Ignore health update errors
+  }
+}
 
 // Must be defined in global scope, outside any component
 TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
@@ -41,6 +67,7 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
               const result = parser.parsePrice(html);
 
               if (result) {
+                await updateHealthForScrape(parser.id, "working");
                 const now = new Date().toISOString();
                 const newPricePoint: PricePoint = {
                   date: now,
@@ -62,9 +89,15 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
 
                 updatedListings.push(updatedListing);
               } else {
+                await updateHealthForScrape(parser.id, "error", "no price found");
                 updatedListings.push(listing);
               }
-            } catch {
+            } catch (error) {
+              await updateHealthForScrape(
+                parser.id,
+                "error",
+                error instanceof Error ? error.message : String(error),
+              );
               updatedListings.push(listing);
             }
 
@@ -194,6 +227,7 @@ export async function checkPriceDropsNow(
             const result = parser.parsePrice(html);
 
             if (result) {
+              await updateHealthForScrape(parser.id, "working");
               const now = new Date().toISOString();
               const newPricePoint: PricePoint = {
                 date: now,
@@ -215,9 +249,15 @@ export async function checkPriceDropsNow(
 
               updatedListings.push(updatedListing);
             } else {
+              await updateHealthForScrape(parser.id, "error", "no price found");
               updatedListings.push(listing);
             }
-          } catch {
+          } catch (error) {
+            await updateHealthForScrape(
+              parser.id,
+              "error",
+              error instanceof Error ? error.message : String(error),
+            );
             updatedListings.push(listing);
           }
 
