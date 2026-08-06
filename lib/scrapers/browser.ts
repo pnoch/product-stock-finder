@@ -1,14 +1,7 @@
 import { chromium, Browser, BrowserContext } from "playwright";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import { join } from "path";
-
-const USER_AGENTS = [
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
-  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-];
+import { USER_AGENTS } from "./utils";
 
 const VIEWPORTS = [
   { width: 1920, height: 1080 },
@@ -24,9 +17,18 @@ function getRandomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function hashDomain(domain: string): string {
+  let hash = 0;
+  for (let i = 0; i < domain.length; i++) {
+    hash = (hash << 5) - hash + domain.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
 async function loadCookies(domain: string): Promise<any[]> {
   try {
-    const filePath = join(COOKIE_DIR, `${domain.replace(/\./g, "_")}.json`);
+    const filePath = join(COOKIE_DIR, `${hashDomain(domain)}.json`);
     const data = await readFile(filePath, "utf-8");
     return JSON.parse(data);
   } catch {
@@ -37,7 +39,7 @@ async function loadCookies(domain: string): Promise<any[]> {
 async function saveCookies(domain: string, cookies: any[]): Promise<void> {
   try {
     await mkdir(COOKIE_DIR, { recursive: true });
-    const filePath = join(COOKIE_DIR, `${domain.replace(/\./g, "_")}.json`);
+    const filePath = join(COOKIE_DIR, `${hashDomain(domain)}.json`);
     await writeFile(filePath, JSON.stringify(cookies, null, 2));
   } catch {
     // Ignore save errors
