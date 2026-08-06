@@ -93,8 +93,12 @@ export async function fetchWithParser(
   url: string,
 ): Promise<string> {
   if (parser.useBrowser) {
-    const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
-    return fetchWithBrowser(url, parser.browserOptions);
+    try {
+      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      return await fetchWithBrowser(url, parser.browserOptions);
+    } catch {
+      // Playwright unavailable (e.g. mobile) — fall back to plain HTTP
+    }
   }
   return fetchWithRateLimit(url, parser.rateLimitMs);
 }
