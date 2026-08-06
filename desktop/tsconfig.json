@@ -15,6 +15,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
+      "@/lib/*": ["../lib/*"],
       "@/*": ["./src/*"]
     }
   },

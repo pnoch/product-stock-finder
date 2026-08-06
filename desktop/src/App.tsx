@@ -9,6 +9,7 @@ import { Compare } from "./pages/Compare";
 import { Alerts } from "./pages/Alerts";
 import { Search } from "./pages/Search";
 import { Settings } from "./pages/Settings";
+import { Health } from "./pages/Health";
 import { exportWatchlistAsJson } from "./import-export";
 import { useTheme } from "./hooks/use-theme";
 
@@ -62,6 +63,7 @@ export default function App() {
             <Route path="/alerts" element={<Alerts />} />
             <Route path="/search" element={<Search />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/health" element={<Health />} />
           </Routes>
         </main>
       </div>

@@ -10,3 +10,4 @@ const localStorageAdapter = {
 };
 
 export const storage = createStorage(localStorageAdapter);
+export const storageAdapter = localStorageAdapter;
