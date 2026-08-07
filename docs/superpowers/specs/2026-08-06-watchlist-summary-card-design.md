@@ -35,9 +35,10 @@ export function computeWatchlistSummary(
 
 **Behavior:**
 - Iterates all `Product.listings` across the watchlist
+- `listingCount` counts ALL listings (regardless of price validity)
 - For each listing with a valid `price > 0` and a `currency`, converts to `displayCurrency` via `convertPrice()` and adds to `totalValue`
 - Counts each listing into `inStock` / `backOrder` / `outOfStock` based on `stockStatus`
-- Listings with missing price, missing currency, or unknown stock status are skipped from the relevant buckets
+- Listings with missing price, missing currency, or unknown stock status are skipped from the total and stock buckets
 - Empty watchlist → all zeros
 
 ### Summary Card UI
