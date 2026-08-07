@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { RefreshCw, Trash2, ArrowUpDown, Package, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { useWatchlist } from "../hooks/use-storage";
+import { useWatchlist, useSettings } from "../hooks/use-storage";
 import { storage } from "../storage";
 import { formatPrice, getBestPrice } from "../../../lib/currency";
+import { computeWatchlistSummary } from "../../../lib/watchlist-summary";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
@@ -65,11 +66,19 @@ function formatTimeAgo(iso: string): string {
 
 export function Watchlist() {
   const { products, loading, refresh } = useWatchlist();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortAsc, setSortAsc] = useState(true);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [refreshing, setRefreshing] = useState(false);
+
+  const displayCurrency = settings?.displayCurrency ?? "USD";
+
+  const summary = useMemo(
+    () => computeWatchlistSummary(products, displayCurrency),
+    [products, displayCurrency],
+  );
 
   const filtered = useMemo(() => {
     let result = products;
@@ -162,6 +171,35 @@ export function Watchlist() {
           Refresh
         </button>
       </div>
+
+      {products.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 mb-4">
+          <div className="flex items-baseline justify-between">
+            <span className="text-sm text-gray-500 dark:text-gray-400">Total Value</span>
+            <span className="text-2xl font-bold">
+              {formatPrice(summary.totalValue, displayCurrency)}
+            </span>
+          </div>
+          <div className="flex gap-4 mt-3">
+            <div className="flex-1">
+              <p className="text-lg font-semibold text-emerald-600">{summary.inStock}</p>
+              <p className="text-xs text-gray-500">In Stock</p>
+            </div>
+            <div className="flex-1">
+              <p className="text-lg font-semibold text-amber-600">{summary.backOrder}</p>
+              <p className="text-xs text-gray-500">Back Order</p>
+            </div>
+            <div className="flex-1">
+              <p className="text-lg font-semibold text-red-600">{summary.outOfStock}</p>
+              <p className="text-xs text-gray-500">Out of Stock</p>
+            </div>
+            <div className="flex-1">
+              <p className="text-lg font-semibold">{summary.listingCount}</p>
+              <p className="text-xs text-gray-500">Listings</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
         {FILTER_OPTIONS.map((opt) => (
