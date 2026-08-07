@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Text,
@@ -16,9 +16,11 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import {
   getWatchlist,
+  getSettings,
   removeFromWatchlist,
   refreshWatchlistPrices,
 } from "@/lib/storage";
+import { computeWatchlistSummary } from "@/lib/watchlist-summary";
 import { Product } from "@/lib/types";
 import { formatPrice, getBestPrice, convertPrice } from "@/lib/currency";
 import {
@@ -246,15 +248,23 @@ export default function WatchlistScreen() {
     current: number;
     total: number;
   } | null>(null);
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
 
   const loadData = useCallback(async () => {
     const list = await getWatchlist();
     setWatchlist(list);
+    const settings = await getSettings();
+    setDisplayCurrency(settings?.displayCurrency ?? "USD");
   }, []);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const summary = useMemo(
+    () => computeWatchlistSummary(watchlist, displayCurrency),
+    [watchlist, displayCurrency],
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -360,6 +370,45 @@ export default function WatchlistScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {watchlist.length > 0 && (
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 12,
+            padding: 16,
+            borderRadius: 16,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
+            <Text style={{ color: colors.muted, fontSize: 13 }}>Total Value</Text>
+            <Text style={{ color: colors.foreground, fontSize: 22, fontWeight: "700" }}>
+              {formatPrice(summary.totalValue, displayCurrency)}
+            </Text>
+          </View>
+          <View style={{ flexDirection: "row", marginTop: 12, gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.success, fontSize: 16, fontWeight: "600" }}>{summary.inStock}</Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>In Stock</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.warning, fontSize: 16, fontWeight: "600" }}>{summary.backOrder}</Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>Back Order</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.error, fontSize: 16, fontWeight: "600" }}>{summary.outOfStock}</Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>Out of Stock</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "600" }}>{summary.listingCount}</Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>Listings</Text>
+            </View>
+          </View>
+        </View>
+      )}
 
       {checking && checkProgress && (
         <View className="h-1 mx-4 mb-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.primary + "20" }}>
