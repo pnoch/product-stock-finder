@@ -1,4 +1,4 @@
-import { Product } from "./types";
+import type { Product } from "./types";
 import { convertPrice } from "./currency";
 
 export interface WatchlistSummary {
