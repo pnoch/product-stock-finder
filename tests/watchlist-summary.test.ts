@@ -91,4 +91,18 @@ describe("computeWatchlistSummary", () => {
     const summary = computeWatchlistSummary(watchlist, "USD");
     expect(summary.listingCount).toBe(2);
   });
+
+  it("counts unknown-status listings in listingCount but no stock bucket", () => {
+    const watchlist = [
+      makeProduct([
+        makeListing({ stockStatus: "unknown" }),
+        makeListing({ stockStatus: "in_stock" }),
+      ]),
+    ];
+    const summary = computeWatchlistSummary(watchlist, "USD");
+    expect(summary.listingCount).toBe(2);
+    expect(summary.inStock).toBe(1);
+    expect(summary.backOrder).toBe(0);
+    expect(summary.outOfStock).toBe(0);
+  });
 });
