@@ -156,3 +156,10 @@
 - [x] Unit tests for classification + persistence (10 tests)
 - [x] Desktop health component tests (4 tests)
 - [x] Desktop build regression fixed (Rust command instead of JS playwright module)
+
+## Phase 17: Watchlist Summary Card
+
+- [x] Create shared summary utility (lib/watchlist-summary.ts) with computeWatchlistSummary
+- [x] Unit tests for summary computation (5 tests)
+- [x] Mobile summary card (app/(tabs)/watchlist.tsx) with total value + stock counts
+- [x] Desktop summary card (desktop/src/pages/Watchlist.tsx) with total value + stock counts
