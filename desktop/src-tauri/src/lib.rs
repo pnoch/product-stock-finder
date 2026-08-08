@@ -156,11 +156,22 @@ fn import_watchlist(
 
     match format.as_str() {
         "json" => {
+            if content.len() > 10 * 1024 * 1024 {
+                return Err("Import file too large (max 10MB)".to_string());
+            }
             let import: ExportData =
                 serde_json::from_str(&content).map_err(|e| format!("Invalid JSON: {}", e))?;
 
             if import.version != 1 {
                 return Err(format!("Unsupported version: {}", import.version));
+            }
+
+            if !import.watchlist.is_array()
+                || !import.alerts.is_array()
+                || !import.reminders.is_array()
+                || !import.settings.is_object()
+            {
+                return Err("Invalid import structure: expected arrays for watchlist/alerts/reminders and an object for settings".to_string());
             }
 
             write_json_file(&data_dir, "watchlist_products", &import.watchlist)?;
@@ -584,8 +595,27 @@ fn update_listing_price(
                 obj.insert("stockStatus".to_string(), serde_json::json!(scrape.stock_status));
                 if let Some(expected) = &scrape.expected_date {
                     obj.insert("expectedDate".to_string(), serde_json::json!(expected));
+                } else {
+                    obj.remove("expectedDate");
                 }
                 obj.insert("lastChecked".to_string(), serde_json::json!(current_iso_timestamp()));
+
+                // Append a price point to history so the compare chart stays fresh
+                let point = serde_json::json!({
+                    "date": current_iso_timestamp(),
+                    "price": scrape.price,
+                    "currency": scrape.currency,
+                    "stockStatus": scrape.stock_status,
+                });
+                let history = obj
+                    .get_mut("priceHistory")
+                    .and_then(|v| v.as_array_mut());
+                match history {
+                    Some(arr) => arr.push(point),
+                    None => {
+                        obj.insert("priceHistory".to_string(), serde_json::json!([point]));
+                    }
+                }
                 updated = true;
             }
         }
