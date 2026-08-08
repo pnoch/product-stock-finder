@@ -95,8 +95,9 @@ export function createStorage(adapter: StorageAdapter) {
   ): Promise<void> {
     await enqueue(KEYS.WATCHLIST, async () => {
       const list = await getWatchlist();
+      const now = new Date().toISOString();
       const updated = list.map((p) =>
-        p.id === productId ? { ...p, listings } : p,
+        p.id === productId ? { ...p, listings, lastRefreshed: now } : p,
       );
       await saveWatchlist(updated);
     });
@@ -154,6 +155,26 @@ export function createStorage(adapter: StorageAdapter) {
               isActive: true,
               triggeredAt: undefined,
               triggeredPrice: undefined,
+            }
+          : a,
+      );
+      await saveAlerts(updated);
+    });
+  }
+
+  async function deactivateAlert(
+    alertId: string,
+    triggeredPrice: number,
+  ): Promise<void> {
+    await enqueue(KEYS.ALERTS, async () => {
+      const alerts = await getAlerts();
+      const updated = alerts.map((a) =>
+        a.id === alertId
+          ? {
+              ...a,
+              isActive: false,
+              triggeredAt: new Date().toISOString(),
+              triggeredPrice,
             }
           : a,
       );
@@ -298,6 +319,7 @@ export function createStorage(adapter: StorageAdapter) {
     removeAlert,
     toggleAlert,
     rearmAlert,
+    deactivateAlert,
     getSettings,
     saveSettings,
     getBackOrderReminders,
@@ -333,6 +355,7 @@ export const {
   removeAlert,
   toggleAlert,
   rearmAlert,
+  deactivateAlert,
   getSettings,
   saveSettings,
   getBackOrderReminders,

@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 import { Platform } from "react-native";
-import { getAlerts, getSettings, getWatchlist, saveAlerts, updateProductListings } from "./storage";
+import { getAlerts, getSettings, getWatchlist, deactivateAlert, updateProductListings } from "./storage";
 import { createHealthService, DistributorHealth } from "./scrapers/health";
 import { convertPrice, formatPrice } from "./currency";
 import { requestNotificationPermissions } from "./notifications";
@@ -12,6 +12,8 @@ import { fetchWithParser } from "./scrapers/utils";
 import { PricePoint, DistributorListing } from "./types";
 
 export const PRICE_CHECK_TASK = "price-drop-check";
+
+const MAX_PRICE_HISTORY = 90;
 
 const healthService = createHealthService(AsyncStorage);
 
@@ -97,7 +99,10 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
                   expectedDate: result.expectedDate,
                   url: result.url,
                   lastChecked: now,
-                  priceHistory: [...listing.priceHistory, newPricePoint],
+                  priceHistory: [
+                    ...listing.priceHistory,
+                    newPricePoint,
+                  ].slice(-MAX_PRICE_HISTORY),
                 };
 
                 updatedListings.push(updatedListing);
@@ -134,6 +139,10 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
     await healthCollector.flush();
 
     // Now check price alerts against fresh prices
+    const settings = await getSettings();
+    if (!settings.notificationsEnabled || !settings.priceAlerts)
+      return BackgroundTask.BackgroundTaskResult.Success;
+
     const alerts = await getAlerts();
     const activeAlerts = alerts.filter((a) => a.isActive && !a.triggeredAt);
     if (activeAlerts.length === 0)
@@ -146,7 +155,10 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
       if (!product?.listings?.length) continue;
 
       const inStockListings = product.listings.filter(
-        (l) => l.stockStatus === "in_stock",
+        (l) =>
+          l.stockStatus === "in_stock" &&
+          l.price > 0 &&
+          Number.isFinite(l.price),
       );
       if (inStockListings.length === 0) continue;
 
@@ -173,14 +185,10 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
           trigger: null,
         });
         // Deactivate the alert so it doesn't fire repeatedly
-        alert.isActive = false;
-        alert.triggeredAt = new Date().toISOString();
-        alert.triggeredPrice = bestPrice;
+        await deactivateAlert(alert.id, bestPrice);
       }
     }
 
-    // Persist updated alert states
-    await saveAlerts(alerts);
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch {
     return BackgroundTask.BackgroundTaskResult.Failed;
@@ -271,7 +279,10 @@ export async function checkPriceDropsNow(
                 expectedDate: result.expectedDate,
                 url: result.url,
                 lastChecked: now,
-                priceHistory: [...listing.priceHistory, newPricePoint],
+                priceHistory: [
+                  ...listing.priceHistory,
+                  newPricePoint,
+                ].slice(-MAX_PRICE_HISTORY),
               };
 
               updatedListings.push(updatedListing);
@@ -308,6 +319,9 @@ export async function checkPriceDropsNow(
   await healthCollector.flush();
 
   // Now check price alerts against fresh prices
+  const settings = await getSettings();
+  if (!settings.notificationsEnabled || !settings.priceAlerts) return;
+
   const alerts = await getAlerts();
   const activeAlerts = alerts.filter((a) => a.isActive && !a.triggeredAt);
   if (activeAlerts.length === 0) return;
@@ -318,7 +332,10 @@ export async function checkPriceDropsNow(
     const product = refreshedWatchlist.find((p) => p.id === alert.productId);
     if (!product?.listings?.length) continue;
     const inStockListings = product.listings.filter(
-      (l) => l.stockStatus === "in_stock",
+      (l) =>
+        l.stockStatus === "in_stock" &&
+        l.price > 0 &&
+        Number.isFinite(l.price),
     );
     if (inStockListings.length === 0) continue;
     const bestPrice = inStockListings.reduce((best, l) => {
@@ -326,6 +343,10 @@ export async function checkPriceDropsNow(
       return converted < best ? converted : best;
     }, Infinity);
     if (bestPrice <= alert.targetPrice) {
+      // Re-read alerts to avoid duplicate fire with a concurrent background task
+      const currentAlerts = await getAlerts();
+      const current = currentAlerts.find((a) => a.id === alert.id);
+      if (current?.triggeredAt) continue;
       const granted = await requestNotificationPermissions();
       if (!granted) continue;
       await Notifications.scheduleNotificationAsync({
@@ -339,8 +360,8 @@ export async function checkPriceDropsNow(
       alert.isActive = false;
       alert.triggeredAt = new Date().toISOString();
       alert.triggeredPrice = bestPrice;
-      // Persist immediately so the background task doesn't also fire a duplicate
-      await saveAlerts(alerts);
+      // Persist immediately (mutex-protected) so the background task doesn't also fire a duplicate
+      await deactivateAlert(alert.id, bestPrice);
     }
   }
 }

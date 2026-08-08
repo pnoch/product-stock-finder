@@ -13,9 +13,29 @@ const state = vi.hoisted(() => ({
 vi.mock("../lib/storage", () => ({
   getAlerts: vi.fn(async () => state.alertsStore.map((a) => ({ ...a }))),
   getWatchlist: vi.fn(async () => state.watchlistStore),
+  getSettings: vi.fn(async () => ({
+    theme: "auto",
+    displayCurrency: "USD",
+    checkInterval: "manual",
+    notificationsEnabled: true,
+    priceAlerts: true,
+    stockAlerts: true,
+  })),
   saveAlerts: vi.fn(async (alerts: PriceAlert[]) => {
     state.alertsStore.length = 0;
     state.alertsStore.push(...alerts.map((a) => ({ ...a })));
+  }),
+  deactivateAlert: vi.fn(async (alertId: string, triggeredPrice: number) => {
+    state.alertsStore = state.alertsStore.map((a) =>
+      a.id === alertId
+        ? {
+            ...a,
+            isActive: false,
+            triggeredAt: new Date().toISOString(),
+            triggeredPrice,
+          }
+        : a,
+    );
   }),
   updateProductListings: vi.fn(async () => {}),
 }));
