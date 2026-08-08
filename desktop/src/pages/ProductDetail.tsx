@@ -86,26 +86,6 @@ export function ProductDetail() {
     })();
   }, [id]);
 
-  const best = useMemo(() => {
-    if (!product) return null;
-    return getBestPrice(product.listings, "USD");
-  }, [product]);
-
-  const bestListing = useMemo(() => {
-    if (!product || !best) return null;
-    return product.listings.find(
-      (l) =>
-        l.stockStatus !== "out_of_stock" &&
-        l.price > 0 &&
-        Math.abs(convertPrice(l.price, l.currency, "USD") - best.price) < 0.01,
-    );
-  }, [product, best]);
-
-  const bestDistributor = useMemo(() => {
-    if (!bestListing) return null;
-    return DISTRIBUTORS.find((d) => d.id === bestListing.distributorId) ?? null;
-  }, [bestListing]);
-
   const handleSaveAlert = async () => {
     if (!product || !alertPrice) return;
     const price = parseFloat(alertPrice);
@@ -184,6 +164,25 @@ export function ProductDetail() {
     regionFilter === "all"
       ? product.listings
       : filterListingsByRegion(product.listings, regionFilter);
+
+  const best = useMemo(() => {
+    return getBestPrice(visibleListings, "USD");
+  }, [visibleListings]);
+
+  const bestListing = useMemo(() => {
+    if (!best) return null;
+    return visibleListings.find(
+      (l) =>
+        l.stockStatus !== "out_of_stock" &&
+        l.price > 0 &&
+        Math.abs(convertPrice(l.price, l.currency, "USD") - best.price) < 0.01,
+    );
+  }, [visibleListings, best]);
+
+  const bestDistributor = useMemo(() => {
+    if (!bestListing) return null;
+    return DISTRIBUTORS.find((d) => d.id === bestListing.distributorId) ?? null;
+  }, [bestListing]);
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
@@ -371,7 +370,9 @@ export function ProductDetail() {
           </table>
           {visibleListings.length === 0 && (
             <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-              No distributor listings available.
+              {regionFilter !== "all"
+                ? `No distributors in ${regionFilter}.`
+                : "No distributor listings available."}
             </div>
           )}
         </div>
