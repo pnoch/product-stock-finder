@@ -289,7 +289,7 @@ export const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       price: 2299,
       currency: "AUD",
       stockStatus: "out_of_stock",
-      url: "https://store.duxtel.com.au/product/crs804-4ddq-hrm",
+      url: "https://store.duxtel.com/product/crs804-4ddq-hrm",
       lastChecked: new Date().toISOString(),
       priceHistory: [
         { date: d(90), price: 2450, currency: "AUD", stockStatus: "in_stock" },
@@ -557,7 +557,7 @@ export const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       currency: "AUD",
       stockStatus: "back_order",
       expectedDate: "Aug 30, 2026",
-      url: "https://store.duxtel.com.au/product/crs326-24s-2q-rm",
+      url: "https://store.duxtel.com/product/crs326-24s-2q-rm",
       lastChecked: new Date().toISOString(),
       priceHistory: [
         {
