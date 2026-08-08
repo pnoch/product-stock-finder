@@ -177,7 +177,6 @@ export default function AlertsScreen() {
   const getProductName = (productId: string) =>
     products.find((p) => p.id === productId)?.name ?? "Unknown Product";
 
-  const activeAlerts = alerts.filter((a) => a.isActive && !a.triggeredAt);
   const triggeredAlerts = alerts.filter((a) => a.triggeredAt);
 
   const totalSaved = triggeredAlerts.reduce((sum, a) => {
