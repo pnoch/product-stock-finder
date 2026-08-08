@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   ScrollView,
   Text,
@@ -12,7 +12,7 @@ import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { getWatchlist, getAlerts } from "@/lib/storage";
+import { getWatchlist, getAlerts, getSettings } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { formatPrice, getBestPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -118,12 +118,15 @@ export default function HomeScreen() {
   const [watchlist, setWatchlist] = useState<Product[]>([]);
   const [alertCount, setAlertCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
 
   const loadData = useCallback(async () => {
     const list = await getWatchlist();
     setWatchlist(list);
     const alerts = await getAlerts();
     setAlertCount(alerts.filter((a) => a.isActive && !a.triggeredAt).length);
+    const settings = await getSettings();
+    setDisplayCurrency(settings?.displayCurrency ?? "USD");
   }, []);
 
   // Reload whenever the tab is focused so seed/backfill changes are reflected immediately
@@ -133,14 +136,13 @@ export default function HomeScreen() {
     }, [loadData]),
   );
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    try {
+      await loadData();
+    } finally {
+      setRefreshing(false);
+    }
   }, [loadData]);
 
   const inStockCount = watchlist.reduce((count, p) => {
@@ -346,7 +348,7 @@ export default function HomeScreen() {
               Your Watchlist
             </Text>
             {watchlist.slice(0, 3).map((product) => {
-              const bestPrice = getBestPrice(product.listings ?? [], "USD");
+              const bestPrice = getBestPrice(product.listings ?? [], displayCurrency);
               const bestStatus = getBestStatus(product);
               return (
                 <TouchableOpacity

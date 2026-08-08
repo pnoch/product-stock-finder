@@ -16,6 +16,7 @@ import {
   getWatchlist,
   addToWatchlist,
   updateProductListings,
+  getSettings,
 } from "@/lib/storage";
 import {
   registerPriceCheckTask,
@@ -67,8 +68,12 @@ export default function RootLayout() {
   // Request notification permissions and set up Android channel on first load
   useEffect(() => {
     if (Platform.OS === "web") return;
-    setupAndroidNotificationChannel().then(() => {
-      requestNotificationPermissions();
+    setupAndroidNotificationChannel().then(async () => {
+      // Only prompt for notification permission if the user has enabled notifications
+      const settings = await getSettings();
+      if (settings.notificationsEnabled) {
+        await requestNotificationPermissions();
+      }
       // Register background price-check task
       registerPriceCheckTask();
       // Run a foreground check immediately on app launch
