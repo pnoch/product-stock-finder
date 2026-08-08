@@ -5,6 +5,7 @@ import { useWatchlist, useSettings } from "../hooks/use-storage";
 import { storage } from "../storage";
 import { formatPrice, getBestPrice } from "../../../lib/currency";
 import { computeWatchlistSummary } from "../../../lib/watchlist-summary";
+import { getAllRegions, productHasRegion } from "../../../lib/region-filter";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
@@ -72,16 +73,26 @@ export function Watchlist() {
   const [sortAsc, setSortAsc] = useState(true);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [refreshing, setRefreshing] = useState(false);
+  const [regionFilter, setRegionFilter] = useState<string>("all");
+  const regions = useMemo(() => getAllRegions(), []);
 
   const displayCurrency = settings?.displayCurrency ?? "USD";
 
+  const filteredProducts = useMemo(
+    () =>
+      regionFilter === "all"
+        ? products
+        : products.filter((p) => productHasRegion(p, regionFilter)),
+    [products, regionFilter],
+  );
+
   const summary = useMemo(
-    () => computeWatchlistSummary(products, displayCurrency),
-    [products, displayCurrency],
+    () => computeWatchlistSummary(filteredProducts, displayCurrency),
+    [filteredProducts, displayCurrency],
   );
 
   const filtered = useMemo(() => {
-    let result = products;
+    let result = filteredProducts;
     if (filter !== "all") {
       result = result.filter((p) => {
         const dominant = getDominantStatus(p);
@@ -89,7 +100,7 @@ export function Watchlist() {
       });
     }
     return result;
-  }, [products, filter]);
+  }, [filteredProducts, filter]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -211,6 +222,22 @@ export function Watchlist() {
             }`}
           >
             {opt.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        {["all", ...regions].map((region) => (
+          <button
+            key={region}
+            onClick={() => setRegionFilter(region)}
+            className={`px-3 py-1 rounded-full text-sm font-semibold border ${
+              regionFilter === region
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white text-gray-800 border-gray-300"
+            }`}
+          >
+            {region === "all" ? "All" : region}
           </button>
         ))}
       </div>
