@@ -48,6 +48,7 @@ import {
   getLastRefreshedColor,
 } from "@/lib/last-refreshed";
 import { getDistributorById } from "@/lib/distributors";
+import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import {
   schedulePriceAlert,
@@ -390,6 +391,8 @@ export default function ProductDetailScreen() {
   const [alertPrice, setAlertPrice] = useState("");
   const [alertCurrency, setAlertCurrency] = useState("USD");
   const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [regionFilter, setRegionFilter] = useState<string>("all");
+  const regions = useMemo(() => getAllRegions(), []);
 
   // Best in-stock distributor (cheapest by USD equivalent)
   // Reminder modal state
@@ -595,6 +598,11 @@ export default function ProductDetailScreen() {
     const order = { in_stock: 0, back_order: 1, out_of_stock: 2, unknown: 3 };
     return (order[a.stockStatus] ?? 3) - (order[b.stockStatus] ?? 3);
   });
+
+  const visibleListings =
+    regionFilter === "all"
+      ? sortedListings
+      : filterListingsByRegion(sortedListings, regionFilter);
 
   const handleShare = useCallback(async () => {
     if (Platform.OS !== "web")
@@ -1243,6 +1251,47 @@ export default function ProductDetailScreen() {
                 />
               )}
               {bestInStockListing && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    marginBottom: 12,
+                    flexWrap: "wrap",
+                    gap: 8,
+                  }}
+                >
+                  {["all", ...regions].map((region) => (
+                    <TouchableOpacity
+                      key={region}
+                      onPress={() => setRegionFilter(region)}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 16,
+                        backgroundColor:
+                          regionFilter === region
+                            ? colors.primary
+                            : colors.surface,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color:
+                            regionFilter === region
+                              ? "#fff"
+                              : colors.foreground,
+                          fontSize: 13,
+                          fontWeight: "600",
+                        }}
+                      >
+                        {region === "all" ? "All" : region}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+              {bestInStockListing && (
                 <Text
                   style={{
                     color: colors.muted,
@@ -1256,7 +1305,7 @@ export default function ProductDetailScreen() {
                   ALL DISTRIBUTORS
                 </Text>
               )}
-              {sortedListings.map((listing) => {
+              {visibleListings.map((listing) => {
                 const distributor = getDistributorById(listing.distributorId);
                 const usdPrice = convertPrice(
                   listing.price,
