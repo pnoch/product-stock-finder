@@ -16,6 +16,10 @@ import {
   EXCHANGE_RATES,
 } from "../../../lib/currency";
 import { DISTRIBUTORS } from "../../../lib/distributors";
+import {
+  getAllRegions,
+  filterListingsByRegion,
+} from "../../../lib/region-filter";
 import type { Product } from "../../../lib/types";
 import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
@@ -70,6 +74,8 @@ export function ProductDetail() {
   const [alertPrice, setAlertPrice] = useState("");
   const [alertCurrency, setAlertCurrency] = useState("USD");
   const [alertSaved, setAlertSaved] = useState(false);
+  const [regionFilter, setRegionFilter] = useState<string>("all");
+  const regions = useMemo(() => getAllRegions(), []);
 
   useEffect(() => {
     (async () => {
@@ -174,6 +180,11 @@ export function ProductDetail() {
     );
   }
 
+  const visibleListings =
+    regionFilter === "all"
+      ? product.listings
+      : filterListingsByRegion(product.listings, regionFilter);
+
   return (
     <div className="p-6 space-y-6 max-w-4xl">
       <button
@@ -266,8 +277,23 @@ export function ProductDetail() {
       {/* Distributor Table */}
       <div>
         <h2 className="text-lg font-semibold mb-3">
-          All Listings ({product.listings.length})
+          All Listings ({visibleListings.length})
         </h2>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {["all", ...regions].map((region) => (
+            <button
+              key={region}
+              onClick={() => setRegionFilter(region)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                regionFilter === region
+                  ? "bg-brand-600 text-white"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+              }`}
+            >
+              {region === "all" ? "All" : region}
+            </button>
+          ))}
+        </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <table className="w-full">
             <thead>
@@ -290,7 +316,7 @@ export function ProductDetail() {
               </tr>
             </thead>
             <tbody>
-              {product.listings.map((listing) => {
+              {visibleListings.map((listing) => {
                 const dist = DISTRIBUTORS.find(
                   (d) => d.id === listing.distributorId,
                 );
@@ -343,7 +369,7 @@ export function ProductDetail() {
               })}
             </tbody>
           </table>
-          {product.listings.length === 0 && (
+          {visibleListings.length === 0 && (
             <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
               No distributor listings available.
             </div>
