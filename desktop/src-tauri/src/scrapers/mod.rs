@@ -63,6 +63,7 @@ pub async fn fetch_html(url: &str, rate_limit_ms: u64) -> Result<String, reqwest
         .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
         .send()
         .await?;
+    let resp = resp.error_for_status()?;
     resp.text().await
 }
 

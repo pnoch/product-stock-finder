@@ -154,6 +154,8 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
         const current = currentAlerts.find((a) => a.id === alert.id);
         if (current?.triggeredAt) continue;
         // Price dropped below target — fire notification and deactivate alert
+        const granted = await requestNotificationPermissions();
+        if (!granted) continue;
         await Notifications.scheduleNotificationAsync({
           content: {
             title: "💸 Price Drop Alert!",
