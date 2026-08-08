@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -26,6 +27,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useSystemColorScheme() ?? "light";
   const [colorScheme, setColorSchemeState] =
     useState<ColorScheme>(systemScheme);
+  const manualOverride = useRef<ColorScheme | null>(null);
 
   const applyScheme = useCallback((scheme: ColorScheme) => {
     nativewindColorScheme.set(scheme);
@@ -43,11 +45,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setColorScheme = useCallback(
     (scheme: ColorScheme) => {
+      manualOverride.current = scheme;
       setColorSchemeState(scheme);
       applyScheme(scheme);
     },
     [applyScheme],
   );
+
+  // Follow system scheme changes unless the user has manually overridden
+  useEffect(() => {
+    const sub = Appearance.addChangeListener(({ colorScheme: next }) => {
+      if (manualOverride.current === null && next) {
+        setColorSchemeState(next);
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     applyScheme(colorScheme);

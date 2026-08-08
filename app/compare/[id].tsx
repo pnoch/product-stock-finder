@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ScrollView,
   Text,
@@ -181,7 +181,7 @@ function MultiLineChart({
         ${globalMin.toFixed(0)}
       </SvgText>
       {allCoords.map((s) => (
-        <>
+        <Fragment key={s.label}>
           <Polyline
             key={`line-${s.label}`}
             points={s.polylineStr}
@@ -200,7 +200,7 @@ function MultiLineChart({
               fill={s.color}
             />
           ))}
-        </>
+        </Fragment>
       ))}
       {allCoords[0]?.coords &&
         (() => {
@@ -375,7 +375,9 @@ function CheapestRegionCard({
                     ? "In Stock"
                     : item.listing.stockStatus === "back_order"
                       ? "Back Order"
-                      : "Out of Stock"}
+                      : item.listing.stockStatus === "unknown"
+                        ? "Unknown"
+                        : "Out of Stock"}
                 </Text>
               </View>
             </View>
@@ -538,7 +540,7 @@ export default function CompareScreen() {
       );
       const oldest = sorted[0].price;
       const current = l.price;
-      const pct = ((current - oldest) / oldest) * 100;
+      const pct = oldest > 0 ? ((current - oldest) / oldest) * 100 : 0;
       map.set(l.distributorId, {
         pct: Math.abs(pct),
         dir: pct > 0.5 ? "up" : pct < -0.5 ? "down" : "flat",
@@ -582,12 +584,13 @@ export default function CompareScreen() {
         l.priceHistory &&
         l.priceHistory.length >= 2,
     );
-    return selectedListings.map((l, i) => {
+    return selectedListings.map((l) => {
       const distributor = getDistributorById(l.distributorId);
       const filtered = filterByRange(l.priceHistory!, timeRange);
+      const colorIdx = Array.from(selected).indexOf(l.distributorId);
       return {
         label: distributor?.name ?? l.distributorId,
-        color: CHART_COLORS[i % CHART_COLORS.length],
+        color: CHART_COLORS[colorIdx % CHART_COLORS.length],
         data: filtered.length >= 2 ? filtered : l.priceHistory!,
         currency: l.currency,
       };
@@ -979,7 +982,9 @@ export default function CompareScreen() {
                               ? "In Stock"
                               : l.stockStatus === "back_order"
                                 ? "Back Order"
-                                : "Out of Stock"}
+                                : l.stockStatus === "unknown"
+                                  ? "Unknown"
+                                  : "Out of Stock"}
                           </Text>
                         </View>
                       </View>
@@ -1151,7 +1156,9 @@ export default function CompareScreen() {
                           ? "In Stock"
                           : l.stockStatus === "back_order"
                             ? "Back Order"
-                            : "Out of Stock"}
+                            : l.stockStatus === "unknown"
+                              ? "Unknown"
+                              : "Out of Stock"}
                       </Text>
                     </View>
                   </View>
