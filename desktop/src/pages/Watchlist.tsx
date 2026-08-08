@@ -111,8 +111,8 @@ export function Watchlist() {
           cmp = a.name.localeCompare(b.name);
           break;
         case "price": {
-          const aPrice = getBestPrice(a.listings, "USD")?.price ?? Infinity;
-          const bPrice = getBestPrice(b.listings, "USD")?.price ?? Infinity;
+          const aPrice = getBestPrice(a.listings, displayCurrency)?.price ?? Infinity;
+          const bPrice = getBestPrice(b.listings, displayCurrency)?.price ?? Infinity;
           cmp = aPrice - bPrice;
           break;
         }
@@ -264,7 +264,7 @@ export function Watchlist() {
           </thead>
           <tbody>
             {sorted.map((product) => {
-              const best = getBestPrice(product.listings, "USD");
+              const best = getBestPrice(product.listings, displayCurrency);
               const trend = getTrend(product);
               const refreshed = product.lastRefreshed ?? product.addedAt;
 
