@@ -96,8 +96,12 @@ class BrowserPool {
   async acquire(): Promise<Browser> {
     return this.mutex.runExclusive(async () => {
       if (this.browsers.length > 0) {
-        this.checkedOut++;
-        return this.browsers.pop()!;
+        const browser = this.browsers.pop()!;
+        if (browser.isConnected()) {
+          this.checkedOut++;
+          return browser;
+        }
+        // Browser crashed while idle — discard and launch a fresh one
       }
       if (this.checkedOut < this.maxPoolSize) {
         this.checkedOut++;

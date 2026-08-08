@@ -135,9 +135,12 @@ export function Watchlist() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await storage.refreshWatchlistPrices();
-    await refresh();
-    setRefreshing(false);
+    try {
+      await storage.refreshWatchlistPrices();
+      await refresh();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleRemove = async (e: React.MouseEvent, productId: string) => {

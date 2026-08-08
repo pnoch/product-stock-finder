@@ -6,7 +6,7 @@ export function getAllRegions(): string[] {
   for (const d of DISTRIBUTORS) {
     if (d.region) regions.add(d.region);
   }
-  return Array.from(regions);
+  return Array.from(regions).sort();
 }
 
 export function productHasRegion(product: Product, region: string): boolean {

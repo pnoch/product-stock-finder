@@ -183,7 +183,7 @@ export default function AlertsScreen() {
     if (a.triggeredPrice != null) {
       // Normalize each alert's savings to USD so totals across currencies are meaningful
       const savedUsd = convertPrice(
-        a.targetPrice - a.triggeredPrice,
+        Math.max(0, a.targetPrice - a.triggeredPrice),
         a.currency,
         "USD",
       );

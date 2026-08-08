@@ -31,6 +31,7 @@ export default function SearchScreen() {
 
   const handleAdd = useCallback(
     async (item: (typeof PRODUCT_CATALOG)[0]) => {
+      if (adding) return;
       if (trackedIds.has(item.id)) {
         Alert.alert(
           "Already Tracked",
@@ -47,11 +48,15 @@ export default function SearchScreen() {
         isWatched: true,
         listings: [],
       };
-      await addToWatchlist(product);
-      setAdding(null);
-      router.back();
+      try {
+        await addToWatchlist(product);
+        setTrackedIds((prev) => new Set(prev).add(item.id));
+        router.back();
+      } finally {
+        setAdding(null);
+      }
     },
-    [router, trackedIds],
+    [router, trackedIds, adding],
   );
 
   // Load already-tracked product ids so the + button reflects watchlist membership
