@@ -1,5 +1,5 @@
 import type { Product } from "./types";
-import { convertPrice } from "./currency";
+import { convertPrice, hasExchangeRate } from "./currency";
 
 export interface WatchlistSummary {
   totalValue: number;
@@ -22,7 +22,12 @@ export function computeWatchlistSummary(
   for (const product of watchlist) {
     for (const listing of product.listings ?? []) {
       listingCount++;
-      if (listing.price > 0 && listing.currency) {
+      if (
+        listing.price > 0 &&
+        listing.currency &&
+        hasExchangeRate(listing.currency) &&
+        hasExchangeRate(displayCurrency)
+      ) {
         totalValue += convertPrice(listing.price, listing.currency, displayCurrency);
       }
       if (listing.stockStatus === "in_stock") inStock++;

@@ -39,6 +39,10 @@ export function convertPrice(
   return (amount / fromRate) * toRate;
 }
 
+export function hasExchangeRate(currency: string): boolean {
+  return currency in EXCHANGE_RATES;
+}
+
 export function formatPrice(amount: number, currency: string): string {
   const symbol = CURRENCY_SYMBOLS[currency] ?? currency;
   return `${symbol}${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
