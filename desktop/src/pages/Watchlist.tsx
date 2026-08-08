@@ -226,15 +226,15 @@ export function Watchlist() {
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap gap-2">
         {["all", ...regions].map((region) => (
           <button
             key={region}
             onClick={() => setRegionFilter(region)}
-            className={`px-3 py-1 rounded-full text-sm font-semibold border ${
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               regionFilter === region
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-800 border-gray-300"
+                ? "bg-brand-600 text-white"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
             }`}
           >
             {region === "all" ? "All" : region}
