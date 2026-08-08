@@ -163,3 +163,14 @@
 - [x] Unit tests for summary computation (5 tests)
 - [x] Mobile summary card (app/(tabs)/watchlist.tsx) with total value + stock counts
 - [x] Desktop summary card (desktop/src/pages/Watchlist.tsx) with total value + stock counts
+
+## Phase 18: Distributor Region Filter
+
+- [x] Create shared region filter utility (lib/region-filter.ts) with getAllRegions, productHasRegion, filterListingsByRegion
+- [x] Unit tests for region filter (6 tests)
+- [x] Mobile watchlist region filter chips
+- [x] Mobile product detail region filter chips
+- [x] Desktop watchlist region filter chips
+- [x] Desktop product detail region filter chips
+- [x] Best-price card respects region filter (mobile + desktop)
+- [x] Region-specific empty states (mobile + desktop)
