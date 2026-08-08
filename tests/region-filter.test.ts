@@ -4,7 +4,7 @@ import {
   productHasRegion,
   filterListingsByRegion,
 } from "@/lib/region-filter";
-import { Product, DistributorListing } from "@/lib/types";
+import type { Product, DistributorListing } from "@/lib/types";
 
 function makeListing(distributorId: string): DistributorListing {
   return {
