@@ -78,6 +78,8 @@ export function ProductDetail() {
   const regions = useMemo(() => getAllRegions(), []);
 
   useEffect(() => {
+    setLoading(true);
+    setRegionFilter("all");
     (async () => {
       const products = await storage.getWatchlist();
       const found = products.find((p) => p.id === id);
