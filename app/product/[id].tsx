@@ -1251,47 +1251,6 @@ export default function ProductDetailScreen() {
                 />
               )}
               {bestInStockListing && (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    marginBottom: 12,
-                    flexWrap: "wrap",
-                    gap: 8,
-                  }}
-                >
-                  {["all", ...regions].map((region) => (
-                    <TouchableOpacity
-                      key={region}
-                      onPress={() => setRegionFilter(region)}
-                      style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 6,
-                        borderRadius: 16,
-                        backgroundColor:
-                          regionFilter === region
-                            ? colors.primary
-                            : colors.surface,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color:
-                            regionFilter === region
-                              ? "#fff"
-                              : colors.foreground,
-                          fontSize: 13,
-                          fontWeight: "600",
-                        }}
-                      >
-                        {region === "all" ? "All" : region}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-              {bestInStockListing && (
                 <Text
                   style={{
                     color: colors.muted,
@@ -1305,6 +1264,45 @@ export default function ProductDetailScreen() {
                   ALL DISTRIBUTORS
                 </Text>
               )}
+              <View
+                style={{
+                  flexDirection: "row",
+                  marginBottom: 12,
+                  flexWrap: "wrap",
+                  gap: 8,
+                }}
+              >
+                {["all", ...regions].map((region) => (
+                  <TouchableOpacity
+                    key={region}
+                    onPress={() => setRegionFilter(region)}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 16,
+                      backgroundColor:
+                        regionFilter === region
+                          ? colors.primary
+                          : colors.surface,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color:
+                          regionFilter === region
+                            ? "#fff"
+                            : colors.foreground,
+                        fontSize: 13,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {region === "all" ? "All" : region}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
               {visibleListings.map((listing) => {
                 const distributor = getDistributorById(listing.distributorId);
                 const usdPrice = convertPrice(
