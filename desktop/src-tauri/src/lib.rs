@@ -225,9 +225,12 @@ async fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64) -> Res
 fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
     let _guard = PRICE_CHECK_LOCK.blocking_lock();
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    check_price_drops_inner(&app, &data_dir)
+}
 
-    let alerts_val = read_json_file(&data_dir, "price_alerts")?;
-    let watchlist_val = read_json_file(&data_dir, "watchlist_products")?;
+fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result<String, String> {
+    let alerts_val = read_json_file(data_dir, "price_alerts")?;
+    let watchlist_val = read_json_file(data_dir, "watchlist_products")?;
 
     let alerts: Vec<serde_json::Value> = alerts_val
         .as_array()
@@ -307,7 +310,7 @@ fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
         }
 
         let updated_val = serde_json::Value::Array(updated_alerts);
-        write_json_file(&data_dir, "price_alerts", &updated_val)?;
+        write_json_file(data_dir, "price_alerts", &updated_val)?;
     }
 
     Ok(format!("Price check completed. {} alerts triggered.", triggered.len()))
@@ -519,7 +522,7 @@ async fn run_full_price_check(app: tauri::AppHandle) -> Result<String, String> {
         }
     }
 
-    let triggered = check_price_drops(app.clone())?;
+    let triggered = check_price_drops_inner(&app, &data_dir)?;
     let _ = update_tray_badge(app.clone());
     let _ = app.emit("prices-checked", &results);
 
