@@ -19,10 +19,7 @@ describe("Nasstore Parser", () => {
 
   it("should return null for 404 page fixture", () => {
     const fixturePath = path.join(FIXTURES_DIR, "nasstore-eu.html");
-    if (!fs.existsSync(fixturePath)) {
-      console.log("Fixture not found, skipping test");
-      return;
-    }
+    expect(fs.existsSync(fixturePath)).toBe(true);
     
     const html = fs.readFileSync(fixturePath, "utf-8");
     const result = nasstoreParser.parsePrice(html);

@@ -19,10 +19,7 @@ describe("Baltic Networks Parser", () => {
 
   it("should parse price from HTML fixture", () => {
     const fixturePath = path.join(FIXTURES_DIR, "balticnetworks-us.html");
-    if (!fs.existsSync(fixturePath)) {
-      console.log("Fixture not found, skipping test");
-      return;
-    }
+    expect(fs.existsSync(fixturePath)).toBe(true);
     
     const html = fs.readFileSync(fixturePath, "utf-8");
     const result = balticnetworksParser.parsePrice(html);
