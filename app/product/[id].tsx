@@ -892,7 +892,7 @@ export default function ProductDetailScreen() {
                 }}
               >
                 {(() => {
-                  const best = getBestPrice(listings, "USD");
+                  const best = getBestPrice(visibleListings, "USD");
                   return best ? formatPrice(best.price, "USD") : "N/A";
                 })()}
               </Text>
@@ -940,7 +940,7 @@ export default function ProductDetailScreen() {
           {/* Currency Converter Widget — shows best in-stock price in user's preferred currency */}
           {(() => {
             if (displayCurrency === "USD") return null;
-            const best = getBestPrice(listings, displayCurrency);
+            const best = getBestPrice(visibleListings, displayCurrency);
             if (!best) return null;
             return (
               <View

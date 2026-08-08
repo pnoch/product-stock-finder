@@ -86,6 +86,30 @@ export function ProductDetail() {
     })();
   }, [id]);
 
+  const visibleListings =
+    regionFilter === "all"
+      ? product?.listings ?? []
+      : filterListingsByRegion(product?.listings ?? [], regionFilter);
+
+  const best = useMemo(() => {
+    return getBestPrice(visibleListings, "USD");
+  }, [visibleListings]);
+
+  const bestListing = useMemo(() => {
+    if (!best) return null;
+    return visibleListings.find(
+      (l) =>
+        l.stockStatus !== "out_of_stock" &&
+        l.price > 0 &&
+        Math.abs(convertPrice(l.price, l.currency, "USD") - best.price) < 0.01,
+    );
+  }, [visibleListings, best]);
+
+  const bestDistributor = useMemo(() => {
+    if (!bestListing) return null;
+    return DISTRIBUTORS.find((d) => d.id === bestListing.distributorId) ?? null;
+  }, [bestListing]);
+
   const handleSaveAlert = async () => {
     if (!product || !alertPrice) return;
     const price = parseFloat(alertPrice);
@@ -159,30 +183,6 @@ export function ProductDetail() {
       </div>
     );
   }
-
-  const visibleListings =
-    regionFilter === "all"
-      ? product.listings
-      : filterListingsByRegion(product.listings, regionFilter);
-
-  const best = useMemo(() => {
-    return getBestPrice(visibleListings, "USD");
-  }, [visibleListings]);
-
-  const bestListing = useMemo(() => {
-    if (!best) return null;
-    return visibleListings.find(
-      (l) =>
-        l.stockStatus !== "out_of_stock" &&
-        l.price > 0 &&
-        Math.abs(convertPrice(l.price, l.currency, "USD") - best.price) < 0.01,
-    );
-  }, [visibleListings, best]);
-
-  const bestDistributor = useMemo(() => {
-    if (!bestListing) return null;
-    return DISTRIBUTORS.find((d) => d.id === bestListing.distributorId) ?? null;
-  }, [bestListing]);
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
