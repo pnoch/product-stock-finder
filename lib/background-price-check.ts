@@ -20,7 +20,7 @@ function createHealthCollector() {
   return {
     record(
       parserId: string,
-      status: "working" | "error",
+      status: "working" | "blocked" | "error",
       reason?: string,
     ) {
       updates.set(parserId, {
@@ -101,6 +101,14 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
                 };
 
                 updatedListings.push(updatedListing);
+              } else if (
+                html.includes("403 Forbidden") ||
+                html.includes("Access Denied") ||
+                html.includes("cf-browser-verification") ||
+                html.includes("Checking your browser")
+              ) {
+                healthCollector.record(parser.id, "blocked", "blocked by site");
+                updatedListings.push(listing);
               } else {
                 healthCollector.record(parser.id, "error", "no price found");
                 updatedListings.push(listing);
@@ -267,6 +275,14 @@ export async function checkPriceDropsNow(
               };
 
               updatedListings.push(updatedListing);
+            } else if (
+              html.includes("403 Forbidden") ||
+              html.includes("Access Denied") ||
+              html.includes("cf-browser-verification") ||
+              html.includes("Checking your browser")
+            ) {
+              healthCollector.record(parser.id, "blocked", "blocked by site");
+              updatedListings.push(listing);
             } else {
               healthCollector.record(parser.id, "error", "no price found");
               updatedListings.push(listing);
