@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 
+export type ThemePreference = "light" | "dark" | "auto";
+
 export function useTheme() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
@@ -12,7 +14,15 @@ export function useTheme() {
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
 
-  const toggle = () => setTheme(t => t === "light" ? "dark" : "light");
+  const set = (pref: ThemePreference) => {
+    if (pref === "auto") {
+      setTheme(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } else {
+      setTheme(pref);
+    }
+  };
 
-  return { theme, toggle, isDark: theme === "dark" };
+  const toggle = () => setTheme((t) => (t === "light" ? "dark" : "light"));
+
+  return { theme, set, toggle, isDark: theme === "dark" };
 }

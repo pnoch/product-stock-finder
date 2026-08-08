@@ -10,7 +10,7 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 
 export function Settings() {
   const { settings, loading, update } = useSettings();
-  const { theme, toggle: toggleTheme } = useTheme();
+  const { set: setTheme } = useTheme();
   const navigate = useNavigate();
   const [clearConfirm, setClearConfirm] = useState(false);
   const [importExportMessage, setImportExportMessage] = useState<string | null>(null);
@@ -71,16 +71,11 @@ export function Settings() {
             <button
               key={t}
               onClick={() => {
-                if (t === "auto") {
-                  // For auto, we'll just toggle based on system preference
-                  toggleTheme();
-                } else if (t !== theme) {
-                  toggleTheme();
-                }
+                setTheme(t);
+                update({ theme: t });
               }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                (t === "auto" && settings.theme === "auto") ||
-                (t === theme && settings.theme !== "auto")
+                settings.theme === t
                   ? "bg-brand-600 text-white"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}

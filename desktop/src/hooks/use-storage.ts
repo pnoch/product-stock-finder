@@ -54,11 +54,13 @@ export function useSettings() {
   useEffect(() => { refresh(); }, [refresh]);
 
   const update = useCallback(async (partial: Partial<AppSettings>) => {
-    if (!settings) return;
-    const updated = { ...settings, ...partial };
-    await storage.saveSettings(updated);
-    setSettings(updated);
-  }, [settings]);
+    setSettings((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...partial };
+      storage.saveSettings(updated);
+      return updated;
+    });
+  }, []);
 
   return { settings, loading, refresh, update };
 }
