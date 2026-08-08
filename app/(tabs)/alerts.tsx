@@ -206,7 +206,7 @@ export default function AlertsScreen() {
   );
 
   const tabCount = {
-    alerts: activeAlerts.length,
+    alerts: alerts.length,
     reminders: reminders.length + stockWatches.length,
   };
 
