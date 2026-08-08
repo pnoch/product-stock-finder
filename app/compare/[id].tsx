@@ -4,10 +4,10 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Dimensions,
   Platform,
   Alert as RNAlert,
   ActivityIndicator,
+  useWindowDimensions,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -306,7 +306,7 @@ function CheapestRegionCard({
             {isCheapest && (
               <View
                 style={{
-                  backgroundColor: "#F59E0B22",
+                  backgroundColor: colors.warning + "22",
                   borderRadius: 8,
                   paddingHorizontal: 6,
                   paddingVertical: 2,
@@ -314,7 +314,7 @@ function CheapestRegionCard({
                 }}
               >
                 <Text
-                  style={{ fontSize: 10, color: "#F59E0B", fontWeight: "700" }}
+                  style={{ fontSize: 10, color: colors.warning, fontWeight: "700" }}
                 >
                   BEST
                 </Text>
@@ -400,10 +400,13 @@ export default function CompareScreen() {
   const [sortBy, setSortBy] = useState<SortBy>("trend");
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const chartWidth = Dimensions.get("window").width - 32;
+  const { width: windowWidth } = useWindowDimensions();
+  const chartWidth = windowWidth - 32;
 
   useEffect(() => {
+    let active = true;
     getWatchlist().then((wl) => {
+      if (!active) return;
       const product = wl.find((p) => p.id === id);
       if (!product) {
         // Fall back to sample data so Compare still works without a watchlist visit
@@ -458,6 +461,9 @@ export default function CompareScreen() {
       setSelected(new Set(preSelect));
       setLoading(false);
     });
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   const toggleSelect = useCallback((distributorId: string) => {
