@@ -29,6 +29,7 @@ import {
 } from "@/lib/last-refreshed";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { checkPriceDropsNow } from "@/lib/background-price-check";
+import { getAllRegions, productHasRegion } from "@/lib/region-filter";
 
 type SortMode = "recent" | "best_price" | "az";
 
@@ -249,6 +250,8 @@ export default function WatchlistScreen() {
     total: number;
   } | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [regionFilter, setRegionFilter] = useState<string>("all");
+  const regions = getAllRegions();
 
   const loadData = useCallback(async () => {
     const list = await getWatchlist();
@@ -261,9 +264,17 @@ export default function WatchlistScreen() {
     loadData();
   }, [loadData]);
 
+  const filteredWatchlist = useMemo(
+    () =>
+      regionFilter === "all"
+        ? watchlist
+        : watchlist.filter((p) => productHasRegion(p, regionFilter)),
+    [watchlist, regionFilter],
+  );
+
   const summary = useMemo(
-    () => computeWatchlistSummary(watchlist, displayCurrency),
-    [watchlist, displayCurrency],
+    () => computeWatchlistSummary(filteredWatchlist, displayCurrency),
+    [filteredWatchlist, displayCurrency],
   );
 
   const onRefresh = useCallback(async () => {
@@ -465,8 +476,46 @@ export default function WatchlistScreen() {
         </View>
       )}
 
+      {watchlist.length > 0 && (
+        <View
+          style={{
+            flexDirection: "row",
+            paddingHorizontal: 16,
+            marginBottom: 8,
+            flexWrap: "wrap",
+            gap: 8,
+          }}
+        >
+          {["all", ...regions].map((region) => (
+            <TouchableOpacity
+              key={region}
+              onPress={() => setRegionFilter(region)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 16,
+                backgroundColor:
+                  regionFilter === region ? colors.primary : colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <Text
+                style={{
+                  color: regionFilter === region ? "#fff" : colors.foreground,
+                  fontSize: 13,
+                  fontWeight: "600",
+                }}
+              >
+                {region === "all" ? "All" : region}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       <FlatList
-        data={sortWatchlist(watchlist, sortMode)}
+        data={sortWatchlist(filteredWatchlist, sortMode)}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
           paddingHorizontal: 20,
