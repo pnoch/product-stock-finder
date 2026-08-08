@@ -251,7 +251,7 @@ export default function WatchlistScreen() {
   } | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [regionFilter, setRegionFilter] = useState<string>("all");
-  const regions = getAllRegions();
+  const regions = useMemo(() => getAllRegions(), []);
 
   const loadData = useCallback(async () => {
     const list = await getWatchlist();
@@ -332,7 +332,7 @@ export default function WatchlistScreen() {
         <View>
           <Text className="text-2xl font-bold text-foreground">Watchlist</Text>
           <Text className="text-muted text-sm">
-            {watchlist.length} product{watchlist.length !== 1 ? "s" : ""}{" "}
+            {filteredWatchlist.length} product{filteredWatchlist.length !== 1 ? "s" : ""}{" "}
             tracked
           </Text>
         </View>
@@ -547,7 +547,7 @@ export default function WatchlistScreen() {
                 marginTop: 16,
               }}
             >
-              No products yet
+              {regionFilter !== "all" ? "No products in this region" : "No products yet"}
             </Text>
             <Text
               style={{
@@ -557,26 +557,45 @@ export default function WatchlistScreen() {
                 marginTop: 8,
               }}
             >
-              Add products to track their availability and prices globally
+              {regionFilter !== "all"
+                ? `No tracked products have distributors in ${regionFilter}`
+                : "Add products to track their availability and prices globally"}
             </Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: colors.primary,
-                borderRadius: 20,
-                paddingHorizontal: 24,
-                paddingVertical: 12,
-                marginTop: 20,
-              }}
-              onPress={() => {
-                if (Platform.OS !== "web")
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push("/search");
-              }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
-                Add Product
-              </Text>
-            </TouchableOpacity>
+            {regionFilter !== "all" ? (
+              <TouchableOpacity
+                style={{
+                  backgroundColor: colors.primary,
+                  borderRadius: 20,
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                  marginTop: 20,
+                }}
+                onPress={() => setRegionFilter("all")}
+              >
+                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
+                  Show All
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={{
+                  backgroundColor: colors.primary,
+                  borderRadius: 20,
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                  marginTop: 20,
+                }}
+                onPress={() => {
+                  if (Platform.OS !== "web")
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/search");
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
+                  Add Product
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         }
         renderItem={({ item }) => (
