@@ -238,10 +238,12 @@ fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
         .cloned()
         .unwrap_or_default();
 
-    let mut updated_count = 0u32;
+    // Compute which alerts have dropped below target in a single pass.
+    // Returns (alert_index, best_price) for each triggered alert.
+    let mut triggered: Vec<(usize, f64)> = Vec::new();
     let mut notifications: Vec<(String, String)> = Vec::new();
 
-    for alert in &alerts {
+    for (idx, alert) in alerts.iter().enumerate() {
         let is_active = alert.get("isActive").and_then(|v| v.as_bool()).unwrap_or(false);
         let triggered_at = alert.get("triggeredAt").and_then(|v| v.as_str());
         if !is_active || triggered_at.is_some() {
@@ -261,15 +263,9 @@ fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
         };
 
         let listings = product.get("listings").and_then(|v| v.as_array()).cloned().unwrap_or_default();
-        let in_stock: Vec<&serde_json::Value> = listings.iter().filter(|l| {
+        let best_price = listings.iter().filter(|l| {
             l.get("stockStatus").and_then(|v| v.as_str()) == Some("in_stock")
-        }).collect();
-
-        if in_stock.is_empty() {
-            continue;
-        }
-
-        let best_price = in_stock.iter().fold(f64::INFINITY, |best, listing| {
+        }).fold(f64::INFINITY, |best, listing| {
             let price = listing.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0);
             if price <= 0.0 {
                 return best;
@@ -288,7 +284,7 @@ fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
                 format_price(target_price, alert_currency)
             );
             notifications.push(("💸 Price Drop Alert!".to_string(), body));
-            updated_count += 1;
+            triggered.push((idx, best_price));
         }
     }
 
@@ -298,40 +294,10 @@ fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
             let _ = app.notification().builder().title(title).body(body).sound("default".to_string()).show();
         }
 
+        // Deactivate the triggered alerts in a single pass
         let mut updated_alerts = alerts.clone();
-        for alert in updated_alerts.iter_mut() {
-            let is_active = alert.get("isActive").and_then(|v| v.as_bool()).unwrap_or(false);
-            let triggered_at = alert.get("triggeredAt").and_then(|v| v.as_str());
-            if !is_active || triggered_at.is_some() {
-                continue;
-            }
-
-            let product_id = alert.get("productId").and_then(|v| v.as_str()).unwrap_or("");
-            let target_price = alert.get("targetPrice").and_then(|v| v.as_f64()).unwrap_or(0.0);
-            let alert_currency = alert.get("currency").and_then(|v| v.as_str()).unwrap_or("USD");
-
-            let product = watchlist.iter().find(|p| {
-                p.get("id").and_then(|v| v.as_str()) == Some(product_id)
-            });
-            let product = match product {
-                Some(p) => p,
-                None => continue,
-            };
-
-            let listings = product.get("listings").and_then(|v| v.as_array()).cloned().unwrap_or_default();
-            let best_price = listings.iter().filter(|l| {
-                l.get("stockStatus").and_then(|v| v.as_str()) == Some("in_stock")
-            }).fold(f64::INFINITY, |best, listing| {
-                let price = listing.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0);
-                if price <= 0.0 {
-                    return best;
-                }
-                let currency = listing.get("currency").and_then(|v| v.as_str()).unwrap_or("USD");
-                let converted = convert_price(price, currency, alert_currency);
-                if converted < best { converted } else { best }
-            });
-
-            if best_price.is_finite() && best_price <= target_price {
+        for (idx, best_price) in &triggered {
+            if let Some(alert) = updated_alerts.get_mut(*idx) {
                 if let Some(obj) = alert.as_object_mut() {
                     obj.insert("isActive".to_string(), serde_json::Value::Bool(false));
                     obj.insert("triggeredAt".to_string(), serde_json::Value::String(current_iso_timestamp()));
@@ -344,7 +310,7 @@ fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
         write_json_file(&data_dir, "price_alerts", &updated_val)?;
     }
 
-    Ok(format!("Price check completed. {} alerts triggered.", updated_count))
+    Ok(format!("Price check completed. {} alerts triggered.", triggered.len()))
 }
 
 #[tauri::command]
