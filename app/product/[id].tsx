@@ -415,17 +415,6 @@ export default function ProductDetailScreen() {
   const chartWidth = Dimensions.get("window").width - 48;
   const chartHeight = 200;
 
-  const bestInStockListing = (() => {
-    const inStock = listings.filter((l) => l.stockStatus === "in_stock");
-    if (inStock.length === 0) return null;
-    return inStock.reduce((best, l) =>
-      convertPrice(l.price, l.currency, "USD") <
-      convertPrice(best.price, best.currency, "USD")
-        ? l
-        : best,
-    );
-  })();
-
   const loadData = useCallback(async () => {
     setLoading(true);
     const watchlist = await getWatchlist();
@@ -603,6 +592,17 @@ export default function ProductDetailScreen() {
     regionFilter === "all"
       ? sortedListings
       : filterListingsByRegion(sortedListings, regionFilter);
+
+  const bestInStockListing = (() => {
+    const inStock = visibleListings.filter((l) => l.stockStatus === "in_stock");
+    if (inStock.length === 0) return null;
+    return inStock.reduce((best, l) =>
+      convertPrice(l.price, l.currency, "USD") <
+      convertPrice(best.price, best.currency, "USD")
+        ? l
+        : best,
+    );
+  })();
 
   const handleShare = useCallback(async () => {
     if (Platform.OS !== "web")
@@ -1211,6 +1211,35 @@ export default function ProductDetailScreen() {
               <Text style={{ color: colors.muted, fontSize: 14 }}>
                 No distributor data available yet.
               </Text>
+            </View>
+          ) : visibleListings.length === 0 ? (
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 16,
+                padding: 24,
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <Text style={{ color: colors.muted, fontSize: 14 }}>
+                No distributors in {regionFilter}.
+              </Text>
+              <TouchableOpacity
+                onPress={() => setRegionFilter("all")}
+                style={{
+                  marginTop: 12,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 16,
+                  backgroundColor: colors.primary,
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+                  Show All
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <>
