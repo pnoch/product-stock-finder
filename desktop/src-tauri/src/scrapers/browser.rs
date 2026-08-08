@@ -59,11 +59,14 @@ pub async fn fetch_with_browser(
     wait_for_selector: Option<&str>,
     timeout_ms: Option<u64>,
 ) -> Result<String, String> {
-    let mut pool = pool().lock().await;
-    let browser = pool.acquire().await?;
+    let browser = {
+        let mut pool = pool().lock().await;
+        pool.acquire().await?
+    };
 
     let result = fetch_with_browser_inner(&browser, url, wait_for_selector, timeout_ms).await;
 
+    let mut pool = pool().lock().await;
     pool.release(browser);
     result
 }
@@ -79,6 +82,19 @@ async fn fetch_with_browser_inner(
     let page = context.new_page().await
         .map_err(|e| e.to_string())?;
 
+    let result = fetch_with_browser_page(&page, url, wait_for_selector, timeout_ms).await;
+
+    let _ = page.close().await;
+    let _ = context.close().await;
+    result
+}
+
+async fn fetch_with_browser_page(
+    page: &playwright_rs::Page,
+    url: &str,
+    wait_for_selector: Option<&str>,
+    timeout_ms: Option<u64>,
+) -> Result<String, String> {
     let timeout = timeout_ms.unwrap_or(30_000);
     let goto_options = playwright_rs::GotoOptions::new()
         .timeout(std::time::Duration::from_millis(timeout));
@@ -91,11 +107,6 @@ async fn fetch_with_browser_inner(
             .map_err(|e| e.to_string())?;
     }
 
-    let html = page.content().await
-        .map_err(|e| e.to_string())?;
-
-    let _ = page.close().await;
-    let _ = context.close().await;
-
-    Ok(html)
+    page.content().await
+        .map_err(|e| e.to_string())
 }
