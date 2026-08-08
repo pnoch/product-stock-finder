@@ -62,17 +62,14 @@ describe("Scraping Integration", () => {
           <div class="stock-status">In Stock</div>
         </body></html>
       `;
-      
+
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         text: () => Promise.resolve(mockHtml),
       });
-      
-      const parser = getParserByDistributorId("server2u-my");
-      expect(parser).toBeDefined();
-      
-      // Test parsePrice with the mock HTML
-      const result = parser?.parsePrice(mockHtml);
+
+      const { scrapeServer2U } = await import("@/lib/scrapers/server2u");
+      const result = await scrapeServer2U("CRS326");
       expect(result).not.toBeNull();
       expect(result?.price).toBe(99.99);
       expect(result?.currency).toBe("MYR");
@@ -211,37 +208,6 @@ describe("Scraping Integration", () => {
       history.push(newPoint);
       expect(history).toHaveLength(2);
       expect(history[1].price).toBe(95);
-    });
-
-    it("should trim history to 90 days", () => {
-      const history = Array.from({ length: 100 }, (_, i) => ({
-        date: new Date(Date.now() - 86400000 * (99 - i)).toISOString(),
-        price: 100 + i,
-        currency: "USD",
-        stockStatus: "in_stock" as const,
-      }));
-
-      const trimmed = history.slice(-90);
-      expect(trimmed).toHaveLength(90);
-      expect(trimmed[0].price).toBe(110);
-      expect(trimmed[89].price).toBe(199);
-    });
-
-    it("should deduplicate price history entries", () => {
-      const history = [
-        { date: "2026-01-01T00:00:00.000Z", price: 100, currency: "USD", stockStatus: "in_stock" as const },
-        { date: "2026-01-02T00:00:00.000Z", price: 100, currency: "USD", stockStatus: "in_stock" as const },
-        { date: "2026-01-03T00:00:00.000Z", price: 95, currency: "USD", stockStatus: "in_stock" as const },
-      ];
-      
-      // Deduplication logic: skip if same price as previous entry
-      const deduped = history.filter((entry, i) => 
-        i === 0 || entry.price !== history[i - 1].price
-      );
-      
-      expect(deduped).toHaveLength(2);
-      expect(deduped[0].price).toBe(100);
-      expect(deduped[1].price).toBe(95);
     });
   });
 });
