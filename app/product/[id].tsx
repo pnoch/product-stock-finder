@@ -1255,7 +1255,7 @@ export default function ProductDetailScreen() {
                       Math.round(bestInStockListing.price * 0.95 * 100) / 100;
                     const newAlert: PriceAlert = {
                       id: `alert-${Date.now()}`,
-                      productId: bestInStockListing.productId,
+                      productId: id,
                       targetPrice: suggestedPrice,
                       currency: bestInStockListing.currency,
                       isActive: true,
