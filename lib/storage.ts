@@ -23,6 +23,31 @@ export function createStorage(adapter: StorageAdapter) {
     STOCK_WATCHES: "back_in_stock_watches",
   };
 
+  // Serializes read-modify-write operations per key to prevent lost updates
+  // when concurrent batches (e.g. background price checks) mutate the same list.
+  const writeQueues = new Map<string, Promise<unknown>>();
+
+  function enqueue<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    const prev = writeQueues.get(key) ?? Promise.resolve();
+    const next = prev.then(fn, fn);
+    writeQueues.set(
+      key,
+      next.catch(() => {}),
+    );
+    return next;
+  }
+
+  async function readList<T>(key: string): Promise<T[]> {
+    try {
+      const raw = await adapter.getItem(key);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
   const DEFAULT_SETTINGS: AppSettings = {
     theme: "auto",
     displayCurrency: "USD",
@@ -35,12 +60,7 @@ export function createStorage(adapter: StorageAdapter) {
   // ─── Watchlist ──────────────────────────────────────────────────────────────
 
   async function getWatchlist(): Promise<Product[]> {
-    try {
-      const raw = await adapter.getItem(KEYS.WATCHLIST);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+    return readList<Product>(KEYS.WATCHLIST);
   }
 
   async function saveWatchlist(products: Product[]): Promise<void> {
@@ -48,32 +68,38 @@ export function createStorage(adapter: StorageAdapter) {
   }
 
   async function addToWatchlist(product: Product): Promise<void> {
-    const list = await getWatchlist();
-    const exists = list.find((p) => p.id === product.id);
-    if (!exists) {
-      list.unshift({
-        ...product,
-        isWatched: true,
-        addedAt: new Date().toISOString(),
-      });
-      await saveWatchlist(list);
-    }
+    await enqueue(KEYS.WATCHLIST, async () => {
+      const list = await getWatchlist();
+      const exists = list.find((p) => p.id === product.id);
+      if (!exists) {
+        list.unshift({
+          ...product,
+          isWatched: true,
+          addedAt: new Date().toISOString(),
+        });
+        await saveWatchlist(list);
+      }
+    });
   }
 
   async function removeFromWatchlist(productId: string): Promise<void> {
-    const list = await getWatchlist();
-    await saveWatchlist(list.filter((p) => p.id !== productId));
+    await enqueue(KEYS.WATCHLIST, async () => {
+      const list = await getWatchlist();
+      await saveWatchlist(list.filter((p) => p.id !== productId));
+    });
   }
 
   async function updateProductListings(
     productId: string,
     listings: DistributorListing[],
   ): Promise<void> {
-    const list = await getWatchlist();
-    const updated = list.map((p) =>
-      p.id === productId ? { ...p, listings } : p,
-    );
-    await saveWatchlist(updated);
+    await enqueue(KEYS.WATCHLIST, async () => {
+      const list = await getWatchlist();
+      const updated = list.map((p) =>
+        p.id === productId ? { ...p, listings } : p,
+      );
+      await saveWatchlist(updated);
+    });
   }
 
   async function refreshWatchlistPrices(): Promise<void> {
@@ -86,12 +112,7 @@ export function createStorage(adapter: StorageAdapter) {
   // ─── Alerts ─────────────────────────────────────────────────────────────────
 
   async function getAlerts(): Promise<PriceAlert[]> {
-    try {
-      const raw = await adapter.getItem(KEYS.ALERTS);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+    return readList<PriceAlert>(KEYS.ALERTS);
   }
 
   async function saveAlerts(alerts: PriceAlert[]): Promise<void> {
@@ -99,37 +120,45 @@ export function createStorage(adapter: StorageAdapter) {
   }
 
   async function addAlert(alert: PriceAlert): Promise<void> {
-    const alerts = await getAlerts();
-    alerts.unshift(alert);
-    await saveAlerts(alerts);
+    await enqueue(KEYS.ALERTS, async () => {
+      const alerts = await getAlerts();
+      alerts.unshift(alert);
+      await saveAlerts(alerts);
+    });
   }
 
   async function removeAlert(alertId: string): Promise<void> {
-    const alerts = await getAlerts();
-    await saveAlerts(alerts.filter((a) => a.id !== alertId));
+    await enqueue(KEYS.ALERTS, async () => {
+      const alerts = await getAlerts();
+      await saveAlerts(alerts.filter((a) => a.id !== alertId));
+    });
   }
 
   async function toggleAlert(alertId: string): Promise<void> {
-    const alerts = await getAlerts();
-    const updated = alerts.map((a) =>
-      a.id === alertId ? { ...a, isActive: !a.isActive } : a,
-    );
-    await saveAlerts(updated);
+    await enqueue(KEYS.ALERTS, async () => {
+      const alerts = await getAlerts();
+      const updated = alerts.map((a) =>
+        a.id === alertId ? { ...a, isActive: !a.isActive } : a,
+      );
+      await saveAlerts(updated);
+    });
   }
 
   async function rearmAlert(alertId: string): Promise<void> {
-    const alerts = await getAlerts();
-    const updated = alerts.map((a) =>
-      a.id === alertId
-        ? {
-            ...a,
-            isActive: true,
-            triggeredAt: undefined,
-            triggeredPrice: undefined,
-          }
-        : a,
-    );
-    await saveAlerts(updated);
+    await enqueue(KEYS.ALERTS, async () => {
+      const alerts = await getAlerts();
+      const updated = alerts.map((a) =>
+        a.id === alertId
+          ? {
+              ...a,
+              isActive: true,
+              triggeredAt: undefined,
+              triggeredPrice: undefined,
+            }
+          : a,
+      );
+      await saveAlerts(updated);
+    });
   }
 
   // ─── Settings ───────────────────────────────────────────────────────────────
@@ -150,12 +179,7 @@ export function createStorage(adapter: StorageAdapter) {
   // ─── Back-Order Reminders ───────────────────────────────────────────────────
 
   async function getBackOrderReminders(): Promise<BackOrderReminder[]> {
-    try {
-      const raw = await adapter.getItem(KEYS.REMINDERS);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+    return readList<BackOrderReminder>(KEYS.REMINDERS);
   }
 
   async function saveBackOrderReminders(
@@ -167,36 +191,35 @@ export function createStorage(adapter: StorageAdapter) {
   async function addBackOrderReminder(
     reminder: BackOrderReminder,
   ): Promise<void> {
-    const reminders = await getBackOrderReminders();
-    const existing = reminders.findIndex(
-      (r) =>
-        r.productId === reminder.productId &&
-        r.distributorId === reminder.distributorId,
-    );
-    if (existing >= 0) {
-      reminders[existing] = reminder;
-    } else {
-      reminders.unshift(reminder);
-    }
-    await saveBackOrderReminders(reminders);
+    await enqueue(KEYS.REMINDERS, async () => {
+      const reminders = await getBackOrderReminders();
+      const existing = reminders.findIndex(
+        (r) =>
+          r.productId === reminder.productId &&
+          r.distributorId === reminder.distributorId,
+      );
+      if (existing >= 0) {
+        reminders[existing] = reminder;
+      } else {
+        reminders.unshift(reminder);
+      }
+      await saveBackOrderReminders(reminders);
+    });
   }
 
   async function removeBackOrderReminder(
     reminderId: string,
   ): Promise<void> {
-    const reminders = await getBackOrderReminders();
-    await saveBackOrderReminders(reminders.filter((r) => r.id !== reminderId));
+    await enqueue(KEYS.REMINDERS, async () => {
+      const reminders = await getBackOrderReminders();
+      await saveBackOrderReminders(reminders.filter((r) => r.id !== reminderId));
+    });
   }
 
   // ─── Back-In-Stock Watches ──────────────────────────────────────────────────
 
   async function getStockWatches(): Promise<BackOrderReminder[]> {
-    try {
-      const raw = await adapter.getItem(KEYS.STOCK_WATCHES);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+    return readList<BackOrderReminder>(KEYS.STOCK_WATCHES);
   }
 
   async function saveStockWatches(
@@ -206,23 +229,27 @@ export function createStorage(adapter: StorageAdapter) {
   }
 
   async function addStockWatch(watch: BackOrderReminder): Promise<void> {
-    const watches = await getStockWatches();
-    const existing = watches.findIndex(
-      (w) =>
-        w.productId === watch.productId &&
-        w.distributorId === watch.distributorId,
-    );
-    if (existing >= 0) {
-      watches[existing] = watch;
-    } else {
-      watches.unshift(watch);
-    }
-    await saveStockWatches(watches);
+    await enqueue(KEYS.STOCK_WATCHES, async () => {
+      const watches = await getStockWatches();
+      const existing = watches.findIndex(
+        (w) =>
+          w.productId === watch.productId &&
+          w.distributorId === watch.distributorId,
+      );
+      if (existing >= 0) {
+        watches[existing] = watch;
+      } else {
+        watches.unshift(watch);
+      }
+      await saveStockWatches(watches);
+    });
   }
 
   async function removeStockWatch(watchId: string): Promise<void> {
-    const watches = await getStockWatches();
-    await saveStockWatches(watches.filter((w) => w.id !== watchId));
+    await enqueue(KEYS.STOCK_WATCHES, async () => {
+      const watches = await getStockWatches();
+      await saveStockWatches(watches.filter((w) => w.id !== watchId));
+    });
   }
 
   async function updateStockWatchStatus(
@@ -230,13 +257,15 @@ export function createStorage(adapter: StorageAdapter) {
     distributorId: string,
     status: string,
   ): Promise<void> {
-    const watches = await getStockWatches();
-    const updated = watches.map((w) =>
-      w.productId === productId && w.distributorId === distributorId
-        ? { ...w, lastKnownStatus: status }
-        : w,
-    );
-    await saveStockWatches(updated);
+    await enqueue(KEYS.STOCK_WATCHES, async () => {
+      const watches = await getStockWatches();
+      const updated = watches.map((w) =>
+        w.productId === productId && w.distributorId === distributorId
+          ? { ...w, lastKnownStatus: status }
+          : w,
+      );
+      await saveStockWatches(updated);
+    });
   }
 
   // ─── Clear All Data ─────────────────────────────────────────────────────────
