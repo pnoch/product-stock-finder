@@ -61,6 +61,10 @@ fn format_price(amount: f64, currency: &str) -> String {
 // ─── Global State ────────────────────────────────────────────────────────────
 
 static POLLER_RUNNING: Mutex<bool> = Mutex::new(false);
+// Serializes the full price-check pipeline so a poller tick, manual "Check Now",
+// and a direct check_price_drops invoke can't race on the shared JSON files.
+static PRICE_CHECK_LOCK: std::sync::LazyLock<tokio::sync::Mutex<()>> =
+    std::sync::LazyLock::new(|| tokio::sync::Mutex::new(()));
 
 // ─── Commands ────────────────────────────────────────────────────────────────
 
@@ -208,6 +212,7 @@ async fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64) -> Res
 
 #[tauri::command]
 fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
+    let _guard = PRICE_CHECK_LOCK.blocking_lock();
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
 
     let alerts_val = read_json_file(&data_dir, "price_alerts")?;
@@ -255,12 +260,15 @@ fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
 
         let best_price = in_stock.iter().fold(f64::INFINITY, |best, listing| {
             let price = listing.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0);
+            if price <= 0.0 {
+                return best;
+            }
             let currency = listing.get("currency").and_then(|v| v.as_str()).unwrap_or("USD");
             let converted = convert_price(price, currency, alert_currency);
             if converted < best { converted } else { best }
         });
 
-        if best_price <= target_price {
+        if best_price.is_finite() && best_price <= target_price {
             let product_name = product.get("name").and_then(|v| v.as_str()).unwrap_or("Unknown Product");
             let body = format!(
                 "{} is now {} — below your target of {}!",
@@ -304,12 +312,15 @@ fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
                 l.get("stockStatus").and_then(|v| v.as_str()) == Some("in_stock")
             }).fold(f64::INFINITY, |best, listing| {
                 let price = listing.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                if price <= 0.0 {
+                    return best;
+                }
                 let currency = listing.get("currency").and_then(|v| v.as_str()).unwrap_or("USD");
                 let converted = convert_price(price, currency, alert_currency);
                 if converted < best { converted } else { best }
             });
 
-            if best_price <= target_price {
+            if best_price.is_finite() && best_price <= target_price {
                 if let Some(obj) = alert.as_object_mut() {
                     obj.insert("isActive".to_string(), serde_json::Value::Bool(false));
                     obj.insert("triggeredAt".to_string(), serde_json::Value::String(current_iso_timestamp()));
@@ -474,6 +485,7 @@ async fn check_distributor_health() -> Result<Vec<DistributorHealth>, String> {
 // ─── Full Price Check (scrape → compare → notify → update tray) ─────────────
 
 async fn run_full_price_check(app: tauri::AppHandle) -> Result<String, String> {
+    let _guard = PRICE_CHECK_LOCK.lock().await;
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
 
     let watchlist_val = read_json_file(&data_dir, "watchlist_products")?;
