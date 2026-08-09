@@ -10,6 +10,7 @@ import { Alerts } from "./pages/Alerts";
 import { Search } from "./pages/Search";
 import { Settings } from "./pages/Settings";
 import { Health } from "./pages/Health";
+import { RestockWatches } from "./pages/RestockWatches";
 import { exportWatchlistAsJson } from "./import-export";
 import { useTheme } from "./hooks/use-theme";
 
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="/search" element={<Search />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/health" element={<Health />} />
+            <Route path="/restock-watches" element={<RestockWatches />} />
           </Routes>
         </main>
       </div>
