@@ -30,9 +30,12 @@ export default function RestockWatchesScreen() {
   const [loading, setLoading] = useState(true);
 
   const loadWatches = useCallback(async () => {
-    const list = await getStockWatches();
-    setWatches(list);
-    setLoading(false);
+    try {
+      const list = await getStockWatches();
+      setWatches(list);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useFocusEffect(
@@ -45,8 +48,12 @@ export default function RestockWatchesScreen() {
     async (id: string) => {
       if (Platform.OS !== "web")
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await removeStockWatch(id);
-      setWatches((prev) => prev.filter((w) => w.id !== id));
+      try {
+        await removeStockWatch(id);
+        setWatches((prev) => prev.filter((w) => w.id !== id));
+      } catch {
+        // Ignore remove failures — the watch stays in the list
+      }
     },
     [],
   );
