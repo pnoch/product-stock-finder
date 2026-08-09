@@ -75,7 +75,7 @@ export default function RestockWatchesScreen() {
         <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
           {watches.length === 0 ? (
             <Text style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}>
-              No restock watches. Open a product and tap "Watch for Restock" to add one.
+              No restock watches. Open a product and tap {"\u201C"}Watch for Restock{"\u201D"} to add one.
             </Text>
           ) : (
             watches.map((watch) => {
