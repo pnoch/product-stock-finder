@@ -11,6 +11,7 @@ import {
   Modal,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -38,6 +39,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 type ActiveTab = "alerts" | "reminders";
 
 export default function AlertsScreen() {
+  const router = useRouter();
   const colors = useColors();
   const [activeTab, setActiveTab] = useState<ActiveTab>("alerts");
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
@@ -213,11 +215,36 @@ export default function AlertsScreen() {
     <ScreenContainer>
       {/* Header */}
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
-        <Text
-          style={{ color: colors.foreground, fontSize: 24, fontWeight: "700" }}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
         >
-          Alerts & Reminders
-        </Text>
+          <Text
+            style={{
+              color: colors.foreground,
+              fontSize: 24,
+              fontWeight: "700",
+            }}
+          >
+            Alerts & Reminders
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/restock-watches")}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 16,
+              backgroundColor: colors.primary,
+            }}
+          >
+            <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>
+              Restock Watches
+            </Text>
+          </TouchableOpacity>
+        </View>
         <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}>
           {tabCount.alerts} active alert{tabCount.alerts !== 1 ? "s" : ""} ·{" "}
           {tabCount.reminders} reminder{tabCount.reminders !== 1 ? "s" : ""}
