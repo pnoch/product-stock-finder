@@ -111,6 +111,22 @@ describe("checkRestocks", () => {
     expect(state.removed).toEqual([]);
   });
 
+  it("updates cached status when in_stock drops to non-in-stock", async () => {
+    state.watches = [makeWatch({ lastKnownStatus: "in_stock" })];
+    state.watchlist = [
+      {
+        id: "p1",
+        listings: [{ distributorId: "d1", stockStatus: "out_of_stock" }],
+      },
+    ];
+    await checkRestocks();
+    expect(state.updated).toEqual([
+      { productId: "p1", distributorId: "d1", status: "out_of_stock" },
+    ]);
+    expect(state.removed).toEqual([]);
+    expect(state.scheduled).toHaveLength(0);
+  });
+
   it("skips watch with no matching listing", async () => {
     state.watches = [makeWatch()];
     state.watchlist = [
