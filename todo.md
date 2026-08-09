@@ -174,3 +174,14 @@
 - [x] Desktop product detail region filter chips
 - [x] Best-price card respects region filter (mobile + desktop)
 - [x] Region-specific empty states (mobile + desktop)
+
+## Phase 19: Never Miss a Restock
+
+- [x] Create shared restock module (lib/restock.ts) with checkRestocks
+- [x] Unit tests for checkRestocks (7 tests)
+- [x] Wire restock check into background task + foreground check
+- [x] Mobile restock watches screen (app/restock-watches.tsx)
+- [x] Mobile navigation entry from Alerts tab
+- [x] Desktop restock watches screen (desktop/src/pages/RestockWatches.tsx)
+- [x] Desktop navigation link from Alerts page
+- [x] Dark-mode styling + StockBadge on desktop screen
