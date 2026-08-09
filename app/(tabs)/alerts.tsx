@@ -232,7 +232,11 @@ export default function AlertsScreen() {
             Alerts & Reminders
           </Text>
           <TouchableOpacity
-            onPress={() => router.push("/restock-watches")}
+            onPress={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/restock-watches");
+            }}
             style={{
               paddingHorizontal: 12,
               paddingVertical: 6,
