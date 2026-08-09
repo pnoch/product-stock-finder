@@ -139,6 +139,9 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
 
     await healthCollector.flush();
 
+    // Check back-in-stock watches globally (independent of price alerts)
+    await checkRestocks();
+
     // Now check price alerts against fresh prices
     const settings = await getSettings();
     if (!settings.notificationsEnabled || !settings.priceAlerts)
@@ -189,9 +192,6 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
         await deactivateAlert(alert.id, bestPrice);
       }
     }
-
-    // Check back-in-stock watches globally
-    await checkRestocks();
 
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch {
@@ -322,6 +322,9 @@ export async function checkPriceDropsNow(
 
   await healthCollector.flush();
 
+  // Check back-in-stock watches globally (independent of price alerts)
+  await checkRestocks();
+
   // Now check price alerts against fresh prices
   const settings = await getSettings();
   if (!settings.notificationsEnabled || !settings.priceAlerts) return;
@@ -368,7 +371,4 @@ export async function checkPriceDropsNow(
       await deactivateAlert(alert.id, bestPrice);
     }
   }
-
-  // Check back-in-stock watches globally
-  await checkRestocks();
 }

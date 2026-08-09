@@ -44,6 +44,10 @@ vi.mock("../lib/notifications", () => ({
   requestNotificationPermissions: vi.fn(async () => state.permissionGranted),
 }));
 
+vi.mock("../lib/restock", () => ({
+  checkRestocks: vi.fn(async () => {}),
+}));
+
 vi.mock("expo-notifications", () => ({
   scheduleNotificationAsync: vi.fn(async (input: unknown) => {
     state.scheduledNotifications.push(input);
