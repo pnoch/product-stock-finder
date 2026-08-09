@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { Bell, Clock, Trash2, RotateCcw, ToggleLeft, ToggleRight } from "lucide-react";
 import { useAlerts } from "../hooks/use-storage";
 import { storage } from "../storage";
@@ -11,6 +12,7 @@ import type { BackOrderReminder } from "../../../lib/types";
 type Tab = "alerts" | "reminders";
 
 export function Alerts() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("alerts");
   const { alerts, loading: alertsLoading, refresh: refreshAlerts } = useAlerts();
   const [reminders, setReminders] = useState<BackOrderReminder[]>([]);
@@ -60,7 +62,15 @@ export function Alerts() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Alerts & Reminders</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Alerts & Reminders</h1>
+        <button
+          onClick={() => navigate("/restock-watches")}
+          className="px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+        >
+          Restock Watches
+        </button>
+      </div>
 
       {/* Tab bar */}
       <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg w-fit">
