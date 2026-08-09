@@ -10,6 +10,7 @@ import * as Notifications from "expo-notifications";
 import { getParserByDistributorId } from "./scrapers/registry";
 import { fetchWithParser } from "./scrapers/utils";
 import { PricePoint, DistributorListing } from "./types";
+import { checkRestocks } from "./restock";
 
 export const PRICE_CHECK_TASK = "price-drop-check";
 
@@ -189,6 +190,9 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
       }
     }
 
+    // Check back-in-stock watches globally
+    await checkRestocks();
+
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch {
     return BackgroundTask.BackgroundTaskResult.Failed;
@@ -364,4 +368,7 @@ export async function checkPriceDropsNow(
       await deactivateAlert(alert.id, bestPrice);
     }
   }
+
+  // Check back-in-stock watches globally
+  await checkRestocks();
 }
