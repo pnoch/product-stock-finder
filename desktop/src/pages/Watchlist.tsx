@@ -179,7 +179,7 @@ export function Watchlist() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate("/distributor-analysis")}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
             Distributor Analysis
           </button>
