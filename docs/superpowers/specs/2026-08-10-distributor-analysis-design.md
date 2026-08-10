@@ -35,10 +35,12 @@ export function analyzeDistributors(
 **Behavior:**
 - For each distributor in `DISTRIBUTORS`, iterate all watchlist products
 - For each product, find its best in-stock price via `getBestPrice(product.listings, displayCurrency)`
-- If the distributor has an in-stock listing for that product, add the best price to that distributor's total and increment its coverage
+- If the distributor has an in-stock listing for that product, add the product's best in-stock price to that distributor's total and increment its coverage
 - Compute average as `totalCost / coverage` (0 if coverage is 0)
 - Return sorted by total cost (ascending, cheapest first)
 - Distributors with no in-stock listings across the watchlist are excluded
+
+Note: A distributor's `totalCost` is the sum of each product's **best in-stock price** (not the distributor's own price for that product). This represents the total cost if you bought each product at its best available price from that distributor. This keeps the metric consistent across distributors regardless of which distributor actually has the lowest price per product.
 
 ### Dedicated Screen (mobile + desktop)
 
