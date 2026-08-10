@@ -338,6 +338,25 @@ export default function WatchlistScreen() {
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <TouchableOpacity
+            onPress={() => router.push("/distributor-analysis")}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 20,
+              paddingHorizontal: 14,
+              height: 40,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <IconSymbol name="chart.bar.xaxis" size={16} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>
+              Analysis
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={{
               backgroundColor: checking ? colors.muted : colors.primary,
               borderRadius: 20,
