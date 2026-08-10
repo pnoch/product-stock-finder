@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Palette, DollarSign, Bell, Clock, Download, Upload, Trash2, Activity } from "lucide-react";
+import { Palette, DollarSign, Bell, Clock, Download, Upload, Trash2, Activity, Globe } from "lucide-react";
 import { useSettings } from "../hooks/use-storage";
 import { useTheme } from "../hooks/use-theme";
 import { storage } from "../storage";
@@ -100,6 +100,25 @@ export function Settings() {
           {currencies.map((currency) => (
             <option key={currency} value={currency}>
               {currency} ({CURRENCY_SYMBOLS[currency]})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Shipping Region Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <Globe className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+          <h2 className="text-lg font-semibold">Shipping Region</h2>
+        </div>
+        <select
+          value={settings.shippingRegion ?? "Asia-Pacific"}
+          onChange={(e) => update({ shippingRegion: e.target.value })}
+          className="w-full max-w-xs px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        >
+          {["Asia-Pacific", "Europe", "North America", "Middle East", "Africa"].map((region) => (
+            <option key={region} value={region}>
+              {region}
             </option>
           ))}
         </select>
