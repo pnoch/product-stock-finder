@@ -4,6 +4,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "server2u-my",
     name: "Server2U",
+    currency: "MYR",
     country: "Malaysia",
     countryFlag: "🇲🇾",
     region: "Asia-Pacific",
@@ -21,6 +22,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "linitx-uk",
     name: "Linitx",
+    currency: "GBP",
     country: "United Kingdom",
     countryFlag: "🇬🇧",
     region: "Europe",
@@ -43,6 +45,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "interprojekt-pl",
     name: "Inter Projekt",
+    currency: "EUR",
     country: "Poland",
     countryFlag: "🇵🇱",
     region: "Europe",
@@ -60,6 +63,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "nasstore-eu",
     name: "NAS Store EU",
+    currency: "EUR",
     country: "European Union",
     countryFlag: "🇪🇺",
     region: "Europe",
@@ -82,6 +86,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "aerial-gr",
     name: "Aerial.net",
+    currency: "EUR",
     country: "Greece",
     countryFlag: "🇬🇷",
     region: "Europe",
@@ -98,6 +103,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "mikrotikstore-de",
     name: "MikroTik Store EU",
+    currency: "EUR",
     country: "Germany",
     countryFlag: "🇩🇪",
     region: "Europe",
@@ -115,6 +121,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "miro-za",
     name: "MiRO Distribution",
+    currency: "ZAR",
     country: "South Africa",
     countryFlag: "🇿🇦",
     region: "Africa",
@@ -131,6 +138,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "gearup-ae",
     name: "Gear-Up.me",
+    currency: "AED",
     country: "UAE",
     countryFlag: "🇦🇪",
     region: "Middle East",
@@ -148,6 +156,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "balticnetworks-us",
     name: "Baltic Networks",
+    currency: "USD",
     country: "United States",
     countryFlag: "🇺🇸",
     region: "North America",
@@ -165,6 +174,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "linktechs-us",
     name: "Link Technologies",
+    currency: "USD",
     country: "United States",
     countryFlag: "🇺🇸",
     region: "North America",
@@ -182,6 +192,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "winncom-us",
     name: "Winncom",
+    currency: "USD",
     country: "United States",
     countryFlag: "🇺🇸",
     region: "North America",
@@ -198,6 +209,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "bhphoto-us",
     name: "B&H Photo Video",
+    currency: "USD",
     country: "United States",
     countryFlag: "🇺🇸",
     region: "North America",
@@ -214,6 +226,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "duxtel-au",
     name: "DuxTel",
+    currency: "AUD",
     country: "Australia",
     countryFlag: "🇦🇺",
     region: "Asia-Pacific",
@@ -230,6 +243,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "wisp-au",
     name: "WISP",
+    currency: "AUD",
     country: "Australia",
     countryFlag: "🇦🇺",
     region: "Asia-Pacific",
@@ -246,6 +260,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "pbtech-nz",
     name: "PB Tech",
+    currency: "NZD",
     country: "New Zealand",
     countryFlag: "🇳🇿",
     region: "Asia-Pacific",
@@ -262,6 +277,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "gowifi-nz",
     name: "GoWiFi",
+    currency: "NZD",
     country: "New Zealand",
     countryFlag: "🇳🇿",
     region: "Asia-Pacific",
@@ -278,6 +294,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "getic-gr",
     name: "Getic",
+    currency: "EUR",
     country: "Greece",
     countryFlag: "🇬🇷",
     region: "Europe",
@@ -294,6 +311,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "100mega-cz",
     name: "100MEGA Distribution",
+    currency: "EUR",
     country: "Czech Republic",
     countryFlag: "🇨🇿",
     region: "Europe",
@@ -310,6 +328,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "hellascom-gr",
     name: "HellasCom",
+    currency: "EUR",
     country: "Greece",
     countryFlag: "🇬🇷",
     region: "Europe",
@@ -327,6 +346,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "rocnoc-us",
     name: "ROC-NOC",
+    currency: "USD",
     country: "United States",
     countryFlag: "🇺🇸",
     region: "North America",
@@ -343,6 +363,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "networkdevices-us",
     name: "Network Devices Inc",
+    currency: "USD",
     country: "United States",
     countryFlag: "🇺🇸",
     region: "North America",
@@ -359,6 +380,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "flytec-us",
     name: "Flytec Computers",
+    currency: "USD",
     country: "United States",
     countryFlag: "🇺🇸",
     region: "North America",
@@ -375,6 +397,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "mbsiwav-ca",
     name: "MBS I-WAV",
+    currency: "CAD",
     country: "Canada",
     countryFlag: "🇨🇦",
     region: "North America",
@@ -391,6 +414,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "multilink-us",
     name: "Multilink",
+    currency: "USD",
     country: "United States",
     countryFlag: "🇺🇸",
     region: "North America",
@@ -407,6 +431,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "neobits-us",
     name: "Neobits",
+    currency: "USD",
     country: "United States",
     countryFlag: "🇺🇸",
     region: "North America",

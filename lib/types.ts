@@ -13,6 +13,7 @@ export interface Distributor {
   website: string;
   paymentMethods: string[];
   notes?: string;
+  currency: string; // native currency for shipping costs
   shippingCosts?: Record<string, number>; // destination region → shipping cost in distributor's currency
 }
 
