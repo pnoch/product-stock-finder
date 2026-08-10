@@ -185,3 +185,15 @@
 - [x] Desktop restock watches screen (desktop/src/pages/RestockWatches.tsx)
 - [x] Desktop navigation link from Alerts page
 - [x] Dark-mode styling + StockBadge on desktop screen
+
+## Phase 20: Best Deal Distributor Recommendation
+
+- [x] Add shippingCosts to Distributor type and shippingRegion to AppSettings
+- [x] Add shipping costs + native currency to all 25 distributors
+- [x] Create shared best deal utility (lib/best-deal.ts) with findBestDeal
+- [x] Unit tests for findBestDeal (5 tests)
+- [x] Mobile shipping region selector in settings
+- [x] Desktop shipping region selector in settings
+- [x] Mobile Best Deal card on product detail
+- [x] Desktop Best Deal card on product detail
+- [x] Best Deal card respects region filter (mobile + desktop)
