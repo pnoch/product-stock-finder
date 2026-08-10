@@ -25,7 +25,12 @@ describe("findBestDeal", () => {
     ];
     const deal = findBestDeal(listings, "Asia-Pacific", "USD");
     expect(deal).not.toBeNull();
-    expect(deal!.total).toBeGreaterThan(0);
+    // The winner must be the minimum of the individually-computed totals
+    const individualTotals = listings
+      .map((l) => findBestDeal([l], "Asia-Pacific", "USD")?.total)
+      .filter((t): t is number => t != null);
+    expect(individualTotals.length).toBeGreaterThan(0);
+    expect(deal!.total).toBeCloseTo(Math.min(...individualTotals), 2);
     expect(deal!.total).toBeCloseTo(deal!.price + deal!.shipping, 2);
   });
 
