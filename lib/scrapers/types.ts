@@ -6,6 +6,7 @@ export interface ScrapeResult {
   stockStatus: StockStatus;
   expectedDate?: string;
   url: string;
+  taxRate?: number; // set by scraper from country map
 }
 
 export interface DistributorParser {

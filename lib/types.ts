@@ -27,6 +27,7 @@ export interface DistributorListing {
   url: string;
   lastChecked: string;
   priceHistory: PricePoint[];
+  taxRate?: number; // set by scraper from country map
 }
 
 export interface PricePoint {
