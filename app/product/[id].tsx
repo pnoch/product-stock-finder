@@ -49,6 +49,7 @@ import {
 } from "@/lib/last-refreshed";
 import { getDistributorById } from "@/lib/distributors";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
+import { findBestDeal } from "@/lib/best-deal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import {
   schedulePriceAlert,
@@ -391,6 +392,7 @@ export default function ProductDetailScreen() {
   const [alertPrice, setAlertPrice] = useState("");
   const [alertCurrency, setAlertCurrency] = useState("USD");
   const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [shippingRegion, setShippingRegion] = useState("Asia-Pacific");
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
 
@@ -447,6 +449,7 @@ export default function ProductDetailScreen() {
         if (active) {
           setDisplayCurrency(settings.displayCurrency ?? "USD");
           setAlertCurrency(settings.displayCurrency ?? "USD");
+          setShippingRegion(settings.shippingRegion ?? "Asia-Pacific");
         }
 
         const watches = await getStockWatches();
@@ -603,6 +606,11 @@ export default function ProductDetailScreen() {
         : best,
     );
   })();
+
+  const bestDeal = useMemo(
+    () => findBestDeal(visibleListings, shippingRegion, displayCurrency),
+    [visibleListings, shippingRegion, displayCurrency],
+  );
 
   const handleShare = useCallback(async () => {
     if (Platform.OS !== "web")
@@ -1243,6 +1251,43 @@ export default function ProductDetailScreen() {
             </View>
           ) : (
             <>
+              {bestDeal && (
+                <View
+                  style={{
+                    backgroundColor: colors.surface,
+                    borderRadius: 16,
+                    padding: 16,
+                    marginBottom: 12,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600", letterSpacing: 0.5 }}>
+                    BEST DEAL (incl. shipping to {shippingRegion})
+                  </Text>
+                  {(() => {
+                    const distrib = getDistributorById(bestDeal.distributorId);
+                    return (
+                      <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
+                        <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700", flex: 1 }}>
+                          {distrib?.countryFlag} {distrib?.name ?? bestDeal.distributorId}
+                        </Text>
+                        <Text style={{ color: colors.primary, fontSize: 18, fontWeight: "700" }}>
+                          {formatPrice(bestDeal.total, bestDeal.currency)}
+                        </Text>
+                      </View>
+                    );
+                  })()}
+                  <View style={{ flexDirection: "row", marginTop: 8, gap: 16 }}>
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>
+                      Price: {formatPrice(bestDeal.price, bestDeal.currency)}
+                    </Text>
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>
+                      Shipping: {formatPrice(bestDeal.shipping, bestDeal.currency)}
+                    </Text>
+                  </View>
+                </View>
+              )}
               {bestInStockListing && (
                 <BestDistributorCard
                   listing={bestInStockListing}
