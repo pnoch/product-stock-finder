@@ -20,16 +20,22 @@ export function analyzeDistributors(
     let totalCost = 0;
 
     for (const product of watchlist) {
-      const listing = (product.listings ?? []).find(
+      const listings = (product.listings ?? []).filter(
         (l) =>
           l.distributorId === distributor.id &&
           l.stockStatus !== "out_of_stock" &&
           l.price > 0,
       );
-      if (listing) {
-        coverage++;
-        totalCost += convertPrice(listing.price, listing.currency, displayCurrency);
-      }
+      if (listings.length === 0) continue;
+      // Use the cheapest in-stock listing for deterministic totals
+      const cheapest = listings.reduce((best, l) =>
+        convertPrice(l.price, l.currency, displayCurrency) <
+        convertPrice(best.price, best.currency, displayCurrency)
+          ? l
+          : best,
+      );
+      coverage++;
+      totalCost += convertPrice(cheapest.price, cheapest.currency, displayCurrency);
     }
 
     if (coverage > 0) {
