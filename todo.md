@@ -197,3 +197,13 @@
 - [x] Mobile Best Deal card on product detail
 - [x] Desktop Best Deal card on product detail
 - [x] Best Deal card respects region filter (mobile + desktop)
+
+## Phase 21: Cross-Product Distributor Analysis
+
+- [x] Create shared analysis utility (lib/distributor-analysis.ts) with analyzeDistributors
+- [x] Unit tests for analyzeDistributors (5 tests)
+- [x] Mobile distributor analysis screen (app/distributor-analysis.tsx)
+- [x] Mobile navigation entry from Watchlist
+- [x] Desktop distributor analysis screen (desktop/src/pages/DistributorAnalysis.tsx)
+- [x] Desktop navigation link from Watchlist
+- [x] Deterministic cheapest-in-stock pricing per distributor
