@@ -176,14 +176,22 @@ export function Watchlist() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Watchlist</h1>
-        <button
-          onClick={handleRefresh}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate("/distributor-analysis")}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+          >
+            Distributor Analysis
+          </button>
+          <button
+            onClick={handleRefresh}
           disabled={refreshing}
           className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
           Refresh
-        </button>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
