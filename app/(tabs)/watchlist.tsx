@@ -338,7 +338,11 @@ export default function WatchlistScreen() {
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <TouchableOpacity
-            onPress={() => router.push("/distributor-analysis")}
+            onPress={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/distributor-analysis");
+            }}
             style={{
               backgroundColor: colors.surface,
               borderRadius: 20,
