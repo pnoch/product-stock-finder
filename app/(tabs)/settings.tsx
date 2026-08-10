@@ -251,6 +251,13 @@ export default function SettingsScreen() {
     "HKD",
     "AED",
   ];
+  const regions = [
+    "Asia-Pacific",
+    "Europe",
+    "North America",
+    "Middle East",
+    "Africa",
+  ];
   const intervals = [
     { value: "manual", label: "Manual only" },
     { value: "hourly", label: "Every hour" },
@@ -453,6 +460,92 @@ export default function SettingsScreen() {
                     }}
                   >
                     {c}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        <SectionHeader title="Shipping Region" />
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            overflow: "hidden",
+          }}
+        >
+          <View style={{ paddingVertical: 14, paddingHorizontal: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 10,
+              }}
+            >
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: colors.primary + "22",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 12,
+                }}
+              >
+                <IconSymbol
+                  name="globe"
+                  size={18}
+                  color={colors.primary}
+                />
+              </View>
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontWeight: "500",
+                  fontSize: 15,
+                }}
+              >
+                Shipping Region
+              </Text>
+            </View>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 8,
+                paddingLeft: 48,
+              }}
+            >
+              {regions.map((r) => (
+                <TouchableOpacity
+                  key={r}
+                  onPress={() => updateSetting("shippingRegion", r)}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 6,
+                    borderRadius: 20,
+                    backgroundColor:
+                      (settings.shippingRegion ?? "Asia-Pacific") === r
+                        ? colors.primary
+                        : colors.border,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color:
+                        (settings.shippingRegion ?? "Asia-Pacific") === r
+                          ? "#fff"
+                          : colors.foreground,
+                      fontWeight: "600",
+                      fontSize: 13,
+                    }}
+                  >
+                    {r}
                   </Text>
                 </TouchableOpacity>
               ))}
