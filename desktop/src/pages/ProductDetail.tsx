@@ -21,6 +21,7 @@ import {
   filterListingsByRegion,
 } from "../../../lib/region-filter";
 import type { Product } from "../../../lib/types";
+import { findBestDeal } from "../../../lib/best-deal";
 import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
 import { LoadingSpinner } from "../components/LoadingSpinner";
@@ -74,6 +75,8 @@ export function ProductDetail() {
   const [alertPrice, setAlertPrice] = useState("");
   const [alertCurrency, setAlertCurrency] = useState("USD");
   const [alertSaved, setAlertSaved] = useState(false);
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [shippingRegion, setShippingRegion] = useState("Asia-Pacific");
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
 
@@ -84,6 +87,9 @@ export function ProductDetail() {
       const products = await storage.getWatchlist();
       const found = products.find((p) => p.id === id);
       setProduct(found ?? null);
+      const settings = await storage.getSettings();
+      setDisplayCurrency(settings.displayCurrency ?? "USD");
+      setShippingRegion(settings.shippingRegion ?? "Asia-Pacific");
       setLoading(false);
     })();
   }, [id]);
@@ -111,6 +117,11 @@ export function ProductDetail() {
     if (!bestListing) return null;
     return DISTRIBUTORS.find((d) => d.id === bestListing.distributorId) ?? null;
   }, [bestListing]);
+
+  const bestDeal = useMemo(
+    () => findBestDeal(visibleListings, shippingRegion, displayCurrency),
+    [visibleListings, shippingRegion, displayCurrency],
+  );
 
   const handleSaveAlert = async () => {
     if (!product || !alertPrice) return;
@@ -211,6 +222,38 @@ export function ProductDetail() {
           </p>
         )}
       </div>
+
+      {/* Best Deal Card */}
+      {bestDeal && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            Best Deal (incl. shipping to {shippingRegion})
+          </p>
+          {(() => {
+            const distrib = DISTRIBUTORS.find(
+              (d) => d.id === bestDeal.distributorId,
+            );
+            return (
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-base font-bold">
+                  {distrib?.countryFlag} {distrib?.name ?? bestDeal.distributorId}
+                </p>
+                <p className="text-lg font-bold text-brand-600 dark:text-brand-400">
+                  {formatPrice(bestDeal.total, bestDeal.currency)}
+                </p>
+              </div>
+            );
+          })()}
+          <div className="flex gap-4 mt-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Price: {formatPrice(bestDeal.price, bestDeal.currency)}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Shipping: {formatPrice(bestDeal.shipping, bestDeal.currency)}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Best Distributor Card */}
       {best && bestListing && bestDistributor && (
