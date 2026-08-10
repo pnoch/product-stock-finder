@@ -223,38 +223,6 @@ export function ProductDetail() {
         )}
       </div>
 
-      {/* Best Deal Card */}
-      {bestDeal && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            Best Deal (incl. shipping to {shippingRegion})
-          </p>
-          {(() => {
-            const distrib = DISTRIBUTORS.find(
-              (d) => d.id === bestDeal.distributorId,
-            );
-            return (
-              <div className="flex items-center justify-between mt-2">
-                <p className="text-base font-bold">
-                  {distrib?.countryFlag} {distrib?.name ?? bestDeal.distributorId}
-                </p>
-                <p className="text-lg font-bold text-brand-600 dark:text-brand-400">
-                  {formatPrice(bestDeal.total, bestDeal.currency)}
-                </p>
-              </div>
-            );
-          })()}
-          <div className="flex gap-4 mt-2">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Price: {formatPrice(bestDeal.price, bestDeal.currency)}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Shipping: {formatPrice(bestDeal.shipping, bestDeal.currency)}
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Best Distributor Card */}
       {best && bestListing && bestDistributor && (
         <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-5">
@@ -338,6 +306,36 @@ export function ProductDetail() {
             </button>
           ))}
         </div>
+        {bestDeal && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 mb-4">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              Best Deal (incl. shipping to {shippingRegion})
+            </p>
+            {(() => {
+              const distrib = DISTRIBUTORS.find(
+                (d) => d.id === bestDeal.distributorId,
+              );
+              return (
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-base font-bold">
+                    {distrib?.countryFlag} {distrib?.name ?? bestDeal.distributorId}
+                  </p>
+                  <p className="text-lg font-bold text-brand-600 dark:text-brand-400">
+                    {formatPrice(bestDeal.total, bestDeal.currency)}
+                  </p>
+                </div>
+              );
+            })()}
+            <div className="flex gap-4 mt-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Price: {formatPrice(bestDeal.price, bestDeal.currency)}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Shipping: {formatPrice(bestDeal.shipping, bestDeal.currency)}
+              </p>
+            </div>
+          </div>
+        )}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <table className="w-full">
             <thead>
