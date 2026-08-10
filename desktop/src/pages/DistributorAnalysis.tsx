@@ -5,6 +5,7 @@ import { getDistributorById } from "../../../lib/distributors";
 import { analyzeDistributors } from "../../../lib/distributor-analysis";
 import type { DistributorAnalysis } from "../../../lib/distributor-analysis";
 import { formatPrice } from "../../../lib/currency";
+import { LoadingSpinner } from "../components/LoadingSpinner";
 
 export function DistributorAnalysis() {
   const navigate = useNavigate();
@@ -40,7 +41,9 @@ export function DistributorAnalysis() {
       </div>
 
       {loading ? (
-        <p className="text-center text-gray-500 mt-10">Loading...</p>
+        <div className="flex justify-center mt-10">
+          <LoadingSpinner />
+        </div>
       ) : analysis.length === 0 ? (
         <p className="text-center text-gray-500 dark:text-gray-400 mt-10">
           Add products to see distributor analysis.
