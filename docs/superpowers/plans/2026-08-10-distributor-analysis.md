@@ -144,7 +144,7 @@ Create `lib/distributor-analysis.ts`:
 ```typescript
 import type { Product } from "./types";
 import { DISTRIBUTORS } from "./distributors";
-import { getBestPrice } from "./currency";
+import { convertPrice } from "./currency";
 
 export interface DistributorAnalysis {
   distributorId: string;
@@ -164,18 +164,22 @@ export function analyzeDistributors(
     let totalCost = 0;
 
     for (const product of watchlist) {
-      const best = getBestPrice(product.listings ?? [], displayCurrency);
-      if (!best) continue;
-      const hasListing = (product.listings ?? []).some(
+      const listings = (product.listings ?? []).filter(
         (l) =>
           l.distributorId === distributor.id &&
           l.stockStatus !== "out_of_stock" &&
           l.price > 0,
       );
-      if (hasListing) {
-        coverage++;
-        totalCost += best.price;
-      }
+      if (listings.length === 0) continue;
+      // Use the cheapest in-stock listing for deterministic totals
+      const cheapest = listings.reduce((best, l) =>
+        convertPrice(l.price, l.currency, displayCurrency) <
+        convertPrice(best.price, best.currency, displayCurrency)
+          ? l
+          : best,
+      );
+      coverage++;
+      totalCost += convertPrice(cheapest.price, cheapest.currency, displayCurrency);
     }
 
     if (coverage > 0) {
