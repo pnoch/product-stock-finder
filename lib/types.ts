@@ -13,6 +13,7 @@ export interface Distributor {
   website: string;
   paymentMethods: string[];
   notes?: string;
+  shippingCosts?: Record<string, number>; // destination region → shipping cost in distributor's currency
 }
 
 export interface DistributorListing {
@@ -82,4 +83,5 @@ export interface AppSettings {
   priceAlerts: boolean;
   enabledDistributors?: string[];
   lastScrapeTime?: string;
+  shippingRegion?: string;
 }

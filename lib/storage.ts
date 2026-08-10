@@ -55,6 +55,7 @@ export function createStorage(adapter: StorageAdapter) {
     notificationsEnabled: true,
     stockAlerts: true,
     priceAlerts: true,
+    shippingRegion: "Asia-Pacific",
   };
 
   // ─── Watchlist ──────────────────────────────────────────────────────────────
