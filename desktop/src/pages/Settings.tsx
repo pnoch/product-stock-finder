@@ -21,6 +21,9 @@ export function Settings() {
       if (prev && prev !== "manual") stopPricePoller();
       return;
     }
+    if (prev && prev !== "manual" && prev !== settings.checkInterval) {
+      stopPricePoller();
+    }
     const intervalMinutes =
       settings.checkInterval === "hourly" ? 60 : 1440;
     startPricePoller(intervalMinutes);
@@ -206,7 +209,7 @@ export function Settings() {
               key={freq}
               onClick={() => update({ digestFrequency: freq })}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                settings.digestFrequency === freq
+                (settings.digestFrequency ?? "off") === freq
                   ? "bg-brand-600 text-white"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
