@@ -13,6 +13,7 @@ import {
   Share,
   Platform,
   Dimensions,
+  Pressable,
 } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -50,6 +51,7 @@ import {
 import { getDistributorById } from "@/lib/distributors";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
 import { findBestDeal } from "@/lib/best-deal";
+import { findNearestIndex } from "@/lib/price-chart";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import {
   schedulePriceAlert,
@@ -2031,6 +2033,7 @@ function PriceHistoryChart({
   height: number;
 }) {
   const colors = useColors();
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const points = useMemo(() => {
     if (!data || data.length < 2) return null;
     const sorted = [...data].sort(
@@ -2077,7 +2080,17 @@ function PriceHistoryChart({
   const maxY = padT;
 
   return (
-    <Svg width={width} height={height}>
+    <Pressable
+      onPress={(e) => {
+        const x = e.nativeEvent.locationX;
+        const idx = findNearestIndex(
+          ((x - padL) / (width - padL - 16)) * 100,
+          coords.length,
+        );
+        setSelectedIndex(idx);
+      }}
+    >
+      <Svg width={width} height={height}>
       {[maxY, midY, minY].map((y, i) => (
         <Line
           key={i}
@@ -2193,6 +2206,52 @@ function PriceHistoryChart({
           </>
         );
       })()}
+        {selectedIndex != null && coords[selectedIndex] && (
+          <>
+            <Line
+              x1={coords[selectedIndex].x}
+              y1={padT}
+              x2={coords[selectedIndex].x}
+              y2={padT + usableH}
+              stroke={colors.muted}
+              strokeWidth={1}
+              strokeDasharray="3,3"
+            />
+            <Rect
+              x={Math.min(coords[selectedIndex].x - 40, width - 90)}
+              y={padT - 2}
+              width={80}
+              height={22}
+              rx={6}
+              fill={colors.surface}
+              stroke={colors.border}
+              strokeWidth={1}
+            />
+            <SvgText
+              x={Math.min(coords[selectedIndex].x, width - 50)}
+              y={padT + 8}
+              fontSize={10}
+              fill={colors.foreground}
+              textAnchor="middle"
+              fontWeight="700"
+            >
+              {formatPrice(coords[selectedIndex].price, currency)}
+            </SvgText>
+            <SvgText
+              x={Math.min(coords[selectedIndex].x, width - 50)}
+              y={padT + 18}
+              fontSize={8}
+              fill={colors.muted}
+              textAnchor="middle"
+            >
+              {new Date(coords[selectedIndex].date).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+              })}
+            </SvgText>
+          </>
+        )}
     </Svg>
+    </Pressable>
   );
 }
