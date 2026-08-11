@@ -306,13 +306,21 @@ export function ProductDetail() {
                   month: "short",
                   day: "numeric",
                 }),
-                price: p.price,
+                price: convertPrice(p.price, p.currency, displayCurrency),
               }))}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
+              <YAxis
+                tick={{ fontSize: 12 }}
+                tickFormatter={(v: number) => `${v.toFixed(0)} ${displayCurrency}`}
+              />
+              <Tooltip
+                formatter={(value: number) => [
+                  `${value.toFixed(2)} ${displayCurrency}`,
+                  "Price",
+                ]}
+              />
               <Line
                 type="monotone"
                 dataKey="price"
