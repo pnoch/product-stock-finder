@@ -2064,6 +2064,7 @@ function PriceHistoryChart({
       minP,
       maxP,
       padL,
+      padR,
       padT,
       padB,
       usableH,
@@ -2073,7 +2074,7 @@ function PriceHistoryChart({
   if (!points) return null;
 
   const lineColor = points.trend === "down" ? colors.success : colors.error;
-  const { coords, polylineStr, minP, maxP, padL, padT, padB, usableH } = points;
+  const { coords, polylineStr, minP, maxP, padL, padR, padT, padB, usableH } = points;
   const midP = (minP + maxP) / 2;
   const midY = padT + usableH / 2;
   const minY = padT + usableH;
@@ -2084,10 +2085,10 @@ function PriceHistoryChart({
       onPress={(e) => {
         const x = e.nativeEvent.locationX;
         const idx = findNearestIndex(
-          ((x - padL) / (width - padL - 16)) * 100,
+          ((x - padL) / (width - padL - padR)) * 100,
           coords.length,
         );
-        setSelectedIndex(idx);
+        setSelectedIndex((prev) => (prev === idx ? null : idx));
       }}
     >
       <Svg width={width} height={height}>
