@@ -1372,7 +1372,10 @@ export default function ProductDetailScreen() {
                       Price: {formatPrice(bestDeal.price, bestDeal.currency)}
                     </Text>
                     <Text style={{ color: colors.muted, fontSize: 12 }}>
-                      Shipping: {formatPrice(bestDeal.shipping, bestDeal.currency)}
+                      Tax: {bestDeal.tax > 0 ? formatPrice(bestDeal.tax, bestDeal.currency) : "Tax-free"}
+                    </Text>
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>
+                      Ship: {formatPrice(bestDeal.shipping, bestDeal.currency)}
                     </Text>
                   </View>
                 </View>
@@ -1450,6 +1453,15 @@ export default function ProductDetailScreen() {
                         {listing.currency !== "USD" && (
                           <Text style={{ color: colors.muted, fontSize: 12 }}>
                             ≈ {formatPrice(usdPrice, "USD")}
+                          </Text>
+                        )}
+                        {listing.taxRate != null && listing.taxRate > 0 ? (
+                          <Text style={{ color: colors.muted, fontSize: 11 }}>
+                            +{formatPrice(listing.price * listing.taxRate, listing.currency)} tax
+                          </Text>
+                        ) : (
+                          <Text style={{ color: colors.muted, fontSize: 11 }}>
+                            Tax-free
                           </Text>
                         )}
                       </View>
