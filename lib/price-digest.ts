@@ -1,10 +1,10 @@
-import { formatPrice, getBestPrice } from "@/lib/currency";
+import { formatPrice, getBestPrice } from "./currency";
 import type {
   AppSettings,
   PriceAlert,
   Product,
   StockStatus,
-} from "@/lib/types";
+} from "./types";
 
 export interface DigestProductState {
   productId: string;
@@ -205,7 +205,7 @@ export async function maybeSendDigest(
   settings: AppSettings,
   alerts: PriceAlert[],
   send: DigestSender = async (title, body) => {
-    const { sendPriceDigestNotification } = await import("@/lib/notifications");
+    const { sendPriceDigestNotification } = await import("./notifications");
     await sendPriceDigestNotification(title, body);
   },
   now = new Date().toISOString(),
