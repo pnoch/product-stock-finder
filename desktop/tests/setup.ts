@@ -15,9 +15,23 @@ if (typeof window !== "undefined") {
     }),
   });
 
-  // Mock ResizeObserver for components (e.g. Recharts ResponsiveContainer)
+  // Mock ResizeObserver for components (e.g. Recharts ResponsiveContainer).
+  // Reports a fixed size so ResponsiveContainer can render in jsdom.
   class ResizeObserverMock {
-    observe() {}
+    private callback: ResizeObserverCallback;
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+    observe() {
+      this.callback(
+        [
+          {
+            contentRect: { width: 400, height: 300 },
+          } as ResizeObserverEntry,
+        ],
+        this as unknown as ResizeObserver,
+      );
+    }
     unobserve() {}
     disconnect() {}
   }
@@ -30,12 +44,7 @@ if (typeof window !== "undefined") {
   Object.defineProperty(window, "__TAURI_INTERNALS__", {
     writable: true,
     value: {
-      transformCallback: (callback: unknown) => {
-        if (typeof callback === "function") {
-          return callback;
-        }
-        return callback;
-      },
+      transformCallback: (callback: unknown) => callback,
       invoke: () => Promise.resolve(),
       postMessage: () => {},
     },
