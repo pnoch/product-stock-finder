@@ -645,7 +645,7 @@ export default function SettingsScreen() {
                   {freq.label}
                 </Text>
               </View>
-              {settings.digestFrequency === freq.value && (
+              {(settings.digestFrequency ?? "off") === freq.value && (
                 <IconSymbol name="checkmark" size={18} color={colors.primary} />
               )}
             </TouchableOpacity>
