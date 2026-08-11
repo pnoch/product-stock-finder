@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Palette, DollarSign, Bell, Clock, Download, Upload, Trash2, Activity, Globe } from "lucide-react";
 import { useSettings } from "../hooks/use-storage";
 import { useTheme } from "../hooks/use-theme";
 import { storage } from "../storage";
+import { startPricePoller, stopPricePoller } from "../background";
 import { EXCHANGE_RATES, CURRENCY_SYMBOLS } from "../../../lib/currency";
 import { exportWatchlistAsJson, importWatchlistFromJson } from "../import-export";
 import { LoadingSpinner } from "../components/LoadingSpinner";
@@ -12,6 +13,15 @@ export function Settings() {
   const { settings, loading, update } = useSettings();
   const { set: setTheme } = useTheme();
   const navigate = useNavigate();
+  useEffect(() => {
+    if (!settings || settings.checkInterval === "manual") return;
+    const intervalMinutes =
+      settings.checkInterval === "hourly" ? 60 : 1440;
+    startPricePoller(intervalMinutes);
+    return () => {
+      stopPricePoller();
+    };
+  }, [settings?.checkInterval]);
   const [clearConfirm, setClearConfirm] = useState(false);
   const [importExportMessage, setImportExportMessage] = useState<string | null>(null);
 

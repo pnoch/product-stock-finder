@@ -14,6 +14,8 @@ import { RestockWatches } from "./pages/RestockWatches";
 import { DistributorAnalysis } from "./pages/DistributorAnalysis";
 import { exportWatchlistAsJson } from "./import-export";
 import { useTheme } from "./hooks/use-theme";
+import { startPricePoller } from "./background";
+import { storage } from "./storage";
 
 function KeyboardShortcuts({ searchModalOpen, setSearchModalOpen }: { searchModalOpen: boolean; setSearchModalOpen: (open: boolean) => void }) {
   const navigate = useNavigate();
@@ -49,6 +51,21 @@ function KeyboardShortcuts({ searchModalOpen, setSearchModalOpen }: { searchModa
 
 export default function App() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const settings = await storage.getSettings();
+      if (cancelled) return;
+      if (settings.checkInterval === "manual") return;
+      const intervalMinutes =
+        settings.checkInterval === "hourly" ? 60 : 1440;
+      await startPricePoller(intervalMinutes);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <BrowserRouter>
