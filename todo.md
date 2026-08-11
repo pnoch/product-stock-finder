@@ -238,3 +238,14 @@
 - [x] Rust append_price_point_with_retention + iso_date_from_secs helpers (desktop)
 - [x] Rust retention tests (5 tests)
 - [x] Bound desktop history growth in update_listing_price (was unbounded)
+
+## Phase 25: Scheduled Price Digest
+
+- [x] Create shared price digest engine (lib/price-digest.ts) with computeDigest / formatDigestNotification / maybeSendDigest
+- [x] Unit tests for digest engine (16 tests)
+- [x] Add price_digest_snapshot storage key + get/set helpers
+- [x] Add sendPriceDigestNotification + Android digest channel
+- [x] Wire digest into mobile background task + foreground check
+- [x] Add digestFrequency setting (off/daily/weekly) to mobile + desktop settings
+- [x] Wire previously-dead desktop price poller to checkInterval setting
+- [x] Add desktop digest listener on prices-checked event
