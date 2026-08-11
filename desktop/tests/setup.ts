@@ -15,6 +15,17 @@ if (typeof window !== "undefined") {
     }),
   });
 
+  // Mock ResizeObserver for components (e.g. Recharts ResponsiveContainer)
+  class ResizeObserverMock {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  Object.defineProperty(window, "ResizeObserver", {
+    writable: true,
+    value: ResizeObserverMock,
+  });
+
   // Mock Tauri internals so pages that call invoke() don't throw
   Object.defineProperty(window, "__TAURI_INTERNALS__", {
     writable: true,
