@@ -228,3 +228,13 @@
 - [x] Add Recharts price history chart to desktop Product Detail
 - [x] Convert desktop chart to display currency with labeled axis
 - [x] Desktop chart component test (tests real MultiLineChart)
+
+## Phase 24: Time-Based Price History Retention
+
+- [x] Create appendPricePoint helper (lib/price-history.ts) with time-based retention (1 point per UTC day, 90-day window)
+- [x] Unit tests for appendPricePoint (6 tests)
+- [x] Wire appendPricePoint into both mobile scrape paths (background task + foreground check)
+- [x] Rename MAX_PRICE_HISTORY to PRICE_HISTORY_DAYS
+- [x] Rust append_price_point_with_retention + iso_date_from_secs helpers (desktop)
+- [x] Rust retention tests (5 tests)
+- [x] Bound desktop history growth in update_listing_price (was unbounded)
