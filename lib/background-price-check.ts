@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 import { Platform } from "react-native";
-import { getAlerts, getSettings, getWatchlist, deactivateAlert, updateProductListings } from "./storage";
+import { getAlerts, getSettings, getWatchlist, deactivateAlert, updateProductListings, getPriceDigestSnapshot, savePriceDigestSnapshot } from "./storage";
 import { createHealthService, DistributorHealth } from "./scrapers/health";
 import { convertPrice, formatPrice } from "./currency";
 import { requestNotificationPermissions } from "./notifications";
@@ -12,6 +12,7 @@ import { fetchWithParser } from "./scrapers/utils";
 import { PricePoint, DistributorListing } from "./types";
 import { appendPricePoint } from "./price-history";
 import { checkRestocks } from "./restock";
+import { maybeSendDigest } from "./price-digest";
 
 export const PRICE_CHECK_TASK = "price-drop-check";
 
@@ -144,8 +145,18 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
     // Check back-in-stock watches globally (independent of price alerts)
     await checkRestocks();
 
-    // Now check price alerts against fresh prices
+    // Send a scheduled digest if one is due
     const settings = await getSettings();
+    const prevDigest = await getPriceDigestSnapshot();
+    const nextDigest = await maybeSendDigest(
+      prevDigest,
+      await getWatchlist(),
+      settings,
+      await getAlerts(),
+    );
+    if (nextDigest) await savePriceDigestSnapshot(nextDigest);
+
+    // Now check price alerts against fresh prices
     if (!settings.notificationsEnabled || !settings.priceAlerts)
       return BackgroundTask.BackgroundTaskResult.Success;
 
@@ -328,8 +339,18 @@ export async function checkPriceDropsNow(
   // Check back-in-stock watches globally (independent of price alerts)
   await checkRestocks();
 
-  // Now check price alerts against fresh prices
+  // Send a scheduled digest if one is due
   const settings = await getSettings();
+  const prevDigest = await getPriceDigestSnapshot();
+  const nextDigest = await maybeSendDigest(
+    prevDigest,
+    await getWatchlist(),
+    settings,
+    await getAlerts(),
+  );
+  if (nextDigest) await savePriceDigestSnapshot(nextDigest);
+
+  // Now check price alerts against fresh prices
   if (!settings.notificationsEnabled || !settings.priceAlerts) return;
 
   const alerts = await getAlerts();

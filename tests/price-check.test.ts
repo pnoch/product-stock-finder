@@ -38,6 +38,8 @@ vi.mock("../lib/storage", () => ({
     );
   }),
   updateProductListings: vi.fn(async () => {}),
+  getPriceDigestSnapshot: vi.fn(async () => null),
+  savePriceDigestSnapshot: vi.fn(async () => {}),
 }));
 
 vi.mock("../lib/notifications", () => ({
