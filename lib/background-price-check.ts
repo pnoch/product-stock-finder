@@ -10,11 +10,12 @@ import * as Notifications from "expo-notifications";
 import { getParserByDistributorId } from "./scrapers/registry";
 import { fetchWithParser } from "./scrapers/utils";
 import { PricePoint, DistributorListing } from "./types";
+import { appendPricePoint } from "./price-history";
 import { checkRestocks } from "./restock";
 
 export const PRICE_CHECK_TASK = "price-drop-check";
 
-const MAX_PRICE_HISTORY = 90;
+const PRICE_HISTORY_DAYS = 90;
 
 const healthService = createHealthService(AsyncStorage);
 
@@ -100,10 +101,11 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
                   expectedDate: result.expectedDate,
                   url: result.url,
                   lastChecked: now,
-                  priceHistory: [
-                    ...listing.priceHistory,
+                  priceHistory: appendPricePoint(
+                    listing.priceHistory,
                     newPricePoint,
-                  ].slice(-MAX_PRICE_HISTORY),
+                    PRICE_HISTORY_DAYS,
+                  ),
                 };
 
                 updatedListings.push(updatedListing);
@@ -283,10 +285,11 @@ export async function checkPriceDropsNow(
                 expectedDate: result.expectedDate,
                 url: result.url,
                 lastChecked: now,
-                priceHistory: [
-                  ...listing.priceHistory,
+                priceHistory: appendPricePoint(
+                  listing.priceHistory,
                   newPricePoint,
-                ].slice(-MAX_PRICE_HISTORY),
+                  PRICE_HISTORY_DAYS,
+                ),
               };
 
               updatedListings.push(updatedListing);
