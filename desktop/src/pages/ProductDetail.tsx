@@ -25,6 +25,15 @@ import { findBestDeal } from "../../../lib/best-deal";
 import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 function PriceSparkline({ history }: { history: { price: number }[] }) {
   if (history.length < 2) {
@@ -285,6 +294,36 @@ export function ProductDetail() {
           <BarChart3 className="w-4 h-4" /> Compare
         </Link>
       </div>
+
+      {/* Price History Section */}
+      {bestListing && bestListing.priceHistory && bestListing.priceHistory.length >= 2 && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <h2 className="text-lg font-semibold mb-3">Price History</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart
+              data={bestListing.priceHistory.map((p) => ({
+                date: new Date(p.date).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                }),
+                price: p.price,
+              }))}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="price"
+                stroke="#0F52BA"
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Distributor Table */}
       <div>
