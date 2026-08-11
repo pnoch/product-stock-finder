@@ -219,3 +219,12 @@
 - [x] Show tax in mobile Best Deal card and listings table
 - [x] Show tax in desktop Best Deal card and listings table
 - [x] Note tax-inclusive totals on distributor analysis screens
+
+## Phase 23: Stock-Like Price Chart with Tap-to-Inspect
+
+- [x] Create nearest-point utility (lib/price-chart.ts) with findNearestIndex
+- [x] Unit tests for findNearestIndex (3 tests)
+- [x] Add tap-to-inspect tooltip (crosshair + price/date) to mobile price history chart
+- [x] Add Recharts price history chart to desktop Product Detail
+- [x] Convert desktop chart to display currency with labeled axis
+- [x] Desktop chart component test (tests real MultiLineChart)
