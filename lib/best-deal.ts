@@ -5,6 +5,7 @@ import { convertPrice } from "./currency";
 export interface BestDeal {
   distributorId: string;
   price: number;
+  tax: number;
   shipping: number;
   total: number;
   currency: string;
@@ -27,12 +28,14 @@ export function findBestDeal(
     const price = convertPrice(listing.price, listing.currency, displayCurrency);
     // Shipping is denominated in the distributor's native currency
     const shipping = convertPrice(shippingCost, distributor.currency, displayCurrency);
-    const total = price + shipping;
+    const tax = price * (listing.taxRate ?? 0);
+    const total = price + tax + shipping;
 
     if (!best || total < best.total) {
       best = {
         distributorId: listing.distributorId,
         price,
+        tax,
         shipping,
         total,
         currency: displayCurrency,

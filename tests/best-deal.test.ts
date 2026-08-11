@@ -71,4 +71,22 @@ describe("findBestDeal", () => {
     const deal = findBestDeal(listings, "Asia-Pacific", "USD");
     expect(deal).toBeNull();
   });
+
+  it("includes tax in the total landed cost", () => {
+    const listings = [
+      makeListing({ distributorId: "server2u-my", price: 100, currency: "USD", taxRate: 0.2 }),
+    ];
+    const deal = findBestDeal(listings, "Asia-Pacific", "USD");
+    expect(deal).not.toBeNull();
+    expect(deal!.tax).toBeCloseTo(20, 2); // 100 * 0.2
+    expect(deal!.total).toBeCloseTo(deal!.price + deal!.tax + deal!.shipping, 2);
+  });
+
+  it("treats missing taxRate as tax-free", () => {
+    const listings = [
+      makeListing({ distributorId: "server2u-my", price: 100, currency: "USD" }),
+    ];
+    const deal = findBestDeal(listings, "Asia-Pacific", "USD");
+    expect(deal!.tax).toBe(0);
+  });
 });
