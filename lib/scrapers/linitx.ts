@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import { DistributorParser, ScrapeResult } from "./types";
 import { fetchWithRateLimit, parsePriceFromText, inferStockStatus } from "./utils";
+import { getTaxRate } from "../tax";
 
 function parseHtml(html: string, url: string): ScrapeResult | null {
   const $ = cheerio.load(html);
@@ -17,6 +18,7 @@ function parseHtml(html: string, url: string): ScrapeResult | null {
     currency: "GBP",
     stockStatus,
     url,
+    taxRate: getTaxRate("United Kingdom"),
   };
 }
 
