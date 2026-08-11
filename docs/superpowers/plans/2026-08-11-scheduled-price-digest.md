@@ -183,7 +183,8 @@ describe("computeDigest", () => {
     expect(result.stockChanges).toHaveLength(0);
     expect(result.summary.inStock).toBe(1);
     expect(result.summary.backOrder).toBe(1);
-    expect(result.summary.totalValue).toBeCloseTo(95);
+    // totalValue sums all best prices including back_order: 95 + 50 = 145
+    expect(result.summary.totalValue).toBeCloseTo(145);
   });
 
   it("converts prices to the display currency in the summary", () => {
