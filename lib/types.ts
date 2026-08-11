@@ -86,4 +86,5 @@ export interface AppSettings {
   enabledDistributors?: string[];
   lastScrapeTime?: string;
   shippingRegion?: string;
+  digestFrequency?: "off" | "daily" | "weekly";
 }
