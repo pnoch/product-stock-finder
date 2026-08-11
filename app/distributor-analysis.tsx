@@ -77,7 +77,7 @@ export default function DistributorAnalysisScreen() {
                     {distrib?.countryFlag} {distrib?.name ?? a.distributorId}
                   </Text>
                   <Text style={{ color: colors.muted, fontSize: 12 }}>
-                    {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg {formatPrice(a.averagePrice, displayCurrency)}
+                    {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg {formatPrice(a.averagePrice, displayCurrency)} (incl. tax)
                   </Text>
                 </View>
                 <Text style={{ color: colors.primary, fontSize: 16, fontWeight: "700" }}>

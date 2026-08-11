@@ -62,7 +62,7 @@ export function DistributorAnalysis() {
                     {distrib?.countryFlag} {distrib?.name ?? a.distributorId}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg {formatPrice(a.averagePrice, displayCurrency)}
+                    {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg {formatPrice(a.averagePrice, displayCurrency)} (incl. tax)
                   </p>
                 </div>
                 <p className="text-base font-bold text-brand-600 dark:text-brand-400">
