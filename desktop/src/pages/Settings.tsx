@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { Palette, DollarSign, Bell, Clock, Download, Upload, Trash2, Activity, Globe } from "lucide-react";
 import { useSettings } from "../hooks/use-storage";
@@ -13,14 +13,17 @@ export function Settings() {
   const { settings, loading, update } = useSettings();
   const { set: setTheme } = useTheme();
   const navigate = useNavigate();
+  const prevIntervalRef = useRef<string | undefined>(settings?.checkInterval);
   useEffect(() => {
-    if (!settings || settings.checkInterval === "manual") return;
+    const prev = prevIntervalRef.current;
+    prevIntervalRef.current = settings?.checkInterval;
+    if (!settings || settings.checkInterval === "manual") {
+      if (prev && prev !== "manual") stopPricePoller();
+      return;
+    }
     const intervalMinutes =
       settings.checkInterval === "hourly" ? 60 : 1440;
     startPricePoller(intervalMinutes);
-    return () => {
-      stopPricePoller();
-    };
   }, [settings?.checkInterval]);
   const [clearConfirm, setClearConfirm] = useState(false);
   const [importExportMessage, setImportExportMessage] = useState<string | null>(null);
