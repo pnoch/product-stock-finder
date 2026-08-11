@@ -263,6 +263,11 @@ export default function SettingsScreen() {
     { value: "hourly", label: "Every hour" },
     { value: "daily", label: "Once a day" },
   ];
+  const digestFrequencies = [
+    { value: "off", label: "Off" },
+    { value: "daily", label: "Daily" },
+    { value: "weekly", label: "Weekly" },
+  ];
 
   return (
     <ScreenContainer>
@@ -594,6 +599,53 @@ export default function SettingsScreen() {
                 </Text>
               </View>
               {settings.checkInterval === interval.value && (
+                <IconSymbol name="checkmark" size={18} color={colors.primary} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <SectionHeader title="Price Digest" />
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            overflow: "hidden",
+          }}
+        >
+          {digestFrequencies.map((freq, idx) => (
+            <TouchableOpacity
+              key={freq.value}
+              onPress={() =>
+                updateSetting(
+                  "digestFrequency",
+                  freq.value as AppSettings["digestFrequency"],
+                )
+              }
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 14,
+                paddingHorizontal: 16,
+                borderBottomWidth: idx < digestFrequencies.length - 1 ? 1 : 0,
+                borderBottomColor: colors.border,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontWeight: "500",
+                    fontSize: 15,
+                  }}
+                >
+                  {freq.label}
+                </Text>
+              </View>
+              {settings.digestFrequency === freq.value && (
                 <IconSymbol name="checkmark" size={18} color={colors.primary} />
               )}
             </TouchableOpacity>
