@@ -331,7 +331,10 @@ export function ProductDetail() {
                 Price: {formatPrice(bestDeal.price, bestDeal.currency)}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Shipping: {formatPrice(bestDeal.shipping, bestDeal.currency)}
+                Tax: {bestDeal.tax > 0 ? formatPrice(bestDeal.tax, bestDeal.currency) : "Tax-free"}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Ship: {formatPrice(bestDeal.shipping, bestDeal.currency)}
               </p>
             </div>
           </div>
@@ -386,6 +389,15 @@ export function ProductDetail() {
                       <span className="text-sm font-semibold">
                         {formatPrice(listing.price, listing.currency)}
                       </span>
+                      {listing.taxRate != null && listing.taxRate > 0 ? (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          +{formatPrice(listing.price * listing.taxRate, listing.currency)} tax
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Tax-free
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <StockBadge
