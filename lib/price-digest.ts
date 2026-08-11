@@ -1,4 +1,4 @@
-import { convertPrice, formatPrice, getBestPrice } from "@/lib/currency";
+import { formatPrice, getBestPrice } from "@/lib/currency";
 import type {
   AppSettings,
   PriceAlert,
