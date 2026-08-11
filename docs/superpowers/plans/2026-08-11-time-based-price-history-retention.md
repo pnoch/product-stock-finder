@@ -90,7 +90,7 @@ describe("appendPricePoint", () => {
   });
 
   it("keeps a point exactly maxDays old (inclusive boundary)", () => {
-    const exactly = "2026-05-13T09:00:00.000Z"; // 90 days before NOW
+    const exactly = "2026-05-13T12:00:00.000Z"; // 90 days before NOW
     const result = appendPricePoint(
       [point(exactly, 100)],
       point("2026-08-11T09:00:00.000Z", 105),
