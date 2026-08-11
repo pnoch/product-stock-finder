@@ -197,6 +197,26 @@ export function Settings() {
         </div>
       </div>
 
+      {/* Price Digest Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <h2 className="text-lg font-semibold mb-4">Price Digest</h2>
+        <div className="flex gap-2">
+          {(["off", "daily", "weekly"] as const).map((freq) => (
+            <button
+              key={freq}
+              onClick={() => update({ digestFrequency: freq })}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                settings.digestFrequency === freq
+                  ? "bg-brand-600 text-white"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+              }`}
+            >
+              {freq.charAt(0).toUpperCase() + freq.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Import/Export Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
         <h2 className="text-lg font-semibold mb-4">Data Management</h2>
