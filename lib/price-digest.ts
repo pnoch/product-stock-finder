@@ -1,5 +1,10 @@
 import { convertPrice, formatPrice, getBestPrice } from "@/lib/currency";
-import type { AppSettings, PriceAlert, Product, StockStatus } from "@/lib/types";
+import type {
+  AppSettings,
+  PriceAlert,
+  Product,
+  StockStatus,
+} from "@/lib/types";
 
 export interface DigestProductState {
   productId: string;
@@ -70,9 +75,7 @@ function productState(
   };
 }
 
-function buildSummary(
-  products: DigestProductState[],
-): DigestSummary {
+function buildSummary(products: DigestProductState[]): DigestSummary {
   return products.reduce(
     (acc, p) => {
       acc.totalValue += p.bestPrice ?? 0;
@@ -152,9 +155,10 @@ export function computeDigest(
   };
 }
 
-export function formatDigestNotification(
-  result: DigestResult,
-): { title: string; body: string } {
+export function formatDigestNotification(result: DigestResult): {
+  title: string;
+  body: string;
+} {
   const { summary } = result;
   const lines: string[] = [];
 
@@ -168,13 +172,17 @@ export function formatDigestNotification(
 
   for (const c of result.priceChanges.slice(0, 3)) {
     const sign = c.percent > 0 ? "+" : "";
-    lines.push(`${c.name}: ${sign}${c.percent.toFixed(0)}% (${formatPrice(c.from, "USD")} → ${formatPrice(c.to, "USD")})`);
+    lines.push(
+      `${c.name}: ${sign}${c.percent.toFixed(0)}% (${formatPrice(c.from, "USD")} → ${formatPrice(c.to, "USD")})`,
+    );
   }
   for (const s of result.stockChanges.slice(0, 3)) {
     lines.push(`${s.name}: ${s.from} → ${s.to}`);
   }
   for (const t of result.alertTargetsHit.slice(0, 3)) {
-    lines.push(`🎯 ${t.name}: target hit at ${formatPrice(t.price, t.currency)}`);
+    lines.push(
+      `🎯 ${t.name}: target hit at ${formatPrice(t.price, t.currency)}`,
+    );
   }
 
   if (
@@ -208,7 +216,8 @@ export async function maybeSendDigest(
 
     const intervalMs = frequency === "weekly" ? 7 * 86400000 : 86400000;
     if (previous) {
-      const elapsed = new Date(now).getTime() - new Date(previous.lastDigestAt).getTime();
+      const elapsed =
+        new Date(now).getTime() - new Date(previous.lastDigestAt).getTime();
       if (elapsed < intervalMs) return null;
     }
 
