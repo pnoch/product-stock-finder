@@ -14,7 +14,8 @@ import { RestockWatches } from "./pages/RestockWatches";
 import { DistributorAnalysis } from "./pages/DistributorAnalysis";
 import { exportWatchlistAsJson } from "./import-export";
 import { useTheme } from "./hooks/use-theme";
-import { startPricePoller } from "./background";
+import { startPricePoller, onPricesChecked } from "./background";
+import { maybeSendDigest } from "../../lib/price-digest";
 import { storage } from "./storage";
 
 function KeyboardShortcuts({ searchModalOpen, setSearchModalOpen }: { searchModalOpen: boolean; setSearchModalOpen: (open: boolean) => void }) {
@@ -64,6 +65,33 @@ export default function App() {
     })();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const unlisten = onPricesChecked(async () => {
+      try {
+        const settings = await storage.getSettings();
+        const frequency = settings.digestFrequency ?? "off";
+        if (frequency === "off") return;
+        const prevDigest = await storage.getPriceDigestSnapshot();
+        const nextDigest = await maybeSendDigest(
+          prevDigest,
+          await storage.getWatchlist(),
+          settings,
+          await storage.getAlerts(),
+          async (title, body) => {
+            const { sendDesktopNotification } = await import("./notifications");
+            await sendDesktopNotification(title, body);
+          },
+        );
+        if (nextDigest) await storage.savePriceDigestSnapshot(nextDigest);
+      } catch {
+        // digest failures are non-fatal
+      }
+    });
+    return () => {
+      unlisten.then((fn) => fn());
     };
   }, []);
 
