@@ -20,12 +20,12 @@
 ```ts
 import { describe, expect, it } from "vitest";
 import { appendPricePoint } from "../lib/price-history";
-import type { PricePoint } from "../lib/types";
+import type { PricePoint, StockStatus } from "../lib/types";
 
 function point(
   date: string,
   price: number,
-  stockStatus: string = "in_stock",
+  stockStatus: StockStatus = "in_stock",
 ): PricePoint {
   return { date, price, currency: "USD", stockStatus };
 }
