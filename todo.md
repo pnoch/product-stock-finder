@@ -207,3 +207,15 @@
 - [x] Desktop distributor analysis screen (desktop/src/pages/DistributorAnalysis.tsx)
 - [x] Desktop navigation link from Watchlist
 - [x] Deterministic cheapest-in-stock pricing per distributor
+
+## Phase 22: Tax-Inclusive Landed Cost
+
+- [x] Create shared tax module (lib/tax.ts) with country tax rates
+- [x] Unit tests for getTaxRate (3 tests)
+- [x] Add taxRate to DistributorListing and ScrapeResult
+- [x] Set taxRate in all 25 scrapers from country map
+- [x] Update findBestDeal to include tax in total (price + tax + shipping)
+- [x] Update analyzeDistributors to include tax in totalCost
+- [x] Show tax in mobile Best Deal card and listings table
+- [x] Show tax in desktop Best Deal card and listings table
+- [x] Note tax-inclusive totals on distributor analysis screens
