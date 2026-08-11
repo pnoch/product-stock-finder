@@ -569,18 +569,21 @@ fn update_listing_price(
                 }
                 obj.insert("lastChecked".to_string(), serde_json::json!(current_iso_timestamp()));
 
-                // Append a price point to history so the compare chart stays fresh
+                // Append a price point to history so the compare chart stays fresh,
+                // replacing the same-day point and pruning to a 90-day window.
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs();
+                let cutoff_day = iso_date_from_secs(now.saturating_sub(90 * 86400));
                 let point = serde_json::json!({
                     "date": current_iso_timestamp(),
                     "price": scrape.price,
                     "currency": scrape.currency,
                     "stockStatus": scrape.stock_status,
                 });
-                let history = obj
-                    .get_mut("priceHistory")
-                    .and_then(|v| v.as_array_mut());
-                match history {
-                    Some(arr) => arr.push(point),
+                match obj.get_mut("priceHistory").and_then(|v| v.as_array_mut()) {
+                    Some(arr) => append_price_point_with_retention(arr, point, &cutoff_day),
                     None => {
                         obj.insert("priceHistory".to_string(), serde_json::json!([point]));
                     }
@@ -668,6 +671,79 @@ fn current_iso_timestamp() -> String {
         "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
         year, month, day, hour, minute, second
     )
+}
+
+// ─── Price History Retention ────────────────────────────────────────────────
+
+fn iso_date_prefix(ts: &str) -> &str {
+    ts.get(..10).unwrap_or(ts)
+}
+
+fn iso_date_from_secs(secs: u64) -> String {
+    let days = secs / 86400;
+    let mut year = 1970i64;
+    let mut remaining_days = days as i64;
+    loop {
+        let days_in_year = if (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 {
+            366
+        } else {
+            365
+        };
+        if remaining_days < days_in_year {
+            break;
+        }
+        remaining_days -= days_in_year;
+        year += 1;
+    }
+    let mut month = 1u32;
+    let mut remaining = remaining_days as u32;
+    let month_lengths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    for (i, &ml) in month_lengths.iter().enumerate() {
+        let dim = if i == 1 && ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0) {
+            29
+        } else {
+            ml
+        };
+        if remaining < dim {
+            break;
+        }
+        remaining -= dim;
+        month += 1;
+    }
+    let day = remaining + 1;
+    format!("{:04}-{:02}-{:02}", year, month, day)
+}
+
+fn append_price_point_with_retention(
+    history: &mut Vec<serde_json::Value>,
+    point: serde_json::Value,
+    cutoff_day: &str,
+) {
+    let today = point
+        .get("date")
+        .and_then(|d| d.as_str())
+        .map(iso_date_prefix)
+        .unwrap_or_default()
+        .to_string();
+
+    let same_day = history.iter_mut().find(|p| {
+        p.get("date")
+            .and_then(|d| d.as_str())
+            .map(iso_date_prefix)
+            == Some(today.as_str())
+    });
+
+    match same_day {
+        Some(existing) => *existing = point,
+        None => history.push(point),
+    }
+
+    history.retain(|p| {
+        p.get("date")
+            .and_then(|d| d.as_str())
+            .map(|d| iso_date_prefix(d) >= cutoff_day)
+            .unwrap_or(true)
+    });
 }
 
 // ─── Tray Badge ──────────────────────────────────────────────────────────────
