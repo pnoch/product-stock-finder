@@ -501,7 +501,7 @@ with:
 - [ ] **Step 3: Run tests to verify they pass**
 
 Run: `cargo test` (workdir `desktop/src-tauri`)
-Expected: PASS — 4 retention tests green
+Expected: PASS — 5 retention tests green
 
 - [ ] **Step 4: Commit**
 
@@ -529,7 +529,7 @@ Add at the end of `todo.md`:
 - [x] Wire appendPricePoint into both mobile scrape paths (background task + foreground check)
 - [x] Rename MAX_PRICE_HISTORY to PRICE_HISTORY_DAYS
 - [x] Rust append_price_point_with_retention + iso_date_from_secs helpers (desktop)
-- [x] Rust retention tests (4 tests)
+- [x] Rust retention tests (5 tests)
 - [x] Bound desktop history growth in update_listing_price (was unbounded)
 ```
 
