@@ -808,3 +808,77 @@ pub fn run() {
             }
         });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn point(ts: &str, price: f64) -> serde_json::Value {
+        serde_json::json!({
+            "date": ts,
+            "price": price,
+            "currency": "USD",
+            "stockStatus": "in_stock",
+        })
+    }
+
+    #[test]
+    fn iso_date_from_secs_returns_iso_date() {
+        // 2026-08-11T00:00:00Z = 1786406400 epoch seconds
+        assert_eq!(iso_date_from_secs(1786406400), "2026-08-11");
+    }
+
+    #[test]
+    fn replaces_point_on_same_utc_day() {
+        let mut history = vec![point("2026-08-11T08:00:00.000Z", 100.0)];
+        append_price_point_with_retention(
+            &mut history,
+            point("2026-08-11T20:00:00.000Z", 108.0),
+            "2026-05-13",
+        );
+        assert_eq!(history.len(), 1);
+        assert_eq!(history[0]["price"], 108.0);
+        assert_eq!(history[0]["date"], "2026-08-11T20:00:00.000Z");
+    }
+
+    #[test]
+    fn appends_new_day_point() {
+        let mut history = vec![point("2026-08-10T09:00:00.000Z", 100.0)];
+        append_price_point_with_retention(
+            &mut history,
+            point("2026-08-11T09:00:00.000Z", 105.0),
+            "2026-05-13",
+        );
+        assert_eq!(history.len(), 2);
+        assert_eq!(history[1]["date"], "2026-08-11T09:00:00.000Z");
+    }
+
+    #[test]
+    fn prunes_points_older_than_cutoff() {
+        let mut history = vec![
+            point("2026-05-10T09:00:00.000Z", 90.0),
+            point("2026-06-01T09:00:00.000Z", 95.0),
+        ];
+        append_price_point_with_retention(
+            &mut history,
+            point("2026-08-11T09:00:00.000Z", 105.0),
+            "2026-05-13",
+        );
+        let dates: Vec<&str> = history
+            .iter()
+            .map(|p| &p["date"].as_str().unwrap()[..10])
+            .collect();
+        assert_eq!(dates, vec!["2026-06-01", "2026-08-11"]);
+    }
+
+    #[test]
+    fn keeps_point_exactly_at_cutoff() {
+        let mut history = vec![point("2026-05-13T09:00:00.000Z", 100.0)];
+        append_price_point_with_retention(
+            &mut history,
+            point("2026-08-11T09:00:00.000Z", 105.0),
+            "2026-05-13",
+        );
+        assert_eq!(history.len(), 2);
+    }
+}
