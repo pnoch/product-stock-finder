@@ -91,4 +91,15 @@ describe("analyzeDistributors", () => {
   it("returns empty array for empty watchlist", () => {
     expect(analyzeDistributors([], "USD")).toEqual([]);
   });
+
+  it("includes tax in totalCost", () => {
+    const watchlist = [
+      makeProduct("p1", [
+        makeListing({ distributorId: "server2u-my", price: 100, currency: "USD", taxRate: 0.2 }),
+      ]),
+    ];
+    const result = analyzeDistributors(watchlist, "USD");
+    const server2u = result.find((r) => r.distributorId === "server2u-my");
+    expect(server2u!.totalCost).toBeCloseTo(120, 2); // 100 + 20 tax
+  });
 });
