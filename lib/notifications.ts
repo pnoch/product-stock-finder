@@ -35,6 +35,14 @@ export async function setupAndroidNotificationChannel(): Promise<void> {
     lightColor: "#10B981",
     sound: "default",
   });
+  await Notifications.setNotificationChannelAsync("digest", {
+    name: "Price Digest",
+    description: "Daily or weekly price digest summary",
+    importance: Notifications.AndroidImportance.DEFAULT,
+    vibrationPattern: [0, 250],
+    lightColor: "#6366F1",
+    sound: "default",
+  });
 }
 
 // ─── Permission Request ───────────────────────────────────────────────────────
@@ -151,5 +159,27 @@ export async function cancelNotification(
     await Notifications.cancelScheduledNotificationAsync(notificationId);
   } catch {
     // ignore
+  }
+}
+
+// ─── Send a price digest notification ────────────────────────────────────────
+export async function sendPriceDigestNotification(
+  title: string,
+  body: string,
+): Promise<void> {
+  if (Platform.OS === "web") return;
+  const granted = await requestNotificationPermissions();
+  if (!granted) return;
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        sound: "default",
+      },
+      trigger: null, // immediate
+    });
+  } catch {
+    // digest failures are non-fatal
   }
 }

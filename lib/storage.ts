@@ -6,6 +6,7 @@ import {
   DistributorListing,
   BackOrderReminder,
 } from "./types";
+import type { DigestSnapshot } from "./price-digest";
 
 export interface StorageAdapter {
   getItem(key: string): Promise<string | null>;
@@ -21,6 +22,7 @@ export function createStorage(adapter: StorageAdapter) {
     SETTINGS: "app_settings",
     REMINDERS: "back_order_reminders",
     STOCK_WATCHES: "back_in_stock_watches",
+    DIGEST_SNAPSHOT: "price_digest_snapshot",
   };
 
   // Serializes read-modify-write operations per key to prevent lost updates
@@ -290,6 +292,23 @@ export function createStorage(adapter: StorageAdapter) {
     });
   }
 
+  // ─── Price Digest Snapshot ──────────────────────────────────────────────────
+
+  async function getPriceDigestSnapshot(): Promise<DigestSnapshot | null> {
+    try {
+      const raw = await adapter.getItem(KEYS.DIGEST_SNAPSHOT);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function savePriceDigestSnapshot(
+    snapshot: DigestSnapshot,
+  ): Promise<void> {
+    await adapter.setItem(KEYS.DIGEST_SNAPSHOT, JSON.stringify(snapshot));
+  }
+
   // ─── Clear All Data ─────────────────────────────────────────────────────────
 
   async function clearAllData(): Promise<void> {
@@ -304,6 +323,7 @@ export function createStorage(adapter: StorageAdapter) {
       "triggered_alert_history",
       "product_notes",
       "has_seen_onboarding",
+      "price_digest_snapshot",
     ]);
   }
 
@@ -332,6 +352,8 @@ export function createStorage(adapter: StorageAdapter) {
     addStockWatch,
     removeStockWatch,
     updateStockWatchStatus,
+    getPriceDigestSnapshot,
+    savePriceDigestSnapshot,
     clearAllData,
   };
 }
@@ -368,5 +390,7 @@ export const {
   addStockWatch,
   removeStockWatch,
   updateStockWatchStatus,
+  getPriceDigestSnapshot,
+  savePriceDigestSnapshot,
   clearAllData,
 } = defaultStorage;
