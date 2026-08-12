@@ -7,6 +7,8 @@ use tauri::Emitter;
 use tauri::Manager;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpListener;
 
 // ─── Exchange Rates (matching lib/currency.ts) ────────────────────────────────
 
@@ -184,6 +186,89 @@ fn import_watchlist(
         "csv" => Err("CSV import not yet implemented".to_string()),
         _ => Err(format!("Unsupported format: {}", format)),
     }
+}
+
+// ─── OAuth (localhost loopback) ───────────────────────────────────────────────
+
+fn parse_query_params(query: &str) -> std::collections::HashMap<String, String> {
+    let mut params = std::collections::HashMap::new();
+    if let Some(q) = query.split('?').nth(1) {
+        for pair in q.split('&') {
+            if let Some((k, v)) = pair.split_once('=') {
+                let decoded = urlencoding::decode(v).unwrap_or_else(|_| v.into());
+                params.insert(k.to_string(), decoded.to_string());
+            }
+        }
+    }
+    params
+}
+
+fn open_system_browser(url: &str) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(url)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(url)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(["/C", "start", "", url])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn start_oauth(login_url: String) -> Result<serde_json::Value, String> {
+    open_system_browser(&login_url)?;
+
+    let listener = TcpListener::bind("127.0.0.1:3420")
+        .await
+        .map_err(|e| format!("Failed to bind OAuth callback listener: {e}"))?;
+
+    let (mut socket, _) = listener
+        .accept()
+        .await
+        .map_err(|e| format!("Failed to accept OAuth callback: {e}"))?;
+
+    let mut buf = [0u8; 8192];
+    let n = socket
+        .read(&mut buf)
+        .await
+        .map_err(|e| format!("Failed to read OAuth callback: {e}"))?;
+    let request = String::from_utf8_lossy(&buf[..n]).to_string();
+
+    let request_line = request.lines().next().unwrap_or_default().to_string();
+    let params = parse_query_params(&request_line);
+
+    let body = "<html><body style=\"font-family:sans-serif;text-align:center;padding-top:80px\"><h3>Login successful. You can close this window.</h3></body></html>";
+    let response = format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        body.len(),
+        body
+    );
+    socket
+        .write_all(response.as_bytes())
+        .await
+        .map_err(|e| format!("Failed to respond to OAuth callback: {e}"))?;
+
+    let session_token = params.get("sessionToken").cloned().unwrap_or_default();
+    if session_token.is_empty() {
+        return Err("OAuth callback did not include a session token".to_string());
+    }
+
+    let user = params.get("user").cloned().unwrap_or_default();
+    Ok(serde_json::json!({ "sessionToken": session_token, "user": user }))
 }
 
 // ─── Background Polling ──────────────────────────────────────────────────────
@@ -872,7 +957,8 @@ pub fn run() {
             stop_price_poller,
             update_tray_badge,
             check_all_prices,
-            check_distributor_health
+            check_distributor_health,
+            start_oauth
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
