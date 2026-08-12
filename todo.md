@@ -279,3 +279,9 @@
 - [x] Mobile refreshListing merges server history + piggyback backfill
 - [x] Mobile launch backfill (lib/history-sync.ts)
 - [x] Desktop history merge + backfill command (Rust)
+
+## Phase 29: Full-Catalog Warming
+
+- [x] price-cache getAllFetchedAt
+- [x] Catalog pair builders (buildCatalogPairs, pickPairsToWarm)
+- [x] warmCatalogRotation + wiring into the warmer tick
