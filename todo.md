@@ -268,3 +268,14 @@
 - [x] Public prices.get tRPC endpoint
 - [x] Mobile fetchServerPrice helper + server-first background/foreground scraping
 - [x] Desktop server-first price poller (Rust)
+
+## Phase 28: Server-Side Price History
+
+- [x] price_history Drizzle table + migration
+- [x] Server history storage (record/get/merge/purge, memory fallback)
+- [x] Record history on scrape; getPrice returns { snapshot, history }
+- [x] Public prices.uploadHistory endpoint
+- [x] Mobile fetchServerPrice returns { snapshot, history } + uploadServerHistory
+- [x] Mobile refreshListing merges server history + piggyback backfill
+- [x] Mobile launch backfill (lib/history-sync.ts)
+- [x] Desktop history merge + backfill command (Rust)
