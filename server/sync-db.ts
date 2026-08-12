@@ -6,7 +6,7 @@ import {
   watchlistItems,
 } from "../drizzle/schema";
 import { getDb } from "./db";
-import type { Collection, SyncItem } from "../lib/types";
+import type { SyncItem } from "../lib/types";
 
 const TOMBSTONE_PURGE_MS = 30 * 24 * 60 * 60 * 1000;
 
