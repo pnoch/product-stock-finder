@@ -9,9 +9,9 @@ import { requestNotificationPermissions } from "./notifications";
 import * as Notifications from "expo-notifications";
 import { getParserByDistributorId } from "./scrapers/registry";
 import { fetchWithParser } from "./scrapers/utils";
-import { fetchServerPrice } from "./server-prices";
+import { fetchServerPrice, uploadServerHistory } from "./server-prices";
 import { PricePoint, DistributorListing, Product } from "./types";
-import { appendPricePoint } from "./price-history";
+import { appendPricePoint, mergePriceHistory } from "./price-history";
 import { checkRestocks } from "./restock";
 import { maybeSendDigest } from "./price-digest";
 
@@ -63,25 +63,36 @@ async function refreshListing(
     listing.distributorId,
     product.modelNumber,
   );
-  if (serverResult) {
+  if (serverResult?.snapshot) {
     healthCollector.record(listing.distributorId, "working");
     const now = new Date().toISOString();
     const newPricePoint: PricePoint = {
       date: now,
-      price: serverResult.price,
-      currency: serverResult.currency,
-      stockStatus: serverResult.stockStatus,
+      price: serverResult.snapshot.price,
+      currency: serverResult.snapshot.currency,
+      stockStatus: serverResult.snapshot.stockStatus,
     };
+    const mergedHistory = mergePriceHistory(
+      listing.priceHistory,
+      serverResult.history,
+    );
+    if (serverResult.history.length < listing.priceHistory.length) {
+      void uploadServerHistory(
+        listing.distributorId,
+        product.modelNumber,
+        listing.priceHistory,
+      );
+    }
     return {
       ...listing,
-      price: serverResult.price,
-      currency: serverResult.currency,
-      stockStatus: serverResult.stockStatus,
-      expectedDate: serverResult.expectedDate,
-      url: serverResult.url,
+      price: serverResult.snapshot.price,
+      currency: serverResult.snapshot.currency,
+      stockStatus: serverResult.snapshot.stockStatus,
+      expectedDate: serverResult.snapshot.expectedDate,
+      url: serverResult.snapshot.url,
       lastChecked: now,
       priceHistory: appendPricePoint(
-        listing.priceHistory,
+        mergedHistory,
         newPricePoint,
         PRICE_HISTORY_DAYS,
       ),

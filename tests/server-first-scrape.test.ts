@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import type { Product, DistributorListing } from "../lib/types";
+import type { Product, DistributorListing, PricePoint } from "../lib/types";
 
 const state = vi.hoisted(() => ({
   watchlistStore: [] as Product[],
@@ -26,6 +26,7 @@ vi.mock("../lib/storage", () => ({
 
 vi.mock("../lib/server-prices", () => ({
   fetchServerPrice: vi.fn(),
+  uploadServerHistory: vi.fn(),
 }));
 
 vi.mock("../lib/scrapers/registry", () => ({
@@ -57,12 +58,13 @@ vi.mock("../lib/restock", () => ({
   checkRestocks: vi.fn(async () => {}),
 }));
 
-import { fetchServerPrice } from "../lib/server-prices";
+import { fetchServerPrice, uploadServerHistory } from "../lib/server-prices";
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { fetchWithParser } from "../lib/scrapers/utils";
 import { checkPriceDropsNow } from "../lib/background-price-check";
 
 const mockedFetchServer = vi.mocked(fetchServerPrice);
+const mockedUploadHistory = vi.mocked(uploadServerHistory);
 const mockedGetParser = vi.mocked(getParserByDistributorId);
 const mockedFetchLocal = vi.mocked(fetchWithParser);
 
@@ -93,13 +95,19 @@ describe("server-first scraping", () => {
     state.updatedListings = [];
   });
 
-  it("uses the server price when the server responds", async () => {
+  it("uses the server price and merges server history when the server responds", async () => {
     mockedFetchServer.mockResolvedValue({
-      price: 88.5,
-      currency: "MYR",
-      stockStatus: "in_stock",
-      url: "https://server2u.com/p/1",
-      fetchedAt: 1000,
+      snapshot: {
+        price: 88.5,
+        currency: "MYR",
+        stockStatus: "in_stock",
+        url: "https://server2u.com/p/1",
+        fetchedAt: 1000,
+      },
+      history: [
+        { date: "2026-07-01T00:00:00.000Z", price: 95, currency: "MYR", stockStatus: "in_stock" },
+        { date: "2026-08-01T00:00:00.000Z", price: 88.5, currency: "MYR", stockStatus: "in_stock" },
+      ],
     });
 
     await checkPriceDropsNow();
@@ -110,7 +118,8 @@ describe("server-first scraping", () => {
     expect(updated.price).toBe(88.5);
     expect(updated.currency).toBe("MYR");
     expect(updated.stockStatus).toBe("in_stock");
-    expect(updated.priceHistory).toHaveLength(1);
+    expect(updated.priceHistory).toHaveLength(3);
+    expect(updated.priceHistory[0]).toMatchObject({ price: 95 });
   });
 
   it("falls back to local scraping when the server returns null", async () => {
@@ -152,5 +161,33 @@ describe("server-first scraping", () => {
 
     expect(state.updatedListings).toHaveLength(1);
     expect(state.updatedListings[0][0]).toEqual(listing);
+  });
+
+  it("uploads local history when the server history is shorter", async () => {
+    const localHistory: PricePoint[] = [
+      { date: "2026-06-01T00:00:00.000Z", price: 100, currency: "USD", stockStatus: "unknown" },
+      { date: "2026-07-01T00:00:00.000Z", price: 98, currency: "USD", stockStatus: "unknown" },
+    ];
+    state.watchlistStore = [
+      { ...product, listings: [{ ...listing, priceHistory: localHistory }] },
+    ];
+    mockedFetchServer.mockResolvedValue({
+      snapshot: {
+        price: 88.5,
+        currency: "MYR",
+        stockStatus: "in_stock",
+        url: "https://server2u.com/p/1",
+        fetchedAt: 1000,
+      },
+      history: [],
+    });
+
+    await checkPriceDropsNow();
+
+    expect(mockedUploadHistory).toHaveBeenCalledWith(
+      "server2u-my",
+      "CRS804",
+      localHistory,
+    );
   });
 });

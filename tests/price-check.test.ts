@@ -72,6 +72,7 @@ vi.mock("../lib/scrapers/utils", () => ({
 }));
 vi.mock("../lib/server-prices", () => ({
   fetchServerPrice: vi.fn(async () => null),
+  uploadServerHistory: vi.fn(async () => {}),
 }));
 
 import { checkPriceDropsNow } from "../lib/background-price-check";
