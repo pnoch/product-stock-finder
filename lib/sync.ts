@@ -36,7 +36,7 @@ export async function syncNow(opts: SyncNowOptions): Promise<void> {
 }
 
 async function doSync(opts: SyncNowOptions): Promise<void> {
-  const now = opts.now ?? Date.now;
+  const nowValue = (opts.now ?? Date.now)();
   const storage = opts.storage;
   const meta = await storage.getSyncMeta();
   const oldCursor = meta.lastSyncedAt || 0;
@@ -72,7 +72,7 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     storage.setChangeSuppressed(false);
   }
 
-  const dirty = await collectDirty(storage, oldCursor, applied, now);
+  const dirty = await collectDirty(storage, oldCursor, applied, nowValue);
 
   if (dirty.length > 0) {
     try {
@@ -93,7 +93,7 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     await storage.saveSyncMeta(metaAfter);
   }
 
-  const nextCursor = Math.max(pulled.lastSyncedAt, now());
+  const nextCursor = Math.max(pulled.lastSyncedAt, nowValue);
   await storage.saveSyncMeta({
     ...(await storage.getSyncMeta()),
     lastSyncedAt: nextCursor,
@@ -104,7 +104,7 @@ async function collectDirty(
   storage: Storage,
   oldCursor: number,
   applied: Set<string>,
-  now: () => number,
+  now: number,
 ): Promise<SyncItem[]> {
   const meta = await storage.getSyncMeta();
   const dirty: SyncItem[] = [];
@@ -121,7 +121,7 @@ async function collectDirty(
           collection: "settings",
           id: SETTINGS_ID,
           data: local.settings,
-          updatedAt: now(),
+          updatedAt: now,
           deletedAt: null,
         });
       }
@@ -137,11 +137,11 @@ async function collectDirty(
           collection,
           id: item.id,
           data: serializeItem(collection, item),
-          updatedAt: now(),
+          updatedAt: now,
           deletedAt: null,
         });
         if (entry?.deleted) {
-          await storage.setItemSyncMeta(collection, item.id, now());
+          await storage.setItemSyncMeta(collection, item.id, now);
         }
       }
     }
