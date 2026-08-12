@@ -1,4 +1,4 @@
-import { StockStatus } from "@/lib/types";
+import { StockStatus } from "../types";
 import { DistributorParser } from "./types";
 
 export const USER_AGENTS = [
@@ -94,7 +94,7 @@ export async function fetchWithParser(
 ): Promise<string> {
   if (parser.useBrowser) {
     try {
-      const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+      const { fetchWithBrowser } = await import("./browser");
       return await fetchWithBrowser(url, parser.browserOptions);
     } catch {
       // Playwright unavailable (e.g. mobile) — fall back to plain HTTP

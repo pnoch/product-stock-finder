@@ -1,7 +1,7 @@
 import type { ScrapeResult } from "./types";
 import { PARSERS } from "./registry";
 import { fetchWithParser } from "./utils";
-import type { StorageAdapter } from "@/lib/storage";
+import type { StorageAdapter } from "../storage";
 
 export type HealthStatus = "working" | "blocked" | "error";
 

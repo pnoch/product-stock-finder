@@ -1,4 +1,4 @@
-import { StockStatus } from "@/lib/types";
+import { StockStatus } from "../types";
 
 export interface ScrapeResult {
   price: number;
