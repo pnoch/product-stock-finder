@@ -90,6 +90,32 @@ export async function listNearExpiry(
   return rows;
 }
 
+export async function getAllFetchedAt(): Promise<
+  Array<{ distributorId: string; modelNumber: string; fetchedAt: number }>
+> {
+  const db = await getDb();
+  if (!db) {
+    const entries: Array<{
+      distributorId: string;
+      modelNumber: string;
+      fetchedAt: number;
+    }> = [];
+    for (const [key, snap] of memoryCache) {
+      const [distributorId, modelNumber] = key.split(":");
+      entries.push({ distributorId, modelNumber, fetchedAt: snap.fetchedAt });
+    }
+    return entries;
+  }
+  const rows = await db
+    .select({
+      distributorId: priceCache.distributorId,
+      modelNumber: priceCache.modelNumber,
+      fetchedAt: priceCache.fetchedAt,
+    })
+    .from(priceCache);
+  return rows;
+}
+
 export function clearPriceCacheForTests(): void {
   memoryCache.clear();
 }

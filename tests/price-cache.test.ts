@@ -3,6 +3,7 @@ import {
   getCachedPrice,
   setCachedPrice,
   listNearExpiry,
+  getAllFetchedAt,
   clearPriceCacheForTests,
 } from "../server/price-cache";
 import type { PriceSnapshot } from "../lib/types";
@@ -56,5 +57,24 @@ describe("price cache (memory backend)", () => {
     expect(entries).toContainEqual({ distributorId: "a", modelNumber: "m2" });
     expect(entries).not.toContainEqual({ distributorId: "a", modelNumber: "m1" });
     expect(entries).not.toContainEqual({ distributorId: "b", modelNumber: "m1" });
+  });
+});
+
+describe("getAllFetchedAt", () => {
+  beforeEach(() => clearPriceCacheForTests());
+
+  it("returns an empty array when nothing is cached", async () => {
+    expect(await getAllFetchedAt()).toEqual([]);
+  });
+
+  it("returns all cached entries with their fetchedAt", async () => {
+    await setCachedPrice("server2u-my", "CRS804", snapshot({ price: 1, fetchedAt: 1000 }));
+    await setCachedPrice("linitx-uk", "CRS804", snapshot({ price: 2, fetchedAt: 2000 }));
+    await setCachedPrice("server2u-my", "CRS326", snapshot({ price: 3, fetchedAt: 3000 }));
+    const entries = await getAllFetchedAt();
+    expect(entries).toHaveLength(3);
+    expect(entries).toContainEqual({ distributorId: "server2u-my", modelNumber: "CRS804", fetchedAt: 1000 });
+    expect(entries).toContainEqual({ distributorId: "linitx-uk", modelNumber: "CRS804", fetchedAt: 2000 });
+    expect(entries).toContainEqual({ distributorId: "server2u-my", modelNumber: "CRS326", fetchedAt: 3000 });
   });
 });
