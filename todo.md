@@ -259,3 +259,12 @@
 - [x] Shared sync engine (lib/sync.ts): single-flight syncNow, 2s debounced setupSync, LWW pull/merge/push with tests (12)
 - [x] Mobile: launch sync on start + auth change (app/_layout.tsx), Account section + sync status in Settings
 - [x] Desktop: react-query/tRPC deps, api-base + OAuth portal helpers, localStorage auth hook (use-auth), tRPC client, Tauri start_oauth loopback command (127.0.0.1:3420), App providers + launch sync, Account section + sync status in Settings
+
+## Phase 27: Server-Side Price Scraping
+
+- [x] price_cache Drizzle table + PriceSnapshot shared type
+- [x] Server price cache backend (DB table + in-memory fallback)
+- [x] Server price service (getPrice, single-flight refresh, background warmer)
+- [x] Public prices.get tRPC endpoint
+- [x] Mobile fetchServerPrice helper + server-first background/foreground scraping
+- [x] Desktop server-first price poller (Rust)
