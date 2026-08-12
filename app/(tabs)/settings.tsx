@@ -116,12 +116,17 @@ export default function SettingsScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const { user, isAuthenticated, logout } = useAuth();
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     let cancelled = false;
     const refresh = async () => {
       const meta = await getSyncMeta();
-      if (!cancelled) setLastSyncedAt(meta.lastSyncedAt || null);
+      if (!cancelled) {
+        setLastSyncedAt(meta.lastSyncedAt || null);
+        setNow(Date.now());
+      }
     };
     refresh();
     const interval = setInterval(refresh, 30000);
@@ -129,12 +134,12 @@ export default function SettingsScreen() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const syncStatusLabel = (() => {
     if (!isAuthenticated) return "Sign in to sync across devices";
     if (!lastSyncedAt) return "Not synced yet";
-    const minutes = Math.floor((Date.now() - lastSyncedAt) / 60000);
+    const minutes = Math.floor((now - lastSyncedAt) / 60000);
     if (minutes < 1) return "Synced just now";
     if (minutes < 60) return `Last synced ${minutes}m ago`;
     return `Last synced ${Math.floor(minutes / 60)}h ago`;

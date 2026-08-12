@@ -370,7 +370,9 @@ export function setupSync(
       clearTimeout(timer);
       timer = null;
     }
-    return syncNow(opts);
+    return syncNow(opts).catch((error) => {
+      console.warn("[Sync] Launch sync failed", error);
+    });
   };
   opts.storage.setOnChange((collection, itemId) => {
     markDirty(opts.storage, collection, itemId).then(() => schedule());

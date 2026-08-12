@@ -33,12 +33,17 @@ export function Settings() {
   const [importExportMessage, setImportExportMessage] = useState<string | null>(null);
   const { user, isAuthenticated, login, logout } = useAuth();
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     let cancelled = false;
     const refresh = async () => {
       const meta = await storage.getSyncMeta();
-      if (!cancelled) setLastSyncedAt(meta.lastSyncedAt || null);
+      if (!cancelled) {
+        setLastSyncedAt(meta.lastSyncedAt || null);
+        setNow(Date.now());
+      }
     };
     refresh();
     const interval = setInterval(refresh, 30000);
@@ -46,14 +51,14 @@ export function Settings() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const syncStatus = !isAuthenticated
     ? "Sign in to sync across devices"
     : !lastSyncedAt
       ? "Not synced yet"
       : (() => {
-          const minutes = Math.floor((Date.now() - lastSyncedAt) / 60000);
+          const minutes = Math.floor((now - lastSyncedAt) / 60000);
           if (minutes < 1) return "Synced just now";
           if (minutes < 60) return `Last synced ${minutes}m ago`;
           return `Last synced ${Math.floor(minutes / 60)}h ago`;

@@ -56,7 +56,17 @@ function KeyboardShortcuts({ searchModalOpen, setSearchModalOpen }: { searchModa
 
 export default function App() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            refetchOnWindowFocus: false,
+            retry: 1,
+          },
+        },
+      }),
+  );
   const [trpcClient] = useState(() => createTRPCClient());
   const { isAuthenticated } = useAuth();
   const isAuthenticatedRef = useRef(isAuthenticated);
