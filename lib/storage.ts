@@ -369,7 +369,14 @@ export function createStorage(
     }
   }
 
-  async function saveSyncMeta(meta: SyncMeta): Promise<void> {
+  // Persists sync meta via read-modify-write. `saveSyncMeta` merges `items`
+  // into the existing meta (lastSyncedAt is taken from the argument). The
+  // merge is per collection, not per item: callers must pass the full
+  // contents of any collection they touch, since its entry replaces that
+  // collection wholesale. NOT enqueued — internal helpers call it while
+  // already inside enqueue(KEYS.SYNC_META, ...); the public `saveSyncMeta`
+  // wrapper below adds the queue for external callers.
+  async function persistSyncMeta(meta: SyncMeta): Promise<void> {
     const existing = await getSyncMeta();
     await adapter.setItem(
       KEYS.SYNC_META,
@@ -378,6 +385,14 @@ export function createStorage(
         items: { ...existing.items, ...meta.items },
       }),
     );
+  }
+
+  // Serialized on the sync-meta write queue so it cannot race other queued
+  // meta mutations (setItemSyncMeta/markItemDeleted/clearItemSyncMeta).
+  async function saveSyncMeta(meta: SyncMeta): Promise<void> {
+    await enqueue(KEYS.SYNC_META, async () => {
+      await persistSyncMeta(meta);
+    });
   }
 
   function updateItemMeta(
@@ -390,7 +405,7 @@ export function createStorage(
       const col = meta.items[collection] ?? {};
       col[id] = patch;
       meta.items[collection] = col;
-      await saveSyncMeta(meta);
+      await persistSyncMeta(meta);
     });
   }
 
@@ -419,7 +434,7 @@ export function createStorage(
       const col = meta.items[collection];
       if (col && col[id]) {
         delete col[id];
-        await saveSyncMeta(meta);
+        await persistSyncMeta(meta);
       }
     });
   }
