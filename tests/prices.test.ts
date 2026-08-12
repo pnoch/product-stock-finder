@@ -161,7 +161,7 @@ describe("warmCatalogRotation", () => {
     mockedGetAllFetchedAt.mockResolvedValue([
       { distributorId: "server2u-my", modelNumber: "CRS804-4DDQ-hRM", fetchedAt: 1000 },
     ]);
-    const warmed = await warmCatalogRotation(Date.now(), 3);
+    const warmed = await warmCatalogRotation(3);
     expect(warmed).toBe(3);
     expect(mockedFetch).toHaveBeenCalledTimes(3);
     expect(mockedSetCached).toHaveBeenCalledTimes(3);
@@ -169,7 +169,7 @@ describe("warmCatalogRotation", () => {
 
   it("returns 0 when there are no pairs to warm", async () => {
     mockedGetParser.mockReturnValue(undefined);
-    const warmed = await warmCatalogRotation(Date.now(), 3);
+    const warmed = await warmCatalogRotation(3);
     expect(warmed).toBe(0);
     expect(mockedFetch).not.toHaveBeenCalled();
   });

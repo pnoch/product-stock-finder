@@ -4,7 +4,7 @@
 
 **Goal:** Warm the server's price cache and history for the entire product catalog — every `(distributor, model)` pair — via a continuous least-recently-fetched rotation, so `prices.get` returns fresh snapshots for any catalog product without waiting for an on-demand scrape.
 
-**Architecture:** A new `server/catalog-warmer.ts` provides pure helpers (`buildCatalogPairs`, `pickPairsToWarm`). `server/prices.ts` adds a `warmCatalogRotation(now, count)` that builds the pair list, reads a fetched-at map from the cache, picks the `count` least-recently-fetched pairs, and warms each via the existing `refreshSingleFlight`. The warmer `setInterval` tick calls it after the near-expiry pass. `server/price-cache.ts` gains `getAllFetchedAt()` to feed the fetched-at map.
+**Architecture:** A new `server/catalog-warmer.ts` provides pure helpers (`buildCatalogPairs`, `pickPairsToWarm`). `server/prices.ts` adds a `warmCatalogRotation(count)` that builds the pair list, reads a fetched-at map from the cache, picks the `count` least-recently-fetched pairs, and warms each via the existing `refreshSingleFlight`. The warmer `setInterval` tick calls it after the near-expiry pass. `server/price-cache.ts` gains `getAllFetchedAt()` to feed the fetched-at map.
 
 **Tech Stack:** Express + tRPC v11 + Drizzle (MySQL) + superjson; vitest.
 
@@ -424,7 +424,7 @@ Change to:
 ```ts
   warmerTimer = setInterval(() => {
     void refreshNearExpiry(Date.now());
-    void warmCatalogRotation(Date.now(), CATALOG_WARM_PER_TICK);
+    void warmCatalogRotation(CATALOG_WARM_PER_TICK);
     void purgeOldHistory(Date.now());
   }, intervalMs);
 ```
@@ -500,6 +500,6 @@ Use the next version number per the repo's existing checkpoint history (current 
 
 - **Spec coverage:** Every spec section maps to a task: `getAllFetchedAt` (T1), pure helpers `buildCatalogPairs`/`pickPairsToWarm` (T2), `warmCatalogRotation` + warmer-tick wiring (T3), verification (T4). Out-of-scope items (curated mapping, persisted state, client changes, cadence env vars) are untouched.
 - **Circular-import avoidance:** `warmCatalogRotation` lives in `server/prices.ts` (where `refreshSingleFlight` is private) and imports the pure helpers from `server/catalog-warmer.ts`. `catalog-warmer.ts` does NOT import `prices.ts`, so there is no cycle.
-- **Type consistency:** `CatalogPair` defined once in `server/catalog-warmer.ts`, used by `buildCatalogPairs` and `pickPairsToWarm`. `getAllFetchedAt` returns `Array<{ distributorId, modelNumber, fetchedAt }>` matching the rotation's fetched-at map construction. `warmCatalogRotation(now, count)` signature consistent across the test and the warmer-tick call.
+- **Type consistency:** `CatalogPair` defined once in `server/catalog-warmer.ts`, used by `buildCatalogPairs` and `pickPairsToWarm`. `getAllFetchedAt` returns `Array<{ distributorId, modelNumber, fetchedAt }>` matching the rotation's fetched-at map construction. `warmCatalogRotation(count)` signature consistent across the test and the warmer-tick call (no unused `now` param — the desktop tsconfig's `noUnusedParameters` rejects it).
 - **Single-flight reuse:** the rotation calls `refreshSingleFlight` (same as `refreshPrice`/near-expiry), so a pair warmed by the rotation and requested on-demand share one in-flight promise — no double-scrape.
 - **Test isolation:** `tests/prices.test.ts` mocks `getAllFetchedAt` (added in T3 Step 1) so `warmCatalogRotation` uses the mock; `tests/catalog-warmer.test.ts` mocks `getParserByDistributorId` so `buildCatalogPairs` is deterministic. The existing `tests/price-cache.test.ts` memory-backend tests exercise `getAllFetchedAt`'s memory path.

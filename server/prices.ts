@@ -80,10 +80,7 @@ export async function refreshNearExpiry(now: number): Promise<void> {
   }
 }
 
-export async function warmCatalogRotation(
-  now: number,
-  count: number,
-): Promise<number> {
+export async function warmCatalogRotation(count: number): Promise<number> {
   const pairs = buildCatalogPairs();
   if (pairs.length === 0) return 0;
   const fetchedRows = await getAllFetchedAt();
@@ -106,7 +103,7 @@ export function startWarmer(opts?: { intervalMs?: number }): () => void {
   if (warmerTimer) return () => {};
   warmerTimer = setInterval(() => {
     void refreshNearExpiry(Date.now());
-    void warmCatalogRotation(Date.now(), CATALOG_WARM_PER_TICK);
+    void warmCatalogRotation(CATALOG_WARM_PER_TICK);
     void purgeOldHistory(Date.now());
   }, intervalMs);
   return () => {
