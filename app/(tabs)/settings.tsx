@@ -13,12 +13,15 @@ import {
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { startOAuthLogin } from "@/constants/oauth";
+import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
 import {
   getSettings,
   saveSettings,
   getWatchlist,
   updateProductListings,
+  getSyncMeta,
 } from "@/lib/storage";
 import { AppSettings, Product, DistributorListing } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -111,6 +114,37 @@ export default function SettingsScreen() {
     priceAlerts: true,
   });
   const [products, setProducts] = useState<Product[]>([]);
+  const { user, isAuthenticated, logout } = useAuth();
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      const meta = await getSyncMeta();
+      if (!cancelled) setLastSyncedAt(meta.lastSyncedAt || null);
+    };
+    refresh();
+    const interval = setInterval(refresh, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const syncStatusLabel = (() => {
+    if (!isAuthenticated) return "Sign in to sync across devices";
+    if (!lastSyncedAt) return "Not synced yet";
+    const minutes = Math.floor((Date.now() - lastSyncedAt) / 60000);
+    if (minutes < 1) return "Synced just now";
+    if (minutes < 60) return `Last synced ${minutes}m ago`;
+    return `Last synced ${Math.floor(minutes / 60)}h ago`;
+  })();
+
+  const handleSignIn = useCallback(() => {
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    startOAuthLogin();
+  }, []);
 
   useEffect(() => {
     getSettings().then(setSettings);
@@ -274,6 +308,80 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-5 pt-4 pb-2">
           <Text className="text-2xl font-bold text-foreground">Settings</Text>
+        </View>
+
+        <SectionHeader title="Account" />
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            overflow: "hidden",
+          }}
+        >
+          {isAuthenticated && user ? (
+            <SettingRow
+              icon="person.crop.circle.fill"
+              label={user.name ?? "Signed in"}
+              description={user.email ?? user.openId}
+              right={
+                <Text
+                  style={{ color: colors.success, fontSize: 12, fontWeight: "600" }}
+                >
+                  Signed in
+                </Text>
+              }
+            />
+          ) : (
+            <SettingRow
+              icon="person.crop.circle.badge.plus"
+              label="Sign in to sync"
+              description="Sync your watchlist and alerts across devices"
+              right={
+                <TouchableOpacity
+                  onPress={handleSignIn}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 12,
+                    backgroundColor: colors.primary + "22",
+                  }}
+                >
+                  <Text
+                    style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}
+                  >
+                    Sign in
+                  </Text>
+                </TouchableOpacity>
+              }
+            />
+          )}
+          <SettingRow
+            icon="arrow.triangle.2.circlepath"
+            label="Sync status"
+            description={syncStatusLabel}
+            right={
+              isAuthenticated ? (
+                <TouchableOpacity
+                  onPress={logout}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 12,
+                    backgroundColor: colors.error + "22",
+                  }}
+                >
+                  <Text
+                    style={{ color: colors.error, fontSize: 13, fontWeight: "600" }}
+                  >
+                    Sign out
+                  </Text>
+                </TouchableOpacity>
+              ) : undefined
+            }
+          />
         </View>
 
         <SectionHeader title="Notifications" />

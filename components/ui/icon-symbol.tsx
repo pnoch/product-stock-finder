@@ -18,6 +18,7 @@ type IconSymbolName = keyof typeof MAPPING;
 const MAPPING = {
   "house.fill": "home",
   "arrow.clockwise": "refresh",
+  "arrow.triangle.2.circlepath": "sync",
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
@@ -65,6 +66,8 @@ const MAPPING = {
   "server.rack": "dns",
   "doc.on.doc": "content-copy",
   pencil: "edit",
+  "person.crop.circle.fill": "account-circle",
+  "person.crop.circle.badge.plus": "person-add",
   "arrow.left.arrow.right": "swap-horiz",
   "chart.bar.xaxis": "bar-chart",
   "square.and.pencil": "edit-note",
