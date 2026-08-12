@@ -121,7 +121,7 @@ describe("syncNow", () => {
   it("pulls and merges server items on first sync without re-pushing them", async () => {
     const storage = makeStorage();
     const serverProduct = makeProduct("p1", [listing("d1", 100, "in_stock")]);
-    const pull = vi.fn(async () => ({
+    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
       lastSyncedAt: 2000,
       items: [
         {
@@ -153,7 +153,7 @@ describe("syncNow", () => {
     await storage.addToWatchlist(makeProduct("p1", [listing("d1", 100, "in_stock")]));
     await storage.setItemSyncMeta("watchlist", "p1", 1000);
     const serverProduct = makeProduct("p1", [listing("d1", 90, "in_stock")]);
-    const pull = vi.fn(async () => ({
+    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
       lastSyncedAt: 5000,
       items: [
         {
@@ -182,7 +182,7 @@ describe("syncNow", () => {
     await storage.addToWatchlist(makeProduct("p1", [listing("d1", 100, "in_stock")]));
     await storage.setItemSyncMeta("watchlist", "p1", 5000);
     const serverProduct = makeProduct("p1", [listing("d1", 90, "in_stock")]);
-    const pull = vi.fn(async () => ({
+    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
       lastSyncedAt: 6000,
       items: [
         {
@@ -210,7 +210,7 @@ describe("syncNow", () => {
     const storage = makeStorage();
     await storage.addToWatchlist(makeProduct("p1"));
     await storage.setItemSyncMeta("watchlist", "p1", 1000);
-    const pull = vi.fn(async () => ({
+    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
       lastSyncedAt: 5000,
       items: [
         {
@@ -242,7 +242,7 @@ describe("syncNow", () => {
     await storage.addToWatchlist(makeProduct("p1", [localListing]));
     await storage.setItemSyncMeta("watchlist", "p1", 1000);
     const serverProduct = makeProduct("p1", [listing("d1", 90, "in_stock")]);
-    const pull = vi.fn(async () => ({
+    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
       lastSyncedAt: 5000,
       items: [
         {
@@ -333,6 +333,7 @@ describe("syncNow", () => {
     };
     const p1 = syncNow(opts);
     const p2 = syncNow(opts);
+    await vi.waitFor(() => expect(pull).toHaveBeenCalledTimes(1));
     resolvePull!({ lastSyncedAt: 2000, items: [] });
     await Promise.all([p1, p2]);
     expect(pull).toHaveBeenCalledTimes(1);
@@ -343,7 +344,7 @@ describe("syncNow", () => {
     await storage.saveSettings({ ...DEFAULT_SETTINGS, displayCurrency: "EUR" });
     await storage.setItemSyncMeta("settings", "settings", 1000);
     const serverSettings = { ...DEFAULT_SETTINGS, displayCurrency: "GBP" };
-    const pull = vi.fn(async () => ({
+    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
       lastSyncedAt: 5000,
       items: [
         {
@@ -370,7 +371,7 @@ describe("syncNow", () => {
     const storage = makeStorage();
     const dateReminder = makeReminder("r1", { reminderType: "date" });
     const stockWatch = makeReminder("w1", { reminderType: "back_in_stock" });
-    const pull = vi.fn(async () => ({
+    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
       lastSyncedAt: 5000,
       items: [
         {
