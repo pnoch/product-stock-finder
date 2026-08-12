@@ -7,6 +7,7 @@ import { getDb } from "./db";
 import {
   listChangedItems,
   purgeOldTombstones,
+  TOMBSTONE_PURGE_WINDOW_MS,
   upsertSyncItem,
 } from "./sync-db";
 
@@ -56,10 +57,7 @@ export const appRouter = router({
         for (const item of input.items) {
           if (await upsertSyncItem(ctx.user.id, item)) accepted += 1;
         }
-        await purgeOldTombstones(
-          ctx.user.id,
-          Date.now() - 30 * 24 * 60 * 60 * 1000,
-        );
+        await purgeOldTombstones(ctx.user.id, Date.now() - TOMBSTONE_PURGE_WINDOW_MS);
         return { accepted };
       }),
   }),
