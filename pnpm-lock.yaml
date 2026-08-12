@@ -231,6 +231,9 @@ importers:
 
   desktop:
     dependencies:
+      '@tanstack/react-query':
+        specifier: ^5.90.12
+        version: 5.90.12(react@19.1.0)
       '@tauri-apps/api':
         specifier: ^2.0.0
         version: 2.11.1
@@ -240,6 +243,15 @@ importers:
       '@tauri-apps/plugin-fs':
         specifier: ^2.5.1
         version: 2.5.1
+      '@trpc/client':
+        specifier: 11.7.2
+        version: 11.7.2(@trpc/server@11.7.2(typescript@5.9.3))(typescript@5.9.3)
+      '@trpc/react-query':
+        specifier: 11.7.2
+        version: 11.7.2(@tanstack/react-query@5.90.12(react@19.1.0))(@trpc/client@11.7.2(@trpc/server@11.7.2(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.7.2(typescript@5.9.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+      '@trpc/server':
+        specifier: 11.7.2
+        version: 11.7.2(typescript@5.9.3)
       lucide-react:
         specifier: ^0.400.0
         version: 0.400.0(react@19.1.0)
@@ -255,6 +267,9 @@ importers:
       recharts:
         specifier: ^2.15.0
         version: 2.15.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      superjson:
+        specifier: ^1.13.3
+        version: 1.13.3
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4.3.3
@@ -6727,7 +6742,7 @@ packages:
 
   uuid@3.4.0:
     resolution: {integrity: sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==}
-    deprecated: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   uuid@7.0.3:
