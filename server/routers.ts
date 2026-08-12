@@ -1,7 +1,22 @@
+import { z } from "zod";
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { getDb } from "./db";
+import {
+  listChangedItems,
+  purgeOldTombstones,
+  upsertSyncItem,
+} from "./sync-db";
+
+const syncItemSchema = z.object({
+  collection: z.enum(["watchlist", "alerts", "reminders", "settings"]),
+  id: z.string(),
+  data: z.unknown(),
+  updatedAt: z.number(),
+  deletedAt: z.number().nullable(),
+});
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -17,12 +32,37 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  sync: router({
+    pull: protectedProcedure
+      .input(z.object({ since: z.number().nullable() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) {
+          console.warn("[Sync] Database not available; returning empty pull");
+          return { lastSyncedAt: Date.now(), items: [] };
+        }
+        const items = await listChangedItems(ctx.user.id, input.since);
+        return { lastSyncedAt: Date.now(), items };
+      }),
+    push: protectedProcedure
+      .input(z.object({ items: z.array(syncItemSchema) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) {
+          console.warn("[Sync] Database not available; accepting nothing");
+          return { accepted: 0 };
+        }
+        let accepted = 0;
+        for (const item of input.items) {
+          if (await upsertSyncItem(ctx.user.id, item)) accepted += 1;
+        }
+        await purgeOldTombstones(
+          ctx.user.id,
+          Date.now() - 30 * 24 * 60 * 60 * 1000,
+        );
+        return { accepted };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
