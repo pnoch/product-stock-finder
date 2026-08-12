@@ -6,6 +6,7 @@ import {
   DistributorListing,
   BackOrderReminder,
 } from "./types";
+import type { Collection, SyncMeta } from "./types";
 import type { DigestSnapshot } from "./price-digest";
 
 export interface StorageAdapter {
@@ -15,7 +16,10 @@ export interface StorageAdapter {
   multiRemove(keys: string[]): Promise<void>;
 }
 
-export function createStorage(adapter: StorageAdapter) {
+export function createStorage(
+  adapter: StorageAdapter,
+  opts?: { onChange?: (collection: Collection, itemId: string) => void },
+) {
   const KEYS = {
     WATCHLIST: "watchlist_products",
     ALERTS: "price_alerts",
@@ -23,7 +27,25 @@ export function createStorage(adapter: StorageAdapter) {
     REMINDERS: "back_order_reminders",
     STOCK_WATCHES: "back_in_stock_watches",
     DIGEST_SNAPSHOT: "price_digest_snapshot",
+    SYNC_META: "sync_meta",
   };
+
+  let onChange = opts?.onChange ?? null;
+  let suppressChange = false;
+
+  function notify(collection: Collection, itemId: string) {
+    if (!suppressChange && onChange) onChange(collection, itemId);
+  }
+
+  function setOnChange(
+    fn: ((collection: Collection, itemId: string) => void) | null,
+  ) {
+    onChange = fn;
+  }
+
+  function setChangeSuppressed(flag: boolean) {
+    suppressChange = flag;
+  }
 
   // Serializes read-modify-write operations per key to prevent lost updates
   // when concurrent batches (e.g. background price checks) mutate the same list.
@@ -81,6 +103,7 @@ export function createStorage(adapter: StorageAdapter) {
           addedAt: new Date().toISOString(),
         });
         await saveWatchlist(list);
+        notify("watchlist", product.id);
       }
     });
   }
@@ -88,7 +111,11 @@ export function createStorage(adapter: StorageAdapter) {
   async function removeFromWatchlist(productId: string): Promise<void> {
     await enqueue(KEYS.WATCHLIST, async () => {
       const list = await getWatchlist();
-      await saveWatchlist(list.filter((p) => p.id !== productId));
+      const next = list.filter((p) => p.id !== productId);
+      if (next.length !== list.length) {
+        await saveWatchlist(next);
+        notify("watchlist", productId);
+      }
     });
   }
 
@@ -103,6 +130,7 @@ export function createStorage(adapter: StorageAdapter) {
         p.id === productId ? { ...p, listings, lastRefreshed: now } : p,
       );
       await saveWatchlist(updated);
+      notify("watchlist", productId);
     });
   }
 
@@ -111,6 +139,7 @@ export function createStorage(adapter: StorageAdapter) {
     const now = new Date().toISOString();
     const updated = list.map((p) => ({ ...p, lastRefreshed: now }));
     await saveWatchlist(updated);
+    for (const p of updated) notify("watchlist", p.id);
   }
 
   // ─── Alerts ─────────────────────────────────────────────────────────────────
@@ -128,6 +157,7 @@ export function createStorage(adapter: StorageAdapter) {
       const alerts = await getAlerts();
       alerts.unshift(alert);
       await saveAlerts(alerts);
+      notify("alerts", alert.id);
     });
   }
 
@@ -135,6 +165,7 @@ export function createStorage(adapter: StorageAdapter) {
     await enqueue(KEYS.ALERTS, async () => {
       const alerts = await getAlerts();
       await saveAlerts(alerts.filter((a) => a.id !== alertId));
+      notify("alerts", alertId);
     });
   }
 
@@ -145,6 +176,7 @@ export function createStorage(adapter: StorageAdapter) {
         a.id === alertId ? { ...a, isActive: !a.isActive } : a,
       );
       await saveAlerts(updated);
+      notify("alerts", alertId);
     });
   }
 
@@ -162,6 +194,7 @@ export function createStorage(adapter: StorageAdapter) {
           : a,
       );
       await saveAlerts(updated);
+      notify("alerts", alertId);
     });
   }
 
@@ -182,6 +215,7 @@ export function createStorage(adapter: StorageAdapter) {
           : a,
       );
       await saveAlerts(updated);
+      notify("alerts", alertId);
     });
   }
 
@@ -198,6 +232,7 @@ export function createStorage(adapter: StorageAdapter) {
 
   async function saveSettings(settings: AppSettings): Promise<void> {
     await adapter.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+    notify("settings", "settings");
   }
 
   // ─── Back-Order Reminders ───────────────────────────────────────────────────
@@ -228,6 +263,7 @@ export function createStorage(adapter: StorageAdapter) {
         reminders.unshift(reminder);
       }
       await saveBackOrderReminders(reminders);
+      notify("reminders", reminder.id);
     });
   }
 
@@ -237,6 +273,7 @@ export function createStorage(adapter: StorageAdapter) {
     await enqueue(KEYS.REMINDERS, async () => {
       const reminders = await getBackOrderReminders();
       await saveBackOrderReminders(reminders.filter((r) => r.id !== reminderId));
+      notify("reminders", reminderId);
     });
   }
 
@@ -266,6 +303,7 @@ export function createStorage(adapter: StorageAdapter) {
         watches.unshift(watch);
       }
       await saveStockWatches(watches);
+      notify("reminders", watch.id);
     });
   }
 
@@ -273,6 +311,7 @@ export function createStorage(adapter: StorageAdapter) {
     await enqueue(KEYS.STOCK_WATCHES, async () => {
       const watches = await getStockWatches();
       await saveStockWatches(watches.filter((w) => w.id !== watchId));
+      notify("reminders", watchId);
     });
   }
 
@@ -283,12 +322,16 @@ export function createStorage(adapter: StorageAdapter) {
   ): Promise<void> {
     await enqueue(KEYS.STOCK_WATCHES, async () => {
       const watches = await getStockWatches();
-      const updated = watches.map((w) =>
-        w.productId === productId && w.distributorId === distributorId
-          ? { ...w, lastKnownStatus: status }
-          : w,
-      );
+      let targetId: string | null = null;
+      const updated = watches.map((w) => {
+        if (w.productId === productId && w.distributorId === distributorId) {
+          targetId = w.id;
+          return { ...w, lastKnownStatus: status };
+        }
+        return w;
+      });
       await saveStockWatches(updated);
+      if (targetId) notify("reminders", targetId);
     });
   }
 
@@ -309,6 +352,78 @@ export function createStorage(adapter: StorageAdapter) {
     await adapter.setItem(KEYS.DIGEST_SNAPSHOT, JSON.stringify(snapshot));
   }
 
+  // ─── Sync Meta ─────────────────────────────────────────────────────────────
+
+  async function getSyncMeta(): Promise<SyncMeta> {
+    try {
+      const raw = await adapter.getItem(KEYS.SYNC_META);
+      if (!raw) return { lastSyncedAt: 0, items: {} };
+      const parsed = JSON.parse(raw);
+      return {
+        lastSyncedAt:
+          typeof parsed.lastSyncedAt === "number" ? parsed.lastSyncedAt : 0,
+        items: parsed.items ?? {},
+      };
+    } catch {
+      return { lastSyncedAt: 0, items: {} };
+    }
+  }
+
+  async function saveSyncMeta(meta: SyncMeta): Promise<void> {
+    const existing = await getSyncMeta();
+    await adapter.setItem(
+      KEYS.SYNC_META,
+      JSON.stringify({
+        lastSyncedAt: meta.lastSyncedAt,
+        items: { ...existing.items, ...meta.items },
+      }),
+    );
+  }
+
+  function updateItemMeta(
+    collection: Collection,
+    id: string,
+    patch: { updatedAt: number; deleted: boolean },
+  ): Promise<void> {
+    return enqueue(KEYS.SYNC_META, async () => {
+      const meta = await getSyncMeta();
+      const col = meta.items[collection] ?? {};
+      col[id] = patch;
+      meta.items[collection] = col;
+      await saveSyncMeta(meta);
+    });
+  }
+
+  async function setItemSyncMeta(
+    collection: Collection,
+    id: string,
+    updatedAt: number,
+  ): Promise<void> {
+    await updateItemMeta(collection, id, { updatedAt, deleted: false });
+  }
+
+  async function markItemDeleted(
+    collection: Collection,
+    id: string,
+    updatedAt: number,
+  ): Promise<void> {
+    await updateItemMeta(collection, id, { updatedAt, deleted: true });
+  }
+
+  async function clearItemSyncMeta(
+    collection: Collection,
+    id: string,
+  ): Promise<void> {
+    await enqueue(KEYS.SYNC_META, async () => {
+      const meta = await getSyncMeta();
+      const col = meta.items[collection];
+      if (col && col[id]) {
+        delete col[id];
+        await saveSyncMeta(meta);
+      }
+    });
+  }
+
   // ─── Clear All Data ─────────────────────────────────────────────────────────
 
   async function clearAllData(): Promise<void> {
@@ -318,6 +433,7 @@ export function createStorage(adapter: StorageAdapter) {
       KEYS.SETTINGS,
       KEYS.REMINDERS,
       KEYS.STOCK_WATCHES,
+      KEYS.SYNC_META,
       "recently_viewed",
       "distributor_watches",
       "triggered_alert_history",
@@ -354,6 +470,13 @@ export function createStorage(adapter: StorageAdapter) {
     updateStockWatchStatus,
     getPriceDigestSnapshot,
     savePriceDigestSnapshot,
+    getSyncMeta,
+    saveSyncMeta,
+    setItemSyncMeta,
+    markItemDeleted,
+    clearItemSyncMeta,
+    setOnChange,
+    setChangeSuppressed,
     clearAllData,
   };
 }
@@ -363,7 +486,7 @@ export type Storage = ReturnType<typeof createStorage>;
 // ─── Default instance (mobile / AsyncStorage) ──────────────────────────────────
 // Preserves backward-compatible named exports so existing imports work unchanged.
 
-const defaultStorage = createStorage(AsyncStorage);
+export const defaultStorage = createStorage(AsyncStorage);
 
 export const {
   getWatchlist,
@@ -392,5 +515,12 @@ export const {
   updateStockWatchStatus,
   getPriceDigestSnapshot,
   savePriceDigestSnapshot,
+  getSyncMeta,
+  saveSyncMeta,
+  setItemSyncMeta,
+  markItemDeleted,
+  clearItemSyncMeta,
+  setOnChange,
+  setChangeSuppressed,
   clearAllData,
 } = defaultStorage;

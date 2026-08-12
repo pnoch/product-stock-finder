@@ -46,7 +46,13 @@ import {
   addStockWatch,
   removeStockWatch,
   updateStockWatchStatus,
+  getSyncMeta,
+  saveSyncMeta,
+  setItemSyncMeta,
+  markItemDeleted,
+  clearItemSyncMeta,
   clearAllData,
+  createStorage,
 } from "../lib/storage";
 
 function makeProduct(id: string, listings: DistributorListing[] = []): Product {
@@ -268,6 +274,85 @@ describe("reminders & stock watches", () => {
     await addStockWatch(makeReminder("w1"));
     await removeStockWatch("w1");
     expect(await getStockWatches()).toHaveLength(0);
+  });
+});
+
+describe("sync meta", () => {
+  it("returns empty meta by default", async () => {
+    const meta = await getSyncMeta();
+    expect(meta.lastSyncedAt).toBe(0);
+    expect(meta.items).toEqual({});
+  });
+
+  it("setItemSyncMeta records an item and saveSyncMeta persists lastSyncedAt", async () => {
+    await setItemSyncMeta("watchlist", "p1", 1000);
+    await saveSyncMeta({ lastSyncedAt: 5000, items: {} });
+    const meta = await getSyncMeta();
+    expect(meta.items.watchlist?.p1).toEqual({ updatedAt: 1000, deleted: false });
+    expect(meta.lastSyncedAt).toBe(5000);
+  });
+
+  it("markItemDeleted flags an item as deleted", async () => {
+    await markItemDeleted("alerts", "a1", 2000);
+    const meta = await getSyncMeta();
+    expect(meta.items.alerts?.a1).toEqual({ updatedAt: 2000, deleted: true });
+  });
+
+  it("clearItemSyncMeta removes an item entry", async () => {
+    await setItemSyncMeta("watchlist", "p1", 1000);
+    await clearItemSyncMeta("watchlist", "p1");
+    const meta = await getSyncMeta();
+    expect(meta.items.watchlist?.p1).toBeUndefined();
+  });
+});
+
+describe("onChange callback", () => {
+  it("fires after addToWatchlist and removeFromWatchlist", async () => {
+    const calls: Array<[string, string]> = [];
+    const localStore = new Map<string, string>();
+    const storage = createStorage(
+      {
+        getItem: async (k) => localStore.get(k) ?? null,
+        setItem: async (k, v) => {
+          localStore.set(k, v);
+        },
+        removeItem: async (k) => {
+          localStore.delete(k);
+        },
+        multiRemove: async (keys) => {
+          keys.forEach((k) => localStore.delete(k));
+        },
+      },
+      { onChange: (collection, itemId) => calls.push([collection, itemId]) },
+    );
+    await storage.addToWatchlist(makeProduct("p1"));
+    await storage.removeFromWatchlist("p1");
+    expect(calls).toEqual([
+      ["watchlist", "p1"],
+      ["watchlist", "p1"],
+    ]);
+  });
+
+  it("does not fire onChange for raw saveWatchlist", async () => {
+    const calls: Array<[string, string]> = [];
+    const localStore = new Map<string, string>();
+    const storage = createStorage(
+      {
+        getItem: async (k) => localStore.get(k) ?? null,
+        setItem: async (k, v) => {
+          localStore.set(k, v);
+        },
+        removeItem: async (k) => {
+          localStore.delete(k);
+        },
+        multiRemove: async (keys) => {
+          keys.forEach((k) => localStore.delete(k));
+        },
+      },
+      { onChange: (collection, itemId) => calls.push([collection, itemId]) },
+    );
+    await storage.saveWatchlist([makeProduct("p1")]);
+    expect(calls).toEqual([]);
   });
 });
 
