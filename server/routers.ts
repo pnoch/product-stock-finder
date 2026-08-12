@@ -10,6 +10,7 @@ import {
   TOMBSTONE_PURGE_WINDOW_MS,
   upsertSyncItem,
 } from "./sync-db";
+import { getPrice } from "./prices";
 
 const syncItemSchema = z.object({
   collection: z.enum(["watchlist", "alerts", "reminders", "settings"]),
@@ -59,6 +60,19 @@ export const appRouter = router({
         }
         await purgeOldTombstones(ctx.user.id, Date.now() - TOMBSTONE_PURGE_WINDOW_MS);
         return { accepted };
+      }),
+  }),
+
+  prices: router({
+    get: publicProcedure
+      .input(
+        z.object({
+          distributorId: z.string().min(1),
+          modelNumber: z.string().min(1),
+        }),
+      )
+      .query(async ({ input }) => {
+        return getPrice(input.distributorId, input.modelNumber);
       }),
   }),
 });
