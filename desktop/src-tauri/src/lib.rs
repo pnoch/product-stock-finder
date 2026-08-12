@@ -283,7 +283,9 @@ async fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64, api_ba
     drop(running);
 
     let handle = app.clone();
+    let backfill_url = api_base_url.clone();
     tauri::async_runtime::spawn(async move {
+        let _ = backfill_local_history(handle.clone(), backfill_url.clone()).await;
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(interval_minutes * 60));
         interval.tick().await;
         loop {
@@ -428,9 +430,9 @@ async fn check_all_prices(products: Vec<WatchedProduct>, api_base_url: String) -
             }
             first = false;
             let start = std::time::Instant::now();
-            let scrape_result = match fetch_server_price(&api_base_url, &distributor_id, &product.model_number).await {
-                Some(r) => Ok(r),
-                None => scrape_distributor(&distributor_id, &product.model_number).await,
+            let (scrape_result, history) = match fetch_server_price(&api_base_url, &distributor_id, &product.model_number).await {
+                Some((r, h)) => (Ok(r), h),
+                None => (scrape_distributor(&distributor_id, &product.model_number).await, Vec::new()),
             };
             let duration_ms = start.elapsed().as_millis() as u64;
             let (result, error) = match scrape_result {
@@ -443,10 +445,78 @@ async fn check_all_prices(products: Vec<WatchedProduct>, api_base_url: String) -
                 result,
                 error,
                 duration_ms,
+                history,
             });
         }
     }
     Ok(results)
+}
+
+#[tauri::command]
+async fn backfill_local_history(app: tauri::AppHandle, api_base_url: String) -> Result<u64, String> {
+    if api_base_url.is_empty() {
+        return Ok(0);
+    }
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let watchlist_val = read_json_file(&data_dir, "watchlist_products")?;
+    let watchlist: Vec<serde_json::Value> = watchlist_val
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+
+    let mut uploaded = 0u64;
+    for product in &watchlist {
+        let model_number = product.get("modelNumber").and_then(|v| v.as_str()).unwrap_or("");
+        if model_number.is_empty() {
+            continue;
+        }
+        let listings = product.get("listings").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+        for listing in &listings {
+            let distributor_id = listing.get("distributorId").and_then(|v| v.as_str()).unwrap_or("");
+            let history = listing.get("priceHistory").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+            if distributor_id.is_empty() || history.is_empty() {
+                continue;
+            }
+            if upload_server_history(&api_base_url, distributor_id, model_number, &history).await.is_ok() {
+                uploaded += 1;
+            }
+        }
+    }
+    Ok(uploaded)
+}
+
+async fn upload_server_history(
+    api_base_url: &str,
+    distributor_id: &str,
+    model_number: &str,
+    points: &[serde_json::Value],
+) -> Result<(), String> {
+    if api_base_url.is_empty() {
+        return Ok(());
+    }
+    let input = serde_json::json!({
+        "json": {
+            "distributorId": distributor_id,
+            "modelNumber": model_number,
+            "points": points,
+        }
+    });
+    let url = format!(
+        "{}/api/trpc/prices.uploadHistory",
+        api_base_url.trim_end_matches('/')
+    );
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(&url)
+        .json(&input)
+        .timeout(std::time::Duration::from_secs(8))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if !resp.status().is_success() {
+        return Err(format!("uploadHistory failed: {}", resp.status()));
+    }
+    Ok(())
 }
 
 async fn scrape_distributor(
@@ -487,7 +557,7 @@ async fn fetch_server_price(
     api_base_url: &str,
     distributor_id: &str,
     model: &str,
-) -> Option<scrapers::ScrapeResult> {
+) -> Option<(scrapers::ScrapeResult, Vec<serde_json::Value>)> {
     if api_base_url.is_empty() {
         return None;
     }
@@ -514,18 +584,23 @@ async fn fetch_server_price(
     }
     let body: serde_json::Value = resp.json().await.ok()?;
     let data = body.pointer("/result/data/json")?;
-    let price = data.get("price")?.as_f64()?;
-    let currency = data.get("currency")?.as_str()?.to_string();
-    let stock_status = data.get("stockStatus").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
-    let expected_date = data.get("expectedDate").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let url = data.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    Some(scrapers::ScrapeResult {
-        price,
-        currency,
-        stock_status,
-        expected_date,
-        url,
-    })
+    let snapshot = data.get("snapshot")?;
+    let price = snapshot.get("price")?.as_f64()?;
+    let currency = snapshot.get("currency")?.as_str()?.to_string();
+    let stock_status = snapshot.get("stockStatus").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+    let expected_date = snapshot.get("expectedDate").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let url = snapshot.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let history = data.get("history").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    Some((
+        scrapers::ScrapeResult {
+            price,
+            currency,
+            stock_status,
+            expected_date,
+            url,
+        },
+        history,
+    ))
 }
 
 // ─── Distributor Health ──────────────────────────────────────────────────────
@@ -642,7 +717,7 @@ async fn run_full_price_check(app: tauri::AppHandle, api_base_url: String) -> Re
 
     for job_result in &results {
         if let Some(scrape) = &job_result.result {
-            update_listing_price(&data_dir, &job_result.product_id, &job_result.distributor_id, scrape)?;
+            update_listing_price(&data_dir, &job_result.product_id, &job_result.distributor_id, scrape, &job_result.history)?;
             let _ = app.emit("listing-updated", serde_json::json!({
                 "productId": job_result.product_id,
                 "distributorId": job_result.distributor_id,
@@ -671,6 +746,7 @@ fn update_listing_price(
     product_id: &str,
     distributor_id: &str,
     scrape: &scrapers::ScrapeResult,
+    server_history: &[serde_json::Value],
 ) -> Result<(), String> {
     let watchlist_val = read_json_file(data_dir, "watchlist_products")?;
     let mut watchlist: Vec<serde_json::Value> = watchlist_val
@@ -702,8 +778,8 @@ fn update_listing_price(
                 }
                 obj.insert("lastChecked".to_string(), serde_json::json!(current_iso_timestamp()));
 
-                // Append a price point to history so the compare chart stays fresh,
-                // replacing the same-day point and pruning to a 90-day window.
+                // Merge server history (union by day, newest wins) then append today's point,
+                // pruning to a 90-day window.
                 let now = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
@@ -715,10 +791,18 @@ fn update_listing_price(
                     "currency": scrape.currency,
                     "stockStatus": scrape.stock_status,
                 });
-                match obj.get_mut("priceHistory").and_then(|v| v.as_array_mut()) {
-                    Some(arr) => append_price_point_with_retention(arr, point, &cutoff_day),
+                let existing = obj.get_mut("priceHistory").and_then(|v| v.as_array_mut());
+                match existing {
+                    Some(arr) => {
+                        for hp in server_history {
+                            append_price_point_with_retention(arr, hp.clone(), &cutoff_day);
+                        }
+                        append_price_point_with_retention(arr, point, &cutoff_day);
+                    }
                     None => {
-                        obj.insert("priceHistory".to_string(), serde_json::json!([point]));
+                        let mut arr = server_history.to_vec();
+                        arr.push(point);
+                        obj.insert("priceHistory".to_string(), serde_json::Value::Array(arr));
                     }
                 }
                 updated = true;
@@ -1005,6 +1089,7 @@ pub fn run() {
             stop_price_poller,
             update_tray_badge,
             check_all_prices,
+            backfill_local_history,
             check_distributor_health,
             start_oauth
         ])

@@ -54,6 +54,7 @@ pub struct ScrapeJobResult {
     pub result: Option<ScrapeResult>,
     pub error: Option<String>,
     pub duration_ms: u64,
+    pub history: Vec<serde_json::Value>,
 }
 
 pub async fn fetch_html(url: &str, rate_limit_ms: u64) -> Result<String, reqwest::Error> {
