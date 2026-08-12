@@ -8,6 +8,7 @@ import type {
   PriceAlert,
   Product,
   StockStatus,
+  SyncItem,
 } from "../lib/types";
 
 function makeAdapter() {
@@ -132,7 +133,7 @@ describe("syncNow", () => {
         },
       ],
     }));
-    const push = vi.fn(async () => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -164,7 +165,7 @@ describe("syncNow", () => {
         },
       ],
     }));
-    const push = vi.fn(async () => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -193,7 +194,7 @@ describe("syncNow", () => {
         },
       ],
     }));
-    const push = vi.fn(async () => ({ accepted: 1 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1 }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -221,7 +222,7 @@ describe("syncNow", () => {
         },
       ],
     }));
-    const push = vi.fn(async () => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -253,7 +254,7 @@ describe("syncNow", () => {
         },
       ],
     }));
-    const push = vi.fn(async () => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -274,7 +275,7 @@ describe("syncNow", () => {
     ];
     await storage.addToWatchlist(makeProduct("p1", [localListing]));
     const pull = vi.fn(async () => ({ lastSyncedAt: 2000, items: [] }));
-    const push = vi.fn(async () => ({ accepted: 1 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1 }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -288,7 +289,7 @@ describe("syncNow", () => {
     expect(pushed[0]!.collection).toBe("watchlist");
     expect(pushed[0]!.id).toBe("p1");
     expect(pushed[0]!.updatedAt).toBe(3000);
-    expect(pushed[0]!.data.listings[0]!.priceHistory).toBeUndefined();
+    expect((pushed[0]!.data as Product).listings[0]!.priceHistory).toBeUndefined();
     const meta = await storage.getSyncMeta();
     expect(meta.lastSyncedAt).toBe(3000);
   });
@@ -297,7 +298,7 @@ describe("syncNow", () => {
     const storage = makeStorage();
     await storage.addToWatchlist(makeProduct("p1"));
     const pull = vi.fn(async () => ({ lastSyncedAt: 2000, items: [] }));
-    const push = vi.fn(async () => {
+    const push = vi.fn(async (_items: SyncItem[]) => {
       throw new Error("network");
     });
     await expect(
@@ -322,7 +323,7 @@ describe("syncNow", () => {
           resolvePull = res;
         }),
     );
-    const push = vi.fn(async () => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
     const opts = {
       storage,
       isSignedIn: () => true,
@@ -354,7 +355,7 @@ describe("syncNow", () => {
         },
       ],
     }));
-    const push = vi.fn(async () => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -388,7 +389,7 @@ describe("syncNow", () => {
         },
       ],
     }));
-    const push = vi.fn(async () => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -409,7 +410,7 @@ describe("syncNow", () => {
     await storage.removeFromWatchlist("p1");
     await storage.markItemDeleted("watchlist", "p1", 2000);
     const pull = vi.fn(async () => ({ lastSyncedAt: 1500, items: [] }));
-    const push = vi.fn(async () => ({ accepted: 1 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1 }));
     await syncNow({
       storage,
       isSignedIn: () => true,
