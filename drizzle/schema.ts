@@ -106,3 +106,24 @@ export const priceCache = mysqlTable(
 
 export type PriceCacheRow = typeof priceCache.$inferSelect;
 export type InsertPriceCacheRow = typeof priceCache.$inferInsert;
+
+export const priceHistory = mysqlTable(
+  "price_history",
+  {
+    distributorId: varchar("distributorId", { length: 64 }).notNull(),
+    modelNumber: varchar("modelNumber", { length: 128 }).notNull(),
+    date: varchar("date", { length: 10 }).notNull(),
+    price: double("price").notNull(),
+    currency: varchar("currency", { length: 8 }).notNull(),
+    stockStatus: varchar("stockStatus", { length: 16 }).notNull(),
+    fetchedAt: bigint("fetchedAt", { mode: "number" }).notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.distributorId, table.modelNumber, table.date],
+    }),
+  ],
+);
+
+export type PriceHistoryRow = typeof priceHistory.$inferSelect;
+export type InsertPriceHistoryRow = typeof priceHistory.$inferInsert;
