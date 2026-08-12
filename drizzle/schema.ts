@@ -78,8 +78,8 @@ export const appSettings = mysqlTable("app_settings", {
   deletedAtMs: bigint("deletedAtMs", { mode: "number" }),
 });
 
-export type WatchlistItem = typeof watchlistItems.$inferSelect;
-export type InsertWatchlistItem = typeof watchlistItems.$inferInsert;
+export type WatchlistItemRow = typeof watchlistItems.$inferSelect;
+export type InsertWatchlistItemRow = typeof watchlistItems.$inferInsert;
 export type PriceAlertRow = typeof priceAlerts.$inferSelect;
 export type InsertPriceAlertRow = typeof priceAlerts.$inferInsert;
 export type BackOrderReminderRow = typeof backOrderReminders.$inferSelect;
