@@ -1,6 +1,6 @@
 CREATE TABLE `app_settings` (
 	`userId` int NOT NULL,
-	`data` json NOT NULL,
+	`data` json,
 	`updatedAtMs` bigint NOT NULL,
 	`deletedAtMs` bigint,
 	CONSTRAINT `app_settings_userId` PRIMARY KEY(`userId`)
@@ -9,7 +9,7 @@ CREATE TABLE `app_settings` (
 CREATE TABLE `back_order_reminders` (
 	`userId` int NOT NULL,
 	`reminderId` varchar(191) NOT NULL,
-	`data` json NOT NULL,
+	`data` json,
 	`updatedAtMs` bigint NOT NULL,
 	`deletedAtMs` bigint,
 	CONSTRAINT `back_order_reminders_userId_reminderId_pk` PRIMARY KEY(`userId`,`reminderId`)
@@ -18,7 +18,7 @@ CREATE TABLE `back_order_reminders` (
 CREATE TABLE `price_alerts` (
 	`userId` int NOT NULL,
 	`alertId` varchar(191) NOT NULL,
-	`data` json NOT NULL,
+	`data` json,
 	`updatedAtMs` bigint NOT NULL,
 	`deletedAtMs` bigint,
 	CONSTRAINT `price_alerts_userId_alertId_pk` PRIMARY KEY(`userId`,`alertId`)
@@ -27,7 +27,7 @@ CREATE TABLE `price_alerts` (
 CREATE TABLE `watchlist_items` (
 	`userId` int NOT NULL,
 	`productId` varchar(191) NOT NULL,
-	`data` json NOT NULL,
+	`data` json,
 	`updatedAtMs` bigint NOT NULL,
 	`deletedAtMs` bigint,
 	CONSTRAINT `watchlist_items_userId_productId_pk` PRIMARY KEY(`userId`,`productId`)

@@ -40,7 +40,7 @@ export const watchlistItems = mysqlTable(
   {
     userId: int("userId").notNull().references(() => users.id),
     productId: varchar("productId", { length: 191 }).notNull(),
-    data: json("data").notNull(),
+    data: json("data"),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
     deletedAtMs: bigint("deletedAtMs", { mode: "number" }),
   },
@@ -52,7 +52,7 @@ export const priceAlerts = mysqlTable(
   {
     userId: int("userId").notNull().references(() => users.id),
     alertId: varchar("alertId", { length: 191 }).notNull(),
-    data: json("data").notNull(),
+    data: json("data"),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
     deletedAtMs: bigint("deletedAtMs", { mode: "number" }),
   },
@@ -64,7 +64,7 @@ export const backOrderReminders = mysqlTable(
   {
     userId: int("userId").notNull().references(() => users.id),
     reminderId: varchar("reminderId", { length: 191 }).notNull(),
-    data: json("data").notNull(),
+    data: json("data"),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
     deletedAtMs: bigint("deletedAtMs", { mode: "number" }),
   },
@@ -73,7 +73,7 @@ export const backOrderReminders = mysqlTable(
 
 export const appSettings = mysqlTable("app_settings", {
   userId: int("userId").notNull().references(() => users.id).primaryKey(),
-  data: json("data").notNull(),
+  data: json("data"),
   updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
   deletedAtMs: bigint("deletedAtMs", { mode: "number" }),
 });

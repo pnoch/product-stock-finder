@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "a59c0600-d239-41d1-9eb9-ea8569ec4172",
+  "id": "e8c92968-b138-4535-b026-b38dacea9668",
   "prevId": "3c3a03ea-b871-416a-b531-aa772cca8b00",
   "tables": {
     "app_settings": {
@@ -18,7 +18,7 @@
           "name": "data",
           "type": "json",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "updatedAtMs": {
@@ -84,7 +84,7 @@
           "name": "data",
           "type": "json",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "updatedAtMs": {
@@ -151,7 +151,7 @@
           "name": "data",
           "type": "json",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "updatedAtMs": {
@@ -310,7 +310,7 @@
           "name": "data",
           "type": "json",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "updatedAtMs": {
