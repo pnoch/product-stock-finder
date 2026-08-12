@@ -1,0 +1,156 @@
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import type { Product, DistributorListing } from "../lib/types";
+
+const state = vi.hoisted(() => ({
+  watchlistStore: [] as Product[],
+  updatedListings: [] as DistributorListing[][],
+}));
+
+vi.mock("../lib/storage", () => ({
+  getWatchlist: vi.fn(async () => state.watchlistStore),
+  updateProductListings: vi.fn(async (productId: string, listings: DistributorListing[]) => {
+    state.updatedListings.push(listings);
+  }),
+  getSettings: vi.fn(async () => ({
+    theme: "auto",
+    displayCurrency: "USD",
+    checkInterval: "manual",
+    notificationsEnabled: false,
+    priceAlerts: false,
+    stockAlerts: false,
+  })),
+  getAlerts: vi.fn(async () => []),
+  getPriceDigestSnapshot: vi.fn(async () => null),
+  savePriceDigestSnapshot: vi.fn(async () => {}),
+}));
+
+vi.mock("../lib/server-prices", () => ({
+  fetchServerPrice: vi.fn(),
+}));
+
+vi.mock("../lib/scrapers/registry", () => ({
+  getParserByDistributorId: vi.fn(),
+}));
+
+vi.mock("../lib/scrapers/utils", () => ({
+  fetchWithParser: vi.fn(),
+}));
+
+vi.mock("../lib/scrapers/health", () => ({
+  createHealthService: vi.fn(() => ({
+    getDistributorHealth: vi.fn(async () => []),
+    saveDistributorHealth: vi.fn(async () => {}),
+  })),
+}));
+
+vi.mock("expo-task-manager", () => ({ defineTask: vi.fn() }));
+vi.mock("expo-background-task", () => ({ BackgroundTaskResult: { Success: "success" } }));
+vi.mock("react-native", () => ({ Platform: { OS: "ios" } }));
+vi.mock("expo-notifications", () => ({
+  setNotificationHandler: vi.fn(),
+  scheduleNotificationAsync: vi.fn(async () => "notif-id"),
+}));
+vi.mock("../lib/notifications", () => ({
+  requestNotificationPermissions: vi.fn(async () => true),
+}));
+vi.mock("../lib/restock", () => ({
+  checkRestocks: vi.fn(async () => {}),
+}));
+
+import { fetchServerPrice } from "../lib/server-prices";
+import { getParserByDistributorId } from "../lib/scrapers/registry";
+import { fetchWithParser } from "../lib/scrapers/utils";
+import { checkPriceDropsNow } from "../lib/background-price-check";
+
+const mockedFetchServer = vi.mocked(fetchServerPrice);
+const mockedGetParser = vi.mocked(getParserByDistributorId);
+const mockedFetchLocal = vi.mocked(fetchWithParser);
+
+const listing: DistributorListing = {
+  distributorId: "server2u-my",
+  productId: "crs804",
+  price: 100,
+  currency: "USD",
+  stockStatus: "unknown",
+  url: "https://example.com",
+  lastChecked: "2026-01-01T00:00:00.000Z",
+  priceHistory: [],
+};
+
+const product = {
+  id: "crs804",
+  name: "CRS804",
+  modelNumber: "CRS804",
+  category: "Networking Switch",
+  imageUrl: "",
+  listings: [listing],
+} as unknown as Product;
+
+describe("server-first scraping", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    state.watchlistStore = [product];
+    state.updatedListings = [];
+  });
+
+  it("uses the server price when the server responds", async () => {
+    mockedFetchServer.mockResolvedValue({
+      price: 88.5,
+      currency: "MYR",
+      stockStatus: "in_stock",
+      url: "https://server2u.com/p/1",
+      fetchedAt: 1000,
+    });
+
+    await checkPriceDropsNow();
+
+    expect(mockedFetchLocal).not.toHaveBeenCalled();
+    expect(state.updatedListings).toHaveLength(1);
+    const updated = state.updatedListings[0][0];
+    expect(updated.price).toBe(88.5);
+    expect(updated.currency).toBe("MYR");
+    expect(updated.stockStatus).toBe("in_stock");
+    expect(updated.priceHistory).toHaveLength(1);
+  });
+
+  it("falls back to local scraping when the server returns null", async () => {
+    mockedFetchServer.mockResolvedValue(null);
+    mockedGetParser.mockReturnValue({
+      id: "server2u-my",
+      baseUrl: "https://server2u.com",
+      buildSearchUrl: (m: string) => `https://server2u.com/shop?q=${m}`,
+      parsePrice: () => ({
+        price: 77,
+        currency: "MYR",
+        stockStatus: "back_order",
+        url: "https://server2u.com/p/2",
+      }),
+      rateLimitMs: 0,
+    });
+    mockedFetchLocal.mockResolvedValue("<html>price</html>");
+
+    await checkPriceDropsNow();
+
+    expect(mockedFetchLocal).toHaveBeenCalled();
+    expect(state.updatedListings).toHaveLength(1);
+    expect(state.updatedListings[0][0].price).toBe(77);
+    expect(state.updatedListings[0][0].stockStatus).toBe("back_order");
+  });
+
+  it("keeps the listing unchanged when both server and local fail", async () => {
+    mockedFetchServer.mockResolvedValue(null);
+    mockedGetParser.mockReturnValue({
+      id: "server2u-my",
+      baseUrl: "https://server2u.com",
+      buildSearchUrl: (m: string) => `https://server2u.com/shop?q=${m}`,
+      parsePrice: () => null,
+      rateLimitMs: 0,
+    });
+    mockedFetchLocal.mockResolvedValue("<html>no price</html>");
+
+    await checkPriceDropsNow();
+
+    expect(state.updatedListings).toHaveLength(1);
+    expect(state.updatedListings[0][0]).toEqual(listing);
+  });
+});

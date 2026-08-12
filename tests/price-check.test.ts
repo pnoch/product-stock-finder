@@ -70,6 +70,9 @@ vi.mock("../lib/scrapers/registry", () => ({
 vi.mock("../lib/scrapers/utils", () => ({
   fetchWithRateLimit: vi.fn(async () => ""),
 }));
+vi.mock("../lib/server-prices", () => ({
+  fetchServerPrice: vi.fn(async () => null),
+}));
 
 import { checkPriceDropsNow } from "../lib/background-price-check";
 

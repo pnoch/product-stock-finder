@@ -9,7 +9,8 @@ import { requestNotificationPermissions } from "./notifications";
 import * as Notifications from "expo-notifications";
 import { getParserByDistributorId } from "./scrapers/registry";
 import { fetchWithParser } from "./scrapers/utils";
-import { PricePoint, DistributorListing } from "./types";
+import { fetchServerPrice } from "./server-prices";
+import { PricePoint, DistributorListing, Product } from "./types";
 import { appendPricePoint } from "./price-history";
 import { checkRestocks } from "./restock";
 import { maybeSendDigest } from "./price-digest";
@@ -53,6 +54,93 @@ function createHealthCollector() {
   };
 }
 
+async function refreshListing(
+  product: Product,
+  listing: DistributorListing,
+  healthCollector: ReturnType<typeof createHealthCollector>,
+): Promise<DistributorListing> {
+  const serverResult = await fetchServerPrice(
+    listing.distributorId,
+    product.modelNumber,
+  );
+  if (serverResult) {
+    healthCollector.record(listing.distributorId, "working");
+    const now = new Date().toISOString();
+    const newPricePoint: PricePoint = {
+      date: now,
+      price: serverResult.price,
+      currency: serverResult.currency,
+      stockStatus: serverResult.stockStatus,
+    };
+    return {
+      ...listing,
+      price: serverResult.price,
+      currency: serverResult.currency,
+      stockStatus: serverResult.stockStatus,
+      expectedDate: serverResult.expectedDate,
+      url: serverResult.url,
+      lastChecked: now,
+      priceHistory: appendPricePoint(
+        listing.priceHistory,
+        newPricePoint,
+        PRICE_HISTORY_DAYS,
+      ),
+    };
+  }
+
+  const parser = getParserByDistributorId(listing.distributorId);
+  if (!parser) return listing;
+
+  try {
+    const url = parser.buildSearchUrl(product.modelNumber);
+    const html = await fetchWithParser(parser, url);
+    const result = parser.parsePrice(html);
+
+    if (result) {
+      healthCollector.record(parser.id, "working");
+      const now = new Date().toISOString();
+      const newPricePoint: PricePoint = {
+        date: now,
+        price: result.price,
+        currency: result.currency,
+        stockStatus: result.stockStatus,
+      };
+      return {
+        ...listing,
+        price: result.price,
+        currency: result.currency,
+        stockStatus: result.stockStatus,
+        expectedDate: result.expectedDate,
+        url: result.url,
+        lastChecked: now,
+        priceHistory: appendPricePoint(
+          listing.priceHistory,
+          newPricePoint,
+          PRICE_HISTORY_DAYS,
+        ),
+      };
+    }
+    if (
+      html.includes("403 Forbidden") ||
+      html.includes("Access Denied") ||
+      html.includes("cf-browser-verification") ||
+      html.includes("Checking your browser")
+    ) {
+      healthCollector.record(parser.id, "blocked", "blocked by site");
+      return listing;
+    }
+    healthCollector.record(parser.id, "error", "no price found");
+    return listing;
+  } catch (error) {
+    healthCollector.record(
+      parser.id,
+      "error",
+      error instanceof Error ? error.message : String(error),
+    );
+    return listing;
+  }
+}
+
 // Must be defined in global scope, outside any component
 TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
   try {
@@ -73,63 +161,12 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
           const updatedListings: DistributorListing[] = [];
 
           for (const listing of product.listings) {
-            const parser = getParserByDistributorId(listing.distributorId);
-            if (!parser) {
-              updatedListings.push(listing);
-              continue;
-            }
-
-            try {
-              const url = parser.buildSearchUrl(product.modelNumber);
-              const html = await fetchWithParser(parser, url);
-              const result = parser.parsePrice(html);
-
-              if (result) {
-                healthCollector.record(parser.id, "working");
-                const now = new Date().toISOString();
-                const newPricePoint: PricePoint = {
-                  date: now,
-                  price: result.price,
-                  currency: result.currency,
-                  stockStatus: result.stockStatus,
-                };
-
-                const updatedListing: DistributorListing = {
-                  ...listing,
-                  price: result.price,
-                  currency: result.currency,
-                  stockStatus: result.stockStatus,
-                  expectedDate: result.expectedDate,
-                  url: result.url,
-                  lastChecked: now,
-                  priceHistory: appendPricePoint(
-                    listing.priceHistory,
-                    newPricePoint,
-                    PRICE_HISTORY_DAYS,
-                  ),
-                };
-
-                updatedListings.push(updatedListing);
-              } else if (
-                html.includes("403 Forbidden") ||
-                html.includes("Access Denied") ||
-                html.includes("cf-browser-verification") ||
-                html.includes("Checking your browser")
-              ) {
-                healthCollector.record(parser.id, "blocked", "blocked by site");
-                updatedListings.push(listing);
-              } else {
-                healthCollector.record(parser.id, "error", "no price found");
-                updatedListings.push(listing);
-              }
-            } catch (error) {
-              healthCollector.record(
-                parser.id,
-                "error",
-                error instanceof Error ? error.message : String(error),
-              );
-              updatedListings.push(listing);
-            }
+            const updated = await refreshListing(
+              product,
+              listing,
+              healthCollector,
+            );
+            updatedListings.push(updated);
 
             // 2-second delay between scrapes
             await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -267,63 +304,12 @@ export async function checkPriceDropsNow(
         const updatedListings: DistributorListing[] = [];
 
         for (const listing of product.listings) {
-          const parser = getParserByDistributorId(listing.distributorId);
-          if (!parser) {
-            updatedListings.push(listing);
-            continue;
-          }
-
-          try {
-            const url = parser.buildSearchUrl(product.modelNumber);
-            const html = await fetchWithParser(parser, url);
-            const result = parser.parsePrice(html);
-
-            if (result) {
-              healthCollector.record(parser.id, "working");
-              const now = new Date().toISOString();
-              const newPricePoint: PricePoint = {
-                date: now,
-                price: result.price,
-                currency: result.currency,
-                stockStatus: result.stockStatus,
-              };
-
-              const updatedListing: DistributorListing = {
-                ...listing,
-                price: result.price,
-                currency: result.currency,
-                stockStatus: result.stockStatus,
-                expectedDate: result.expectedDate,
-                url: result.url,
-                lastChecked: now,
-                priceHistory: appendPricePoint(
-                  listing.priceHistory,
-                  newPricePoint,
-                  PRICE_HISTORY_DAYS,
-                ),
-              };
-
-              updatedListings.push(updatedListing);
-            } else if (
-              html.includes("403 Forbidden") ||
-              html.includes("Access Denied") ||
-              html.includes("cf-browser-verification") ||
-              html.includes("Checking your browser")
-            ) {
-              healthCollector.record(parser.id, "blocked", "blocked by site");
-              updatedListings.push(listing);
-            } else {
-              healthCollector.record(parser.id, "error", "no price found");
-              updatedListings.push(listing);
-            }
-          } catch (error) {
-            healthCollector.record(
-              parser.id,
-              "error",
-              error instanceof Error ? error.message : String(error),
-            );
-            updatedListings.push(listing);
-          }
+          const updated = await refreshListing(
+            product,
+            listing,
+            healthCollector,
+          );
+          updatedListings.push(updated);
 
           // 2-second delay between scrapes
           await new Promise((resolve) => setTimeout(resolve, 2000));
