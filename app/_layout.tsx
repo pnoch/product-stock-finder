@@ -2,7 +2,7 @@ import "@/global.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { Platform } from "react-native";
@@ -17,6 +17,7 @@ import {
   addToWatchlist,
   updateProductListings,
   getSettings,
+  defaultStorage,
 } from "@/lib/storage";
 import {
   registerPriceCheckTask,
@@ -38,6 +39,8 @@ import {
   initManusRuntime,
   subscribeSafeAreaInsets,
 } from "@/lib/_core/manus-runtime";
+import { useAuth } from "@/hooks/use-auth";
+import { setupSync, type SyncSetup } from "@/lib/sync";
 
 // CRS804 + CRS326 listings seeded at first launch from lib/sample-data.ts so Home/Watchlist
 // badges and Product Detail sparklines/charts have full price history immediately.
@@ -162,6 +165,24 @@ export default function RootLayout() {
       }),
   );
   const [trpcClient] = useState(() => createTRPCClient());
+
+  const { isAuthenticated } = useAuth();
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  isAuthenticatedRef.current = isAuthenticated;
+  const syncRef = useRef<SyncSetup | null>(null);
+
+  useEffect(() => {
+    syncRef.current = setupSync({
+      storage: defaultStorage,
+      isSignedIn: () => isAuthenticatedRef.current,
+      pull: (since) => trpcClient.sync.pull.query({ since }),
+      push: (items) => trpcClient.sync.push.mutate({ items }),
+    });
+  }, [trpcClient]);
+
+  useEffect(() => {
+    if (isAuthenticated) syncRef.current?.syncNow();
+  }, [isAuthenticated]);
 
   // Ensure minimum 8px padding for top and bottom on mobile
   const providerInitialMetrics = useMemo(() => {
