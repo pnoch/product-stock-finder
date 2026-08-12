@@ -1,5 +1,6 @@
 import {
   bigint,
+  double,
   int,
   json,
   mysqlEnum,
@@ -86,3 +87,22 @@ export type BackOrderReminderRow = typeof backOrderReminders.$inferSelect;
 export type InsertBackOrderReminderRow = typeof backOrderReminders.$inferInsert;
 export type AppSettingsRow = typeof appSettings.$inferSelect;
 export type InsertAppSettingsRow = typeof appSettings.$inferInsert;
+
+export const priceCache = mysqlTable(
+  "price_cache",
+  {
+    distributorId: varchar("distributorId", { length: 64 }).notNull(),
+    modelNumber: varchar("modelNumber", { length: 128 }).notNull(),
+    price: double("price").notNull(),
+    currency: varchar("currency", { length: 8 }).notNull(),
+    stockStatus: varchar("stockStatus", { length: 16 }).notNull(),
+    expectedDate: varchar("expectedDate", { length: 64 }),
+    url: text("url").notNull(),
+    taxRate: double("taxRate"),
+    fetchedAt: bigint("fetchedAt", { mode: "number" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.distributorId, table.modelNumber] })],
+);
+
+export type PriceCacheRow = typeof priceCache.$inferSelect;
+export type InsertPriceCacheRow = typeof priceCache.$inferInsert;

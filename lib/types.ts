@@ -4,6 +4,16 @@ export type StockStatus =
   | "out_of_stock"
   | "unknown";
 
+export interface PriceSnapshot {
+  price: number;
+  currency: string;
+  stockStatus: StockStatus;
+  expectedDate?: string;
+  url: string;
+  taxRate?: number;
+  fetchedAt: number;
+}
+
 export interface Distributor {
   id: string;
   name: string;
