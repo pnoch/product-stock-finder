@@ -41,6 +41,7 @@ import {
 } from "@/lib/_core/manus-runtime";
 import { useAuth } from "@/hooks/use-auth";
 import { setupSync, type SyncSetup } from "@/lib/sync";
+import { backfillLocalHistory } from "@/lib/history-sync";
 
 // CRS804 + CRS326 listings seeded at first launch from lib/sample-data.ts so Home/Watchlist
 // badges and Product Detail sparklines/charts have full price history immediately.
@@ -181,7 +182,10 @@ export default function RootLayout() {
   }, [trpcClient]);
 
   useEffect(() => {
-    if (isAuthenticated) syncRef.current?.syncNow();
+    if (isAuthenticated) {
+      syncRef.current?.syncNow();
+      void backfillLocalHistory();
+    }
   }, [isAuthenticated]);
 
   // Ensure minimum 8px padding for top and bottom on mobile
