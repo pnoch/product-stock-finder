@@ -249,3 +249,13 @@
 - [x] Add digestFrequency setting (off/daily/weekly) to mobile + desktop settings
 - [x] Wire previously-dead desktop price poller to checkInterval setting
 - [x] Add desktop digest listener on prices-checked event
+
+## Phase 26: Backend Sync
+
+- [x] Drizzle schema: 4 normalized sync tables (watchlist_items, price_alerts, back_order_reminders, app_settings) with updatedAtMs/deletedAtMs + migration
+- [x] Shared sync types (Collection, SyncItem, SyncMeta) in lib/types.ts
+- [x] Server sync DB helpers (listChangedItems, upsertSyncItem, purgeOldTombstones) + protected tRPC sync router (pull/push) with tests
+- [x] Storage sync_meta key + get/saveSyncMeta helpers + onChange wiring
+- [x] Shared sync engine (lib/sync.ts): single-flight syncNow, 2s debounced setupSync, LWW pull/merge/push with tests (12)
+- [x] Mobile: launch sync on start + auth change (app/_layout.tsx), Account section + sync status in Settings
+- [x] Desktop: react-query/tRPC deps, api-base + OAuth portal helpers, localStorage auth hook (use-auth), tRPC client, Tauri start_oauth loopback command (127.0.0.1:3420), App providers + launch sync, Account section + sync status in Settings
