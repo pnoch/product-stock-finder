@@ -88,3 +88,18 @@ export interface AppSettings {
   shippingRegion?: string;
   digestFrequency?: "off" | "daily" | "weekly";
 }
+
+export type Collection = "watchlist" | "alerts" | "reminders" | "settings";
+
+export interface SyncItem {
+  collection: Collection;
+  id: string;
+  data: unknown;
+  updatedAt: number;
+  deletedAt: number | null;
+}
+
+export interface SyncMeta {
+  lastSyncedAt: number;
+  items: Record<string, Record<string, { updatedAt: number; deleted: boolean }>>;
+}
