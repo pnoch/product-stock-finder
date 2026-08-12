@@ -14,6 +14,7 @@ vi.mock("../server/price-cache", () => ({
   getCachedPrice: vi.fn(),
   setCachedPrice: vi.fn(),
   listNearExpiry: vi.fn(),
+  getAllFetchedAt: vi.fn(),
   clearPriceCacheForTests: vi.fn(),
 }));
 
@@ -27,15 +28,16 @@ vi.mock("../server/price-history", () => ({
 
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { fetchWithParser } from "../lib/scrapers/utils";
-import { getCachedPrice, setCachedPrice } from "../server/price-cache";
+import { getCachedPrice, setCachedPrice, getAllFetchedAt } from "../server/price-cache";
 import { getHistory, recordHistoryPoint } from "../server/price-history";
-import { getPrice, PRICE_TTL_MS } from "../server/prices";
+import { getPrice, PRICE_TTL_MS, warmCatalogRotation } from "../server/prices";
 import type { ScrapeResult } from "../lib/scrapers/types";
 
 const mockedGetParser = vi.mocked(getParserByDistributorId);
 const mockedFetch = vi.mocked(fetchWithParser);
 const mockedGetCached = vi.mocked(getCachedPrice);
 const mockedSetCached = vi.mocked(setCachedPrice);
+const mockedGetAllFetchedAt = vi.mocked(getAllFetchedAt);
 const mockedGetHistory = vi.mocked(getHistory);
 const mockedRecordHistory = vi.mocked(recordHistoryPoint);
 
@@ -142,5 +144,33 @@ describe("getPrice", () => {
       "CRS804",
       expect.objectContaining({ price: 88.5, currency: "MYR" }),
     );
+  });
+});
+
+describe("warmCatalogRotation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedGetParser.mockReturnValue(parser);
+    parser.parsePrice = () => scrapeResult;
+    mockedFetch.mockResolvedValue("<html>price</html>");
+    mockedSetCached.mockResolvedValue(undefined);
+    mockedGetAllFetchedAt.mockResolvedValue([]);
+  });
+
+  it("warms the least-recently-fetched pairs", async () => {
+    mockedGetAllFetchedAt.mockResolvedValue([
+      { distributorId: "server2u-my", modelNumber: "CRS804-4DDQ-hRM", fetchedAt: 1000 },
+    ]);
+    const warmed = await warmCatalogRotation(Date.now(), 3);
+    expect(warmed).toBe(3);
+    expect(mockedFetch).toHaveBeenCalledTimes(3);
+    expect(mockedSetCached).toHaveBeenCalledTimes(3);
+  });
+
+  it("returns 0 when there are no pairs to warm", async () => {
+    mockedGetParser.mockReturnValue(undefined);
+    const warmed = await warmCatalogRotation(Date.now(), 3);
+    expect(warmed).toBe(0);
+    expect(mockedFetch).not.toHaveBeenCalled();
   });
 });

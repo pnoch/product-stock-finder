@@ -7,10 +7,13 @@ import {
   listNearExpiry,
 } from "./price-cache";
 import { getHistory, recordHistoryPoint, purgeOldHistory } from "./price-history";
+import { buildCatalogPairs, pickPairsToWarm } from "./catalog-warmer";
+import { getAllFetchedAt } from "./price-cache";
 
 export const PRICE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const WARMER_INTERVAL_MS = 5 * 60 * 1000; // every 5 min
 const WARMER_LEAD_MS = 10 * 60 * 1000; // refresh 10 min before expiry
+const CATALOG_WARM_PER_TICK = 3;
 
 const inFlight = new Map<string, Promise<PriceSnapshot | null>>();
 
@@ -77,6 +80,24 @@ export async function refreshNearExpiry(now: number): Promise<void> {
   }
 }
 
+export async function warmCatalogRotation(
+  now: number,
+  count: number,
+): Promise<number> {
+  const pairs = buildCatalogPairs();
+  if (pairs.length === 0) return 0;
+  const fetchedRows = await getAllFetchedAt();
+  const fetchedAtMap = new Map<string, number>();
+  for (const row of fetchedRows) {
+    fetchedAtMap.set(`${row.distributorId}:${row.modelNumber}`, row.fetchedAt);
+  }
+  const toWarm = pickPairsToWarm(pairs, fetchedAtMap, count);
+  for (const pair of toWarm) {
+    await refreshSingleFlight(pair.distributorId, pair.modelNumber);
+  }
+  return toWarm.length;
+}
+
 let warmerTimer: ReturnType<typeof setInterval> | null = null;
 
 export function startWarmer(opts?: { intervalMs?: number }): () => void {
@@ -85,6 +106,7 @@ export function startWarmer(opts?: { intervalMs?: number }): () => void {
   if (warmerTimer) return () => {};
   warmerTimer = setInterval(() => {
     void refreshNearExpiry(Date.now());
+    void warmCatalogRotation(Date.now(), CATALOG_WARM_PER_TICK);
     void purgeOldHistory(Date.now());
   }, intervalMs);
   return () => {
