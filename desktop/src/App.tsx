@@ -21,6 +21,7 @@ import { useAuth } from "./hooks/use-auth";
 import { trpc, createTRPCClient } from "./lib/trpc";
 import { setupSync, type SyncSetup } from "../../lib/sync";
 import { storage } from "./storage";
+import { getApiBaseUrl } from "./lib/api-base";
 
 function KeyboardShortcuts({ searchModalOpen, setSearchModalOpen }: { searchModalOpen: boolean; setSearchModalOpen: (open: boolean) => void }) {
   const navigate = useNavigate();
@@ -94,7 +95,7 @@ export default function App() {
       if (settings.checkInterval === "manual") return;
       const intervalMinutes =
         settings.checkInterval === "hourly" ? 60 : 1440;
-      await startPricePoller(intervalMinutes);
+      await startPricePoller(intervalMinutes, getApiBaseUrl());
     })();
     return () => {
       cancelled = true;

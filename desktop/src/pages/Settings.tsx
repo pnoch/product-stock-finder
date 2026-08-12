@@ -9,6 +9,7 @@ import { EXCHANGE_RATES, CURRENCY_SYMBOLS } from "../../../lib/currency";
 import { exportWatchlistAsJson, importWatchlistFromJson } from "../import-export";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useAuth, buildLoginUrl } from "../hooks/use-auth";
+import { getApiBaseUrl } from "../lib/api-base";
 
 export function Settings() {
   const { settings, loading, update } = useSettings();
@@ -27,7 +28,7 @@ export function Settings() {
     }
     const intervalMinutes =
       settings.checkInterval === "hourly" ? 60 : 1440;
-    startPricePoller(intervalMinutes);
+    startPricePoller(intervalMinutes, getApiBaseUrl());
   }, [settings?.checkInterval]);
   const [clearConfirm, setClearConfirm] = useState(false);
   const [importExportMessage, setImportExportMessage] = useState<string | null>(null);

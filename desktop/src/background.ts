@@ -3,9 +3,10 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 export async function startPricePoller(
   intervalMinutes: number = 15,
+  apiBaseUrl: string = "",
 ): Promise<void> {
   try {
-    await invoke("start_price_poller", { intervalMinutes });
+    await invoke("start_price_poller", { intervalMinutes, apiBaseUrl });
   } catch (e) {
     console.error("Failed to start price poller:", e);
   }

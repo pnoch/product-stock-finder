@@ -274,7 +274,7 @@ async fn start_oauth(login_url: String) -> Result<serde_json::Value, String> {
 // ─── Background Polling ──────────────────────────────────────────────────────
 
 #[tauri::command]
-async fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64) -> Result<String, String> {
+async fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64, api_base_url: String) -> Result<String, String> {
     let mut running = POLLER_RUNNING.lock().map_err(|e| e.to_string())?;
     if *running {
         return Ok("Poller already running".to_string());
@@ -294,7 +294,7 @@ async fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64) -> Res
                 }
             }
 
-            let _ = run_full_price_check(handle.clone()).await;
+            let _ = run_full_price_check(handle.clone(), api_base_url.clone()).await;
 
             interval.tick().await;
         }
@@ -418,7 +418,7 @@ struct WatchedProduct {
 }
 
 #[tauri::command]
-async fn check_all_prices(products: Vec<WatchedProduct>) -> Result<Vec<scrapers::ScrapeJobResult>, String> {
+async fn check_all_prices(products: Vec<WatchedProduct>, api_base_url: String) -> Result<Vec<scrapers::ScrapeJobResult>, String> {
     let mut results = Vec::new();
     let mut first = true;
     for product in products {
@@ -428,7 +428,10 @@ async fn check_all_prices(products: Vec<WatchedProduct>) -> Result<Vec<scrapers:
             }
             first = false;
             let start = std::time::Instant::now();
-            let scrape_result = scrape_distributor(&distributor_id, &product.model_number).await;
+            let scrape_result = match fetch_server_price(&api_base_url, &distributor_id, &product.model_number).await {
+                Some(r) => Ok(r),
+                None => scrape_distributor(&distributor_id, &product.model_number).await,
+            };
             let duration_ms = start.elapsed().as_millis() as u64;
             let (result, error) = match scrape_result {
                 Ok(r) => (Some(r), None),
@@ -478,6 +481,51 @@ async fn scrape_distributor(
         "neobits-us" => scrapers::neobits::scrape(model, false).await,
         _ => Err(format!("No scraper for distributor: {}", distributor_id)),
     }
+}
+
+async fn fetch_server_price(
+    api_base_url: &str,
+    distributor_id: &str,
+    model: &str,
+) -> Option<scrapers::ScrapeResult> {
+    if api_base_url.is_empty() {
+        return None;
+    }
+    let input = serde_json::json!({
+        "json": {
+            "distributorId": distributor_id,
+            "modelNumber": model,
+        }
+    });
+    let url = format!(
+        "{}/api/trpc/prices.get?input={}",
+        api_base_url.trim_end_matches('/'),
+        urlencoding::encode(&input.to_string())
+    );
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(&url)
+        .timeout(std::time::Duration::from_secs(8))
+        .send()
+        .await
+        .ok()?;
+    if !resp.status().is_success() {
+        return None;
+    }
+    let body: serde_json::Value = resp.json().await.ok()?;
+    let data = body.pointer("/result/data/json")?;
+    let price = data.get("price")?.as_f64()?;
+    let currency = data.get("currency")?.as_str()?.to_string();
+    let stock_status = data.get("stockStatus").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+    let expected_date = data.get("expectedDate").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let url = data.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    Some(scrapers::ScrapeResult {
+        price,
+        currency,
+        stock_status,
+        expected_date,
+        url,
+    })
 }
 
 // ─── Distributor Health ──────────────────────────────────────────────────────
@@ -549,7 +597,7 @@ async fn check_distributor_health() -> Result<Vec<DistributorHealth>, String> {
 
 // ─── Full Price Check (scrape → compare → notify → update tray) ─────────────
 
-async fn run_full_price_check(app: tauri::AppHandle) -> Result<String, String> {
+async fn run_full_price_check(app: tauri::AppHandle, api_base_url: String) -> Result<String, String> {
     let _guard = PRICE_CHECK_LOCK.lock().await;
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
 
@@ -590,7 +638,7 @@ async fn run_full_price_check(app: tauri::AppHandle) -> Result<String, String> {
         return Ok("No products with scrapable distributors".to_string());
     }
 
-    let results = check_all_prices(products).await?;
+    let results = check_all_prices(products, api_base_url).await?;
 
     for job_result in &results {
         if let Some(scrape) = &job_result.result {
@@ -918,7 +966,7 @@ pub fn run() {
                     "check_now" => {
                         let app_handle = app.clone();
                         tauri::async_runtime::spawn(async move {
-                            let _ = run_full_price_check(app_handle).await;
+                            let _ = run_full_price_check(app_handle, String::new()).await;
                         });
                     }
                     "quit" => {
