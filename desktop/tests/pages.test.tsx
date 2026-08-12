@@ -32,6 +32,7 @@ const mockStorage = vi.hoisted(() => ({
   saveSettings: vi.fn().mockResolvedValue(undefined),
   getBackOrderReminders: vi.fn().mockResolvedValue([]),
   getStockWatches: vi.fn().mockResolvedValue([]),
+  getSyncMeta: vi.fn().mockResolvedValue({ lastSyncedAt: 0, items: {} }),
 }));
 
 vi.mock("../src/storage", () => ({

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
-import { Palette, DollarSign, Bell, Clock, Download, Upload, Trash2, Activity, Globe } from "lucide-react";
+import { Palette, DollarSign, Bell, Clock, Download, Upload, Trash2, Activity, Globe, UserCircle } from "lucide-react";
 import { useSettings } from "../hooks/use-storage";
 import { useTheme } from "../hooks/use-theme";
 import { storage } from "../storage";
@@ -8,6 +8,7 @@ import { startPricePoller, stopPricePoller } from "../background";
 import { EXCHANGE_RATES, CURRENCY_SYMBOLS } from "../../../lib/currency";
 import { exportWatchlistAsJson, importWatchlistFromJson } from "../import-export";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { useAuth, buildLoginUrl } from "../hooks/use-auth";
 
 export function Settings() {
   const { settings, loading, update } = useSettings();
@@ -30,6 +31,37 @@ export function Settings() {
   }, [settings?.checkInterval]);
   const [clearConfirm, setClearConfirm] = useState(false);
   const [importExportMessage, setImportExportMessage] = useState<string | null>(null);
+  const { user, isAuthenticated, login, logout } = useAuth();
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      const meta = await storage.getSyncMeta();
+      if (!cancelled) setLastSyncedAt(meta.lastSyncedAt || null);
+    };
+    refresh();
+    const interval = setInterval(refresh, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const syncStatus = !isAuthenticated
+    ? "Sign in to sync across devices"
+    : !lastSyncedAt
+      ? "Not synced yet"
+      : (() => {
+          const minutes = Math.floor((Date.now() - lastSyncedAt) / 60000);
+          if (minutes < 1) return "Synced just now";
+          if (minutes < 60) return `Last synced ${minutes}m ago`;
+          return `Last synced ${Math.floor(minutes / 60)}h ago`;
+        })();
+
+  const handleSignIn = async () => {
+    await login(buildLoginUrl());
+  };
 
   if (loading || !settings) return <LoadingSpinner />;
 
@@ -62,6 +94,45 @@ export function Settings() {
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <UserCircle className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+          <h2 className="text-lg font-semibold">Account</h2>
+        </div>
+        {isAuthenticated && user ? (
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium">{user.name ?? "Signed in"}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {user.email ?? user.openId}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">{syncStatus}</p>
+            </div>
+            <button
+              onClick={logout}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+            >
+              Sign out
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium">Sign in to sync</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {syncStatus}
+              </p>
+            </div>
+            <button
+              onClick={handleSignIn}
+              className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+            >
+              Sign in
+            </button>
+          </div>
+        )}
+      </div>
 
       <button
         onClick={() => navigate("/health")}
