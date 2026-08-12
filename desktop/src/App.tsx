@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Sidebar } from "./components/Sidebar";
 import { SearchModal } from "./components/SearchModal";
 import { Home } from "./pages/Home";
@@ -16,6 +17,9 @@ import { exportWatchlistAsJson } from "./import-export";
 import { useTheme } from "./hooks/use-theme";
 import { startPricePoller, onPricesChecked } from "./background";
 import { maybeSendDigest } from "../../lib/price-digest";
+import { useAuth } from "./hooks/use-auth";
+import { trpc, createTRPCClient } from "./lib/trpc";
+import { setupSync, type SyncSetup } from "../../lib/sync";
 import { storage } from "./storage";
 
 function KeyboardShortcuts({ searchModalOpen, setSearchModalOpen }: { searchModalOpen: boolean; setSearchModalOpen: (open: boolean) => void }) {
@@ -52,6 +56,25 @@ function KeyboardShortcuts({ searchModalOpen, setSearchModalOpen }: { searchModa
 
 export default function App() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [queryClient] = useState(() => new QueryClient());
+  const [trpcClient] = useState(() => createTRPCClient());
+  const { isAuthenticated } = useAuth();
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  isAuthenticatedRef.current = isAuthenticated;
+  const syncRef = useRef<SyncSetup | null>(null);
+
+  useEffect(() => {
+    syncRef.current = setupSync({
+      storage,
+      isSignedIn: () => isAuthenticatedRef.current,
+      pull: (since) => trpcClient.sync.pull.query({ since }),
+      push: (items) => trpcClient.sync.push.mutate({ items }),
+    });
+  }, [trpcClient]);
+
+  useEffect(() => {
+    if (isAuthenticated) syncRef.current?.syncNow();
+  }, [isAuthenticated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,26 +119,30 @@ export default function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <KeyboardShortcuts searchModalOpen={searchModalOpen} setSearchModalOpen={setSearchModalOpen} />
-      <SearchModal open={searchModalOpen} onClose={() => setSearchModalOpen(false)} />
-      <div className="flex h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100">
-        <Sidebar />
-        <main className="flex-1 overflow-auto">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/watchlist" element={<Watchlist />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/compare/:id" element={<Compare />} />
-            <Route path="/alerts" element={<Alerts />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/health" element={<Health />} />
-            <Route path="/restock-watches" element={<RestockWatches />} />
-            <Route path="/distributor-analysis" element={<DistributorAnalysis />} />
-          </Routes>
-        </main>
-      </div>
-    </BrowserRouter>
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <KeyboardShortcuts searchModalOpen={searchModalOpen} setSearchModalOpen={setSearchModalOpen} />
+          <SearchModal open={searchModalOpen} onClose={() => setSearchModalOpen(false)} />
+          <div className="flex h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100">
+            <Sidebar />
+            <main className="flex-1 overflow-auto">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/watchlist" element={<Watchlist />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/compare/:id" element={<Compare />} />
+                <Route path="/alerts" element={<Alerts />} />
+                <Route path="/search" element={<Search />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/health" element={<Health />} />
+                <Route path="/restock-watches" element={<RestockWatches />} />
+                <Route path="/distributor-analysis" element={<DistributorAnalysis />} />
+              </Routes>
+            </main>
+          </div>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </trpc.Provider>
   );
 }
