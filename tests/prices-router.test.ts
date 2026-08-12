@@ -36,35 +36,37 @@ const snapshot: PriceSnapshot = {
   fetchedAt: 1000,
 };
 
+const result = { snapshot, history: [] };
+
 describe("prices router", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns the price snapshot for a distributor and model", async () => {
-    mockedGetPrice.mockResolvedValue(snapshot);
+    mockedGetPrice.mockResolvedValue(result);
     const caller = appRouter.createCaller(createPublicContext());
-    const result = await caller.prices.get({
+    const res = await caller.prices.get({
       distributorId: "server2u-my",
       modelNumber: "CRS804",
     });
-    expect(result).toEqual(snapshot);
+    expect(res).toEqual(result);
     expect(mockedGetPrice).toHaveBeenCalledWith("server2u-my", "CRS804");
   });
 
-  it("returns null when there is no cached price", async () => {
-    mockedGetPrice.mockResolvedValue(null);
+  it("returns null snapshot when there is no cached price", async () => {
+    mockedGetPrice.mockResolvedValue({ snapshot: null, history: [] });
     const caller = appRouter.createCaller(createPublicContext());
-    const result = await caller.prices.get({
+    const res = await caller.prices.get({
       distributorId: "server2u-my",
       modelNumber: "CRS804",
     });
-    expect(result).toBeNull();
+    expect(res).toEqual({ snapshot: null, history: [] });
   });
 
   it("works without authentication (public procedure)", async () => {
-    mockedGetPrice.mockResolvedValue(snapshot);
+    mockedGetPrice.mockResolvedValue(result);
     const caller = appRouter.createCaller(createPublicContext());
     await expect(
       caller.prices.get({ distributorId: "a", modelNumber: "b" }),
-    ).resolves.toEqual(snapshot);
+    ).resolves.toEqual(result);
   });
 });

@@ -1,11 +1,12 @@
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { fetchWithParser } from "../lib/scrapers/utils";
-import type { PriceSnapshot } from "../lib/types";
+import type { PriceSnapshot, ServerPriceResult } from "../lib/types";
 import {
   getCachedPrice,
   setCachedPrice,
   listNearExpiry,
 } from "./price-cache";
+import { getHistory, recordHistoryPoint, purgeOldHistory } from "./price-history";
 
 export const PRICE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const WARMER_INTERVAL_MS = 5 * 60 * 1000; // every 5 min
@@ -30,6 +31,7 @@ async function refreshPrice(
     if (!result) return null;
     const snapshot: PriceSnapshot = { ...result, fetchedAt: Date.now() };
     await setCachedPrice(distributorId, modelNumber, snapshot);
+    await recordHistoryPoint(distributorId, modelNumber, snapshot);
     return snapshot;
   } catch (error) {
     console.warn(
@@ -57,14 +59,15 @@ function refreshSingleFlight(
 export async function getPrice(
   distributorId: string,
   modelNumber: string,
-): Promise<PriceSnapshot | null> {
+): Promise<ServerPriceResult> {
   const cached = await getCachedPrice(distributorId, modelNumber);
   const fresh =
     cached !== null && Date.now() - cached.fetchedAt < PRICE_TTL_MS;
   if (!fresh) {
     void refreshSingleFlight(distributorId, modelNumber);
   }
-  return cached;
+  const history = await getHistory(distributorId, modelNumber);
+  return { snapshot: cached, history };
 }
 
 export async function refreshNearExpiry(now: number): Promise<void> {
@@ -82,6 +85,7 @@ export function startWarmer(opts?: { intervalMs?: number }): () => void {
   if (warmerTimer) return () => {};
   warmerTimer = setInterval(() => {
     void refreshNearExpiry(Date.now());
+    void purgeOldHistory(Date.now());
   }, intervalMs);
   return () => {
     if (warmerTimer) clearInterval(warmerTimer);

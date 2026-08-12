@@ -47,6 +47,11 @@ export interface PricePoint {
   stockStatus: StockStatus;
 }
 
+export interface ServerPriceResult {
+  snapshot: PriceSnapshot | null;
+  history: PricePoint[];
+}
+
 export interface Product {
   id: string;
   name: string;

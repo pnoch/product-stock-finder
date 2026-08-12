@@ -13,7 +13,7 @@ export async function fetchServerPrice(
       client.prices.get.query({ distributorId, modelNumber }),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
     ]);
-    return result;
+    return result ? result.snapshot : null;
   } catch {
     return null;
   }

@@ -19,6 +19,8 @@ const snapshot: PriceSnapshot = {
   fetchedAt: 1000,
 };
 
+const result = { snapshot, history: [] };
+
 function mockClientQuery(query: Mock) {
   mockedCreateClient.mockReturnValue({
     prices: { get: { query } },
@@ -29,18 +31,18 @@ describe("fetchServerPrice", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns the snapshot from the server", async () => {
-    const query = vi.fn().mockResolvedValue(snapshot);
+    const query = vi.fn().mockResolvedValue(result);
     mockClientQuery(query);
-    const result = await fetchServerPrice("server2u-my", "CRS804");
-    expect(result).toEqual(snapshot);
+    const res = await fetchServerPrice("server2u-my", "CRS804");
+    expect(res).toEqual(snapshot);
     expect(query).toHaveBeenCalledWith({
       distributorId: "server2u-my",
       modelNumber: "CRS804",
     });
   });
 
-  it("returns null when the server returns null", async () => {
-    const query = vi.fn().mockResolvedValue(null);
+  it("returns null when the server returns null snapshot", async () => {
+    const query = vi.fn().mockResolvedValue({ snapshot: null, history: [] });
     mockClientQuery(query);
     expect(await fetchServerPrice("server2u-my", "CRS804")).toBeNull();
   });

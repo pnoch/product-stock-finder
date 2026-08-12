@@ -17,9 +17,18 @@ vi.mock("../server/price-cache", () => ({
   clearPriceCacheForTests: vi.fn(),
 }));
 
+vi.mock("../server/price-history", () => ({
+  recordHistoryPoint: vi.fn(),
+  getHistory: vi.fn(),
+  mergeHistory: vi.fn(),
+  purgeOldHistory: vi.fn(),
+  clearHistoryForTests: vi.fn(),
+}));
+
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { fetchWithParser } from "../lib/scrapers/utils";
 import { getCachedPrice, setCachedPrice } from "../server/price-cache";
+import { getHistory, recordHistoryPoint } from "../server/price-history";
 import { getPrice, PRICE_TTL_MS } from "../server/prices";
 import type { ScrapeResult } from "../lib/scrapers/types";
 
@@ -27,6 +36,8 @@ const mockedGetParser = vi.mocked(getParserByDistributorId);
 const mockedFetch = vi.mocked(fetchWithParser);
 const mockedGetCached = vi.mocked(getCachedPrice);
 const mockedSetCached = vi.mocked(setCachedPrice);
+const mockedGetHistory = vi.mocked(getHistory);
+const mockedRecordHistory = vi.mocked(recordHistoryPoint);
 
 const parser: DistributorParser = {
   id: "server2u-my",
@@ -52,12 +63,21 @@ describe("getPrice", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedGetParser.mockReturnValue(parser);
+    mockedGetHistory.mockResolvedValue([]);
   });
 
-  it("returns a fresh cached snapshot without scraping", async () => {
+  it("returns a fresh cached snapshot and its history without scraping", async () => {
     mockedGetCached.mockResolvedValue(freshSnapshot);
+    mockedGetHistory.mockResolvedValue([
+      { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+    ]);
     const result = await getPrice("server2u-my", "CRS804");
-    expect(result).toEqual(freshSnapshot);
+    expect(result).toEqual({
+      snapshot: freshSnapshot,
+      history: [
+        { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+      ],
+    });
     expect(mockedFetch).not.toHaveBeenCalled();
   });
 
@@ -72,20 +92,20 @@ describe("getPrice", () => {
     mockedSetCached.mockResolvedValue(undefined);
 
     const result = await getPrice("server2u-my", "CRS804");
-    expect(result).toEqual(stale);
+    expect(result).toEqual({ snapshot: stale, history: [] });
 
     await vi.waitFor(() => expect(mockedFetch).toHaveBeenCalled());
     expect(mockedSetCached).toHaveBeenCalled();
   });
 
-  it("returns null on a miss and triggers a background refresh", async () => {
+  it("returns null snapshot on a miss and triggers a background refresh", async () => {
     mockedGetCached.mockResolvedValue(null);
     mockedFetch.mockResolvedValue("<html>price</html>");
     parser.parsePrice = () => scrapeResult;
     mockedSetCached.mockResolvedValue(undefined);
 
     const result = await getPrice("server2u-my", "CRS804");
-    expect(result).toBeNull();
+    expect(result).toEqual({ snapshot: null, history: [] });
 
     await vi.waitFor(() => expect(mockedFetch).toHaveBeenCalled());
     expect(mockedSetCached).toHaveBeenCalled();
@@ -95,16 +115,32 @@ describe("getPrice", () => {
     mockedGetCached.mockResolvedValue(null);
     mockedFetch.mockRejectedValue(new Error("network down"));
     const result = await getPrice("server2u-my", "CRS804");
-    expect(result).toBeNull();
+    expect(result).toEqual({ snapshot: null, history: [] });
     await vi.waitFor(() => expect(mockedFetch).toHaveBeenCalled());
     expect(mockedSetCached).not.toHaveBeenCalled();
   });
 
-  it("returns null when no parser exists for the distributor", async () => {
+  it("returns null snapshot when no parser exists for the distributor", async () => {
     mockedGetCached.mockResolvedValue(null);
     mockedGetParser.mockReturnValue(undefined);
     const result = await getPrice("unknown-dist", "CRS804");
-    expect(result).toBeNull();
+    expect(result).toEqual({ snapshot: null, history: [] });
     expect(mockedFetch).not.toHaveBeenCalled();
+  });
+
+  it("records a history point after a successful refresh", async () => {
+    mockedGetCached.mockResolvedValue(null);
+    mockedFetch.mockResolvedValue("<html>price</html>");
+    parser.parsePrice = () => scrapeResult;
+    mockedSetCached.mockResolvedValue(undefined);
+    mockedRecordHistory.mockResolvedValue(undefined);
+
+    await getPrice("server2u-my", "CRS804");
+    await vi.waitFor(() => expect(mockedRecordHistory).toHaveBeenCalled());
+    expect(mockedRecordHistory).toHaveBeenCalledWith(
+      "server2u-my",
+      "CRS804",
+      expect.objectContaining({ price: 88.5, currency: "MYR" }),
+    );
   });
 });
