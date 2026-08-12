@@ -11,8 +11,18 @@ vi.mock("../server/prices", async (importOriginal) => {
   };
 });
 
+vi.mock("../server/price-history", () => ({
+  recordHistoryPoint: vi.fn(),
+  getHistory: vi.fn(),
+  mergeHistory: vi.fn(),
+  purgeOldHistory: vi.fn(),
+  clearHistoryForTests: vi.fn(),
+}));
+
 import { getPrice } from "../server/prices";
+import { mergeHistory } from "../server/price-history";
 const mockedGetPrice = vi.mocked(getPrice);
+const mockedMergeHistory = vi.mocked(mergeHistory);
 
 function createPublicContext(): TrpcContext {
   return {
@@ -36,37 +46,69 @@ const snapshot: PriceSnapshot = {
   fetchedAt: 1000,
 };
 
-const result = { snapshot, history: [] };
-
 describe("prices router", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns the price snapshot for a distributor and model", async () => {
-    mockedGetPrice.mockResolvedValue(result);
+  it("returns the snapshot and history for a distributor and model", async () => {
+    mockedGetPrice.mockResolvedValue({
+      snapshot,
+      history: [
+        { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+      ],
+    });
     const caller = appRouter.createCaller(createPublicContext());
-    const res = await caller.prices.get({
+    const result = await caller.prices.get({
       distributorId: "server2u-my",
       modelNumber: "CRS804",
     });
-    expect(res).toEqual(result);
+    expect(result).toEqual({
+      snapshot,
+      history: [
+        { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+      ],
+    });
     expect(mockedGetPrice).toHaveBeenCalledWith("server2u-my", "CRS804");
   });
 
   it("returns null snapshot when there is no cached price", async () => {
     mockedGetPrice.mockResolvedValue({ snapshot: null, history: [] });
     const caller = appRouter.createCaller(createPublicContext());
-    const res = await caller.prices.get({
+    const result = await caller.prices.get({
       distributorId: "server2u-my",
       modelNumber: "CRS804",
     });
-    expect(res).toEqual({ snapshot: null, history: [] });
+    expect(result).toEqual({ snapshot: null, history: [] });
   });
 
   it("works without authentication (public procedure)", async () => {
-    mockedGetPrice.mockResolvedValue(result);
+    mockedGetPrice.mockResolvedValue({ snapshot, history: [] });
     const caller = appRouter.createCaller(createPublicContext());
     await expect(
       caller.prices.get({ distributorId: "a", modelNumber: "b" }),
-    ).resolves.toEqual(result);
+    ).resolves.toEqual({ snapshot, history: [] });
+  });
+
+  it("uploadHistory merges uploaded points and returns the accepted count", async () => {
+    mockedMergeHistory.mockResolvedValue(undefined);
+    const caller = appRouter.createCaller(createPublicContext());
+    const points: {
+      date: string;
+      price: number;
+      currency: string;
+      stockStatus: "in_stock" | "back_order" | "out_of_stock" | "unknown";
+    }[] = [
+      { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+    ];
+    const result = await caller.prices.uploadHistory({
+      distributorId: "server2u-my",
+      modelNumber: "CRS804",
+      points,
+    });
+    expect(result).toEqual({ accepted: 1 });
+    expect(mockedMergeHistory).toHaveBeenCalledWith(
+      "server2u-my",
+      "CRS804",
+      points,
+    );
   });
 });
