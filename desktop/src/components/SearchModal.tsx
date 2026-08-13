@@ -3,6 +3,7 @@ import { Search, Check, Plus } from "lucide-react";
 import { PRODUCT_CATALOG } from "../../../lib/catalog";
 import { storage } from "../storage";
 import { Modal } from "./Modal";
+import { ProductImage } from "./ProductImage";
 
 export function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [query, setQuery] = useState("");
@@ -48,9 +49,12 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
           const isTracked = trackedIds.has(product.id);
           return (
             <div key={product.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50">
-              <div>
-                <div className="font-medium text-sm">{product.name}</div>
-                <div className="text-xs text-gray-500">{product.brand} · {product.category}</div>
+              <div className="flex items-center">
+                <ProductImage productId={product.id} />
+                <div>
+                  <div className="font-medium text-sm">{product.name}</div>
+                  <div className="text-xs text-gray-500">{product.brand} · {product.category}</div>
+                </div>
               </div>
               {isTracked ? (
                 <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium"><Check className="w-4 h-4" /> Tracked</span>

@@ -516,6 +516,37 @@ async fn fetch_price_insight(api_base_url: String, product_id: String) -> Result
     }
 }
 
+#[tauri::command]
+async fn fetch_product_image(api_base_url: String, product_id: String) -> Result<Option<serde_json::Value>, String> {
+    if api_base_url.is_empty() {
+        return Ok(None);
+    }
+    let input = serde_json::json!({
+        "json": { "productId": product_id }
+    });
+    let url = format!(
+        "{}/api/trpc/images.get?input={}",
+        api_base_url.trim_end_matches('/'),
+        urlencoding::encode(&input.to_string())
+    );
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(&url)
+        .timeout(std::time::Duration::from_secs(8))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if !resp.status().is_success() {
+        return Ok(None);
+    }
+    let body: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+    let data = body.pointer("/result/data/json");
+    match data {
+        Some(v) if !v.is_null() => Ok(Some(v.clone())),
+        _ => Ok(None),
+    }
+}
+
 async fn upload_server_history(
     api_base_url: &str,
     distributor_id: &str,
@@ -1122,6 +1153,7 @@ pub fn run() {
             check_all_prices,
             backfill_local_history,
             fetch_price_insight,
+            fetch_product_image,
             check_distributor_health,
             start_oauth
         ])

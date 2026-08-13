@@ -26,6 +26,7 @@ import { findBestDeal } from "../../../lib/best-deal";
 import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { ProductImage } from "../components/ProductImage";
 import {
   LineChart,
   Line,
@@ -228,20 +229,23 @@ export function ProductDetail() {
       </button>
 
       {/* Product Header */}
-      <div>
-        <h1 className="text-2xl font-bold">{product.name}</h1>
-        <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 dark:text-gray-400">
-          <span>{product.brand}</span>
-          <span className="text-gray-300 dark:text-gray-600">|</span>
-          <span>{product.modelNumber}</span>
-          <span className="text-gray-300 dark:text-gray-600">|</span>
-          <span>{product.category}</span>
+      <div className="flex items-start gap-4">
+        <ProductImage productId={product.id} size={96} />
+        <div>
+          <h1 className="text-2xl font-bold">{product.name}</h1>
+          <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <span>{product.brand}</span>
+            <span className="text-gray-300 dark:text-gray-600">|</span>
+            <span>{product.modelNumber}</span>
+            <span className="text-gray-300 dark:text-gray-600">|</span>
+            <span>{product.category}</span>
+          </div>
+          {product.description && (
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              {product.description}
+            </p>
+          )}
         </div>
-        {product.description && (
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-            {product.description}
-          </p>
-        )}
       </div>
 
       {/* Best Distributor Card */}

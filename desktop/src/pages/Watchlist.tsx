@@ -9,6 +9,7 @@ import { getAllRegions, productHasRegion } from "../../../lib/region-filter";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { ProductImage } from "../components/ProductImage";
 import type { Product, StockStatus } from "../../../lib/types";
 
 type SortKey = "name" | "price" | "trend" | "lastUpdated";
@@ -286,11 +287,14 @@ export function Watchlist() {
                   className="border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors"
                 >
                   <td className="px-4 py-3">
-                    <div>
-                      <p className="font-medium text-sm">{product.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {product.brand} · {product.modelNumber}
-                      </p>
+                    <div className="flex items-center">
+                      <ProductImage productId={product.id} />
+                      <div>
+                        <p className="font-medium text-sm">{product.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {product.brand} · {product.modelNumber}
+                        </p>
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
