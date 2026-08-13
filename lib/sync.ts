@@ -6,6 +6,7 @@ import type {
   PriceAlert,
   Product,
   SyncItem,
+  SyncMeta,
 } from "./types";
 
 export interface SyncNowOptions {
@@ -392,4 +393,34 @@ export function setupSync(
     markDirty(opts.storage, collection, itemId).then(() => schedule());
   });
   return { syncNow: runNow, schedule };
+}
+
+export interface SyncStatus {
+  label: string;
+  tone: "success" | "error" | "muted";
+}
+
+export function formatSyncStatus(
+  meta: SyncMeta,
+  isAuthenticated: boolean,
+  now: number,
+): SyncStatus {
+  if (!isAuthenticated) {
+    return { label: "Sign in to sync across devices", tone: "muted" };
+  }
+  if (meta.lastSyncError) {
+    return { label: `Sync failed — ${meta.lastSyncError}`, tone: "error" };
+  }
+  const successAt = meta.lastSyncOkAt ?? meta.lastSyncedAt;
+  if (!successAt) {
+    return { label: "Not synced yet", tone: "muted" };
+  }
+  const minutes = Math.floor((now - successAt) / 60000);
+  const label =
+    minutes < 1
+      ? "Synced just now"
+      : minutes < 60
+        ? `Last synced ${minutes}m ago`
+        : `Last synced ${Math.floor(minutes / 60)}h ago`;
+  return { label, tone: minutes < 5 ? "success" : "muted" };
 }
