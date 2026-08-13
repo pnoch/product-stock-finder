@@ -9,10 +9,16 @@ vi.mock("../server/notifications", () => ({
   clearNotificationsForTests: vi.fn(),
 }));
 
+vi.mock("../server/push-notifications", () => ({
+  upsertPushToken: vi.fn(),
+}));
+
 import { upsertDeviceConfig, pullPendingEvents } from "../server/notifications";
+import { upsertPushToken } from "../server/push-notifications";
 
 const mockedUpsert = vi.mocked(upsertDeviceConfig);
 const mockedPull = vi.mocked(pullPendingEvents);
+const mockedUpsertPush = vi.mocked(upsertPushToken);
 
 function createPublicContext(): TrpcContext {
   return {
@@ -72,5 +78,33 @@ describe("notifications router", () => {
     await expect(caller.notifications.pull({ deviceId: "x" })).resolves.toEqual({
       events: [],
     });
+  });
+
+  it("registers a push token for a device", async () => {
+    mockedUpsertPush.mockResolvedValue(undefined);
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.notifications.registerPushToken({
+      deviceId: "dev-1",
+      token: "ExponentPushToken[abc123]",
+      platform: "ios",
+    });
+    expect(result).toEqual({ accepted: true });
+    expect(mockedUpsertPush).toHaveBeenCalledWith(
+      "dev-1",
+      "ExponentPushToken[abc123]",
+      "ios",
+    );
+  });
+
+  it("rejects an invalid platform for registerPushToken", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    await expect(
+      caller.notifications.registerPushToken({
+        deviceId: "dev-1",
+        token: "ExponentPushToken[abc123]",
+        platform: "web",
+      } as never),
+    ).rejects.toThrow();
+    expect(mockedUpsertPush).not.toHaveBeenCalled();
   });
 });

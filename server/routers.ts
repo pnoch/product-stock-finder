@@ -15,6 +15,7 @@ import { mergeHistory } from "./price-history";
 import { getInsight } from "./price-insights";
 import { getProductImage } from "./product-images";
 import { upsertDeviceConfig, pullPendingEvents } from "./notifications";
+import { upsertPushToken } from "./push-notifications";
 
 const syncItemSchema = z.object({
   collection: z.enum(["watchlist", "alerts", "reminders", "settings"]),
@@ -139,6 +140,7 @@ export const appRouter = router({
               id: z.string().min(1),
               productId: z.string().min(1),
               distributorId: z.string().min(1),
+              lastKnownStatus: z.string().optional(),
             }),
           ),
           dateReminders: z.array(
@@ -164,6 +166,18 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const events = await pullPendingEvents(input.deviceId);
         return { events };
+      }),
+    registerPushToken: publicProcedure
+      .input(
+        z.object({
+          deviceId: z.string().min(1).max(128),
+          token: z.string().min(1).max(255),
+          platform: z.enum(["ios", "android"]),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        await upsertPushToken(input.deviceId, input.token, input.platform);
+        return { accepted: true } as const;
       }),
   }),
 });
