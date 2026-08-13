@@ -13,6 +13,7 @@ import {
   Share,
   Platform,
   Dimensions,
+  Image,
   Pressable,
 } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
@@ -53,6 +54,7 @@ import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
 import { findBestDeal } from "@/lib/best-deal";
 import { findNearestIndex } from "@/lib/price-chart";
 import { fetchPriceInsight } from "@/lib/server-insights";
+import { fetchProductImage } from "@/lib/server-images";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import {
   schedulePriceAlert,
@@ -391,6 +393,7 @@ export default function ProductDetailScreen() {
   const [product, setProduct] = useState<Product | null>(null);
   const [listings, setListings] = useState<DistributorListing[]>([]);
   const [insight, setInsight] = useState<string | null>(null);
+  const [productImage, setProductImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [alertModalVisible, setAlertModalVisible] = useState(false);
   const [alertPrice, setAlertPrice] = useState("");
@@ -438,6 +441,9 @@ export default function ProductDetailScreen() {
     }
     void fetchPriceInsight(id).then((res) => {
       if (res) setInsight(res.insight);
+    });
+    void fetchProductImage(id).then((res) => {
+      if (res) setProductImage(res.imageUrl);
     });
     setLoading(false);
   }, [id]);
@@ -811,6 +817,13 @@ export default function ProductDetailScreen() {
             </Text>
           </View>
         </View>
+
+        {productImage && (
+          <Image
+            source={{ uri: productImage }}
+            style={{ width: 96, height: 96, borderRadius: 12, marginBottom: 12 }}
+          />
+        )}
 
         {/* Product Info Card */}
         <View

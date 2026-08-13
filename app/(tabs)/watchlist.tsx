@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
+  Image,
   Text,
   View,
   TouchableOpacity,
@@ -30,6 +31,7 @@ import {
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { checkPriceDropsNow } from "@/lib/background-price-check";
 import { getAllRegions, productHasRegion } from "@/lib/region-filter";
+import { fetchProductImage } from "@/lib/server-images";
 
 type SortMode = "recent" | "best_price" | "az";
 
@@ -115,6 +117,17 @@ function ProductCard({
     "out_of_stock";
   const distributorCount = product.listings?.length ?? 0;
 
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    fetchProductImage(product.id).then((res) => {
+      if (active && res) setImageUrl(res.imageUrl);
+    });
+    return () => {
+      active = false;
+    };
+  }, [product.id]);
+
   return (
     <TouchableOpacity
       style={{
@@ -134,6 +147,12 @@ function ProductCard({
           alignItems: "flex-start",
         }}
       >
+        {imageUrl && (
+          <Image
+            source={{ uri: imageUrl }}
+            style={{ width: 48, height: 48, borderRadius: 8, marginRight: 10 }}
+          />
+        )}
         <View style={{ flex: 1, marginRight: 10 }}>
           <Text
             style={{

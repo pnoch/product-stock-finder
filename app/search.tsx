@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
+  Image,
   Text,
   View,
   TouchableOpacity,
@@ -15,9 +16,30 @@ import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { searchCatalog, PRODUCT_CATALOG } from "@/lib/catalog";
+import { fetchProductImage } from "@/lib/server-images";
 import { addToWatchlist, getWatchlist } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+
+function ProductImage({ productId }: { productId: string }) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    fetchProductImage(productId).then((res) => {
+      if (active && res) setImageUrl(res.imageUrl);
+    });
+    return () => {
+      active = false;
+    };
+  }, [productId]);
+  if (!imageUrl) return null;
+  return (
+    <Image
+      source={{ uri: imageUrl }}
+      style={{ width: 48, height: 48, borderRadius: 8, marginRight: 12 }}
+    />
+  );
+}
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -188,6 +210,7 @@ export default function SearchScreen() {
               alignItems: "center",
             }}
           >
+            <ProductImage productId={item.id} />
             <View style={{ flex: 1, marginRight: 12 }}>
               <Text
                 style={{
