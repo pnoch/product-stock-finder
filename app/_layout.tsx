@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/lib/theme-provider";
 import {
   requestNotificationPermissions,
   setupAndroidNotificationChannel,
+  setupPushEventTracking,
 } from "@/lib/notifications";
 import {
   getWatchlist,
@@ -74,6 +75,9 @@ export default function RootLayout() {
   // Request notification permissions and set up Android channel on first load
   useEffect(() => {
     if (Platform.OS === "web") return;
+    // Record eventIds from push notifications for dedup (registered first so
+    // pushes arriving during channel setup are captured too)
+    const stopPushTracking = setupPushEventTracking();
     setupAndroidNotificationChannel().then(async () => {
       // Only prompt for notification permission if the user has enabled notifications
       const settings = await getSettings();
@@ -89,6 +93,9 @@ export default function RootLayout() {
       // Pull any server-queued notification events
       void syncServerNotifications();
     });
+    return () => {
+      stopPushTracking();
+    };
   }, []);
 
   // Seed CRS804 into watchlist on first launch if watchlist is empty

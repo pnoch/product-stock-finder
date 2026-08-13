@@ -322,3 +322,10 @@
 - [x] Public notifications.registerPushToken tRPC endpoint (+ stockWatches.lastKnownStatus schema fix)
 - [x] Mobile expo push token registration (lib/push-token.ts) + launch wiring
 - [x] Desktop syncDesktopNotifications + scheduled polling + native notifications
+
+## Phase 34: Mobile Notification Dedup
+
+- [x] displayed_notification_event_ids storage key (getDisplayedEventIds / recordDisplayedEventId, capped 200)
+- [x] setupPushEventTracking (received + response listeners + last-response capture)
+- [x] Launch pull sync skips re-render for already-displayed events (still reconciles)
+- [x] Launch wiring in app/_layout.tsx
