@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { convertPrice, formatPrice, getBestPrice } from "../lib/currency";
+import { describe, expect, it, afterEach } from "vitest";
+import {
+  convertPrice,
+  formatPrice,
+  getBestPrice,
+  setExchangeRates,
+} from "../lib/currency";
 
 describe("convertPrice", () => {
   it("returns the same amount for USD to USD", () => {
@@ -70,5 +75,25 @@ describe("getBestPrice", () => {
 
   it("returns null when there are no available listings", () => {
     expect(getBestPrice([], "USD")).toBeNull();
+  });
+});
+
+describe("live rates", () => {
+  afterEach(() => setExchangeRates(null));
+
+  it("uses live rates when set", () => {
+    setExchangeRates({ EUR: 0.9 });
+    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(90);
+  });
+
+  it("falls back to static rates for codes missing from the live set", () => {
+    setExchangeRates({ EUR: 0.9 });
+    expect(convertPrice(100, "EUR", "GBP")).toBeCloseTo((100 / 0.9) * 0.79);
+  });
+
+  it("restores static rates when cleared with null", () => {
+    setExchangeRates({ EUR: 0.9 });
+    setExchangeRates(null);
+    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(92);
   });
 });

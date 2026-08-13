@@ -29,18 +29,29 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
   AED: "AED",
 };
 
+let liveRates: Record<string, number> | null = null;
+
+export function setExchangeRates(rates: Record<string, number> | null): void {
+  liveRates = rates;
+}
+
+function effectiveRates(): Record<string, number> {
+  return { ...EXCHANGE_RATES, ...liveRates };
+}
+
 export function convertPrice(
   amount: number,
   fromCurrency: string,
   toCurrency: string,
 ): number {
-  const fromRate = EXCHANGE_RATES[fromCurrency] ?? 1;
-  const toRate = EXCHANGE_RATES[toCurrency] ?? 1;
+  const rates = effectiveRates();
+  const fromRate = rates[fromCurrency] ?? 1;
+  const toRate = rates[toCurrency] ?? 1;
   return (amount / fromRate) * toRate;
 }
 
 export function hasExchangeRate(currency: string): boolean {
-  return currency in EXCHANGE_RATES;
+  return currency in effectiveRates();
 }
 
 export function formatPrice(amount: number, currency: string): string {

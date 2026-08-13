@@ -52,6 +52,11 @@ export interface ServerPriceResult {
   history: PricePoint[];
 }
 
+export interface FxRatesResult {
+  rates: Record<string, number>;
+  fetchedAt: number | null;
+}
+
 export interface Product {
   id: string;
   name: string;
