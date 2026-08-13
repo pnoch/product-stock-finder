@@ -335,3 +335,9 @@
 - [x] pruneDeviceToken (DB delete + memory removal, best-effort)
 - [x] Send-ticket inspection: DeviceNotRegistered prunes the token row
 - [x] Tests: dead/ok/other-error tickets, memory path, never-throws
+
+## Phase 36: In-app Notification Center
+
+- [x] Notification history AsyncStorage collection (`notification_history`, capped at 200)
+- [x] Record every pulled notification event into history during sync
+- [x] Third "Notifications" segment in the Alerts tab with unread pill, mark-all-read, and tap-to-product
