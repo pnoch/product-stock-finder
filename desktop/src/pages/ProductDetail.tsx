@@ -9,6 +9,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { storage } from "../storage";
+import { getApiBaseUrl } from "../lib/api-base";
 import {
   formatPrice,
   getBestPrice,
@@ -88,6 +89,7 @@ export function ProductDetail() {
   const [shippingRegion, setShippingRegion] = useState("Asia-Pacific");
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
+  const [insight, setInsight] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -100,6 +102,16 @@ export function ProductDetail() {
       setDisplayCurrency(settings.displayCurrency ?? "USD");
       setShippingRegion(settings.shippingRegion ?? "Asia-Pacific");
       setLoading(false);
+
+      const base = getApiBaseUrl();
+      if (base) {
+        const { invoke } = await import("@tauri-apps/api/core");
+        invoke("fetch_price_insight", { apiBaseUrl: base, productId: id })
+          .then((res: any) => {
+            if (res && res.insight) setInsight(res.insight);
+          })
+          .catch(() => {});
+      }
     })();
   }, [id]);
 
@@ -264,6 +276,15 @@ export function ProductDetail() {
           >
             Buy Now <ExternalLink className="w-3.5 h-3.5" />
           </a>
+        </div>
+      )}
+
+      {insight && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            AI insight
+          </p>
+          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{insight}</p>
         </div>
       )}
 
