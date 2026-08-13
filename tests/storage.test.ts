@@ -508,4 +508,26 @@ describe("fx rates", () => {
     store.set("fx_rates", JSON.stringify({ fetchedAt: 5 }));
     expect(await getFxRates()).toBeNull();
   });
+
+  it("drops non-numeric rate values from a tampered payload", async () => {
+    store.set(
+      "fx_rates",
+      JSON.stringify({
+        rates: { EUR: 0.9, GBP: "oops", THB: 34.5 },
+        fetchedAt: 5,
+      }),
+    );
+    expect(await getFxRates()).toEqual({
+      rates: { EUR: 0.9, THB: 34.5 },
+      fetchedAt: 5,
+    });
+  });
+
+  it("returns null when a payload has no valid rate values", async () => {
+    store.set(
+      "fx_rates",
+      JSON.stringify({ rates: { EUR: "oops", GBP: "x" }, fetchedAt: 5 }),
+    );
+    expect(await getFxRates()).toBeNull();
+  });
 });

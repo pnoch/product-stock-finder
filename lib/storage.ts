@@ -370,8 +370,17 @@ export function createStorage(
         fetchedAt?: unknown;
       };
       if (!parsed || typeof parsed !== "object" || !parsed.rates) return null;
+      const rates: Record<string, number> = {};
+      for (const [code, value] of Object.entries(
+        parsed.rates as Record<string, unknown>,
+      )) {
+        if (typeof value === "number" && Number.isFinite(value)) {
+          rates[code] = value;
+        }
+      }
+      if (Object.keys(rates).length === 0) return null;
       return {
-        rates: parsed.rates as Record<string, number>,
+        rates,
         fetchedAt: typeof parsed.fetchedAt === "number" ? parsed.fetchedAt : 0,
       };
     } catch {
