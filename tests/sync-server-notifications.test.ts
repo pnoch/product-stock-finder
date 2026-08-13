@@ -8,6 +8,7 @@ const state = vi.hoisted(() => ({
   pulledEvents: [] as Array<Record<string, unknown>>,
   displayed: [] as string[],
   recorded: [] as string[],
+  historyRecorded: [] as Array<Record<string, unknown>>,
   rendered: [] as Array<Record<string, unknown>>,
   deactivated: [] as Array<Record<string, unknown>>,
 }));
@@ -32,6 +33,9 @@ vi.mock("../lib/storage", () => ({
   getDisplayedEventIds: vi.fn(async () => state.displayed),
   recordDisplayedEventId: vi.fn(async (id: string) => {
     state.recorded.push(id);
+  }),
+  recordNotificationEvent: vi.fn(async (event: Record<string, unknown>) => {
+    state.historyRecorded.push(event);
   }),
   deactivateAlert: vi.fn(async (alertId: string, price: number) => {
     state.deactivated.push({ alertId, price });
@@ -74,6 +78,7 @@ beforeEach(() => {
   state.pulledEvents = [];
   state.displayed = [];
   state.recorded = [];
+  state.historyRecorded = [];
   state.rendered = [];
   state.deactivated = [];
 });
@@ -84,6 +89,8 @@ describe("syncServerNotifications dedup", () => {
     await syncServerNotifications();
     expect(state.rendered).toHaveLength(1);
     expect(state.recorded).toEqual(["evt-1"]);
+    expect(state.historyRecorded).toHaveLength(1);
+    expect(state.historyRecorded[0]!.id).toBe("evt-1");
     expect(state.deactivated).toEqual([{ alertId: "a1", price: 480 }]);
   });
 
@@ -93,6 +100,7 @@ describe("syncServerNotifications dedup", () => {
     await syncServerNotifications();
     expect(state.rendered).toHaveLength(0);
     expect(state.recorded).toEqual([]);
+    expect(state.historyRecorded).toHaveLength(1);
     expect(state.deactivated).toEqual([{ alertId: "a1", price: 480 }]);
   });
 });

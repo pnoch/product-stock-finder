@@ -53,6 +53,7 @@ async function runSyncServerNotifications(): Promise<void> {
       getBackOrderReminders,
       getDisplayedEventIds,
       recordDisplayedEventId,
+      recordNotificationEvent,
     } = await import("./storage");
     const { scheduleServerEventNotification } = await import("./notifications");
     const deviceId = await getDeviceId();
@@ -94,6 +95,7 @@ async function runSyncServerNotifications(): Promise<void> {
     const displayedIds = new Set(await getDisplayedEventIds());
     const events = await pullNotificationEvents(deviceId);
     for (const event of events) {
+      await recordNotificationEvent(event);
       const stalePriceDrop =
         event.type === "price_drop" && event.alertId && !activeAlertIds.has(event.alertId);
       if (!stalePriceDrop && !displayedIds.has(event.id)) {
