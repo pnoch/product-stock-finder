@@ -12,7 +12,9 @@ import type {
 export interface SyncNowOptions {
   storage: Storage;
   isSignedIn: () => boolean;
-  pull: (since: number | null) => Promise<{ lastSyncedAt: number; items: SyncItem[] }>;
+  pull: (
+    since: number | null,
+  ) => Promise<{ lastSyncedAt: number; items: SyncItem[] }>;
   push: (items: SyncItem[]) => Promise<{ accepted: number }>;
   now?: () => number;
 }
@@ -22,7 +24,12 @@ export interface SyncSetup {
   schedule: () => void;
 }
 
-const COLLECTIONS: Collection[] = ["watchlist", "alerts", "reminders", "settings"];
+const COLLECTIONS: Collection[] = [
+  "watchlist",
+  "alerts",
+  "reminders",
+  "settings",
+];
 const SETTINGS_ID = "settings";
 
 let inFlight: Promise<void> | null = null;
@@ -423,4 +430,14 @@ export function formatSyncStatus(
         ? `Last synced ${minutes}m ago`
         : `Last synced ${Math.floor(minutes / 60)}h ago`;
   return { label, tone: minutes < 5 ? "success" : "muted" };
+}
+
+let syncSetupRef: SyncSetup | null = null;
+
+export function registerSyncSetup(setup: SyncSetup | null): void {
+  syncSetupRef = setup;
+}
+
+export function getSyncSetup(): SyncSetup | null {
+  return syncSetupRef;
 }

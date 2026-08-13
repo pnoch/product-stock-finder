@@ -41,7 +41,7 @@ import {
   subscribeSafeAreaInsets,
 } from "@/lib/_core/manus-runtime";
 import { useAuth } from "@/hooks/use-auth";
-import { setupSync, type SyncSetup } from "@/lib/sync";
+import { setupSync, registerSyncSetup, type SyncSetup } from "@/lib/sync";
 import { backfillLocalHistory } from "@/lib/history-sync";
 import { syncServerNotifications } from "@/lib/server-notifications";
 import { registerPushToken } from "@/lib/push-token";
@@ -186,12 +186,14 @@ export default function RootLayout() {
   const syncRef = useRef<SyncSetup | null>(null);
 
   useEffect(() => {
-    syncRef.current = setupSync({
+    const setup = setupSync({
       storage: defaultStorage,
       isSignedIn: () => isAuthenticatedRef.current,
       pull: (since) => trpcClient.sync.pull.query({ since }),
       push: (items) => trpcClient.sync.push.mutate({ items }),
     });
+    syncRef.current = setup;
+    registerSyncSetup(setup);
   }, [trpcClient]);
 
   useEffect(() => {

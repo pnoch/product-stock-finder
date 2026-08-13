@@ -23,7 +23,13 @@ import {
   updateProductListings,
   getSyncMeta,
 } from "@/lib/storage";
-import { AppSettings, Product, DistributorListing } from "@/lib/types";
+import { formatSyncStatus, getSyncSetup } from "@/lib/sync";
+import {
+  AppSettings,
+  Product,
+  DistributorListing,
+  SyncMeta,
+} from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { sendTestNotification } from "@/lib/notifications";
 import { getDistributorById } from "@/lib/distributors";
@@ -33,11 +39,13 @@ function SettingRow({
   icon,
   label,
   description,
+  descriptionColor,
   right,
 }: {
   icon: React.ComponentProps<typeof IconSymbol>["name"];
   label: string;
   description?: string;
+  descriptionColor?: string;
   right: React.ReactNode;
 }) {
   const colors = useColors();
@@ -72,7 +80,13 @@ function SettingRow({
           {label}
         </Text>
         {description && (
-          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>
+          <Text
+            style={{
+              color: descriptionColor ?? colors.muted,
+              fontSize: 12,
+              marginTop: 1,
+            }}
+          >
             {description}
           </Text>
         )}
@@ -115,7 +129,7 @@ export default function SettingsScreen() {
   });
   const [products, setProducts] = useState<Product[]>([]);
   const { user, isAuthenticated, logout } = useAuth();
-  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+  const [syncMeta, setSyncMeta] = useState<SyncMeta | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -124,7 +138,7 @@ export default function SettingsScreen() {
     const refresh = async () => {
       const meta = await getSyncMeta();
       if (!cancelled) {
-        setLastSyncedAt(meta.lastSyncedAt || null);
+        setSyncMeta(meta);
         setNow(Date.now());
       }
     };
@@ -136,14 +150,20 @@ export default function SettingsScreen() {
     };
   }, [isAuthenticated]);
 
-  const syncStatusLabel = (() => {
-    if (!isAuthenticated) return "Sign in to sync across devices";
-    if (!lastSyncedAt) return "Not synced yet";
-    const minutes = Math.floor((now - lastSyncedAt) / 60000);
-    if (minutes < 1) return "Synced just now";
-    if (minutes < 60) return `Last synced ${minutes}m ago`;
-    return `Last synced ${Math.floor(minutes / 60)}h ago`;
-  })();
+  const syncStatus = syncMeta
+    ? formatSyncStatus(syncMeta, isAuthenticated, now)
+    : isAuthenticated
+      ? { label: "Not synced yet", tone: "muted" as const }
+      : { label: "Sign in to sync across devices", tone: "muted" as const };
+
+  const handleSyncNow = useCallback(async () => {
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await getSyncSetup()?.syncNow();
+    const meta = await getSyncMeta();
+    setSyncMeta(meta);
+    setNow(Date.now());
+  }, []);
 
   const handleSignIn = useCallback(() => {
     if (Platform.OS !== "web")
@@ -189,9 +209,7 @@ export default function SettingsScreen() {
         if (!product.listings) continue;
         const updatedListings: DistributorListing[] = product.listings.map(
           (l) =>
-            l.distributorId === distributorId
-              ? { ...l, lastChecked: now }
-              : l,
+            l.distributorId === distributorId ? { ...l, lastChecked: now } : l,
         );
         const changed = updatedListings.some(
           (l, i) => l.lastChecked !== product.listings[i].lastChecked,
@@ -204,9 +222,7 @@ export default function SettingsScreen() {
         prev.map((p) => ({
           ...p,
           listings: p.listings?.map((l) =>
-            l.distributorId === distributorId
-              ? { ...l, lastChecked: now }
-              : l,
+            l.distributorId === distributorId ? { ...l, lastChecked: now } : l,
           ),
         })),
       );
@@ -333,7 +349,11 @@ export default function SettingsScreen() {
               description={user.email ?? user.openId}
               right={
                 <Text
-                  style={{ color: colors.success, fontSize: 12, fontWeight: "600" }}
+                  style={{
+                    color: colors.success,
+                    fontSize: 12,
+                    fontWeight: "600",
+                  }}
                 >
                   Signed in
                 </Text>
@@ -355,7 +375,11 @@ export default function SettingsScreen() {
                   }}
                 >
                   <Text
-                    style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}
+                    style={{
+                      color: colors.primary,
+                      fontSize: 13,
+                      fontWeight: "600",
+                    }}
                   >
                     Sign in
                   </Text>
@@ -366,24 +390,52 @@ export default function SettingsScreen() {
           <SettingRow
             icon="arrow.triangle.2.circlepath"
             label="Sync status"
-            description={syncStatusLabel}
+            description={syncStatus.label}
+            descriptionColor={
+              syncStatus.tone === "error" ? colors.error : undefined
+            }
             right={
               isAuthenticated ? (
-                <TouchableOpacity
-                  onPress={logout}
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: 12,
-                    backgroundColor: colors.error + "22",
-                  }}
-                >
-                  <Text
-                    style={{ color: colors.error, fontSize: 13, fontWeight: "600" }}
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={handleSyncNow}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 12,
+                      backgroundColor: colors.primary + "22",
+                    }}
                   >
-                    Sign out
-                  </Text>
-                </TouchableOpacity>
+                    <Text
+                      style={{
+                        color: colors.primary,
+                        fontSize: 13,
+                        fontWeight: "600",
+                      }}
+                    >
+                      Sync now
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={logout}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 12,
+                      backgroundColor: colors.error + "22",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: colors.error,
+                        fontSize: 13,
+                        fontWeight: "600",
+                      }}
+                    >
+                      Sign out
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               ) : undefined
             }
           />
@@ -615,11 +667,7 @@ export default function SettingsScreen() {
                   marginRight: 12,
                 }}
               >
-                <IconSymbol
-                  name="globe"
-                  size={18}
-                  color={colors.primary}
-                />
+                <IconSymbol name="globe" size={18} color={colors.primary} />
               </View>
               <Text
                 style={{
@@ -855,7 +903,13 @@ export default function SettingsScreen() {
           })}
           {Object.keys(distributorStatuses).length === 0 && (
             <View style={{ paddingVertical: 20, paddingHorizontal: 16 }}>
-              <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center" }}>
+              <Text
+                style={{
+                  color: colors.muted,
+                  fontSize: 14,
+                  textAlign: "center",
+                }}
+              >
                 No distributors configured
               </Text>
             </View>
@@ -873,7 +927,9 @@ export default function SettingsScreen() {
             alignItems: "center",
           }}
         >
-          <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}>
+          <Text
+            style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}
+          >
             View Health Dashboard
           </Text>
         </TouchableOpacity>

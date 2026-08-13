@@ -16,7 +16,11 @@ describe("formatSyncStatus", () => {
 
   it("prompts sign-in even when a prior error exists", () => {
     expect(
-      formatSyncStatus(makeMeta({ lastSyncError: "Pull failed: x" }), false, Date.now()),
+      formatSyncStatus(
+        makeMeta({ lastSyncError: "Pull failed: x" }),
+        false,
+        Date.now(),
+      ),
     ).toEqual({ label: "Sign in to sync across devices", tone: "muted" });
   });
 
