@@ -107,6 +107,7 @@ export async function syncDesktopNotifications(): Promise<void> {
         currency: a.currency,
         distributorId: a.distributorId,
       }));
+    const activeAlertIds = new Set(activeAlerts.map((a) => a.id));
     const stockWatches = (await storage.getStockWatches()).map((w) => ({
       id: w.id,
       productId: w.productId,
@@ -129,10 +130,20 @@ export async function syncDesktopNotifications(): Promise<void> {
     });
 
     const events = await pullEvents(deviceId);
+    const { sendDesktopNotification } = await import("./notifications");
     for (const event of events) {
-      const { sendDesktopNotification } = await import("./notifications");
-      await sendDesktopNotification(event.title, event.body);
-      await reconcileEvent(event);
+      try {
+        const stalePriceDrop =
+          event.type === "price_drop" &&
+          event.alertId &&
+          !activeAlertIds.has(event.alertId);
+        if (!stalePriceDrop) {
+          await sendDesktopNotification(event.title, event.body);
+        }
+        await reconcileEvent(event);
+      } catch {
+        // skip this event; keep processing the rest
+      }
     }
   } catch {
     // desktop notification sync is best-effort
