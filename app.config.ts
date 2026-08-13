@@ -125,6 +125,9 @@ const config: ExpoConfig = {
     typedRoutes: true,
     reactCompiler: true,
   },
+  extra: {
+    expoProjectId: process.env.EXPO_PUBLIC_EXPO_PROJECT_ID,
+  },
 };
 
 export default config;
