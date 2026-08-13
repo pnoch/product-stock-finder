@@ -57,6 +57,9 @@ vi.mock("../lib/notifications", () => ({
 vi.mock("../lib/restock", () => ({
   checkRestocks: vi.fn(async () => {}),
 }));
+vi.mock("../lib/server-notifications", () => ({
+  syncServerNotifications: vi.fn(async () => {}),
+}));
 
 import { fetchServerPrice, uploadServerHistory } from "../lib/server-prices";
 import { getParserByDistributorId } from "../lib/scrapers/registry";

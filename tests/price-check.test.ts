@@ -50,6 +50,10 @@ vi.mock("../lib/restock", () => ({
   checkRestocks: vi.fn(async () => {}),
 }));
 
+vi.mock("../lib/server-notifications", () => ({
+  syncServerNotifications: vi.fn(async () => {}),
+}));
+
 vi.mock("expo-notifications", () => ({
   scheduleNotificationAsync: vi.fn(async (input: unknown) => {
     state.scheduledNotifications.push(input);
