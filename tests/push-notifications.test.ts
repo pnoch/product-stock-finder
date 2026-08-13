@@ -20,9 +20,19 @@ const dbStub = {
       where: vi.fn(async () => [{ token: "ExponentPushToken[dbpath]" }]),
     })),
   })),
+  delete: vi.fn(() => ({
+    where: vi.fn(async () => undefined),
+  })),
 };
 
 const sent = vi.hoisted(() => [] as unknown[]);
+
+const pushState = vi.hoisted(() => ({
+  tickets: [{ status: "ok" }] as Array<{
+    status: string;
+    details?: { error?: string };
+  }>,
+}));
 
 vi.mock("expo-server-sdk", () => ({
   Expo: class {
@@ -33,11 +43,17 @@ vi.mock("expo-server-sdk", () => ({
     }
     async sendPushNotificationsAsync(chunk: unknown) {
       sent.push(chunk);
+      return pushState.tickets;
     }
   },
 }));
 
-import { upsertPushToken, sendPushForDevice, clearPushTokensForTests } from "../server/push-notifications";
+import {
+  upsertPushToken,
+  sendPushForDevice,
+  pruneDeviceToken,
+  clearPushTokensForTests,
+} from "../server/push-notifications";
 
 const event = { id: "evt-1", title: "💸 Price Drop Alert!", body: "CRS804 is now $480.00!" };
 
@@ -45,6 +61,8 @@ describe("push-notifications", () => {
   beforeEach(() => {
     clearPushTokensForTests();
     sent.length = 0;
+    pushState.tickets = [{ status: "ok" }];
+    vi.clearAllMocks();
     mockedGetDb.mockResolvedValue(dbStub as never);
   });
 
@@ -118,6 +136,31 @@ describe("push-notifications", () => {
     } as never);
     await expect(sendPushForDevice("dev-1", [event])).resolves.toBeUndefined();
     expect(sent).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it("pruneDeviceToken removes the token from the memory store", async () => {
+    mockedGetDb.mockResolvedValue(null);
+    await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios");
+    await pruneDeviceToken("dev-1");
+    await sendPushForDevice("dev-1", [event]);
+    expect(sent).toHaveLength(0);
+  });
+
+  it("pruneDeviceToken deletes the row through the database", async () => {
+    await pruneDeviceToken("dev-1");
+    expect(dbStub.delete).toHaveBeenCalledWith(devicePushTokens);
+  });
+
+  it("pruneDeviceToken never throws when the database delete fails", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockedGetDb.mockResolvedValue({
+      delete: vi.fn(() => {
+        throw new Error("db down");
+      }),
+    } as never);
+    await expect(pruneDeviceToken("dev-1")).resolves.toBeUndefined();
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });

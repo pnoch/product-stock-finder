@@ -68,6 +68,21 @@ export async function sendPushForDevice(
   }
 }
 
+export async function pruneDeviceToken(deviceId: string): Promise<void> {
+  try {
+    const db = await getDb();
+    if (db) {
+      await db
+        .delete(devicePushTokens)
+        .where(eq(devicePushTokens.deviceId, deviceId));
+    } else {
+      memoryTokens.delete(deviceId);
+    }
+  } catch (error) {
+    console.warn(`[Push] Failed to prune push token for device ${deviceId}:`, error);
+  }
+}
+
 export function clearPushTokensForTests(): void {
   memoryTokens.clear();
 }
