@@ -313,3 +313,12 @@
 - [x] Mobile config upload + event pull helpers (lib/server-notifications.ts)
 - [x] Launch/foreground sync + local notification display + reconciliation
 - [x] Review fixes: reminder re-fire dedup, restock transition detection, sync single-flight, stale price-drop dedup, warmer tick resilience
+
+## Phase 33: Push Notifications
+
+- [x] device_push_tokens Drizzle table + migration
+- [x] Server push service (upsert token + Expo push send) (server/push-notifications.ts)
+- [x] Push notification events at detection time (warmer evaluation)
+- [x] Public notifications.registerPushToken tRPC endpoint (+ stockWatches.lastKnownStatus schema fix)
+- [x] Mobile expo push token registration (lib/push-token.ts) + launch wiring
+- [x] Desktop syncDesktopNotifications + scheduled polling + native notifications
