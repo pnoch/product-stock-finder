@@ -46,7 +46,11 @@ function formatRelativeTime(ts: number): string {
   return new Date(ts).toLocaleDateString();
 }
 
-export function NotificationCenter() {
+export function NotificationCenter({
+  onUnreadChange,
+}: {
+  onUnreadChange?: (count: number) => void;
+}) {
   const colors = useColors();
   const router = useRouter();
   const [history, setHistory] = useState<NotificationHistoryEntry[]>([]);
@@ -54,15 +58,23 @@ export function NotificationCenter() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const applyUnread = useCallback(
+    (next: number) => {
+      setUnreadCount(next);
+      onUnreadChange?.(next);
+    },
+    [onUnreadChange],
+  );
+
   const load = useCallback(async () => {
     const [list, unread] = await Promise.all([
       getNotificationHistory(),
       getUnreadNotificationCount(),
     ]);
     setHistory(list);
-    setUnreadCount(unread);
+    applyUnread(unread);
     setLoading(false);
-  }, []);
+  }, [applyUnread]);
 
   useFocusEffect(
     useCallback(() => {
@@ -83,23 +95,23 @@ export function NotificationCenter() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       if (!item.read) {
         await markNotificationRead(item.id);
-        setUnreadCount((c) => Math.max(0, c - 1));
+        applyUnread(Math.max(0, unreadCount - 1));
         setHistory((prev) =>
           prev.map((e) => (e.id === item.id ? { ...e, read: true } : e)),
         );
       }
       router.push(`/product/${item.productId}`);
     },
-    [router],
+    [router, unreadCount, applyUnread],
   );
 
   const handleMarkAll = useCallback(async () => {
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     await markAllNotificationsRead();
-    setUnreadCount(0);
+    applyUnread(0);
     setHistory((prev) => prev.map((e) => ({ ...e, read: true })));
-  }, []);
+  }, [applyUnread]);
 
   return (
     <FlatList

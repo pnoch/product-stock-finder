@@ -1059,7 +1059,9 @@ export default function AlertsScreen() {
       )}
 
       {/* Notifications Tab */}
-      {activeTab === "notifications" && <NotificationCenter />}
+      {activeTab === "notifications" && (
+        <NotificationCenter onUnreadChange={setUnreadNotifications} />
+      )}
 
       {/* Reschedule Reminder Modal */}
       <Modal
