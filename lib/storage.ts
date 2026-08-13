@@ -31,6 +31,7 @@ export function createStorage(
     SYNC_META: "sync_meta",
     DISPLAYED_EVENT_IDS: "displayed_notification_event_ids",
     NOTIFICATION_HISTORY: "notification_history",
+    FX_RATES: "fx_rates",
   };
 
   let onChange = opts?.onChange ?? null;
@@ -355,6 +356,37 @@ export function createStorage(
     await adapter.setItem(KEYS.DIGEST_SNAPSHOT, JSON.stringify(snapshot));
   }
 
+  // ─── FX Rates ───────────────────────────────────────────────────────────────
+
+  async function getFxRates(): Promise<{
+    rates: Record<string, number>;
+    fetchedAt: number;
+  } | null> {
+    try {
+      const raw = await adapter.getItem(KEYS.FX_RATES);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as {
+        rates?: unknown;
+        fetchedAt?: unknown;
+      };
+      if (!parsed || typeof parsed !== "object" || !parsed.rates) return null;
+      return {
+        rates: parsed.rates as Record<string, number>,
+        fetchedAt:
+          typeof parsed.fetchedAt === "number" ? parsed.fetchedAt : 0,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async function saveFxRates(payload: {
+    rates: Record<string, number>;
+    fetchedAt: number;
+  }): Promise<void> {
+    await adapter.setItem(KEYS.FX_RATES, JSON.stringify(payload));
+  }
+
   // ─── Sync Meta ─────────────────────────────────────────────────────────────
 
   async function getSyncMeta(): Promise<SyncMeta> {
@@ -526,6 +558,7 @@ export function createStorage(
       KEYS.SYNC_META,
       KEYS.DISPLAYED_EVENT_IDS,
       KEYS.NOTIFICATION_HISTORY,
+      KEYS.FX_RATES,
       "recently_viewed",
       "distributor_watches",
       "triggered_alert_history",
@@ -562,6 +595,8 @@ export function createStorage(
     updateStockWatchStatus,
     getPriceDigestSnapshot,
     savePriceDigestSnapshot,
+    getFxRates,
+    saveFxRates,
     getSyncMeta,
     saveSyncMeta,
     setItemSyncMeta,
@@ -614,6 +649,8 @@ export const {
   updateStockWatchStatus,
   getPriceDigestSnapshot,
   savePriceDigestSnapshot,
+  getFxRates,
+  saveFxRates,
   getSyncMeta,
   saveSyncMeta,
   setItemSyncMeta,

@@ -59,6 +59,8 @@ import {
   setItemSyncMeta,
   markItemDeleted,
   clearItemSyncMeta,
+  getFxRates,
+  saveFxRates,
   clearAllData,
   createStorage,
 } from "../lib/storage";
@@ -473,5 +475,29 @@ describe("notification history", () => {
     await recordNotificationEvent(makeHistoryEntry("e1"));
     await clearAllData();
     expect(await getNotificationHistory()).toEqual([]);
+  });
+});
+
+describe("fx rates", () => {
+  it("returns null when nothing is stored", async () => {
+    expect(await getFxRates()).toBeNull();
+  });
+
+  it("round-trips a rates payload", async () => {
+    await saveFxRates({ rates: { EUR: 0.9, GBP: 0.78 }, fetchedAt: 123456 });
+    expect(await getFxRates()).toEqual({
+      rates: { EUR: 0.9, GBP: 0.78 },
+      fetchedAt: 123456,
+    });
+  });
+
+  it("returns null for a corrupt payload", async () => {
+    store.set("fx_rates", "{not valid json");
+    expect(await getFxRates()).toBeNull();
+  });
+
+  it("returns null for a payload without a rates object", async () => {
+    store.set("fx_rates", JSON.stringify({ fetchedAt: 5 }));
+    expect(await getFxRates()).toBeNull();
   });
 });
