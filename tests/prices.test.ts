@@ -26,11 +26,22 @@ vi.mock("../server/price-history", () => ({
   clearHistoryForTests: vi.fn(),
 }));
 
+vi.mock("../server/product-images", () => ({
+  getProductImage: vi.fn(),
+  listProductsMissingImage: vi.fn(),
+  clearImagesForTests: vi.fn(),
+}));
+
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { fetchWithParser } from "../lib/scrapers/utils";
 import { getCachedPrice, setCachedPrice, getAllFetchedAt } from "../server/price-cache";
 import { getHistory, recordHistoryPoint } from "../server/price-history";
-import { getPrice, PRICE_TTL_MS, warmCatalogRotation } from "../server/prices";
+import {
+  getPrice,
+  PRICE_TTL_MS,
+  warmCatalogRotation,
+  warmProductImages,
+} from "../server/prices";
 import type { ScrapeResult } from "../lib/scrapers/types";
 
 const mockedGetParser = vi.mocked(getParserByDistributorId);
@@ -172,5 +183,18 @@ describe("warmCatalogRotation", () => {
     const warmed = await warmCatalogRotation(3);
     expect(warmed).toBe(0);
     expect(mockedFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("warmProductImages", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 0 when there are no missing images", async () => {
+    const { listProductsMissingImage } = await import("../server/product-images");
+    vi.mocked(listProductsMissingImage).mockResolvedValue([]);
+    const warmed = await warmProductImages(2);
+    expect(warmed).toBe(0);
   });
 });
