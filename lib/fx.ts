@@ -32,16 +32,26 @@ export async function loadFxRates(
   if (stored) setExchangeRates(stored.rates);
 }
 
-export async function refreshFxRates(
+let refreshInFlight: Promise<void> | null = null;
+
+export function refreshFxRates(
   storage: Storage = defaultStorage,
 ): Promise<void> {
-  const result = await fetchFxRates();
-  if (!result || result.fetchedAt === null) return;
-  await storage.saveFxRates({
-    rates: result.rates,
-    fetchedAt: result.fetchedAt,
-  });
-  setExchangeRates(result.rates);
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    try {
+      const result = await fetchFxRates();
+      if (!result || result.fetchedAt === null) return;
+      await storage.saveFxRates({
+        rates: result.rates,
+        fetchedAt: result.fetchedAt,
+      });
+      setExchangeRates(result.rates);
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
 }
 
 export async function maybeRefreshFxRates(

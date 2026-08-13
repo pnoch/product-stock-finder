@@ -128,4 +128,13 @@ describe("fx client", () => {
     expect(JSON.parse(store.get("fx_rates")!).rates.EUR).toBe(0.9);
     expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(90);
   });
+
+  it("dedupes concurrent refreshFxRates calls into a single fetch", async () => {
+    const query = mockQuery({ rates: { EUR: 0.88 }, fetchedAt: 2000 });
+    const [a, b] = await Promise.all([refreshFxRates(), refreshFxRates()]);
+    await a;
+    await b;
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(88);
+  });
 });
