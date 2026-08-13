@@ -136,3 +136,11 @@ export const priceInsights = mysqlTable("price_insights", {
 
 export type PriceInsightsRow = typeof priceInsights.$inferSelect;
 export type InsertPriceInsightsRow = typeof priceInsights.$inferInsert;
+
+export const productImages = mysqlTable("product_images", {
+  productId: varchar("productId", { length: 128 }).notNull().primaryKey(),
+  imageUrl: text("imageUrl").notNull(),
+});
+
+export type ProductImagesRow = typeof productImages.$inferSelect;
+export type InsertProductImagesRow = typeof productImages.$inferInsert;
