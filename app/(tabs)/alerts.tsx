@@ -14,6 +14,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { NotificationCenter } from "@/components/notification-center";
 import { useColors } from "@/hooks/use-colors";
 import {
   getAlerts,
@@ -26,6 +27,7 @@ import {
   getStockWatches,
   removeStockWatch,
   rearmAlert,
+  getUnreadNotificationCount,
 } from "@/lib/storage";
 import { PriceAlert, Product, BackOrderReminder } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
@@ -36,7 +38,7 @@ import {
 } from "@/lib/notifications";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
-type ActiveTab = "alerts" | "reminders";
+type ActiveTab = "alerts" | "reminders" | "notifications";
 
 export default function AlertsScreen() {
   const router = useRouter();
@@ -47,6 +49,7 @@ export default function AlertsScreen() {
   const [stockWatches, setStockWatches] = useState<BackOrderReminder[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   // Reschedule modal state
   const [rescheduleTarget, setRescheduleTarget] =
@@ -55,16 +58,18 @@ export default function AlertsScreen() {
   const [showReschedulePicker, setShowReschedulePicker] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [a, p, r, w] = await Promise.all([
+    const [a, p, r, w, n] = await Promise.all([
       getAlerts(),
       getWatchlist(),
       getBackOrderReminders(),
       getStockWatches(),
+      getUnreadNotificationCount(),
     ]);
     setAlerts(a);
     setProducts(p);
     setReminders(r);
     setStockWatches(w);
+    setUnreadNotifications(n);
   }, []);
 
   useEffect(() => {
@@ -209,6 +214,7 @@ export default function AlertsScreen() {
   const tabCount = {
     alerts: alerts.length,
     reminders: reminders.length + stockWatches.length,
+    notifications: unreadNotifications,
   };
 
   return (
@@ -268,7 +274,7 @@ export default function AlertsScreen() {
           borderColor: colors.border,
         }}
       >
-        {(["alerts", "reminders"] as ActiveTab[]).map((tab) => (
+        {(["alerts", "reminders", "notifications"] as ActiveTab[]).map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => {
@@ -289,7 +295,13 @@ export default function AlertsScreen() {
             }}
           >
             <IconSymbol
-              name={tab === "alerts" ? "bell.fill" : "calendar"}
+              name={
+                tab === "alerts"
+                  ? "bell.fill"
+                  : tab === "reminders"
+                    ? "calendar"
+                    : "bell.badge.fill"
+              }
               size={15}
               color={activeTab === tab ? "#fff" : colors.muted}
             />
@@ -300,7 +312,7 @@ export default function AlertsScreen() {
                 fontSize: 14,
               }}
             >
-              {tab === "alerts" ? "Alerts" : "Reminders"}
+              {tab === "alerts" ? "Alerts" : tab === "reminders" ? "Reminders" : "Notifications"}
               {tabCount[tab] > 0 ? ` (${tabCount[tab]})` : ""}
             </Text>
           </TouchableOpacity>
@@ -1045,6 +1057,9 @@ export default function AlertsScreen() {
           }}
         />
       )}
+
+      {/* Notifications Tab */}
+      {activeTab === "notifications" && <NotificationCenter />}
 
       {/* Reschedule Reminder Modal */}
       <Modal
