@@ -274,49 +274,55 @@ export default function AlertsScreen() {
           borderColor: colors.border,
         }}
       >
-        {(["alerts", "reminders", "notifications"] as ActiveTab[]).map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            onPress={() => {
-              if (Platform.OS !== "web")
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setActiveTab(tab);
-            }}
-            style={{
-              flex: 1,
-              paddingVertical: 8,
-              borderRadius: 9,
-              alignItems: "center",
-              flexDirection: "row",
-              justifyContent: "center",
-              gap: 6,
-              backgroundColor:
-                activeTab === tab ? colors.primary : "transparent",
-            }}
-          >
-            <IconSymbol
-              name={
-                tab === "alerts"
-                  ? "bell.fill"
-                  : tab === "reminders"
-                    ? "calendar"
-                    : "bell.badge.fill"
-              }
-              size={15}
-              color={activeTab === tab ? "#fff" : colors.muted}
-            />
-            <Text
+        {(["alerts", "reminders", "notifications"] as ActiveTab[]).map(
+          (tab) => (
+            <TouchableOpacity
+              key={tab}
+              onPress={() => {
+                if (Platform.OS !== "web")
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setActiveTab(tab);
+              }}
               style={{
-                color: activeTab === tab ? "#fff" : colors.muted,
-                fontWeight: "600",
-                fontSize: 14,
+                flex: 1,
+                paddingVertical: 8,
+                borderRadius: 9,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 6,
+                backgroundColor:
+                  activeTab === tab ? colors.primary : "transparent",
               }}
             >
-              {tab === "alerts" ? "Alerts" : tab === "reminders" ? "Reminders" : "Notifications"}
-              {tabCount[tab] > 0 ? ` (${tabCount[tab]})` : ""}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <IconSymbol
+                name={
+                  tab === "alerts"
+                    ? "bell.fill"
+                    : tab === "reminders"
+                      ? "calendar"
+                      : "bell.badge.fill"
+                }
+                size={15}
+                color={activeTab === tab ? "#fff" : colors.muted}
+              />
+              <Text
+                style={{
+                  color: activeTab === tab ? "#fff" : colors.muted,
+                  fontWeight: "600",
+                  fontSize: 14,
+                }}
+              >
+                {tab === "alerts"
+                  ? "Alerts"
+                  : tab === "reminders"
+                    ? "Reminders"
+                    : "Notifications"}
+                {tabCount[tab] > 0 ? ` (${tabCount[tab]})` : ""}
+              </Text>
+            </TouchableOpacity>
+          ),
+        )}
       </View>
 
       {/* Alerts Tab */}
