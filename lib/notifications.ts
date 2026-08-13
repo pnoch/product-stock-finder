@@ -183,3 +183,21 @@ export async function sendPriceDigestNotification(
     // digest failures are non-fatal
   }
 }
+
+// ─── Show a server-queued notification event locally ─────────────────────────
+export async function scheduleServerEventNotification(
+  title: string,
+  body: string,
+): Promise<void> {
+  if (Platform.OS === "web") return;
+  const granted = await requestNotificationPermissions();
+  if (!granted) return;
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: { title, body, sound: "default" },
+      trigger: null, // immediate
+    });
+  } catch {
+    // server event failures are non-fatal
+  }
+}

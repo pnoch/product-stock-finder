@@ -14,6 +14,7 @@ import { PricePoint, DistributorListing, Product } from "./types";
 import { appendPricePoint, mergePriceHistory } from "./price-history";
 import { checkRestocks } from "./restock";
 import { maybeSendDigest } from "./price-digest";
+import { syncServerNotifications } from "./server-notifications";
 
 export const PRICE_CHECK_TASK = "price-drop-check";
 
@@ -392,4 +393,7 @@ export async function checkPriceDropsNow(
       await deactivateAlert(alert.id, bestPrice);
     }
   }
+
+  // Pull any server-queued notification events (server-side detection supplement)
+  await syncServerNotifications();
 }
