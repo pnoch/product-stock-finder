@@ -11,6 +11,10 @@ vi.mock("../server/push-notifications", () => ({
   clearPushTokensForTests: vi.fn(),
 }));
 
+vi.mock("../server/db", () => ({
+  getDb: vi.fn(async () => null),
+}));
+
 import {
   upsertDeviceConfig,
   evaluateNotifications,
@@ -20,6 +24,10 @@ import {
 } from "../server/notifications";
 import { setCachedPrice } from "../server/price-cache";
 import { sendPushForDevice } from "../server/push-notifications";
+import { getDb } from "../server/db";
+import { deviceNotificationConfigs, notificationEvents, priceCache } from "../drizzle/schema";
+
+const mockedGetDb = vi.mocked(getDb);
 
 const baseConfig: NotificationConfig = {
   alerts: [],
@@ -52,6 +60,7 @@ describe("evaluateNotifications", () => {
   beforeEach(() => {
     clearNotificationsForTests();
     vi.clearAllMocks();
+    mockedGetDb.mockResolvedValue(null);
   });
 
   it("queues a price_drop event when the best price is below target", async () => {
@@ -105,6 +114,68 @@ describe("evaluateNotifications", () => {
       "dev-1",
       expect.arrayContaining([expect.objectContaining({ type: "price_drop" })]),
     );
+  });
+
+  it("pushes newly created events on the database path", async () => {
+    const inserted: unknown[] = [];
+    const storedSnapshots: Array<Record<string, unknown>> = [];
+    const dbStub = {
+      select: vi.fn(() => ({
+        from: vi.fn((table: unknown) => {
+          if (table === deviceNotificationConfigs) {
+            return [
+              {
+                deviceId: "dev-1",
+                alerts: [
+                  {
+                    id: "a1",
+                    productId: "mikrotik-crs804-4ddq-hrm",
+                    targetPrice: 500,
+                    currency: "USD",
+                  },
+                ],
+                stockWatches: [],
+                dateReminders: [],
+                updatedAt: Date.now(),
+              },
+            ];
+          }
+          if (table === priceCache) {
+            return {
+              where: vi.fn(() => ({
+                limit: vi.fn(async () => storedSnapshots),
+              })),
+            };
+          }
+          return { where: vi.fn(() => []) };
+        }),
+      })),
+      insert: vi.fn((table: unknown) => ({
+        values: vi.fn((rows: unknown) => {
+          if (table === priceCache) {
+            storedSnapshots.push(rows as Record<string, unknown>);
+          } else {
+            inserted.push(rows);
+          }
+          return { onDuplicateKeyUpdate: vi.fn(async () => undefined) };
+        }),
+      })),
+    };
+    mockedGetDb.mockResolvedValue(dbStub as never);
+    await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
+      price: 480,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://example.com",
+      fetchedAt: Date.now(),
+    });
+    await evaluateNotifications(Date.now());
+    expect(inserted).toHaveLength(1);
+    expect(vi.mocked(sendPushForDevice)).toHaveBeenCalledWith(
+      "dev-1",
+      expect.arrayContaining([expect.objectContaining({ type: "price_drop" })]),
+    );
+    mockedGetDb.mockResolvedValue(null);
   });
 
   it("does not queue a price_drop event when the price is above target", async () => {

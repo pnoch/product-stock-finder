@@ -123,7 +123,9 @@ export async function evaluateNotifications(now: number): Promise<void> {
       .map((d) => ({ ...d, deviceId: row.deviceId }));
     if (toInsert.length > 0) {
       await db.insert(notificationEvents).values(toInsert);
-      await sendPushForDevice(row.deviceId, toInsert);
+      // Best-effort push: sendPushForDevice never rejects and pullPendingEvents
+      // is the correctness guarantee for undelivered events.
+      void sendPushForDevice(row.deviceId, toInsert);
     }
   }
 }
@@ -146,7 +148,7 @@ async function evaluateConfig(
     added.push(event);
   }
   memoryEvents.set(deviceId, list);
-  if (added.length > 0) await sendPushForDevice(deviceId, added);
+  if (added.length > 0) void sendPushForDevice(deviceId, added);
 }
 
 function dedupKeyFor(event: NotificationEvent): string {
