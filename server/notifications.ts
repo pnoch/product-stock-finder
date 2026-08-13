@@ -19,7 +19,12 @@ export interface NotificationConfig {
     currency: string;
     distributorId?: string;
   }>;
-  stockWatches: Array<{ id: string; productId: string; distributorId: string }>;
+  stockWatches: Array<{
+    id: string;
+    productId: string;
+    distributorId: string;
+    lastKnownStatus?: string;
+  }>;
   dateReminders: Array<{
     id: string;
     productId: string;
@@ -185,6 +190,7 @@ async function buildEvents(config: NotificationConfig, now: number): Promise<Eve
   for (const watch of config.stockWatches) {
     const product = PRODUCT_CATALOG.find((p) => p.id === watch.productId);
     if (!product) continue;
+    if (watch.lastKnownStatus === "in_stock") continue;
     const snapshot = await getCachedPrice(watch.distributorId, product.modelNumber);
     if (!snapshot || snapshot.stockStatus !== "in_stock") continue;
     const distributorName =

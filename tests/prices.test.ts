@@ -43,6 +43,7 @@ import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { fetchWithParser } from "../lib/scrapers/utils";
 import { getCachedPrice, setCachedPrice, getAllFetchedAt, listNearExpiry } from "../server/price-cache";
 import { getHistory, recordHistoryPoint } from "../server/price-history";
+import { listProductsMissingImage } from "../server/product-images";
 import {
   getPrice,
   PRICE_TTL_MS,
@@ -212,6 +213,7 @@ describe("runWarmerTick", () => {
     vi.clearAllMocks();
     vi.mocked(listNearExpiry).mockResolvedValue([]);
     vi.mocked(getAllFetchedAt).mockResolvedValue([]);
+    vi.mocked(listProductsMissingImage).mockResolvedValue([]);
   });
 
   it("calls evaluateNotifications", async () => {

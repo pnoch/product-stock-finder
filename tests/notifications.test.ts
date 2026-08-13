@@ -119,6 +119,30 @@ describe("evaluateNotifications", () => {
     expect(events[0]!.watchId).toBe("w1");
   });
 
+  it("does not queue a restock event when the watch was already in stock", async () => {
+    await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
+      price: 520,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://example.com",
+      fetchedAt: Date.now(),
+    });
+    await upsertDeviceConfig("dev-1", {
+      ...baseConfig,
+      stockWatches: [
+        {
+          id: "w1",
+          productId: "mikrotik-crs804-4ddq-hrm",
+          distributorId: "server2u-my",
+          lastKnownStatus: "in_stock",
+        },
+      ],
+    });
+    await evaluateNotifications(Date.now());
+    const events = await pullPendingEvents("dev-1");
+    expect(events).toEqual([]);
+  });
+
   it("queues a reminder event when the date has passed", async () => {
     await upsertDeviceConfig("dev-1", {
       ...baseConfig,
