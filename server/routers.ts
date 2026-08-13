@@ -14,6 +14,7 @@ import { getPrice } from "./prices";
 import { mergeHistory } from "./price-history";
 import { getInsight } from "./price-insights";
 import { getProductImage } from "./product-images";
+import { upsertDeviceConfig, pullPendingEvents } from "./notifications";
 
 const syncItemSchema = z.object({
   collection: z.enum(["watchlist", "alerts", "reminders", "settings"]),
@@ -116,6 +117,53 @@ export const appRouter = router({
       .input(z.object({ productId: z.string().min(1) }))
       .query(async ({ input }) => {
         return getProductImage(input.productId);
+      }),
+  }),
+
+  notifications: router({
+    uploadConfig: publicProcedure
+      .input(
+        z.object({
+          deviceId: z.string().min(1),
+          alerts: z.array(
+            z.object({
+              id: z.string().min(1),
+              productId: z.string().min(1),
+              targetPrice: z.number(),
+              currency: z.string().min(1),
+              distributorId: z.string().optional(),
+            }),
+          ),
+          stockWatches: z.array(
+            z.object({
+              id: z.string().min(1),
+              productId: z.string().min(1),
+              distributorId: z.string().min(1),
+            }),
+          ),
+          dateReminders: z.array(
+            z.object({
+              id: z.string().min(1),
+              productId: z.string().min(1),
+              distributorId: z.string().min(1),
+              reminderDate: z.string().min(1),
+            }),
+          ),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        await upsertDeviceConfig(input.deviceId, {
+          alerts: input.alerts,
+          stockWatches: input.stockWatches,
+          dateReminders: input.dateReminders,
+        });
+        return { accepted: true } as const;
+      }),
+    pull: publicProcedure
+      .input(z.object({ deviceId: z.string().min(1) }))
+      .query(async ({ input }) => {
+        const events = await pullPendingEvents(input.deviceId);
+        return { events };
       }),
   }),
 });
