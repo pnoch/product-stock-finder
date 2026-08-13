@@ -175,3 +175,13 @@ export const notificationEvents = mysqlTable("notification_events", {
 
 export type NotificationEventRow = typeof notificationEvents.$inferSelect;
 export type InsertNotificationEventRow = typeof notificationEvents.$inferInsert;
+
+export const devicePushTokens = mysqlTable("device_push_tokens", {
+  deviceId: varchar("deviceId", { length: 128 }).notNull().primaryKey(),
+  token: varchar("token", { length: 255 }).notNull(),
+  platform: varchar("platform", { length: 16 }).notNull(),
+  updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
+});
+
+export type DevicePushTokenRow = typeof devicePushTokens.$inferSelect;
+export type InsertDevicePushTokenRow = typeof devicePushTokens.$inferInsert;
