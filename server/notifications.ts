@@ -136,7 +136,7 @@ async function evaluateConfig(
   const list = memoryEvents.get(deviceId) ?? [];
   for (const draft of drafts) {
     if (undelivered.has(draft.dedupKey)) continue;
-    list.push(draftToEvent(draft, deviceId));
+    list.push(draftToEvent(draft));
   }
   memoryEvents.set(deviceId, list);
 }
@@ -273,7 +273,7 @@ export function clearNotificationsForTests(): void {
   memoryEvents.clear();
 }
 
-function draftToEvent(draft: EventDraft, deviceId: string): NotificationEvent {
+function draftToEvent(draft: EventDraft): NotificationEvent {
   const payload = (draft.payload ?? {}) as Record<string, unknown>;
   return {
     id: draft.id,
