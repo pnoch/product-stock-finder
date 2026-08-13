@@ -329,3 +329,9 @@
 - [x] setupPushEventTracking (received + response listeners + last-response capture)
 - [x] Launch pull sync skips re-render for already-displayed events (still reconciles)
 - [x] Launch wiring in app/_layout.tsx
+
+## Phase 35: Push Token Pruning
+
+- [x] pruneDeviceToken (DB delete + memory removal, best-effort)
+- [x] Send-ticket inspection: DeviceNotRegistered prunes the token row
+- [x] Tests: dead/ok/other-error tickets, memory path, never-throws
