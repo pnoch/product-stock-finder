@@ -52,6 +52,7 @@ import { getDistributorById } from "@/lib/distributors";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
 import { findBestDeal } from "@/lib/best-deal";
 import { findNearestIndex } from "@/lib/price-chart";
+import { fetchPriceInsight } from "@/lib/server-insights";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import {
   schedulePriceAlert,
@@ -389,6 +390,7 @@ export default function ProductDetailScreen() {
   const colors = useColors();
   const [product, setProduct] = useState<Product | null>(null);
   const [listings, setListings] = useState<DistributorListing[]>([]);
+  const [insight, setInsight] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [alertModalVisible, setAlertModalVisible] = useState(false);
   const [alertPrice, setAlertPrice] = useState("");
@@ -434,6 +436,9 @@ export default function ProductDetailScreen() {
         await updateProductListings(id, SAMPLE_LISTINGS[id]);
       }
     }
+    void fetchPriceInsight(id).then((res) => {
+      if (res) setInsight(res.insight);
+    });
     setLoading(false);
   }, [id]);
 
@@ -1288,6 +1293,38 @@ export default function ProductDetailScreen() {
                     );
                   }}
                 />
+              )}
+              {insight && (
+                <View
+                  style={{
+                    backgroundColor: colors.surface,
+                    borderRadius: 16,
+                    padding: 16,
+                    marginTop: 12,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.muted,
+                      fontSize: 12,
+                      fontWeight: "600",
+                      textTransform: "uppercase",
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    AI insight
+                  </Text>
+                  <Text
+                    style={{
+                      color: colors.foreground,
+                      fontSize: 14,
+                      marginTop: 4,
+                      lineHeight: 20,
+                    }}
+                  >
+                    {insight}
+                  </Text>
+                </View>
               )}
               {bestInStockListing && (
                 <Text
