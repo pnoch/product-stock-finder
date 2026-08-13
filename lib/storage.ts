@@ -467,6 +467,7 @@ export function createStorage(
       KEYS.REMINDERS,
       KEYS.STOCK_WATCHES,
       KEYS.SYNC_META,
+      KEYS.DISPLAYED_EVENT_IDS,
       "recently_viewed",
       "distributor_watches",
       "triggered_alert_history",
