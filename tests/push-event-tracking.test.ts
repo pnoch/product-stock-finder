@@ -6,6 +6,8 @@ const state = vi.hoisted(() => ({
   receivedHandler: null as null | ((notification: unknown) => void),
   responseHandler: null as null | ((response: unknown) => void),
   lastResponse: null as unknown,
+  receivedRemove: vi.fn(),
+  responseRemove: vi.fn(),
 }));
 
 vi.mock("react-native", () => ({
@@ -21,13 +23,13 @@ vi.mock("expo-notifications", () => ({
   addNotificationReceivedListener: vi.fn(
     (handler: (notification: unknown) => void) => {
       state.receivedHandler = handler;
-      return { remove: vi.fn() };
+      return { remove: state.receivedRemove };
     },
   ),
   addNotificationResponseReceivedListener: vi.fn(
     (handler: (response: unknown) => void) => {
       state.responseHandler = handler;
-      return { remove: vi.fn() };
+      return { remove: state.responseRemove };
     },
   ),
   getLastNotificationResponseAsync: vi.fn(async () => state.lastResponse),
@@ -48,6 +50,8 @@ describe("setupPushEventTracking", () => {
     state.receivedHandler = null;
     state.responseHandler = null;
     state.lastResponse = null;
+    state.receivedRemove.mockClear();
+    state.responseRemove.mockClear();
   });
 
   it("records the eventId of a received push notification", () => {
@@ -75,8 +79,17 @@ describe("setupPushEventTracking", () => {
     state.lastResponse = {
       notification: { request: { content: { data: { eventId: "e3" } } } },
     };
-    setupPushEventTracking();
+    const stop = setupPushEventTracking();
     await vi.waitFor(() => expect(state.recorded).toEqual(["e3"]));
+    stop();
+  });
+
+  it("returns an unsubscribe that removes both listeners", () => {
+    state.platform = "ios";
+    const stop = setupPushEventTracking();
+    stop();
+    expect(state.receivedRemove).toHaveBeenCalledTimes(1);
+    expect(state.responseRemove).toHaveBeenCalledTimes(1);
   });
 
   it("ignores notifications without an eventId", () => {

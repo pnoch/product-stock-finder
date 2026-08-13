@@ -216,6 +216,10 @@ export function setupPushEventTracking(): () => void {
     }
   };
   try {
+    // addNotificationReceivedListener only fires in the foreground on iOS; a
+    // background push that's never tapped isn't observed here, so the launch
+    // pull may still re-render it (accepted best-effort gap — pull is the
+    // correctness guarantee).
     subscriptions.push(
       Notifications.addNotificationReceivedListener((notification) => {
         recordEventId(notification.request.content.data);
@@ -226,9 +230,11 @@ export function setupPushEventTracking(): () => void {
         recordEventId(response.notification.request.content.data);
       }),
     );
-    void Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (response) recordEventId(response.notification.request.content.data);
-    });
+    void Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        if (response) recordEventId(response.notification.request.content.data);
+      })
+      .catch(() => {});
   } catch {
     // push event tracking is best-effort
   }
