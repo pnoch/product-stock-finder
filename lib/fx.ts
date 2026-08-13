@@ -36,10 +36,10 @@ export async function refreshFxRates(
   storage: Storage = defaultStorage,
 ): Promise<void> {
   const result = await fetchFxRates();
-  if (!result) return;
+  if (!result || result.fetchedAt === null) return;
   await storage.saveFxRates({
     rates: result.rates,
-    fetchedAt: result.fetchedAt ?? Date.now(),
+    fetchedAt: result.fetchedAt,
   });
   setExchangeRates(result.rates);
 }

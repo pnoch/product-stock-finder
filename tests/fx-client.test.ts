@@ -116,4 +116,16 @@ describe("fx client", () => {
     expect(store.has("fx_rates")).toBe(false);
     expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(92);
   });
+
+  it("refreshFxRates keeps last-known rates when the server has no live rates", async () => {
+    store.set(
+      "fx_rates",
+      JSON.stringify({ rates: { EUR: 0.9 }, fetchedAt: 1000 }),
+    );
+    setExchangeRates({ EUR: 0.9 });
+    mockQuery({ rates: { EUR: 0.92 }, fetchedAt: null });
+    await refreshFxRates();
+    expect(JSON.parse(store.get("fx_rates")!).rates.EUR).toBe(0.9);
+    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(90);
+  });
 });
