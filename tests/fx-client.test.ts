@@ -22,7 +22,12 @@ vi.mock("../lib/trpc", () => ({
 }));
 
 import { createTRPCClient } from "../lib/trpc";
-import { loadFxRates, refreshFxRates, maybeRefreshFxRates, FX_TTL_MS } from "../lib/fx";
+import {
+  loadFxRates,
+  refreshFxRates,
+  maybeRefreshFxRates,
+  FX_TTL_MS,
+} from "../lib/fx";
 
 const mockedCreateClient = vi.mocked(createTRPCClient);
 

@@ -228,7 +228,9 @@ export function createStorage(
   async function getSettings(): Promise<AppSettings> {
     try {
       const raw = await adapter.getItem(KEYS.SETTINGS);
-      return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS;
+      return raw
+        ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+        : DEFAULT_SETTINGS;
     } catch {
       return DEFAULT_SETTINGS;
     }
@@ -271,12 +273,12 @@ export function createStorage(
     });
   }
 
-  async function removeBackOrderReminder(
-    reminderId: string,
-  ): Promise<void> {
+  async function removeBackOrderReminder(reminderId: string): Promise<void> {
     await enqueue(KEYS.REMINDERS, async () => {
       const reminders = await getBackOrderReminders();
-      await saveBackOrderReminders(reminders.filter((r) => r.id !== reminderId));
+      await saveBackOrderReminders(
+        reminders.filter((r) => r.id !== reminderId),
+      );
       notify("reminders", reminderId);
     });
   }
@@ -287,9 +289,7 @@ export function createStorage(
     return readList<BackOrderReminder>(KEYS.STOCK_WATCHES);
   }
 
-  async function saveStockWatches(
-    watches: BackOrderReminder[],
-  ): Promise<void> {
+  async function saveStockWatches(watches: BackOrderReminder[]): Promise<void> {
     await adapter.setItem(KEYS.STOCK_WATCHES, JSON.stringify(watches));
   }
 
@@ -372,8 +372,7 @@ export function createStorage(
       if (!parsed || typeof parsed !== "object" || !parsed.rates) return null;
       return {
         rates: parsed.rates as Record<string, number>,
-        fetchedAt:
-          typeof parsed.fetchedAt === "number" ? parsed.fetchedAt : 0,
+        fetchedAt: typeof parsed.fetchedAt === "number" ? parsed.fetchedAt : 0,
       };
     } catch {
       return null;
@@ -398,9 +397,12 @@ export function createStorage(
         lastSyncedAt:
           typeof parsed.lastSyncedAt === "number" ? parsed.lastSyncedAt : 0,
         lastSyncOkAt:
-          typeof parsed.lastSyncOkAt === "number" ? parsed.lastSyncOkAt : undefined,
+          typeof parsed.lastSyncOkAt === "number"
+            ? parsed.lastSyncOkAt
+            : undefined,
         lastSyncError:
-          typeof parsed.lastSyncError === "string" || parsed.lastSyncError === null
+          typeof parsed.lastSyncError === "string" ||
+          parsed.lastSyncError === null
             ? parsed.lastSyncError
             : undefined,
         items: parsed.items ?? {},

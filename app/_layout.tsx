@@ -45,6 +45,7 @@ import { setupSync, registerSyncSetup, type SyncSetup } from "@/lib/sync";
 import { backfillLocalHistory } from "@/lib/history-sync";
 import { syncServerNotifications } from "@/lib/server-notifications";
 import { registerPushToken } from "@/lib/push-token";
+import { loadFxRates, maybeRefreshFxRates } from "@/lib/fx";
 
 // CRS804 + CRS326 listings seeded at first launch from lib/sample-data.ts so Home/Watchlist
 // badges and Product Detail sparklines/charts have full price history immediately.
@@ -202,6 +203,11 @@ export default function RootLayout() {
       void backfillLocalHistory();
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    void loadFxRates();
+    void maybeRefreshFxRates();
+  }, []);
 
   // Ensure minimum 8px padding for top and bottom on mobile
   const providerInitialMetrics = useMemo(() => {

@@ -350,3 +350,12 @@
 - [x] Persisted sync status (SyncMeta.lastSyncError / lastSyncOkAt) written by doSync
 - [x] formatSyncStatus helper + unit tests
 - [x] Settings sync-status error tone + "Sync now" button
+
+## Phase 38: Live FX Rates
+
+- [x] Server TTL-cached FX service (server/fx.ts) + public fx.get endpoint (1h TTL, single-flight, stale-while-revalidate)
+- [x] FX provider URL configurable via FX_API_URL (default open.er-api.com/v6/latest/USD, no key)
+- [x] Dynamic rates in lib/currency.ts (setExchangeRates overlay; fallback to static)
+- [x] Mobile fx helper: fetch/load/refresh + maybeRefresh (lib/fx.ts), persisted to fx_rates AsyncStorage
+- [x] Launch + Settings refresh wiring; every existing conversion uses live rates
+- [x] Tests: fx service (6), currency live-rates (3), storage round-trip (4), fx client (7)

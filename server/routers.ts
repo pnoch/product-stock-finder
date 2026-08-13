@@ -64,7 +64,10 @@ export const appRouter = router({
         for (const item of input.items) {
           if (await upsertSyncItem(ctx.user.id, item)) accepted += 1;
         }
-        await purgeOldTombstones(ctx.user.id, Date.now() - TOMBSTONE_PURGE_WINDOW_MS);
+        await purgeOldTombstones(
+          ctx.user.id,
+          Date.now() - TOMBSTONE_PURGE_WINDOW_MS,
+        );
         return { accepted };
       }),
   }),
@@ -101,7 +104,11 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input }) => {
-        await mergeHistory(input.distributorId, input.modelNumber, input.points);
+        await mergeHistory(
+          input.distributorId,
+          input.modelNumber,
+          input.points,
+        );
         return { accepted: input.points.length } as const;
       }),
   }),

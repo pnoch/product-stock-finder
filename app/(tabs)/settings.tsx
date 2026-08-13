@@ -24,6 +24,7 @@ import {
   getSyncMeta,
 } from "@/lib/storage";
 import { formatSyncStatus, getSyncSetup } from "@/lib/sync";
+import { maybeRefreshFxRates } from "@/lib/fx";
 import {
   AppSettings,
   Product,
@@ -174,6 +175,7 @@ export default function SettingsScreen() {
   useEffect(() => {
     getSettings().then(setSettings);
     getWatchlist().then(setProducts);
+    void maybeRefreshFxRates();
   }, []);
 
   const updateSetting = useCallback(

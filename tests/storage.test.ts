@@ -314,12 +314,20 @@ describe("sync meta", () => {
     await setItemSyncMeta("watchlist", "p1", 1000);
     await saveSyncMeta({ lastSyncedAt: 5000, items: {} });
     const meta = await getSyncMeta();
-    expect(meta.items.watchlist?.p1).toEqual({ updatedAt: 1000, deleted: false });
+    expect(meta.items.watchlist?.p1).toEqual({
+      updatedAt: 1000,
+      deleted: false,
+    });
     expect(meta.lastSyncedAt).toBe(5000);
   });
 
   it("round-trips lastSyncOkAt and lastSyncError through saveSyncMeta", async () => {
-    await saveSyncMeta({ lastSyncedAt: 5000, items: {}, lastSyncError: "Push failed: network", lastSyncOkAt: 4000 });
+    await saveSyncMeta({
+      lastSyncedAt: 5000,
+      items: {},
+      lastSyncError: "Push failed: network",
+      lastSyncOkAt: 4000,
+    });
     const meta = await getSyncMeta();
     expect(meta.lastSyncError).toBe("Push failed: network");
     expect(meta.lastSyncOkAt).toBe(4000);

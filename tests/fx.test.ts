@@ -1,5 +1,9 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { EXCHANGE_RATES, convertPrice, setExchangeRates } from "../lib/currency";
+import {
+  EXCHANGE_RATES,
+  convertPrice,
+  setExchangeRates,
+} from "../lib/currency";
 import { FX_TTL_MS, getFxRates, clearFxCache } from "../server/fx";
 
 function mockResponse(rates: Record<string, number>) {
@@ -78,7 +82,10 @@ describe("fx service", () => {
     expect(bad.fetchedAt).toBeNull();
     expect(bad.rates.EUR).toBe(EXCHANGE_RATES.EUR);
 
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ result: "error" }) });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ result: "error" }),
+    });
     const malformed = await getFxRates();
     expect(malformed.fetchedAt).toBeNull();
     expect(malformed.rates.EUR).toBe(EXCHANGE_RATES.EUR);

@@ -12,7 +12,9 @@ export async function fetchFxRates(): Promise<FxRatesResult | null> {
     const client = createTRPCClient();
     const result = await Promise.race([
       client.fx.get.query(),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     if (!result || typeof result.rates !== "object" || result.rates === null) {
       return null;
@@ -23,12 +25,16 @@ export async function fetchFxRates(): Promise<FxRatesResult | null> {
   }
 }
 
-export async function loadFxRates(storage: Storage = defaultStorage): Promise<void> {
+export async function loadFxRates(
+  storage: Storage = defaultStorage,
+): Promise<void> {
   const stored = await storage.getFxRates();
   if (stored) setExchangeRates(stored.rates);
 }
 
-export async function refreshFxRates(storage: Storage = defaultStorage): Promise<void> {
+export async function refreshFxRates(
+  storage: Storage = defaultStorage,
+): Promise<void> {
   const result = await fetchFxRates();
   if (!result) return;
   await storage.saveFxRates({
@@ -38,7 +44,9 @@ export async function refreshFxRates(storage: Storage = defaultStorage): Promise
   setExchangeRates(result.rates);
 }
 
-export async function maybeRefreshFxRates(storage: Storage = defaultStorage): Promise<void> {
+export async function maybeRefreshFxRates(
+  storage: Storage = defaultStorage,
+): Promise<void> {
   const stored = await storage.getFxRates();
   const fresh =
     stored !== null &&

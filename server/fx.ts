@@ -20,7 +20,9 @@ function parseRates(body: unknown): Record<string, number> | null {
   const rates = (body as { rates?: unknown }).rates;
   if (!rates || typeof rates !== "object" || rates === null) return null;
   const out: Record<string, number> = {};
-  for (const [code, value] of Object.entries(rates as Record<string, unknown>)) {
+  for (const [code, value] of Object.entries(
+    rates as Record<string, unknown>,
+  )) {
     if (typeof value === "number" && Number.isFinite(value)) out[code] = value;
   }
   return Object.keys(out).length > 0 ? out : null;
@@ -53,15 +55,24 @@ function refreshSingleFlight(): Promise<FxCache | null> {
 
 export async function getFxRates(): Promise<FxRatesResult> {
   if (cache && Date.now() - cache.fetchedAt < FX_TTL_MS) {
-    return { rates: { ...EXCHANGE_RATES, ...cache.rates }, fetchedAt: cache.fetchedAt };
+    return {
+      rates: { ...EXCHANGE_RATES, ...cache.rates },
+      fetchedAt: cache.fetchedAt,
+    };
   }
   if (cache) {
     void refreshSingleFlight();
-    return { rates: { ...EXCHANGE_RATES, ...cache.rates }, fetchedAt: cache.fetchedAt };
+    return {
+      rates: { ...EXCHANGE_RATES, ...cache.rates },
+      fetchedAt: cache.fetchedAt,
+    };
   }
   const fetched = await refreshSingleFlight();
   if (fetched) {
-    return { rates: { ...EXCHANGE_RATES, ...fetched.rates }, fetchedAt: fetched.fetchedAt };
+    return {
+      rates: { ...EXCHANGE_RATES, ...fetched.rates },
+      fetchedAt: fetched.fetchedAt,
+    };
   }
   return { rates: EXCHANGE_RATES, fetchedAt: null };
 }

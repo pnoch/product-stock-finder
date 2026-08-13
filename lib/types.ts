@@ -136,5 +136,8 @@ export interface SyncMeta {
   lastSyncedAt: number;
   lastSyncOkAt?: number;
   lastSyncError?: string | null;
-  items: Record<string, Record<string, { updatedAt: number; deleted: boolean }>>;
+  items: Record<
+    string,
+    Record<string, { updatedAt: number; deleted: boolean }>
+  >;
 }
