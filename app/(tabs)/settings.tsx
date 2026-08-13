@@ -9,6 +9,7 @@ import {
   Linking,
   Alert,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 
@@ -132,6 +133,7 @@ export default function SettingsScreen() {
   const { user, isAuthenticated, logout } = useAuth();
   const [syncMeta, setSyncMeta] = useState<SyncMeta | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -160,10 +162,15 @@ export default function SettingsScreen() {
   const handleSyncNow = useCallback(async () => {
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await getSyncSetup()?.syncNow();
-    const meta = await getSyncMeta();
-    setSyncMeta(meta);
-    setNow(Date.now());
+    setSyncing(true);
+    try {
+      await getSyncSetup()?.syncNow();
+      const meta = await getSyncMeta();
+      setSyncMeta(meta);
+      setNow(Date.now());
+    } finally {
+      setSyncing(false);
+    }
   }, []);
 
   const handleSignIn = useCallback(() => {
@@ -394,13 +401,18 @@ export default function SettingsScreen() {
             label="Sync status"
             description={syncStatus.label}
             descriptionColor={
-              syncStatus.tone === "error" ? colors.error : undefined
+              syncStatus.tone === "error"
+                ? colors.error
+                : syncStatus.tone === "success"
+                  ? colors.success
+                  : undefined
             }
             right={
               isAuthenticated ? (
                 <View style={{ flexDirection: "row", gap: 8 }}>
                   <TouchableOpacity
                     onPress={handleSyncNow}
+                    disabled={syncing}
                     style={{
                       paddingHorizontal: 12,
                       paddingVertical: 6,
@@ -408,15 +420,19 @@ export default function SettingsScreen() {
                       backgroundColor: colors.primary + "22",
                     }}
                   >
-                    <Text
-                      style={{
-                        color: colors.primary,
-                        fontSize: 13,
-                        fontWeight: "600",
-                      }}
-                    >
-                      Sync now
-                    </Text>
+                    {syncing ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Text
+                        style={{
+                          color: colors.primary,
+                          fontSize: 13,
+                          fontWeight: "600",
+                        }}
+                      >
+                        Sync now
+                      </Text>
+                    )}
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={logout}
