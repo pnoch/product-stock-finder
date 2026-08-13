@@ -28,6 +28,7 @@ export function createStorage(
     STOCK_WATCHES: "back_in_stock_watches",
     DIGEST_SNAPSHOT: "price_digest_snapshot",
     SYNC_META: "sync_meta",
+    DISPLAYED_EVENT_IDS: "displayed_notification_event_ids",
   };
 
   let onChange = opts?.onChange ?? null;
@@ -439,6 +440,23 @@ export function createStorage(
     });
   }
 
+  // ─── Displayed Event Ids (notification dedup) ──────────────────────────────
+
+  async function getDisplayedEventIds(): Promise<string[]> {
+    return readList<string>(KEYS.DISPLAYED_EVENT_IDS);
+  }
+
+  async function recordDisplayedEventId(id: string): Promise<void> {
+    await enqueue(KEYS.DISPLAYED_EVENT_IDS, async () => {
+      const ids = await getDisplayedEventIds();
+      if (!ids.includes(id)) {
+        ids.push(id);
+        if (ids.length > 200) ids.splice(0, ids.length - 200);
+        await adapter.setItem(KEYS.DISPLAYED_EVENT_IDS, JSON.stringify(ids));
+      }
+    });
+  }
+
   // ─── Clear All Data ─────────────────────────────────────────────────────────
 
   async function clearAllData(): Promise<void> {
@@ -490,6 +508,8 @@ export function createStorage(
     setItemSyncMeta,
     markItemDeleted,
     clearItemSyncMeta,
+    getDisplayedEventIds,
+    recordDisplayedEventId,
     setOnChange,
     setChangeSuppressed,
     clearAllData,
@@ -535,6 +555,8 @@ export const {
   setItemSyncMeta,
   markItemDeleted,
   clearItemSyncMeta,
+  getDisplayedEventIds,
+  recordDisplayedEventId,
   setOnChange,
   setChangeSuppressed,
   clearAllData,

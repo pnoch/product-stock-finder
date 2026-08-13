@@ -48,6 +48,8 @@ import {
   updateStockWatchStatus,
   getSyncMeta,
   saveSyncMeta,
+  getDisplayedEventIds,
+  recordDisplayedEventId,
   setItemSyncMeta,
   markItemDeleted,
   clearItemSyncMeta,
@@ -363,5 +365,28 @@ describe("clearAllData", () => {
     await clearAllData();
     expect(await getWatchlist()).toEqual([]);
     expect(await getAlerts()).toEqual([]);
+  });
+});
+
+describe("displayed event ids", () => {
+  it("returns an empty list by default", async () => {
+    expect(await getDisplayedEventIds()).toEqual([]);
+  });
+
+  it("records ids and dedupes repeats", async () => {
+    await recordDisplayedEventId("e1");
+    await recordDisplayedEventId("e1");
+    await recordDisplayedEventId("e2");
+    expect(await getDisplayedEventIds()).toEqual(["e1", "e2"]);
+  });
+
+  it("keeps only the most recent 200 ids", async () => {
+    for (let i = 0; i < 250; i++) {
+      await recordDisplayedEventId(`e${i}`);
+    }
+    const ids = await getDisplayedEventIds();
+    expect(ids).toHaveLength(200);
+    expect(ids[0]).toBe("e50");
+    expect(ids[199]).toBe("e249");
   });
 });
