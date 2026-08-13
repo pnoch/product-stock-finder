@@ -122,7 +122,9 @@ git commit -m "feat(server): guard notification deviceId length and pin lastKnow
 **Files:**
 - Modify: `lib/types.ts` (SyncMeta, line 130)
 - Modify: `lib/sync.ts` (`doSync`, lines 45-101)
+- Modify: `lib/storage.ts` (`getSyncMeta`, `persistSyncMeta`) — **plan amendment:** these two functions round-trip only `lastSyncedAt`/`items`, so the new fields would be stripped on read and write. They must thread `lastSyncOkAt`/`lastSyncError` through.
 - Test: `tests/sync-engine.test.ts`
+- Test: `tests/storage.test.ts` — add a sync-meta round-trip test (same `describe("sync meta")` block)
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -236,6 +238,17 @@ Expected: the two extended tests + the pull-failure test FAIL (no `lastSyncError
 
 - [ ] **Step 3: Extend `SyncMeta` and update `doSync`**
 
+In `tests/storage.test.ts`, inside the existing `describe("sync meta", ...)` block (after the "setItemSyncMeta records an item and saveSyncMeta persists lastSyncedAt" test at line 317), add:
+
+```ts
+  it("round-trips lastSyncOkAt and lastSyncError through saveSyncMeta", async () => {
+    await saveSyncMeta({ lastSyncedAt: 5000, items: {}, lastSyncError: "Push failed: network", lastSyncOkAt: 4000 });
+    const meta = await getSyncMeta();
+    expect(meta.lastSyncError).toBe("Push failed: network");
+    expect(meta.lastSyncOkAt).toBe(4000);
+  });
+```
+
 In `lib/types.ts`, change the `SyncMeta` interface (line 130) from:
 
 ```ts
@@ -338,6 +351,57 @@ to:
   });
 ```
 
+**3d. Thread the new fields through `lib/storage.ts`.**
+
+In `getSyncMeta()` (lines 360-373), change the return statement:
+
+```ts
+      return {
+        lastSyncedAt:
+          typeof parsed.lastSyncedAt === "number" ? parsed.lastSyncedAt : 0,
+        items: parsed.items ?? {},
+      };
+```
+
+to:
+
+```ts
+      return {
+        lastSyncedAt:
+          typeof parsed.lastSyncedAt === "number" ? parsed.lastSyncedAt : 0,
+        lastSyncOkAt:
+          typeof parsed.lastSyncOkAt === "number" ? parsed.lastSyncOkAt : undefined,
+        lastSyncError:
+          typeof parsed.lastSyncError === "string" || parsed.lastSyncError === null
+            ? parsed.lastSyncError
+            : undefined,
+        items: parsed.items ?? {},
+      };
+```
+
+In `persistSyncMeta()` (lines 382-391), change the `JSON.stringify` argument:
+
+```ts
+      JSON.stringify({
+        lastSyncedAt: meta.lastSyncedAt,
+        items: { ...existing.items, ...meta.items },
+      }),
+```
+
+to:
+
+```ts
+      JSON.stringify({
+        lastSyncedAt: meta.lastSyncedAt,
+        lastSyncOkAt: meta.lastSyncOkAt ?? existing.lastSyncOkAt,
+        lastSyncError:
+          meta.lastSyncError !== undefined
+            ? meta.lastSyncError
+            : existing.lastSyncError,
+        items: { ...existing.items, ...meta.items },
+      }),
+```
+
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm test tests/sync-engine.test.ts`
@@ -349,9 +413,14 @@ Run: `pnpm check`
 Expected: 0 errors.
 
 ```bash
-git add lib/types.ts lib/sync.ts tests/sync-engine.test.ts
+git add lib/types.ts lib/sync.ts lib/storage.ts tests/sync-engine.test.ts tests/storage.test.ts
 git commit -m "feat(sync): persist last sync status for error surfacing"
 ```
+
+- [ ] **Step 6: Run the storage tests too**
+
+Run: `pnpm test tests/storage.test.ts`
+Expected: PASS (including the new sync-meta round-trip test).
 
 ---
 
