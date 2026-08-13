@@ -47,7 +47,13 @@ export function syncServerNotifications(): Promise<void> {
 async function runSyncServerNotifications(): Promise<void> {
   try {
     const { getDeviceId } = await import("./device-id");
-    const { getAlerts, getStockWatches, getBackOrderReminders } = await import("./storage");
+    const {
+      getAlerts,
+      getStockWatches,
+      getBackOrderReminders,
+      getDisplayedEventIds,
+      recordDisplayedEventId,
+    } = await import("./storage");
     const { scheduleServerEventNotification } = await import("./notifications");
     const deviceId = await getDeviceId();
 
@@ -85,12 +91,14 @@ async function runSyncServerNotifications(): Promise<void> {
       dateReminders,
     });
 
+    const displayedIds = new Set(await getDisplayedEventIds());
     const events = await pullNotificationEvents(deviceId);
     for (const event of events) {
       const stalePriceDrop =
         event.type === "price_drop" && event.alertId && !activeAlertIds.has(event.alertId);
-      if (!stalePriceDrop) {
+      if (!stalePriceDrop && !displayedIds.has(event.id)) {
         await scheduleServerEventNotification(event.title, event.body);
+        await recordDisplayedEventId(event.id);
       }
       await reconcileEvent(event);
     }
