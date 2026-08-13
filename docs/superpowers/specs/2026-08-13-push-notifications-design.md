@@ -45,7 +45,6 @@ Delivery paths for a single `notification_events` row:
 1. **Mobile push:** `evaluateNotifications` creates events → `sendPushForDevice` posts to Expo Push API → OS notification.
 2. **Mobile pull (fallback):** `syncServerNotifications` on launch/foreground pulls + renders locally.
 3. **Desktop:** scheduled `syncDesktopNotifications` pulls + renders native notifications.
-
 ## Data Model
 
 New Drizzle table `device_push_tokens` (mirrors `device_notification_configs`):
@@ -131,9 +130,9 @@ In the notification-permission effect (after `setupAndroidNotificationChannel`, 
 
 `syncDesktopNotifications(): Promise<void>` — mirrors mobile's `syncServerNotifications` but desktop-flavored:
 
-1. Desktop device ID: read/create `device_id` in `localStorage` (desktop runs a React webview with `localStorage` available; do not use `lib/device-id.ts` which targets AsyncStorage). Reuse `lib/device-id.ts` `generateId()` if importable without RN deps, else inline a `crypto.randomUUID()` fallback.
+1. Desktop device ID: read/create `device_id` in `localStorage` (desktop runs a React webview with `localStorage` available; do not use `lib/device-id.ts` — it reads the AsyncStorage-backed mobile default instance, not the desktop `localStorage` instance). Inline a `crypto.randomUUID()` fallback.
 2. Build config from the desktop storage instance — desktop already runs `createStorage(localStorageAdapter)` as `storage` (`desktop/src/storage.ts`). Use `storage.getAlerts()` / `storage.getStockWatches()` / `storage.getBackOrderReminders()` with the same active-only / date-only filters as mobile. Do NOT import the AsyncStorage-backed named exports from `lib/storage.ts` (they target the mobile default instance).
-3. `uploadNotificationConfig(deviceId, config)` then `pullNotificationEvents(deviceId)` (reused from `lib/server-notifications.ts` — these only import tRPC, safe on desktop).
+3. Upload + pull via the desktop tRPC client (`desktop/src/lib/trpc.ts`, web-safe — no `expo-secure-store` chain). Do NOT reuse `lib/server-notifications.ts` `uploadNotificationConfig` / `pullNotificationEvents`: those call the mobile `./trpc` helper which imports `@/lib/_core/auth` → `expo-secure-store` (no web implementation). Implement small desktop-local wrappers with the same 4s `Promise.race` timeout calling `trpcClient.notifications.uploadConfig.mutate(...)` / `trpcClient.notifications.pull.query(...)`.
 4. For each event, `sendDesktopNotification(event.title, event.body)` (existing `desktop/src/notifications.ts`).
 5. Reconcile via the desktop `storage` instance's mutators (`storage.deactivateAlert(alertId, triggeredPrice)`, `storage.removeStockWatch(watchId)`, `storage.removeBackOrderReminder(reminderId)`) — the same semantics mobile's `reconcileEvent` applies, but bound to the desktop instance.
 6. try/catch around everything — best-effort.
@@ -154,7 +153,7 @@ In the notification-permission effect (after `setupAndroidNotificationChannel`, 
 - `tests/push-notifications.test.ts` — `upsertPushToken` (DB not available → memory), `sendPushForDevice` no-op without token, `sendPushForDevice` calls Expo send with the right payload (mock `expo-server-sdk`), `clearPushTokensForTests`.
 - `tests/notifications-router.test.ts` — extend with a `registerPushToken` test (stores token, rejects invalid platform via zod).
 - `tests/push-token.test.ts` — `registerPushToken` guards (web / simulator / no projectId skip; happy path uploads), mocking `expo-device`, `expo-notifications`, and the tRPC client.
-- Desktop — `syncDesktopNotifications` test mocking tRPC + `sendDesktopNotification` (or a `desktop` vitest test mirroring `tests/server-notifications.test.ts`).
+- Desktop — `desktop/tests/server-notifications.test.tsx` (or `.ts`) for `syncDesktopNotifications`: mocks `desktop/src/lib/trpc.ts`'s client (or the upload/pull wrappers) + `sendDesktopNotification`, asserts config is built from the desktop storage instance and events render + reconcile.
 
 ## Out of Scope
 
