@@ -22,6 +22,7 @@ import { trpc, createTRPCClient } from "./lib/trpc";
 import { setupSync, type SyncSetup } from "../../lib/sync";
 import { storage } from "./storage";
 import { getApiBaseUrl } from "./lib/api-base";
+import { syncDesktopNotifications } from "./server-notifications";
 
 function KeyboardShortcuts({ searchModalOpen, setSearchModalOpen }: { searchModalOpen: boolean; setSearchModalOpen: (open: boolean) => void }) {
   const navigate = useNavigate();
@@ -126,6 +127,22 @@ export default function App() {
     });
     return () => {
       unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (cancelled) return;
+      await syncDesktopNotifications();
+    };
+    void run();
+    const timer = setInterval(() => {
+      void run();
+    }, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
     };
   }, []);
 
