@@ -144,3 +144,34 @@ export const productImages = mysqlTable("product_images", {
 
 export type ProductImagesRow = typeof productImages.$inferSelect;
 export type InsertProductImagesRow = typeof productImages.$inferInsert;
+
+export const deviceNotificationConfigs = mysqlTable(
+  "device_notification_configs",
+  {
+    deviceId: varchar("deviceId", { length: 128 }).notNull().primaryKey(),
+    alerts: json("alerts"),
+    stockWatches: json("stockWatches"),
+    dateReminders: json("dateReminders"),
+    updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
+  },
+);
+
+export type DeviceNotificationConfigRow =
+  typeof deviceNotificationConfigs.$inferSelect;
+export type InsertDeviceNotificationConfigRow =
+  typeof deviceNotificationConfigs.$inferInsert;
+
+export const notificationEvents = mysqlTable("notification_events", {
+  id: varchar("id", { length: 128 }).notNull().primaryKey(),
+  deviceId: varchar("deviceId", { length: 128 }).notNull(),
+  type: varchar("type", { length: 16 }).notNull(),
+  dedupKey: varchar("dedupKey", { length: 255 }).notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  payload: json("payload"),
+  createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+  deliveredAt: bigint("deliveredAt", { mode: "number" }),
+});
+
+export type NotificationEventRow = typeof notificationEvents.$inferSelect;
+export type InsertNotificationEventRow = typeof notificationEvents.$inferInsert;

@@ -43,6 +43,13 @@
       "when": 1786590306669,
       "tag": "0005_rich_hedge_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1786593929325,
+      "tag": "0006_complete_warpath",
+      "breakpoints": true
     }
   ]
 }
