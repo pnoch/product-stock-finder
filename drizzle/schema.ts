@@ -127,3 +127,12 @@ export const priceHistory = mysqlTable(
 
 export type PriceHistoryRow = typeof priceHistory.$inferSelect;
 export type InsertPriceHistoryRow = typeof priceHistory.$inferInsert;
+
+export const priceInsights = mysqlTable("price_insights", {
+  productId: varchar("productId", { length: 128 }).notNull().primaryKey(),
+  insight: text("insight").notNull(),
+  generatedAt: bigint("generatedAt", { mode: "number" }).notNull(),
+});
+
+export type PriceInsightsRow = typeof priceInsights.$inferSelect;
+export type InsertPriceInsightsRow = typeof priceInsights.$inferInsert;
