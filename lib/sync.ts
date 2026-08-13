@@ -416,7 +416,7 @@ export function formatSyncStatus(
     return { label: "Sign in to sync across devices", tone: "muted" };
   }
   if (meta.lastSyncError) {
-    return { label: `Sync failed — ${meta.lastSyncError}`, tone: "error" };
+    return { label: meta.lastSyncError, tone: "error" };
   }
   const successAt = meta.lastSyncOkAt ?? meta.lastSyncedAt;
   if (!successAt) {
@@ -434,8 +434,11 @@ export function formatSyncStatus(
 
 let syncSetupRef: SyncSetup | null = null;
 
-export function registerSyncSetup(setup: SyncSetup | null): void {
+export function registerSyncSetup(setup: SyncSetup | null): () => void {
   syncSetupRef = setup;
+  return () => {
+    if (syncSetupRef === setup) syncSetupRef = null;
+  };
 }
 
 export function getSyncSetup(): SyncSetup | null {

@@ -194,7 +194,11 @@ export default function RootLayout() {
       push: (items) => trpcClient.sync.push.mutate({ items }),
     });
     syncRef.current = setup;
-    registerSyncSetup(setup);
+    const unregister = registerSyncSetup(setup);
+    return () => {
+      unregister();
+      syncRef.current = null;
+    };
   }, [trpcClient]);
 
   useEffect(() => {

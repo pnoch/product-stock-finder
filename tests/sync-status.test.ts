@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatSyncStatus } from "../lib/sync";
+import {
+  formatSyncStatus,
+  getSyncSetup,
+  registerSyncSetup,
+} from "../lib/sync";
+import type { SyncSetup } from "../lib/sync";
 import type { SyncMeta } from "../lib/types";
 
 function makeMeta(overrides: Partial<SyncMeta> = {}): SyncMeta {
@@ -31,7 +36,7 @@ describe("formatSyncStatus", () => {
       Date.now(),
     );
     expect(status.tone).toBe("error");
-    expect(status.label).toBe("Sync failed — Pull failed: network down");
+    expect(status.label).toBe("Pull failed: network down");
   });
 
   it("reports not synced yet when signed in with no success timestamp", () => {
@@ -71,5 +76,24 @@ describe("formatSyncStatus", () => {
     );
     expect(status.label).toBe("Last synced 10m ago");
     expect(status.tone).toBe("muted");
+  });
+});
+
+describe("registerSyncSetup", () => {
+  it("clears the registered setup when the cleanup is invoked", () => {
+    const setup = {} as SyncSetup;
+    const unregister = registerSyncSetup(setup);
+    expect(getSyncSetup()).toBe(setup);
+    unregister();
+    expect(getSyncSetup()).toBeNull();
+  });
+
+  it("does not clear a newer registration", () => {
+    const first = {} as SyncSetup;
+    const second = {} as SyncSetup;
+    const unregisterFirst = registerSyncSetup(first);
+    registerSyncSetup(second);
+    unregisterFirst();
+    expect(getSyncSetup()).toBe(second);
   });
 });
