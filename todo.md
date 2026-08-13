@@ -341,3 +341,12 @@
 - [x] Notification history AsyncStorage collection (`notification_history`, capped at 200)
 - [x] Record every pulled notification event into history during sync
 - [x] Third "Notifications" segment in the Alerts tab with unread pill, mark-all-read, and tap-to-product
+
+## Phase 37: Sync Hardening
+
+- [x] notifications.uploadConfig / pull deviceId length guard (.max(128))
+- [x] Router-boundary regression test for stock watch lastKnownStatus passthrough
+- [x] Sync-engine tests: pull failure, resurrection, LWW tie, status writes on all paths
+- [x] Persisted sync status (SyncMeta.lastSyncError / lastSyncOkAt) written by doSync
+- [x] formatSyncStatus helper + unit tests
+- [x] Settings sync-status error tone + "Sync now" button
