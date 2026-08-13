@@ -32,15 +32,23 @@ vi.mock("../server/product-images", () => ({
   clearImagesForTests: vi.fn(),
 }));
 
+vi.mock("../server/notifications", () => ({
+  upsertDeviceConfig: vi.fn(),
+  evaluateNotifications: vi.fn(),
+  pullPendingEvents: vi.fn(),
+  clearNotificationsForTests: vi.fn(),
+}));
+
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { fetchWithParser } from "../lib/scrapers/utils";
-import { getCachedPrice, setCachedPrice, getAllFetchedAt } from "../server/price-cache";
+import { getCachedPrice, setCachedPrice, getAllFetchedAt, listNearExpiry } from "../server/price-cache";
 import { getHistory, recordHistoryPoint } from "../server/price-history";
 import {
   getPrice,
   PRICE_TTL_MS,
   warmCatalogRotation,
   warmProductImages,
+  runWarmerTick,
 } from "../server/prices";
 import type { ScrapeResult } from "../lib/scrapers/types";
 
@@ -196,5 +204,20 @@ describe("warmProductImages", () => {
     vi.mocked(listProductsMissingImage).mockResolvedValue([]);
     const warmed = await warmProductImages(2);
     expect(warmed).toBe(0);
+  });
+});
+
+describe("runWarmerTick", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(listNearExpiry).mockResolvedValue([]);
+    vi.mocked(getAllFetchedAt).mockResolvedValue([]);
+  });
+
+  it("calls evaluateNotifications", async () => {
+    const { evaluateNotifications } = await import("../server/notifications");
+    const mockedEvaluate = vi.mocked(evaluateNotifications);
+    await runWarmerTick();
+    expect(mockedEvaluate).toHaveBeenCalled();
   });
 });

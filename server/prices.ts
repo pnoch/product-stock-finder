@@ -10,6 +10,7 @@ import { getHistory, recordHistoryPoint, purgeOldHistory } from "./price-history
 import { buildCatalogPairs, pickPairsToWarm } from "./catalog-warmer";
 import { getAllFetchedAt } from "./price-cache";
 import { getProductImage, listProductsMissingImage } from "./product-images";
+import { evaluateNotifications } from "./notifications";
 
 export const PRICE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const WARMER_INTERVAL_MS = 5 * 60 * 1000; // every 5 min
@@ -106,6 +107,14 @@ export async function warmProductImages(count: number): Promise<number> {
   return toGenerate.length;
 }
 
+export async function runWarmerTick(): Promise<void> {
+  await refreshNearExpiry(Date.now());
+  await warmCatalogRotation(CATALOG_WARM_PER_TICK);
+  await warmProductImages(IMAGES_PER_TICK);
+  await evaluateNotifications(Date.now());
+  await purgeOldHistory(Date.now());
+}
+
 let warmerTimer: ReturnType<typeof setInterval> | null = null;
 
 export function startWarmer(opts?: { intervalMs?: number }): () => void {
@@ -113,10 +122,7 @@ export function startWarmer(opts?: { intervalMs?: number }): () => void {
   if (process.env.NODE_ENV === "test") return () => {};
   if (warmerTimer) return () => {};
   warmerTimer = setInterval(() => {
-    void refreshNearExpiry(Date.now());
-    void warmCatalogRotation(CATALOG_WARM_PER_TICK);
-    void warmProductImages(IMAGES_PER_TICK);
-    void purgeOldHistory(Date.now());
+    void runWarmerTick();
   }, intervalMs);
   return () => {
     if (warmerTimer) clearInterval(warmerTimer);
