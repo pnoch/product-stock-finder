@@ -12,6 +12,7 @@ import {
 } from "./sync-db";
 import { getPrice } from "./prices";
 import { mergeHistory } from "./price-history";
+import { getInsight } from "./price-insights";
 
 const syncItemSchema = z.object({
   collection: z.enum(["watchlist", "alerts", "reminders", "settings"]),
@@ -98,6 +99,14 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await mergeHistory(input.distributorId, input.modelNumber, input.points);
         return { accepted: input.points.length } as const;
+      }),
+  }),
+
+  insights: router({
+    get: publicProcedure
+      .input(z.object({ productId: z.string().min(1) }))
+      .query(async ({ input }) => {
+        return getInsight(input.productId);
       }),
   }),
 });
