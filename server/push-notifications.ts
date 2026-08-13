@@ -34,16 +34,22 @@ export async function sendPushForDevice(
   events: PushableEvent[],
 ): Promise<void> {
   if (events.length === 0) return;
-  const db = await getDb();
+  // Token lookup is best-effort: a failing read must not abort the caller's loop.
   let token: string | undefined;
-  if (db) {
-    const rows = await db
-      .select({ token: devicePushTokens.token })
-      .from(devicePushTokens)
-      .where(eq(devicePushTokens.deviceId, deviceId));
-    token = rows[0]?.token;
-  } else {
-    token = memoryTokens.get(deviceId)?.token;
+  try {
+    const db = await getDb();
+    if (db) {
+      const rows = await db
+        .select({ token: devicePushTokens.token })
+        .from(devicePushTokens)
+        .where(eq(devicePushTokens.deviceId, deviceId));
+      token = rows[0]?.token;
+    } else {
+      token = memoryTokens.get(deviceId)?.token;
+    }
+  } catch (error) {
+    console.warn(`[Push] Failed to read push token for device ${deviceId}:`, error);
+    return;
   }
   if (!token || !Expo.isExpoPushToken(token)) return;
   try {
