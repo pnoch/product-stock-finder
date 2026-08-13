@@ -91,6 +91,19 @@ export interface BackOrderReminder {
   lastKnownStatus?: string;
 }
 
+export interface NotificationHistoryEntry {
+  id: string;
+  type: "price_drop" | "restock" | "reminder";
+  title: string;
+  body: string;
+  productId: string;
+  distributorId?: string;
+  triggeredPrice?: number;
+  currency?: string;
+  createdAt: number;
+  read: boolean;
+}
+
 export interface AppSettings {
   theme: "light" | "dark" | "auto";
   displayCurrency: string;

@@ -5,6 +5,7 @@ import {
   AppSettings,
   DistributorListing,
   BackOrderReminder,
+  NotificationHistoryEntry,
 } from "./types";
 import type { Collection, SyncMeta } from "./types";
 import type { DigestSnapshot } from "./price-digest";
@@ -29,6 +30,7 @@ export function createStorage(
     DIGEST_SNAPSHOT: "price_digest_snapshot",
     SYNC_META: "sync_meta",
     DISPLAYED_EVENT_IDS: "displayed_notification_event_ids",
+    NOTIFICATION_HISTORY: "notification_history",
   };
 
   let onChange = opts?.onChange ?? null;
@@ -457,6 +459,50 @@ export function createStorage(
     });
   }
 
+  // ─── Notification History ─────────────────────────────────────────────────
+
+  async function getNotificationHistory(): Promise<NotificationHistoryEntry[]> {
+    return readList<NotificationHistoryEntry>(KEYS.NOTIFICATION_HISTORY);
+  }
+
+  async function recordNotificationEvent(
+    event: Omit<NotificationHistoryEntry, "read">,
+  ): Promise<void> {
+    await enqueue(KEYS.NOTIFICATION_HISTORY, async () => {
+      const list = await getNotificationHistory();
+      if (list.some((e) => e.id === event.id)) return;
+      list.unshift({ ...event, read: false });
+      if (list.length > 200) list.length = 200;
+      await adapter.setItem(KEYS.NOTIFICATION_HISTORY, JSON.stringify(list));
+    });
+  }
+
+  async function markNotificationRead(id: string): Promise<void> {
+    await enqueue(KEYS.NOTIFICATION_HISTORY, async () => {
+      const list = await getNotificationHistory();
+      const entry = list.find((e) => e.id === id);
+      if (entry && !entry.read) {
+        entry.read = true;
+        await adapter.setItem(KEYS.NOTIFICATION_HISTORY, JSON.stringify(list));
+      }
+    });
+  }
+
+  async function markAllNotificationsRead(): Promise<void> {
+    await enqueue(KEYS.NOTIFICATION_HISTORY, async () => {
+      const list = await getNotificationHistory();
+      if (list.some((e) => !e.read)) {
+        for (const e of list) e.read = true;
+        await adapter.setItem(KEYS.NOTIFICATION_HISTORY, JSON.stringify(list));
+      }
+    });
+  }
+
+  async function getUnreadNotificationCount(): Promise<number> {
+    const list = await getNotificationHistory();
+    return list.filter((e) => !e.read).length;
+  }
+
   // ─── Clear All Data ─────────────────────────────────────────────────────────
 
   async function clearAllData(): Promise<void> {
@@ -468,6 +514,7 @@ export function createStorage(
       KEYS.STOCK_WATCHES,
       KEYS.SYNC_META,
       KEYS.DISPLAYED_EVENT_IDS,
+      KEYS.NOTIFICATION_HISTORY,
       "recently_viewed",
       "distributor_watches",
       "triggered_alert_history",
@@ -511,6 +558,11 @@ export function createStorage(
     clearItemSyncMeta,
     getDisplayedEventIds,
     recordDisplayedEventId,
+    getNotificationHistory,
+    recordNotificationEvent,
+    markNotificationRead,
+    markAllNotificationsRead,
+    getUnreadNotificationCount,
     setOnChange,
     setChangeSuppressed,
     clearAllData,
@@ -558,6 +610,11 @@ export const {
   clearItemSyncMeta,
   getDisplayedEventIds,
   recordDisplayedEventId,
+  getNotificationHistory,
+  recordNotificationEvent,
+  markNotificationRead,
+  markAllNotificationsRead,
+  getUnreadNotificationCount,
   setOnChange,
   setChangeSuppressed,
   clearAllData,

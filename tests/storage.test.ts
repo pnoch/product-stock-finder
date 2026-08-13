@@ -5,6 +5,7 @@ import type {
   AppSettings,
   BackOrderReminder,
   DistributorListing,
+  NotificationHistoryEntry,
 } from "../lib/types";
 
 // In-memory AsyncStorage mock
@@ -50,6 +51,11 @@ import {
   saveSyncMeta,
   getDisplayedEventIds,
   recordDisplayedEventId,
+  getNotificationHistory,
+  recordNotificationEvent,
+  markNotificationRead,
+  markAllNotificationsRead,
+  getUnreadNotificationCount,
   setItemSyncMeta,
   markItemDeleted,
   clearItemSyncMeta,
@@ -98,6 +104,22 @@ function makeReminder(
     distributorName: "Distributor",
     reminderDate: new Date().toISOString(),
     createdAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+function makeHistoryEntry(
+  id: string,
+  overrides: Partial<NotificationHistoryEntry> = {},
+): NotificationHistoryEntry {
+  return {
+    id,
+    type: "price_drop",
+    title: "Price dropped",
+    body: "CRS804 below $500",
+    productId: "p1",
+    createdAt: 1000,
+    read: false,
     ...overrides,
   };
 }
@@ -388,5 +410,61 @@ describe("displayed event ids", () => {
     expect(ids).toHaveLength(200);
     expect(ids[0]).toBe("e50");
     expect(ids[199]).toBe("e249");
+  });
+});
+
+describe("notification history", () => {
+  it("returns an empty array and zero unread when nothing is stored", async () => {
+    expect(await getNotificationHistory()).toEqual([]);
+    expect(await getUnreadNotificationCount()).toBe(0);
+  });
+
+  it("recordNotificationEvent prepends new entries newest-first as unread", async () => {
+    await recordNotificationEvent(makeHistoryEntry("e1"));
+    await recordNotificationEvent(makeHistoryEntry("e2"));
+    const list = await getNotificationHistory();
+    expect(list.map((e) => e.id)).toEqual(["e2", "e1"]);
+    expect(list[0]!.read).toBe(false);
+  });
+
+  it("recordNotificationEvent does not duplicate an existing id and preserves read state", async () => {
+    await recordNotificationEvent(makeHistoryEntry("e1"));
+    await markNotificationRead("e1");
+    await recordNotificationEvent(makeHistoryEntry("e1"));
+    const list = await getNotificationHistory();
+    expect(list).toHaveLength(1);
+    expect(list[0]!.read).toBe(true);
+  });
+
+  it("recordNotificationEvent caps the list at 200 entries keeping the newest", async () => {
+    for (let i = 0; i < 205; i++) {
+      await recordNotificationEvent(makeHistoryEntry(`e${i}`));
+    }
+    const list = await getNotificationHistory();
+    expect(list).toHaveLength(200);
+    expect(list[0]!.id).toBe("e204");
+  });
+
+  it("markNotificationRead marks only the matching entry", async () => {
+    await recordNotificationEvent(makeHistoryEntry("e1"));
+    await recordNotificationEvent(makeHistoryEntry("e2"));
+    await markNotificationRead("e1");
+    const list = await getNotificationHistory();
+    expect(list.find((e) => e.id === "e1")!.read).toBe(true);
+    expect(list.find((e) => e.id === "e2")!.read).toBe(false);
+    expect(await getUnreadNotificationCount()).toBe(1);
+  });
+
+  it("markAllNotificationsRead marks every entry read", async () => {
+    await recordNotificationEvent(makeHistoryEntry("e1"));
+    await recordNotificationEvent(makeHistoryEntry("e2"));
+    await markAllNotificationsRead();
+    expect(await getUnreadNotificationCount()).toBe(0);
+  });
+
+  it("clearAllData removes notification history", async () => {
+    await recordNotificationEvent(makeHistoryEntry("e1"));
+    await clearAllData();
+    expect(await getNotificationHistory()).toEqual([]);
   });
 });
