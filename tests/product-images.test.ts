@@ -35,6 +35,16 @@ describe("getProductImage", () => {
     expect(mockedGenerateImage).toHaveBeenCalledTimes(1);
   });
 
+  it("deduplicates concurrent requests for the same product", async () => {
+    const [first, second] = await Promise.all([
+      getProductImage("mikrotik-crs804-4ddq-hrm"),
+      getProductImage("mikrotik-crs804-4ddq-hrm"),
+    ]);
+    expect(first).toEqual({ imageUrl: "https://img.example.com/crs804.png" });
+    expect(second).toEqual({ imageUrl: "https://img.example.com/crs804.png" });
+    expect(mockedGenerateImage).toHaveBeenCalledTimes(1);
+  });
+
   it("returns null when the product is not in the catalog", async () => {
     const result = await getProductImage("unknown-product");
     expect(result).toBeNull();

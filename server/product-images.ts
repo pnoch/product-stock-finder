@@ -7,12 +7,28 @@ import { generateImage } from "./_core/imageGeneration";
 type CatalogProduct = (typeof PRODUCT_CATALOG)[number];
 
 const memoryImages = new Map<string, string>();
+const inFlight = new Map<string, Promise<ProductImage | null>>();
 
 export interface ProductImage {
   imageUrl: string;
 }
 
 export async function getProductImage(
+  productId: string,
+): Promise<ProductImage | null> {
+  const existing = inFlight.get(productId);
+  if (existing) return existing;
+
+  const promise = getProductImageInner(productId);
+  inFlight.set(productId, promise);
+  try {
+    return await promise;
+  } finally {
+    inFlight.delete(productId);
+  }
+}
+
+async function getProductImageInner(
   productId: string,
 ): Promise<ProductImage | null> {
   const cached = await readCached(productId);
@@ -52,10 +68,9 @@ async function writeCached(productId: string, url: string): Promise<void> {
 
 function buildImagePrompt(product: {
   name: string;
-  brand: string;
   category: string;
 }): string {
-  return `A ${product.brand} ${product.name} ${product.category.toLowerCase()}, product photo, clean background, high detail`;
+  return `A ${product.name} ${product.category.toLowerCase()}, product photo, clean background, high detail`;
 }
 
 async function generateImageForProduct(
@@ -80,4 +95,5 @@ export async function listProductsMissingImage(): Promise<string[]> {
 
 export function clearImagesForTests(): void {
   memoryImages.clear();
+  inFlight.clear();
 }
