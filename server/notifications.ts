@@ -10,6 +10,7 @@ import { getAllParserIds } from "../lib/scrapers/registry";
 import { getCachedPrice } from "./price-cache";
 import { getDb } from "./db";
 import { convertPrice, formatPrice } from "../lib/currency";
+import { sendPushForDevice } from "./push-notifications";
 
 export interface NotificationConfig {
   alerts: Array<{
@@ -120,7 +121,10 @@ export async function evaluateNotifications(now: number): Promise<void> {
     const toInsert = drafts
       .filter((d) => !undelivered.has(d.dedupKey))
       .map((d) => ({ ...d, deviceId: row.deviceId }));
-    if (toInsert.length > 0) await db.insert(notificationEvents).values(toInsert);
+    if (toInsert.length > 0) {
+      await db.insert(notificationEvents).values(toInsert);
+      await sendPushForDevice(row.deviceId, toInsert);
+    }
   }
 }
 
@@ -134,11 +138,15 @@ async function evaluateConfig(
   );
   const drafts = await buildEvents(config, now);
   const list = memoryEvents.get(deviceId) ?? [];
+  const added: NotificationEvent[] = [];
   for (const draft of drafts) {
     if (undelivered.has(draft.dedupKey)) continue;
-    list.push(draftToEvent(draft));
+    const event = draftToEvent(draft);
+    list.push(event);
+    added.push(event);
   }
   memoryEvents.set(deviceId, list);
+  if (added.length > 0) await sendPushForDevice(deviceId, added);
 }
 
 function dedupKeyFor(event: NotificationEvent): string {

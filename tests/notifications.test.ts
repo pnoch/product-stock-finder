@@ -5,6 +5,12 @@ vi.mock("../server/price-cache", async (importOriginal) => {
   return { ...actual };
 });
 
+vi.mock("../server/push-notifications", () => ({
+  upsertPushToken: vi.fn(),
+  sendPushForDevice: vi.fn(),
+  clearPushTokensForTests: vi.fn(),
+}));
+
 import {
   upsertDeviceConfig,
   evaluateNotifications,
@@ -13,6 +19,7 @@ import {
   type NotificationConfig,
 } from "../server/notifications";
 import { setCachedPrice } from "../server/price-cache";
+import { sendPushForDevice } from "../server/push-notifications";
 
 const baseConfig: NotificationConfig = {
   alerts: [],
@@ -72,6 +79,32 @@ describe("evaluateNotifications", () => {
     expect(events[0]!.type).toBe("price_drop");
     expect(events[0]!.alertId).toBe("a1");
     expect(events[0]!.triggeredPrice).toBe(480);
+  });
+
+  it("pushes newly created events to the device's channel", async () => {
+    await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
+      price: 480,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://example.com",
+      fetchedAt: Date.now(),
+    });
+    await upsertDeviceConfig("dev-1", {
+      ...baseConfig,
+      alerts: [
+        {
+          id: "a1",
+          productId: "mikrotik-crs804-4ddq-hrm",
+          targetPrice: 500,
+          currency: "USD",
+        },
+      ],
+    });
+    await evaluateNotifications(Date.now());
+    expect(vi.mocked(sendPushForDevice)).toHaveBeenCalledWith(
+      "dev-1",
+      expect.arrayContaining([expect.objectContaining({ type: "price_drop" })]),
+    );
   });
 
   it("does not queue a price_drop event when the price is above target", async () => {
