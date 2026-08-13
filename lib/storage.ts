@@ -365,6 +365,12 @@ export function createStorage(
       return {
         lastSyncedAt:
           typeof parsed.lastSyncedAt === "number" ? parsed.lastSyncedAt : 0,
+        lastSyncOkAt:
+          typeof parsed.lastSyncOkAt === "number" ? parsed.lastSyncOkAt : undefined,
+        lastSyncError:
+          typeof parsed.lastSyncError === "string" || parsed.lastSyncError === null
+            ? parsed.lastSyncError
+            : undefined,
         items: parsed.items ?? {},
       };
     } catch {
@@ -385,6 +391,11 @@ export function createStorage(
       KEYS.SYNC_META,
       JSON.stringify({
         lastSyncedAt: meta.lastSyncedAt,
+        lastSyncOkAt: meta.lastSyncOkAt ?? existing.lastSyncOkAt,
+        lastSyncError:
+          meta.lastSyncError !== undefined
+            ? meta.lastSyncError
+            : existing.lastSyncError,
         items: { ...existing.items, ...meta.items },
       }),
     );

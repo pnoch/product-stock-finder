@@ -292,6 +292,8 @@ describe("syncNow", () => {
     expect((pushed[0]!.data as Product).listings[0]!.priceHistory).toBeUndefined();
     const meta = await storage.getSyncMeta();
     expect(meta.lastSyncedAt).toBe(3000);
+    expect(meta.lastSyncError).toBeNull();
+    expect(meta.lastSyncOkAt).toBe(3000);
   });
 
   it("keeps lastSyncedAt unchanged when push fails", async () => {
@@ -312,6 +314,131 @@ describe("syncNow", () => {
     ).resolves.toBeUndefined();
     const meta = await storage.getSyncMeta();
     expect(meta.lastSyncedAt).toBe(0);
+    expect(meta.lastSyncError).toContain("Push failed");
+  });
+
+  it("keeps lastSyncedAt unchanged and records an error when pull fails", async () => {
+    const storage = makeStorage();
+    const pull = vi.fn(async () => {
+      throw new Error("network down");
+    });
+    const push = vi.fn();
+    await expect(
+      syncNow({
+        storage,
+        isSignedIn: () => true,
+        pull,
+        push,
+        now: () => 3000,
+      }),
+    ).resolves.toBeUndefined();
+    const meta = await storage.getSyncMeta();
+    expect(meta.lastSyncedAt).toBe(0);
+    expect(meta.lastSyncError).toContain("Pull failed");
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("clears a prior sync error on a successful sync", async () => {
+    const storage = makeStorage();
+    await storage.addToWatchlist(makeProduct("p1"));
+    const failingPush = vi.fn(async (_items: SyncItem[]) => {
+      throw new Error("network");
+    });
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull: vi.fn(async () => ({ lastSyncedAt: 2000, items: [] })),
+      push: failingPush,
+      now: () => 3000,
+    });
+    expect((await storage.getSyncMeta()).lastSyncError).toContain("Push failed");
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull: vi.fn(async () => ({ lastSyncedAt: 4000, items: [] })),
+      push: vi.fn(async (_items: SyncItem[]) => ({ accepted: 1 })),
+      now: () => 5000,
+    });
+    const meta = await storage.getSyncMeta();
+    expect(meta.lastSyncError).toBeNull();
+    expect(meta.lastSyncOkAt).toBe(5000);
+  });
+
+  it("keeps a prior lastSyncedAt when a later sync fails", async () => {
+    const storage = makeStorage();
+    await storage.saveSyncMeta({ lastSyncedAt: 1000, items: {} });
+    const pull = vi.fn(async () => {
+      throw new Error("network down");
+    });
+    const push = vi.fn();
+    await expect(
+      syncNow({
+        storage,
+        isSignedIn: () => true,
+        pull,
+        push,
+        now: () => 2000,
+      }),
+    ).resolves.toBeUndefined();
+    const meta = await storage.getSyncMeta();
+    expect(meta.lastSyncedAt).toBe(1000);
+    expect(meta.lastSyncError).toContain("Pull failed");
+    expect(meta.lastSyncOkAt).toBeUndefined();
+  });
+
+  it("pushes a re-added item as a live update, not a tombstone", async () => {
+    const storage = makeStorage();
+    await storage.addToWatchlist(makeProduct("p1"));
+    await storage.setItemSyncMeta("watchlist", "p1", 1000);
+    await storage.removeFromWatchlist("p1");
+    await storage.markItemDeleted("watchlist", "p1", 2000);
+    await storage.addToWatchlist(makeProduct("p1"));
+    const pull = vi.fn(async () => ({ lastSyncedAt: 1500, items: [] }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1 }));
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 3000,
+    });
+    expect(push).toHaveBeenCalledTimes(1);
+    const pushed = push.mock.calls[0]![0];
+    expect(pushed).toHaveLength(1);
+    expect(pushed[0]!.collection).toBe("watchlist");
+    expect(pushed[0]!.id).toBe("p1");
+    expect(pushed[0]!.deletedAt).toBeNull();
+    expect(pushed[0]!.data).toBeTruthy();
+  });
+
+  it("keeps local when pulled updatedAt equals local meta updatedAt", async () => {
+    const storage = makeStorage();
+    await storage.addToWatchlist(
+      makeProduct("p1", [listing("d1", 100, "in_stock")]),
+    );
+    await storage.setItemSyncMeta("watchlist", "p1", 4000);
+    const serverProduct = makeProduct("p1", [listing("d1", 90, "in_stock")]);
+    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+      lastSyncedAt: 5000,
+      items: [
+        {
+          collection: "watchlist",
+          id: "p1",
+          data: serverProduct,
+          updatedAt: 4000,
+          deletedAt: null,
+        },
+      ],
+    }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 6000,
+    });
+    expect((await storage.getWatchlist())[0]!.listings[0]!.price).toBe(100);
   });
 
   it("runs a single flight for concurrent calls", async () => {

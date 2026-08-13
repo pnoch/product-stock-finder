@@ -316,6 +316,13 @@ describe("sync meta", () => {
     expect(meta.lastSyncedAt).toBe(5000);
   });
 
+  it("round-trips lastSyncOkAt and lastSyncError through saveSyncMeta", async () => {
+    await saveSyncMeta({ lastSyncedAt: 5000, items: {}, lastSyncError: "Push failed: network", lastSyncOkAt: 4000 });
+    const meta = await getSyncMeta();
+    expect(meta.lastSyncError).toBe("Push failed: network");
+    expect(meta.lastSyncOkAt).toBe(4000);
+  });
+
   it("markItemDeleted flags an item as deleted", async () => {
     await markItemDeleted("alerts", "a1", 2000);
     const meta = await getSyncMeta();

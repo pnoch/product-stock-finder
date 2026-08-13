@@ -47,6 +47,12 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     pulled = await opts.pull(since);
   } catch (error) {
     console.warn("[Sync] Pull failed; skipping sync", error);
+    await storage.saveSyncMeta({
+      ...(await storage.getSyncMeta()),
+      lastSyncError: `Pull failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    });
     return;
   }
 
@@ -79,6 +85,12 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
       await opts.push(dirty);
     } catch (error) {
       console.warn("[Sync] Push failed; local changes kept", error);
+      await storage.saveSyncMeta({
+        ...(await storage.getSyncMeta()),
+        lastSyncError: `Push failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      });
       return;
     }
     const metaAfter = await storage.getSyncMeta();
@@ -97,6 +109,8 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
   await storage.saveSyncMeta({
     ...(await storage.getSyncMeta()),
     lastSyncedAt: nextCursor,
+    lastSyncError: null,
+    lastSyncOkAt: nowValue,
   });
 }
 
