@@ -11,6 +11,7 @@ import {
   upsertSyncItem,
 } from "./sync-db";
 import { getPrice } from "./prices";
+import { getFxRates } from "./fx";
 import { mergeHistory } from "./price-history";
 import { getInsight } from "./price-insights";
 import { getProductImage } from "./product-images";
@@ -103,6 +104,12 @@ export const appRouter = router({
         await mergeHistory(input.distributorId, input.modelNumber, input.points);
         return { accepted: input.points.length } as const;
       }),
+  }),
+
+  fx: router({
+    get: publicProcedure.query(async () => {
+      return getFxRates();
+    }),
   }),
 
   insights: router({
