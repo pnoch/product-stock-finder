@@ -302,3 +302,14 @@
 - [x] Background pre-generate in the warmer
 - [x] Mobile fetchProductImage helper + watchlist/search/detail display
 - [x] Desktop fetch_product_image command + watchlist/search/detail display
+
+## Phase 32: Server-Side Notification Scheduling
+
+- [x] device_notification_configs + notification_events Drizzle tables + migration
+- [x] Server notification engine (config upsert, event evaluation, pull) (server/notifications.ts)
+- [x] Public notifications.uploadConfig + notifications.pull tRPC endpoints
+- [x] Warmer tick evaluates notification configs (runWarmerTick)
+- [x] Mobile anonymous device id (lib/device-id.ts)
+- [x] Mobile config upload + event pull helpers (lib/server-notifications.ts)
+- [x] Launch/foreground sync + local notification display + reconciliation
+- [x] Review fixes: reminder re-fire dedup, restock transition detection, sync single-flight, stale price-drop dedup, warmer tick resilience
