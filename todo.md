@@ -285,3 +285,11 @@
 - [x] price-cache getAllFetchedAt
 - [x] Catalog pair builders (buildCatalogPairs, pickPairsToWarm)
 - [x] warmCatalogRotation + wiring into the warmer tick
+
+## Phase 30: LLM Price Insights
+
+- [x] price_insights Drizzle table + migration
+- [x] Server insight generation + TTL cache (server/price-insights.ts)
+- [x] Public insights.get tRPC endpoint
+- [x] Mobile fetchPriceInsight helper + product detail card
+- [x] Desktop fetch_price_insight command + product detail card
