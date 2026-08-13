@@ -107,4 +107,47 @@ describe("notifications router", () => {
     ).rejects.toThrow();
     expect(mockedUpsertPush).not.toHaveBeenCalled();
   });
+
+  it("forwards stock watch lastKnownStatus through uploadConfig", async () => {
+    mockedUpsert.mockResolvedValue(undefined);
+    const caller = appRouter.createCaller(createPublicContext());
+    await caller.notifications.uploadConfig({
+      deviceId: "dev-1",
+      alerts: [],
+      stockWatches: [
+        {
+          id: "w1",
+          productId: "mikrotik-crs804-4ddq-hrm",
+          distributorId: "d1",
+          lastKnownStatus: "back_order",
+        },
+      ],
+      dateReminders: [],
+    });
+    expect(mockedUpsert).toHaveBeenCalledWith("dev-1", {
+      alerts: [],
+      stockWatches: [
+        {
+          id: "w1",
+          productId: "mikrotik-crs804-4ddq-hrm",
+          distributorId: "d1",
+          lastKnownStatus: "back_order",
+        },
+      ],
+      dateReminders: [],
+    });
+  });
+
+  it("rejects an oversized deviceId for uploadConfig", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    await expect(
+      caller.notifications.uploadConfig({
+        deviceId: "x".repeat(129),
+        alerts: [],
+        stockWatches: [],
+        dateReminders: [],
+      }),
+    ).rejects.toThrow();
+    expect(mockedUpsert).not.toHaveBeenCalled();
+  });
 });

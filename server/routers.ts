@@ -125,7 +125,7 @@ export const appRouter = router({
     uploadConfig: publicProcedure
       .input(
         z.object({
-          deviceId: z.string().min(1),
+          deviceId: z.string().min(1).max(128),
           alerts: z.array(
             z.object({
               id: z.string().min(1),
@@ -162,7 +162,7 @@ export const appRouter = router({
         return { accepted: true } as const;
       }),
     pull: publicProcedure
-      .input(z.object({ deviceId: z.string().min(1) }))
+      .input(z.object({ deviceId: z.string().min(1).max(128) }))
       .query(async ({ input }) => {
         const events = await pullPendingEvents(input.deviceId);
         return { events };
