@@ -164,4 +164,33 @@ describe("push-notifications", () => {
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });
+
+  it("deletes the token row when a send ticket reports DeviceNotRegistered", async () => {
+    pushState.tickets = [{ status: "error", details: { error: "DeviceNotRegistered" } }];
+    await sendPushForDevice("dev-1", [event]);
+    expect(dbStub.delete).toHaveBeenCalledWith(devicePushTokens);
+  });
+
+  it("does not delete when all send tickets are ok", async () => {
+    pushState.tickets = [{ status: "ok" }];
+    await sendPushForDevice("dev-1", [event]);
+    expect(dbStub.delete).not.toHaveBeenCalled();
+  });
+
+  it("does not delete on other error codes", async () => {
+    pushState.tickets = [{ status: "error", details: { error: "MessageTooBig" } }];
+    await sendPushForDevice("dev-1", [event]);
+    expect(dbStub.delete).not.toHaveBeenCalled();
+  });
+
+  it("prunes the memory token when a send ticket reports DeviceNotRegistered", async () => {
+    mockedGetDb.mockResolvedValue(null);
+    await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios");
+    pushState.tickets = [{ status: "error", details: { error: "DeviceNotRegistered" } }];
+    await sendPushForDevice("dev-1", [event]);
+    expect(sent).toHaveLength(1);
+    pushState.tickets = [{ status: "ok" }];
+    await sendPushForDevice("dev-1", [event]);
+    expect(sent).toHaveLength(1);
+  });
 });

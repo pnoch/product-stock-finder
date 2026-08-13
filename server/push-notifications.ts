@@ -61,7 +61,14 @@ export async function sendPushForDevice(
       data: { eventId: e.id },
     }));
     for (const chunk of expo.chunkPushNotifications(messages)) {
-      await expo.sendPushNotificationsAsync(chunk);
+      const tickets = await expo.sendPushNotificationsAsync(chunk);
+      if (
+        tickets.some(
+          (t) => t.status === "error" && t.details?.error === "DeviceNotRegistered",
+        )
+      ) {
+        await pruneDeviceToken(deviceId);
+      }
     }
   } catch (error) {
     console.warn(`[Push] Failed to send push for device ${deviceId}:`, error);
