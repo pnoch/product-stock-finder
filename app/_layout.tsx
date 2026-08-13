@@ -43,6 +43,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { setupSync, type SyncSetup } from "@/lib/sync";
 import { backfillLocalHistory } from "@/lib/history-sync";
 import { syncServerNotifications } from "@/lib/server-notifications";
+import { registerPushToken } from "@/lib/push-token";
 
 // CRS804 + CRS326 listings seeded at first launch from lib/sample-data.ts so Home/Watchlist
 // badges and Product Detail sparklines/charts have full price history immediately.
@@ -83,6 +84,8 @@ export default function RootLayout() {
       registerPriceCheckTask();
       // Run a foreground check immediately on app launch
       checkPriceDropsNow();
+      // Register for Expo push delivery (best-effort)
+      void registerPushToken();
       // Pull any server-queued notification events
       void syncServerNotifications();
     });
