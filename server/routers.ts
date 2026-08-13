@@ -13,6 +13,7 @@ import {
 import { getPrice } from "./prices";
 import { mergeHistory } from "./price-history";
 import { getInsight } from "./price-insights";
+import { getProductImage } from "./product-images";
 
 const syncItemSchema = z.object({
   collection: z.enum(["watchlist", "alerts", "reminders", "settings"]),
@@ -107,6 +108,14 @@ export const appRouter = router({
       .input(z.object({ productId: z.string().min(1) }))
       .query(async ({ input }) => {
         return getInsight(input.productId);
+      }),
+  }),
+
+  images: router({
+    get: publicProcedure
+      .input(z.object({ productId: z.string().min(1) }))
+      .query(async ({ input }) => {
+        return getProductImage(input.productId);
       }),
   }),
 });
