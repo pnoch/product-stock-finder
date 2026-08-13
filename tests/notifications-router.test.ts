@@ -150,4 +150,12 @@ describe("notifications router", () => {
     ).rejects.toThrow();
     expect(mockedUpsert).not.toHaveBeenCalled();
   });
+
+  it("rejects an oversized deviceId for pull", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    await expect(
+      caller.notifications.pull({ deviceId: "x".repeat(129) }),
+    ).rejects.toThrow();
+    expect(mockedPull).not.toHaveBeenCalled();
+  });
 });
