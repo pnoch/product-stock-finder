@@ -293,3 +293,12 @@
 - [x] Public insights.get tRPC endpoint
 - [x] Mobile fetchPriceInsight helper + product detail card
 - [x] Desktop fetch_price_insight command + product detail card
+
+## Phase 31: Product Image Generation
+
+- [x] product_images Drizzle table + migration
+- [x] Server image generation + URL cache (server/product-images.ts)
+- [x] Public images.get tRPC endpoint
+- [x] Background pre-generate in the warmer
+- [x] Mobile fetchProductImage helper + watchlist/search/detail display
+- [x] Desktop fetch_product_image command + watchlist/search/detail display
