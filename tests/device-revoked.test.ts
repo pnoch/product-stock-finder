@@ -10,6 +10,11 @@ vi.mock("../server/devices", () => ({
   isDeviceRevoked: vi.fn(),
 }));
 
+vi.mock("@/lib/_core/auth", () => ({
+  removeSessionToken: vi.fn(async () => {}),
+  clearUserInfo: vi.fn(async () => {}),
+}));
+
 import { sdk } from "../server/_core/sdk";
 import { isDeviceRevoked } from "../server/devices";
 
@@ -72,5 +77,48 @@ describe("createContext revocation check", () => {
     const ctx = await createContext({ req: makeReq(), res: makeRes() } as any);
     expect(ctx.deviceId).toBeNull();
     expect(mockedRevoked).not.toHaveBeenCalled();
+  });
+});
+
+import * as Auth from "@/lib/_core/auth";
+import {
+  handleDeviceRevoked,
+  registerDeviceRevokedHandler,
+  resetDeviceRevokedForTests,
+} from "@/lib/device-revoked";
+
+const mockedRemove = vi.mocked(Auth.removeSessionToken);
+const mockedClear = vi.mocked(Auth.clearUserInfo);
+
+describe("lib/device-revoked", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetDeviceRevokedForTests();
+  });
+
+  it("clears the session and fires the registered handler once", async () => {
+    const handler = vi.fn();
+    registerDeviceRevokedHandler(handler);
+    await handleDeviceRevoked();
+    await handleDeviceRevoked();
+    expect(mockedRemove).toHaveBeenCalledTimes(1);
+    expect(mockedClear).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears the session even with no handler registered", async () => {
+    await handleDeviceRevoked();
+    expect(mockedRemove).toHaveBeenCalledTimes(1);
+    expect(mockedClear).toHaveBeenCalledTimes(1);
+  });
+
+  it("fires the handler again after reset for tests", async () => {
+    const handler = vi.fn();
+    registerDeviceRevokedHandler(handler);
+    await handleDeviceRevoked();
+    resetDeviceRevokedForTests();
+    registerDeviceRevokedHandler(handler);
+    await handleDeviceRevoked();
+    expect(handler).toHaveBeenCalledTimes(2);
   });
 });
