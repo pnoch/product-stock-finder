@@ -18,6 +18,10 @@ export async function handleDeviceRevoked(): Promise<void> {
   revokedHandler?.();
 }
 
+export function resetDeviceRevoked(): void {
+  fired = false;
+}
+
 export function resetDeviceRevokedForTests(): void {
   fired = false;
   revokedHandler = null;

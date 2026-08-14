@@ -84,6 +84,7 @@ import * as Auth from "@/lib/_core/auth";
 import {
   handleDeviceRevoked,
   registerDeviceRevokedHandler,
+  resetDeviceRevoked,
   resetDeviceRevokedForTests,
 } from "@/lib/device-revoked";
 
@@ -110,6 +111,15 @@ describe("lib/device-revoked", () => {
     await handleDeviceRevoked();
     expect(mockedRemove).toHaveBeenCalledTimes(1);
     expect(mockedClear).toHaveBeenCalledTimes(1);
+  });
+
+  it("can fire again after resetDeviceRevoked", async () => {
+    const handler = vi.fn();
+    registerDeviceRevokedHandler(handler);
+    await handleDeviceRevoked();
+    resetDeviceRevoked();
+    await handleDeviceRevoked();
+    expect(handler).toHaveBeenCalledTimes(2);
   });
 
   it("fires the handler again after reset for tests", async () => {
