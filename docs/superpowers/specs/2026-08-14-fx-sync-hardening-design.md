@@ -160,9 +160,9 @@ if (meta.lastSyncError) {
 
 | File | Change |
 | ---- | ------ |
-| `tests/storage.test.ts` | +1 test: tampered rates payload — non-numeric value dropped, valid values kept; all-invalid payload → `null` |
+| `tests/storage.test.ts` | +2 tests: tampered rates payload — non-numeric value dropped, valid values kept; all-invalid payload → `null` |
 | `tests/fx-client.test.ts` | +1 test: two concurrent `refreshFxRates` calls → exactly one fetch (single-flight) |
-| `tests/sync-status.test.ts` | update line 34 assertion (Item 6) + add register/unregister teardown test (Item 3) |
+| `tests/sync-status.test.ts` | update line 34 assertion (Item 6) + add register/unregister teardown tests (Item 3) |
 | `tests/notifications-router.test.ts` | +1 test: oversized deviceId for `pull` rejects (Item 7) |
 
 No changes to `tests/currency.test.ts`, `tests/fx.test.ts`.
@@ -171,7 +171,7 @@ No changes to `tests/currency.test.ts`, `tests/fx.test.ts`.
 
 - `pnpm check` — 0 TypeScript errors.
 - `pnpm lint` — clean (only pre-existing `MODULE_TYPELESS_PACKAGE_JSON` warning).
-- `pnpm test` — full suite green (v3.17 baseline is 474 tests / 71 files; expect +4).
+- `pnpm test` — full suite green (v3.17 baseline is 474 tests / 71 files; expect +6 → 480).
 - `pnpm exec prettier` — format all touched files.
 - `todo.md` Phase 39 appended.
 - Checkpoint commit: `Checkpoint: v3.17.1: FX + sync hardening — rate-value validation, fx single-flight, sync setup teardown, sync-now loading state, success tone, label dedup, pull-guard test. TypeScript: 0 errors.` + push.
