@@ -149,6 +149,7 @@ export const deviceNotificationConfigs = mysqlTable(
   "device_notification_configs",
   {
     deviceId: varchar("deviceId", { length: 128 }).notNull().primaryKey(),
+    userId: int("userId").references(() => users.id),
     alerts: json("alerts"),
     stockWatches: json("stockWatches"),
     dateReminders: json("dateReminders"),
@@ -163,6 +164,7 @@ export type InsertDeviceNotificationConfigRow =
 
 export const notificationEvents = mysqlTable("notification_events", {
   id: varchar("id", { length: 128 }).notNull().primaryKey(),
+  userId: int("userId").references(() => users.id),
   deviceId: varchar("deviceId", { length: 128 }).notNull(),
   type: varchar("type", { length: 16 }).notNull(),
   dedupKey: varchar("dedupKey", { length: 255 }).notNull(),
@@ -176,8 +178,24 @@ export const notificationEvents = mysqlTable("notification_events", {
 export type NotificationEventRow = typeof notificationEvents.$inferSelect;
 export type InsertNotificationEventRow = typeof notificationEvents.$inferInsert;
 
+export const notificationEventDeliveries = mysqlTable(
+  "notification_event_deliveries",
+  {
+    deviceId: varchar("deviceId", { length: 128 }).notNull(),
+    eventId: varchar("eventId", { length: 128 }).notNull(),
+    deliveredAt: bigint("deliveredAt", { mode: "number" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.deviceId, table.eventId] })],
+);
+
+export type NotificationEventDeliveryRow =
+  typeof notificationEventDeliveries.$inferSelect;
+export type InsertNotificationEventDeliveryRow =
+  typeof notificationEventDeliveries.$inferInsert;
+
 export const devicePushTokens = mysqlTable("device_push_tokens", {
   deviceId: varchar("deviceId", { length: 128 }).notNull().primaryKey(),
+  userId: int("userId").references(() => users.id),
   token: varchar("token", { length: 255 }).notNull(),
   platform: varchar("platform", { length: 16 }).notNull(),
   updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
