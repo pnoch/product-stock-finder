@@ -350,7 +350,6 @@ async function buildEvents(config: NotificationConfig, now: number): Promise<Eve
         triggeredPrice: bestPrice,
       },
       createdAt: now,
-      deliveredAt: null,
     });
   }
 
@@ -374,7 +373,6 @@ async function buildEvents(config: NotificationConfig, now: number): Promise<Eve
         distributorId: watch.distributorId,
       },
       createdAt: now,
-      deliveredAt: null,
     });
   }
 
@@ -396,7 +394,6 @@ async function buildEvents(config: NotificationConfig, now: number): Promise<Eve
         distributorId: reminder.distributorId,
       },
       createdAt: now,
-      deliveredAt: null,
     });
   }
 

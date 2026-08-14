@@ -26,7 +26,12 @@ import {
 import { setCachedPrice } from "../server/price-cache";
 import { sendPushForDevice, sendPushForUser } from "../server/push-notifications";
 import { getDb } from "../server/db";
-import { deviceNotificationConfigs, notificationEvents, priceCache } from "../drizzle/schema";
+import {
+  deviceNotificationConfigs,
+  notificationEvents,
+  notificationEventDeliveries,
+  priceCache,
+} from "../drizzle/schema";
 
 const mockedGetDb = vi.mocked(getDb);
 
@@ -518,5 +523,143 @@ describe("user-scoped notifications (memory)", () => {
     const user8 = await pullPendingEvents("dev-1", 8);
     expect(user8).toHaveLength(1);
     expect(user8[0]!.alertId).toBe("a2");
+  });
+});
+
+describe("user-scoped notifications (database)", () => {
+  beforeEach(() => {
+    clearNotificationsForTests();
+    vi.clearAllMocks();
+  });
+
+  it("evaluates a user's aggregated config once and pushes to the user", async () => {
+    const inserted: unknown[] = [];
+    const storedSnapshots: Array<Record<string, unknown>> = [];
+    const dbStub = {
+      select: vi.fn(() => ({
+        from: vi.fn((table: unknown) => {
+          if (table === deviceNotificationConfigs) {
+            return [
+              {
+                deviceId: "dev-1",
+                userId: 7,
+                alerts: [
+                  {
+                    id: "a1",
+                    productId: "mikrotik-crs804-4ddq-hrm",
+                    targetPrice: 500,
+                    currency: "USD",
+                  },
+                ],
+                stockWatches: [],
+                dateReminders: [],
+                updatedAt: Date.now(),
+              },
+              {
+                deviceId: "dev-2",
+                userId: 7,
+                alerts: [
+                  {
+                    id: "a1",
+                    productId: "mikrotik-crs804-4ddq-hrm",
+                    targetPrice: 500,
+                    currency: "USD",
+                  },
+                ],
+                stockWatches: [],
+                dateReminders: [],
+                updatedAt: Date.now(),
+              },
+            ];
+          }
+          if (table === notificationEvents) {
+            return { where: vi.fn(async () => []) };
+          }
+          if (table === notificationEventDeliveries) {
+            return { where: vi.fn(async () => []) };
+          }
+          if (table === priceCache) {
+            return {
+              where: vi.fn(() => ({
+                limit: vi.fn(async () => storedSnapshots),
+              })),
+            };
+          }
+          return { where: vi.fn(() => []) };
+        }),
+      })),
+      insert: vi.fn((table: unknown) => ({
+        values: vi.fn((rows: unknown) => {
+          if (table === priceCache) {
+            storedSnapshots.push(rows as Record<string, unknown>);
+          } else {
+            inserted.push(rows);
+          }
+          return { onDuplicateKeyUpdate: vi.fn(async () => undefined) };
+        }),
+      })),
+    };
+    mockedGetDb.mockResolvedValue(dbStub as never);
+    await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
+      price: 480,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://example.com",
+      fetchedAt: Date.now(),
+    });
+    await evaluateNotifications(Date.now());
+    expect(inserted).toHaveLength(1);
+    const rows = inserted[0] as Array<Record<string, unknown>>;
+    expect(rows[0]).toMatchObject({
+      userId: 7,
+      deviceId: null,
+      type: "price_drop",
+    });
+    expect(vi.mocked(sendPushForUser)).toHaveBeenCalledWith(
+      7,
+      expect.arrayContaining([expect.objectContaining({ type: "price_drop" })]),
+    );
+    mockedGetDb.mockResolvedValue(null);
+  });
+
+  it("pulls a user's undelivered events and records per-device delivery", async () => {
+    const inserted: unknown[] = [];
+    const dbStub = {
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          leftJoin: vi.fn(() => ({
+            where: vi.fn(async () => [
+              {
+                id: "evt-1",
+                type: "price_drop",
+                title: "💸 Price Drop Alert!",
+                body: "CRS804 is now $480.00!",
+                payload: {
+                  alertId: "a1",
+                  productId: "mikrotik-crs804-4ddq-hrm",
+                  triggeredPrice: 480,
+                },
+                createdAt: 123,
+              },
+            ]),
+          })),
+        })),
+      })),
+      insert: vi.fn((table: unknown) => ({
+        values: vi.fn((rows: unknown) => {
+          inserted.push(rows);
+          return { onDuplicateKeyUpdate: vi.fn(async () => undefined) };
+        }),
+      })),
+    };
+    mockedGetDb.mockResolvedValue(dbStub as never);
+    const events = await pullPendingEvents("dev-2", 7);
+    expect(events).toHaveLength(1);
+    expect(events[0]!.alertId).toBe("a1");
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]).toMatchObject([
+      { deviceId: "dev-2", eventId: "evt-1", deliveredAt: expect.any(Number) },
+    ]);
+    mockedGetDb.mockResolvedValue(null);
   });
 });

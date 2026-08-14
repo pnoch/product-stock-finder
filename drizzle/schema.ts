@@ -172,7 +172,6 @@ export const notificationEvents = mysqlTable("notification_events", {
   body: text("body").notNull(),
   payload: json("payload"),
   createdAt: bigint("createdAt", { mode: "number" }).notNull(),
-  deliveredAt: bigint("deliveredAt", { mode: "number" }),
 });
 
 export type NotificationEventRow = typeof notificationEvents.$inferSelect;
