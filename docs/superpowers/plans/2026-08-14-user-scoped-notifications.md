@@ -55,7 +55,7 @@ Change `notificationEvents` (lines 164-174) to add `userId` (keep `deliveredAt` 
 export const notificationEvents = mysqlTable("notification_events", {
   id: varchar("id", { length: 128 }).notNull().primaryKey(),
   userId: int("userId").references(() => users.id),
-  deviceId: varchar("deviceId", { length: 128 }).notNull(),
+  deviceId: varchar("deviceId", { length: 128 }),
   type: varchar("type", { length: 16 }).notNull(),
   dedupKey: varchar("dedupKey", { length: 255 }).notNull(),
   title: text("title").notNull(),
@@ -65,6 +65,8 @@ export const notificationEvents = mysqlTable("notification_events", {
   deliveredAt: bigint("deliveredAt", { mode: "number" }),
 });
 ```
+
+> **Plan correction (approved during execution):** `deviceId` is nullable — user-scoped events store `userId` set + `deviceId` null (exactly one of `userId`/`deviceId` set per row). This was applied in Task 3 as migration 0009 (`ALTER TABLE notification_events MODIFY COLUMN deviceId`), so Task 4's `deliveredAt` drop becomes migration **0010**.
 
 After the `notificationEvents` type exports (line 177), add the junction table:
 
@@ -1035,7 +1037,7 @@ In `drizzle/schema.ts`, change `notificationEvents` (lines 164-174) to remove th
 export const notificationEvents = mysqlTable("notification_events", {
   id: varchar("id", { length: 128 }).notNull().primaryKey(),
   userId: int("userId").references(() => users.id),
-  deviceId: varchar("deviceId", { length: 128 }).notNull(),
+  deviceId: varchar("deviceId", { length: 128 }),
   type: varchar("type", { length: 16 }).notNull(),
   dedupKey: varchar("dedupKey", { length: 255 }).notNull(),
   title: text("title").notNull(),
@@ -1049,7 +1051,7 @@ export const notificationEvents = mysqlTable("notification_events", {
 
 In `server/notifications.ts`, delete the three `      deliveredAt: null,` lines in `buildEvents` (lines 196, 220, 242). Keep the surrounding `createdAt: now,` and `});`.
 
-- [ ] **Step 5: Generate migration 0009**
+- [ ] **Step 5: Generate migration 0010**
 
 Run:
 
@@ -1057,7 +1059,7 @@ Run:
 DATABASE_URL="mysql://user:pass@localhost:3306/nonexistent" pnpm drizzle-kit generate
 ```
 
-Expected: creates `drizzle/0009_<name>.sql` + `drizzle/meta/0009_snapshot.json`, updates `_journal.json`. Verify the SQL contains `ALTER TABLE \`notification_events\` DROP COLUMN \`deliveredAt\``.
+Expected: creates `drizzle/0010_<name>.sql` + `drizzle/meta/0010_snapshot.json`, updates `_journal.json`. Verify the SQL contains `ALTER TABLE \`notification_events\` DROP COLUMN \`deliveredAt\``.
 
 - [ ] **Step 6: Typecheck and full notifications suite**
 
@@ -1067,7 +1069,7 @@ Run: `pnpm test tests/notifications.test.ts` — all pass.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add drizzle/schema.ts drizzle/0009_*.sql drizzle/meta/0009_snapshot.json drizzle/meta/_journal.json server/notifications.ts tests/notifications.test.ts
+git add drizzle/schema.ts drizzle/0010_*.sql drizzle/meta/0010_snapshot.json drizzle/meta/_journal.json server/notifications.ts tests/notifications.test.ts
 git commit -m "feat(notifications): drop deliveredAt; DB-path user-scoped tests"
 ```
 
