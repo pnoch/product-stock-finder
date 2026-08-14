@@ -213,3 +213,20 @@ export const devicePushTokens = mysqlTable("device_push_tokens", {
 
 export type DevicePushTokenRow = typeof devicePushTokens.$inferSelect;
 export type InsertDevicePushTokenRow = typeof devicePushTokens.$inferInsert;
+
+export const deviceLabels = mysqlTable("device_labels", {
+  deviceId: varchar("deviceId", { length: 128 }).notNull().primaryKey(),
+  label: varchar("label", { length: 64 }).notNull(),
+  updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
+});
+
+export type DeviceLabelRow = typeof deviceLabels.$inferSelect;
+export type InsertDeviceLabelRow = typeof deviceLabels.$inferInsert;
+
+export const revokedDevices = mysqlTable("revoked_devices", {
+  deviceId: varchar("deviceId", { length: 128 }).notNull().primaryKey(),
+  revokedAt: bigint("revokedAt", { mode: "number" }).notNull(),
+});
+
+export type RevokedDeviceRow = typeof revokedDevices.$inferSelect;
+export type InsertRevokedDeviceRow = typeof revokedDevices.$inferInsert;
