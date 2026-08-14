@@ -40,6 +40,7 @@ function createAuthContext(): {
         clearedCookies.push({ name, options });
       },
     } as TrpcContext["res"],
+    deviceId: null,
   };
 
   return { ctx, clearedCookies };

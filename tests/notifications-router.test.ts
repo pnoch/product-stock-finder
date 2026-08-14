@@ -31,6 +31,7 @@ function createPublicContext(): TrpcContext {
     res: {
       clearCookie: (_name: string, _options: Record<string, unknown>) => {},
     } as TrpcContext["res"],
+    deviceId: null,
   };
 }
 
@@ -55,6 +56,7 @@ function createAuthedContext(userId: number): TrpcContext {
     res: {
       clearCookie: (_name: string, _options: Record<string, unknown>) => {},
     } as TrpcContext["res"],
+    deviceId: null,
   };
 }
 

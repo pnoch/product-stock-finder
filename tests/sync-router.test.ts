@@ -26,6 +26,7 @@ function createAuthContext(): TrpcContext {
     res: {
       clearCookie: (_name: string, _options: Record<string, unknown>) => {},
     } as TrpcContext["res"],
+    deviceId: null,
   };
 }
 
