@@ -15,6 +15,7 @@ Add a summary card at the top of the Watchlist screen showing the total value of
 A platform-agnostic pure function consumed by both mobile and desktop Watchlist screens.
 
 **Types:**
+
 ```typescript
 export interface WatchlistSummary {
   totalValue: number; // sum of ALL listings' prices, converted to display currency
@@ -26,14 +27,16 @@ export interface WatchlistSummary {
 ```
 
 **Function:**
+
 ```typescript
 export function computeWatchlistSummary(
   watchlist: Product[],
   displayCurrency: string,
-): WatchlistSummary
+): WatchlistSummary;
 ```
 
 **Behavior:**
+
 - Iterates all `Product.listings` across the watchlist
 - `listingCount` counts ALL listings (regardless of price validity)
 - For each listing with a valid `price > 0` and a `currency`, converts to `displayCurrency` via `convertPrice()` and adds to `totalValue`
@@ -44,6 +47,7 @@ export function computeWatchlistSummary(
 ### Summary Card UI
 
 **Mobile:** A card component at the top of `app/(tabs)/watchlist.tsx`, placed below the header and above the sort bar. Shows:
+
 - Total value (formatted via `formatPrice(totalValue, displayCurrency)`)
 - Listing count
 - In-stock / back-order / out-of-stock counts with colored badges
@@ -77,9 +81,11 @@ export function computeWatchlistSummary(
 ## Files
 
 **New:**
+
 - `lib/watchlist-summary.ts` — shared summary utility
 - `tests/watchlist-summary.test.ts` — unit tests
 
 **Modified:**
+
 - `app/(tabs)/watchlist.tsx` — add summary card
 - `desktop/src/pages/Watchlist.tsx` — add summary card

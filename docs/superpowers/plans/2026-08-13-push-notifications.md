@@ -13,6 +13,7 @@
 ## Task 1: Drizzle table `device_push_tokens` + migration
 
 **Files:**
+
 - Modify: `drizzle/schema.ts` (append after the `notificationEvents` types, currently ~line 178)
 - Create: `drizzle/0007_*.sql` (generated)
 
@@ -57,6 +58,7 @@ git commit -m "feat(sync): add device push token table"
 ## Task 2: Server push service `server/push-notifications.ts` + tests
 
 **Files:**
+
 - Create: `server/push-notifications.ts`
 - Test: `tests/push-notifications.test.ts`
 
@@ -94,9 +96,17 @@ vi.mock("expo-server-sdk", () => ({
   },
 }));
 
-import { upsertPushToken, sendPushForDevice, clearPushTokensForTests } from "../server/push-notifications";
+import {
+  upsertPushToken,
+  sendPushForDevice,
+  clearPushTokensForTests,
+} from "../server/push-notifications";
 
-const event = { id: "evt-1", title: "💸 Price Drop Alert!", body: "CRS804 is now $480.00!" };
+const event = {
+  id: "evt-1",
+  title: "💸 Price Drop Alert!",
+  body: "CRS804 is now $480.00!",
+};
 
 describe("push-notifications", () => {
   beforeEach(() => {
@@ -236,6 +246,7 @@ git commit -m "feat(server): push notification service with Expo push sending"
 ## Task 3: Wire push into the notification engine
 
 **Files:**
+
 - Modify: `server/notifications.ts:13` (import), `:123` (DB path), `:135-141` (memory path)
 - Modify: `tests/notifications.test.ts` (add mock + one wiring test)
 
@@ -303,14 +314,14 @@ import { sendPushForDevice } from "./push-notifications";
 Replace the DB-path insert (lines 119-123) so it pushes after inserting:
 
 ```ts
-    const drafts = await buildEvents(config, now);
-    const toInsert = drafts
-      .filter((d) => !undelivered.has(d.dedupKey))
-      .map((d) => ({ ...d, deviceId: row.deviceId }));
-    if (toInsert.length > 0) {
-      await db.insert(notificationEvents).values(toInsert);
-      await sendPushForDevice(row.deviceId, toInsert);
-    }
+const drafts = await buildEvents(config, now);
+const toInsert = drafts
+  .filter((d) => !undelivered.has(d.dedupKey))
+  .map((d) => ({ ...d, deviceId: row.deviceId }));
+if (toInsert.length > 0) {
+  await db.insert(notificationEvents).values(toInsert);
+  await sendPushForDevice(row.deviceId, toInsert);
+}
 ```
 
 Replace the memory-path body of `evaluateConfig` (lines 127-142) so it tracks + pushes the newly added events:
@@ -358,6 +369,7 @@ git commit -m "feat(server): push notification events at detection time"
 ## Task 4: `notifications.registerPushToken` router + `lastKnownStatus` schema fix
 
 **Files:**
+
 - Modify: `server/routers.ts:17` (import), `:123-168` (notifications router)
 - Modify: `tests/notifications-router.test.ts` (add mock + tests)
 
@@ -513,6 +525,7 @@ git commit -m "feat(server): add notifications.registerPushToken endpoint and pr
 ## Task 5: `app.config.ts` project id + install `expo-device`
 
 **Files:**
+
 - Modify: `app.config.ts:40-128` (add `extra`)
 - Modify: `package.json` (add `expo-device`)
 
@@ -553,6 +566,7 @@ git commit -m "chore(mobile): expose expo project id and add expo-device"
 ## Task 6: Mobile `lib/push-token.ts` + tests
 
 **Files:**
+
 - Create: `lib/push-token.ts`
 - Test: `tests/push-token.test.ts`
 
@@ -572,17 +586,27 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("react-native", () => ({
-  Platform: { get OS() { return state.platform; } },
+  Platform: {
+    get OS() {
+      return state.platform;
+    },
+  },
 }));
 
 vi.mock("expo-device", () => ({
-  Device: { get isDevice() { return state.isDevice; } },
+  Device: {
+    get isDevice() {
+      return state.isDevice;
+    },
+  },
 }));
 
 vi.mock("expo-constants", () => ({
   default: {
     expoConfig: {
-      get extra() { return { expoProjectId: state.projectId }; },
+      get extra() {
+        return { expoProjectId: state.projectId };
+      },
     },
   },
 }));
@@ -688,7 +712,9 @@ export async function registerPushToken(): Promise<void> {
         token: token.data,
         platform: Platform.OS as "ios" | "android",
       }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
   } catch {
     // push registration is best-effort
@@ -719,6 +745,7 @@ git commit -m "feat(mobile): register expo push token on launch"
 ## Task 7: Wire `registerPushToken` into `_layout.tsx`
 
 **Files:**
+
 - Modify: `app/_layout.tsx:45` (import), `:85-86` (call)
 
 - [ ] **Step 1: Add the import**
@@ -734,8 +761,8 @@ import { registerPushToken } from "@/lib/push-token";
 In the notification-permission effect, after `checkPriceDropsNow();` (line 85) and before `void syncServerNotifications();`, add:
 
 ```ts
-      // Register for Expo push delivery (best-effort)
-      void registerPushToken();
+// Register for Expo push delivery (best-effort)
+void registerPushToken();
 ```
 
 - [ ] **Step 3: Verify types**
@@ -753,6 +780,7 @@ git commit -m "feat(mobile): register push token at launch"
 ## Task 8: Desktop `syncDesktopNotifications` + test
 
 **Files:**
+
 - Create: `desktop/src/server-notifications.ts`
 - Test: `desktop/tests/server-notifications.test.ts`
 
@@ -876,9 +904,7 @@ describe("syncDesktopNotifications", () => {
     globalThis.localStorage = localStorageAdapter as never;
     await syncDesktopNotifications();
     await syncDesktopNotifications();
-    const ids = state.uploaded.map(
-      (u) => (u as { deviceId: string }).deviceId,
-    );
+    const ids = state.uploaded.map((u) => (u as { deviceId: string }).deviceId);
     expect(ids[0]).toBe(ids[1]);
   });
 });
@@ -936,7 +962,10 @@ interface PushEvent {
 }
 
 function generateId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return `dev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -959,7 +988,9 @@ async function uploadConfig(
     const client = createTRPCClient();
     await Promise.race([
       client.notifications.uploadConfig.mutate({ deviceId, ...config }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return true;
   } catch {
@@ -972,7 +1003,9 @@ async function pullEvents(deviceId: string): Promise<PushEvent[]> {
     const client = createTRPCClient();
     const result = await Promise.race([
       client.notifications.pull.query({ deviceId }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return result?.events ?? [];
   } catch {
@@ -1061,6 +1094,7 @@ git commit -m "feat(desktop): sync and render server-queued notification events"
 ## Task 9: Desktop wiring in `App.tsx`
 
 **Files:**
+
 - Modify: `desktop/src/App.tsx` (import + effect)
 
 - [ ] **Step 1: Add the import**
@@ -1076,21 +1110,21 @@ import { syncDesktopNotifications } from "./server-notifications";
 After the `onPricesChecked` effect (after line 130), add:
 
 ```tsx
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      if (cancelled) return;
-      await syncDesktopNotifications();
-    };
+useEffect(() => {
+  let cancelled = false;
+  const run = async () => {
+    if (cancelled) return;
+    await syncDesktopNotifications();
+  };
+  void run();
+  const timer = setInterval(() => {
     void run();
-    const timer = setInterval(() => {
-      void run();
-    }, 60_000);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, []);
+  }, 60_000);
+  return () => {
+    cancelled = true;
+    clearInterval(timer);
+  };
+}, []);
 ```
 
 - [ ] **Step 3: Verify types + tests**
@@ -1111,6 +1145,7 @@ git commit -m "feat(desktop): poll and show server notifications on a timer"
 ## Task 10: Verification + todo.md + checkpoint v3.12
 
 **Files:**
+
 - Modify: `todo.md` (append Phase 33)
 
 - [ ] **Step 1: Full verification**

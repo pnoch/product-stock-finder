@@ -15,15 +15,17 @@ The app's core value is checking a specific item's price globally for the best l
 A platform-agnostic module with a country→tax-rate map and a lookup helper.
 
 **Types:**
+
 ```typescript
 export const COUNTRY_TAX_RATES: Record<string, number> = {
   // e.g. "Malaysia": 0, "United Kingdom": 0.20, "Germany": 0.19, "Australia": 0.10, ...
 };
 
-export function getTaxRate(country: string): number
+export function getTaxRate(country: string): number;
 ```
 
 **Behavior:**
+
 - `getTaxRate(country)` returns the tax rate for a country (e.g. 0.20 for 20% VAT)
 - Unknown country → returns 0
 - Tax-free countries → returns 0
@@ -31,6 +33,7 @@ export function getTaxRate(country: string): number
 ### Data Model
 
 Add `taxRate` to `DistributorListing`:
+
 ```typescript
 interface DistributorListing {
   // ...existing fields
@@ -45,10 +48,12 @@ Each scraper sets `taxRate` on the listing it returns, using `getTaxRate(distrib
 ### Best Deal Update
 
 `findBestDeal` becomes tax-aware:
+
 ```typescript
 const tax = price * (listing.taxRate ?? 0);
 const total = price + tax + shipping;
 ```
+
 `BestDeal` gains a `tax` field.
 
 ### All Three Screens
@@ -82,10 +87,12 @@ const total = price + tax + shipping;
 ## Files
 
 **New:**
+
 - `lib/tax.ts` — shared tax module
 - `tests/tax.test.ts` — unit tests
 
 **Modified:**
+
 - `lib/types.ts` — add `taxRate` to `DistributorListing`
 - `lib/scrapers/types.ts` — add `taxRate` to `ScrapeResult`
 - 25 scraper files — set `taxRate` from country map

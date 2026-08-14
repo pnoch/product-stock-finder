@@ -54,7 +54,8 @@ export function RestockWatches() {
         </div>
       ) : watches.length === 0 ? (
         <p className="text-center text-gray-500 dark:text-gray-400 mt-10">
-          No restock watches. Open a product and tap &quot;Watch for Restock&quot; to add one.
+          No restock watches. Open a product and tap &quot;Watch for
+          Restock&quot; to add one.
         </p>
       ) : (
         <div>
@@ -68,11 +69,14 @@ export function RestockWatches() {
                 <div className="flex-1">
                   <p className="font-medium text-sm">{watch.productName}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {distrib?.countryFlag} {distrib?.name ?? watch.distributorName}
+                    {distrib?.countryFlag}{" "}
+                    {distrib?.name ?? watch.distributorName}
                   </p>
                   <div className="mt-1">
                     <StockBadge
-                      status={(watch.lastKnownStatus ?? "unknown") as StockStatus}
+                      status={
+                        (watch.lastKnownStatus ?? "unknown") as StockStatus
+                      }
                     />
                   </div>
                 </div>

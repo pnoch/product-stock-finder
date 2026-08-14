@@ -48,15 +48,15 @@ server/routers.ts ──► server/prices.ts
 
 Keyed by `(distributorId, modelNumber, date)` where `date` is the UTC day (`YYYY-MM-DD`). One row per distributor/model/day.
 
-| Column | Type | Notes |
-| --- | --- | --- |
-| `distributorId` | varchar(64) | PK part |
-| `modelNumber` | varchar(128) | PK part |
-| `date` | varchar(10) | PK part — UTC day `YYYY-MM-DD` |
-| `price` | double | not null |
-| `currency` | varchar(8) | not null |
-| `stockStatus` | varchar(16) | not null |
-| `fetchedAt` | bigint | not null — epoch ms, used for dedup/merge |
+| Column          | Type         | Notes                                     |
+| --------------- | ------------ | ----------------------------------------- |
+| `distributorId` | varchar(64)  | PK part                                   |
+| `modelNumber`   | varchar(128) | PK part                                   |
+| `date`          | varchar(10)  | PK part — UTC day `YYYY-MM-DD`            |
+| `price`         | double       | not null                                  |
+| `currency`      | varchar(8)   | not null                                  |
+| `stockStatus`   | varchar(16)  | not null                                  |
+| `fetchedAt`     | bigint       | not null — epoch ms, used for dedup/merge |
 
 Composite primary key on `(distributorId, modelNumber, date)`.
 

@@ -14,11 +14,17 @@ export function useWatchlist() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   useEffect(() => {
-    const unlisten = onListingUpdated(() => { refresh(); });
-    return () => { unlisten.then((fn) => fn()); };
+    const unlisten = onListingUpdated(() => {
+      refresh();
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
   }, [refresh]);
 
   return { products, loading, refresh };
@@ -35,7 +41,9 @@ export function useAlerts() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   return { alerts, loading, refresh };
 }
@@ -51,7 +59,9 @@ export function useSettings() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   const update = useCallback(async (partial: Partial<AppSettings>) => {
     setSettings((prev) => {

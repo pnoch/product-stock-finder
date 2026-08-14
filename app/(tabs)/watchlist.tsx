@@ -351,8 +351,8 @@ export default function WatchlistScreen() {
         <View>
           <Text className="text-2xl font-bold text-foreground">Watchlist</Text>
           <Text className="text-muted text-sm">
-            {filteredWatchlist.length} product{filteredWatchlist.length !== 1 ? "s" : ""}{" "}
-            tracked
+            {filteredWatchlist.length} product
+            {filteredWatchlist.length !== 1 ? "s" : ""} tracked
           </Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -374,8 +374,14 @@ export default function WatchlistScreen() {
               borderColor: colors.border,
             }}
           >
-            <IconSymbol name="chart.bar.xaxis" size={16} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>
+            <IconSymbol
+              name="chart.bar.xaxis"
+              size={16}
+              color={colors.primary}
+            />
+            <Text
+              style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}
+            >
               Analysis
             </Text>
           </TouchableOpacity>
@@ -436,35 +442,88 @@ export default function WatchlistScreen() {
             borderColor: colors.border,
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
-            <Text style={{ color: colors.muted, fontSize: 13 }}>Total Value</Text>
-            <Text style={{ color: colors.foreground, fontSize: 22, fontWeight: "700" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+            }}
+          >
+            <Text style={{ color: colors.muted, fontSize: 13 }}>
+              Total Value
+            </Text>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 22,
+                fontWeight: "700",
+              }}
+            >
               {formatPrice(summary.totalValue, displayCurrency)}
             </Text>
           </View>
           <View style={{ flexDirection: "row", marginTop: 12, gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.success, fontSize: 16, fontWeight: "600" }}>{summary.inStock}</Text>
-              <Text style={{ color: colors.muted, fontSize: 12 }}>In Stock</Text>
+              <Text
+                style={{
+                  color: colors.success,
+                  fontSize: 16,
+                  fontWeight: "600",
+                }}
+              >
+                {summary.inStock}
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                In Stock
+              </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.warning, fontSize: 16, fontWeight: "600" }}>{summary.backOrder}</Text>
-              <Text style={{ color: colors.muted, fontSize: 12 }}>Back Order</Text>
+              <Text
+                style={{
+                  color: colors.warning,
+                  fontSize: 16,
+                  fontWeight: "600",
+                }}
+              >
+                {summary.backOrder}
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                Back Order
+              </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.error, fontSize: 16, fontWeight: "600" }}>{summary.outOfStock}</Text>
-              <Text style={{ color: colors.muted, fontSize: 12 }}>Out of Stock</Text>
+              <Text
+                style={{ color: colors.error, fontSize: 16, fontWeight: "600" }}
+              >
+                {summary.outOfStock}
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                Out of Stock
+              </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "600" }}>{summary.listingCount}</Text>
-              <Text style={{ color: colors.muted, fontSize: 12 }}>Listings</Text>
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontSize: 16,
+                  fontWeight: "600",
+                }}
+              >
+                {summary.listingCount}
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                Listings
+              </Text>
             </View>
           </View>
         </View>
       )}
 
       {checking && checkProgress && (
-        <View className="h-1 mx-4 mb-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.primary + "20" }}>
+        <View
+          className="h-1 mx-4 mb-2 rounded-full overflow-hidden"
+          style={{ backgroundColor: colors.primary + "20" }}
+        >
           <View
             className="h-full rounded-full"
             style={{
@@ -589,7 +648,9 @@ export default function WatchlistScreen() {
                 marginTop: 16,
               }}
             >
-              {regionFilter !== "all" ? "No products in this region" : "No products yet"}
+              {regionFilter !== "all"
+                ? "No products in this region"
+                : "No products yet"}
             </Text>
             <Text
               style={{
@@ -614,7 +675,9 @@ export default function WatchlistScreen() {
                 }}
                 onPress={() => setRegionFilter("all")}
               >
-                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
+                <Text
+                  style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
+                >
                   Show All
                 </Text>
               </TouchableOpacity>
@@ -633,7 +696,9 @@ export default function WatchlistScreen() {
                   router.push("/search");
                 }}
               >
-                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
+                <Text
+                  style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
+                >
                   Add Product
                 </Text>
               </TouchableOpacity>

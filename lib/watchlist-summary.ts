@@ -28,7 +28,11 @@ export function computeWatchlistSummary(
         hasExchangeRate(listing.currency) &&
         hasExchangeRate(displayCurrency)
       ) {
-        totalValue += convertPrice(listing.price, listing.currency, displayCurrency);
+        totalValue += convertPrice(
+          listing.price,
+          listing.currency,
+          displayCurrency,
+        );
       }
       if (listing.stockStatus === "in_stock") inStock++;
       else if (listing.stockStatus === "back_order") backOrder++;

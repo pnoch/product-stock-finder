@@ -314,7 +314,11 @@ function CheapestRegionCard({
                 }}
               >
                 <Text
-                  style={{ fontSize: 10, color: colors.warning, fontWeight: "700" }}
+                  style={{
+                    fontSize: 10,
+                    color: colors.warning,
+                    fontWeight: "700",
+                  }}
                 >
                   BEST
                 </Text>

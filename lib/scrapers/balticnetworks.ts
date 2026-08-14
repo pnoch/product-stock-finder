@@ -1,16 +1,26 @@
 import * as cheerio from "cheerio";
 import { DistributorParser, ScrapeResult } from "./types";
-import { fetchWithRateLimit, parsePriceFromText, inferStockStatus } from "./utils";
+import {
+  fetchWithRateLimit,
+  parsePriceFromText,
+  inferStockStatus,
+} from "./utils";
 import { getTaxRate } from "../tax";
 
 function parseHtml(html: string, url: string): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(".price__current, [data-price-container], .productitem__price").first().text();
+  const priceText = $(
+    ".price__current, [data-price-container], .productitem__price",
+  )
+    .first()
+    .text();
   const price = parsePriceFromText(priceText);
   if (!price) return null;
 
-  const stockText = $(".productitem__stock, .stock, .availability").first().text();
+  const stockText = $(".productitem__stock, .stock, .availability")
+    .first()
+    .text();
   const stockStatus = inferStockStatus(stockText);
 
   return {
@@ -36,7 +46,10 @@ export async function scrapeBalticNetworks(
 ): Promise<ScrapeResult | null> {
   try {
     const url = balticnetworksParser.buildSearchUrl(model);
-    const html = await fetchWithRateLimit(url, balticnetworksParser.rateLimitMs);
+    const html = await fetchWithRateLimit(
+      url,
+      balticnetworksParser.rateLimitMs,
+    );
     return parseHtml(html, url);
   } catch {
     return null;

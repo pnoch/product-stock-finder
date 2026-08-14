@@ -1,571 +1,3103 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script>
+      document.documentElement.lang = "en";
+    </script>
+    <title>Aerial.net</title>
+    <meta
+      name="description"
+      content="AerialNet — distributor of Ubiquiti, MikroTik, Teltonika and more: antennas, access points, PoE, routers, switches and outdoor wireless networking gear."
+    />
+    <meta
+      property="og:image"
+      content="https://www.aerial.net/shop/images/aerialnetlogo.gif"
+    />
+    <base href="https://www.aerial.net/shop/" />
+    <link rel="stylesheet" type="text/css" href="stylesheet.css?v=1" />
 
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<script>document.documentElement.lang='en';</script>
-<title>Aerial.net</title>
-<meta name="description" content="AerialNet — distributor of Ubiquiti, MikroTik, Teltonika and more: antennas, access points, PoE, routers, switches and outdoor wireless networking gear.">
-<meta property="og:image" content="https://www.aerial.net/shop/images/aerialnetlogo.gif"/>
-<base href="https://www.aerial.net/shop/">
-<link rel="stylesheet" type="text/css" href="stylesheet.css?v=1">
+    <!-- start get_javascript(applicationtop2header) //-->
 
-<!-- start get_javascript(applicationtop2header) //-->
+    <!-- end get_javascript(applicationtop2header) //-->
+    <!-- Google Tag Manager -->
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, "script", "dataLayer", "GTM-W3ZQ4JP");
+    </script>
+    <!-- End Google Tag Manager -->
 
-<!-- end get_javascript(applicationtop2header) //-->
-<!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-W3ZQ4JP');</script>
-<!-- End Google Tag Manager -->
-
-<style>
-/* Lift the reCAPTCHA v3 badge (only present on contact_us / create_account) ABOVE the bottom-right
+    <style>
+      /* Lift the reCAPTCHA v3 badge (only present on contact_us / create_account) ABOVE the bottom-right
    Crisp chat bubble. Keep it on the RIGHT so its native slide-off-right auto-collapse (shrink to just
    the logo) still works — moving it left would defeat that. Inert on pages with no badge. */
-.grecaptcha-badge { bottom: 96px !important; }
-.btn-site-submit { display: inline-block; width: auto; background: #29acd5; color: #fff; border: none; border-radius: 5px; padding: 8px 22px; font-size: 13px; font-weight: 700; font-family: -apple-system, 'Segoe UI', Arial, sans-serif; cursor: pointer; letter-spacing: 0.2px; }
-.btn-site-submit:hover { background: #1d8bab; }
-.btn-site-link { display: inline-block; background: #29acd5; color: #fff; border-radius: 5px; padding: 7px 18px; font-size: 12px; font-weight: 700; font-family: -apple-system, 'Segoe UI', Arial, sans-serif; letter-spacing: 0.2px; text-decoration: none; }
-a:hover .btn-site-link { background: #1d8bab; }
-.btn-icon-submit { padding: 5px 7px; line-height: 0; vertical-align: middle; }
-.hdr-bar { position:sticky; top:0; z-index:500; max-width:1440px; margin:0 auto; box-sizing:border-box; clear:both; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 18px; padding:7px 12px; font:12px -apple-system,'Segoe UI',Arial,sans-serif; background:#f0f0f0; border-bottom:1px solid #dddddd; }
-/* modern treatment for the bar's controls (search input + manufacturer/currency selects); !important
+      .grecaptcha-badge {
+        bottom: 96px !important;
+      }
+      .btn-site-submit {
+        display: inline-block;
+        width: auto;
+        background: #29acd5;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        padding: 8px 22px;
+        font-size: 13px;
+        font-weight: 700;
+        font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+        cursor: pointer;
+        letter-spacing: 0.2px;
+      }
+      .btn-site-submit:hover {
+        background: #1d8bab;
+      }
+      .btn-site-link {
+        display: inline-block;
+        background: #29acd5;
+        color: #fff;
+        border-radius: 5px;
+        padding: 7px 18px;
+        font-size: 12px;
+        font-weight: 700;
+        font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+        letter-spacing: 0.2px;
+        text-decoration: none;
+      }
+      a:hover .btn-site-link {
+        background: #1d8bab;
+      }
+      .btn-icon-submit {
+        padding: 5px 7px;
+        line-height: 0;
+        vertical-align: middle;
+      }
+      .hdr-bar {
+        position: sticky;
+        top: 0;
+        z-index: 500;
+        max-width: 1440px;
+        margin: 0 auto;
+        box-sizing: border-box;
+        clear: both;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px 18px;
+        padding: 7px 12px;
+        font:
+          12px -apple-system,
+          "Segoe UI",
+          Arial,
+          sans-serif;
+        background: #f0f0f0;
+        border-bottom: 1px solid #dddddd;
+      }
+      /* modern treatment for the bar's controls (search input + manufacturer/currency selects); !important
    beats the inline border:1px solid #999999 those selects carry. Matches the login fields' look. */
-.hdr-bar input[type=text], .hdr-bar select { background:#fff !important; border:1px solid #cbd5e1 !important; border-radius:5px; height:26px; box-sizing:border-box; padding:0 8px; font:12px -apple-system,'Segoe UI',Arial,sans-serif; color:#334155; }
-.hdr-bar-sel, .hdr-bar-nav { display:flex; flex-wrap:wrap; align-items:center; gap:4px 16px; }
-@media(max-width:960px){ .hdr-bar { gap:6px 10px; } .hdr-bar-sel, .hdr-bar-nav { gap:4px 8px; } .hdr-bar-sel { flex:1 1 0; min-width:0; justify-content:center; } .hdr-bar-nav { justify-content:center; width:100%; } }
-/* Header hover mini-cart (replaces the sidebar Shopping Cart box). Desktop: hover shows the panel;
+      .hdr-bar input[type="text"],
+      .hdr-bar select {
+        background: #fff !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 5px;
+        height: 26px;
+        box-sizing: border-box;
+        padding: 0 8px;
+        font:
+          12px -apple-system,
+          "Segoe UI",
+          Arial,
+          sans-serif;
+        color: #334155;
+      }
+      .hdr-bar-sel,
+      .hdr-bar-nav {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 16px;
+      }
+      @media (max-width: 960px) {
+        .hdr-bar {
+          gap: 6px 10px;
+        }
+        .hdr-bar-sel,
+        .hdr-bar-nav {
+          gap: 4px 8px;
+        }
+        .hdr-bar-sel {
+          flex: 1 1 0;
+          min-width: 0;
+          justify-content: center;
+        }
+        .hdr-bar-nav {
+          justify-content: center;
+          width: 100%;
+        }
+      }
+      /* Header hover mini-cart (replaces the sidebar Shopping Cart box). Desktop: hover shows the panel;
    mobile (<=960): panel hidden, the link just goes to the cart page. */
-.hdr-cart { position:relative; display:inline-block; }
-/* FB-style unread-count badge SHAPE (small corner circle + white ring) but in brand blue, not red —
+      .hdr-cart {
+        position: relative;
+        display: inline-block;
+      }
+      /* FB-style unread-count badge SHAPE (small corner circle + white ring) but in brand blue, not red —
    red would read as an error/alert on a store; blue is a neutral on-brand count indicator. */
-.hdr-cart-count { position:absolute; top:-6px; right:-10px; min-width:16px; height:16px; box-sizing:border-box; padding:0 4px; background:#006fff; color:#fff; border-radius:999px; font-size:9px; font-weight:700; line-height:16px; text-align:center; box-shadow:0 0 0 2px #fff; }
-.hdr-cart-pop { position:absolute; top:100%; right:0; z-index:1000; width:300px; margin-top:6px; padding:10px; background:#fff; border:1px solid #e2e8f0; border-radius:5px; box-shadow:0 8px 24px rgba(15,23,42,.12); text-align:left; font:12px -apple-system,'Segoe UI',Arial,sans-serif; color:#334155; opacity:0; visibility:hidden; transition:opacity .12s,visibility .12s; }
-.hdr-cart:hover .hdr-cart-pop { opacity:1; visibility:visible; }
-.hdr-cart-items { list-style:none; margin:0; padding:0; max-height:320px; overflow:auto; }
-.hdr-cart-items li { border-bottom:1px solid #f1f5f9; }
-.hdr-cart-items li:last-child { border-bottom:none; }
-.hdr-cart-items a { display:flex; align-items:baseline; gap:6px; padding:7px 4px; color:#334155; text-decoration:none; }
-.hdr-cart-items a:hover { color:#006fff; }
-.hdr-cart-qty { color:#64748b; flex:0 0 auto; }
-.hdr-cart-name { flex:1 1 auto; min-width:0; }
-.hdr-cart-price { flex:0 0 auto; font-weight:700; white-space:nowrap; }
-.hdr-cart-total { display:flex; justify-content:space-between; align-items:center; padding:8px 4px; margin-top:4px; border-top:1px solid #e2e8f0; font-size:13px; }
-.hdr-cart-actions { display:flex; gap:8px; margin-top:8px; }
-.hdr-cart-btn { flex:1 1 0; text-align:center; padding:8px 10px; border-radius:5px; font-weight:700; font-size:12px; text-decoration:none; }
-.hdr-cart-view { background:#f1f5f9; color:#334155; border:1px solid #e2e8f0; }
-.hdr-cart-view:hover { background:#e7ecf1; color:#334155; }   /* keep grey text on hover (else legacy A:hover turns it blue) */
-.hdr-cart-checkout { background:#29acd5; color:#fff; }   /* site-wide button colour (.btn-site-submit) */
-.hdr-cart-checkout:hover { background:#1d8bab; color:#fff; }   /* keep white text on hover (else legacy A:hover turns it blue) */
-.hdr-cart-empty { padding:14px 6px; text-align:center; color:#64748b; }
-@media(max-width:960px){ .hdr-cart-pop { display:none; } }
-/* header login box: modern inputs + a clean logged-in greeting (no duplicate "My Account", no ":" ) */
-.hdr-login td.main { white-space:nowrap; }
-.hdr-login input[type=text], .hdr-login input[type=password] { width:150px; height:26px; box-sizing:border-box; border:1px solid #cbd5e1; border-radius:5px; padding:0 8px; font-size:12px; vertical-align:middle; }
-.hdr-login input::placeholder { color:#94a3b8; opacity:1; }   /* light-grey hint text inside the field */
-.hdr-login input[type=text]:focus, .hdr-login input[type=password]:focus { outline:none; border-color:#006fff; }
-.hdr-forgot { font-size:11px; vertical-align:middle; padding-top:6px; }
-.hdr-forgot a { color:#64748b; text-decoration:none; }
-.hdr-forgot a:hover { color:#006fff; }
-.hdr-welcome { font:13px -apple-system,'Segoe UI',Arial,sans-serif; color:#334155; }
-.hdr-welcome .hdr-logout { color:#006fff; text-decoration:none; margin-left:8px; }
-.hdr-welcome .hdr-logout:hover { text-decoration:underline; }
-/* Header search autocomplete dropdown */
-.ac-box { position:absolute; top:100%; left:0; z-index:2000; min-width:280px; max-width:360px; margin-top:4px; background:#fff; border:1px solid #e2e8f0; border-radius:5px; box-shadow:0 8px 24px rgba(15,23,42,.14); overflow:hidden; font:12px -apple-system,'Segoe UI',Arial,sans-serif; }
-.ac-box a { display:flex; align-items:center; gap:8px; padding:6px 10px; color:#334155; text-decoration:none; border-bottom:1px solid #f1f5f9; }
-.ac-box a:last-child { border-bottom:none; }
-.ac-box a:hover, .ac-box a.ac-active { background:#f0f7ff; }
-.ac-box img { width:32px; height:32px; object-fit:contain; flex:0 0 32px; background:#fff; }
-.ac-name { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.ac-price { flex:0 0 auto; font-weight:700; color:#0f172a; white-space:nowrap; }
-.ac-empty { padding:8px 10px; color:#94a3b8; }
-/* Mobile category drawer (hamburger) — desktop untouched, everything gated <=960px */
-.hdr-burger{ display:none; }
-.menu-backdrop{ display:none; }
-#col2 .menu-close{ display:none; }
-@media(max-width:960px){
-  /* burger folded into the (now sticky) toolbar: in-flow as the first item, so it pins with the
+      .hdr-cart-count {
+        position: absolute;
+        top: -6px;
+        right: -10px;
+        min-width: 16px;
+        height: 16px;
+        box-sizing: border-box;
+        padding: 0 4px;
+        background: #006fff;
+        color: #fff;
+        border-radius: 999px;
+        font-size: 9px;
+        font-weight: 700;
+        line-height: 16px;
+        text-align: center;
+        box-shadow: 0 0 0 2px #fff;
+      }
+      .hdr-cart-pop {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        z-index: 1000;
+        width: 300px;
+        margin-top: 6px;
+        padding: 10px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 5px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+        text-align: left;
+        font:
+          12px -apple-system,
+          "Segoe UI",
+          Arial,
+          sans-serif;
+        color: #334155;
+        opacity: 0;
+        visibility: hidden;
+        transition:
+          opacity 0.12s,
+          visibility 0.12s;
+      }
+      .hdr-cart:hover .hdr-cart-pop {
+        opacity: 1;
+        visibility: visible;
+      }
+      .hdr-cart-items {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        max-height: 320px;
+        overflow: auto;
+      }
+      .hdr-cart-items li {
+        border-bottom: 1px solid #f1f5f9;
+      }
+      .hdr-cart-items li:last-child {
+        border-bottom: none;
+      }
+      .hdr-cart-items a {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        padding: 7px 4px;
+        color: #334155;
+        text-decoration: none;
+      }
+      .hdr-cart-items a:hover {
+        color: #006fff;
+      }
+      .hdr-cart-qty {
+        color: #64748b;
+        flex: 0 0 auto;
+      }
+      .hdr-cart-name {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .hdr-cart-price {
+        flex: 0 0 auto;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .hdr-cart-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 4px;
+        margin-top: 4px;
+        border-top: 1px solid #e2e8f0;
+        font-size: 13px;
+      }
+      .hdr-cart-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .hdr-cart-btn {
+        flex: 1 1 0;
+        text-align: center;
+        padding: 8px 10px;
+        border-radius: 5px;
+        font-weight: 700;
+        font-size: 12px;
+        text-decoration: none;
+      }
+      .hdr-cart-view {
+        background: #f1f5f9;
+        color: #334155;
+        border: 1px solid #e2e8f0;
+      }
+      .hdr-cart-view:hover {
+        background: #e7ecf1;
+        color: #334155;
+      } /* keep grey text on hover (else legacy A:hover turns it blue) */
+      .hdr-cart-checkout {
+        background: #29acd5;
+        color: #fff;
+      } /* site-wide button colour (.btn-site-submit) */
+      .hdr-cart-checkout:hover {
+        background: #1d8bab;
+        color: #fff;
+      } /* keep white text on hover (else legacy A:hover turns it blue) */
+      .hdr-cart-empty {
+        padding: 14px 6px;
+        text-align: center;
+        color: #64748b;
+      }
+      @media (max-width: 960px) {
+        .hdr-cart-pop {
+          display: none;
+        }
+      }
+      /* header login box: modern inputs + a clean logged-in greeting (no duplicate "My Account", no ":" ) */
+      .hdr-login td.main {
+        white-space: nowrap;
+      }
+      .hdr-login input[type="text"],
+      .hdr-login input[type="password"] {
+        width: 150px;
+        height: 26px;
+        box-sizing: border-box;
+        border: 1px solid #cbd5e1;
+        border-radius: 5px;
+        padding: 0 8px;
+        font-size: 12px;
+        vertical-align: middle;
+      }
+      .hdr-login input::placeholder {
+        color: #94a3b8;
+        opacity: 1;
+      } /* light-grey hint text inside the field */
+      .hdr-login input[type="text"]:focus,
+      .hdr-login input[type="password"]:focus {
+        outline: none;
+        border-color: #006fff;
+      }
+      .hdr-forgot {
+        font-size: 11px;
+        vertical-align: middle;
+        padding-top: 6px;
+      }
+      .hdr-forgot a {
+        color: #64748b;
+        text-decoration: none;
+      }
+      .hdr-forgot a:hover {
+        color: #006fff;
+      }
+      .hdr-welcome {
+        font:
+          13px -apple-system,
+          "Segoe UI",
+          Arial,
+          sans-serif;
+        color: #334155;
+      }
+      .hdr-welcome .hdr-logout {
+        color: #006fff;
+        text-decoration: none;
+        margin-left: 8px;
+      }
+      .hdr-welcome .hdr-logout:hover {
+        text-decoration: underline;
+      }
+      /* Header search autocomplete dropdown */
+      .ac-box {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 2000;
+        min-width: 280px;
+        max-width: 360px;
+        margin-top: 4px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 5px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+        overflow: hidden;
+        font:
+          12px -apple-system,
+          "Segoe UI",
+          Arial,
+          sans-serif;
+      }
+      .ac-box a {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        color: #334155;
+        text-decoration: none;
+        border-bottom: 1px solid #f1f5f9;
+      }
+      .ac-box a:last-child {
+        border-bottom: none;
+      }
+      .ac-box a:hover,
+      .ac-box a.ac-active {
+        background: #f0f7ff;
+      }
+      .ac-box img {
+        width: 32px;
+        height: 32px;
+        object-fit: contain;
+        flex: 0 0 32px;
+        background: #fff;
+      }
+      .ac-name {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .ac-price {
+        flex: 0 0 auto;
+        font-weight: 700;
+        color: #0f172a;
+        white-space: nowrap;
+      }
+      .ac-empty {
+        padding: 8px 10px;
+        color: #94a3b8;
+      }
+      /* Mobile category drawer (hamburger) — desktop untouched, everything gated <=960px */
+      .hdr-burger {
+        display: none;
+      }
+      .menu-backdrop {
+        display: none;
+      }
+      #col2 .menu-close {
+        display: none;
+      }
+      @media (max-width: 960px) {
+        /* burger folded into the (now sticky) toolbar: in-flow as the first item, so it pins with the
      bar and pushes the search right instead of overlapping it. */
-  .hdr-burger{ display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; align-self:flex-start; width:42px; height:30px; padding:0; border:1px solid #cbd5e1; border-radius:6px; background:#fff; color:#334155; font-size:18px; line-height:1; cursor:pointer; }
-  /* !important needed: the responsive block above forces #col2 static/auto with !important */
-  #col2{ position:fixed !important; top:0 !important; left:0 !important; right:auto !important; height:100% !important; width:284px !important; max-width:86vw; margin:0 !important; box-sizing:border-box !important; z-index:3000; background:#fff; overflow-y:auto !important; -webkit-overflow-scrolling:touch; transform:translateX(-100%); transition:transform .25s ease; }
-  /* shadow ONLY when open: the closed drawer sits at left:0 slid out by translateX(-100%), so its right edge is at x=0 — a base box-shadow bleeds ~28px back into the viewport as a grey strip. */
-  body.menu-open #col2{ transform:translateX(0); box-shadow:0 0 28px rgba(15,23,42,.28); }
-  .menu-backdrop{ display:block; position:fixed; inset:0; z-index:2900; background:rgba(15,23,42,.5); opacity:0; visibility:hidden; transition:opacity .2s, visibility .2s; }
-  body.menu-open .menu-backdrop{ opacity:1; visibility:visible; }
-  body.menu-open{ overflow:hidden; }
-  #col2 .menu-close{ display:flex; align-items:center; justify-content:center; position:sticky; top:0; margin-left:auto; width:42px; height:42px; border:none; background:#fff; color:#334155; font-size:26px; line-height:1; cursor:pointer; z-index:1; }
-}
-</style>
-</head>
+        .hdr-burger {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex: 0 0 auto;
+          align-self: flex-start;
+          width: 42px;
+          height: 30px;
+          padding: 0;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          background: #fff;
+          color: #334155;
+          font-size: 18px;
+          line-height: 1;
+          cursor: pointer;
+        }
+        /* !important needed: the responsive block above forces #col2 static/auto with !important */
+        #col2 {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: auto !important;
+          height: 100% !important;
+          width: 284px !important;
+          max-width: 86vw;
+          margin: 0 !important;
+          box-sizing: border-box !important;
+          z-index: 3000;
+          background: #fff;
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch;
+          transform: translateX(-100%);
+          transition: transform 0.25s ease;
+        }
+        /* shadow ONLY when open: the closed drawer sits at left:0 slid out by translateX(-100%), so its right edge is at x=0 — a base box-shadow bleeds ~28px back into the viewport as a grey strip. */
+        body.menu-open #col2 {
+          transform: translateX(0);
+          box-shadow: 0 0 28px rgba(15, 23, 42, 0.28);
+        }
+        .menu-backdrop {
+          display: block;
+          position: fixed;
+          inset: 0;
+          z-index: 2900;
+          background: rgba(15, 23, 42, 0.5);
+          opacity: 0;
+          visibility: hidden;
+          transition:
+            opacity 0.2s,
+            visibility 0.2s;
+        }
+        body.menu-open .menu-backdrop {
+          opacity: 1;
+          visibility: visible;
+        }
+        body.menu-open {
+          overflow: hidden;
+        }
+        #col2 .menu-close {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: sticky;
+          top: 0;
+          margin-left: auto;
+          width: 42px;
+          height: 42px;
+          border: none;
+          background: #fff;
+          color: #334155;
+          font-size: 26px;
+          line-height: 1;
+          cursor: pointer;
+          z-index: 1;
+        }
+      }
+    </style>
+  </head>
 
-<body>
-
-<div id="header">
-  <div class="floatLeft"  style="padding: 14px 0; width: 240px;"><a href="https://www.aerial.net/shop/index.php"><img src="images/aerialnetlogo.svg" border="0" alt="AerialNet Home" title=" AerialNet Home " width="280" height="64"></a></div>
-  <div class="floatRight" style="padding: 6px 0 0 0; width: 300px;">
-<!-- start loginbox //-->
-<table border="0" width="100%" cellspacing="0" cellpadding="1" class="infoBox">
-  <tr>
-    <td><table border="0" width="100%" cellspacing="0" cellpadding="2" class="infoBoxContents">
-  <tr>
-    <td><img src="images/pixel_trans.gif" border="0" alt="" width="100%" height="1"></td>
-  </tr>
-  <tr>
-    <td align="center">
-            <form name="login" class="hdr-login" method="post" action="https://www.aerial.net/shop/login.php?action=process">
-            <table border="0" cellspacing="0" cellpadding="0">
-              <tr>
-                <td align=left class="main" valign="top">
-                      <input type="text" name="email_address" placeholder="e-mail" aria-label="e-mail" tabindex="1" maxlength="96" size="12" value=""></td>
-
-                <td class="main" align="left">&nbsp; <button type="submit" class="btn-site-submit" tabindex="3">Login</button>
-                </td>
-
-              </tr>
-
-              <tr>
-                <td align=left class="main" valign="top">
-                  <input type="password" name="password" placeholder="Password" aria-label="Password" autocomplete="off" tabindex="2" maxlength="40" size="12" value=""></td>
-                <td>&nbsp;</td>
-              </tr>
-              <tr>
-                <td align="center" class="hdr-forgot"><a href="password_forgotten.php">Forgot Password?</a></td>
-              </tr>
-
-            </table>
-            </form>
-              </td>
-  </tr>
-  <tr>
-    <td><img src="images/pixel_trans.gif" border="0" alt="" width="100%" height="1"></td>
-  </tr>
-</table>
-</td>
-  </tr>
-</table>
-<!-- end loginbox //-->
-</div>
-  <div class="floatRight hdr-badge" style="padding: 11px 40px 0 0; width: 74px;">
-    <a href="/shop/PDF/aerial_net_en_cert.pdf" target="_blank"><img
-      border="0" src="/shop/images/ISO_logo.jpg" width="71" height="68" alt="iso"></a>
-  </div>
-  <div class="hdr-badge" style="text-align:center; margin:auto; width: 240px; overflow: auto;">
-<!-- start announcebox //-->
-<table border="0" width="100%" cellspacing="0" cellpadding="1" class="infoBox">
-  <tr>
-    <td><table border="0" width="100%" cellspacing="0" cellpadding="2" class="infoBoxContents">
-  <tr>
-    <td><img src="images/pixel_trans.gif" border="0" alt="" width="100%" height="1"></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="/shop/images/other/taxFree1.png" width="72" height="68" alt="Duty Tax Free">&nbsp;<a href="/shop/contact_us.php"><img src="/shop/images/other/wifi4eu.png" width="69" height="68" alt="WiFi for EU"></a></td>
-  </tr>
-  <tr>
-    <td><img src="images/pixel_trans.gif" border="0" alt="" width="100%" height="1"></td>
-  </tr>
-</table>
-</td>
-  </tr>
-</table>
-<!-- end announcebox //-->
-</div>
-</div>
-<!-- .hdr-bar lives OUTSIDE #header so position:sticky can pin it to the page (sticky can't outlive its parent) -->
-<div class="hdr-bar">
-  <button type="button" class="hdr-burger" aria-label="Menu">&#9776;</button>
-  <div class="hdr-bar-sel"><form name="search" action="https://www.aerial.net/shop/advanced_search_result.php" method="get"><input type="text" name="keywords" size="14" maxlength="30" placeholder="Search" style="background-color: #ffffff;" /><input type="hidden" name="search_in_description" value="1" /></form> <form name="top_manufacturers" action="https://www.aerial.net/shop/index.php" method="get"><select name="manufacturers_id" onChange="this.form.submit();" size="1" style="background-color: #ffffff; border: 1px solid #999999"><option value="" selected="selected">Manufacturers</option><option value="87">Alta Labs</option><option value="69">AMPCON</option><option value="82">Aubess</option><option value="43">AV Tech</option><option value="76">Cambium Network..</option><option value="88">Conexpro</option><option value="86">Cudy</option><option value="90">Dataway</option><option value="91">DEYE</option><option value="10">e-zy.net</option><option value="94">EARU</option><option value="97">Eastron</option><option value="89">Haswill Electro..</option><option value="72">MasterLan</option><option value="48">MaxLink</option><option value="56">MeanWell</option><option value="77">Mercusys</option><option value="18">MikroTik</option><option value="79">Mimosa</option><option value="93">MOES</option><option value="80">NOYAFA</option><option value="44">OpenVox</option><option value="42">RF Elements</option><option value="98">Tachyon Network..</option><option value="74">Teltonika</option><option value="60">TinyControl</option><option value="40">TP-Link</option><option value="17">Ubiquiti Networ..</option><option value="96">Vami-Tek</option><option value="67">Waver</option><option value="83">Wemos - LoLin</option></select></form> <form name="currencies" action="https://www.aerial.net/shop/cookie_usage.php" method="get"><select name="currency" onChange="this.form.submit();" style="background-color: #ffffff; border: 1px solid #999999"><option value="USD">US Dollar</option><option value="EUR" selected="selected">Euro</option></select></form></div>
-  <div class="hdr-bar-nav"><a href="https://www.aerial.net/shop/account.php" class="headerNavigation">My Account</a> <div class="hdr-cart"><a href="https://www.aerial.net/shop/shopping_cart.php" class="headerNavigation hdr-cart-link">Cart Contents</a><div class="hdr-cart-pop"><div class="hdr-cart-empty">Your cart is empty</div></div></div> <a href="https://www.aerial.net/shop/checkout_shipping.php" class="headerNavigation">Checkout</a>  <a href="https://www.aerial.net/shop/cookie_usage.php?language=el"><svg width="22" height="14" viewBox="0 0 27 18" style="vertical-align:middle" xmlns="http://www.w3.org/2000/svg"><rect width="27" height="18" fill="#0D5EAF"/><rect y="2" width="27" height="2" fill="#fff"/><rect y="6" width="27" height="2" fill="#fff"/><rect y="10" width="27" height="2" fill="#fff"/><rect y="14" width="27" height="2" fill="#fff"/><rect width="10" height="10" fill="#0D5EAF"/><rect x="4" width="2" height="10" fill="#fff"/><rect y="4" width="10" height="2" fill="#fff"/></svg></a> &nbsp;</div>
-</div>
-<div id="colmask">
-    <div id="colmid">
-        <div id="colright">
-            <div id="col1wrap">
-                <div id="col1pad">
-                    <div id="col1">
-<!-- start content //-->
-<table border="0" width="100%" cellspacing="0" cellpadding="0">
-      <tr>
-        <td><table border="0" width="100%" cellspacing="0" cellpadding="0">
+  <body>
+    <div id="header">
+      <div class="floatLeft" style="padding: 14px 0; width: 240px">
+        <a href="https://www.aerial.net/shop/index.php"
+          ><img
+            src="images/aerialnetlogo.svg"
+            border="0"
+            alt="AerialNet Home"
+            title=" AerialNet Home "
+            width="280"
+            height="64"
+        /></a>
+      </div>
+      <div class="floatRight" style="padding: 6px 0 0 0; width: 300px">
+        <!-- start loginbox //-->
+        <table
+          border="0"
+          width="100%"
+          cellspacing="0"
+          cellpadding="1"
+          class="infoBox"
+        >
           <tr>
-            <td class="pageHeading">Cookie Usage</td>
-            <td class="pageHeading" align="right"><img src="images/pixel_trans.png" border="0" alt="" width="1" height="1"></td>
+            <td>
+              <table
+                border="0"
+                width="100%"
+                cellspacing="0"
+                cellpadding="2"
+                class="infoBoxContents"
+              >
+                <tr>
+                  <td>
+                    <img
+                      src="images/pixel_trans.gif"
+                      border="0"
+                      alt=""
+                      width="100%"
+                      height="1"
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center">
+                    <form
+                      name="login"
+                      class="hdr-login"
+                      method="post"
+                      action="https://www.aerial.net/shop/login.php?action=process"
+                    >
+                      <table border="0" cellspacing="0" cellpadding="0">
+                        <tr>
+                          <td align="left" class="main" valign="top">
+                            <input
+                              type="text"
+                              name="email_address"
+                              placeholder="e-mail"
+                              aria-label="e-mail"
+                              tabindex="1"
+                              maxlength="96"
+                              size="12"
+                              value=""
+                            />
+                          </td>
+
+                          <td class="main" align="left">
+                            &nbsp;
+                            <button
+                              type="submit"
+                              class="btn-site-submit"
+                              tabindex="3"
+                            >
+                              Login
+                            </button>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td align="left" class="main" valign="top">
+                            <input
+                              type="password"
+                              name="password"
+                              placeholder="Password"
+                              aria-label="Password"
+                              autocomplete="off"
+                              tabindex="2"
+                              maxlength="40"
+                              size="12"
+                              value=""
+                            />
+                          </td>
+                          <td>&nbsp;</td>
+                        </tr>
+                        <tr>
+                          <td align="center" class="hdr-forgot">
+                            <a href="password_forgotten.php"
+                              >Forgot Password?</a
+                            >
+                          </td>
+                        </tr>
+                      </table>
+                    </form>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <img
+                      src="images/pixel_trans.gif"
+                      border="0"
+                      alt=""
+                      width="100%"
+                      height="1"
+                    />
+                  </td>
+                </tr>
+              </table>
+            </td>
           </tr>
-        </table></td>
-      </tr>
-      <tr>
-        <td><img src="images/pixel_trans.gif" border="0" alt="" width="100%" height="10"></td>
-      </tr>
-      <tr>
-        <td class="main"><table border="0" width="40%" cellspacing="0" cellpadding="0" align="right">
+        </table>
+        <!-- end loginbox //-->
+      </div>
+      <div
+        class="floatRight hdr-badge"
+        style="padding: 11px 40px 0 0; width: 74px"
+      >
+        <a href="/shop/PDF/aerial_net_en_cert.pdf" target="_blank"
+          ><img
+            border="0"
+            src="/shop/images/ISO_logo.jpg"
+            width="71"
+            height="68"
+            alt="iso"
+        /></a>
+      </div>
+      <div
+        class="hdr-badge"
+        style="text-align: center; margin: auto; width: 240px; overflow: auto"
+      >
+        <!-- start announcebox //-->
+        <table
+          border="0"
+          width="100%"
+          cellspacing="0"
+          cellpadding="1"
+          class="infoBox"
+        >
           <tr>
-            <td><table border="0" width="100%" cellspacing="0" cellpadding="0">
-  <tr>
-    <td class="infoBoxHeading"><img src="images/infobox/corner_left.gif" border="0" alt="" width="6" height="14"></td>
-    <td width="100%" class="infoBoxHeading">Cookie Privacy and Security</td>
-    <td class="infoBoxHeading" nowrap><img src="images/infobox/corner_right.gif" border="0" alt="" width="6" height="14"></td>
-  </tr>
-</table>
-</td>
+            <td>
+              <table
+                border="0"
+                width="100%"
+                cellspacing="0"
+                cellpadding="2"
+                class="infoBoxContents"
+              >
+                <tr>
+                  <td>
+                    <img
+                      src="images/pixel_trans.gif"
+                      border="0"
+                      alt=""
+                      width="100%"
+                      height="1"
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center">
+                    <img
+                      src="/shop/images/other/taxFree1.png"
+                      width="72"
+                      height="68"
+                      alt="Duty Tax Free"
+                    />&nbsp;<a href="/shop/contact_us.php"
+                      ><img
+                        src="/shop/images/other/wifi4eu.png"
+                        width="69"
+                        height="68"
+                        alt="WiFi for EU"
+                    /></a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <img
+                      src="images/pixel_trans.gif"
+                      border="0"
+                      alt=""
+                      width="100%"
+                      height="1"
+                    />
+                  </td>
+                </tr>
+              </table>
+            </td>
           </tr>
-          <tr>
-            <td><table border="0" width="100%" cellspacing="0" cellpadding="1" class="infoBox">
-  <tr>
-    <td><table border="0" width="100%" cellspacing="0" cellpadding="2" class="infoBoxContents">
-  <tr>
-    <td><img src="images/pixel_trans.gif" border="0" alt="" width="100%" height="1"></td>
-  </tr>
-  <tr>
-    <td>Cookies must be enabled to purchase online on this store to embrace privacy and security related issues regarding your visit to this site.<br><br>By enabling cookie support on your browser, the communication between you and this site is strengthened to be certain it is you who are making transactions on your own behalf, and to prevent leakage of your privacy information.</td>
-  </tr>
-  <tr>
-    <td><img src="images/pixel_trans.gif" border="0" alt="" width="100%" height="1"></td>
-  </tr>
-</table>
-</td>
-  </tr>
-</table>
-</td>
-          </tr>
-        </table>We have detected that your browser does not support cookies, or has set cookies to be disabled.<br><br>To continue shopping online, we encourage you to enable cookies on your browser.<br><br>For <b>Internet Explorer</b> browsers, please follow these instructions:<br><ol><li>Click on the Tools menubar, and select Internet Options</li><li>Select the Security tab, and reset the security level to Medium</li></ol>We have taken this measurement of security for your benefit, and apologize upfront if any inconveniences are caused.<br><br>Please contact the store owner if you have any questions relating to this requirement, or to continue purchasing products offline.</td>
-      </tr>
-      <tr>
-        <td><img src="images/pixel_trans.gif" border="0" alt="" width="100%" height="10"></td>
-      </tr>
-      <tr>
-        <td><table border="0" width="100%" cellspacing="1" cellpadding="2" class="infoBox">
-          <tr class="infoBoxContents">
-            <td><table border="0" width="100%" cellspacing="0" cellpadding="2">
-              <tr>
-                <td width="10"><img src="images/pixel_trans.gif" border="0" alt="" width="10" height="1"></td>
-                <td align="right"><a href="https://www.aerial.net/shop/index.php"><span class="btn-site-link">Continue</span></a></td>
-                <td width="10"><img src="images/pixel_trans.gif" border="0" alt="" width="10" height="1"></td>
-              </tr>
-            </table></td>
-          </tr>
-        </table></td>
-      </tr>
-    </table>
-<!-- end content //-->
-</div>
-                </div>
-            </div>
-            <div id="col2">
-<!-- start categorybox //-->
-<table border="0" width="100%" cellspacing="0" cellpadding="0">
-  <tr>
-    <td class="infoBoxHeading"><img src="images/infobox/corner_left.gif" border="0" alt="" width="6" height="14"></td>
-    <td width="100%" class="infoBoxHeading"><svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:-2px;margin-right:6px'><line x1='8' y1='6' x2='21' y2='6'/><line x1='8' y1='12' x2='21' y2='12'/><line x1='8' y1='18' x2='21' y2='18'/><line x1='3' y1='6' x2='3.01' y2='6'/><line x1='3' y1='12' x2='3.01' y2='12'/><line x1='3' y1='18' x2='3.01' y2='18'/></svg>Manufacturers</td>
-    <td class="infoBoxHeading" nowrap><img src="images/infobox/corner_right.gif" border="0" alt="" width="6" height="14"></td>
-  </tr>
-</table>
-<table border="0" width="100%" cellspacing="0" cellpadding="1" class="infoBox">
-  <tr>
-    <td><table border="0" width="100%" cellspacing="0" cellpadding="2" class="infoBoxContents">
-  <tr>
-    <td><img src="images/pixel_trans.gif" border="0" alt="" width="100%" height="1"></td>
-  </tr>
-  <tr>
-    <td align="left"><ul id="mainCat">
-<li class="firstCat"><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=259">Alta Labs</a></div></li>
-<li class="has-sub"><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163">Ubiquiti</a><button type="button" class="cat-toggle" aria-expanded="false" aria-label="Toggle subcategories"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div><div class="subCat-wrap"><ul class="subCat-list">
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_256">UISP Wave</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_171">UISP Network</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_273">UISP Power</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_227">UISP LTU</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_164">airMAX</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_168">airMAX ac</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_170">UniFi  Wireless</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_260">UniFi Cloud Gateways</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_263">UniFi CloudKeys & Gateways</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_174">UniFi Switching</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_158">UniFi Camera Security</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_292">UniFi Camera Accessories</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_272">UniFi Integrations</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_280">UniFi Enterprise</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_160">airFiber</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_166">Antennas</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_172">Cables</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_258">Accessories</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_173">PoE & Power</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_208">U Fiber</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=163_288">Rack Mount</a></div></li>
-</ul></div></li>
-<li class="has-sub"><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=176">MikroTik</a><button type="button" class="cat-toggle" aria-expanded="false" aria-label="Toggle subcategories"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div><div class="subCat-wrap"><ul class="subCat-list">
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=176_177">Ethernet routers</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=176_178">Switches</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=176_179">Wireless systems</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=176_181">Indoor wireless</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=176_216">LTE/5G products</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=176_218">IoT products</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=176_237">60GHz products</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=176_182">RouterBOARD</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=176_183">Interfaces</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=176_184">Accessories</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=176_185">Antennas</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=176_243">SFP / QSFP</a></div></li>
-</ul></div></li>
-<li class="has-sub"><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=274">Cudy</a><button type="button" class="cat-toggle" aria-expanded="false" aria-label="Toggle subcategories"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div><div class="subCat-wrap"><ul class="subCat-list">
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=274_275">Routers</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=274_276">LTE / 5G</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=274_277">AP / MESH</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=274_278">Switch</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=274_279">NIC</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=274_293">USB Chargers</a></div></li>
-</ul></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=282">Mercusys</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=239">RF Elements</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=231">Mimosa</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=230">Cambium</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=232">Teltonika</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=295">Tachyon</a></div></li>
-<li class="mainCat-sep"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>CATEGORIES</li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=214">Outdoor 60GHz</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=21">Indoor Devices</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=129">LTE 4G/5G Router</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=156">Fiber Optic</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=45">PCI / PCI-e</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=103">PowerLine</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=62">USB</a></div></li>
-<li class="has-sub"><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=39">Cases / Racks</a><button type="button" class="cat-toggle" aria-expanded="false" aria-label="Toggle subcategories"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div><div class="subCat-wrap"><ul class="subCat-list">
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=39_251">Outdoor Cases</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=39_281">Indoor Cases</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=39_254">Indoor - Racks</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=39_252">Patch Panels</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=39_253">Accessories</a></div></li>
-</ul></div></li>
-<li class="has-sub"><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=22">PoE</a><button type="button" class="cat-toggle" aria-expanded="false" aria-label="Toggle subcategories"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div><div class="subCat-wrap"><ul class="subCat-list">
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=22_123">Desktop Adapter</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=22_127">Wallplug Adapter</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=22_128">DC to DC Adapter</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=22_125">Passive Injector</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=22_297">802.3af/at Injector</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=22_124">Passive Splitter</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=22_219">802.3af/at Splitter</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=22_122">Passive Switch</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=22_220">802.3af/at Switch</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=22_265">Extender Switch</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=22_221">DC Cables</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=22_138">AC Cables</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=22_296">DC Adapter</a></div></li>
-</ul></div></li>
-<li class="has-sub"><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=54">Power Supply</a><button type="button" class="cat-toggle" aria-expanded="false" aria-label="Toggle subcategories"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div><div class="subCat-wrap"><ul class="subCat-list">
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=54_152">WallPlug</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=54_186">Desktop</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=54_222">Outdoor</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=54_153">Din Rail</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=54_250">PCB Power Supply</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=54_241">AC Cables</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=54_223">DC Adapter</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=54_224">DC Cables</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=54_225">USB to DC</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=54_154">DC Accessories</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=54_264">DC-DC Step-Down</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=54_291">DC-DC Step-Up</a></div></li>
-</ul></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=104">Solar Energy</a></div></li>
-<li class="has-sub"><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=242">Smart Home</a><button type="button" class="cat-toggle" aria-expanded="false" aria-label="Toggle subcategories"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div><div class="subCat-wrap"><ul class="subCat-list">
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=242_245">Tuya - WiFi</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=242_283">TUYA - Bluetooth</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=242_246">Zigbee</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=242_248">GSM Control</a></div></li>
-</ul></div></li>
-<li class="has-sub"><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161">Electronics</a><button type="button" class="cat-toggle" aria-expanded="false" aria-label="Toggle subcategories"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div><div class="subCat-wrap"><ul class="subCat-list">
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_191">Relay</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_192">Display</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_194">Header - Terminal</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_193">Power Supply</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_195">1-Wire</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_196">Sensor</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_197">I2C / IIC</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_249">Hall Sensor</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_198">SPI</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_200">ESP32 / ESP8266</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_294">RF433MHz</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_201">Solderless</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_203">Bluetooth</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_204">RS485 - Modbus</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_205">USB to UART</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_206">NFC - RFID</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_207">Case</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_210">Antenna</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_226">Digital Thermostat</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=161_213">PCB Mount</a></div></li>
-</ul></div></li>
-<li class="has-sub"><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=52">RJ45 / Ethernet</a><button type="button" class="cat-toggle" aria-expanded="false" aria-label="Toggle subcategories"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div><div class="subCat-wrap"><ul class="subCat-list">
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=52_261">Ethernet Spools</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=52_234">Ethernet Cables</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=52_233">Connectors</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=52_235">Boots</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=52_236">Accessories</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=52_290">Couplers</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=52_289">Through Cables</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=52_271">Surge Protection</a></div></li>
-</ul></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=59">Tools</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=74">Coaxial Cable</a></div></li>
-<li class="has-sub"><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=47">Connector / Adapter</a><button type="button" class="cat-toggle" aria-expanded="false" aria-label="Toggle subcategories"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div><div class="subCat-wrap"><ul class="subCat-list">
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=47_64">N-Type Connector</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=47_66">RP-SMA Connector</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=47_65">SMA Connector</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=47_75">MMCX Connector</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=47_68">RP-TNC Connector</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=47_188">N-Type Adapters</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=47_190">RP-SMA Adapter</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=47_189">SMA Adapter</a></div></li>
-</ul></div></li>
-<li class="has-sub"><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=23">Pigtail</a><button type="button" class="cat-toggle" aria-expanded="false" aria-label="Toggle subcategories"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div><div class="subCat-wrap"><ul class="subCat-list">
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=23_130">N-Type</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=23_131">RP-SMA</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=23_132">SMA</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=23_133">RP-TNC</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=23_134">MMCX</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=23_135">U.FL/I-PEX/MHF</a></div></li>
-</ul></div></li>
-<li class="has-sub"><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=266">Antenna</a><button type="button" class="cat-toggle" aria-expanded="false" aria-label="Toggle subcategories"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div><div class="subCat-wrap"><ul class="subCat-list">
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=266_269">Antenna 5.xGHz</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=266_268">Antenna 2.4GHz</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=266_284">Indoor N-Type</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=266_285">Indoor SMA</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=266_286">Indoor RP-SMA</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=266_270">Indoor Misc</a></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=266_267">Antenna Accesories</a></div></li>
-</ul></div></li>
-<li><div class="cat-row"><a class="cat-link" href="https://www.aerial.net/shop/index.php?cPath=137">Sale / Open Box</a></div></li>
-</ul></td>
-  </tr>
-  <tr>
-    <td><img src="images/pixel_trans.gif" border="0" alt="" width="100%" height="1"></td>
-  </tr>
-</table>
-</td>
-  </tr>
-</table>
-<!-- end categorybox //-->
-
-<!-- start whatsnewbox //-->
-
-<!-- end whatsnewbox //-->
-
-<!-- start informationbox //-->
-
-<!-- end informationbox //-->
-</div>
-        </div>
+        </table>
+        <!-- end announcebox //-->
+      </div>
     </div>
-</div>
-<div id="footer">
-  <div align="center"><style>
-.footer-trust { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:16px 56px; margin-top:12px; padding:22px 12px 10px; border-top:1px solid #e2e8f0; }
-.footer-trust img { width:auto; vertical-align:middle; }
-.footer-trust a { line-height:0; }
-.ft-pay { display:flex; align-items:center; gap:10px; }
-.ft-pay > img { max-height:52px; }                                   /* PayByBank */
-.ft-cards { display:flex; flex-direction:column; gap:5px; }
-.ft-cards img { max-height:22px; }                                   /* Visa / Mastercard stacked */
-.ft-awards { display:flex; align-items:center; gap:14px; }
-.ft-awards img { max-height:52px; }
-.ft-dist img { max-height:52px; }
-</style>
-<div class="footer-trust">
-  <span class="ft-pay">
-    <img src="images/other/paybybank.png" border="0" alt="PayByBank" title=" PayByBank " width="531" height="152">    <span class="ft-cards">
-      <img src="images/other/visa.png" border="0" alt="Visa" title=" Visa " width="600" height="184">      <img src="images/other/mastercard.png" border="0" alt="Mastercard" title=" Mastercard " width="900" height="352">    </span>
-  </span>
-  <span class="ft-awards">
-    <img src="images/awards-e-vol-stamp24.png" border="0" alt="aerial.net e-volution award" title=" aerial.net e-volution award " width="140" height="74">    <a href="https://www.aerial.net/shop/PDF/ICAP_Strongest_Company_2010.pdf" target="_blank"><img src="images/awards-icapimage.png" border="0" alt="aerial.net ICAP strongest Greek company 2010 award" title=" aerial.net ICAP strongest Greek company 2010 award " width="120" height="116"></a>
-  </span>
-  <span class="ft-dist"><img src="images/uadlogo.png" border="0" alt="DISTRIBUTORS OF" title=" DISTRIBUTORS OF " width="140" height="55"></span>
-</div>
-<table border="0" width="100%" cellspacing="0" cellpadding="0">
-  <tr class="footer">
-    <td class="footer" align="center"><a href="https://www.aerial.net/shop/shipping.php">Shipping &amp; Returns</a><span class="footer-sep">|</span><a href="https://www.aerial.net/shop/privacy.php">Privacy Notice</a><span class="footer-sep">|</span><a href="https://www.aerial.net/shop/conditions.php">Conditions of Use</a><span class="footer-sep">|</span><a href="https://www.aerial.net/shop/returns_track.php">Track a Return</a><span class="footer-sep">|</span><a href="https://www.aerial.net/shop/contact_us.php">Contact Us</a></td>
-  </tr>
-</table>
-</div>
-</div>
-<div id="cookieConsent">This website uses cookies to improve your experience and to properly provide our services. <a href="#" onclick="document.cookie = 'cookieConsent=true;Expires=' + (new Date(Date.now() + 365 * 86400 * 1000)).toUTCString(); document.getElementById('cookieConsent').remove(); return false;">Accept</a></div>
+    <!-- .hdr-bar lives OUTSIDE #header so position:sticky can pin it to the page (sticky can't outlive its parent) -->
+    <div class="hdr-bar">
+      <button type="button" class="hdr-burger" aria-label="Menu">
+        &#9776;
+      </button>
+      <div class="hdr-bar-sel">
+        <form
+          name="search"
+          action="https://www.aerial.net/shop/advanced_search_result.php"
+          method="get"
+        >
+          <input
+            type="text"
+            name="keywords"
+            size="14"
+            maxlength="30"
+            placeholder="Search"
+            style="background-color: #ffffff"
+          /><input type="hidden" name="search_in_description" value="1" />
+        </form>
+        <form
+          name="top_manufacturers"
+          action="https://www.aerial.net/shop/index.php"
+          method="get"
+        >
+          <select
+            name="manufacturers_id"
+            onChange="this.form.submit();"
+            size="1"
+            style="background-color: #ffffff; border: 1px solid #999999"
+          >
+            <option value="" selected="selected">Manufacturers</option>
+            <option value="87">Alta Labs</option>
+            <option value="69">AMPCON</option>
+            <option value="82">Aubess</option>
+            <option value="43">AV Tech</option>
+            <option value="76">Cambium Network..</option>
+            <option value="88">Conexpro</option>
+            <option value="86">Cudy</option>
+            <option value="90">Dataway</option>
+            <option value="91">DEYE</option>
+            <option value="10">e-zy.net</option>
+            <option value="94">EARU</option>
+            <option value="97">Eastron</option>
+            <option value="89">Haswill Electro..</option>
+            <option value="72">MasterLan</option>
+            <option value="48">MaxLink</option>
+            <option value="56">MeanWell</option>
+            <option value="77">Mercusys</option>
+            <option value="18">MikroTik</option>
+            <option value="79">Mimosa</option>
+            <option value="93">MOES</option>
+            <option value="80">NOYAFA</option>
+            <option value="44">OpenVox</option>
+            <option value="42">RF Elements</option>
+            <option value="98">Tachyon Network..</option>
+            <option value="74">Teltonika</option>
+            <option value="60">TinyControl</option>
+            <option value="40">TP-Link</option>
+            <option value="17">Ubiquiti Networ..</option>
+            <option value="96">Vami-Tek</option>
+            <option value="67">Waver</option>
+            <option value="83">Wemos - LoLin</option>
+          </select>
+        </form>
+        <form
+          name="currencies"
+          action="https://www.aerial.net/shop/cookie_usage.php"
+          method="get"
+        >
+          <select
+            name="currency"
+            onChange="this.form.submit();"
+            style="background-color: #ffffff; border: 1px solid #999999"
+          >
+            <option value="USD">US Dollar</option>
+            <option value="EUR" selected="selected">Euro</option>
+          </select>
+        </form>
+      </div>
+      <div class="hdr-bar-nav">
+        <a
+          href="https://www.aerial.net/shop/account.php"
+          class="headerNavigation"
+          >My Account</a
+        >
+        <div class="hdr-cart">
+          <a
+            href="https://www.aerial.net/shop/shopping_cart.php"
+            class="headerNavigation hdr-cart-link"
+            >Cart Contents</a
+          >
+          <div class="hdr-cart-pop">
+            <div class="hdr-cart-empty">Your cart is empty</div>
+          </div>
+        </div>
+        <a
+          href="https://www.aerial.net/shop/checkout_shipping.php"
+          class="headerNavigation"
+          >Checkout</a
+        >
+        <a href="https://www.aerial.net/shop/cookie_usage.php?language=el"
+          ><svg
+            width="22"
+            height="14"
+            viewBox="0 0 27 18"
+            style="vertical-align: middle"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect width="27" height="18" fill="#0D5EAF" />
+            <rect y="2" width="27" height="2" fill="#fff" />
+            <rect y="6" width="27" height="2" fill="#fff" />
+            <rect y="10" width="27" height="2" fill="#fff" />
+            <rect y="14" width="27" height="2" fill="#fff" />
+            <rect width="10" height="10" fill="#0D5EAF" />
+            <rect x="4" width="2" height="10" fill="#fff" />
+            <rect y="4" width="10" height="2" fill="#fff" /></svg
+        ></a>
+        &nbsp;
+      </div>
+    </div>
+    <div id="colmask">
+      <div id="colmid">
+        <div id="colright">
+          <div id="col1wrap">
+            <div id="col1pad">
+              <div id="col1">
+                <!-- start content //-->
+                <table border="0" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td>
+                      <table
+                        border="0"
+                        width="100%"
+                        cellspacing="0"
+                        cellpadding="0"
+                      >
+                        <tr>
+                          <td class="pageHeading">Cookie Usage</td>
+                          <td class="pageHeading" align="right">
+                            <img
+                              src="images/pixel_trans.png"
+                              border="0"
+                              alt=""
+                              width="1"
+                              height="1"
+                            />
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <img
+                        src="images/pixel_trans.gif"
+                        border="0"
+                        alt=""
+                        width="100%"
+                        height="10"
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="main">
+                      <table
+                        border="0"
+                        width="40%"
+                        cellspacing="0"
+                        cellpadding="0"
+                        align="right"
+                      >
+                        <tr>
+                          <td>
+                            <table
+                              border="0"
+                              width="100%"
+                              cellspacing="0"
+                              cellpadding="0"
+                            >
+                              <tr>
+                                <td class="infoBoxHeading">
+                                  <img
+                                    src="images/infobox/corner_left.gif"
+                                    border="0"
+                                    alt=""
+                                    width="6"
+                                    height="14"
+                                  />
+                                </td>
+                                <td width="100%" class="infoBoxHeading">
+                                  Cookie Privacy and Security
+                                </td>
+                                <td class="infoBoxHeading" nowrap>
+                                  <img
+                                    src="images/infobox/corner_right.gif"
+                                    border="0"
+                                    alt=""
+                                    width="6"
+                                    height="14"
+                                  />
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <table
+                              border="0"
+                              width="100%"
+                              cellspacing="0"
+                              cellpadding="1"
+                              class="infoBox"
+                            >
+                              <tr>
+                                <td>
+                                  <table
+                                    border="0"
+                                    width="100%"
+                                    cellspacing="0"
+                                    cellpadding="2"
+                                    class="infoBoxContents"
+                                  >
+                                    <tr>
+                                      <td>
+                                        <img
+                                          src="images/pixel_trans.gif"
+                                          border="0"
+                                          alt=""
+                                          width="100%"
+                                          height="1"
+                                        />
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td>
+                                        Cookies must be enabled to purchase
+                                        online on this store to embrace privacy
+                                        and security related issues regarding
+                                        your visit to this site.<br /><br />By
+                                        enabling cookie support on your browser,
+                                        the communication between you and this
+                                        site is strengthened to be certain it is
+                                        you who are making transactions on your
+                                        own behalf, and to prevent leakage of
+                                        your privacy information.
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td>
+                                        <img
+                                          src="images/pixel_trans.gif"
+                                          border="0"
+                                          alt=""
+                                          width="100%"
+                                          height="1"
+                                        />
+                                      </td>
+                                    </tr>
+                                  </table>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                      We have detected that your browser does not support
+                      cookies, or has set cookies to be disabled.<br /><br />To
+                      continue shopping online, we encourage you to enable
+                      cookies on your browser.<br /><br />For
+                      <b>Internet Explorer</b> browsers, please follow these
+                      instructions:<br />
+                      <ol>
+                        <li>
+                          Click on the Tools menubar, and select Internet
+                          Options
+                        </li>
+                        <li>
+                          Select the Security tab, and reset the security level
+                          to Medium
+                        </li>
+                      </ol>
+                      We have taken this measurement of security for your
+                      benefit, and apologize upfront if any inconveniences are
+                      caused.<br /><br />Please contact the store owner if you
+                      have any questions relating to this requirement, or to
+                      continue purchasing products offline.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <img
+                        src="images/pixel_trans.gif"
+                        border="0"
+                        alt=""
+                        width="100%"
+                        height="10"
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <table
+                        border="0"
+                        width="100%"
+                        cellspacing="1"
+                        cellpadding="2"
+                        class="infoBox"
+                      >
+                        <tr class="infoBoxContents">
+                          <td>
+                            <table
+                              border="0"
+                              width="100%"
+                              cellspacing="0"
+                              cellpadding="2"
+                            >
+                              <tr>
+                                <td width="10">
+                                  <img
+                                    src="images/pixel_trans.gif"
+                                    border="0"
+                                    alt=""
+                                    width="10"
+                                    height="1"
+                                  />
+                                </td>
+                                <td align="right">
+                                  <a
+                                    href="https://www.aerial.net/shop/index.php"
+                                    ><span class="btn-site-link"
+                                      >Continue</span
+                                    ></a
+                                  >
+                                </td>
+                                <td width="10">
+                                  <img
+                                    src="images/pixel_trans.gif"
+                                    border="0"
+                                    alt=""
+                                    width="10"
+                                    height="1"
+                                  />
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+                <!-- end content //-->
+              </div>
+            </div>
+          </div>
+          <div id="col2">
+            <!-- start categorybox //-->
+            <table border="0" width="100%" cellspacing="0" cellpadding="0">
+              <tr>
+                <td class="infoBoxHeading">
+                  <img
+                    src="images/infobox/corner_left.gif"
+                    border="0"
+                    alt=""
+                    width="6"
+                    height="14"
+                  />
+                </td>
+                <td width="100%" class="infoBoxHeading">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    style="vertical-align: -2px; margin-right: 6px"
+                  >
+                    <line x1="8" y1="6" x2="21" y2="6" />
+                    <line x1="8" y1="12" x2="21" y2="12" />
+                    <line x1="8" y1="18" x2="21" y2="18" />
+                    <line x1="3" y1="6" x2="3.01" y2="6" />
+                    <line x1="3" y1="12" x2="3.01" y2="12" />
+                    <line x1="3" y1="18" x2="3.01" y2="18" /></svg
+                  >Manufacturers
+                </td>
+                <td class="infoBoxHeading" nowrap>
+                  <img
+                    src="images/infobox/corner_right.gif"
+                    border="0"
+                    alt=""
+                    width="6"
+                    height="14"
+                  />
+                </td>
+              </tr>
+            </table>
+            <table
+              border="0"
+              width="100%"
+              cellspacing="0"
+              cellpadding="1"
+              class="infoBox"
+            >
+              <tr>
+                <td>
+                  <table
+                    border="0"
+                    width="100%"
+                    cellspacing="0"
+                    cellpadding="2"
+                    class="infoBoxContents"
+                  >
+                    <tr>
+                      <td>
+                        <img
+                          src="images/pixel_trans.gif"
+                          border="0"
+                          alt=""
+                          width="100%"
+                          height="1"
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <td align="left">
+                        <ul id="mainCat">
+                          <li class="firstCat">
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=259"
+                                >Alta Labs</a
+                              >
+                            </div>
+                          </li>
+                          <li class="has-sub">
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=163"
+                                >Ubiquiti</a
+                              ><button
+                                type="button"
+                                class="cat-toggle"
+                                aria-expanded="false"
+                                aria-label="Toggle subcategories"
+                              >
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2.5"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <polyline points="9 6 15 12 9 18" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div class="subCat-wrap">
+                              <ul class="subCat-list">
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_256"
+                                      >UISP Wave</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_171"
+                                      >UISP Network</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_273"
+                                      >UISP Power</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_227"
+                                      >UISP LTU</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_164"
+                                      >airMAX</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_168"
+                                      >airMAX ac</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_170"
+                                      >UniFi Wireless</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_260"
+                                      >UniFi Cloud Gateways</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_263"
+                                      >UniFi CloudKeys & Gateways</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_174"
+                                      >UniFi Switching</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_158"
+                                      >UniFi Camera Security</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_292"
+                                      >UniFi Camera Accessories</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_272"
+                                      >UniFi Integrations</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_280"
+                                      >UniFi Enterprise</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_160"
+                                      >airFiber</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_166"
+                                      >Antennas</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_172"
+                                      >Cables</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_258"
+                                      >Accessories</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_173"
+                                      >PoE & Power</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_208"
+                                      >U Fiber</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=163_288"
+                                      >Rack Mount</a
+                                    >
+                                  </div>
+                                </li>
+                              </ul>
+                            </div>
+                          </li>
+                          <li class="has-sub">
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=176"
+                                >MikroTik</a
+                              ><button
+                                type="button"
+                                class="cat-toggle"
+                                aria-expanded="false"
+                                aria-label="Toggle subcategories"
+                              >
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2.5"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <polyline points="9 6 15 12 9 18" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div class="subCat-wrap">
+                              <ul class="subCat-list">
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=176_177"
+                                      >Ethernet routers</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=176_178"
+                                      >Switches</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=176_179"
+                                      >Wireless systems</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=176_181"
+                                      >Indoor wireless</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=176_216"
+                                      >LTE/5G products</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=176_218"
+                                      >IoT products</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=176_237"
+                                      >60GHz products</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=176_182"
+                                      >RouterBOARD</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=176_183"
+                                      >Interfaces</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=176_184"
+                                      >Accessories</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=176_185"
+                                      >Antennas</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=176_243"
+                                      >SFP / QSFP</a
+                                    >
+                                  </div>
+                                </li>
+                              </ul>
+                            </div>
+                          </li>
+                          <li class="has-sub">
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=274"
+                                >Cudy</a
+                              ><button
+                                type="button"
+                                class="cat-toggle"
+                                aria-expanded="false"
+                                aria-label="Toggle subcategories"
+                              >
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2.5"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <polyline points="9 6 15 12 9 18" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div class="subCat-wrap">
+                              <ul class="subCat-list">
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=274_275"
+                                      >Routers</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=274_276"
+                                      >LTE / 5G</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=274_277"
+                                      >AP / MESH</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=274_278"
+                                      >Switch</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=274_279"
+                                      >NIC</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=274_293"
+                                      >USB Chargers</a
+                                    >
+                                  </div>
+                                </li>
+                              </ul>
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=282"
+                                >Mercusys</a
+                              >
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=239"
+                                >RF Elements</a
+                              >
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=231"
+                                >Mimosa</a
+                              >
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=230"
+                                >Cambium</a
+                              >
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=232"
+                                >Teltonika</a
+                              >
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=295"
+                                >Tachyon</a
+                              >
+                            </div>
+                          </li>
+                          <li class="mainCat-sep">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              style="vertical-align: -2px; margin-right: 6px"
+                            >
+                              <line x1="8" y1="6" x2="21" y2="6" />
+                              <line x1="8" y1="12" x2="21" y2="12" />
+                              <line x1="8" y1="18" x2="21" y2="18" />
+                              <line x1="3" y1="6" x2="3.01" y2="6" />
+                              <line x1="3" y1="12" x2="3.01" y2="12" />
+                              <line x1="3" y1="18" x2="3.01" y2="18" /></svg
+                            >CATEGORIES
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=214"
+                                >Outdoor 60GHz</a
+                              >
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=21"
+                                >Indoor Devices</a
+                              >
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=129"
+                                >LTE 4G/5G Router</a
+                              >
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=156"
+                                >Fiber Optic</a
+                              >
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=45"
+                                >PCI / PCI-e</a
+                              >
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=103"
+                                >PowerLine</a
+                              >
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=62"
+                                >USB</a
+                              >
+                            </div>
+                          </li>
+                          <li class="has-sub">
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=39"
+                                >Cases / Racks</a
+                              ><button
+                                type="button"
+                                class="cat-toggle"
+                                aria-expanded="false"
+                                aria-label="Toggle subcategories"
+                              >
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2.5"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <polyline points="9 6 15 12 9 18" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div class="subCat-wrap">
+                              <ul class="subCat-list">
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=39_251"
+                                      >Outdoor Cases</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=39_281"
+                                      >Indoor Cases</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=39_254"
+                                      >Indoor - Racks</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=39_252"
+                                      >Patch Panels</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=39_253"
+                                      >Accessories</a
+                                    >
+                                  </div>
+                                </li>
+                              </ul>
+                            </div>
+                          </li>
+                          <li class="has-sub">
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=22"
+                                >PoE</a
+                              ><button
+                                type="button"
+                                class="cat-toggle"
+                                aria-expanded="false"
+                                aria-label="Toggle subcategories"
+                              >
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2.5"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <polyline points="9 6 15 12 9 18" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div class="subCat-wrap">
+                              <ul class="subCat-list">
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=22_123"
+                                      >Desktop Adapter</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=22_127"
+                                      >Wallplug Adapter</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=22_128"
+                                      >DC to DC Adapter</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=22_125"
+                                      >Passive Injector</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=22_297"
+                                      >802.3af/at Injector</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=22_124"
+                                      >Passive Splitter</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=22_219"
+                                      >802.3af/at Splitter</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=22_122"
+                                      >Passive Switch</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=22_220"
+                                      >802.3af/at Switch</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=22_265"
+                                      >Extender Switch</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=22_221"
+                                      >DC Cables</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=22_138"
+                                      >AC Cables</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=22_296"
+                                      >DC Adapter</a
+                                    >
+                                  </div>
+                                </li>
+                              </ul>
+                            </div>
+                          </li>
+                          <li class="has-sub">
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=54"
+                                >Power Supply</a
+                              ><button
+                                type="button"
+                                class="cat-toggle"
+                                aria-expanded="false"
+                                aria-label="Toggle subcategories"
+                              >
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2.5"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <polyline points="9 6 15 12 9 18" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div class="subCat-wrap">
+                              <ul class="subCat-list">
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=54_152"
+                                      >WallPlug</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=54_186"
+                                      >Desktop</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=54_222"
+                                      >Outdoor</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=54_153"
+                                      >Din Rail</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=54_250"
+                                      >PCB Power Supply</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=54_241"
+                                      >AC Cables</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=54_223"
+                                      >DC Adapter</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=54_224"
+                                      >DC Cables</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=54_225"
+                                      >USB to DC</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=54_154"
+                                      >DC Accessories</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=54_264"
+                                      >DC-DC Step-Down</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=54_291"
+                                      >DC-DC Step-Up</a
+                                    >
+                                  </div>
+                                </li>
+                              </ul>
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=104"
+                                >Solar Energy</a
+                              >
+                            </div>
+                          </li>
+                          <li class="has-sub">
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=242"
+                                >Smart Home</a
+                              ><button
+                                type="button"
+                                class="cat-toggle"
+                                aria-expanded="false"
+                                aria-label="Toggle subcategories"
+                              >
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2.5"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <polyline points="9 6 15 12 9 18" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div class="subCat-wrap">
+                              <ul class="subCat-list">
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=242_245"
+                                      >Tuya - WiFi</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=242_283"
+                                      >TUYA - Bluetooth</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=242_246"
+                                      >Zigbee</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=242_248"
+                                      >GSM Control</a
+                                    >
+                                  </div>
+                                </li>
+                              </ul>
+                            </div>
+                          </li>
+                          <li class="has-sub">
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=161"
+                                >Electronics</a
+                              ><button
+                                type="button"
+                                class="cat-toggle"
+                                aria-expanded="false"
+                                aria-label="Toggle subcategories"
+                              >
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2.5"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <polyline points="9 6 15 12 9 18" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div class="subCat-wrap">
+                              <ul class="subCat-list">
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_191"
+                                      >Relay</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_192"
+                                      >Display</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_194"
+                                      >Header - Terminal</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_193"
+                                      >Power Supply</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_195"
+                                      >1-Wire</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_196"
+                                      >Sensor</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_197"
+                                      >I2C / IIC</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_249"
+                                      >Hall Sensor</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_198"
+                                      >SPI</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_200"
+                                      >ESP32 / ESP8266</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_294"
+                                      >RF433MHz</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_201"
+                                      >Solderless</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_203"
+                                      >Bluetooth</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_204"
+                                      >RS485 - Modbus</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_205"
+                                      >USB to UART</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_206"
+                                      >NFC - RFID</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_207"
+                                      >Case</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_210"
+                                      >Antenna</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_226"
+                                      >Digital Thermostat</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=161_213"
+                                      >PCB Mount</a
+                                    >
+                                  </div>
+                                </li>
+                              </ul>
+                            </div>
+                          </li>
+                          <li class="has-sub">
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=52"
+                                >RJ45 / Ethernet</a
+                              ><button
+                                type="button"
+                                class="cat-toggle"
+                                aria-expanded="false"
+                                aria-label="Toggle subcategories"
+                              >
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2.5"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <polyline points="9 6 15 12 9 18" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div class="subCat-wrap">
+                              <ul class="subCat-list">
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=52_261"
+                                      >Ethernet Spools</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=52_234"
+                                      >Ethernet Cables</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=52_233"
+                                      >Connectors</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=52_235"
+                                      >Boots</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=52_236"
+                                      >Accessories</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=52_290"
+                                      >Couplers</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=52_289"
+                                      >Through Cables</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=52_271"
+                                      >Surge Protection</a
+                                    >
+                                  </div>
+                                </li>
+                              </ul>
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=59"
+                                >Tools</a
+                              >
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=74"
+                                >Coaxial Cable</a
+                              >
+                            </div>
+                          </li>
+                          <li class="has-sub">
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=47"
+                                >Connector / Adapter</a
+                              ><button
+                                type="button"
+                                class="cat-toggle"
+                                aria-expanded="false"
+                                aria-label="Toggle subcategories"
+                              >
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2.5"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <polyline points="9 6 15 12 9 18" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div class="subCat-wrap">
+                              <ul class="subCat-list">
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=47_64"
+                                      >N-Type Connector</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=47_66"
+                                      >RP-SMA Connector</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=47_65"
+                                      >SMA Connector</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=47_75"
+                                      >MMCX Connector</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=47_68"
+                                      >RP-TNC Connector</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=47_188"
+                                      >N-Type Adapters</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=47_190"
+                                      >RP-SMA Adapter</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=47_189"
+                                      >SMA Adapter</a
+                                    >
+                                  </div>
+                                </li>
+                              </ul>
+                            </div>
+                          </li>
+                          <li class="has-sub">
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=23"
+                                >Pigtail</a
+                              ><button
+                                type="button"
+                                class="cat-toggle"
+                                aria-expanded="false"
+                                aria-label="Toggle subcategories"
+                              >
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2.5"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <polyline points="9 6 15 12 9 18" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div class="subCat-wrap">
+                              <ul class="subCat-list">
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=23_130"
+                                      >N-Type</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=23_131"
+                                      >RP-SMA</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=23_132"
+                                      >SMA</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=23_133"
+                                      >RP-TNC</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=23_134"
+                                      >MMCX</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=23_135"
+                                      >U.FL/I-PEX/MHF</a
+                                    >
+                                  </div>
+                                </li>
+                              </ul>
+                            </div>
+                          </li>
+                          <li class="has-sub">
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=266"
+                                >Antenna</a
+                              ><button
+                                type="button"
+                                class="cat-toggle"
+                                aria-expanded="false"
+                                aria-label="Toggle subcategories"
+                              >
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2.5"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <polyline points="9 6 15 12 9 18" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div class="subCat-wrap">
+                              <ul class="subCat-list">
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=266_269"
+                                      >Antenna 5.xGHz</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=266_268"
+                                      >Antenna 2.4GHz</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=266_284"
+                                      >Indoor N-Type</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=266_285"
+                                      >Indoor SMA</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=266_286"
+                                      >Indoor RP-SMA</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=266_270"
+                                      >Indoor Misc</a
+                                    >
+                                  </div>
+                                </li>
+                                <li>
+                                  <div class="cat-row">
+                                    <a
+                                      class="cat-link"
+                                      href="https://www.aerial.net/shop/index.php?cPath=266_267"
+                                      >Antenna Accesories</a
+                                    >
+                                  </div>
+                                </li>
+                              </ul>
+                            </div>
+                          </li>
+                          <li>
+                            <div class="cat-row">
+                              <a
+                                class="cat-link"
+                                href="https://www.aerial.net/shop/index.php?cPath=137"
+                                >Sale / Open Box</a
+                              >
+                            </div>
+                          </li>
+                        </ul>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <img
+                          src="images/pixel_trans.gif"
+                          border="0"
+                          alt=""
+                          width="100%"
+                          height="1"
+                        />
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            <!-- end categorybox //-->
 
-<script>
-/* Header search autocomplete: debounced query to the storefront-native endpoint, dropdown under the box. */
-(function(){
-  var input = document.querySelector('.hdr-bar input[name="keywords"]');
-  if(!input) return;
-  var form = input.form || input.parentNode;
-  if(form) form.style.position = 'relative';
-  var box = document.createElement('div'); box.className = 'ac-box'; box.style.display = 'none';
-  (form || input.parentNode).appendChild(box);
-  var timer = null, lastQ = '';
-  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-  function hide(){ box.style.display = 'none'; }
-  function render(items){
-    if(!items || !items.length){ box.innerHTML = '<div class="ac-empty">No matches</div>'; box.style.display = 'block'; return; }
-    var h = '';
-    for(var i=0;i<items.length;i++){ var it = items[i];
-      h += '<a href="' + esc(it.url) + '">' + (it.image ? '<img src="' + esc(it.image) + '" alt="">' : '<img alt="">') +
-           '<span class="ac-name">' + esc(it.name) + '</span><span class="ac-price">' + esc(it.price) + '</span></a>';
-    }
-    box.innerHTML = h; box.style.display = 'block';
-  }
-  function go(){
-    var q = input.value.trim();
-    if(q.length < 2){ hide(); return; }
-    if(q === lastQ){ if(box.innerHTML) box.style.display='block'; return; }
-    lastQ = q;
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', '/shop/xml_product_search.php?q=' + encodeURIComponent(q), true);
-    xhr.onload = function(){ if(input.value.trim().length < 2){ hide(); return; } var d; try{ d = JSON.parse(xhr.responseText); }catch(e){ hide(); return; } render(d); };
-    xhr.onerror = function(){ hide(); };
-    xhr.send();
-  }
-  input.setAttribute('autocomplete','off');
-  input.addEventListener('input', function(){ clearTimeout(timer); timer = setTimeout(go, 250); });
-  input.addEventListener('focus', function(){ if(box.innerHTML && input.value.trim().length >= 2) box.style.display = 'block'; });
-  input.addEventListener('keydown', function(e){ if(e.key === 'Escape') hide(); });
-  document.addEventListener('click', function(e){ if(e.target !== input && !box.contains(e.target)) hide(); });
-})();
-</script>
+            <!-- start whatsnewbox //-->
 
-<script>
-/* Mobile category drawer: slide the existing #col2 sidebar in/out (reuses the live menu). */
-(function(){
-  var burger = document.querySelector('.hdr-burger');
-  var col2 = document.getElementById('col2');
-  if(!burger || !col2) return;
-  var bd = document.createElement('div'); bd.className = 'menu-backdrop'; document.body.appendChild(bd);
-  var close = document.createElement('button'); close.type = 'button'; close.className = 'menu-close';
-  close.setAttribute('aria-label','Close menu'); close.innerHTML = '&times;';
-  col2.insertBefore(close, col2.firstChild);
-  function shut(){ document.body.classList.remove('menu-open'); }
-  burger.addEventListener('click', function(){ document.body.classList.add('menu-open'); });
-  bd.addEventListener('click', shut);
-  close.addEventListener('click', shut);
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') shut(); });
-})();
-</script>
+            <!-- end whatsnewbox //-->
 
-<script>
-/* Category menu accordion: chevron toggles a branch (the name still navigates). Delegated on
+            <!-- start informationbox //-->
+
+            <!-- end informationbox //-->
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="footer">
+      <div align="center">
+        <style>
+          .footer-trust {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 16px 56px;
+            margin-top: 12px;
+            padding: 22px 12px 10px;
+            border-top: 1px solid #e2e8f0;
+          }
+          .footer-trust img {
+            width: auto;
+            vertical-align: middle;
+          }
+          .footer-trust a {
+            line-height: 0;
+          }
+          .ft-pay {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+          .ft-pay > img {
+            max-height: 52px;
+          } /* PayByBank */
+          .ft-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+          }
+          .ft-cards img {
+            max-height: 22px;
+          } /* Visa / Mastercard stacked */
+          .ft-awards {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+          }
+          .ft-awards img {
+            max-height: 52px;
+          }
+          .ft-dist img {
+            max-height: 52px;
+          }
+        </style>
+        <div class="footer-trust">
+          <span class="ft-pay">
+            <img
+              src="images/other/paybybank.png"
+              border="0"
+              alt="PayByBank"
+              title=" PayByBank "
+              width="531"
+              height="152"
+            />
+            <span class="ft-cards">
+              <img
+                src="images/other/visa.png"
+                border="0"
+                alt="Visa"
+                title=" Visa "
+                width="600"
+                height="184"
+              />
+              <img
+                src="images/other/mastercard.png"
+                border="0"
+                alt="Mastercard"
+                title=" Mastercard "
+                width="900"
+                height="352"
+              />
+            </span>
+          </span>
+          <span class="ft-awards">
+            <img
+              src="images/awards-e-vol-stamp24.png"
+              border="0"
+              alt="aerial.net e-volution award"
+              title=" aerial.net e-volution award "
+              width="140"
+              height="74"
+            />
+            <a
+              href="https://www.aerial.net/shop/PDF/ICAP_Strongest_Company_2010.pdf"
+              target="_blank"
+              ><img
+                src="images/awards-icapimage.png"
+                border="0"
+                alt="aerial.net ICAP strongest Greek company 2010 award"
+                title=" aerial.net ICAP strongest Greek company 2010 award "
+                width="120"
+                height="116"
+            /></a>
+          </span>
+          <span class="ft-dist"
+            ><img
+              src="images/uadlogo.png"
+              border="0"
+              alt="DISTRIBUTORS OF"
+              title=" DISTRIBUTORS OF "
+              width="140"
+              height="55"
+          /></span>
+        </div>
+        <table border="0" width="100%" cellspacing="0" cellpadding="0">
+          <tr class="footer">
+            <td class="footer" align="center">
+              <a href="https://www.aerial.net/shop/shipping.php"
+                >Shipping &amp; Returns</a
+              ><span class="footer-sep">|</span
+              ><a href="https://www.aerial.net/shop/privacy.php"
+                >Privacy Notice</a
+              ><span class="footer-sep">|</span
+              ><a href="https://www.aerial.net/shop/conditions.php"
+                >Conditions of Use</a
+              ><span class="footer-sep">|</span
+              ><a href="https://www.aerial.net/shop/returns_track.php"
+                >Track a Return</a
+              ><span class="footer-sep">|</span
+              ><a href="https://www.aerial.net/shop/contact_us.php"
+                >Contact Us</a
+              >
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+    <div id="cookieConsent">
+      This website uses cookies to improve your experience and to properly
+      provide our services.
+      <a
+        href="#"
+        onclick="
+          document.cookie =
+            'cookieConsent=true;Expires=' +
+            new Date(Date.now() + 365 * 86400 * 1000).toUTCString();
+          document.getElementById('cookieConsent').remove();
+          return false;
+        "
+        >Accept</a
+      >
+    </div>
+
+    <script>
+      /* Header search autocomplete: debounced query to the storefront-native endpoint, dropdown under the box. */
+      (function () {
+        var input = document.querySelector('.hdr-bar input[name="keywords"]');
+        if (!input) return;
+        var form = input.form || input.parentNode;
+        if (form) form.style.position = "relative";
+        var box = document.createElement("div");
+        box.className = "ac-box";
+        box.style.display = "none";
+        (form || input.parentNode).appendChild(box);
+        var timer = null,
+          lastQ = "";
+        function esc(s) {
+          return String(s).replace(/[&<>"]/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+          });
+        }
+        function hide() {
+          box.style.display = "none";
+        }
+        function render(items) {
+          if (!items || !items.length) {
+            box.innerHTML = '<div class="ac-empty">No matches</div>';
+            box.style.display = "block";
+            return;
+          }
+          var h = "";
+          for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            h +=
+              '<a href="' +
+              esc(it.url) +
+              '">' +
+              (it.image
+                ? '<img src="' + esc(it.image) + '" alt="">'
+                : '<img alt="">') +
+              '<span class="ac-name">' +
+              esc(it.name) +
+              '</span><span class="ac-price">' +
+              esc(it.price) +
+              "</span></a>";
+          }
+          box.innerHTML = h;
+          box.style.display = "block";
+        }
+        function go() {
+          var q = input.value.trim();
+          if (q.length < 2) {
+            hide();
+            return;
+          }
+          if (q === lastQ) {
+            if (box.innerHTML) box.style.display = "block";
+            return;
+          }
+          lastQ = q;
+          var xhr = new XMLHttpRequest();
+          xhr.open(
+            "GET",
+            "/shop/xml_product_search.php?q=" + encodeURIComponent(q),
+            true,
+          );
+          xhr.onload = function () {
+            if (input.value.trim().length < 2) {
+              hide();
+              return;
+            }
+            var d;
+            try {
+              d = JSON.parse(xhr.responseText);
+            } catch (e) {
+              hide();
+              return;
+            }
+            render(d);
+          };
+          xhr.onerror = function () {
+            hide();
+          };
+          xhr.send();
+        }
+        input.setAttribute("autocomplete", "off");
+        input.addEventListener("input", function () {
+          clearTimeout(timer);
+          timer = setTimeout(go, 250);
+        });
+        input.addEventListener("focus", function () {
+          if (box.innerHTML && input.value.trim().length >= 2)
+            box.style.display = "block";
+        });
+        input.addEventListener("keydown", function (e) {
+          if (e.key === "Escape") hide();
+        });
+        document.addEventListener("click", function (e) {
+          if (e.target !== input && !box.contains(e.target)) hide();
+        });
+      })();
+    </script>
+
+    <script>
+      /* Mobile category drawer: slide the existing #col2 sidebar in/out (reuses the live menu). */
+      (function () {
+        var burger = document.querySelector(".hdr-burger");
+        var col2 = document.getElementById("col2");
+        if (!burger || !col2) return;
+        var bd = document.createElement("div");
+        bd.className = "menu-backdrop";
+        document.body.appendChild(bd);
+        var close = document.createElement("button");
+        close.type = "button";
+        close.className = "menu-close";
+        close.setAttribute("aria-label", "Close menu");
+        close.innerHTML = "&times;";
+        col2.insertBefore(close, col2.firstChild);
+        function shut() {
+          document.body.classList.remove("menu-open");
+        }
+        burger.addEventListener("click", function () {
+          document.body.classList.add("menu-open");
+        });
+        bd.addEventListener("click", shut);
+        close.addEventListener("click", shut);
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape") shut();
+        });
+      })();
+    </script>
+
+    <script>
+      /* Category menu accordion: chevron toggles a branch (the name still navigates). Delegated on
    #mainCat, so it covers both the desktop sidebar and the mobile drawer (same markup). */
-(function(){
-  var menu = document.getElementById('mainCat');
-  if(!menu) return;
-  menu.addEventListener('click', function(e){
-    var btn = e.target.closest ? e.target.closest('.cat-toggle') : null;
-    if(!btn) return;
-    e.preventDefault();
-    var li = btn.closest('li');
-    if(!li) return;
-    var open = li.classList.toggle('open');
-    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
-})();
-</script>
-
-
-</body>
+      (function () {
+        var menu = document.getElementById("mainCat");
+        if (!menu) return;
+        menu.addEventListener("click", function (e) {
+          var btn = e.target.closest ? e.target.closest(".cat-toggle") : null;
+          if (!btn) return;
+          e.preventDefault();
+          var li = btn.closest("li");
+          if (!li) return;
+          var open = li.classList.toggle("open");
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+        });
+      })();
+    </script>
+  </body>
 </html>

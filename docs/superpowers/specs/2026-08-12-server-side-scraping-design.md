@@ -54,17 +54,17 @@ The warmer runs on a `setInterval` in the server process and refreshes near-expi
 
 ### Drizzle table `price_cache` (add to `drizzle/schema.ts`)
 
-| Column          | Type            | Notes                                        |
-| --------------- | --------------- | -------------------------------------------- |
-| `distributorId` | `varchar(64)`   | PK (composite)                               |
-| `modelNumber`   | `varchar(128)`  | PK (composite)                               |
-| `price`         | `decimal(12,2)` | notNull                                      |
-| `currency`      | `varchar(8)`    | notNull                                      |
+| Column          | Type            | Notes                                                   |
+| --------------- | --------------- | ------------------------------------------------------- |
+| `distributorId` | `varchar(64)`   | PK (composite)                                          |
+| `modelNumber`   | `varchar(128)`  | PK (composite)                                          |
+| `price`         | `decimal(12,2)` | notNull                                                 |
+| `currency`      | `varchar(8)`    | notNull                                                 |
 | `stockStatus`   | `varchar(16)`   | notNull — `in_stock\|back_order\|out_of_stock\|unknown` |
-| `expectedDate`  | `varchar(64)`   | nullable                                     |
-| `url`           | `text`          | notNull — resolved product page              |
-| `taxRate`       | `decimal(5,2)`  | nullable                                     |
-| `fetchedAt`     | `bigint`        | notNull — epoch ms, TTL basis                |
+| `expectedDate`  | `varchar(64)`   | nullable                                                |
+| `url`           | `text`          | notNull — resolved product page                         |
+| `taxRate`       | `decimal(5,2)`  | nullable                                                |
+| `fetchedAt`     | `bigint`        | notNull — epoch ms, TTL basis                           |
 
 Export `PriceCache` / `InsertPriceCache` types.
 
@@ -91,6 +91,7 @@ A `Map<string, CacheEntry>` keyed by `` `${distributorId}:${modelNumber}` `` wit
 **Single-flight:** a `Map<string, Promise>` keyed by `` `${distributorId}:${modelNumber}` `` dedupes concurrent refreshes for the same key. If a refresh is already in flight, new callers await the same promise instead of re-scraping.
 
 **Warmer (`startWarmer()`):** a `setInterval` (every 5 min) that:
+
 - Queries cache entries whose `fetchedAt < now - (TTL - 10min)` (near expiry).
 - Refreshes them in the background, staggered with the parsers' `rateLimitMs` delays.
 - Tracks in-memory entries too (same map iteration).
@@ -143,12 +144,14 @@ If the server is unreachable, everything degrades to today's local scraping — 
 ## Files
 
 **Modified:**
+
 - `drizzle/schema.ts` — `price_cache` table + types
 - `server/routers.ts` — `prices.get` procedure
 - `lib/background-price-check.ts` — server-first flow with local fallback
 - `desktop/src-tauri/src/lib.rs` — server-first step in poller commands
 
 **New:**
+
 - `server/prices.ts` — cache service, single-flight, warmer
 - `server/price-cache.ts` — DB + memory cache backends (or folded into `prices.ts` if small)
 - `lib/server-prices.ts` — mobile client helper

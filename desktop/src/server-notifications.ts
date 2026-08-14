@@ -38,7 +38,10 @@ interface PushEvent {
 }
 
 function generateId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return `dev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -61,7 +64,9 @@ async function uploadConfig(
     const client = createTRPCClient();
     await Promise.race([
       client.notifications.uploadConfig.mutate({ deviceId, ...config }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return true;
   } catch {
@@ -74,7 +79,9 @@ async function pullEvents(deviceId: string): Promise<PushEvent[]> {
     const client = createTRPCClient();
     const result = await Promise.race([
       client.notifications.pull.query({ deviceId }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return result?.events ?? [];
   } catch {

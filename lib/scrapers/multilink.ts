@@ -6,11 +6,19 @@ import { getTaxRate } from "../tax";
 function parseHtml(html: string, url: string): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(".product-price, .price--withoutTax, [data-product-price-without-tax], .price").first().text();
+  const priceText = $(
+    ".product-price, .price--withoutTax, [data-product-price-without-tax], .price",
+  )
+    .first()
+    .text();
   const price = parsePriceFromText(priceText);
   if (!price) return null;
 
-  const stockText = $(".product-details__stock, .availability, .stock, .stock-status").first().text();
+  const stockText = $(
+    ".product-details__stock, .availability, .stock, .stock-status",
+  )
+    .first()
+    .text();
   const stockStatus = inferStockStatus(stockText);
 
   return {

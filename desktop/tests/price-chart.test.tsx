@@ -5,9 +5,9 @@ import { MultiLineChart } from "../src/components/MultiLineChart";
 describe("MultiLineChart", () => {
   it("renders a Recharts line chart with distributor data", () => {
     const data = [
-      { date: "Jan 1", "Server2U": 100, "Linitx": 110 },
-      { date: "Jan 2", "Server2U": 95, "Linitx": 105 },
-      { date: "Jan 3", "Server2U": 110, "Linitx": 100 },
+      { date: "Jan 1", Server2U: 100, Linitx: 110 },
+      { date: "Jan 2", Server2U: 95, Linitx: 105 },
+      { date: "Jan 3", Server2U: 110, Linitx: 100 },
     ];
     render(
       <MultiLineChart

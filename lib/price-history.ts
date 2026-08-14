@@ -7,9 +7,7 @@ export function appendPricePoint(
   now = new Date().toISOString(),
 ): PricePoint[] {
   const day = point.date.slice(0, 10);
-  const existingIdx = history.findIndex(
-    (p) => p.date.slice(0, 10) === day,
-  );
+  const existingIdx = history.findIndex((p) => p.date.slice(0, 10) === day);
 
   const result =
     existingIdx >= 0

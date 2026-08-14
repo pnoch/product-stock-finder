@@ -13,6 +13,7 @@
 ### Task 1: Define types and write failing tests for the digest engine
 
 **Files:**
+
 - Create: `tests/price-digest.test.ts`
 
 - [ ] **Step 1: Add `digestFrequency` to `AppSettings` in `lib/types.ts`**
@@ -29,7 +30,12 @@ Create `tests/price-digest.test.ts`:
 
 ```ts
 import { describe, expect, it, vi } from "vitest";
-import type { Product, PriceAlert, AppSettings, StockStatus } from "../lib/types";
+import type {
+  Product,
+  PriceAlert,
+  AppSettings,
+  StockStatus,
+} from "../lib/types";
 import {
   computeDigest,
   formatDigestNotification,
@@ -99,11 +105,18 @@ describe("computeDigest", () => {
     const previous: DigestSnapshot = {
       lastDigestAt: LAST,
       products: [
-        { productId: "p1", name: "CRS804", bestPrice: 100, stockStatus: "in_stock" },
+        {
+          productId: "p1",
+          name: "CRS804",
+          bestPrice: 100,
+          stockStatus: "in_stock",
+        },
       ],
     };
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 95, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 95, currency: "USD", stockStatus: "in_stock" },
+      ]),
     ];
     const result = computeDigest(previous, watchlist, makeSettings(), []);
     expect(result.priceChanges).toHaveLength(1);
@@ -117,11 +130,18 @@ describe("computeDigest", () => {
     const previous: DigestSnapshot = {
       lastDigestAt: LAST,
       products: [
-        { productId: "p1", name: "CRS804", bestPrice: null, stockStatus: "back_order" },
+        {
+          productId: "p1",
+          name: "CRS804",
+          bestPrice: null,
+          stockStatus: "back_order",
+        },
       ],
     };
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 95, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 95, currency: "USD", stockStatus: "in_stock" },
+      ]),
     ];
     const result = computeDigest(previous, watchlist, makeSettings(), []);
     expect(result.stockChanges).toHaveLength(1);
@@ -135,11 +155,17 @@ describe("computeDigest", () => {
       products: [],
     };
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 85, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 85, currency: "USD", stockStatus: "in_stock" },
+      ]),
     ];
     const alerts = [
       makeAlert({ triggeredAt: "2026-08-11T08:00:00.000Z" }), // inside window
-      makeAlert({ id: "a2", productId: "p2", triggeredAt: "2026-08-09T08:00:00.000Z" }), // before window
+      makeAlert({
+        id: "a2",
+        productId: "p2",
+        triggeredAt: "2026-08-09T08:00:00.000Z",
+      }), // before window
     ];
     const result = computeDigest(previous, watchlist, makeSettings(), alerts);
     expect(result.alertTargetsHit).toHaveLength(1);
@@ -149,7 +175,9 @@ describe("computeDigest", () => {
   it("excludes active (not-yet-triggered) alerts from targets hit", () => {
     const previous: DigestSnapshot = { lastDigestAt: LAST, products: [] };
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 85, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 85, currency: "USD", stockStatus: "in_stock" },
+      ]),
     ];
     const alerts = [makeAlert({ isActive: true, triggeredAt: undefined })];
     const result = computeDigest(previous, watchlist, makeSettings(), alerts);
@@ -160,11 +188,18 @@ describe("computeDigest", () => {
     const previous: DigestSnapshot = {
       lastDigestAt: LAST,
       products: [
-        { productId: "p1", name: "CRS804", bestPrice: 95, stockStatus: "in_stock" },
+        {
+          productId: "p1",
+          name: "CRS804",
+          bestPrice: 95,
+          stockStatus: "in_stock",
+        },
       ],
     };
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 95, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 95, currency: "USD", stockStatus: "in_stock" },
+      ]),
     ];
     const result = computeDigest(previous, watchlist, makeSettings(), []);
     expect(result.priceChanges).toHaveLength(0);
@@ -175,8 +210,12 @@ describe("computeDigest", () => {
 
   it("builds a snapshot from scratch when previous is null", () => {
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 95, currency: "USD", stockStatus: "in_stock" }]),
-      makeProduct("p2", "CRS326", [{ price: 50, currency: "USD", stockStatus: "back_order" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 95, currency: "USD", stockStatus: "in_stock" },
+      ]),
+      makeProduct("p2", "CRS326", [
+        { price: 50, currency: "USD", stockStatus: "back_order" },
+      ]),
     ];
     const result = computeDigest(null, watchlist, makeSettings(), []);
     expect(result.priceChanges).toHaveLength(0);
@@ -190,9 +229,16 @@ describe("computeDigest", () => {
   it("converts prices to the display currency in the summary", () => {
     const previous: DigestSnapshot = { lastDigestAt: LAST, products: [] };
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 92, currency: "EUR", stockStatus: "in_stock" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 92, currency: "EUR", stockStatus: "in_stock" },
+      ]),
     ];
-    const result = computeDigest(previous, watchlist, makeSettings({ displayCurrency: "USD" }), []);
+    const result = computeDigest(
+      previous,
+      watchlist,
+      makeSettings({ displayCurrency: "USD" }),
+      [],
+    );
     // 92 EUR / 0.92 = 100 USD
     expect(result.summary.totalValue).toBeCloseTo(100, 1);
   });
@@ -201,7 +247,13 @@ describe("computeDigest", () => {
 describe("formatDigestNotification", () => {
   it("formats a summary header with price and stock counts", () => {
     const result = formatDigestNotification({
-      summary: { totalValue: 95, inStock: 1, backOrder: 1, outOfStock: 0, unknown: 0 },
+      summary: {
+        totalValue: 95,
+        inStock: 1,
+        backOrder: 1,
+        outOfStock: 0,
+        unknown: 0,
+      },
       priceChanges: [],
       stockChanges: [],
       alertTargetsHit: [],
@@ -214,9 +266,19 @@ describe("formatDigestNotification", () => {
 
   it("includes price-change and stock-change lines", () => {
     const result = formatDigestNotification({
-      summary: { totalValue: 95, inStock: 1, backOrder: 0, outOfStock: 0, unknown: 0 },
-      priceChanges: [{ productId: "p1", name: "CRS804", from: 100, to: 95, percent: -5 }],
-      stockChanges: [{ productId: "p2", name: "CRS326", from: "back_order", to: "in_stock" }],
+      summary: {
+        totalValue: 95,
+        inStock: 1,
+        backOrder: 0,
+        outOfStock: 0,
+        unknown: 0,
+      },
+      priceChanges: [
+        { productId: "p1", name: "CRS804", from: 100, to: 95, percent: -5 },
+      ],
+      stockChanges: [
+        { productId: "p2", name: "CRS326", from: "back_order", to: "in_stock" },
+      ],
       alertTargetsHit: [],
     });
     expect(result.body).toContain("CRS804");
@@ -227,7 +289,13 @@ describe("formatDigestNotification", () => {
 
   it("falls back to a no-changes body when nothing changed", () => {
     const result = formatDigestNotification({
-      summary: { totalValue: 0, inStock: 0, backOrder: 0, outOfStock: 0, unknown: 0 },
+      summary: {
+        totalValue: 0,
+        inStock: 0,
+        backOrder: 0,
+        outOfStock: 0,
+        unknown: 0,
+      },
       priceChanges: [],
       stockChanges: [],
       alertTargetsHit: [],
@@ -276,7 +344,9 @@ describe("maybeSendDigest", () => {
     };
     const send = vi.fn(async () => {});
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 95, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 95, currency: "USD", stockStatus: "in_stock" },
+      ]),
     ];
     const result = await maybeSendDigest(
       previous,
@@ -299,9 +369,23 @@ describe("maybeSendDigest", () => {
       products: [],
     };
     const send = vi.fn(async () => {});
-    const result = await maybeSendDigest(previous, [], makeSettings(), [], send, NOW);
+    const result = await maybeSendDigest(
+      previous,
+      [],
+      makeSettings(),
+      [],
+      send,
+      NOW,
+    );
     // After the first fires, re-check with the returned snapshot → not due
-    const second = await maybeSendDigest(result, [], makeSettings(), [], send, NOW);
+    const second = await maybeSendDigest(
+      result,
+      [],
+      makeSettings(),
+      [],
+      send,
+      NOW,
+    );
     expect(send).toHaveBeenCalledTimes(1);
     expect(second).toBeNull();
   });
@@ -314,7 +398,14 @@ describe("maybeSendDigest", () => {
     const send = vi.fn(async () => {
       throw new Error("boom");
     });
-    const result = await maybeSendDigest(previous, [], makeSettings(), [], send, NOW);
+    const result = await maybeSendDigest(
+      previous,
+      [],
+      makeSettings(),
+      [],
+      send,
+      NOW,
+    );
     expect(result).toBeNull();
   });
 
@@ -355,13 +446,19 @@ git commit -m "test: add failing price digest engine tests"
 ### Task 2: Implement the digest engine
 
 **Files:**
+
 - Create: `lib/price-digest.ts`
 
 - [ ] **Step 1: Write the implementation**
 
 ```ts
 import { convertPrice, formatPrice, getBestPrice } from "@/lib/currency";
-import type { AppSettings, PriceAlert, Product, StockStatus } from "@/lib/types";
+import type {
+  AppSettings,
+  PriceAlert,
+  Product,
+  StockStatus,
+} from "@/lib/types";
 
 export interface DigestProductState {
   productId: string;
@@ -432,9 +529,7 @@ function productState(
   };
 }
 
-function buildSummary(
-  products: DigestProductState[],
-): DigestSummary {
+function buildSummary(products: DigestProductState[]): DigestSummary {
   return products.reduce(
     (acc, p) => {
       acc.totalValue += p.bestPrice ?? 0;
@@ -514,9 +609,10 @@ export function computeDigest(
   };
 }
 
-export function formatDigestNotification(
-  result: DigestResult,
-): { title: string; body: string } {
+export function formatDigestNotification(result: DigestResult): {
+  title: string;
+  body: string;
+} {
   const { summary } = result;
   const lines: string[] = [];
 
@@ -530,13 +626,17 @@ export function formatDigestNotification(
 
   for (const c of result.priceChanges.slice(0, 3)) {
     const sign = c.percent > 0 ? "+" : "";
-    lines.push(`${c.name}: ${sign}${c.percent.toFixed(0)}% (${formatPrice(c.from, "USD")} → ${formatPrice(c.to, "USD")})`);
+    lines.push(
+      `${c.name}: ${sign}${c.percent.toFixed(0)}% (${formatPrice(c.from, "USD")} → ${formatPrice(c.to, "USD")})`,
+    );
   }
   for (const s of result.stockChanges.slice(0, 3)) {
     lines.push(`${s.name}: ${s.from} → ${s.to}`);
   }
   for (const t of result.alertTargetsHit.slice(0, 3)) {
-    lines.push(`🎯 ${t.name}: target hit at ${formatPrice(t.price, t.currency)}`);
+    lines.push(
+      `🎯 ${t.name}: target hit at ${formatPrice(t.price, t.currency)}`,
+    );
   }
 
   if (
@@ -570,7 +670,8 @@ export async function maybeSendDigest(
 
     const intervalMs = frequency === "weekly" ? 7 * 86400000 : 86400000;
     if (previous) {
-      const elapsed = new Date(now).getTime() - new Date(previous.lastDigestAt).getTime();
+      const elapsed =
+        new Date(now).getTime() - new Date(previous.lastDigestAt).getTime();
       if (elapsed < intervalMs) return null;
     }
 
@@ -613,6 +714,7 @@ git commit -m "feat: add price digest engine"
 ### Task 3: Add snapshot storage + notification helper
 
 **Files:**
+
 - Modify: `lib/storage.ts`
 - Modify: `lib/notifications.ts`
 
@@ -628,20 +730,20 @@ Add `DIGEST_SNAPSHOT: "price_digest_snapshot"` to the `KEYS` object (after `STOC
 Add these functions after the `updateStockWatchStatus` helper (before the Clear All Data section). Import `DigestSnapshot` type at the top of the file (from `./price-digest`):
 
 ```ts
-  async function getPriceDigestSnapshot(): Promise<DigestSnapshot | null> {
-    try {
-      const raw = await adapter.getItem(KEYS.DIGEST_SNAPSHOT);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
+async function getPriceDigestSnapshot(): Promise<DigestSnapshot | null> {
+  try {
+    const raw = await adapter.getItem(KEYS.DIGEST_SNAPSHOT);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
   }
+}
 
-  async function savePriceDigestSnapshot(
-    snapshot: DigestSnapshot,
-  ): Promise<void> {
-    await adapter.setItem(KEYS.DIGEST_SNAPSHOT, JSON.stringify(snapshot));
-  }
+async function savePriceDigestSnapshot(
+  snapshot: DigestSnapshot,
+): Promise<void> {
+  await adapter.setItem(KEYS.DIGEST_SNAPSHOT, JSON.stringify(snapshot));
+}
 ```
 
 Add `price_digest_snapshot` to the `clearAllData` multiRemove list:
@@ -682,14 +784,14 @@ import type { DigestSnapshot } from "./price-digest";
 Add a channel in `setupAndroidNotificationChannel` (after the `price-alerts` channel block):
 
 ```ts
-  await Notifications.setNotificationChannelAsync("digest", {
-    name: "Price Digest",
-    description: "Daily or weekly price digest summary",
-    importance: Notifications.AndroidImportance.DEFAULT,
-    vibrationPattern: [0, 250],
-    lightColor: "#6366F1",
-    sound: "default",
-  });
+await Notifications.setNotificationChannelAsync("digest", {
+  name: "Price Digest",
+  description: "Daily or weekly price digest summary",
+  importance: Notifications.AndroidImportance.DEFAULT,
+  vibrationPattern: [0, 250],
+  lightColor: "#6366F1",
+  sound: "default",
+});
 ```
 
 Add this function at the end of the file (after `cancelNotification`):
@@ -740,6 +842,7 @@ git commit -m "feat: add digest snapshot storage and notification helper"
 ### Task 4: Wire digest into mobile price-check paths
 
 **Files:**
+
 - Modify: `lib/background-price-check.ts`
 
 - [ ] **Step 1: Add the import**
@@ -748,22 +851,33 @@ After the existing `import { checkRestocks } from "./restock";` line, add:
 
 ```ts
 import { maybeSendDigest } from "./price-digest";
-import {
-  getPriceDigestSnapshot,
-  savePriceDigestSnapshot,
-} from "./storage";
+import { getPriceDigestSnapshot, savePriceDigestSnapshot } from "./storage";
 ```
 
 Note: `getSettings`, `getAlerts`, `getWatchlist` are already imported from `./storage` in this file — add the two new ones to that existing import instead of creating a second `./storage` import. The existing import is:
 
 ```ts
-import { getAlerts, getSettings, getWatchlist, deactivateAlert, updateProductListings } from "./storage";
+import {
+  getAlerts,
+  getSettings,
+  getWatchlist,
+  deactivateAlert,
+  updateProductListings,
+} from "./storage";
 ```
 
 Replace it with:
 
 ```ts
-import { getAlerts, getSettings, getWatchlist, deactivateAlert, updateProductListings, getPriceDigestSnapshot, savePriceDigestSnapshot } from "./storage";
+import {
+  getAlerts,
+  getSettings,
+  getWatchlist,
+  deactivateAlert,
+  updateProductListings,
+  getPriceDigestSnapshot,
+  savePriceDigestSnapshot,
+} from "./storage";
 ```
 
 - [ ] **Step 2: Insert digest call in the background task**
@@ -771,47 +885,47 @@ import { getAlerts, getSettings, getWatchlist, deactivateAlert, updateProductLis
 In `TaskManager.defineTask(PRICE_CHECK_TASK, ...)`, find the block:
 
 ```ts
-    // Now check price alerts against fresh prices
-    const settings = await getSettings();
-    if (!settings.notificationsEnabled || !settings.priceAlerts)
-      return BackgroundTask.BackgroundTaskResult.Success;
+// Now check price alerts against fresh prices
+const settings = await getSettings();
+if (!settings.notificationsEnabled || !settings.priceAlerts)
+  return BackgroundTask.BackgroundTaskResult.Success;
 ```
 
 Replace it with:
 
 ```ts
-    // Send a scheduled digest if one is due
-    const prevDigest = await getPriceDigestSnapshot();
-    const nextDigest = await maybeSendDigest(
-      prevDigest,
-      await getWatchlist(),
-      settings,
-      await getAlerts(),
-    );
-    if (nextDigest) await savePriceDigestSnapshot(nextDigest);
+// Send a scheduled digest if one is due
+const prevDigest = await getPriceDigestSnapshot();
+const nextDigest = await maybeSendDigest(
+  prevDigest,
+  await getWatchlist(),
+  settings,
+  await getAlerts(),
+);
+if (nextDigest) await savePriceDigestSnapshot(nextDigest);
 
-    // Now check price alerts against fresh prices
-    if (!settings.notificationsEnabled || !settings.priceAlerts)
-      return BackgroundTask.BackgroundTaskResult.Success;
+// Now check price alerts against fresh prices
+if (!settings.notificationsEnabled || !settings.priceAlerts)
+  return BackgroundTask.BackgroundTaskResult.Success;
 ```
 
 Wait — `settings` is referenced before it's declared in this replacement. Move the `const settings = await getSettings();` line to the top of the replacement block:
 
 ```ts
-    // Send a scheduled digest if one is due
-    const settings = await getSettings();
-    const prevDigest = await getPriceDigestSnapshot();
-    const nextDigest = await maybeSendDigest(
-      prevDigest,
-      await getWatchlist(),
-      settings,
-      await getAlerts(),
-    );
-    if (nextDigest) await savePriceDigestSnapshot(nextDigest);
+// Send a scheduled digest if one is due
+const settings = await getSettings();
+const prevDigest = await getPriceDigestSnapshot();
+const nextDigest = await maybeSendDigest(
+  prevDigest,
+  await getWatchlist(),
+  settings,
+  await getAlerts(),
+);
+if (nextDigest) await savePriceDigestSnapshot(nextDigest);
 
-    // Now check price alerts against fresh prices
-    if (!settings.notificationsEnabled || !settings.priceAlerts)
-      return BackgroundTask.BackgroundTaskResult.Success;
+// Now check price alerts against fresh prices
+if (!settings.notificationsEnabled || !settings.priceAlerts)
+  return BackgroundTask.BackgroundTaskResult.Success;
 ```
 
 - [ ] **Step 3: Insert digest call in `checkPriceDropsNow`**
@@ -819,27 +933,27 @@ Wait — `settings` is referenced before it's declared in this replacement. Move
 Find this block near the end of `checkPriceDropsNow`:
 
 ```ts
-  // Now check price alerts against fresh prices
-  const settings = await getSettings();
-  if (!settings.notificationsEnabled || !settings.priceAlerts) return;
+// Now check price alerts against fresh prices
+const settings = await getSettings();
+if (!settings.notificationsEnabled || !settings.priceAlerts) return;
 ```
 
 Replace it with:
 
 ```ts
-  // Send a scheduled digest if one is due
-  const settings = await getSettings();
-  const prevDigest = await getPriceDigestSnapshot();
-  const nextDigest = await maybeSendDigest(
-    prevDigest,
-    await getWatchlist(),
-    settings,
-    await getAlerts(),
-  );
-  if (nextDigest) await savePriceDigestSnapshot(nextDigest);
+// Send a scheduled digest if one is due
+const settings = await getSettings();
+const prevDigest = await getPriceDigestSnapshot();
+const nextDigest = await maybeSendDigest(
+  prevDigest,
+  await getWatchlist(),
+  settings,
+  await getAlerts(),
+);
+if (nextDigest) await savePriceDigestSnapshot(nextDigest);
 
-  // Now check price alerts against fresh prices
-  if (!settings.notificationsEnabled || !settings.priceAlerts) return;
+// Now check price alerts against fresh prices
+if (!settings.notificationsEnabled || !settings.priceAlerts) return;
 ```
 
 - [ ] **Step 4: Run typecheck**
@@ -864,6 +978,7 @@ git commit -m "feat: send scheduled price digest from mobile price checks"
 ### Task 5: Add digest frequency control to mobile settings
 
 **Files:**
+
 - Modify: `app/(tabs)/settings.tsx`
 
 - [ ] **Step 1: Add the digest options array**
@@ -871,16 +986,16 @@ git commit -m "feat: send scheduled price digest from mobile price checks"
 Near the existing `intervals` array (around line 261):
 
 ```ts
-  const intervals = [
-    { value: "manual", label: "Manual only" },
-    { value: "hourly", label: "Every hour" },
-    { value: "daily", label: "Once a day" },
-  ];
-  const digestFrequencies = [
-    { value: "off", label: "Off" },
-    { value: "daily", label: "Daily" },
-    { value: "weekly", label: "Weekly" },
-  ];
+const intervals = [
+  { value: "manual", label: "Manual only" },
+  { value: "hourly", label: "Every hour" },
+  { value: "daily", label: "Once a day" },
+];
+const digestFrequencies = [
+  { value: "off", label: "Off" },
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+];
 ```
 
 - [ ] **Step 2: Add the digest section**
@@ -958,6 +1073,7 @@ git commit -m "feat: add price digest frequency setting to mobile settings"
 ### Task 6: Wire the desktop poller to settings
 
 **Files:**
+
 - Modify: `desktop/src/App.tsx`
 - Modify: `desktop/src/pages/Settings.tsx`
 
@@ -973,20 +1089,19 @@ import { storage } from "./storage";
 Add a `useEffect` inside the `App` component (after the `searchModalOpen` state):
 
 ```tsx
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const settings = await storage.getSettings();
-      if (cancelled) return;
-      if (settings.checkInterval === "manual") return;
-      const intervalMinutes =
-        settings.checkInterval === "hourly" ? 60 : 1440;
-      await startPricePoller(intervalMinutes);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+useEffect(() => {
+  let cancelled = false;
+  (async () => {
+    const settings = await storage.getSettings();
+    if (cancelled) return;
+    if (settings.checkInterval === "manual") return;
+    const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
+    await startPricePoller(intervalMinutes);
+  })();
+  return () => {
+    cancelled = true;
+  };
+}, []);
 ```
 
 - [ ] **Step 2: Restart the poller on `checkInterval` change in `desktop/src/pages/Settings.tsx`**
@@ -1006,30 +1121,28 @@ import { startPricePoller, stopPricePoller } from "../background";
 Add a `useEffect` inside the `Settings` component after `settings` is available (i.e. after the `if (loading || !settings) return <LoadingSpinner />;` guard — but hooks can't run after a conditional return, so place it before the guard, using the `settings` value):
 
 ```tsx
-  useEffect(() => {
-    if (!settings || settings.checkInterval === "manual") return;
-    const intervalMinutes =
-      settings.checkInterval === "hourly" ? 60 : 1440;
-    startPricePoller(intervalMinutes);
-    return () => {
-      stopPricePoller();
-    };
-  }, [settings?.checkInterval]);
+useEffect(() => {
+  if (!settings || settings.checkInterval === "manual") return;
+  const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
+  startPricePoller(intervalMinutes);
+  return () => {
+    stopPricePoller();
+  };
+}, [settings?.checkInterval]);
 ```
 
 Place this `useEffect` AFTER the `if (loading || !settings) return <LoadingSpinner />;` guard is NOT possible (hooks must run unconditionally). Instead place it BEFORE the guard, right after `const navigate = useNavigate();`:
 
 ```tsx
-  const navigate = useNavigate();
-  useEffect(() => {
-    if (!settings || settings.checkInterval === "manual") return;
-    const intervalMinutes =
-      settings.checkInterval === "hourly" ? 60 : 1440;
-    startPricePoller(intervalMinutes);
-    return () => {
-      stopPricePoller();
-    };
-  }, [settings?.checkInterval]);
+const navigate = useNavigate();
+useEffect(() => {
+  if (!settings || settings.checkInterval === "manual") return;
+  const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
+  startPricePoller(intervalMinutes);
+  return () => {
+    stopPricePoller();
+  };
+}, [settings?.checkInterval]);
 ```
 
 Note: `settings` may be `null` initially (loading); the effect handles that with `if (!settings ...)`.
@@ -1053,6 +1166,7 @@ git commit -m "feat: wire desktop price poller to check interval setting"
 ### Task 7: Add desktop digest listener
 
 **Files:**
+
 - Modify: `desktop/src/App.tsx`
 
 - [ ] **Step 1: Add a digest listener**
@@ -1060,7 +1174,11 @@ git commit -m "feat: wire desktop price poller to check interval setting"
 Add `onPricesChecked` to the import from `./background`:
 
 ```ts
-import { startPricePoller, stopPricePoller, onPricesChecked } from "./background";
+import {
+  startPricePoller,
+  stopPricePoller,
+  onPricesChecked,
+} from "./background";
 ```
 
 Add the shared digest engine + storage helpers to imports:
@@ -1072,54 +1190,54 @@ import { maybeSendDigest } from "../../lib/price-digest";
 Note: `storage` is already imported from `./storage`. Add a second `useEffect` inside the `App` component:
 
 ```tsx
-  useEffect(() => {
-    const unlisten = onPricesChecked(async () => {
-      try {
-        const settings = await storage.getSettings();
-        const frequency = settings.digestFrequency ?? "off";
-        if (frequency === "off") return;
-        const prevDigest = await storage.getPriceDigestSnapshot();
-        const nextDigest = await maybeSendDigest(
-          prevDigest,
-          await storage.getWatchlist(),
-          settings,
-          await storage.getAlerts(),
-        );
-        if (nextDigest) await storage.savePriceDigestSnapshot(nextDigest);
-      } catch {
-        // digest failures are non-fatal
-      }
-    });
-    return () => {
-      unlisten.then((fn) => fn());
-    };
-  }, []);
+useEffect(() => {
+  const unlisten = onPricesChecked(async () => {
+    try {
+      const settings = await storage.getSettings();
+      const frequency = settings.digestFrequency ?? "off";
+      if (frequency === "off") return;
+      const prevDigest = await storage.getPriceDigestSnapshot();
+      const nextDigest = await maybeSendDigest(
+        prevDigest,
+        await storage.getWatchlist(),
+        settings,
+        await storage.getAlerts(),
+      );
+      if (nextDigest) await storage.savePriceDigestSnapshot(nextDigest);
+    } catch {
+      // digest failures are non-fatal
+    }
+  });
+  return () => {
+    unlisten.then((fn) => fn());
+  };
+}, []);
 ```
 
 Note: `maybeSendDigest`'s default `send` import will resolve `sendPriceDigestNotification` from `@/lib/notifications`, which is a mobile (expo-notifications) module. On desktop this import path (`@/lib/notifications`) is NOT used — so override `send` explicitly. Replace the call with an explicit sender that uses the desktop notification helper:
 
 ```tsx
-    const unlisten = onPricesChecked(async () => {
-      try {
-        const settings = await storage.getSettings();
-        const frequency = settings.digestFrequency ?? "off";
-        if (frequency === "off") return;
-        const prevDigest = await storage.getPriceDigestSnapshot();
-        const nextDigest = await maybeSendDigest(
-          prevDigest,
-          await storage.getWatchlist(),
-          settings,
-          await storage.getAlerts(),
-          async (title, body) => {
-            const { sendDesktopNotification } = await import("../notifications");
-            await sendDesktopNotification(title, body);
-          },
-        );
-        if (nextDigest) await storage.savePriceDigestSnapshot(nextDigest);
-      } catch {
-        // digest failures are non-fatal
-      }
-    });
+const unlisten = onPricesChecked(async () => {
+  try {
+    const settings = await storage.getSettings();
+    const frequency = settings.digestFrequency ?? "off";
+    if (frequency === "off") return;
+    const prevDigest = await storage.getPriceDigestSnapshot();
+    const nextDigest = await maybeSendDigest(
+      prevDigest,
+      await storage.getWatchlist(),
+      settings,
+      await storage.getAlerts(),
+      async (title, body) => {
+        const { sendDesktopNotification } = await import("../notifications");
+        await sendDesktopNotification(title, body);
+      },
+    );
+    if (nextDigest) await storage.savePriceDigestSnapshot(nextDigest);
+  } catch {
+    // digest failures are non-fatal
+  }
+});
 ```
 
 - [ ] **Step 2: Run typecheck**
@@ -1144,6 +1262,7 @@ git commit -m "feat: send desktop price digest on prices-checked event"
 ### Task 8: Add digest frequency control to desktop settings
 
 **Files:**
+
 - Modify: `desktop/src/pages/Settings.tsx`
 
 - [ ] **Step 1: Add the digest frequency section**
@@ -1151,25 +1270,27 @@ git commit -m "feat: send desktop price digest on prices-checked event"
 After the Notifications section's closing `</div>` (around line 185, right before the Import/Export section), add:
 
 ```tsx
-      {/* Price Digest Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-        <h2 className="text-lg font-semibold mb-4">Price Digest</h2>
-        <div className="flex gap-2">
-          {(["off", "daily", "weekly"] as const).map((freq) => (
-            <button
-              key={freq}
-              onClick={() => update({ digestFrequency: freq })}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                settings.digestFrequency === freq
-                  ? "bg-brand-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-              }`}
-            >
-              {freq.charAt(0).toUpperCase() + freq.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
+{
+  /* Price Digest Section */
+}
+<div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+  <h2 className="text-lg font-semibold mb-4">Price Digest</h2>
+  <div className="flex gap-2">
+    {(["off", "daily", "weekly"] as const).map((freq) => (
+      <button
+        key={freq}
+        onClick={() => update({ digestFrequency: freq })}
+        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          settings.digestFrequency === freq
+            ? "bg-brand-600 text-white"
+            : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+        }`}
+      >
+        {freq.charAt(0).toUpperCase() + freq.slice(1)}
+      </button>
+    ))}
+  </div>
+</div>;
 ```
 
 - [ ] **Step 2: Run typecheck**
@@ -1189,6 +1310,7 @@ git commit -m "feat: add price digest frequency setting to desktop settings"
 ### Task 9: Update todo.md and final verification
 
 **Files:**
+
 - Modify: `todo.md`
 
 - [ ] **Step 1: Append Phase 25 to todo.md**

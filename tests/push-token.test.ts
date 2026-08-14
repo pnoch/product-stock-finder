@@ -9,17 +9,25 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("react-native", () => ({
-  Platform: { get OS() { return state.platform; } },
+  Platform: {
+    get OS() {
+      return state.platform;
+    },
+  },
 }));
 
 vi.mock("expo-device", () => ({
-  get isDevice() { return state.isDevice; },
+  get isDevice() {
+    return state.isDevice;
+  },
 }));
 
 vi.mock("expo-constants", () => ({
   default: {
     expoConfig: {
-      get extra() { return { expoProjectId: state.projectId }; },
+      get extra() {
+        return { expoProjectId: state.projectId };
+      },
     },
   },
 }));

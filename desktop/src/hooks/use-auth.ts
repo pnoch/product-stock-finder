@@ -135,5 +135,12 @@ export function useAuth() {
     notify();
   }, []);
 
-  return { user, loading, error, isAuthenticated: Boolean(user), login, logout };
+  return {
+    user,
+    loading,
+    error,
+    isAuthenticated: Boolean(user),
+    login,
+    logout,
+  };
 }

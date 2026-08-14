@@ -13,6 +13,7 @@
 ### Task 1: Schema — userId columns + delivery junction (migration 0008)
 
 **Files:**
+
 - Modify: `drizzle/schema.ts:148-187`
 
 This task adds the new columns and the junction table but does NOT drop `deliveredAt` yet — the existing `pullPendingEvents` DB path still references it, and the drop happens in Task 4 after the code is rewritten.
@@ -116,6 +117,7 @@ git commit -m "feat(notifications): add userId binding and delivery junction to 
 ### Task 2: push-notifications — userId binding + sendPushForUser
 
 **Files:**
+
 - Modify: `server/push-notifications.ts`
 - Test: `tests/push-notifications.test.ts`
 
@@ -136,53 +138,53 @@ import {
 Append to `tests/push-notifications.test.ts` inside the `describe("push-notifications", ...)` block (before the closing `});` at line 196):
 
 ```ts
-  describe("sendPushForUser", () => {
-    beforeEach(() => {
-      clearPushTokensForTests();
-      sent.length = 0;
-      pushState.tickets = [{ status: "ok" }];
-      vi.clearAllMocks();
-      mockedGetDb.mockResolvedValue(null);
-    });
-
-    it("sends a user event to every device bound to the user", async () => {
-      await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios", 7);
-      await upsertPushToken("dev-2", "ExponentPushToken[def456]", "android", 7);
-      await sendPushForUser(7, [event]);
-      expect(sent).toHaveLength(2);
-      expect(sent[0]![0]!.to).toBe("ExponentPushToken[abc123]");
-      expect(sent[1]![0]!.to).toBe("ExponentPushToken[def456]");
-    });
-
-    it("skips devices bound to other users", async () => {
-      await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios", 7);
-      await upsertPushToken("dev-2", "ExponentPushToken[def456]", "android", 8);
-      await sendPushForUser(7, [event]);
-      expect(sent).toHaveLength(1);
-      expect(sent[0]![0]!.to).toBe("ExponentPushToken[abc123]");
-    });
-
-    it("no-ops when the user has no bound devices", async () => {
-      await sendPushForUser(7, [event]);
-      expect(sent).toHaveLength(0);
-    });
-
-    it("sends using device tokens read from the database", async () => {
-      mockedGetDb.mockResolvedValue({
-        select: vi.fn(() => ({
-          from: vi.fn(() => ({
-            where: vi.fn(async () => [
-              { deviceId: "dev-1", token: "ExponentPushToken[dbpath]" },
-            ]),
-          })),
-        })),
-      } as never);
-      await upsertPushToken("dev-1", "ExponentPushToken[dbpath]", "ios", 7);
-      await sendPushForUser(7, [event]);
-      expect(sent).toHaveLength(1);
-      expect(sent[0]![0]!.to).toBe("ExponentPushToken[dbpath]");
-    });
+describe("sendPushForUser", () => {
+  beforeEach(() => {
+    clearPushTokensForTests();
+    sent.length = 0;
+    pushState.tickets = [{ status: "ok" }];
+    vi.clearAllMocks();
+    mockedGetDb.mockResolvedValue(null);
   });
+
+  it("sends a user event to every device bound to the user", async () => {
+    await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios", 7);
+    await upsertPushToken("dev-2", "ExponentPushToken[def456]", "android", 7);
+    await sendPushForUser(7, [event]);
+    expect(sent).toHaveLength(2);
+    expect(sent[0]![0]!.to).toBe("ExponentPushToken[abc123]");
+    expect(sent[1]![0]!.to).toBe("ExponentPushToken[def456]");
+  });
+
+  it("skips devices bound to other users", async () => {
+    await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios", 7);
+    await upsertPushToken("dev-2", "ExponentPushToken[def456]", "android", 8);
+    await sendPushForUser(7, [event]);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]![0]!.to).toBe("ExponentPushToken[abc123]");
+  });
+
+  it("no-ops when the user has no bound devices", async () => {
+    await sendPushForUser(7, [event]);
+    expect(sent).toHaveLength(0);
+  });
+
+  it("sends using device tokens read from the database", async () => {
+    mockedGetDb.mockResolvedValue({
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(async () => [
+            { deviceId: "dev-1", token: "ExponentPushToken[dbpath]" },
+          ]),
+        })),
+      })),
+    } as never);
+    await upsertPushToken("dev-1", "ExponentPushToken[dbpath]", "ios", 7);
+    await sendPushForUser(7, [event]);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]![0]!.to).toBe("ExponentPushToken[dbpath]");
+  });
+});
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -247,7 +249,10 @@ export async function sendPushForUser(
         .map(([deviceId]) => deviceId);
     }
   } catch (error) {
-    console.warn(`[Push] Failed to read push tokens for user ${userId}:`, error);
+    console.warn(
+      `[Push] Failed to read push tokens for user ${userId}:`,
+      error,
+    );
     return;
   }
   for (const deviceId of deviceIds) {
@@ -278,6 +283,7 @@ git commit -m "feat(notifications): bind push tokens to users; sendPushForUser"
 ### Task 3: notifications — memory path (binding, hybrid pull, user-scoped evaluation)
 
 **Files:**
+
 - Modify: `server/notifications.ts`
 - Test: `tests/notifications.test.ts`
 
@@ -297,7 +303,10 @@ vi.mock("../server/push-notifications", () => ({
 Add `sendPushForUser` to the import at line 26:
 
 ```ts
-import { sendPushForDevice, sendPushForUser } from "../server/push-notifications";
+import {
+  sendPushForDevice,
+  sendPushForUser,
+} from "../server/push-notifications";
 ```
 
 Append a new describe block at the end of `tests/notifications.test.ts` (after line 374):
@@ -478,10 +487,7 @@ import {
 Line 13 add `sendPushForUser`:
 
 ```ts
-import {
-  sendPushForDevice,
-  sendPushForUser,
-} from "./push-notifications";
+import { sendPushForDevice, sendPushForUser } from "./push-notifications";
 ```
 
 Change the memory maps and `EventDraft` (lines 53-58) to:
@@ -499,8 +505,10 @@ const memoryConfigs = new Map<
 const memoryEvents = new Map<string, MemoryEvent>();
 const memoryDeliveries = new Map<string, Set<string>>();
 
-interface EventDraft
-  extends Omit<InsertNotificationEventRow, "deviceId" | "userId"> {
+interface EventDraft extends Omit<
+  InsertNotificationEventRow,
+  "deviceId" | "userId"
+> {
   dedupKey: string;
 }
 ```
@@ -550,7 +558,8 @@ export async function evaluateNotifications(now: number): Promise<void> {
     return;
   }
   const rows = await db.select().from(deviceNotificationConfigs);
-  const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> = [];
+  const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> =
+    [];
   const userDevices = new Map<
     number,
     Array<{ deviceId: string; config: NotificationConfig }>
@@ -578,7 +587,8 @@ Replace `evaluateConfig` (lines 133-152) with the memory helpers:
 
 ```ts
 async function evaluateMemory(now: number): Promise<void> {
-  const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> = [];
+  const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> =
+    [];
   const userDevices = new Map<
     number,
     Array<{ deviceId: string; config: NotificationConfig }>
@@ -673,7 +683,8 @@ function aggregateConfigs(configs: NotificationConfig[]): NotificationConfig {
       if (!stockWatches.has(watch.id)) stockWatches.set(watch.id, watch);
     }
     for (const reminder of config.dateReminders) {
-      if (!dateReminders.has(reminder.id)) dateReminders.set(reminder.id, reminder);
+      if (!dateReminders.has(reminder.id))
+        dateReminders.set(reminder.id, reminder);
     }
   }
   return {
@@ -694,7 +705,10 @@ async function evaluateConfigDb(
   now: number,
 ): Promise<void> {
   const existing = await db
-    .select({ id: notificationEvents.id, dedupKey: notificationEvents.dedupKey })
+    .select({
+      id: notificationEvents.id,
+      dedupKey: notificationEvents.dedupKey,
+    })
     .from(notificationEvents)
     .where(eq(notificationEvents.deviceId, deviceId));
   const delivered = await db
@@ -724,7 +738,10 @@ async function evaluateUserDb(
   const boundCount = devices.length;
   const config = aggregateConfigs(devices.map((d) => d.config));
   const existing = await db
-    .select({ id: notificationEvents.id, dedupKey: notificationEvents.dedupKey })
+    .select({
+      id: notificationEvents.id,
+      dedupKey: notificationEvents.dedupKey,
+    })
     .from(notificationEvents)
     .where(eq(notificationEvents.userId, userId));
   const eventIds = existing.map((e) => e.id);
@@ -848,7 +865,8 @@ function rowToConfig(row: {
 }): NotificationConfig {
   return {
     alerts: (row.alerts as NotificationConfig["alerts"]) ?? [],
-    stockWatches: (row.stockWatches as NotificationConfig["stockWatches"]) ?? [],
+    stockWatches:
+      (row.stockWatches as NotificationConfig["stockWatches"]) ?? [],
     dateReminders:
       (row.dateReminders as NotificationConfig["dateReminders"]) ?? [],
   };
@@ -879,6 +897,7 @@ git commit -m "feat(notifications): user-scoped evaluation and hybrid pull"
 ### Task 4: notifications — drop deliveredAt + DB-path tests
 
 **Files:**
+
 - Modify: `drizzle/schema.ts:164-174` (drop `deliveredAt`)
 - Modify: `server/notifications.ts:196, 220, 242` (remove `deliveredAt: null`)
 - Test: `tests/notifications.test.ts`
@@ -1080,6 +1099,7 @@ git commit -m "feat(notifications): drop deliveredAt; DB-path user-scoped tests"
 ### Task 5: routers — hybrid auth branching
 
 **Files:**
+
 - Modify: `server/routers.ts:138-196`
 - Test: `tests/notifications-router.test.ts`
 
@@ -1114,6 +1134,7 @@ function createAuthedContext(userId: number): TrpcContext {
 ```
 
 Update the existing arg assertions to include the new `userId` argument:
+
 - Line 72: `expect(mockedPull).toHaveBeenCalledWith("dev-1");` → `expect(mockedPull).toHaveBeenCalledWith("dev-1", undefined);`
 - Lines 92-96: `expect(mockedUpsertPush).toHaveBeenCalledWith("dev-1", "ExponentPushToken[abc123]", "ios");` → add `, null` at the end.
 - Lines 127-138: `expect(mockedUpsert).toHaveBeenCalledWith("dev-1", {...});` → add `, null` after the config object.
@@ -1121,44 +1142,44 @@ Update the existing arg assertions to include the new `userId` argument:
 Append new tests at the end of the `describe("notifications router", ...)` block (after line 160):
 
 ```ts
-  it("pulls user-scoped events when authenticated", async () => {
-    mockedPull.mockResolvedValue([]);
-    const caller = appRouter.createCaller(createAuthedContext(7));
-    await caller.notifications.pull({ deviceId: "dev-1" });
-    expect(mockedPull).toHaveBeenCalledWith("dev-1", 7);
-  });
+it("pulls user-scoped events when authenticated", async () => {
+  mockedPull.mockResolvedValue([]);
+  const caller = appRouter.createCaller(createAuthedContext(7));
+  await caller.notifications.pull({ deviceId: "dev-1" });
+  expect(mockedPull).toHaveBeenCalledWith("dev-1", 7);
+});
 
-  it("binds the device to the user on authenticated uploadConfig", async () => {
-    mockedUpsert.mockResolvedValue(undefined);
-    const caller = appRouter.createCaller(createAuthedContext(7));
-    await caller.notifications.uploadConfig({
-      deviceId: "dev-1",
-      alerts: [],
-      stockWatches: [],
-      dateReminders: [],
-    });
-    expect(mockedUpsert).toHaveBeenCalledWith(
-      "dev-1",
-      { alerts: [], stockWatches: [], dateReminders: [] },
-      7,
-    );
+it("binds the device to the user on authenticated uploadConfig", async () => {
+  mockedUpsert.mockResolvedValue(undefined);
+  const caller = appRouter.createCaller(createAuthedContext(7));
+  await caller.notifications.uploadConfig({
+    deviceId: "dev-1",
+    alerts: [],
+    stockWatches: [],
+    dateReminders: [],
   });
+  expect(mockedUpsert).toHaveBeenCalledWith(
+    "dev-1",
+    { alerts: [], stockWatches: [], dateReminders: [] },
+    7,
+  );
+});
 
-  it("binds the device to the user on authenticated registerPushToken", async () => {
-    mockedUpsertPush.mockResolvedValue(undefined);
-    const caller = appRouter.createCaller(createAuthedContext(7));
-    await caller.notifications.registerPushToken({
-      deviceId: "dev-1",
-      token: "ExponentPushToken[abc123]",
-      platform: "ios",
-    });
-    expect(mockedUpsertPush).toHaveBeenCalledWith(
-      "dev-1",
-      "ExponentPushToken[abc123]",
-      "ios",
-      7,
-    );
+it("binds the device to the user on authenticated registerPushToken", async () => {
+  mockedUpsertPush.mockResolvedValue(undefined);
+  const caller = appRouter.createCaller(createAuthedContext(7));
+  await caller.notifications.registerPushToken({
+    deviceId: "dev-1",
+    token: "ExponentPushToken[abc123]",
+    platform: "ios",
   });
+  expect(mockedUpsertPush).toHaveBeenCalledWith(
+    "dev-1",
+    "ExponentPushToken[abc123]",
+    "ios",
+    7,
+  );
+});
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -1266,6 +1287,7 @@ git commit -m "feat(notifications): hybrid auth branching in notifications route
 ### Task 6: Checkpoint v4.0
 
 **Files:**
+
 - Modify: `todo.md` (append Phase 40)
 
 - [ ] **Step 1: Format all touched files**

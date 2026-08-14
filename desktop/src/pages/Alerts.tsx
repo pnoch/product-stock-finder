@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Bell, Clock, Trash2, RotateCcw, ToggleLeft, ToggleRight } from "lucide-react";
+import {
+  Bell,
+  Clock,
+  Trash2,
+  RotateCcw,
+  ToggleLeft,
+  ToggleRight,
+} from "lucide-react";
 import { useAlerts } from "../hooks/use-storage";
 import { storage } from "../storage";
 import { formatPrice } from "../../../lib/currency";
@@ -14,7 +21,11 @@ type Tab = "alerts" | "reminders";
 export function Alerts() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("alerts");
-  const { alerts, loading: alertsLoading, refresh: refreshAlerts } = useAlerts();
+  const {
+    alerts,
+    loading: alertsLoading,
+    refresh: refreshAlerts,
+  } = useAlerts();
   const [reminders, setReminders] = useState<BackOrderReminder[]>([]);
   const [watches, setWatches] = useState<BackOrderReminder[]>([]);
   const [remindersLoading, setRemindersLoading] = useState(true);
@@ -183,8 +194,11 @@ function AlertRow({
           {isTriggered ? (
             <>
               Triggered at{" "}
-              {formatPrice(alert.triggeredPrice ?? alert.targetPrice, alert.currency)} on{" "}
-              {new Date(alert.triggeredAt!).toLocaleDateString()}
+              {formatPrice(
+                alert.triggeredPrice ?? alert.targetPrice,
+                alert.currency,
+              )}{" "}
+              on {new Date(alert.triggeredAt!).toLocaleDateString()}
             </>
           ) : (
             <>
@@ -302,7 +316,15 @@ function RemindersTab({
                   </p>
                 </div>
                 {w.lastKnownStatus && (
-                  <StockBadge status={w.lastKnownStatus as "in_stock" | "back_order" | "out_of_stock" | "unknown"} />
+                  <StockBadge
+                    status={
+                      w.lastKnownStatus as
+                        | "in_stock"
+                        | "back_order"
+                        | "out_of_stock"
+                        | "unknown"
+                    }
+                  />
                 )}
                 <button
                   onClick={() => onDeleteWatch(w.id)}

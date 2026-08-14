@@ -24,7 +24,9 @@ export async function registerPushToken(): Promise<void> {
         token: token.data,
         platform: Platform.OS as "ios" | "android",
       }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
   } catch {
     // push registration is best-effort

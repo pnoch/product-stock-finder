@@ -41,7 +41,12 @@ vi.mock("../server/notifications", () => ({
 
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { fetchWithParser } from "../lib/scrapers/utils";
-import { getCachedPrice, setCachedPrice, getAllFetchedAt, listNearExpiry } from "../server/price-cache";
+import {
+  getCachedPrice,
+  setCachedPrice,
+  getAllFetchedAt,
+  listNearExpiry,
+} from "../server/price-cache";
 import { getHistory, recordHistoryPoint } from "../server/price-history";
 import { listProductsMissingImage } from "../server/product-images";
 import {
@@ -91,13 +96,23 @@ describe("getPrice", () => {
   it("returns a fresh cached snapshot and its history without scraping", async () => {
     mockedGetCached.mockResolvedValue(freshSnapshot);
     mockedGetHistory.mockResolvedValue([
-      { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+      {
+        date: "2026-08-01T00:00:00.000Z",
+        price: 90,
+        currency: "MYR",
+        stockStatus: "in_stock",
+      },
     ]);
     const result = await getPrice("server2u-my", "CRS804");
     expect(result).toEqual({
       snapshot: freshSnapshot,
       history: [
-        { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+        {
+          date: "2026-08-01T00:00:00.000Z",
+          price: 90,
+          currency: "MYR",
+          stockStatus: "in_stock",
+        },
       ],
     });
     expect(mockedFetch).not.toHaveBeenCalled();
@@ -179,7 +194,11 @@ describe("warmCatalogRotation", () => {
 
   it("warms the least-recently-fetched pairs", async () => {
     mockedGetAllFetchedAt.mockResolvedValue([
-      { distributorId: "server2u-my", modelNumber: "CRS804-4DDQ-hRM", fetchedAt: 1000 },
+      {
+        distributorId: "server2u-my",
+        modelNumber: "CRS804-4DDQ-hRM",
+        fetchedAt: 1000,
+      },
     ]);
     const warmed = await warmCatalogRotation(3);
     expect(warmed).toBe(3);
@@ -201,7 +220,8 @@ describe("warmProductImages", () => {
   });
 
   it("returns 0 when there are no missing images", async () => {
-    const { listProductsMissingImage } = await import("../server/product-images");
+    const { listProductsMissingImage } =
+      await import("../server/product-images");
     vi.mocked(listProductsMissingImage).mockResolvedValue([]);
     const warmed = await warmProductImages(2);
     expect(warmed).toBe(0);

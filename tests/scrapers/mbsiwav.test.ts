@@ -20,14 +20,16 @@ describe("Mbsiwav Parser", () => {
   it("should return null for 404 page fixture", () => {
     const fixturePath = path.join(FIXTURES_DIR, "mbsiwav-ca.html");
     expect(fs.existsSync(fixturePath)).toBe(true);
-    
+
     const html = fs.readFileSync(fixturePath, "utf-8");
     const result = mbsiwavParser.parsePrice(html);
     expect(result).toBeNull();
   });
 
   it("should return null for invalid HTML", () => {
-    const result = mbsiwavParser.parsePrice("<html><body>No price here</body></html>");
+    const result = mbsiwavParser.parsePrice(
+      "<html><body>No price here</body></html>",
+    );
     expect(result).toBeNull();
   });
 
@@ -35,7 +37,7 @@ describe("Mbsiwav Parser", () => {
     const html = `<div><span class="price">C$399.00</span><span class="stock-status">In Stock</span></div>`;
     const result = mbsiwavParser.parsePrice(html);
     expect(result).not.toBeNull();
-    expect(result!.price).toBe(399.00);
+    expect(result!.price).toBe(399.0);
     expect(result!.currency).toBe("CAD");
     expect(result!.stockStatus).toBe("in_stock");
   });

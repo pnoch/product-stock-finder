@@ -35,7 +35,11 @@ export function analyzeDistributors(
           : best,
       );
       coverage++;
-      const price = convertPrice(cheapest.price, cheapest.currency, displayCurrency);
+      const price = convertPrice(
+        cheapest.price,
+        cheapest.currency,
+        displayCurrency,
+      );
       totalCost += price + price * (cheapest.taxRate ?? 0);
     }
 

@@ -53,7 +53,12 @@ describe("prices router", () => {
     mockedGetPrice.mockResolvedValue({
       snapshot,
       history: [
-        { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+        {
+          date: "2026-08-01T00:00:00.000Z",
+          price: 90,
+          currency: "MYR",
+          stockStatus: "in_stock",
+        },
       ],
     });
     const caller = appRouter.createCaller(createPublicContext());
@@ -64,7 +69,12 @@ describe("prices router", () => {
     expect(result).toEqual({
       snapshot,
       history: [
-        { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+        {
+          date: "2026-08-01T00:00:00.000Z",
+          price: 90,
+          currency: "MYR",
+          stockStatus: "in_stock",
+        },
       ],
     });
     expect(mockedGetPrice).toHaveBeenCalledWith("server2u-my", "CRS804");
@@ -97,7 +107,12 @@ describe("prices router", () => {
       currency: string;
       stockStatus: "in_stock" | "back_order" | "out_of_stock" | "unknown";
     }[] = [
-      { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+      {
+        date: "2026-08-01T00:00:00.000Z",
+        price: 90,
+        currency: "MYR",
+        stockStatus: "in_stock",
+      },
     ];
     const result = await caller.prices.uploadHistory({
       distributorId: "server2u-my",

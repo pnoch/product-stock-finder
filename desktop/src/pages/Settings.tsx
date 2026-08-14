@@ -1,12 +1,26 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
-import { Palette, DollarSign, Bell, Clock, Download, Upload, Trash2, Activity, Globe, UserCircle } from "lucide-react";
+import {
+  Palette,
+  DollarSign,
+  Bell,
+  Clock,
+  Download,
+  Upload,
+  Trash2,
+  Activity,
+  Globe,
+  UserCircle,
+} from "lucide-react";
 import { useSettings } from "../hooks/use-storage";
 import { useTheme } from "../hooks/use-theme";
 import { storage } from "../storage";
 import { startPricePoller, stopPricePoller } from "../background";
 import { EXCHANGE_RATES, CURRENCY_SYMBOLS } from "../../../lib/currency";
-import { exportWatchlistAsJson, importWatchlistFromJson } from "../import-export";
+import {
+  exportWatchlistAsJson,
+  importWatchlistFromJson,
+} from "../import-export";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useAuth, buildLoginUrl } from "../hooks/use-auth";
 import { getApiBaseUrl } from "../lib/api-base";
@@ -26,12 +40,13 @@ export function Settings() {
     if (prev && prev !== "manual" && prev !== settings.checkInterval) {
       stopPricePoller();
     }
-    const intervalMinutes =
-      settings.checkInterval === "hourly" ? 60 : 1440;
+    const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
     startPricePoller(intervalMinutes, getApiBaseUrl());
   }, [settings?.checkInterval]);
   const [clearConfirm, setClearConfirm] = useState(false);
-  const [importExportMessage, setImportExportMessage] = useState<string | null>(null);
+  const [importExportMessage, setImportExportMessage] = useState<string | null>(
+    null,
+  );
   const { user, isAuthenticated, login, logout } = useAuth();
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -146,7 +161,9 @@ export function Settings() {
       >
         <Activity className="w-5 h-5 text-brand-600 dark:text-brand-400" />
         <span className="text-left">
-          <span className="block text-lg font-semibold">Distributor Health</span>
+          <span className="block text-lg font-semibold">
+            Distributor Health
+          </span>
           <span className="block text-sm text-gray-500 dark:text-gray-400">
             View scraper status and run a live check
           </span>
@@ -209,7 +226,13 @@ export function Settings() {
           onChange={(e) => update({ shippingRegion: e.target.value })}
           className="w-full max-w-xs px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         >
-          {["Asia-Pacific", "Europe", "North America", "Middle East", "Africa"].map((region) => (
+          {[
+            "Asia-Pacific",
+            "Europe",
+            "North America",
+            "Middle East",
+            "Africa",
+          ].map((region) => (
             <option key={region} value={region}>
               {region}
             </option>
@@ -252,7 +275,9 @@ export function Settings() {
             <input
               type="checkbox"
               checked={settings.notificationsEnabled}
-              onChange={(e) => update({ notificationsEnabled: e.target.checked })}
+              onChange={(e) =>
+                update({ notificationsEnabled: e.target.checked })
+              }
               className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
             />
           </label>
@@ -315,7 +340,9 @@ export function Settings() {
           </button>
         </div>
         {importExportMessage && (
-          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">{importExportMessage}</p>
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+            {importExportMessage}
+          </p>
         )}
       </div>
 
@@ -331,7 +358,9 @@ export function Settings() {
           </button>
         ) : (
           <div className="flex items-center gap-3">
-            <span className="text-sm text-red-600 dark:text-red-400">Are you sure?</span>
+            <span className="text-sm text-red-600 dark:text-red-400">
+              Are you sure?
+            </span>
             <button
               onClick={handleClearAllData}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"

@@ -13,10 +13,12 @@
 ## File Structure
 
 ### New Files
+
 - `lib/watchlist-summary.ts` — shared summary utility
 - `tests/watchlist-summary.test.ts` — unit tests
 
 ### Modified Files
+
 - `app/(tabs)/watchlist.tsx` — add summary card
 - `desktop/src/pages/Watchlist.tsx` — add summary card
 
@@ -25,6 +27,7 @@
 ## Task 1: Create Shared Summary Utility
 
 **Files:**
+
 - Create: `lib/watchlist-summary.ts`
 - Test: `tests/watchlist-summary.test.ts`
 
@@ -164,7 +167,11 @@ export function computeWatchlistSummary(
     for (const listing of product.listings ?? []) {
       listingCount++;
       if (listing.price > 0 && listing.currency) {
-        totalValue += convertPrice(listing.price, listing.currency, displayCurrency);
+        totalValue += convertPrice(
+          listing.price,
+          listing.currency,
+          displayCurrency,
+        );
       }
       if (listing.stockStatus === "in_stock") inStock++;
       else if (listing.stockStatus === "back_order") backOrder++;
@@ -193,6 +200,7 @@ git commit -m "feat: add watchlist summary utility with tests"
 ## Task 2: Add Summary Card to Mobile Watchlist
 
 **Files:**
+
 - Modify: `app/(tabs)/watchlist.tsx`
 
 - [ ] **Step 1: Add imports**
@@ -239,44 +247,76 @@ Add `useMemo` to the React import if not already imported.
 Insert the summary card between the header (ends around line 362) and the progress bar / sort bar. Add this JSX after the header `</View>`:
 
 ```tsx
-{watchlist.length > 0 && (
-  <View
-    style={{
-      marginHorizontal: 16,
-      marginBottom: 12,
-      padding: 16,
-      borderRadius: 16,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-    }}
-  >
-    <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
-      <Text style={{ color: colors.muted, fontSize: 13 }}>Total Value</Text>
-      <Text style={{ color: colors.foreground, fontSize: 22, fontWeight: "700" }}>
-        {formatPrice(summary.totalValue, displayCurrency)}
-      </Text>
+{
+  watchlist.length > 0 && (
+    <View
+      style={{
+        marginHorizontal: 16,
+        marginBottom: 12,
+        padding: 16,
+        borderRadius: 16,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+        }}
+      >
+        <Text style={{ color: colors.muted, fontSize: 13 }}>Total Value</Text>
+        <Text
+          style={{ color: colors.foreground, fontSize: 22, fontWeight: "700" }}
+        >
+          {formatPrice(summary.totalValue, displayCurrency)}
+        </Text>
+      </View>
+      <View style={{ flexDirection: "row", marginTop: 12, gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{ color: colors.success, fontSize: 16, fontWeight: "600" }}
+          >
+            {summary.inStock}
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>In Stock</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{ color: colors.warning, fontSize: 16, fontWeight: "600" }}
+          >
+            {summary.backOrder}
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>Back Order</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{ color: colors.error, fontSize: 16, fontWeight: "600" }}
+          >
+            {summary.outOfStock}
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>
+            Out of Stock
+          </Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              color: colors.foreground,
+              fontSize: 16,
+              fontWeight: "600",
+            }}
+          >
+            {summary.listingCount}
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>Listings</Text>
+        </View>
+      </View>
     </View>
-    <View style={{ flexDirection: "row", marginTop: 12, gap: 12 }}>
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: colors.success, fontSize: 16, fontWeight: "600" }}>{summary.inStock}</Text>
-        <Text style={{ color: colors.muted, fontSize: 12 }}>In Stock</Text>
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: colors.warning, fontSize: 16, fontWeight: "600" }}>{summary.backOrder}</Text>
-        <Text style={{ color: colors.muted, fontSize: 12 }}>Back Order</Text>
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: colors.error, fontSize: 16, fontWeight: "600" }}>{summary.outOfStock}</Text>
-        <Text style={{ color: colors.muted, fontSize: 12 }}>Out of Stock</Text>
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "600" }}>{summary.listingCount}</Text>
-        <Text style={{ color: colors.muted, fontSize: 12 }}>Listings</Text>
-      </View>
-    </View>
-  </View>
-)}
+  );
+}
 ```
 
 - [ ] **Step 5: Run typecheck to verify no errors**
@@ -296,6 +336,7 @@ git commit -m "feat: add summary card to mobile watchlist"
 ## Task 3: Add Summary Card to Desktop Watchlist
 
 **Files:**
+
 - Modify: `desktop/src/pages/Watchlist.tsx`
 
 - [ ] **Step 1: Add imports**
@@ -334,34 +375,44 @@ const summary = useMemo(
 Insert the summary card near the top of the returned JSX, after the header. Find the header block and add the card after it:
 
 ```tsx
-{watchlist.length > 0 && (
-  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 mb-4">
-    <div className="flex items-baseline justify-between">
-      <span className="text-sm text-gray-500 dark:text-gray-400">Total Value</span>
-      <span className="text-2xl font-bold">
-        {formatPrice(summary.totalValue, displayCurrency)}
-      </span>
+{
+  watchlist.length > 0 && (
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 mb-4">
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm text-gray-500 dark:text-gray-400">
+          Total Value
+        </span>
+        <span className="text-2xl font-bold">
+          {formatPrice(summary.totalValue, displayCurrency)}
+        </span>
+      </div>
+      <div className="flex gap-4 mt-3">
+        <div className="flex-1">
+          <p className="text-lg font-semibold text-emerald-600">
+            {summary.inStock}
+          </p>
+          <p className="text-xs text-gray-500">In Stock</p>
+        </div>
+        <div className="flex-1">
+          <p className="text-lg font-semibold text-amber-600">
+            {summary.backOrder}
+          </p>
+          <p className="text-xs text-gray-500">Back Order</p>
+        </div>
+        <div className="flex-1">
+          <p className="text-lg font-semibold text-red-600">
+            {summary.outOfStock}
+          </p>
+          <p className="text-xs text-gray-500">Out of Stock</p>
+        </div>
+        <div className="flex-1">
+          <p className="text-lg font-semibold">{summary.listingCount}</p>
+          <p className="text-xs text-gray-500">Listings</p>
+        </div>
+      </div>
     </div>
-    <div className="flex gap-4 mt-3">
-      <div className="flex-1">
-        <p className="text-lg font-semibold text-emerald-600">{summary.inStock}</p>
-        <p className="text-xs text-gray-500">In Stock</p>
-      </div>
-      <div className="flex-1">
-        <p className="text-lg font-semibold text-amber-600">{summary.backOrder}</p>
-        <p className="text-xs text-gray-500">Back Order</p>
-      </div>
-      <div className="flex-1">
-        <p className="text-lg font-semibold text-red-600">{summary.outOfStock}</p>
-        <p className="text-xs text-gray-500">Out of Stock</p>
-      </div>
-      <div className="flex-1">
-        <p className="text-lg font-semibold">{summary.listingCount}</p>
-        <p className="text-xs text-gray-500">Listings</p>
-      </div>
-    </div>
-  </div>
-)}
+  );
+}
 ```
 
 - [ ] **Step 5: Run typecheck to verify no errors**

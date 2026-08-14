@@ -3,7 +3,12 @@ import { classifyResult, createHealthService } from "@/lib/scrapers/health";
 
 describe("classifyResult", () => {
   it("returns working when result has a price", () => {
-    const result = { price: 100, currency: "USD", stockStatus: "in_stock" as const, url: "x" };
+    const result = {
+      price: 100,
+      currency: "USD",
+      stockStatus: "in_stock" as const,
+      url: "x",
+    };
     expect(classifyResult("<html></html>", result)).toBe("working");
   });
 
@@ -24,11 +29,18 @@ describe("classifyResult", () => {
   });
 
   it("returns error when an error is thrown", () => {
-    expect(classifyResult("", null, new Error("connection refused"))).toBe("error");
+    expect(classifyResult("", null, new Error("connection refused"))).toBe(
+      "error",
+    );
   });
 
   it("returns blocked even when result has a price (blocked wins)", () => {
-    const result = { price: 100, currency: "USD", stockStatus: "in_stock" as const, url: "x" };
+    const result = {
+      price: 100,
+      currency: "USD",
+      stockStatus: "in_stock" as const,
+      url: "x",
+    };
     expect(classifyResult("Access Denied", result)).toBe("blocked");
   });
 });

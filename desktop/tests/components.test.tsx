@@ -35,7 +35,9 @@ describe("StockBadge", () => {
 
 describe("EmptyState", () => {
   it("renders title and description", () => {
-    render(<EmptyState icon={null} title="No items" description="Add something" />);
+    render(
+      <EmptyState icon={null} title="No items" description="Add something" />,
+    );
     expect(screen.getByText("No items")).toBeInTheDocument();
     expect(screen.getByText("Add something")).toBeInTheDocument();
   });
@@ -60,7 +62,12 @@ describe("TimeRangeChips", () => {
   it("calls onSelect when clicked", async () => {
     let selected = "1m";
     const { user } = renderWithUser(
-      <TimeRangeChips selected={selected} onSelect={(r) => { selected = r; }} />
+      <TimeRangeChips
+        selected={selected}
+        onSelect={(r) => {
+          selected = r;
+        }}
+      />,
     );
     await user.click(screen.getByText("3M"));
     expect(selected).toBe("3m");

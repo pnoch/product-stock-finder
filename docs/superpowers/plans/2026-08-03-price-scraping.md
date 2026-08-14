@@ -13,11 +13,13 @@
 ## File Structure
 
 ### Shared Types (`lib/scrapers/`)
+
 - `lib/scrapers/types.ts` — ScrapeResult, DistributorParser interfaces
 - `lib/scrapers/registry.ts` — maps distributor IDs to parser configs
 - `lib/scrapers/utils.ts` — currency detection, stock text inference, rate limit helper
 
 ### Desktop Rust Scrapers (`desktop/src-tauri/src/scrapers/`)
+
 - `desktop/src-tauri/src/scrapers/mod.rs` — module exports + shared fetch/parse logic
 - `desktop/src-tauri/src/scrapers/server2u.rs` — one file per distributor (25 total)
 - `desktop/src-tauri/src/scrapers/linitx.rs`
@@ -25,17 +27,20 @@
 - `desktop/src-tauri/src/lib.rs` — add `check_all_prices` Tauri command
 
 ### Mobile TypeScript Scrapers (`lib/scrapers/`)
+
 - `lib/scrapers/server2u.ts` — one file per distributor (25 total)
 - `lib/scrapers/linitx.ts`
 - ... (25 files)
 - `lib/background-price-check.ts` — update to use real scrapers
 
 ### UI Updates
+
 - `app/product/[id].tsx` — add last-refreshed indicator
 - `app/(tabs)/watchlist.tsx` — add "Check Now" button + progress
 - `app/(tabs)/settings.tsx` — add scraper status dashboard
 
 ### Tests
+
 - `tests/scrapers/server2u.test.ts` — one test per distributor (25 total)
 - `tests/fixtures/scrapers/server2u.html` — HTML fixtures (25 total)
 
@@ -44,6 +49,7 @@
 ## Task 1: Shared Scraping Types
 
 **Files:**
+
 - Create: `lib/scrapers/types.ts`
 - Modify: `lib/types.ts` (add ScraperStatus to AppSettings)
 
@@ -82,11 +88,14 @@ export interface ScrapeStats {
   succeeded: number;
   failed: number;
   lastCheckTime: string;
-  distributorStatuses: Record<string, {
-    lastSuccess: string | null;
-    lastError: string | null;
-    consecutiveFailures: number;
-  }>;
+  distributorStatuses: Record<
+    string,
+    {
+      lastSuccess: string | null;
+      lastError: string | null;
+      consecutiveFailures: number;
+    }
+  >;
 }
 ```
 
@@ -119,6 +128,7 @@ git commit -m "feat: add shared scraping types and ScraperStatus to AppSettings"
 ## Task 2: Shared Scraping Utilities
 
 **Files:**
+
 - Create: `lib/scrapers/utils.ts`
 
 - [ ] **Step 1: Create shared utilities**
@@ -141,13 +151,26 @@ export function getRandomUserAgent(): string {
 
 export function inferStockStatus(text: string): StockStatus {
   const lower = text.toLowerCase();
-  if (lower.includes("in stock") || lower.includes("available") || lower.includes("add to cart")) {
+  if (
+    lower.includes("in stock") ||
+    lower.includes("available") ||
+    lower.includes("add to cart")
+  ) {
     return "in_stock";
   }
-  if (lower.includes("back order") || lower.includes("backorder") || lower.includes("pre-order") || lower.includes("expected")) {
+  if (
+    lower.includes("back order") ||
+    lower.includes("backorder") ||
+    lower.includes("pre-order") ||
+    lower.includes("expected")
+  ) {
     return "back_order";
   }
-  if (lower.includes("out of stock") || lower.includes("unavailable") || lower.includes("sold out")) {
+  if (
+    lower.includes("out of stock") ||
+    lower.includes("unavailable") ||
+    lower.includes("sold out")
+  ) {
     return "out_of_stock";
   }
   return "unknown";
@@ -155,17 +178,17 @@ export function inferStockStatus(text: string): StockStatus {
 
 export function extractCurrency(text: string): string | null {
   const symbols: Record<string, string> = {
-    "$": "USD",
+    $: "USD",
     "€": "EUR",
     "£": "GBP",
-    "R": "ZAR",
-    "A$": "AUD",
-    "NZ$": "NZD",
-    "C$": "CAD",
-    "RM": "MYR",
+    R: "ZAR",
+    A$: "AUD",
+    NZ$: "NZD",
+    C$: "CAD",
+    RM: "MYR",
     "د.إ": "AED",
-    "S$": "SGD",
-    "HK$": "HKD",
+    S$: "SGD",
+    HK$: "HKD",
     "฿": "THB",
   };
   for (const [symbol, code] of Object.entries(symbols)) {
@@ -176,13 +199,13 @@ export function extractCurrency(text: string): string | null {
 
 export async function fetchWithRateLimit(
   url: string,
-  rateLimitMs: number
+  rateLimitMs: number,
 ): Promise<string> {
   await new Promise((resolve) => setTimeout(resolve, rateLimitMs));
   const response = await fetch(url, {
     headers: {
       "User-Agent": getRandomUserAgent(),
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       "Accept-Language": "en-US,en;q=0.9",
       "Accept-Encoding": "gzip, deflate",
     },
@@ -225,6 +248,7 @@ git commit -m "feat: add shared scraping utilities (rate limiting, stock inferen
 ## Task 3: Parser Registry
 
 **Files:**
+
 - Create: `lib/scrapers/registry.ts`
 
 - [ ] **Step 1: Create parser registry**
@@ -288,7 +312,9 @@ export const PARSERS: DistributorParser[] = [
   neobitsParser,
 ];
 
-export function getParserByDistributorId(distributorId: string): DistributorParser | undefined {
+export function getParserByDistributorId(
+  distributorId: string,
+): DistributorParser | undefined {
   return PARSERS.find((p) => p.id === distributorId);
 }
 
@@ -309,6 +335,7 @@ git commit -m "feat: add parser registry with all 25 distributors"
 ## Task 4: First Desktop Parser (Server2U) — Template
 
 **Files:**
+
 - Create: `desktop/src-tauri/src/scrapers/mod.rs`
 - Create: `desktop/src-tauri/src/scrapers/server2u.rs`
 - Modify: `desktop/src-tauri/src/lib.rs`
@@ -390,25 +417,25 @@ pub async fn scrape(model: &str) -> Result<ScrapeResult, String> {
 
 fn parse_html(html: &str, url: &str) -> Result<ScrapeResult, String> {
     let document = Html::parse_document(html);
-    
+
     let price_selector = Selector::parse(".product-price, .price, [data-price]").map_err(|e| e.to_string())?;
     let stock_selector = Selector::parse(".stock-status, .availability, .stock").map_err(|e| e.to_string())?;
-    
+
     let price_text = document.select(&price_selector)
         .next()
         .map(|el| el.text().collect::<String>())
         .ok_or("Price not found")?;
-    
+
     let price = parse_price_from_text(&price_text)
         .ok_or_else(|| format!("Could not parse price: {}", price_text))?;
-    
+
     let stock_text = document.select(&stock_selector)
         .next()
         .map(|el| el.text().collect::<String>())
         .unwrap_or_default();
-    
+
     let stock_status = infer_stock_status(&stock_text);
-    
+
     Ok(ScrapeResult {
         price,
         currency: "MYR".to_string(),
@@ -468,6 +495,7 @@ git commit -m "feat: add first desktop scraper (Server2U) with shared module str
 ## Task 5: First Mobile Parser (Server2U) — Template
 
 **Files:**
+
 - Create: `lib/scrapers/server2u.ts`
 
 - [ ] **Step 1: Create Server2U mobile parser**
@@ -475,20 +503,27 @@ git commit -m "feat: add first desktop scraper (Server2U) with shared module str
 ```typescript
 // lib/scrapers/server2u.ts
 import { DistributorParser, ScrapeResult } from "./types";
-import { fetchWithRateLimit, parsePriceFromText, inferStockStatus } from "./utils";
+import {
+  fetchWithRateLimit,
+  parsePriceFromText,
+  inferStockStatus,
+} from "./utils";
 
-async function parseHtml(html: string, url: string): Promise<ScrapeResult | null> {
+async function parseHtml(
+  html: string,
+  url: string,
+): Promise<ScrapeResult | null> {
   // Dynamic import cheerio to avoid bundling issues
   const cheerio = await import("cheerio");
   const $ = cheerio.load(html);
-  
+
   const priceText = $(".product-price, .price, [data-price]").first().text();
   const price = parsePriceFromText(priceText);
   if (!price) return null;
-  
+
   const stockText = $(".stock-status, .availability, .stock").first().text();
   const stockStatus = inferStockStatus(stockText);
-  
+
   return {
     price,
     currency: "MYR",
@@ -500,12 +535,15 @@ async function parseHtml(html: string, url: string): Promise<ScrapeResult | null
 export const server2uParser: DistributorParser = {
   id: "server2u-my",
   baseUrl: "https://server2u.com",
-  buildSearchUrl: (model) => `https://server2u.com/search?q=${encodeURIComponent(model)}`,
+  buildSearchUrl: (model) =>
+    `https://server2u.com/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => null, // Will be async in practice
   rateLimitMs: 2000,
 };
 
-export async function scrapeServer2U(model: string): Promise<ScrapeResult | null> {
+export async function scrapeServer2U(
+  model: string,
+): Promise<ScrapeResult | null> {
   const url = server2uParser.buildSearchUrl(model);
   const html = await fetchWithRateLimit(url, server2uParser.rateLimitMs);
   return parseHtml(html, url);
@@ -524,6 +562,7 @@ git commit -m "feat: add first mobile scraper (Server2U) template"
 ## Task 6: Remaining Desktop Parsers (Batch)
 
 **Files:**
+
 - Create: `desktop/src-tauri/src/scrapers/linitx.rs` through `neobits.rs` (24 files)
 
 - [ ] **Step 1: Create all remaining desktop parsers**
@@ -546,11 +585,11 @@ fn parse_html(html: &str, url: &str) -> Result<ScrapeResult, String> {
     // Site-specific selectors
     let price_sel = Selector::parse(".product__price, .price--main").map_err(|e| e.to_string())?;
     let stock_sel = Selector::parse(".product__stock, .stock").map_err(|e| e.to_string())?;
-    
+
     let price_text = document.select(&price_sel).next().map(|el| el.text().collect::<String>()).ok_or("No price")?;
     let price = parse_price_from_text(&price_text).ok_or("Bad price")?;
     let stock_text = document.select(&stock_sel).next().map(|el| el.text().collect::<String>()).unwrap_or_default();
-    
+
     Ok(ScrapeResult {
         price,
         currency: "GBP".to_string(),
@@ -624,6 +663,7 @@ git commit -m "feat: add all 25 desktop parsers with check_all_prices command"
 ## Task 7: Remaining Mobile Parsers (Batch)
 
 **Files:**
+
 - Create: `lib/scrapers/linitx.ts` through `neobits.ts` (24 files)
 
 - [ ] **Step 1: Create all remaining mobile parsers**
@@ -633,28 +673,35 @@ Each parser follows the same pattern as Server2U but with site-specific CSS sele
 ```typescript
 // lib/scrapers/linitx.ts
 import { DistributorParser, ScrapeResult } from "./types";
-import { fetchWithRateLimit, parsePriceFromText, inferStockStatus } from "./utils";
+import {
+  fetchWithRateLimit,
+  parsePriceFromText,
+  inferStockStatus,
+} from "./utils";
 
 export const linitxParser: DistributorParser = {
   id: "linitx-uk",
   baseUrl: "https://linitx.com",
-  buildSearchUrl: (model) => `https://linitx.com/search?q=${encodeURIComponent(model)}`,
+  buildSearchUrl: (model) =>
+    `https://linitx.com/search?q=${encodeURIComponent(model)}`,
   parsePrice: () => null,
   rateLimitMs: 3000,
 };
 
-export async function scrapeLinitx(model: string): Promise<ScrapeResult | null> {
+export async function scrapeLinitx(
+  model: string,
+): Promise<ScrapeResult | null> {
   const url = linitxParser.buildSearchUrl(model);
   const html = await fetchWithRateLimit(url, linitxParser.rateLimitMs);
   const cheerio = await import("cheerio");
   const $ = cheerio.load(html);
-  
+
   const priceText = $(".product__price, .price--main").first().text();
   const price = parsePriceFromText(priceText);
   if (!price) return null;
-  
+
   const stockText = $(".product__stock, .stock").first().text();
-  
+
   return {
     price,
     currency: "GBP",
@@ -665,6 +712,7 @@ export async function scrapeLinitx(model: string): Promise<ScrapeResult | null> 
 ```
 
 Create similar files for all 24 remaining distributors, each with:
+
 - Correct base URL
 - Correct currency (EUR for European, USD for US, etc.)
 - Site-specific CSS selectors
@@ -686,6 +734,7 @@ git commit -m "feat: add all 25 mobile parsers with site-specific selectors"
 ## Task 8: Desktop Background Task Integration
 
 **Files:**
+
 - Modify: `desktop/src-tauri/src/lib.rs`
 - Modify: `desktop/src-tauri/src/main.rs` (if needed)
 
@@ -726,6 +775,7 @@ git commit -m "feat: integrate desktop scraping with background task and alerts"
 ## Task 9: Mobile Background Task Integration
 
 **Files:**
+
 - Modify: `lib/background-price-check.ts`
 
 - [ ] **Step 1: Update background task to use real scrapers**
@@ -737,15 +787,21 @@ import { scrapeServer2U } from "./scrapers/server2u";
 import { scrapeLinitx } from "./scrapers/linitx";
 // ... import all parsers
 
-async function scrapeProduct(product: Product, distributorId: string): Promise<ScrapeResult | null> {
+async function scrapeProduct(
+  product: Product,
+  distributorId: string,
+): Promise<ScrapeResult | null> {
   const parser = getParserByDistributorId(distributorId);
   if (!parser) return null;
-  
+
   switch (distributorId) {
-    case "server2u-my": return scrapeServer2U(product.modelNumber);
-    case "linitx-uk": return scrapeLinitx(product.modelNumber);
+    case "server2u-my":
+      return scrapeServer2U(product.modelNumber);
+    case "linitx-uk":
+      return scrapeLinitx(product.modelNumber);
     // ... all 25
-    default: return null;
+    default:
+      return null;
   }
 }
 ```
@@ -764,6 +820,7 @@ git commit -m "feat: integrate mobile scraping with background price check task"
 ## Task 10: UI — Last-Refreshed Indicator
 
 **Files:**
+
 - Modify: `app/product/[id].tsx`
 
 - [ ] **Step 1: Add last-refreshed indicator to product detail screen**
@@ -784,6 +841,7 @@ git commit -m "feat: add last-refreshed indicator to product cards"
 ## Task 11: UI — Check Now Button
 
 **Files:**
+
 - Modify: `app/(tabs)/watchlist.tsx`
 
 - [ ] **Step 1: Add "Check Now" button to watchlist header**
@@ -806,6 +864,7 @@ git commit -m "feat: add Check Now button with progress indicator"
 ## Task 12: UI — Scraper Status Dashboard
 
 **Files:**
+
 - Modify: `app/(tabs)/settings.tsx`
 
 - [ ] **Step 1: Add Scraper Status section to Settings**
@@ -826,6 +885,7 @@ git commit -m "feat: add scraper status dashboard in Settings"
 ## Task 13: HTML Fixture Generation
 
 **Files:**
+
 - Create: `tests/fixtures/scrapers/` directory
 - Create: `scripts/generate-fixtures.ts`
 
@@ -851,12 +911,14 @@ git commit -m "feat: add HTML fixtures for all 25 distributors"
 ## Task 14: Parser Unit Tests
 
 **Files:**
+
 - Create: `tests/scrapers/server2u.test.ts` through `neobits.test.ts` (25 files)
 - Modify: `vitest.config.ts` (if needed)
 
 - [ ] **Step 1: Write tests for first 5 parsers**
 
 Each test:
+
 - Loads HTML fixture
 - Runs parser
 - Asserts correct price, currency, stock status
@@ -882,6 +944,7 @@ git commit -m "feat: add unit tests for all 25 parsers"
 ## Task 15: Integration Tests
 
 **Files:**
+
 - Create: `tests/scraping-integration.test.ts`
 
 - [ ] **Step 1: Write integration tests**

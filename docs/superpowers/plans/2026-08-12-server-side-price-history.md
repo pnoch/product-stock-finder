@@ -12,33 +12,34 @@
 
 ## File Structure
 
-| File | Responsibility |
-| --- | --- |
-| `drizzle/schema.ts` | Add `price_history` table + row types |
-| `drizzle/0003_*.sql` | Generated migration |
-| `server/price-history.ts` | History storage: record/get/merge/purge (DB + memory fallback) |
-| `server/prices.ts` | Record history on scrape; `getPrice` returns `{ snapshot, history }`; warmer purges |
-| `server/routers.ts` | `prices.get` returns `{ snapshot, history }`; add `prices.uploadHistory` |
-| `lib/types.ts` | Add `ServerPriceResult` helper type |
-| `lib/price-history.ts` | Add `mergePriceHistory` helper (union by day, newest wins) |
-| `lib/server-prices.ts` | `fetchServerPrice` returns `{ snapshot, history }`; add `uploadServerHistory` |
-| `lib/background-price-check.ts` | `refreshListing` merges server history + piggyback backfill |
-| `lib/history-sync.ts` | `backfillLocalHistory` at launch |
-| `app/_layout.tsx` | Call `backfillLocalHistory` at launch |
-| `desktop/src-tauri/src/lib.rs` | Parse history in `fetch_server_price`; merge in `update_listing_price`; `backfill_local_history` command |
-| `desktop/src-tauri/src/scrapers/mod.rs` | Add `history` field to `ScrapeJobResult` |
-| `tests/price-history.test.ts` | History storage tests |
-| `tests/prices.test.ts` | Update for `{ snapshot, history }` + history recording |
-| `tests/prices-router.test.ts` | Update for `{ snapshot, history }` + `uploadHistory` |
-| `tests/server-prices.test.ts` | Update for `{ snapshot, history }` + `uploadServerHistory` |
-| `tests/server-first-scrape.test.ts` | Update for merge + piggyback backfill |
-| `tests/history-sync.test.ts` | `backfillLocalHistory` tests |
+| File                                    | Responsibility                                                                                           |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `drizzle/schema.ts`                     | Add `price_history` table + row types                                                                    |
+| `drizzle/0003_*.sql`                    | Generated migration                                                                                      |
+| `server/price-history.ts`               | History storage: record/get/merge/purge (DB + memory fallback)                                           |
+| `server/prices.ts`                      | Record history on scrape; `getPrice` returns `{ snapshot, history }`; warmer purges                      |
+| `server/routers.ts`                     | `prices.get` returns `{ snapshot, history }`; add `prices.uploadHistory`                                 |
+| `lib/types.ts`                          | Add `ServerPriceResult` helper type                                                                      |
+| `lib/price-history.ts`                  | Add `mergePriceHistory` helper (union by day, newest wins)                                               |
+| `lib/server-prices.ts`                  | `fetchServerPrice` returns `{ snapshot, history }`; add `uploadServerHistory`                            |
+| `lib/background-price-check.ts`         | `refreshListing` merges server history + piggyback backfill                                              |
+| `lib/history-sync.ts`                   | `backfillLocalHistory` at launch                                                                         |
+| `app/_layout.tsx`                       | Call `backfillLocalHistory` at launch                                                                    |
+| `desktop/src-tauri/src/lib.rs`          | Parse history in `fetch_server_price`; merge in `update_listing_price`; `backfill_local_history` command |
+| `desktop/src-tauri/src/scrapers/mod.rs` | Add `history` field to `ScrapeJobResult`                                                                 |
+| `tests/price-history.test.ts`           | History storage tests                                                                                    |
+| `tests/prices.test.ts`                  | Update for `{ snapshot, history }` + history recording                                                   |
+| `tests/prices-router.test.ts`           | Update for `{ snapshot, history }` + `uploadHistory`                                                     |
+| `tests/server-prices.test.ts`           | Update for `{ snapshot, history }` + `uploadServerHistory`                                               |
+| `tests/server-first-scrape.test.ts`     | Update for merge + piggyback backfill                                                                    |
+| `tests/history-sync.test.ts`            | `backfillLocalHistory` tests                                                                             |
 
 ---
 
 ### Task 1: `price_history` Drizzle table + migration
 
 **Files:**
+
 - Modify: `drizzle/schema.ts`
 - Test: `drizzle/0003_*.sql` (generated)
 
@@ -79,7 +80,7 @@ Run:
 DATABASE_URL="mysql://localhost:3306/product_stock_finder" pnpm exec drizzle-kit generate
 ```
 
-Expected: writes `drizzle/0003_*.sql` containing `CREATE TABLE \`price_history\`` with a composite primary key on `distributorId` + `modelNumber` + `date`, plus updated `drizzle/meta/_journal.json` and `drizzle/meta/0003_snapshot.json`. (This command only reads `drizzle/schema.ts` and writes SQL — it does not connect to a live DB.)
+Expected: writes `drizzle/0003_*.sql` containing `CREATE TABLE \`price_history\``with a composite primary key on`distributorId`+`modelNumber`+`date`, plus updated `drizzle/meta/\_journal.json`and`drizzle/meta/0003_snapshot.json`. (This command only reads `drizzle/schema.ts` and writes SQL — it does not connect to a live DB.)
 
 - [ ] **Step 3: Verify types**
 
@@ -98,6 +99,7 @@ git commit -m "feat(sync): add price_history table"
 ### Task 2: History storage — `server/price-history.ts`
 
 **Files:**
+
 - Create: `server/price-history.ts`
 - Test: `tests/price-history.test.ts`
 
@@ -202,8 +204,14 @@ describe("price history (memory backend)", () => {
     ]);
     const history = await getHistory("server2u-my", "CRS804");
     expect(history).toHaveLength(2);
-    expect(history[0]).toMatchObject({ date: "2026-08-01T20:00:00.000Z", price: 95 });
-    expect(history[1]).toMatchObject({ date: "2026-08-02T00:00:00.000Z", price: 90 });
+    expect(history[0]).toMatchObject({
+      date: "2026-08-01T20:00:00.000Z",
+      price: 95,
+    });
+    expect(history[1]).toMatchObject({
+      date: "2026-08-02T00:00:00.000Z",
+      price: 90,
+    });
   });
 
   it("purgeOldHistory removes rows older than 90 days", async () => {
@@ -272,7 +280,8 @@ export async function getHistory(
 ): Promise<PricePoint[]> {
   const db = await getDb();
   if (!db) {
-    const points = memoryHistory.get(cacheKey(distributorId, modelNumber)) ?? [];
+    const points =
+      memoryHistory.get(cacheKey(distributorId, modelNumber)) ?? [];
     return [...points].sort((a, b) => a.date.localeCompare(b.date));
   }
   const rows = await db
@@ -316,14 +325,17 @@ export async function mergeHistory(
       stockStatus: p.stockStatus,
       fetchedAt: Date.parse(p.date),
     };
-    await db.insert(priceHistory).values(values).onDuplicateKeyUpdate({
-      set: {
-        price: p.price,
-        currency: p.currency,
-        stockStatus: p.stockStatus,
-        fetchedAt: Date.parse(p.date),
-      },
-    });
+    await db
+      .insert(priceHistory)
+      .values(values)
+      .onDuplicateKeyUpdate({
+        set: {
+          price: p.price,
+          currency: p.currency,
+          stockStatus: p.stockStatus,
+          fetchedAt: Date.parse(p.date),
+        },
+      });
   }
 }
 
@@ -379,6 +391,7 @@ git commit -m "feat(server): add price history storage with memory fallback"
 ### Task 3: Record history on scrape + `getPrice` returns `{ snapshot, history }`
 
 **Files:**
+
 - Modify: `server/prices.ts`
 - Modify: `lib/types.ts`
 - Test: `tests/prices.test.ts`
@@ -470,13 +483,23 @@ describe("getPrice", () => {
   it("returns a fresh cached snapshot and its history without scraping", async () => {
     mockedGetCached.mockResolvedValue(freshSnapshot);
     mockedGetHistory.mockResolvedValue([
-      { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+      {
+        date: "2026-08-01T00:00:00.000Z",
+        price: 90,
+        currency: "MYR",
+        stockStatus: "in_stock",
+      },
     ]);
     const result = await getPrice("server2u-my", "CRS804");
     expect(result).toEqual({
       snapshot: freshSnapshot,
       history: [
-        { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+        {
+          date: "2026-08-01T00:00:00.000Z",
+          price: 90,
+          currency: "MYR",
+          stockStatus: "in_stock",
+        },
       ],
     });
     expect(mockedFetch).not.toHaveBeenCalled();
@@ -559,7 +582,11 @@ Current `refreshPrice` (lines 20-41) and `getPrice` (lines 57-68). Make these ch
 Add the import (after the `./price-cache` import, line 8):
 
 ```ts
-import { getHistory, recordHistoryPoint, purgeOldHistory } from "./price-history";
+import {
+  getHistory,
+  recordHistoryPoint,
+  purgeOldHistory,
+} from "./price-history";
 ```
 
 Change `refreshPrice` to record a history point after a successful scrape:
@@ -598,8 +625,7 @@ export async function getPrice(
   modelNumber: string,
 ): Promise<ServerPriceResult> {
   const cached = await getCachedPrice(distributorId, modelNumber);
-  const fresh =
-    cached !== null && Date.now() - cached.fetchedAt < PRICE_TTL_MS;
+  const fresh = cached !== null && Date.now() - cached.fetchedAt < PRICE_TTL_MS;
   if (!fresh) {
     void refreshSingleFlight(distributorId, modelNumber);
   }
@@ -617,18 +643,18 @@ import type { PriceSnapshot, ServerPriceResult } from "../lib/types";
 Change the warmer tick to also purge old history. Current lines 83-85:
 
 ```ts
-  warmerTimer = setInterval(() => {
-    void refreshNearExpiry(Date.now());
-  }, intervalMs);
+warmerTimer = setInterval(() => {
+  void refreshNearExpiry(Date.now());
+}, intervalMs);
 ```
 
 Change to:
 
 ```ts
-  warmerTimer = setInterval(() => {
-    void refreshNearExpiry(Date.now());
-    void purgeOldHistory(Date.now());
-  }, intervalMs);
+warmerTimer = setInterval(() => {
+  void refreshNearExpiry(Date.now());
+  void purgeOldHistory(Date.now());
+}, intervalMs);
 ```
 
 - [ ] **Step 5: Run tests to verify they pass**
@@ -653,6 +679,7 @@ git commit -m "feat(server): record price history on scrape and return it from g
 ### Task 4: Router — `prices.get` returns `{ snapshot, history }` + `prices.uploadHistory`
 
 **Files:**
+
 - Modify: `server/routers.ts`
 - Test: `tests/prices-router.test.ts`
 
@@ -716,7 +743,12 @@ describe("prices router", () => {
     mockedGetPrice.mockResolvedValue({
       snapshot,
       history: [
-        { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+        {
+          date: "2026-08-01T00:00:00.000Z",
+          price: 90,
+          currency: "MYR",
+          stockStatus: "in_stock",
+        },
       ],
     });
     const caller = appRouter.createCaller(createPublicContext());
@@ -727,7 +759,12 @@ describe("prices router", () => {
     expect(result).toEqual({
       snapshot,
       history: [
-        { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+        {
+          date: "2026-08-01T00:00:00.000Z",
+          price: 90,
+          currency: "MYR",
+          stockStatus: "in_stock",
+        },
       ],
     });
     expect(mockedGetPrice).toHaveBeenCalledWith("server2u-my", "CRS804");
@@ -755,7 +792,12 @@ describe("prices router", () => {
     mockedMergeHistory.mockResolvedValue(undefined);
     const caller = appRouter.createCaller(createPublicContext());
     const points = [
-      { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+      {
+        date: "2026-08-01T00:00:00.000Z",
+        price: 90,
+        currency: "MYR",
+        stockStatus: "in_stock",
+      },
     ];
     const result = await caller.prices.uploadHistory({
       distributorId: "server2u-my",
@@ -869,6 +911,7 @@ git commit -m "feat(server): add public prices.uploadHistory endpoint"
 ### Task 5: Mobile client helper — `{ snapshot, history }` + `uploadServerHistory`
 
 **Files:**
+
 - Modify: `lib/server-prices.ts`
 - Test: `tests/server-prices.test.ts`
 
@@ -914,7 +957,12 @@ describe("fetchServerPrice", () => {
     const query = vi.fn().mockResolvedValue({
       snapshot,
       history: [
-        { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+        {
+          date: "2026-08-01T00:00:00.000Z",
+          price: 90,
+          currency: "MYR",
+          stockStatus: "in_stock",
+        },
       ],
     });
     mockClient(query, vi.fn());
@@ -922,7 +970,12 @@ describe("fetchServerPrice", () => {
     expect(result).toEqual({
       snapshot,
       history: [
-        { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+        {
+          date: "2026-08-01T00:00:00.000Z",
+          price: 90,
+          currency: "MYR",
+          stockStatus: "in_stock",
+        },
       ],
     });
     expect(query).toHaveBeenCalledWith({
@@ -944,12 +997,15 @@ describe("fetchServerPrice", () => {
   });
 
   it("returns null when the query times out", async () => {
-    const query = vi.fn().mockImplementation(
-      () =>
-        new Promise<{ snapshot: PriceSnapshot; history: unknown[] }>((resolve) =>
-          setTimeout(() => resolve({ snapshot, history: [] }), 10_000),
-        ),
-    );
+    const query = vi
+      .fn()
+      .mockImplementation(
+        () =>
+          new Promise<{ snapshot: PriceSnapshot; history: unknown[] }>(
+            (resolve) =>
+              setTimeout(() => resolve({ snapshot, history: [] }), 10_000),
+          ),
+      );
     mockClient(query, vi.fn());
     const result = await fetchServerPrice("server2u-my", "CRS804");
     expect(result).toBeNull();
@@ -963,8 +1019,18 @@ describe("uploadServerHistory", () => {
     const mutation = vi.fn().mockResolvedValue({ accepted: 2 });
     mockClient(vi.fn(), mutation);
     const points = [
-      { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
-      { date: "2026-08-02T00:00:00.000Z", price: 88, currency: "MYR", stockStatus: "in_stock" },
+      {
+        date: "2026-08-01T00:00:00.000Z",
+        price: 90,
+        currency: "MYR",
+        stockStatus: "in_stock",
+      },
+      {
+        date: "2026-08-02T00:00:00.000Z",
+        price: 88,
+        currency: "MYR",
+        stockStatus: "in_stock",
+      },
     ];
     await uploadServerHistory("server2u-my", "CRS804", points);
     expect(mutation).toHaveBeenCalledWith({
@@ -1007,7 +1073,9 @@ export async function fetchServerPrice(
     const client = createTRPCClient();
     const result = await Promise.race([
       client.prices.get.query({ distributorId, modelNumber }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     if (!result || !result.snapshot) return null;
     return result;
@@ -1058,6 +1126,7 @@ git commit -m "feat(mobile): return history from fetchServerPrice and add upload
 ### Task 6: Mobile merge — `refreshListing` merges server history + piggyback backfill
 
 **Files:**
+
 - Modify: `lib/price-history.ts`
 - Modify: `lib/background-price-check.ts`
 - Test: `tests/server-first-scrape.test.ts`
@@ -1121,42 +1190,52 @@ const mockedUploadHistory = vi.mocked(uploadServerHistory);
 In the `beforeEach`, reset it:
 
 ```ts
-  beforeEach(() => {
-    vi.clearAllMocks();
-    state.watchlistStore = [product];
-    state.updatedListings = [];
-  });
+beforeEach(() => {
+  vi.clearAllMocks();
+  state.watchlistStore = [product];
+  state.updatedListings = [];
+});
 ```
 
 Update the first test ("uses the server price when the server responds") to return the new shape and assert history merge. Replace it with:
 
 ```ts
-  it("uses the server price and merges server history when the server responds", async () => {
-    mockedFetchServer.mockResolvedValue({
-      snapshot: {
+it("uses the server price and merges server history when the server responds", async () => {
+  mockedFetchServer.mockResolvedValue({
+    snapshot: {
+      price: 88.5,
+      currency: "MYR",
+      stockStatus: "in_stock",
+      url: "https://server2u.com/p/1",
+      fetchedAt: 1000,
+    },
+    history: [
+      {
+        date: "2026-07-01T00:00:00.000Z",
+        price: 95,
+        currency: "MYR",
+        stockStatus: "in_stock",
+      },
+      {
+        date: "2026-08-01T00:00:00.000Z",
         price: 88.5,
         currency: "MYR",
         stockStatus: "in_stock",
-        url: "https://server2u.com/p/1",
-        fetchedAt: 1000,
       },
-      history: [
-        { date: "2026-07-01T00:00:00.000Z", price: 95, currency: "MYR", stockStatus: "in_stock" },
-        { date: "2026-08-01T00:00:00.000Z", price: 88.5, currency: "MYR", stockStatus: "in_stock" },
-      ],
-    });
-
-    await checkPriceDropsNow();
-
-    expect(mockedFetchLocal).not.toHaveBeenCalled();
-    expect(state.updatedListings).toHaveLength(1);
-    const updated = state.updatedListings[0][0];
-    expect(updated.price).toBe(88.5);
-    expect(updated.currency).toBe("MYR");
-    expect(updated.stockStatus).toBe("in_stock");
-    expect(updated.priceHistory).toHaveLength(2);
-    expect(updated.priceHistory[0]).toMatchObject({ price: 95 });
+    ],
   });
+
+  await checkPriceDropsNow();
+
+  expect(mockedFetchLocal).not.toHaveBeenCalled();
+  expect(state.updatedListings).toHaveLength(1);
+  const updated = state.updatedListings[0][0];
+  expect(updated.price).toBe(88.5);
+  expect(updated.currency).toBe("MYR");
+  expect(updated.stockStatus).toBe("in_stock");
+  expect(updated.priceHistory).toHaveLength(2);
+  expect(updated.priceHistory[0]).toMatchObject({ price: 95 });
+});
 ```
 
 Update the second test ("falls back to local scraping when the server returns null") — `fetchServerPrice` still returns null, so the local path runs unchanged. No change needed to the mock value.
@@ -1166,33 +1245,43 @@ Update the third test ("keeps the listing unchanged when both server and local f
 Add a new test for piggyback backfill at the end of the `describe` block:
 
 ```ts
-  it("uploads local history when the server history is shorter", async () => {
-    const localHistory = [
-      { date: "2026-06-01T00:00:00.000Z", price: 100, currency: "USD", stockStatus: "unknown" },
-      { date: "2026-07-01T00:00:00.000Z", price: 98, currency: "USD", stockStatus: "unknown" },
-    ];
-    state.watchlistStore = [
-      { ...product, listings: [{ ...listing, priceHistory: localHistory }] },
-    ];
-    mockedFetchServer.mockResolvedValue({
-      snapshot: {
-        price: 88.5,
-        currency: "MYR",
-        stockStatus: "in_stock",
-        url: "https://server2u.com/p/1",
-        fetchedAt: 1000,
-      },
-      history: [],
-    });
-
-    await checkPriceDropsNow();
-
-    expect(mockedUploadHistory).toHaveBeenCalledWith(
-      "server2u-my",
-      "CRS804",
-      localHistory,
-    );
+it("uploads local history when the server history is shorter", async () => {
+  const localHistory = [
+    {
+      date: "2026-06-01T00:00:00.000Z",
+      price: 100,
+      currency: "USD",
+      stockStatus: "unknown",
+    },
+    {
+      date: "2026-07-01T00:00:00.000Z",
+      price: 98,
+      currency: "USD",
+      stockStatus: "unknown",
+    },
+  ];
+  state.watchlistStore = [
+    { ...product, listings: [{ ...listing, priceHistory: localHistory }] },
+  ];
+  mockedFetchServer.mockResolvedValue({
+    snapshot: {
+      price: 88.5,
+      currency: "MYR",
+      stockStatus: "in_stock",
+      url: "https://server2u.com/p/1",
+      fetchedAt: 1000,
+    },
+    history: [],
   });
+
+  await checkPriceDropsNow();
+
+  expect(mockedUploadHistory).toHaveBeenCalledWith(
+    "server2u-my",
+    "CRS804",
+    localHistory,
+  );
+});
 ```
 
 - [ ] **Step 3: Run tests to verify they fail**
@@ -1217,41 +1306,41 @@ import { appendPricePoint, mergePriceHistory } from "./price-history";
 In `refreshListing` (lines 57-146), the server-result branch currently builds the updated listing from `serverResult` directly. Replace the server-result branch:
 
 ```ts
-  if (serverResult) {
-    healthCollector.record(listing.distributorId, "working");
-    const now = new Date().toISOString();
-    const newPricePoint: PricePoint = {
-      date: now,
-      price: serverResult.snapshot.price,
-      currency: serverResult.snapshot.currency,
-      stockStatus: serverResult.snapshot.stockStatus,
-    };
-    const mergedHistory = mergePriceHistory(
+if (serverResult) {
+  healthCollector.record(listing.distributorId, "working");
+  const now = new Date().toISOString();
+  const newPricePoint: PricePoint = {
+    date: now,
+    price: serverResult.snapshot.price,
+    currency: serverResult.snapshot.currency,
+    stockStatus: serverResult.snapshot.stockStatus,
+  };
+  const mergedHistory = mergePriceHistory(
+    listing.priceHistory,
+    serverResult.history,
+  );
+  if (serverResult.history.length < listing.priceHistory.length) {
+    void uploadServerHistory(
+      listing.distributorId,
+      product.modelNumber,
       listing.priceHistory,
-      serverResult.history,
     );
-    if (serverResult.history.length < listing.priceHistory.length) {
-      void uploadServerHistory(
-        listing.distributorId,
-        product.modelNumber,
-        listing.priceHistory,
-      );
-    }
-    return {
-      ...listing,
-      price: serverResult.snapshot.price,
-      currency: serverResult.snapshot.currency,
-      stockStatus: serverResult.snapshot.stockStatus,
-      expectedDate: serverResult.snapshot.expectedDate,
-      url: serverResult.snapshot.url,
-      lastChecked: now,
-      priceHistory: appendPricePoint(
-        mergedHistory,
-        newPricePoint,
-        PRICE_HISTORY_DAYS,
-      ),
-    };
   }
+  return {
+    ...listing,
+    price: serverResult.snapshot.price,
+    currency: serverResult.snapshot.currency,
+    stockStatus: serverResult.snapshot.stockStatus,
+    expectedDate: serverResult.snapshot.expectedDate,
+    url: serverResult.snapshot.url,
+    lastChecked: now,
+    priceHistory: appendPricePoint(
+      mergedHistory,
+      newPricePoint,
+      PRICE_HISTORY_DAYS,
+    ),
+  };
+}
 ```
 
 > **Note:** `serverResult` is now `ServerPriceResult` (has `.snapshot` and `.history`), not a bare `PriceSnapshot`. The merge unions local + server history by day (newest wins), then appends today's point with the existing `appendPricePoint` (which dedupes today and prunes to 90 days). The piggyback backfill fires when the server history is shorter than local — uploading the local points so the server catches up.
@@ -1290,6 +1379,7 @@ git commit -m "feat(mobile): merge server history into listings with piggyback b
 ### Task 7: Launch backfill — `lib/history-sync.ts`
 
 **Files:**
+
 - Create: `lib/history-sync.ts`
 - Modify: `app/_layout.tsx`
 - Test: `tests/history-sync.test.ts`
@@ -1304,7 +1394,11 @@ import type { Product } from "../lib/types";
 
 const state = vi.hoisted(() => ({
   watchlistStore: [] as Product[],
-  uploaded: [] as Array<{ distributorId: string; modelNumber: string; points: unknown[] }>,
+  uploaded: [] as Array<{
+    distributorId: string;
+    modelNumber: string;
+    points: unknown[];
+  }>,
 }));
 
 vi.mock("../lib/storage", () => ({
@@ -1312,9 +1406,11 @@ vi.mock("../lib/storage", () => ({
 }));
 
 vi.mock("../lib/server-prices", () => ({
-  uploadServerHistory: vi.fn(async (distributorId: string, modelNumber: string, points: unknown[]) => {
-    state.uploaded.push({ distributorId, modelNumber, points });
-  }),
+  uploadServerHistory: vi.fn(
+    async (distributorId: string, modelNumber: string, points: unknown[]) => {
+      state.uploaded.push({ distributorId, modelNumber, points });
+    },
+  ),
 }));
 
 import { backfillLocalHistory } from "../lib/history-sync";
@@ -1444,20 +1540,20 @@ import { backfillLocalHistory } from "@/lib/history-sync";
 Add a call in the existing `useEffect` that runs on auth change (lines 183-185):
 
 ```ts
-  useEffect(() => {
-    if (isAuthenticated) syncRef.current?.syncNow();
-  }, [isAuthenticated]);
+useEffect(() => {
+  if (isAuthenticated) syncRef.current?.syncNow();
+}, [isAuthenticated]);
 ```
 
 Change to:
 
 ```ts
-  useEffect(() => {
-    if (isAuthenticated) {
-      syncRef.current?.syncNow();
-      void backfillLocalHistory();
-    }
-  }, [isAuthenticated]);
+useEffect(() => {
+  if (isAuthenticated) {
+    syncRef.current?.syncNow();
+    void backfillLocalHistory();
+  }
+}, [isAuthenticated]);
 ```
 
 - [ ] **Step 6: Verify types**
@@ -1477,6 +1573,7 @@ git commit -m "feat(mobile): backfill local price history at launch"
 ### Task 8: Desktop — parse history, merge in poller, backfill command
 
 **Files:**
+
 - Modify: `desktop/src-tauri/src/scrapers/mod.rs`
 - Modify: `desktop/src-tauri/src/lib.rs`
 
@@ -1840,6 +1937,7 @@ git commit -m "feat(desktop): merge server price history and backfill local hist
 ### Task 9: Final verification + checkpoint commit
 
 **Files:**
+
 - Whole repo
 - Modify: `todo.md`
 

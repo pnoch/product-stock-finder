@@ -17,6 +17,7 @@
 Add the `NotificationHistoryEntry` type and the storage methods with tests. TDD: write failing tests, verify fail, implement, verify pass.
 
 **Files:**
+
 - Modify: `lib/types.ts` (after `BackOrderReminder`, line ~92)
 - Modify: `lib/storage.ts` (KEYS ~line 31, methods after line 458, return object ~line 480, default destructure ~line 527)
 - Test: `tests/storage.test.ts`
@@ -206,49 +207,49 @@ Add the key to `KEYS` (after line 31):
 Add the methods right after the Displayed Event Ids section (after `recordDisplayedEventId`, line 458):
 
 ```ts
-  // ─── Notification History ─────────────────────────────────────────────────
+// ─── Notification History ─────────────────────────────────────────────────
 
-  async function getNotificationHistory(): Promise<NotificationHistoryEntry[]> {
-    return readList<NotificationHistoryEntry>(KEYS.NOTIFICATION_HISTORY);
-  }
+async function getNotificationHistory(): Promise<NotificationHistoryEntry[]> {
+  return readList<NotificationHistoryEntry>(KEYS.NOTIFICATION_HISTORY);
+}
 
-  async function recordNotificationEvent(
-    event: Omit<NotificationHistoryEntry, "read">,
-  ): Promise<void> {
-    await enqueue(KEYS.NOTIFICATION_HISTORY, async () => {
-      const list = await getNotificationHistory();
-      if (list.some((e) => e.id === event.id)) return;
-      list.unshift({ ...event, read: false });
-      if (list.length > 200) list.length = 200;
-      await adapter.setItem(KEYS.NOTIFICATION_HISTORY, JSON.stringify(list));
-    });
-  }
-
-  async function markNotificationRead(id: string): Promise<void> {
-    await enqueue(KEYS.NOTIFICATION_HISTORY, async () => {
-      const list = await getNotificationHistory();
-      const entry = list.find((e) => e.id === id);
-      if (entry && !entry.read) {
-        entry.read = true;
-        await adapter.setItem(KEYS.NOTIFICATION_HISTORY, JSON.stringify(list));
-      }
-    });
-  }
-
-  async function markAllNotificationsRead(): Promise<void> {
-    await enqueue(KEYS.NOTIFICATION_HISTORY, async () => {
-      const list = await getNotificationHistory();
-      if (list.some((e) => !e.read)) {
-        for (const e of list) e.read = true;
-        await adapter.setItem(KEYS.NOTIFICATION_HISTORY, JSON.stringify(list));
-      }
-    });
-  }
-
-  async function getUnreadNotificationCount(): Promise<number> {
+async function recordNotificationEvent(
+  event: Omit<NotificationHistoryEntry, "read">,
+): Promise<void> {
+  await enqueue(KEYS.NOTIFICATION_HISTORY, async () => {
     const list = await getNotificationHistory();
-    return list.filter((e) => !e.read).length;
-  }
+    if (list.some((e) => e.id === event.id)) return;
+    list.unshift({ ...event, read: false });
+    if (list.length > 200) list.length = 200;
+    await adapter.setItem(KEYS.NOTIFICATION_HISTORY, JSON.stringify(list));
+  });
+}
+
+async function markNotificationRead(id: string): Promise<void> {
+  await enqueue(KEYS.NOTIFICATION_HISTORY, async () => {
+    const list = await getNotificationHistory();
+    const entry = list.find((e) => e.id === id);
+    if (entry && !entry.read) {
+      entry.read = true;
+      await adapter.setItem(KEYS.NOTIFICATION_HISTORY, JSON.stringify(list));
+    }
+  });
+}
+
+async function markAllNotificationsRead(): Promise<void> {
+  await enqueue(KEYS.NOTIFICATION_HISTORY, async () => {
+    const list = await getNotificationHistory();
+    if (list.some((e) => !e.read)) {
+      for (const e of list) e.read = true;
+      await adapter.setItem(KEYS.NOTIFICATION_HISTORY, JSON.stringify(list));
+    }
+  });
+}
+
+async function getUnreadNotificationCount(): Promise<number> {
+  const list = await getNotificationHistory();
+  return list.filter((e) => !e.read).length;
+}
 ```
 
 Add `KEYS.NOTIFICATION_HISTORY,` to `clearAllData`'s `multiRemove` array (after `KEYS.DISPLAYED_EVENT_IDS,` line 470).
@@ -287,6 +288,7 @@ git commit -m "feat(storage): add notification history collection"
 Record every pulled notification event during sync so the center's list populates. TDD: update the sync test first, then implement.
 
 **Files:**
+
 - Modify: `lib/server-notifications.ts` (destructure lines 50-56, loop lines 96-104)
 - Test: `tests/sync-server-notifications.test.ts`
 
@@ -311,20 +313,20 @@ Add `recordNotificationEvent` to the `../lib/storage` mock (after `recordDisplay
 Reset it in `beforeEach` (after `state.recorded = [];` line 76):
 
 ```ts
-  state.historyRecorded = [];
+state.historyRecorded = [];
 ```
 
 Add assertions in the first test (after line 87, `expect(state.recorded).toEqual(["evt-1"]);`):
 
 ```ts
-    expect(state.historyRecorded).toHaveLength(1);
-    expect(state.historyRecorded[0]!.id).toBe("evt-1");
+expect(state.historyRecorded).toHaveLength(1);
+expect(state.historyRecorded[0]!.id).toBe("evt-1");
 ```
 
 Add an assertion in the second test (after line 95, `expect(state.recorded).toEqual([]);`):
 
 ```ts
-    expect(state.historyRecorded).toHaveLength(1);
+expect(state.historyRecorded).toHaveLength(1);
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -345,16 +347,18 @@ Add `recordNotificationEvent` to the dynamic-import destructure (after `recordDi
 Add the recording call as the first line of the pull loop (line 96):
 
 ```ts
-    for (const event of events) {
-      await recordNotificationEvent(event);
-      const stalePriceDrop =
-        event.type === "price_drop" && event.alertId && !activeAlertIds.has(event.alertId);
-      if (!stalePriceDrop && !displayedIds.has(event.id)) {
-        await scheduleServerEventNotification(event.title, event.body);
-        await recordDisplayedEventId(event.id);
-      }
-      await reconcileEvent(event);
-    }
+for (const event of events) {
+  await recordNotificationEvent(event);
+  const stalePriceDrop =
+    event.type === "price_drop" &&
+    event.alertId &&
+    !activeAlertIds.has(event.alertId);
+  if (!stalePriceDrop && !displayedIds.has(event.id)) {
+    await scheduleServerEventNotification(event.title, event.body);
+    await recordDisplayedEventId(event.id);
+  }
+  await reconcileEvent(event);
+}
 ```
 
 The server `NotificationEvent` shape (`{ id, type, title, body, productId, distributorId?, triggeredPrice?, currency?, createdAt, ... }`) is structurally assignable to `Omit<NotificationHistoryEntry, "read">` — extra optional fields are allowed.
@@ -381,6 +385,7 @@ git commit -m "feat(sync): record notification events to history"
 Create the UI component and wire it as the third segment in the Alerts tab. There is no component-test infrastructure in this repo (vitest runs in a node environment), so this task is verified via `pnpm check` + `pnpm lint`.
 
 **Files:**
+
 - Create: `components/notification-center.tsx`
 - Modify: `app/(tabs)/alerts.tsx`
 
@@ -634,36 +639,36 @@ type ActiveTab = "alerts" | "reminders" | "notifications";
 4. Add state (after line 49, `const [refreshing, setRefreshing] = useState(false);`):
 
 ```ts
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
+const [unreadNotifications, setUnreadNotifications] = useState(0);
 ```
 
 5. Extend `loadData` (lines 57-68):
 
 ```ts
-  const loadData = useCallback(async () => {
-    const [a, p, r, w, n] = await Promise.all([
-      getAlerts(),
-      getWatchlist(),
-      getBackOrderReminders(),
-      getStockWatches(),
-      getUnreadNotificationCount(),
-    ]);
-    setAlerts(a);
-    setProducts(p);
-    setReminders(r);
-    setStockWatches(w);
-    setUnreadNotifications(n);
-  }, []);
+const loadData = useCallback(async () => {
+  const [a, p, r, w, n] = await Promise.all([
+    getAlerts(),
+    getWatchlist(),
+    getBackOrderReminders(),
+    getStockWatches(),
+    getUnreadNotificationCount(),
+  ]);
+  setAlerts(a);
+  setProducts(p);
+  setReminders(r);
+  setStockWatches(w);
+  setUnreadNotifications(n);
+}, []);
 ```
 
 6. Add `notifications` to `tabCount` (line 209):
 
 ```ts
-  const tabCount = {
-    alerts: alerts.length,
-    reminders: reminders.length + stockWatches.length,
-    notifications: unreadNotifications,
-  };
+const tabCount = {
+  alerts: alerts.length,
+  reminders: reminders.length + stockWatches.length,
+  notifications: unreadNotifications,
+};
 ```
 
 7. Extend the segment array (line 271):
@@ -675,30 +680,40 @@ type ActiveTab = "alerts" | "reminders" | "notifications";
 8. Extend the icon expression (lines 291-295):
 
 ```tsx
-            <IconSymbol
-              name={
-                tab === "alerts"
-                  ? "bell.fill"
-                  : tab === "reminders"
-                    ? "calendar"
-                    : "bell.badge.fill"
-              }
-              size={15}
-              color={activeTab === tab ? "#fff" : colors.muted}
-            />
+<IconSymbol
+  name={
+    tab === "alerts"
+      ? "bell.fill"
+      : tab === "reminders"
+        ? "calendar"
+        : "bell.badge.fill"
+  }
+  size={15}
+  color={activeTab === tab ? "#fff" : colors.muted}
+/>
 ```
 
 9. Extend the label (line 303):
 
 ```tsx
-              {tab === "alerts" ? "Alerts" : tab === "reminders" ? "Reminders" : "Notifications"}
+{
+  tab === "alerts"
+    ? "Alerts"
+    : tab === "reminders"
+      ? "Reminders"
+      : "Notifications";
+}
 ```
 
 10. Render the component after the Reminders tab's closing `)}` (after line 1047, before the Reschedule Reminder Modal):
 
 ```tsx
-      {/* Notifications Tab */}
-      {activeTab === "notifications" && <NotificationCenter />}
+{
+  /* Notifications Tab */
+}
+{
+  activeTab === "notifications" && <NotificationCenter />;
+}
 ```
 
 - [ ] **Step 3: Typecheck**
@@ -728,6 +743,7 @@ git commit -m "feat(alerts): add notification center tab"
 ### Task 4: Checkpoint commit
 
 **Files:**
+
 - Modify: `todo.md`
 
 - [ ] **Step 1: Add the Phase 36 section to `todo.md`**

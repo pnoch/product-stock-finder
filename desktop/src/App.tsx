@@ -24,7 +24,13 @@ import { storage } from "./storage";
 import { getApiBaseUrl } from "./lib/api-base";
 import { syncDesktopNotifications } from "./server-notifications";
 
-function KeyboardShortcuts({ searchModalOpen, setSearchModalOpen }: { searchModalOpen: boolean; setSearchModalOpen: (open: boolean) => void }) {
+function KeyboardShortcuts({
+  searchModalOpen,
+  setSearchModalOpen,
+}: {
+  searchModalOpen: boolean;
+  setSearchModalOpen: (open: boolean) => void;
+}) {
   const navigate = useNavigate();
   const { toggle } = useTheme();
 
@@ -94,8 +100,7 @@ export default function App() {
       const settings = await storage.getSettings();
       if (cancelled) return;
       if (settings.checkInterval === "manual") return;
-      const intervalMinutes =
-        settings.checkInterval === "hourly" ? 60 : 1440;
+      const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
       await startPricePoller(intervalMinutes, getApiBaseUrl());
     })();
     return () => {
@@ -150,8 +155,14 @@ export default function App() {
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <KeyboardShortcuts searchModalOpen={searchModalOpen} setSearchModalOpen={setSearchModalOpen} />
-          <SearchModal open={searchModalOpen} onClose={() => setSearchModalOpen(false)} />
+          <KeyboardShortcuts
+            searchModalOpen={searchModalOpen}
+            setSearchModalOpen={setSearchModalOpen}
+          />
+          <SearchModal
+            open={searchModalOpen}
+            onClose={() => setSearchModalOpen(false)}
+          />
           <div className="flex h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100">
             <Sidebar />
             <main className="flex-1 overflow-auto">
@@ -165,7 +176,10 @@ export default function App() {
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/health" element={<Health />} />
                 <Route path="/restock-watches" element={<RestockWatches />} />
-                <Route path="/distributor-analysis" element={<DistributorAnalysis />} />
+                <Route
+                  path="/distributor-analysis"
+                  element={<DistributorAnalysis />}
+                />
               </Routes>
             </main>
           </div>

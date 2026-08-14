@@ -11,7 +11,9 @@ export async function fetchServerPrice(
     const client = createTRPCClient();
     const result = await Promise.race([
       client.prices.get.query({ distributorId, modelNumber }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     if (!result || !result.snapshot) return null;
     return result;

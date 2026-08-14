@@ -13,12 +13,14 @@
 ## File Structure
 
 ### New Files
+
 - `lib/restock.ts` — shared restock module
 - `tests/restock.test.ts` — unit tests
 - `app/restock-watches.tsx` — mobile screen
 - `desktop/src/pages/RestockWatches.tsx` — desktop screen
 
 ### Modified Files
+
 - `lib/background-price-check.ts` — call `checkRestocks()` in background task + foreground
 - `app/(tabs)/alerts.tsx` — add navigation entry to Restock Watches
 - `desktop/src/App.tsx` — add `/restock-watches` route
@@ -29,6 +31,7 @@
 ## Task 1: Create Shared Restock Module
 
 **Files:**
+
 - Create: `lib/restock.ts`
 - Test: `tests/restock.test.ts`
 
@@ -76,7 +79,9 @@ vi.mock("react-native", () => ({ Platform: { OS: "ios" } }));
 
 import { checkRestocks } from "../lib/restock";
 
-function makeWatch(overrides: Partial<BackOrderReminder> = {}): BackOrderReminder {
+function makeWatch(
+  overrides: Partial<BackOrderReminder> = {},
+): BackOrderReminder {
   return {
     id: "w1",
     productId: "p1",
@@ -240,7 +245,11 @@ export async function checkRestocks(): Promise<void> {
       await removeStockWatch(watch.id);
     } else if (prevStatus !== newStatus) {
       // Status changed to another non-in-stock state — update cache
-      await updateStockWatchStatus(watch.productId, watch.distributorId, newStatus);
+      await updateStockWatchStatus(
+        watch.productId,
+        watch.distributorId,
+        newStatus,
+      );
     }
   }
 }
@@ -263,6 +272,7 @@ git commit -m "feat: add shared restock check module with tests"
 ## Task 2: Wire Restock Check into Background Task
 
 **Files:**
+
 - Modify: `lib/background-price-check.ts`
 
 - [ ] **Step 1: Add import**
@@ -278,10 +288,10 @@ import { checkRestocks } from "./restock";
 In the `PRICE_CHECK_TASK` definition, after the price-drop alert check (after the `for (const alert of activeAlerts)` loop, before `return BackgroundTask.BackgroundTaskResult.Success`), add:
 
 ```typescript
-    // Check back-in-stock watches globally
-    await checkRestocks();
+// Check back-in-stock watches globally
+await checkRestocks();
 
-    return BackgroundTask.BackgroundTaskResult.Success;
+return BackgroundTask.BackgroundTaskResult.Success;
 ```
 
 - [ ] **Step 3: Call checkRestocks in the foreground check**
@@ -289,8 +299,8 @@ In the `PRICE_CHECK_TASK` definition, after the price-drop alert check (after th
 In `checkPriceDropsNow`, after the price-drop alert loop (at the end of the function), add:
 
 ```typescript
-  // Check back-in-stock watches globally
-  await checkRestocks();
+// Check back-in-stock watches globally
+await checkRestocks();
 ```
 
 - [ ] **Step 4: Run typecheck to verify no errors**
@@ -310,6 +320,7 @@ git commit -m "feat: run restock check in background task and foreground check"
 ## Task 3: Create Mobile Restock Watches Screen
 
 **Files:**
+
 - Create: `app/restock-watches.tsx`
 
 - [ ] **Step 1: Create the mobile screen**
@@ -359,23 +370,25 @@ export default function RestockWatchesScreen() {
     }, [loadWatches]),
   );
 
-  const handleRemove = useCallback(
-    async (id: string) => {
-      if (Platform.OS !== "web")
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await removeStockWatch(id);
-      setWatches((prev) => prev.filter((w) => w.id !== id));
-    },
-    [],
-  );
+  const handleRemove = useCallback(async (id: string) => {
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await removeStockWatch(id);
+    setWatches((prev) => prev.filter((w) => w.id !== id));
+  }, []);
 
   return (
     <ScreenContainer>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ marginRight: 12 }}
+        >
           <Text style={{ color: colors.primary, fontSize: 16 }}>‹ Back</Text>
         </TouchableOpacity>
-        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}>
+        <Text
+          style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}
+        >
           Restock Watches
         </Text>
       </View>
@@ -383,10 +396,19 @@ export default function RestockWatchesScreen() {
       {loading ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+        >
           {watches.length === 0 ? (
-            <Text style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}>
-              No restock watches. Open a product and tap "Watch for Restock" to add one.
+            <Text
+              style={{
+                color: colors.muted,
+                textAlign: "center",
+                marginTop: 40,
+              }}
+            >
+              No restock watches. Open a product and tap "Watch for Restock" to
+              add one.
             </Text>
           ) : (
             watches.map((watch) => {
@@ -403,21 +425,37 @@ export default function RestockWatchesScreen() {
                   }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.foreground, fontWeight: "500", fontSize: 14 }}>
+                    <Text
+                      style={{
+                        color: colors.foreground,
+                        fontWeight: "500",
+                        fontSize: 14,
+                      }}
+                    >
                       {watch.productName}
                     </Text>
                     <Text style={{ color: colors.muted, fontSize: 12 }}>
-                      {distrib?.countryFlag} {distrib?.name ?? watch.distributorName}
+                      {distrib?.countryFlag}{" "}
+                      {distrib?.name ?? watch.distributorName}
                     </Text>
-                    <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
-                      {STATUS_LABELS[watch.lastKnownStatus ?? "unknown"] ?? "Unknown"}
+                    <Text
+                      style={{
+                        color: colors.muted,
+                        fontSize: 11,
+                        marginTop: 2,
+                      }}
+                    >
+                      {STATUS_LABELS[watch.lastKnownStatus ?? "unknown"] ??
+                        "Unknown"}
                     </Text>
                   </View>
                   <TouchableOpacity
                     onPress={() => handleRemove(watch.id)}
                     style={{ padding: 8 }}
                   >
-                    <Text style={{ color: colors.error, fontSize: 13 }}>Remove</Text>
+                    <Text style={{ color: colors.error, fontSize: 13 }}>
+                      Remove
+                    </Text>
                   </TouchableOpacity>
                 </View>
               );
@@ -449,6 +487,7 @@ git commit -m "feat: add mobile restock watches screen"
 ## Task 4: Add Mobile Navigation Entry
 
 **Files:**
+
 - Modify: `app/(tabs)/alerts.tsx`
 
 - [ ] **Step 1: Add useRouter import**
@@ -506,6 +545,7 @@ git commit -m "feat: add restock watches navigation entry to mobile alerts"
 ## Task 5: Create Desktop Restock Watches Screen
 
 **Files:**
+
 - Create: `desktop/src/pages/RestockWatches.tsx`
 - Modify: `desktop/src/App.tsx`
 
@@ -551,7 +591,10 @@ export function RestockWatches() {
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="flex items-center mb-4">
-        <button onClick={() => navigate("/alerts")} className="text-blue-600 mr-3">
+        <button
+          onClick={() => navigate("/alerts")}
+          className="text-blue-600 mr-3"
+        >
           ‹ Back
         </button>
         <h1 className="text-2xl font-bold">Restock Watches</h1>
@@ -561,7 +604,8 @@ export function RestockWatches() {
         <p className="text-center text-gray-500 mt-10">Loading...</p>
       ) : watches.length === 0 ? (
         <p className="text-center text-gray-500 mt-10">
-          No restock watches. Open a product and tap "Watch for Restock" to add one.
+          No restock watches. Open a product and tap "Watch for Restock" to add
+          one.
         </p>
       ) : (
         <div>
@@ -575,10 +619,12 @@ export function RestockWatches() {
                 <div className="flex-1">
                   <p className="font-medium text-sm">{watch.productName}</p>
                   <p className="text-xs text-gray-500">
-                    {distrib?.countryFlag} {distrib?.name ?? watch.distributorName}
+                    {distrib?.countryFlag}{" "}
+                    {distrib?.name ?? watch.distributorName}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {STATUS_LABELS[watch.lastKnownStatus ?? "unknown"] ?? "Unknown"}
+                    {STATUS_LABELS[watch.lastKnownStatus ?? "unknown"] ??
+                      "Unknown"}
                   </p>
                 </div>
                 <button
@@ -600,6 +646,7 @@ export function RestockWatches() {
 - [ ] **Step 2: Add the route to App.tsx**
 
 In `desktop/src/App.tsx`:
+
 1. Add import: `import { RestockWatches } from "./pages/RestockWatches";`
 2. Add route: `<Route path="/restock-watches" element={<RestockWatches />} />`
 
@@ -620,6 +667,7 @@ git commit -m "feat: add desktop restock watches screen"
 ## Task 6: Add Desktop Navigation Link
 
 **Files:**
+
 - Modify: `desktop/src/pages/Alerts.tsx`
 
 - [ ] **Step 1: Add useNavigate import**

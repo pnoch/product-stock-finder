@@ -9,14 +9,19 @@ export function useTheme() {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     setTheme(mediaQuery.matches ? "dark" : "light");
 
-    const handler = (e: MediaQueryListEvent) => setTheme(e.matches ? "dark" : "light");
+    const handler = (e: MediaQueryListEvent) =>
+      setTheme(e.matches ? "dark" : "light");
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
 
   const set = (pref: ThemePreference) => {
     if (pref === "auto") {
-      setTheme(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      setTheme(
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light",
+      );
     } else {
       setTheme(pref);
     }

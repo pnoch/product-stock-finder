@@ -13,7 +13,9 @@ export async function fetchProductImage(
     const timeoutMs = opts?.timeoutMs ?? 4000;
     const result = await Promise.race([
       client.images.get.query({ productId }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), timeoutMs),
+      ),
     ]);
     return result;
   } catch {

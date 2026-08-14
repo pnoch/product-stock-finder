@@ -72,7 +72,7 @@ collisions are not a concern.
 `evaluateNotifications(now)` groups device configs by `userId`:
 
 - **Anonymous** (`userId = null`): existing per-device evaluation, but the "undelivered" check
-  becomes *no delivery row for this device* (junction) instead of `deliveredAt IS NULL`.
+  becomes _no delivery row for this device_ (junction) instead of `deliveredAt IS NULL`.
 - **User** (`userId` set): aggregate configs across the user's bound devices, deduping each
   collection by item id (first-seen wins — configs are LWW-synced so duplicates are identical).
   Evaluate **once per user** with `buildEvents`, producing user-level events
@@ -81,15 +81,16 @@ collisions are not a concern.
 **Pending-event dedup rule** (prevents duplicate firing while an event is undelivered, while
 still allowing re-fire after full delivery, e.g. re-armed alerts):
 
-- *User scope:* skip a draft if a user event with the same `dedupKey` exists whose delivery-row
+- _User scope:_ skip a draft if a user event with the same `dedupKey` exists whose delivery-row
   count is **less than** the user's current bound-device count.
-- *Anonymous scope:* skip a draft if an event with the same `dedupKey` exists with **no**
+- _Anonymous scope:_ skip a draft if an event with the same `dedupKey` exists with **no**
   delivery row for that device.
 
 When a new device binds after an event was fully delivered, the event becomes pending again for
 that scope — evaluation skips re-creating it, and the new device gets it via catch-up pull.
 
 After inserting events, push best-effort:
+
 - Anonymous: `sendPushForDevice(deviceId, events)` (unchanged).
 - User: new `sendPushForUser(userId, events)` — looks up the user's bound devices and calls
   `sendPushForDevice` for each (never rejects; devices without a push token are skipped).
@@ -166,7 +167,7 @@ committed; it does not need to run in CI.
 - `todo.md` Phase 40 appended.
 - Checkpoint commit:
   `Checkpoint: v4.0: user-scoped notifications — device binding, per-user event evaluation, cross-device delivery via delivery junction, hybrid auth. TypeScript: 0 errors.`
-  + push.
+  - push.
 
 ## Out of Scope
 

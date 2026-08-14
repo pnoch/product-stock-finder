@@ -1,5 +1,8 @@
 import { createTRPCClient } from "./trpc";
-import type { NotificationConfig, NotificationEvent } from "../server/notifications";
+import type {
+  NotificationConfig,
+  NotificationEvent,
+} from "../server/notifications";
 
 const TIMEOUT_MS = 4000;
 
@@ -11,7 +14,9 @@ export async function uploadNotificationConfig(
     const client = createTRPCClient();
     await Promise.race([
       client.notifications.uploadConfig.mutate({ deviceId, ...config }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return true;
   } catch {
@@ -26,7 +31,9 @@ export async function pullNotificationEvents(
     const client = createTRPCClient();
     const result = await Promise.race([
       client.notifications.pull.query({ deviceId }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return result?.events ?? [];
   } catch {
@@ -97,7 +104,9 @@ async function runSyncServerNotifications(): Promise<void> {
     for (const event of events) {
       await recordNotificationEvent(event);
       const stalePriceDrop =
-        event.type === "price_drop" && event.alertId && !activeAlertIds.has(event.alertId);
+        event.type === "price_drop" &&
+        event.alertId &&
+        !activeAlertIds.has(event.alertId);
       if (!stalePriceDrop && !displayedIds.has(event.id)) {
         await scheduleServerEventNotification(event.title, event.body);
         await recordDisplayedEventId(event.id);
@@ -116,7 +125,8 @@ async function reconcileEvent(event: {
   reminderId?: string;
   triggeredPrice?: number;
 }): Promise<void> {
-  const { deactivateAlert, removeStockWatch, removeBackOrderReminder } = await import("./storage");
+  const { deactivateAlert, removeStockWatch, removeBackOrderReminder } =
+    await import("./storage");
   if (event.type === "price_drop" && event.alertId) {
     await deactivateAlert(event.alertId, event.triggeredPrice ?? 0);
   }

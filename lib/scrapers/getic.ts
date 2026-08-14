@@ -6,11 +6,17 @@ import { getTaxRate } from "../tax";
 function parseHtml(html: string, url: string): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(".price, [data-testid='price'], .product-price").first().text();
+  const priceText = $(".price, [data-testid='price'], .product-price")
+    .first()
+    .text();
   const price = parsePriceFromText(priceText);
   if (!price) return null;
 
-  const stockText = $(".availability, .stock, [data-testid='availability'], .stock-status").first().text();
+  const stockText = $(
+    ".availability, .stock, [data-testid='availability'], .stock-status",
+  )
+    .first()
+    .text();
   const stockStatus = inferStockStatus(stockText);
 
   return {
@@ -35,9 +41,7 @@ export const geticParser: DistributorParser = {
   },
 };
 
-export async function scrapeGetic(
-  model: string,
-): Promise<ScrapeResult | null> {
+export async function scrapeGetic(model: string): Promise<ScrapeResult | null> {
   try {
     const url = geticParser.buildSearchUrl(model);
     const html = await fetchWithParser(geticParser, url);

@@ -48,6 +48,7 @@ Desktop
 ## Task 1: Drizzle schema — 4 sync tables
 
 **Files:**
+
 - Modify: `drizzle/schema.ts`
 - Verify: generated `drizzle/0001_*.sql`
 
@@ -59,7 +60,9 @@ Replace the `// TODO: Add your tables here` comment (line 35) with the tables be
 export const watchlistItems = mysqlTable(
   "watchlist_items",
   {
-    userId: int("userId").notNull().references(() => users.id),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id),
     productId: varchar("productId", { length: 191 }).notNull(),
     data: json("data").notNull(),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
@@ -71,7 +74,9 @@ export const watchlistItems = mysqlTable(
 export const priceAlerts = mysqlTable(
   "price_alerts",
   {
-    userId: int("userId").notNull().references(() => users.id),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id),
     alertId: varchar("alertId", { length: 191 }).notNull(),
     data: json("data").notNull(),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
@@ -83,7 +88,9 @@ export const priceAlerts = mysqlTable(
 export const backOrderReminders = mysqlTable(
   "back_order_reminders",
   {
-    userId: int("userId").notNull().references(() => users.id),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id),
     reminderId: varchar("reminderId", { length: 191 }).notNull(),
     data: json("data").notNull(),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
@@ -93,7 +100,10 @@ export const backOrderReminders = mysqlTable(
 );
 
 export const appSettings = mysqlTable("app_settings", {
-  userId: int("userId").notNull().references(() => users.id).primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id)
+    .primaryKey(),
   data: json("data").notNull(),
   updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
   deletedAtMs: bigint("deletedAtMs", { mode: "number" }),
@@ -152,6 +162,7 @@ git commit -m "feat(server): add sync drizzle tables (watchlist/alerts/reminders
 ## Task 2: Server sync DB helpers — `server/sync-db.ts`
 
 **Files:**
+
 - Create: `server/sync-db.ts`
 
 - [ ] **Step 1: Write `server/sync-db.ts`**
@@ -209,7 +220,10 @@ export async function listChangedItems(
       .where(
         and(
           eq(backOrderReminders.userId, userId),
-          changed(backOrderReminders.updatedAtMs, backOrderReminders.deletedAtMs),
+          changed(
+            backOrderReminders.updatedAtMs,
+            backOrderReminders.deletedAtMs,
+          ),
         ),
       ),
     db
@@ -313,10 +327,7 @@ export async function upsertSyncItem(
         .select({ updatedAtMs: priceAlerts.updatedAtMs })
         .from(priceAlerts)
         .where(
-          and(
-            eq(priceAlerts.userId, userId),
-            eq(priceAlerts.alertId, item.id),
-          ),
+          and(eq(priceAlerts.userId, userId), eq(priceAlerts.alertId, item.id)),
         )
         .limit(1);
       if (existing.length > 0 && existing[0]!.updatedAtMs >= item.updatedAt) {
@@ -412,12 +423,18 @@ export async function purgeOldTombstones(
     db
       .delete(watchlistItems)
       .where(
-        and(eq(watchlistItems.userId, userId), lt(watchlistItems.deletedAtMs, cutoff)),
+        and(
+          eq(watchlistItems.userId, userId),
+          lt(watchlistItems.deletedAtMs, cutoff),
+        ),
       ),
     db
       .delete(priceAlerts)
       .where(
-        and(eq(priceAlerts.userId, userId), lt(priceAlerts.deletedAtMs, cutoff)),
+        and(
+          eq(priceAlerts.userId, userId),
+          lt(priceAlerts.deletedAtMs, cutoff),
+        ),
       ),
     db
       .delete(backOrderReminders)
@@ -430,7 +447,10 @@ export async function purgeOldTombstones(
     db
       .delete(appSettings)
       .where(
-        and(eq(appSettings.userId, userId), lt(appSettings.deletedAtMs, cutoff)),
+        and(
+          eq(appSettings.userId, userId),
+          lt(appSettings.deletedAtMs, cutoff),
+        ),
       ),
   ]);
 }
@@ -457,6 +477,7 @@ git commit -m "feat(server): add sync DB helpers (listChangedItems/upsertSyncIte
 ## Task 3: tRPC sync router + tests
 
 **Files:**
+
 - Create: `tests/sync-router.test.ts`
 - Modify: `server/routers.ts`
 
@@ -610,6 +631,7 @@ git commit -m "feat(server): add sync tRPC router (pull/push, protected)"
 ## Task 4: Shared types — `lib/types.ts`
 
 **Files:**
+
 - Modify: `lib/types.ts`
 
 - [ ] **Step 1: Append the shared sync types**
@@ -629,7 +651,10 @@ export interface SyncItem {
 
 export interface SyncMeta {
   lastSyncedAt: number;
-  items: Record<string, Record<string, { updatedAt: number; deleted: boolean }>>;
+  items: Record<
+    string,
+    Record<string, { updatedAt: number; deleted: boolean }>
+  >;
 }
 ```
 
@@ -650,6 +675,7 @@ git commit -m "feat(shared): add Collection/SyncItem/SyncMeta types"
 ## Task 5: Storage — `sync_meta` key, helpers, onChange wiring
 
 **Files:**
+
 - Modify: `lib/storage.ts`
 - Modify: `tests/storage.test.ts`
 
@@ -669,7 +695,10 @@ describe("sync meta", () => {
     await setItemSyncMeta("watchlist", "p1", 1000);
     await saveSyncMeta({ lastSyncedAt: 5000, items: {} });
     const meta = await getSyncMeta();
-    expect(meta.items.watchlist?.p1).toEqual({ updatedAt: 1000, deleted: false });
+    expect(meta.items.watchlist?.p1).toEqual({
+      updatedAt: 1000,
+      deleted: false,
+    });
     expect(meta.lastSyncedAt).toBe(5000);
   });
 
@@ -796,152 +825,177 @@ export function createStorage(
 (c) Add the sync-meta helpers (place them in a new `// ─── Sync Meta ───` section before `// ─── Clear All Data ───`):
 
 ```ts
-  // ─── Sync Meta ─────────────────────────────────────────────────────────────
+// ─── Sync Meta ─────────────────────────────────────────────────────────────
 
-  async function getSyncMeta(): Promise<SyncMeta> {
-    try {
-      const raw = await adapter.getItem(KEYS.SYNC_META);
-      if (!raw) return { lastSyncedAt: 0, items: {} };
-      const parsed = JSON.parse(raw);
-      return {
-        lastSyncedAt:
-          typeof parsed.lastSyncedAt === "number" ? parsed.lastSyncedAt : 0,
-        items: parsed.items ?? {},
-      };
-    } catch {
-      return { lastSyncedAt: 0, items: {} };
-    }
+async function getSyncMeta(): Promise<SyncMeta> {
+  try {
+    const raw = await adapter.getItem(KEYS.SYNC_META);
+    if (!raw) return { lastSyncedAt: 0, items: {} };
+    const parsed = JSON.parse(raw);
+    return {
+      lastSyncedAt:
+        typeof parsed.lastSyncedAt === "number" ? parsed.lastSyncedAt : 0,
+      items: parsed.items ?? {},
+    };
+  } catch {
+    return { lastSyncedAt: 0, items: {} };
   }
+}
 
-  async function saveSyncMeta(meta: SyncMeta): Promise<void> {
-    await adapter.setItem(KEYS.SYNC_META, JSON.stringify(meta));
-  }
+async function saveSyncMeta(meta: SyncMeta): Promise<void> {
+  await adapter.setItem(KEYS.SYNC_META, JSON.stringify(meta));
+}
 
-  function updateItemMeta(
-    collection: Collection,
-    id: string,
-    patch: { updatedAt: number; deleted: boolean },
-  ): Promise<void> {
-    return enqueue(KEYS.SYNC_META, async () => {
-      const meta = await getSyncMeta();
-      const col = meta.items[collection] ?? {};
-      col[id] = patch;
-      meta.items[collection] = col;
+function updateItemMeta(
+  collection: Collection,
+  id: string,
+  patch: { updatedAt: number; deleted: boolean },
+): Promise<void> {
+  return enqueue(KEYS.SYNC_META, async () => {
+    const meta = await getSyncMeta();
+    const col = meta.items[collection] ?? {};
+    col[id] = patch;
+    meta.items[collection] = col;
+    await saveSyncMeta(meta);
+  });
+}
+
+async function setItemSyncMeta(
+  collection: Collection,
+  id: string,
+  updatedAt: number,
+): Promise<void> {
+  await updateItemMeta(collection, id, { updatedAt, deleted: false });
+}
+
+async function markItemDeleted(
+  collection: Collection,
+  id: string,
+  updatedAt: number,
+): Promise<void> {
+  await updateItemMeta(collection, id, { updatedAt, deleted: true });
+}
+
+async function clearItemSyncMeta(
+  collection: Collection,
+  id: string,
+): Promise<void> {
+  await enqueue(KEYS.SYNC_META, async () => {
+    const meta = await getSyncMeta();
+    const col = meta.items[collection];
+    if (col && col[id]) {
+      delete col[id];
       await saveSyncMeta(meta);
-    });
-  }
-
-  async function setItemSyncMeta(
-    collection: Collection,
-    id: string,
-    updatedAt: number,
-  ): Promise<void> {
-    await updateItemMeta(collection, id, { updatedAt, deleted: false });
-  }
-
-  async function markItemDeleted(
-    collection: Collection,
-    id: string,
-    updatedAt: number,
-  ): Promise<void> {
-    await updateItemMeta(collection, id, { updatedAt, deleted: true });
-  }
-
-  async function clearItemSyncMeta(
-    collection: Collection,
-    id: string,
-  ): Promise<void> {
-    await enqueue(KEYS.SYNC_META, async () => {
-      const meta = await getSyncMeta();
-      const col = meta.items[collection];
-      if (col && col[id]) {
-        delete col[id];
-        await saveSyncMeta(meta);
-      }
-    });
-  }
+    }
+  });
+}
 ```
 
 (d) Fire `notify(...)` from the semantic mutations. Apply these exact edits:
 
 - `addToWatchlist` — inside the `if (!exists)` block, after `await saveWatchlist(list);`:
+
 ```ts
-        notify("watchlist", product.id);
+notify("watchlist", product.id);
 ```
+
 - `removeFromWatchlist` — replace the body so it only notifies when something was removed:
+
 ```ts
-  async function removeFromWatchlist(productId: string): Promise<void> {
-    await enqueue(KEYS.WATCHLIST, async () => {
-      const list = await getWatchlist();
-      const next = list.filter((p) => p.id !== productId);
-      if (next.length !== list.length) {
-        await saveWatchlist(next);
-        notify("watchlist", productId);
-      }
-    });
-  }
-```
-- `updateProductListings` — after `await saveWatchlist(updated);`:
-```ts
+async function removeFromWatchlist(productId: string): Promise<void> {
+  await enqueue(KEYS.WATCHLIST, async () => {
+    const list = await getWatchlist();
+    const next = list.filter((p) => p.id !== productId);
+    if (next.length !== list.length) {
+      await saveWatchlist(next);
       notify("watchlist", productId);
+    }
+  });
+}
 ```
+
+- `updateProductListings` — after `await saveWatchlist(updated);`:
+
+```ts
+notify("watchlist", productId);
+```
+
 - `refreshWatchlistPrices` — after `await saveWatchlist(updated);`:
+
 ```ts
-    for (const p of updated) notify("watchlist", p.id);
+for (const p of updated) notify("watchlist", p.id);
 ```
+
 - `addAlert` — after `await saveAlerts(alerts);`:
+
 ```ts
-      notify("alerts", alert.id);
+notify("alerts", alert.id);
 ```
+
 - `removeAlert` — after `await saveAlerts(...)`:
+
 ```ts
-      notify("alerts", alertId);
+notify("alerts", alertId);
 ```
+
 - `toggleAlert`, `rearmAlert`, `deactivateAlert` — after their `await saveAlerts(updated);`:
+
 ```ts
-      notify("alerts", alertId);
+notify("alerts", alertId);
 ```
+
 - `saveSettings` — after `await adapter.setItem(KEYS.SETTINGS, ...)`:
+
 ```ts
-    notify("settings", "settings");
+notify("settings", "settings");
 ```
+
 - `addBackOrderReminder` — after `await saveBackOrderReminders(reminders);`:
+
 ```ts
-      notify("reminders", reminder.id);
+notify("reminders", reminder.id);
 ```
+
 - `removeBackOrderReminder` — after `await saveBackOrderReminders(...)`:
+
 ```ts
-      notify("reminders", reminderId);
+notify("reminders", reminderId);
 ```
+
 - `addStockWatch` — after `await saveStockWatches(watches);`:
+
 ```ts
-      notify("reminders", watch.id);
+notify("reminders", watch.id);
 ```
+
 - `removeStockWatch` — after `await saveStockWatches(...)`:
+
 ```ts
-      notify("reminders", watchId);
+notify("reminders", watchId);
 ```
+
 - `updateStockWatchStatus` — replace the body to capture the target id:
+
 ```ts
-  async function updateStockWatchStatus(
-    productId: string,
-    distributorId: string,
-    status: string,
-  ): Promise<void> {
-    await enqueue(KEYS.STOCK_WATCHES, async () => {
-      const watches = await getStockWatches();
-      let targetId: string | null = null;
-      const updated = watches.map((w) => {
-        if (w.productId === productId && w.distributorId === distributorId) {
-          targetId = w.id;
-          return { ...w, lastKnownStatus: status };
-        }
-        return w;
-      });
-      await saveStockWatches(updated);
-      if (targetId) notify("reminders", targetId);
+async function updateStockWatchStatus(
+  productId: string,
+  distributorId: string,
+  status: string,
+): Promise<void> {
+  await enqueue(KEYS.STOCK_WATCHES, async () => {
+    const watches = await getStockWatches();
+    let targetId: string | null = null;
+    const updated = watches.map((w) => {
+      if (w.productId === productId && w.distributorId === distributorId) {
+        targetId = w.id;
+        return { ...w, lastKnownStatus: status };
+      }
+      return w;
     });
-  }
+    await saveStockWatches(updated);
+    if (targetId) notify("reminders", targetId);
+  });
+}
 ```
 
 (e) Add `"sync_meta"` to the `clearAllData` `multiRemove` array.
@@ -949,42 +1003,42 @@ export function createStorage(
 (f) Add the new functions to the returned object and to the destructured named exports:
 
 ```ts
-  return {
-    getWatchlist,
-    saveWatchlist,
-    addToWatchlist,
-    removeFromWatchlist,
-    updateProductListings,
-    refreshWatchlistPrices,
-    getAlerts,
-    saveAlerts,
-    addAlert,
-    removeAlert,
-    toggleAlert,
-    rearmAlert,
-    deactivateAlert,
-    getSettings,
-    saveSettings,
-    getBackOrderReminders,
-    saveBackOrderReminders,
-    addBackOrderReminder,
-    removeBackOrderReminder,
-    getStockWatches,
-    saveStockWatches,
-    addStockWatch,
-    removeStockWatch,
-    updateStockWatchStatus,
-    getPriceDigestSnapshot,
-    savePriceDigestSnapshot,
-    getSyncMeta,
-    saveSyncMeta,
-    setItemSyncMeta,
-    markItemDeleted,
-    clearItemSyncMeta,
-    setOnChange,
-    setChangeSuppressed,
-    clearAllData,
-  };
+return {
+  getWatchlist,
+  saveWatchlist,
+  addToWatchlist,
+  removeFromWatchlist,
+  updateProductListings,
+  refreshWatchlistPrices,
+  getAlerts,
+  saveAlerts,
+  addAlert,
+  removeAlert,
+  toggleAlert,
+  rearmAlert,
+  deactivateAlert,
+  getSettings,
+  saveSettings,
+  getBackOrderReminders,
+  saveBackOrderReminders,
+  addBackOrderReminder,
+  removeBackOrderReminder,
+  getStockWatches,
+  saveStockWatches,
+  addStockWatch,
+  removeStockWatch,
+  updateStockWatchStatus,
+  getPriceDigestSnapshot,
+  savePriceDigestSnapshot,
+  getSyncMeta,
+  saveSyncMeta,
+  setItemSyncMeta,
+  markItemDeleted,
+  clearItemSyncMeta,
+  setOnChange,
+  setChangeSuppressed,
+  clearAllData,
+};
 ```
 
 (g) Export the default instance and add the new named exports to the destructure:
@@ -1052,6 +1106,7 @@ git commit -m "feat(storage): add sync_meta key, helpers, and onChange wiring"
 ## Task 6: Sync engine tests — `tests/sync-engine.test.ts`
 
 **Files:**
+
 - Create: `tests/sync-engine.test.ts`
 
 - [ ] **Step 1: Write the failing tests**
@@ -1123,7 +1178,10 @@ function makeProduct(id: string, listings: DistributorListing[] = []): Product {
   };
 }
 
-function makeAlert(id: string, overrides: Partial<PriceAlert> = {}): PriceAlert {
+function makeAlert(
+  id: string,
+  overrides: Partial<PriceAlert> = {},
+): PriceAlert {
   return {
     id,
     productId: "p1",
@@ -1208,7 +1266,9 @@ describe("syncNow", () => {
 
   it("server wins per item when newer", async () => {
     const storage = makeStorage();
-    await storage.addToWatchlist(makeProduct("p1", [listing("d1", 100, "in_stock")]));
+    await storage.addToWatchlist(
+      makeProduct("p1", [listing("d1", 100, "in_stock")]),
+    );
     await storage.setItemSyncMeta("watchlist", "p1", 1000);
     const serverProduct = makeProduct("p1", [listing("d1", 90, "in_stock")]);
     const pull = vi.fn(async () => ({
@@ -1237,7 +1297,9 @@ describe("syncNow", () => {
 
   it("keeps local when local is newer and pushes it", async () => {
     const storage = makeStorage();
-    await storage.addToWatchlist(makeProduct("p1", [listing("d1", 100, "in_stock")]));
+    await storage.addToWatchlist(
+      makeProduct("p1", [listing("d1", 100, "in_stock")]),
+    );
     await storage.setItemSyncMeta("watchlist", "p1", 5000);
     const serverProduct = makeProduct("p1", [listing("d1", 90, "in_stock")]);
     const pull = vi.fn(async () => ({
@@ -1295,7 +1357,12 @@ describe("syncNow", () => {
     const storage = makeStorage();
     const localListing = listing("d1", 100, "in_stock");
     localListing.priceHistory = [
-      { date: "2026-01-01", price: 100, currency: "USD", stockStatus: "in_stock" },
+      {
+        date: "2026-01-01",
+        price: 100,
+        currency: "USD",
+        stockStatus: "in_stock",
+      },
     ];
     await storage.addToWatchlist(makeProduct("p1", [localListing]));
     await storage.setItemSyncMeta("watchlist", "p1", 1000);
@@ -1329,7 +1396,12 @@ describe("syncNow", () => {
     const storage = makeStorage();
     const localListing = listing("d1", 100, "in_stock");
     localListing.priceHistory = [
-      { date: "2026-01-01", price: 100, currency: "USD", stockStatus: "in_stock" },
+      {
+        date: "2026-01-01",
+        price: 100,
+        currency: "USD",
+        stockStatus: "in_stock",
+      },
     ];
     await storage.addToWatchlist(makeProduct("p1", [localListing]));
     const pull = vi.fn(async () => ({ lastSyncedAt: 2000, items: [] }));
@@ -1504,6 +1576,7 @@ git commit -m "test(sync): add failing sync engine tests"
 ## Task 7: Sync engine — `lib/sync.ts`
 
 **Files:**
+
 - Create: `lib/sync.ts`
 
 - [ ] **Step 1: Implement `lib/sync.ts`**
@@ -1522,7 +1595,9 @@ import type {
 export interface SyncNowOptions {
   storage: Storage;
   isSignedIn: () => boolean;
-  pull: (since: number | null) => Promise<{ lastSyncedAt: number; items: SyncItem[] }>;
+  pull: (
+    since: number | null,
+  ) => Promise<{ lastSyncedAt: number; items: SyncItem[] }>;
   push: (items: SyncItem[]) => Promise<{ accepted: number }>;
   now?: () => number;
 }
@@ -1532,7 +1607,12 @@ export interface SyncSetup {
   schedule: () => void;
 }
 
-const COLLECTIONS: Collection[] = ["watchlist", "alerts", "reminders", "settings"];
+const COLLECTIONS: Collection[] = [
+  "watchlist",
+  "alerts",
+  "reminders",
+  "settings",
+];
 const SETTINGS_ID = "settings";
 
 let inFlight: Promise<void> | null = null;
@@ -1912,6 +1992,7 @@ git commit -m "feat(sync): add shared sync engine (pull/merge/push, single-fligh
 ## Task 8: Mobile launch sync — `app/_layout.tsx`
 
 **Files:**
+
 - Modify: `app/_layout.tsx`
 
 - [ ] **Step 1: Add imports**
@@ -1929,23 +2010,23 @@ import { setupSync, type SyncSetup } from "@/lib/sync";
 After the `const [trpcClient] = useState(() => createTRPCClient());` line, add:
 
 ```tsx
-  const { isAuthenticated } = useAuth();
-  const isAuthenticatedRef = useRef(isAuthenticated);
-  isAuthenticatedRef.current = isAuthenticated;
-  const syncRef = useRef<SyncSetup | null>(null);
+const { isAuthenticated } = useAuth();
+const isAuthenticatedRef = useRef(isAuthenticated);
+isAuthenticatedRef.current = isAuthenticated;
+const syncRef = useRef<SyncSetup | null>(null);
 
-  useEffect(() => {
-    syncRef.current = setupSync({
-      storage: defaultStorage,
-      isSignedIn: () => isAuthenticatedRef.current,
-      pull: (since) => trpcClient.query("sync.pull", { since }),
-      push: (items) => trpcClient.mutate("sync.push", { items }),
-    });
-  }, [trpcClient]);
+useEffect(() => {
+  syncRef.current = setupSync({
+    storage: defaultStorage,
+    isSignedIn: () => isAuthenticatedRef.current,
+    pull: (since) => trpcClient.query("sync.pull", { since }),
+    push: (items) => trpcClient.mutate("sync.push", { items }),
+  });
+}, [trpcClient]);
 
-  useEffect(() => {
-    if (isAuthenticated) syncRef.current?.syncNow();
-  }, [isAuthenticated]);
+useEffect(() => {
+  if (isAuthenticated) syncRef.current?.syncNow();
+}, [isAuthenticated]);
 ```
 
 - [ ] **Step 3: Verify**
@@ -1965,6 +2046,7 @@ git commit -m "feat(mobile): trigger sync on launch and auth change"
 ## Task 9: Mobile Settings — Account section + sync status
 
 **Files:**
+
 - Modify: `app/(tabs)/settings.tsx`
 - Modify: `components/ui/icon-symbol.tsx`
 
@@ -1991,37 +2073,37 @@ import { getSyncMeta } from "@/lib/storage";
 After the existing `const [products, setProducts] = useState<Product[]>([]);` line, add:
 
 ```tsx
-  const { user, isAuthenticated, logout } = useAuth();
-  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+const { user, isAuthenticated, logout } = useAuth();
+const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    const refresh = async () => {
-      const meta = await getSyncMeta();
-      if (!cancelled) setLastSyncedAt(meta.lastSyncedAt || null);
-    };
-    refresh();
-    const interval = setInterval(refresh, 30000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, []);
+useEffect(() => {
+  let cancelled = false;
+  const refresh = async () => {
+    const meta = await getSyncMeta();
+    if (!cancelled) setLastSyncedAt(meta.lastSyncedAt || null);
+  };
+  refresh();
+  const interval = setInterval(refresh, 30000);
+  return () => {
+    cancelled = true;
+    clearInterval(interval);
+  };
+}, []);
 
-  const syncStatusLabel = (() => {
-    if (!isAuthenticated) return "Sign in to sync across devices";
-    if (!lastSyncedAt) return "Not synced yet";
-    const minutes = Math.floor((Date.now() - lastSyncedAt) / 60000);
-    if (minutes < 1) return "Synced just now";
-    if (minutes < 60) return `Last synced ${minutes}m ago`;
-    return `Last synced ${Math.floor(minutes / 60)}h ago`;
-  })();
+const syncStatusLabel = (() => {
+  if (!isAuthenticated) return "Sign in to sync across devices";
+  if (!lastSyncedAt) return "Not synced yet";
+  const minutes = Math.floor((Date.now() - lastSyncedAt) / 60000);
+  if (minutes < 1) return "Synced just now";
+  if (minutes < 60) return `Last synced ${minutes}m ago`;
+  return `Last synced ${Math.floor(minutes / 60)}h ago`;
+})();
 
-  const handleSignIn = useCallback(() => {
-    if (Platform.OS !== "web")
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    startOAuthLogin();
-  }, []);
+const handleSignIn = useCallback(() => {
+  if (Platform.OS !== "web")
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  startOAuthLogin();
+}, []);
 ```
 
 - [ ] **Step 4: Add the Account section JSX**
@@ -2121,6 +2203,7 @@ git commit -m "feat(mobile): add account section and sync status to settings"
 ## Task 10: Desktop deps + Vite env types
 
 **Files:**
+
 - Modify: `desktop/package.json`
 - Create: `desktop/src/vite-env.d.ts`
 
@@ -2166,6 +2249,7 @@ Note: `desktop/pnpm-lock.yaml` does not exist (lockfile is at the root); if the 
 ## Task 11: Desktop API base + OAuth portal helpers
 
 **Files:**
+
 - Create: `desktop/src/lib/api-base.ts`
 
 - [ ] **Step 1: Write `desktop/src/lib/api-base.ts`**
@@ -2202,6 +2286,7 @@ git commit -m "feat(desktop): add api-base and oauth portal helpers"
 ## Task 12: Desktop auth hook — `desktop/src/hooks/use-auth.ts`
 
 **Files:**
+
 - Create: `desktop/src/hooks/use-auth.ts`
 
 - [ ] **Step 1: Write `desktop/src/hooks/use-auth.ts`**
@@ -2344,7 +2429,14 @@ export function useAuth() {
     notify();
   }, []);
 
-  return { user, loading, error, isAuthenticated: Boolean(user), login, logout };
+  return {
+    user,
+    loading,
+    error,
+    isAuthenticated: Boolean(user),
+    login,
+    logout,
+  };
 }
 ```
 
@@ -2365,6 +2457,7 @@ git commit -m "feat(desktop): add localStorage auth hook and login url builder"
 ## Task 13: Desktop tRPC client — `desktop/src/lib/trpc.ts`
 
 **Files:**
+
 - Create: `desktop/src/lib/trpc.ts`
 
 - [ ] **Step 1: Write `desktop/src/lib/trpc.ts`**
@@ -2412,6 +2505,7 @@ git commit -m "feat(desktop): add react-query tRPC client"
 ## Task 14: Desktop Tauri `start_oauth` command
 
 **Files:**
+
 - Modify: `desktop/src-tauri/src/lib.rs`
 
 - [ ] **Step 1: Add tokio imports at the top of `lib.rs`**
@@ -2538,6 +2632,7 @@ git commit -m "feat(desktop): add start_oauth loopback listener command"
 ## Task 15: Desktop App providers + launch sync
 
 **Files:**
+
 - Modify: `desktop/src/App.tsx`
 
 - [ ] **Step 1: Add imports**
@@ -2583,8 +2678,7 @@ export default function App() {
       const settings = await storage.getSettings();
       if (cancelled) return;
       if (settings.checkInterval === "manual") return;
-      const intervalMinutes =
-        settings.checkInterval === "hourly" ? 60 : 1440;
+      const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
       await startPricePoller(intervalMinutes);
     })();
     return () => {
@@ -2623,8 +2717,14 @@ export default function App() {
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <KeyboardShortcuts searchModalOpen={searchModalOpen} setSearchModalOpen={setSearchModalOpen} />
-          <SearchModal open={searchModalOpen} onClose={() => setSearchModalOpen(false)} />
+          <KeyboardShortcuts
+            searchModalOpen={searchModalOpen}
+            setSearchModalOpen={setSearchModalOpen}
+          />
+          <SearchModal
+            open={searchModalOpen}
+            onClose={() => setSearchModalOpen(false)}
+          />
           <div className="flex h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100">
             <Sidebar />
             <main className="flex-1 overflow-auto">
@@ -2638,7 +2738,10 @@ export default function App() {
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/health" element={<Health />} />
                 <Route path="/restock-watches" element={<RestockWatches />} />
-                <Route path="/distributor-analysis" element={<DistributorAnalysis />} />
+                <Route
+                  path="/distributor-analysis"
+                  element={<DistributorAnalysis />}
+                />
               </Routes>
             </main>
           </div>
@@ -2666,6 +2769,7 @@ git commit -m "feat(desktop): wire trpc/react-query providers and launch sync"
 ## Task 16: Desktop Settings — Account section + sync status
 
 **Files:**
+
 - Modify: `desktop/src/pages/Settings.tsx`
 - Modify: `desktop/tests/pages.test.tsx`
 
@@ -2682,37 +2786,37 @@ import { useAuth, buildLoginUrl } from "../hooks/use-auth";
 After the existing state declarations (e.g. after `const [importExportMessage, setImportExportMessage] = useState<string | null>(null);`), add:
 
 ```tsx
-  const { user, isAuthenticated, login, logout } = useAuth();
-  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+const { user, isAuthenticated, login, logout } = useAuth();
+const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    const refresh = async () => {
-      const meta = await storage.getSyncMeta();
-      if (!cancelled) setLastSyncedAt(meta.lastSyncedAt || null);
-    };
-    refresh();
-    const interval = setInterval(refresh, 30000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, []);
-
-  const syncStatus = !isAuthenticated
-    ? "Sign in to sync across devices"
-    : !lastSyncedAt
-      ? "Not synced yet"
-      : (() => {
-          const minutes = Math.floor((Date.now() - lastSyncedAt) / 60000);
-          if (minutes < 1) return "Synced just now";
-          if (minutes < 60) return `Last synced ${minutes}m ago`;
-          return `Last synced ${Math.floor(minutes / 60)}h ago`;
-        })();
-
-  const handleSignIn = async () => {
-    await login(buildLoginUrl());
+useEffect(() => {
+  let cancelled = false;
+  const refresh = async () => {
+    const meta = await storage.getSyncMeta();
+    if (!cancelled) setLastSyncedAt(meta.lastSyncedAt || null);
   };
+  refresh();
+  const interval = setInterval(refresh, 30000);
+  return () => {
+    cancelled = true;
+    clearInterval(interval);
+  };
+}, []);
+
+const syncStatus = !isAuthenticated
+  ? "Sign in to sync across devices"
+  : !lastSyncedAt
+    ? "Not synced yet"
+    : (() => {
+        const minutes = Math.floor((Date.now() - lastSyncedAt) / 60000);
+        if (minutes < 1) return "Synced just now";
+        if (minutes < 60) return `Last synced ${minutes}m ago`;
+        return `Last synced ${Math.floor(minutes / 60)}h ago`;
+      })();
+
+const handleSignIn = async () => {
+  await login(buildLoginUrl());
+};
 ```
 
 - [ ] **Step 3: Add the Account section JSX**
@@ -2720,44 +2824,42 @@ After the existing state declarations (e.g. after `const [importExportMessage, s
 Insert this block immediately after the `<h1 className="text-2xl font-bold">Settings</h1>` heading and before the Distributor Health button:
 
 ```tsx
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <UserCircle className="w-5 h-5 text-brand-600 dark:text-brand-400" />
-          <h2 className="text-lg font-semibold">Account</h2>
-        </div>
-        {isAuthenticated && user ? (
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium">{user.name ?? "Signed in"}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {user.email ?? user.openId}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">{syncStatus}</p>
-            </div>
-            <button
-              onClick={logout}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-            >
-              Sign out
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium">Sign in to sync</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {syncStatus}
-              </p>
-            </div>
-            <button
-              onClick={handleSignIn}
-              className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
-            >
-              Sign in
-            </button>
-          </div>
-        )}
+<div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+  <div className="flex items-center gap-3 mb-4">
+    <UserCircle className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+    <h2 className="text-lg font-semibold">Account</h2>
+  </div>
+  {isAuthenticated && user ? (
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <p className="text-sm font-medium">{user.name ?? "Signed in"}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {user.email ?? user.openId}
+        </p>
+        <p className="text-xs text-gray-400 mt-1">{syncStatus}</p>
       </div>
+      <button
+        onClick={logout}
+        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+      >
+        Sign out
+      </button>
+    </div>
+  ) : (
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <p className="text-sm font-medium">Sign in to sync</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{syncStatus}</p>
+      </div>
+      <button
+        onClick={handleSignIn}
+        className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+      >
+        Sign in
+      </button>
+    </div>
+  )}
+</div>
 ```
 
 - [ ] **Step 4: Update the desktop Settings test mock**
@@ -2785,6 +2887,7 @@ git commit -m "feat(desktop): add account section and sync status to settings"
 ## Task 17: Final verification + checkpoint commit
 
 **Files:**
+
 - Whole repo
 
 - [ ] **Step 1: Run all verification gates**

@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Product, PriceAlert, AppSettings, StockStatus } from "../lib/types";
+import type {
+  Product,
+  PriceAlert,
+  AppSettings,
+  StockStatus,
+} from "../lib/types";
 import {
   computeDigest,
   formatDigestNotification,
@@ -69,11 +74,18 @@ describe("computeDigest", () => {
     const previous: DigestSnapshot = {
       lastDigestAt: LAST,
       products: [
-        { productId: "p1", name: "CRS804", bestPrice: 100, stockStatus: "in_stock" },
+        {
+          productId: "p1",
+          name: "CRS804",
+          bestPrice: 100,
+          stockStatus: "in_stock",
+        },
       ],
     };
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 95, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 95, currency: "USD", stockStatus: "in_stock" },
+      ]),
     ];
     const result = computeDigest(previous, watchlist, makeSettings(), []);
     expect(result.priceChanges).toHaveLength(1);
@@ -87,11 +99,18 @@ describe("computeDigest", () => {
     const previous: DigestSnapshot = {
       lastDigestAt: LAST,
       products: [
-        { productId: "p1", name: "CRS804", bestPrice: null, stockStatus: "back_order" },
+        {
+          productId: "p1",
+          name: "CRS804",
+          bestPrice: null,
+          stockStatus: "back_order",
+        },
       ],
     };
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 95, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 95, currency: "USD", stockStatus: "in_stock" },
+      ]),
     ];
     const result = computeDigest(previous, watchlist, makeSettings(), []);
     expect(result.stockChanges).toHaveLength(1);
@@ -105,11 +124,17 @@ describe("computeDigest", () => {
       products: [],
     };
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 85, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 85, currency: "USD", stockStatus: "in_stock" },
+      ]),
     ];
     const alerts = [
       makeAlert({ triggeredAt: "2026-08-11T08:00:00.000Z" }), // inside window
-      makeAlert({ id: "a2", productId: "p2", triggeredAt: "2026-08-09T08:00:00.000Z" }), // before window
+      makeAlert({
+        id: "a2",
+        productId: "p2",
+        triggeredAt: "2026-08-09T08:00:00.000Z",
+      }), // before window
     ];
     const result = computeDigest(previous, watchlist, makeSettings(), alerts);
     expect(result.alertTargetsHit).toHaveLength(1);
@@ -119,7 +144,9 @@ describe("computeDigest", () => {
   it("excludes active (not-yet-triggered) alerts from targets hit", () => {
     const previous: DigestSnapshot = { lastDigestAt: LAST, products: [] };
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 85, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 85, currency: "USD", stockStatus: "in_stock" },
+      ]),
     ];
     const alerts = [makeAlert({ isActive: true, triggeredAt: undefined })];
     const result = computeDigest(previous, watchlist, makeSettings(), alerts);
@@ -130,11 +157,18 @@ describe("computeDigest", () => {
     const previous: DigestSnapshot = {
       lastDigestAt: LAST,
       products: [
-        { productId: "p1", name: "CRS804", bestPrice: 95, stockStatus: "in_stock" },
+        {
+          productId: "p1",
+          name: "CRS804",
+          bestPrice: 95,
+          stockStatus: "in_stock",
+        },
       ],
     };
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 95, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 95, currency: "USD", stockStatus: "in_stock" },
+      ]),
     ];
     const result = computeDigest(previous, watchlist, makeSettings(), []);
     expect(result.priceChanges).toHaveLength(0);
@@ -145,8 +179,12 @@ describe("computeDigest", () => {
 
   it("builds a snapshot from scratch when previous is null", () => {
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 95, currency: "USD", stockStatus: "in_stock" }]),
-      makeProduct("p2", "CRS326", [{ price: 50, currency: "USD", stockStatus: "back_order" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 95, currency: "USD", stockStatus: "in_stock" },
+      ]),
+      makeProduct("p2", "CRS326", [
+        { price: 50, currency: "USD", stockStatus: "back_order" },
+      ]),
     ];
     const result = computeDigest(null, watchlist, makeSettings(), []);
     expect(result.priceChanges).toHaveLength(0);
@@ -159,9 +197,16 @@ describe("computeDigest", () => {
   it("converts prices to the display currency in the summary", () => {
     const previous: DigestSnapshot = { lastDigestAt: LAST, products: [] };
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 92, currency: "EUR", stockStatus: "in_stock" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 92, currency: "EUR", stockStatus: "in_stock" },
+      ]),
     ];
-    const result = computeDigest(previous, watchlist, makeSettings({ displayCurrency: "USD" }), []);
+    const result = computeDigest(
+      previous,
+      watchlist,
+      makeSettings({ displayCurrency: "USD" }),
+      [],
+    );
     // 92 EUR / 0.92 = 100 USD
     expect(result.summary.totalValue).toBeCloseTo(100, 1);
   });
@@ -170,7 +215,13 @@ describe("computeDigest", () => {
 describe("formatDigestNotification", () => {
   it("formats a summary header with price and stock counts", () => {
     const result = formatDigestNotification({
-      summary: { totalValue: 95, inStock: 1, backOrder: 1, outOfStock: 0, unknown: 0 },
+      summary: {
+        totalValue: 95,
+        inStock: 1,
+        backOrder: 1,
+        outOfStock: 0,
+        unknown: 0,
+      },
       priceChanges: [],
       stockChanges: [],
       alertTargetsHit: [],
@@ -183,9 +234,19 @@ describe("formatDigestNotification", () => {
 
   it("includes price-change and stock-change lines", () => {
     const result = formatDigestNotification({
-      summary: { totalValue: 95, inStock: 1, backOrder: 0, outOfStock: 0, unknown: 0 },
-      priceChanges: [{ productId: "p1", name: "CRS804", from: 100, to: 95, percent: -5 }],
-      stockChanges: [{ productId: "p2", name: "CRS326", from: "back_order", to: "in_stock" }],
+      summary: {
+        totalValue: 95,
+        inStock: 1,
+        backOrder: 0,
+        outOfStock: 0,
+        unknown: 0,
+      },
+      priceChanges: [
+        { productId: "p1", name: "CRS804", from: 100, to: 95, percent: -5 },
+      ],
+      stockChanges: [
+        { productId: "p2", name: "CRS326", from: "back_order", to: "in_stock" },
+      ],
       alertTargetsHit: [],
     });
     expect(result.body).toContain("CRS804");
@@ -196,7 +257,13 @@ describe("formatDigestNotification", () => {
 
   it("falls back to a no-changes body when nothing changed", () => {
     const result = formatDigestNotification({
-      summary: { totalValue: 0, inStock: 0, backOrder: 0, outOfStock: 0, unknown: 0 },
+      summary: {
+        totalValue: 0,
+        inStock: 0,
+        backOrder: 0,
+        outOfStock: 0,
+        unknown: 0,
+      },
       priceChanges: [],
       stockChanges: [],
       alertTargetsHit: [],
@@ -245,7 +312,9 @@ describe("maybeSendDigest", () => {
     };
     const send = vi.fn(async () => {});
     const watchlist = [
-      makeProduct("p1", "CRS804", [{ price: 95, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("p1", "CRS804", [
+        { price: 95, currency: "USD", stockStatus: "in_stock" },
+      ]),
     ];
     const result = await maybeSendDigest(
       previous,
@@ -268,9 +337,23 @@ describe("maybeSendDigest", () => {
       products: [],
     };
     const send = vi.fn(async () => {});
-    const result = await maybeSendDigest(previous, [], makeSettings(), [], send, NOW);
+    const result = await maybeSendDigest(
+      previous,
+      [],
+      makeSettings(),
+      [],
+      send,
+      NOW,
+    );
     // After the first fires, re-check with the returned snapshot → not due
-    const second = await maybeSendDigest(result, [], makeSettings(), [], send, NOW);
+    const second = await maybeSendDigest(
+      result,
+      [],
+      makeSettings(),
+      [],
+      send,
+      NOW,
+    );
     expect(send).toHaveBeenCalledTimes(1);
     expect(second).toBeNull();
   });
@@ -283,7 +366,14 @@ describe("maybeSendDigest", () => {
     const send = vi.fn(async () => {
       throw new Error("boom");
     });
-    const result = await maybeSendDigest(previous, [], makeSettings(), [], send, NOW);
+    const result = await maybeSendDigest(
+      previous,
+      [],
+      makeSettings(),
+      [],
+      send,
+      NOW,
+    );
     expect(result).toBeNull();
   });
 

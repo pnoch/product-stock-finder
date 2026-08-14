@@ -28,6 +28,7 @@
 ### Task 1: Add `pruneDeviceToken` helper
 
 **Files:**
+
 - Modify: `server/push-notifications.ts`
 - Test: `tests/push-notifications.test.ts`
 
@@ -87,13 +88,13 @@ const dbStub = {
 **(d)** Update `beforeEach` to reset tickets and mock call history:
 
 ```ts
-  beforeEach(() => {
-    clearPushTokensForTests();
-    sent.length = 0;
-    pushState.tickets = [{ status: "ok" }];
-    vi.clearAllMocks();
-    mockedGetDb.mockResolvedValue(dbStub as never);
-  });
+beforeEach(() => {
+  clearPushTokensForTests();
+  sent.length = 0;
+  pushState.tickets = [{ status: "ok" }];
+  vi.clearAllMocks();
+  mockedGetDb.mockResolvedValue(dbStub as never);
+});
 ```
 
 **(e)** Add a `pruneDeviceToken` import to the existing import line:
@@ -110,30 +111,30 @@ import {
 **(f)** Append these three tests at the end of the `describe("push-notifications", ...)` block:
 
 ```ts
-  it("pruneDeviceToken removes the token from the memory store", async () => {
-    mockedGetDb.mockResolvedValue(null);
-    await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios");
-    await pruneDeviceToken("dev-1");
-    await sendPushForDevice("dev-1", [event]);
-    expect(sent).toHaveLength(0);
-  });
+it("pruneDeviceToken removes the token from the memory store", async () => {
+  mockedGetDb.mockResolvedValue(null);
+  await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios");
+  await pruneDeviceToken("dev-1");
+  await sendPushForDevice("dev-1", [event]);
+  expect(sent).toHaveLength(0);
+});
 
-  it("pruneDeviceToken deletes the row through the database", async () => {
-    await pruneDeviceToken("dev-1");
-    expect(dbStub.delete).toHaveBeenCalledWith(devicePushTokens);
-  });
+it("pruneDeviceToken deletes the row through the database", async () => {
+  await pruneDeviceToken("dev-1");
+  expect(dbStub.delete).toHaveBeenCalledWith(devicePushTokens);
+});
 
-  it("pruneDeviceToken never throws when the database delete fails", async () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    mockedGetDb.mockResolvedValue({
-      delete: vi.fn(() => {
-        throw new Error("db down");
-      }),
-    } as never);
-    await expect(pruneDeviceToken("dev-1")).resolves.toBeUndefined();
-    expect(warnSpy).toHaveBeenCalled();
-    warnSpy.mockRestore();
-  });
+it("pruneDeviceToken never throws when the database delete fails", async () => {
+  const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  mockedGetDb.mockResolvedValue({
+    delete: vi.fn(() => {
+      throw new Error("db down");
+    }),
+  } as never);
+  await expect(pruneDeviceToken("dev-1")).resolves.toBeUndefined();
+  expect(warnSpy).toHaveBeenCalled();
+  warnSpy.mockRestore();
+});
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -157,7 +158,10 @@ export async function pruneDeviceToken(deviceId: string): Promise<void> {
       memoryTokens.delete(deviceId);
     }
   } catch (error) {
-    console.warn(`[Push] Failed to prune push token for device ${deviceId}:`, error);
+    console.warn(
+      `[Push] Failed to prune push token for device ${deviceId}:`,
+      error,
+    );
   }
 }
 ```
@@ -179,6 +183,7 @@ git commit -m "feat(push): add pruneDeviceToken helper"
 ### Task 2: Prune on DeviceNotRegistered send tickets
 
 **Files:**
+
 - Modify: `server/push-notifications.ts`
 - Test: `tests/push-notifications.test.ts`
 
@@ -187,34 +192,40 @@ git commit -m "feat(push): add pruneDeviceToken helper"
 Append these four tests at the end of the `describe("push-notifications", ...)` block in `tests/push-notifications.test.ts`:
 
 ```ts
-  it("deletes the token row when a send ticket reports DeviceNotRegistered", async () => {
-    pushState.tickets = [{ status: "error", details: { error: "DeviceNotRegistered" } }];
-    await sendPushForDevice("dev-1", [event]);
-    expect(dbStub.delete).toHaveBeenCalledWith(devicePushTokens);
-  });
+it("deletes the token row when a send ticket reports DeviceNotRegistered", async () => {
+  pushState.tickets = [
+    { status: "error", details: { error: "DeviceNotRegistered" } },
+  ];
+  await sendPushForDevice("dev-1", [event]);
+  expect(dbStub.delete).toHaveBeenCalledWith(devicePushTokens);
+});
 
-  it("does not delete when all send tickets are ok", async () => {
-    pushState.tickets = [{ status: "ok" }];
-    await sendPushForDevice("dev-1", [event]);
-    expect(dbStub.delete).not.toHaveBeenCalled();
-  });
+it("does not delete when all send tickets are ok", async () => {
+  pushState.tickets = [{ status: "ok" }];
+  await sendPushForDevice("dev-1", [event]);
+  expect(dbStub.delete).not.toHaveBeenCalled();
+});
 
-  it("does not delete on other error codes", async () => {
-    pushState.tickets = [{ status: "error", details: { error: "MessageTooBig" } }];
-    await sendPushForDevice("dev-1", [event]);
-    expect(dbStub.delete).not.toHaveBeenCalled();
-  });
+it("does not delete on other error codes", async () => {
+  pushState.tickets = [
+    { status: "error", details: { error: "MessageTooBig" } },
+  ];
+  await sendPushForDevice("dev-1", [event]);
+  expect(dbStub.delete).not.toHaveBeenCalled();
+});
 
-  it("prunes the memory token when a send ticket reports DeviceNotRegistered", async () => {
-    mockedGetDb.mockResolvedValue(null);
-    await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios");
-    pushState.tickets = [{ status: "error", details: { error: "DeviceNotRegistered" } }];
-    await sendPushForDevice("dev-1", [event]);
-    expect(sent).toHaveLength(1);
-    pushState.tickets = [{ status: "ok" }];
-    await sendPushForDevice("dev-1", [event]);
-    expect(sent).toHaveLength(1);
-  });
+it("prunes the memory token when a send ticket reports DeviceNotRegistered", async () => {
+  mockedGetDb.mockResolvedValue(null);
+  await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios");
+  pushState.tickets = [
+    { status: "error", details: { error: "DeviceNotRegistered" } },
+  ];
+  await sendPushForDevice("dev-1", [event]);
+  expect(sent).toHaveLength(1);
+  pushState.tickets = [{ status: "ok" }];
+  await sendPushForDevice("dev-1", [event]);
+  expect(sent).toHaveLength(1);
+});
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -227,16 +238,16 @@ Expected: FAIL — first test (`deletes the token row ...`) fails because `dbStu
 In `server/push-notifications.ts`, modify the send loop inside `sendPushForDevice`:
 
 ```ts
-    for (const chunk of expo.chunkPushNotifications(messages)) {
-      const tickets = await expo.sendPushNotificationsAsync(chunk);
-      if (
-        tickets.some(
-          (t) => t.status === "error" && t.details?.error === "DeviceNotRegistered",
-        )
-      ) {
-        await pruneDeviceToken(deviceId);
-      }
-    }
+for (const chunk of expo.chunkPushNotifications(messages)) {
+  const tickets = await expo.sendPushNotificationsAsync(chunk);
+  if (
+    tickets.some(
+      (t) => t.status === "error" && t.details?.error === "DeviceNotRegistered",
+    )
+  ) {
+    await pruneDeviceToken(deviceId);
+  }
+}
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
@@ -256,6 +267,7 @@ git commit -m "feat(push): prune tokens on DeviceNotRegistered send tickets"
 ### Task 3: Full verification + checkpoint
 
 **Files:**
+
 - Modify: `todo.md`
 
 - [ ] **Step 1: Run the full verification gates**

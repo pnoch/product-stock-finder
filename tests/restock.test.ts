@@ -37,7 +37,9 @@ vi.mock("react-native", () => ({ Platform: { OS: "ios" } }));
 
 import { checkRestocks } from "../lib/restock";
 
-function makeWatch(overrides: Partial<BackOrderReminder> = {}): BackOrderReminder {
+function makeWatch(
+  overrides: Partial<BackOrderReminder> = {},
+): BackOrderReminder {
   return {
     id: "w1",
     productId: "p1",

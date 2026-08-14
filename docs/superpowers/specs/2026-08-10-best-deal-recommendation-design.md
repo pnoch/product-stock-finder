@@ -28,26 +28,29 @@ Each distributor gets a map like `{ "Asia-Pacific": 15, "Europe": 25, "North Ame
 A platform-agnostic pure function consumed by both mobile and desktop Product Detail screens.
 
 **Types:**
+
 ```typescript
 export interface BestDeal {
   distributorId: string;
-  price: number;    // converted to display currency
+  price: number; // converted to display currency
   shipping: number; // converted to display currency
-  total: number;    // price + shipping
-  currency: string;  // display currency
+  total: number; // price + shipping
+  currency: string; // display currency
 }
 ```
 
 **Function:**
+
 ```typescript
 export function findBestDeal(
   listings: DistributorListing[],
   destinationRegion: string,
   displayCurrency: string,
-): BestDeal | null
+): BestDeal | null;
 ```
 
 **Behavior:**
+
 - Filters to in-stock listings with valid `price > 0`
 - For each, looks up the distributor's `shippingCosts[destinationRegion]` via `getDistributorById`
 - Converts price + shipping to display currency via `convertPrice`
@@ -61,6 +64,7 @@ Add `shippingRegion` to `AppSettings` (default `"Asia-Pacific"`), user-selectabl
 ### Product Detail Card (mobile + desktop)
 
 A "Best Deal" card showing:
+
 - Recommended distributor name + flag
 - Total landed cost (formatted in display currency)
 - Price / shipping breakdown
@@ -94,10 +98,12 @@ A "Best Deal" card showing:
 ## Files
 
 **New:**
+
 - `lib/best-deal.ts` — shared best-deal utility
 - `tests/best-deal.test.ts` — unit tests
 
 **Modified:**
+
 - `lib/types.ts` — add `shippingCosts` to `Distributor`, `shippingRegion` to `AppSettings`
 - `lib/distributors.ts` — add `shippingCosts` to each distributor
 - `lib/storage.ts` — add `shippingRegion` default to settings

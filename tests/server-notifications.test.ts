@@ -45,7 +45,9 @@ describe("uploadNotificationConfig", () => {
   });
 
   it("returns false when the mutate rejects", async () => {
-    mockClient({ uploadConfig: vi.fn().mockRejectedValue(new Error("network")) });
+    mockClient({
+      uploadConfig: vi.fn().mockRejectedValue(new Error("network")),
+    });
     const ok = await uploadNotificationConfig("dev-1", {
       alerts: [],
       stockWatches: [],
@@ -75,12 +77,14 @@ describe("pullNotificationEvents", () => {
 
   it("returns an empty array when the query times out", async () => {
     mockClient({
-      pull: vi.fn().mockImplementation(
-        () =>
-          new Promise<{ events: unknown[] }>((resolve) =>
-            setTimeout(() => resolve({ events: [] }), 10_000),
-          ),
-      ),
+      pull: vi
+        .fn()
+        .mockImplementation(
+          () =>
+            new Promise<{ events: unknown[] }>((resolve) =>
+              setTimeout(() => resolve({ events: [] }), 10_000),
+            ),
+        ),
     });
     const events = await pullNotificationEvents("dev-1");
     expect(events).toEqual([]);

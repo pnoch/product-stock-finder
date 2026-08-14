@@ -20,14 +20,16 @@ describe("Multilink Parser", () => {
   it("should return null for 404 page fixture", () => {
     const fixturePath = path.join(FIXTURES_DIR, "multilink-us.html");
     expect(fs.existsSync(fixturePath)).toBe(true);
-    
+
     const html = fs.readFileSync(fixturePath, "utf-8");
     const result = multilinkParser.parsePrice(html);
     expect(result).toBeNull();
   });
 
   it("should return null for invalid HTML", () => {
-    const result = multilinkParser.parsePrice("<html><body>No price here</body></html>");
+    const result = multilinkParser.parsePrice(
+      "<html><body>No price here</body></html>",
+    );
     expect(result).toBeNull();
   });
 

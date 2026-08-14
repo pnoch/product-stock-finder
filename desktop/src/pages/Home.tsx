@@ -1,12 +1,27 @@
 import { Link } from "react-router";
-import { Package, TrendingUp, Bell, Clock, Plus, ArrowRight } from "lucide-react";
+import {
+  Package,
+  TrendingUp,
+  Bell,
+  Clock,
+  Plus,
+  ArrowRight,
+} from "lucide-react";
 import { useWatchlist, useAlerts } from "../hooks/use-storage";
 import { formatPrice, getBestPrice } from "../../../lib/currency";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
 
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) {
+function StatCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | string;
+}) {
   return (
     <div className="flex items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400">
@@ -28,11 +43,11 @@ export function Home() {
 
   if (loading) return <LoadingSpinner />;
 
-  const inStockCount = products.filter(p =>
-    p.listings.some(l => l.stockStatus === "in_stock")
+  const inStockCount = products.filter((p) =>
+    p.listings.some((l) => l.stockStatus === "in_stock"),
   ).length;
 
-  const activeAlerts = alerts.filter(a => a.isActive).length;
+  const activeAlerts = alerts.filter((a) => a.isActive).length;
 
   const recentProducts = [...products]
     .sort((a, b) => {
@@ -75,19 +90,36 @@ export function Home() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<Package className="w-5 h-5" />} label="Total Tracked" value={products.length} />
-        <StatCard icon={<TrendingUp className="w-5 h-5" />} label="In Stock" value={inStockCount} />
-        <StatCard icon={<Bell className="w-5 h-5" />} label="Alerts Active" value={activeAlerts} />
-        <StatCard icon={<Clock className="w-5 h-5" />} label="Reminders" value={alerts.length - activeAlerts} />
+        <StatCard
+          icon={<Package className="w-5 h-5" />}
+          label="Total Tracked"
+          value={products.length}
+        />
+        <StatCard
+          icon={<TrendingUp className="w-5 h-5" />}
+          label="In Stock"
+          value={inStockCount}
+        />
+        <StatCard
+          icon={<Bell className="w-5 h-5" />}
+          label="Alerts Active"
+          value={activeAlerts}
+        />
+        <StatCard
+          icon={<Clock className="w-5 h-5" />}
+          label="Reminders"
+          value={alerts.length - activeAlerts}
+        />
       </div>
 
       <div>
         <h2 className="text-lg font-semibold mb-3">Recent Activity</h2>
         <div className="space-y-2">
-          {recentProducts.map(product => {
+          {recentProducts.map((product) => {
             const best = getBestPrice(product.listings, "USD");
-            const listing = product.listings.find(l =>
-              best && l.price === best.price && l.currency === best.currency
+            const listing = product.listings.find(
+              (l) =>
+                best && l.price === best.price && l.currency === best.currency,
             );
             const refreshed = product.lastRefreshed ?? product.addedAt;
             const timeAgo = formatTimeAgo(refreshed);
@@ -113,7 +145,9 @@ export function Home() {
                     <span className="text-sm text-gray-400">No price</span>
                   )}
                   {listing && <StockBadge status={listing.stockStatus} />}
-                  <span className="text-xs text-gray-400 whitespace-nowrap">{timeAgo}</span>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">
+                    {timeAgo}
+                  </span>
                   <ArrowRight className="w-4 h-4 text-gray-400" />
                 </div>
               </Link>

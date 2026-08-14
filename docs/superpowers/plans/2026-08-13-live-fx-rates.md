@@ -15,6 +15,7 @@
 ### Task 1: Shared `FxRatesResult` type + dynamic rates in `lib/currency.ts`
 
 **Files:**
+
 - Modify: `lib/types.ts` (after `ServerPriceResult`, line 51)
 - Modify: `lib/currency.ts`
 - Test: `tests/currency.test.ts`
@@ -25,7 +26,11 @@ Append to `tests/currency.test.ts`. Add `afterEach` to the vitest import and `se
 
 ```ts
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { EXCHANGE_RATES, convertPrice, setExchangeRates } from "../lib/currency";
+import {
+  EXCHANGE_RATES,
+  convertPrice,
+  setExchangeRates,
+} from "../lib/currency";
 import { FX_TTL_MS, getFxRates, clearFxCache } from "../server/fx";
 ```
 
@@ -159,6 +164,7 @@ git commit -m "feat(currency): dynamic exchange rates via setExchangeRates"
 ### Task 2: `fx_rates` AsyncStorage helpers
 
 **Files:**
+
 - Modify: `lib/storage.ts` (KEYS line 33, new section after line 356, `clearAllData` line 519, return object line 538, destructure block line 590)
 - Test: `tests/storage.test.ts`
 
@@ -210,36 +216,35 @@ In `lib/storage.ts`:
 **3b.** Add a new section after the Price Digest Snapshot section (after line 356):
 
 ```ts
-  // ─── FX Rates ───────────────────────────────────────────────────────────────
+// ─── FX Rates ───────────────────────────────────────────────────────────────
 
-  async function getFxRates(): Promise<{
-    rates: Record<string, number>;
-    fetchedAt: number;
-  } | null> {
-    try {
-      const raw = await adapter.getItem(KEYS.FX_RATES);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as {
-        rates?: unknown;
-        fetchedAt?: unknown;
-      };
-      if (!parsed || typeof parsed !== "object" || !parsed.rates) return null;
-      return {
-        rates: parsed.rates as Record<string, number>,
-        fetchedAt:
-          typeof parsed.fetchedAt === "number" ? parsed.fetchedAt : 0,
-      };
-    } catch {
-      return null;
-    }
+async function getFxRates(): Promise<{
+  rates: Record<string, number>;
+  fetchedAt: number;
+} | null> {
+  try {
+    const raw = await adapter.getItem(KEYS.FX_RATES);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      rates?: unknown;
+      fetchedAt?: unknown;
+    };
+    if (!parsed || typeof parsed !== "object" || !parsed.rates) return null;
+    return {
+      rates: parsed.rates as Record<string, number>,
+      fetchedAt: typeof parsed.fetchedAt === "number" ? parsed.fetchedAt : 0,
+    };
+  } catch {
+    return null;
   }
+}
 
-  async function saveFxRates(payload: {
-    rates: Record<string, number>;
-    fetchedAt: number;
-  }): Promise<void> {
-    await adapter.setItem(KEYS.FX_RATES, JSON.stringify(payload));
-  }
+async function saveFxRates(payload: {
+  rates: Record<string, number>;
+  fetchedAt: number;
+}): Promise<void> {
+  await adapter.setItem(KEYS.FX_RATES, JSON.stringify(payload));
+}
 ```
 
 **3c.** Add `KEYS.FX_RATES` to the `clearAllData()` array (after `KEYS.NOTIFICATION_HISTORY`, line 528):
@@ -273,6 +278,7 @@ git commit -m "feat(storage): persist live FX rates (fx_rates key)"
 ### Task 3: Server FX service + `fx.get` endpoint
 
 **Files:**
+
 - Create: `server/fx.ts`
 - Modify: `server/routers.ts` (add `fx` router after `prices`, ~line 110)
 - Create: `tests/fx.test.ts`
@@ -283,7 +289,11 @@ Create `tests/fx.test.ts`:
 
 ```ts
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { EXCHANGE_RATES, convertPrice, setExchangeRates } from "../lib/currency";
+import {
+  EXCHANGE_RATES,
+  convertPrice,
+  setExchangeRates,
+} from "../lib/currency";
 import { FX_TTL_MS, getFxRates, clearFxCache } from "../server/fx";
 
 function mockResponse(rates: Record<string, number>) {
@@ -362,7 +372,10 @@ describe("fx service", () => {
     expect(bad.fetchedAt).toBeNull();
     expect(bad.rates.EUR).toBe(EXCHANGE_RATES.EUR);
 
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ result: "error" }) });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ result: "error" }),
+    });
     const malformed = await getFxRates();
     expect(malformed.fetchedAt).toBeNull();
     expect(malformed.rates.EUR).toBe(EXCHANGE_RATES.EUR);
@@ -418,7 +431,9 @@ function parseRates(body: unknown): Record<string, number> | null {
   const rates = (body as { rates?: unknown }).rates;
   if (!rates || typeof rates !== "object" || rates === null) return null;
   const out: Record<string, number> = {};
-  for (const [code, value] of Object.entries(rates as Record<string, unknown>)) {
+  for (const [code, value] of Object.entries(
+    rates as Record<string, unknown>,
+  )) {
     if (typeof value === "number" && Number.isFinite(value)) out[code] = value;
   }
   return Object.keys(out).length > 0 ? out : null;
@@ -451,15 +466,24 @@ function refreshSingleFlight(): Promise<FxCache | null> {
 
 export async function getFxRates(): Promise<FxRatesResult> {
   if (cache && Date.now() - cache.fetchedAt < FX_TTL_MS) {
-    return { rates: { ...EXCHANGE_RATES, ...cache.rates }, fetchedAt: cache.fetchedAt };
+    return {
+      rates: { ...EXCHANGE_RATES, ...cache.rates },
+      fetchedAt: cache.fetchedAt,
+    };
   }
   if (cache) {
     void refreshSingleFlight();
-    return { rates: { ...EXCHANGE_RATES, ...cache.rates }, fetchedAt: cache.fetchedAt };
+    return {
+      rates: { ...EXCHANGE_RATES, ...cache.rates },
+      fetchedAt: cache.fetchedAt,
+    };
   }
   const fetched = await refreshSingleFlight();
   if (fetched) {
-    return { rates: { ...EXCHANGE_RATES, ...fetched.rates }, fetchedAt: fetched.fetchedAt };
+    return {
+      rates: { ...EXCHANGE_RATES, ...fetched.rates },
+      fetchedAt: fetched.fetchedAt,
+    };
   }
   return { rates: EXCHANGE_RATES, fetchedAt: null };
 }
@@ -509,6 +533,7 @@ git commit -m "feat(server): TTL-cached FX rates endpoint (fx.get)"
 ### Task 4: Mobile `lib/fx.ts` helper
 
 **Files:**
+
 - Create: `lib/fx.ts`
 - Create: `tests/fx-client.test.ts`
 
@@ -541,7 +566,12 @@ vi.mock("../lib/trpc", () => ({
 }));
 
 import { createTRPCClient } from "../lib/trpc";
-import { loadFxRates, refreshFxRates, maybeRefreshFxRates, FX_TTL_MS } from "../lib/fx";
+import {
+  loadFxRates,
+  refreshFxRates,
+  maybeRefreshFxRates,
+  FX_TTL_MS,
+} from "../lib/fx";
 
 const mockedCreateClient = vi.mocked(createTRPCClient);
 
@@ -645,7 +675,9 @@ export async function fetchFxRates(): Promise<FxRatesResult | null> {
     const client = createTRPCClient();
     const result = await Promise.race([
       client.fx.get.query(),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     if (!result || typeof result.rates !== "object" || result.rates === null) {
       return null;
@@ -656,12 +688,16 @@ export async function fetchFxRates(): Promise<FxRatesResult | null> {
   }
 }
 
-export async function loadFxRates(storage: Storage = defaultStorage): Promise<void> {
+export async function loadFxRates(
+  storage: Storage = defaultStorage,
+): Promise<void> {
   const stored = await storage.getFxRates();
   if (stored) setExchangeRates(stored.rates);
 }
 
-export async function refreshFxRates(storage: Storage = defaultStorage): Promise<void> {
+export async function refreshFxRates(
+  storage: Storage = defaultStorage,
+): Promise<void> {
   const result = await fetchFxRates();
   if (!result) return;
   await storage.saveFxRates({
@@ -671,7 +707,9 @@ export async function refreshFxRates(storage: Storage = defaultStorage): Promise
   setExchangeRates(result.rates);
 }
 
-export async function maybeRefreshFxRates(storage: Storage = defaultStorage): Promise<void> {
+export async function maybeRefreshFxRates(
+  storage: Storage = defaultStorage,
+): Promise<void> {
   const stored = await storage.getFxRates();
   const fresh =
     stored !== null &&
@@ -701,6 +739,7 @@ git commit -m "feat(fx): mobile live rates helper (fetch/load/refresh)"
 ### Task 5: Wiring + checkpoint commit
 
 **Files:**
+
 - Modify: `app/_layout.tsx` (imports + launch effect)
 - Modify: `app/(tabs)/settings.tsx` (import + settings effect)
 - Modify: `todo.md` (Phase 38)
@@ -716,10 +755,10 @@ import { loadFxRates, maybeRefreshFxRates } from "@/lib/fx";
 Add a launch effect after the auth-sync effect (after line 204):
 
 ```tsx
-  useEffect(() => {
-    void loadFxRates();
-    void maybeRefreshFxRates();
-  }, []);
+useEffect(() => {
+  void loadFxRates();
+  void maybeRefreshFxRates();
+}, []);
 ```
 
 - [ ] **Step 2: Wire Settings refresh in `app/(tabs)/settings.tsx`**
@@ -733,20 +772,20 @@ import { maybeRefreshFxRates } from "@/lib/fx";
 Change the settings-loading effect (lines 154-157) from:
 
 ```tsx
-  useEffect(() => {
-    getSettings().then(setSettings);
-    getWatchlist().then(setProducts);
-  }, []);
+useEffect(() => {
+  getSettings().then(setSettings);
+  getWatchlist().then(setProducts);
+}, []);
 ```
 
 to:
 
 ```tsx
-  useEffect(() => {
-    getSettings().then(setSettings);
-    getWatchlist().then(setProducts);
-    void maybeRefreshFxRates();
-  }, []);
+useEffect(() => {
+  getSettings().then(setSettings);
+  getWatchlist().then(setProducts);
+  void maybeRefreshFxRates();
+}, []);
 ```
 
 - [ ] **Step 3: Typecheck, lint, and full test suite**

@@ -1,6 +1,10 @@
 import * as cheerio from "cheerio";
 import { DistributorParser, ScrapeResult } from "./types";
-import { fetchWithRateLimit, parsePriceFromText, inferStockStatus } from "./utils";
+import {
+  fetchWithRateLimit,
+  parsePriceFromText,
+  inferStockStatus,
+} from "./utils";
 import { getTaxRate } from "../tax";
 
 function parseHtml(html: string, url: string): ScrapeResult | null {

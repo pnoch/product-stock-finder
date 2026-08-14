@@ -66,10 +66,7 @@ async function writeCached(productId: string, url: string): Promise<void> {
     .onDuplicateKeyUpdate({ set: { imageUrl: url } });
 }
 
-function buildImagePrompt(product: {
-  name: string;
-  category: string;
-}): string {
+function buildImagePrompt(product: { name: string; category: string }): string {
   return `A ${product.name} ${product.category.toLowerCase()}, product photo, clean background, high detail`;
 }
 

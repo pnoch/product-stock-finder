@@ -15,11 +15,13 @@ Currently, back-in-stock watches only poll when a product's detail screen is foc
 A platform-agnostic module consumed by the background task and both Restock Watches screens.
 
 **Function:**
+
 ```typescript
-export async function checkRestocks(): Promise<void>
+export async function checkRestocks(): Promise<void>;
 ```
 
 **Behavior:**
+
 - Loads all back-in-stock watches via `getStockWatches()`
 - Loads the watchlist via `getWatchlist()` to get current listing statuses
 - Loads settings via `getSettings()` to check `stockAlerts` toggle
@@ -43,12 +45,14 @@ export async function checkRestocks(): Promise<void>
 **Desktop:** `desktop/src/pages/RestockWatches.tsx` (React Router route)
 
 Both screens:
+
 - List all active back-in-stock watches: product name, distributor name, current status, last-checked
 - Remove button per watch (calls `removeStockWatch`)
 - Empty state when no watches
 - Accessible from the Alerts tab
 
 **Navigation:**
+
 - Mobile: add a "Restock Watches" entry in the Alerts tab that routes to `/restock-watches`
 - Desktop: add a `/restock-watches` route and a link from the Alerts page
 
@@ -83,12 +87,14 @@ Both screens:
 ## Files
 
 **New:**
+
 - `lib/restock.ts` — shared restock module
 - `tests/restock.test.ts` — unit tests
 - `app/restock-watches.tsx` — mobile screen
 - `desktop/src/pages/RestockWatches.tsx` — desktop screen
 
 **Modified:**
+
 - `lib/background-price-check.ts` — call `checkRestocks()` in background task + foreground
 - `app/(tabs)/alerts.tsx` — add navigation entry to Restock Watches
 - `desktop/src/App.tsx` — add `/restock-watches` route

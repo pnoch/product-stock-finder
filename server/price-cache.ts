@@ -51,17 +51,20 @@ export async function setCachedPrice(
     taxRate: snapshot.taxRate ?? null,
     fetchedAt: snapshot.fetchedAt,
   };
-  await db.insert(priceCache).values(values).onDuplicateKeyUpdate({
-    set: {
-      price: snapshot.price,
-      currency: snapshot.currency,
-      stockStatus: snapshot.stockStatus,
-      expectedDate: snapshot.expectedDate ?? null,
-      url: snapshot.url,
-      taxRate: snapshot.taxRate ?? null,
-      fetchedAt: snapshot.fetchedAt,
-    },
-  });
+  await db
+    .insert(priceCache)
+    .values(values)
+    .onDuplicateKeyUpdate({
+      set: {
+        price: snapshot.price,
+        currency: snapshot.currency,
+        stockStatus: snapshot.stockStatus,
+        expectedDate: snapshot.expectedDate ?? null,
+        url: snapshot.url,
+        taxRate: snapshot.taxRate ?? null,
+        fetchedAt: snapshot.fetchedAt,
+      },
+    });
 }
 
 export async function listNearExpiry(

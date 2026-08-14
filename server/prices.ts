@@ -1,12 +1,12 @@
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { fetchWithParser } from "../lib/scrapers/utils";
 import type { PriceSnapshot, ServerPriceResult } from "../lib/types";
+import { getCachedPrice, setCachedPrice, listNearExpiry } from "./price-cache";
 import {
-  getCachedPrice,
-  setCachedPrice,
-  listNearExpiry,
-} from "./price-cache";
-import { getHistory, recordHistoryPoint, purgeOldHistory } from "./price-history";
+  getHistory,
+  recordHistoryPoint,
+  purgeOldHistory,
+} from "./price-history";
 import { buildCatalogPairs, pickPairsToWarm } from "./catalog-warmer";
 import { getAllFetchedAt } from "./price-cache";
 import { getProductImage, listProductsMissingImage } from "./product-images";
@@ -67,8 +67,7 @@ export async function getPrice(
   modelNumber: string,
 ): Promise<ServerPriceResult> {
   const cached = await getCachedPrice(distributorId, modelNumber);
-  const fresh =
-    cached !== null && Date.now() - cached.fetchedAt < PRICE_TTL_MS;
+  const fresh = cached !== null && Date.now() - cached.fetchedAt < PRICE_TTL_MS;
   if (!fresh) {
     void refreshSingleFlight(distributorId, modelNumber);
   }

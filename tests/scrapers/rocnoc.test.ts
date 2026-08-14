@@ -14,7 +14,9 @@ describe("Rocnoc Parser", () => {
   });
 
   it("should return null for invalid HTML", () => {
-    const result = rocnocParser.parsePrice("<html><body>No price here</body></html>");
+    const result = rocnocParser.parsePrice(
+      "<html><body>No price here</body></html>",
+    );
     expect(result).toBeNull();
   });
 
@@ -22,7 +24,7 @@ describe("Rocnoc Parser", () => {
     const html = `<div><span class="price">$379.00</span><span class="stock-status">In Stock</span></div>`;
     const result = rocnocParser.parsePrice(html);
     expect(result).not.toBeNull();
-    expect(result!.price).toBe(379.00);
+    expect(result!.price).toBe(379.0);
     expect(result!.currency).toBe("USD");
     expect(result!.stockStatus).toBe("in_stock");
   });

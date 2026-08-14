@@ -15,33 +15,35 @@
 ## File Structure
 
 ### Files to Create
-| File | Purpose |
-|------|---------|
-| `desktop/src/hooks/use-storage.ts` | React hook wrapping storage calls with loading/error states |
-| `desktop/src/hooks/use-theme.ts` | Dark/light theme toggle hook |
-| `desktop/src/components/StockBadge.tsx` | Reusable stock status badge |
-| `desktop/src/components/PriceSparkline.tsx` | Mini SVG price chart |
-| `desktop/src/components/ProductCard.tsx` | Watchlist product card |
-| `desktop/src/components/DistributorRow.tsx` | Distributor listing row |
-| `desktop/src/components/EmptyState.tsx` | Empty state placeholder |
-| `desktop/src/components/LoadingSpinner.tsx` | Loading indicator |
-| `desktop/src/components/Modal.tsx` | Reusable modal dialog |
-| `desktop/src/components/SearchModal.tsx` | Search overlay (Cmd+K) |
-| `desktop/src/components/MultiLineChart.tsx` | Recharts multi-line chart for compare |
-| `desktop/src/components/TimeRangeChips.tsx` | 1W/1M/3M/All filter chips |
-| `desktop/src/lib/notifications.ts` | Desktop notification helpers (wraps Tauri invoke) |
+
+| File                                        | Purpose                                                     |
+| ------------------------------------------- | ----------------------------------------------------------- |
+| `desktop/src/hooks/use-storage.ts`          | React hook wrapping storage calls with loading/error states |
+| `desktop/src/hooks/use-theme.ts`            | Dark/light theme toggle hook                                |
+| `desktop/src/components/StockBadge.tsx`     | Reusable stock status badge                                 |
+| `desktop/src/components/PriceSparkline.tsx` | Mini SVG price chart                                        |
+| `desktop/src/components/ProductCard.tsx`    | Watchlist product card                                      |
+| `desktop/src/components/DistributorRow.tsx` | Distributor listing row                                     |
+| `desktop/src/components/EmptyState.tsx`     | Empty state placeholder                                     |
+| `desktop/src/components/LoadingSpinner.tsx` | Loading indicator                                           |
+| `desktop/src/components/Modal.tsx`          | Reusable modal dialog                                       |
+| `desktop/src/components/SearchModal.tsx`    | Search overlay (Cmd+K)                                      |
+| `desktop/src/components/MultiLineChart.tsx` | Recharts multi-line chart for compare                       |
+| `desktop/src/components/TimeRangeChips.tsx` | 1W/1M/3M/All filter chips                                   |
+| `desktop/src/lib/notifications.ts`          | Desktop notification helpers (wraps Tauri invoke)           |
 
 ### Files to Modify
-| File | Change |
-|------|--------|
-| `desktop/src/pages/Home.tsx` | Full dashboard implementation |
-| `desktop/src/pages/Watchlist.tsx` | Full watchlist with sort/filter |
+
+| File                                  | Change                                |
+| ------------------------------------- | ------------------------------------- |
+| `desktop/src/pages/Home.tsx`          | Full dashboard implementation         |
+| `desktop/src/pages/Watchlist.tsx`     | Full watchlist with sort/filter       |
 | `desktop/src/pages/ProductDetail.tsx` | Full product detail with distributors |
-| `desktop/src/pages/Compare.tsx` | Multi-distributor comparison chart |
-| `desktop/src/pages/Alerts.tsx` | Alerts + reminders tabs |
-| `desktop/src/pages/Search.tsx` | Catalog search |
-| `desktop/src/pages/Settings.tsx` | Settings page |
-| `desktop/src/App.tsx` | Add keyboard shortcut handler |
+| `desktop/src/pages/Compare.tsx`       | Multi-distributor comparison chart    |
+| `desktop/src/pages/Alerts.tsx`        | Alerts + reminders tabs               |
+| `desktop/src/pages/Search.tsx`        | Catalog search                        |
+| `desktop/src/pages/Settings.tsx`      | Settings page                         |
+| `desktop/src/App.tsx`                 | Add keyboard shortcut handler         |
 
 ---
 
@@ -50,6 +52,7 @@
 ### Task 1: Shared Hooks + Components
 
 **Files:**
+
 - Create: `desktop/src/hooks/use-storage.ts`
 - Create: `desktop/src/hooks/use-theme.ts`
 - Create: `desktop/src/components/StockBadge.tsx`
@@ -76,7 +79,9 @@ export function useWatchlist() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   return { products, loading, refresh };
 }
@@ -92,7 +97,9 @@ export function useAlerts() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   return { alerts, loading, refresh };
 }
@@ -108,14 +115,19 @@ export function useSettings() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
-  const update = useCallback(async (partial: Partial<AppSettings>) => {
-    if (!settings) return;
-    const updated = { ...settings, ...partial };
-    await storage.saveSettings(updated);
-    setSettings(updated);
-  }, [settings]);
+  const update = useCallback(
+    async (partial: Partial<AppSettings>) => {
+      if (!settings) return;
+      const updated = { ...settings, ...partial };
+      await storage.saveSettings(updated);
+      setSettings(updated);
+    },
+    [settings],
+  );
 
   return { settings, loading, refresh, update };
 }
@@ -134,12 +146,13 @@ export function useTheme() {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     setTheme(mediaQuery.matches ? "dark" : "light");
 
-    const handler = (e: MediaQueryListEvent) => setTheme(e.matches ? "dark" : "light");
+    const handler = (e: MediaQueryListEvent) =>
+      setTheme(e.matches ? "dark" : "light");
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
 
-  const toggle = () => setTheme(t => t === "light" ? "dark" : "light");
+  const toggle = () => setTheme((t) => (t === "light" ? "dark" : "light"));
 
   return { theme, toggle, isDark: theme === "dark" };
 }
@@ -151,19 +164,51 @@ export function useTheme() {
 // desktop/src/components/StockBadge.tsx
 import { StockStatus } from "../../lib/types";
 
-const config: Record<StockStatus, { bg: string; text: string; dot: string; label: string }> = {
-  in_stock: { bg: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-400", dot: "bg-emerald-500", label: "In Stock" },
-  back_order: { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-400", dot: "bg-amber-500", label: "Back Order" },
-  out_of_stock: { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-400", dot: "bg-red-500", label: "Out of Stock" },
-  unknown: { bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400", dot: "bg-gray-400", label: "Unknown" },
+const config: Record<
+  StockStatus,
+  { bg: string; text: string; dot: string; label: string }
+> = {
+  in_stock: {
+    bg: "bg-emerald-100 dark:bg-emerald-900/30",
+    text: "text-emerald-700 dark:text-emerald-400",
+    dot: "bg-emerald-500",
+    label: "In Stock",
+  },
+  back_order: {
+    bg: "bg-amber-100 dark:bg-amber-900/30",
+    text: "text-amber-700 dark:text-amber-400",
+    dot: "bg-amber-500",
+    label: "Back Order",
+  },
+  out_of_stock: {
+    bg: "bg-red-100 dark:bg-red-900/30",
+    text: "text-red-700 dark:text-red-400",
+    dot: "bg-red-500",
+    label: "Out of Stock",
+  },
+  unknown: {
+    bg: "bg-gray-100 dark:bg-gray-800",
+    text: "text-gray-600 dark:text-gray-400",
+    dot: "bg-gray-400",
+    label: "Unknown",
+  },
 };
 
-export function StockBadge({ status, expectedDate }: { status: StockStatus; expectedDate?: string }) {
+export function StockBadge({
+  status,
+  expectedDate,
+}: {
+  status: StockStatus;
+  expectedDate?: string;
+}) {
   const c = config[status] ?? config.unknown;
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}
+    >
       <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-      {c.label}{expectedDate ? ` · ${expectedDate}` : ""}
+      {c.label}
+      {expectedDate ? ` · ${expectedDate}` : ""}
     </span>
   );
 }
@@ -173,12 +218,22 @@ export function StockBadge({ status, expectedDate }: { status: StockStatus; expe
 
 ```tsx
 // desktop/src/components/EmptyState.tsx
-export function EmptyState({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+export function EmptyState({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <div className="text-gray-400 dark:text-gray-500 mb-4">{icon}</div>
       <h3 className="text-lg font-semibold mb-1">{title}</h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">{description}</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+        {description}
+      </p>
     </div>
   );
 }
@@ -200,12 +255,24 @@ export function LoadingSpinner() {
 import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
-export function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
@@ -213,11 +280,20 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
   if (!open) return null;
 
   return (
-    <div ref={overlayRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}>
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      onClick={(e) => {
+        if (e.target === overlayRef.current) onClose();
+      }}
+    >
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[80vh] overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold">{title}</h2>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -234,7 +310,10 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
 // desktop/src/lib/notifications.ts
 import { invoke } from "@tauri-apps/api/core";
 
-export async function sendNotification(title: string, body: string): Promise<void> {
+export async function sendNotification(
+  title: string,
+  body: string,
+): Promise<void> {
   try {
     await invoke("send_notification", { title, body, sound: true });
   } catch (e) {
@@ -259,11 +338,13 @@ git commit -m "feat: add shared hooks, components, and notification helpers"
 ### Task 2: Home Dashboard
 
 **Files:**
+
 - Modify: `desktop/src/pages/Home.tsx`
 
 - [ ] **Step 1: Implement Home dashboard**
 
 Replace `desktop/src/pages/Home.tsx` with a dashboard showing:
+
 - Stats cards: total tracked, in-stock count, alerts active, reminders pending
 - Recent activity list (last-refreshed products)
 - Quick-add button linking to /search
@@ -286,11 +367,13 @@ git commit -m "feat: implement Home dashboard with stats and recent activity"
 ### Task 3: Watchlist Screen
 
 **Files:**
+
 - Modify: `desktop/src/pages/Watchlist.tsx`
 
 - [ ] **Step 1: Implement Watchlist**
 
 Replace `desktop/src/pages/Watchlist.tsx` with a full watchlist screen:
+
 - Table/grid view with columns: Product, Distributor Count, Best Price, Stock Status, Trend, Last Updated
 - Sort by: Name, Price, Trend, Last Updated
 - Filter by: All, In Stock, Back Order, Out of Stock
@@ -316,11 +399,13 @@ git commit -m "feat: implement Watchlist with sort, filter, and product navigati
 ### Task 4: Product Detail Screen
 
 **Files:**
+
 - Modify: `desktop/src/pages/ProductDetail.tsx`
 
 - [ ] **Step 1: Implement ProductDetail**
 
 Replace `desktop/src/pages/ProductDetail.tsx` with full product detail:
+
 - Product header (name, model, brand, category)
 - Best distributor card with price, stock status, Buy Now link
 - Distributor table with price, currency, stock status, trend
@@ -345,6 +430,7 @@ git commit -m "feat: implement Product Detail with distributor list and actions"
 ### Task 5: Compare Screen
 
 **Files:**
+
 - Create: `desktop/src/components/MultiLineChart.tsx`
 - Create: `desktop/src/components/TimeRangeChips.tsx`
 - Modify: `desktop/src/pages/Compare.tsx`
@@ -353,7 +439,16 @@ git commit -m "feat: implement Product Detail with distributor list and actions"
 
 ```tsx
 // desktop/src/components/MultiLineChart.tsx
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import { PricePoint } from "../../lib/types";
 
 interface Props {
@@ -372,7 +467,14 @@ export function MultiLineChart({ data, distributors, colors }: Props) {
         <Tooltip />
         <Legend />
         {distributors.map((d, i) => (
-          <Line key={d} type="monotone" dataKey={d} stroke={colors[i % colors.length]} strokeWidth={2} dot={false} />
+          <Line
+            key={d}
+            type="monotone"
+            dataKey={d}
+            stroke={colors[i % colors.length]}
+            strokeWidth={2}
+            dot={false}
+          />
         ))}
       </LineChart>
     </ResponsiveContainer>
@@ -391,12 +493,21 @@ const ranges = [
   { key: "all", label: "All" },
 ];
 
-export function TimeRangeChips({ selected, onSelect }: { selected: string; onSelect: (r: string) => void }) {
+export function TimeRangeChips({
+  selected,
+  onSelect,
+}: {
+  selected: string;
+  onSelect: (r: string) => void;
+}) {
   return (
     <div className="flex gap-1">
-      {ranges.map(r => (
-        <button key={r.key} onClick={() => onSelect(r.key)}
-          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${selected === r.key ? "bg-brand-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"}`}>
+      {ranges.map((r) => (
+        <button
+          key={r.key}
+          onClick={() => onSelect(r.key)}
+          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${selected === r.key ? "bg-brand-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"}`}
+        >
           {r.label}
         </button>
       ))}
@@ -408,6 +519,7 @@ export function TimeRangeChips({ selected, onSelect }: { selected: string; onSel
 - [ ] **Step 3: Implement Compare page**
 
 Replace `desktop/src/pages/Compare.tsx` with:
+
 - Fetch product from watchlist by ID (useParams)
 - Group priceHistory by distributor
 - Filter by time range
@@ -431,11 +543,13 @@ git commit -m "feat: implement Compare screen with Recharts multi-line chart"
 ### Task 6: Alerts Screen
 
 **Files:**
+
 - Modify: `desktop/src/pages/Alerts.tsx`
 
 - [ ] **Step 1: Implement Alerts**
 
 Replace `desktop/src/pages/Alerts.tsx` with two tabs:
+
 - **Alerts tab:** Price alerts list with toggle, delete, rearm. Show triggered alerts with history.
 - **Reminders tab:** Date reminders + stock watches with reschedule.
 
@@ -457,6 +571,7 @@ git commit -m "feat: implement Alerts screen with price alerts and reminders tab
 ### Task 7: Search Screen
 
 **Files:**
+
 - Modify: `desktop/src/pages/Search.tsx`
 - Create: `desktop/src/components/SearchModal.tsx`
 
@@ -471,7 +586,13 @@ import { PRODUCT_CATALOG } from "../../../lib/catalog";
 import { storage } from "../storage";
 import { Modal } from "./Modal";
 
-export function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function SearchModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
   const [query, setQuery] = useState("");
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
@@ -481,44 +602,67 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
     if (open) {
       setQuery("");
       inputRef.current?.focus();
-      storage.getWatchlist().then(products => setTrackedIds(new Set(products.map(p => p.id))));
+      storage
+        .getWatchlist()
+        .then((products) => setTrackedIds(new Set(products.map((p) => p.id))));
     }
   }, [open]);
 
-  const results = query.length > 0
-    ? PRODUCT_CATALOG.filter(p =>
-        p.name.toLowerCase().includes(query.toLowerCase()) ||
-        p.modelNumber.toLowerCase().includes(query.toLowerCase()) ||
-        p.brand.toLowerCase().includes(query.toLowerCase())
-      )
-    : PRODUCT_CATALOG;
+  const results =
+    query.length > 0
+      ? PRODUCT_CATALOG.filter(
+          (p) =>
+            p.name.toLowerCase().includes(query.toLowerCase()) ||
+            p.modelNumber.toLowerCase().includes(query.toLowerCase()) ||
+            p.brand.toLowerCase().includes(query.toLowerCase()),
+        )
+      : PRODUCT_CATALOG;
 
-  const handleAdd = async (product: typeof PRODUCT_CATALOG[0]) => {
-    await storage.addToWatchlist({ ...product, addedAt: new Date().toISOString(), isWatched: true, listings: [] });
-    setTrackedIds(prev => new Set([...prev, product.id]));
+  const handleAdd = async (product: (typeof PRODUCT_CATALOG)[0]) => {
+    await storage.addToWatchlist({
+      ...product,
+      addedAt: new Date().toISOString(),
+      isWatched: true,
+      listings: [],
+    });
+    setTrackedIds((prev) => new Set([...prev, product.id]));
   };
 
   return (
     <Modal open={open} onClose={onClose} title="Search Products">
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)}
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-          placeholder="Search by name, model, or brand..." />
+          placeholder="Search by name, model, or brand..."
+        />
       </div>
       <div className="space-y-2 max-h-96 overflow-y-auto">
-        {results.map(product => {
+        {results.map((product) => {
           const isTracked = trackedIds.has(product.id);
           return (
-            <div key={product.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50">
+            <div
+              key={product.id}
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50"
+            >
               <div>
                 <div className="font-medium text-sm">{product.name}</div>
-                <div className="text-xs text-gray-500">{product.brand} · {product.category}</div>
+                <div className="text-xs text-gray-500">
+                  {product.brand} · {product.category}
+                </div>
               </div>
               {isTracked ? (
-                <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium"><Check className="w-4 h-4" /> Tracked</span>
+                <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium">
+                  <Check className="w-4 h-4" /> Tracked
+                </span>
               ) : (
-                <button onClick={() => handleAdd(product)} className="flex items-center gap-1 px-3 py-1 rounded-lg bg-brand-600 text-white text-xs font-medium hover:bg-brand-700">
+                <button
+                  onClick={() => handleAdd(product)}
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg bg-brand-600 text-white text-xs font-medium hover:bg-brand-700"
+                >
                   <Plus className="w-3 h-3" /> Add
                 </button>
               )}
@@ -551,11 +695,13 @@ git commit -m "feat: implement Search with catalog lookup and add-to-watchlist"
 ### Task 8: Settings Screen
 
 **Files:**
+
 - Modify: `desktop/src/pages/Settings.tsx`
 
 - [ ] **Step 1: Implement Settings**
 
 Replace `desktop/src/pages/Settings.tsx` with:
+
 - Theme toggle (light/dark/auto)
 - Display currency selector (all 12 currencies from EXCHANGE_RATES)
 - Check interval (manual/hourly/daily)
@@ -581,11 +727,13 @@ git commit -m "feat: implement Settings with theme, currency, import/export"
 ### Task 9: Keyboard Shortcuts + Menu Bar
 
 **Files:**
+
 - Modify: `desktop/src/App.tsx`
 
 - [ ] **Step 1: Add keyboard shortcut handler**
 
 Update `App.tsx` to add a global keyboard shortcut handler:
+
 - Cmd/Ctrl+K: Open search modal
 - Cmd/Ctrl+E: Export watchlist
 - Cmd/Ctrl+,: Open settings
@@ -610,6 +758,7 @@ git commit -m "feat: add keyboard shortcuts for search, export, settings, theme"
 ### Task 10: Responsive Layout + Polish
 
 **Files:**
+
 - Modify: `desktop/src/components/Sidebar.tsx`
 - Modify: `desktop/src/styles/globals.css`
 

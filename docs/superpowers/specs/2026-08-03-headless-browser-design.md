@@ -15,10 +15,12 @@ Add Playwright headless browser support so scrapers can handle sites that block 
 Add a `useBrowser` flag to `DistributorParser` config. When true, the parser uses Playwright instead of `fetchWithRateLimit`. A shared `BrowserPool` manages 2-3 browser instances.
 
 **New files:**
+
 - `lib/scrapers/browser.ts` — BrowserPool class + `fetchWithBrowser()` function
 - `desktop/src-tauri/src/scrapers/browser.rs` — Rust equivalent for desktop
 
 **Modified files:**
+
 - `lib/scrapers/types.ts` — add `useBrowser?: boolean` and `browserOptions?` to DistributorParser
 - `lib/scrapers/utils.ts` — add `fetchWithBrowser()` function
 - 15 parser files — add `useBrowser: true` flag
@@ -51,7 +53,7 @@ class BrowserPool {
     if (this.browsers.length < this.maxPoolSize) {
       return chromium.launch({ headless: true });
     }
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 100));
     return this.acquire();
   }
 
@@ -71,6 +73,7 @@ export const browserPool = new BrowserPool();
 ```
 
 **Key behaviors:**
+
 - Lazy initialization — first browser launches on first request
 - Pool size: 3 concurrent browsers
 - Auto-cleanup on app exit
@@ -83,17 +86,20 @@ Wrapper function that uses BrowserPool:
 ```typescript
 export async function fetchWithBrowser(
   url: string,
-  options?: { waitForSelector?: string; timeout?: number }
+  options?: { waitForSelector?: string; timeout?: number },
 ): Promise<string> {
   const browser = await browserPool.acquire();
   try {
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: "networkidle", timeout: options?.timeout || 30000 });
-    
+    await page.goto(url, {
+      waitUntil: "networkidle",
+      timeout: options?.timeout || 30000,
+    });
+
     if (options?.waitForSelector) {
       await page.waitForSelector(options.waitForSelector, { timeout: 10000 });
     }
-    
+
     const html = await page.content();
     await page.close();
     return html;
@@ -120,28 +126,30 @@ interface DistributorParser {
 
 ### Parsers with `useBrowser: true` (15 sites)
 
-| Parser | Reason | browserOptions.waitForSelector |
-|--------|--------|-------------------------------|
-| nasstore | Cloudflare | `.product-price, .price` |
-| winncom | Cloudflare | `.product-link, .price` |
-| bhphoto | Cloudflare | `.price, [data-selenium]` |
-| wisp | Cloudflare | `.product-price, .price` |
-| pbtech | Cloudflare | `.price, .product-price` |
-| gowifi | Cloudflare | `.product-price, .price` |
-| getic | Cloudflare | `.price, [data-testid='price']` |
-| mega | Cloudflare | `.product-price, .price` |
-| aerial-gr | JS-rendered | `.ac-price, .product-price` |
-| linktechs | Cloudflare | `.product-price, .price` |
-| miro | JS-rendered | `[itemprop='price']` |
-| hellascom | JS-rendered | `.product-price, .price` |
-| networkdevices | JS-rendered | `.product-price, .price` |
-| mbsiwav | JS-rendered | `.product-views-price` |
-| multilink | JS-rendered | `.product-price, .price` |
+| Parser         | Reason      | browserOptions.waitForSelector  |
+| -------------- | ----------- | ------------------------------- |
+| nasstore       | Cloudflare  | `.product-price, .price`        |
+| winncom        | Cloudflare  | `.product-link, .price`         |
+| bhphoto        | Cloudflare  | `.price, [data-selenium]`       |
+| wisp           | Cloudflare  | `.product-price, .price`        |
+| pbtech         | Cloudflare  | `.price, .product-price`        |
+| gowifi         | Cloudflare  | `.product-price, .price`        |
+| getic          | Cloudflare  | `.price, [data-testid='price']` |
+| mega           | Cloudflare  | `.product-price, .price`        |
+| aerial-gr      | JS-rendered | `.ac-price, .product-price`     |
+| linktechs      | Cloudflare  | `.product-price, .price`        |
+| miro           | JS-rendered | `[itemprop='price']`            |
+| hellascom      | JS-rendered | `.product-price, .price`        |
+| networkdevices | JS-rendered | `.product-price, .price`        |
+| mbsiwav        | JS-rendered | `.product-views-price`          |
+| multilink      | JS-rendered | `.product-price, .price`        |
 
 ### Parsers that stay fetch-only (5 working)
+
 - server2u, interprojekt, mikrotikstore, balticnetworks, duxtel
 
 ### Parsers that remain broken (DNS/other)
+
 - linitx, rocnoc, flytec (DNS failure)
 - gearup (404), neobits (timeout)
 

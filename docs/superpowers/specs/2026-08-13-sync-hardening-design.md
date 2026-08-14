@@ -38,9 +38,12 @@ Extend `SyncMeta` with two optional fields:
 ```ts
 export interface SyncMeta {
   lastSyncedAt: number;
-  lastSyncOkAt?: number;         // epoch ms of last successful sync
+  lastSyncOkAt?: number; // epoch ms of last successful sync
   lastSyncError?: string | null; // message of last failed sync; null/absent after success
-  items: Record<string, Record<string, { updatedAt: number; deleted: boolean }>>;
+  items: Record<
+    string,
+    Record<string, { updatedAt: number; deleted: boolean }>
+  >;
 }
 ```
 
@@ -62,6 +65,7 @@ Desktop gets the same behavior automatically (shared `lib/sync.ts`).
   - Signed in, no error, with a success timestamp → existing relative label (`"Synced just now"` / `"Last synced Xm ago"` / `"Last synced Xh ago"`), tone `success` when `now - successAt < 5 minutes`, else tone `muted`.
 
   The "success timestamp" is `lastSyncOkAt ?? lastSyncedAt` (lastSyncOkAt is the explicit last-successful-sync marker written by `doSync`; lastSyncedAt is the fallback for pre-existing meta).
+
 - **Settings screen:** the existing 30s `getSyncMeta()` poll captures `lastSyncError`/`lastSyncOkAt`; the Sync status row uses `formatSyncStatus` for label + tone (error tone in `colors.error`). Add a "Sync now" button in the Sync status row (authenticated only) calling `getSyncSetup()?.syncNow()`, placed next to the existing "Sign out" button.
 
 ### 6. Testing summary

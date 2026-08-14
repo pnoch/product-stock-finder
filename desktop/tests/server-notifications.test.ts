@@ -137,9 +137,7 @@ describe("syncDesktopNotifications", () => {
   });
 
   it("continues processing remaining events when one render fails", async () => {
-    vi.mocked(sendDesktopNotification).mockRejectedValueOnce(
-      new Error("boom"),
-    );
+    vi.mocked(sendDesktopNotification).mockRejectedValueOnce(new Error("boom"));
     await storage.addAlert({
       id: "a1",
       productId: "mikrotik-crs804-4ddq-hrm",
@@ -189,9 +187,7 @@ describe("syncDesktopNotifications", () => {
   it("persists a stable device id in localStorage", async () => {
     await syncDesktopNotifications();
     await syncDesktopNotifications();
-    const ids = state.uploaded.map(
-      (u) => (u as { deviceId: string }).deviceId,
-    );
+    const ids = state.uploaded.map((u) => (u as { deviceId: string }).deviceId);
     expect(ids[0]).toBe(ids[1]);
   });
 });

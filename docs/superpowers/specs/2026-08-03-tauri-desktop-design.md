@@ -99,31 +99,85 @@ export interface StorageAdapter {
 
 // Factory function that creates all CRUD operations with a given adapter
 export function createStorage(adapter: StorageAdapter) {
-  const KEYS = { WATCHLIST: "watchlist_products", ALERTS: "price_alerts", /* ... */ };
+  const KEYS = {
+    WATCHLIST: "watchlist_products",
+    ALERTS: "price_alerts" /* ... */,
+  };
 
   return {
-    getWatchlist: async (): Promise<Product[]> => { /* same logic, uses adapter */ },
-    saveWatchlist: async (products: Product[]) => { /* ... */ },
-    addToWatchlist: async (product: Product) => { /* ... */ },
-    removeFromWatchlist: async (productId: string) => { /* ... */ },
-    updateProductListings: async (productId: string, listings: DistributorListing[]) => { /* ... */ },
-    refreshWatchlistPrices: async () => { /* ... */ },
-    getAlerts: async (): Promise<PriceAlert[]> => { /* ... */ },
-    saveAlerts: async (alerts: PriceAlert[]) => { /* ... */ },
-    addAlert: async (alert: PriceAlert) => { /* ... */ },
-    removeAlert: async (alertId: string) => { /* ... */ },
-    toggleAlert: async (alertId: string) => { /* ... */ },
-    rearmAlert: async (alertId: string) => { /* ... */ },
-    getSettings: async (): Promise<AppSettings> => { /* ... */ },
-    saveSettings: async (settings: AppSettings) => { /* ... */ },
-    getBackOrderReminders: async (): Promise<BackOrderReminder[]> => { /* ... */ },
-    addBackOrderReminder: async (reminder: BackOrderReminder) => { /* ... */ },
-    removeBackOrderReminder: async (reminderId: string) => { /* ... */ },
-    getStockWatches: async (): Promise<BackOrderReminder[]> => { /* ... */ },
-    addStockWatch: async (watch: BackOrderReminder) => { /* ... */ },
-    removeStockWatch: async (watchId: string) => { /* ... */ },
-    updateStockWatchStatus: async (productId: string, distributorId: string, status: string) => { /* ... */ },
-    clearAllData: async () => { /* ... */ },
+    getWatchlist: async (): Promise<Product[]> => {
+      /* same logic, uses adapter */
+    },
+    saveWatchlist: async (products: Product[]) => {
+      /* ... */
+    },
+    addToWatchlist: async (product: Product) => {
+      /* ... */
+    },
+    removeFromWatchlist: async (productId: string) => {
+      /* ... */
+    },
+    updateProductListings: async (
+      productId: string,
+      listings: DistributorListing[],
+    ) => {
+      /* ... */
+    },
+    refreshWatchlistPrices: async () => {
+      /* ... */
+    },
+    getAlerts: async (): Promise<PriceAlert[]> => {
+      /* ... */
+    },
+    saveAlerts: async (alerts: PriceAlert[]) => {
+      /* ... */
+    },
+    addAlert: async (alert: PriceAlert) => {
+      /* ... */
+    },
+    removeAlert: async (alertId: string) => {
+      /* ... */
+    },
+    toggleAlert: async (alertId: string) => {
+      /* ... */
+    },
+    rearmAlert: async (alertId: string) => {
+      /* ... */
+    },
+    getSettings: async (): Promise<AppSettings> => {
+      /* ... */
+    },
+    saveSettings: async (settings: AppSettings) => {
+      /* ... */
+    },
+    getBackOrderReminders: async (): Promise<BackOrderReminder[]> => {
+      /* ... */
+    },
+    addBackOrderReminder: async (reminder: BackOrderReminder) => {
+      /* ... */
+    },
+    removeBackOrderReminder: async (reminderId: string) => {
+      /* ... */
+    },
+    getStockWatches: async (): Promise<BackOrderReminder[]> => {
+      /* ... */
+    },
+    addStockWatch: async (watch: BackOrderReminder) => {
+      /* ... */
+    },
+    removeStockWatch: async (watchId: string) => {
+      /* ... */
+    },
+    updateStockWatchStatus: async (
+      productId: string,
+      distributorId: string,
+      status: string,
+    ) => {
+      /* ... */
+    },
+    clearAllData: async () => {
+      /* ... */
+    },
   };
 }
 
@@ -147,9 +201,11 @@ import { createStorage } from "../../lib/storage";
 // localStorage as a StorageAdapter (works in Tauri's webview)
 const localStorageAdapter = {
   getItem: async (key: string) => localStorage.getItem(key),
-  setItem: async (key: string, value: string) => localStorage.setItem(key, value),
+  setItem: async (key: string, value: string) =>
+    localStorage.setItem(key, value),
   removeItem: async (key: string) => localStorage.removeItem(key),
-  multiRemove: async (keys: string[]) => keys.forEach((k) => localStorage.removeItem(k)),
+  multiRemove: async (keys: string[]) =>
+    keys.forEach((k) => localStorage.removeItem(k)),
 };
 
 export const storage = createStorage(localStorageAdapter);
@@ -218,10 +274,18 @@ This means existing mobile imports (`import { getWatchlist } from "@/lib/storage
 {
   "version": 1,
   "exportedAt": "2026-08-03T12:00:00Z",
-  "watchlist": [/* Product[] */],
-  "alerts": [/* PriceAlert[] */],
-  "reminders": [/* BackOrderReminder[] */],
-  "settings": {/* AppSettings */}
+  "watchlist": [
+    /* Product[] */
+  ],
+  "alerts": [
+    /* PriceAlert[] */
+  ],
+  "reminders": [
+    /* BackOrderReminder[] */
+  ],
+  "settings": {
+    /* AppSettings */
+  }
 }
 ```
 
@@ -233,6 +297,7 @@ mikrotik-crs804-4ddq-hrm,MikroTik CRS804,server2u-my,Server2U,5568,MYR,in_stock,
 ```
 
 **CSV import rules:**
+
 - Header row required (must match export format)
 - `product_id` required; unknown product IDs skipped with warning
 - `price` must be numeric; invalid prices skipped
@@ -315,17 +380,20 @@ Desktop uses a sidebar + main content layout (not tab-based like mobile):
 ### Screen Implementations
 
 **Home (Dashboard)**
+
 - Stats cards: total tracked, in-stock count, alerts active, reminders pending
 - Recent activity list (last-checked products)
 - Quick-add button
 
 **Watchlist**
+
 - Table/grid view with columns: Product, Distributor Count, Best Price, Stock Status, Trend, Last Updated
 - Sort by: Name, Price, Trend, Last Updated
 - Filter by: All, In Stock, Back Order, Out of Stock
 - Click row → Product Detail (opens in same view or side panel)
 
 **Product Detail**
+
 - Product header with name, model, brand
 - Best distributor card with sparkline and Buy Now
 - Distributor table with price, currency, stock status, trend
@@ -333,6 +401,7 @@ Desktop uses a sidebar + main content layout (not tab-based like mobile):
 - Price history chart modal
 
 **Compare**
+
 - Multi-line chart with distributor selector
 - Time range chips: 1W, 1M, 3M, All
 - Sort by: Trend, Price, Name
@@ -340,15 +409,18 @@ Desktop uses a sidebar + main content layout (not tab-based like mobile):
 - Cross-distributor alert CTA
 
 **Alerts**
+
 - Two tabs: Alerts (price alerts + triggered history) and Reminders (date reminders + stock watches)
 - All existing logic from mobile: toggle, delete, rearm, reschedule
 
 **Search**
+
 - Modal overlay (Cmd+K trigger)
 - Search catalog, show results with add/checkmark button
 - Already-tracked products show green checkmark (disabled)
 
 **Settings**
+
 - Theme toggle (light/dark/auto)
 - Display currency selector (all 12 currencies)
 - Check interval
@@ -360,21 +432,22 @@ Desktop uses a sidebar + main content layout (not tab-based like mobile):
 
 ## Tech Stack
 
-| Layer | Tech |
-|-------|------|
-| Desktop runtime | Tauri 2 |
-| Frontend | React 19, Vite, TypeScript |
-| Styling | Tailwind CSS + NativeWind (for cross-platform classnames) |
-| Routing | React Router v7 (file-based or manual) |
-| State | React hooks + shared lib/ storage |
-| Charts | Recharts (mature React charting library, better for desktop than hand-rolled SVG) |
-| Icons | Lucide React (clean, consistent icon set) |
-| Rust | Tauri 2 API, serde, tauri-plugin-notification, tauri-plugin-dialog |
-| Package manager | pnpm (workspace) |
+| Layer           | Tech                                                                              |
+| --------------- | --------------------------------------------------------------------------------- |
+| Desktop runtime | Tauri 2                                                                           |
+| Frontend        | React 19, Vite, TypeScript                                                        |
+| Styling         | Tailwind CSS + NativeWind (for cross-platform classnames)                         |
+| Routing         | React Router v7 (file-based or manual)                                            |
+| State           | React hooks + shared lib/ storage                                                 |
+| Charts          | Recharts (mature React charting library, better for desktop than hand-rolled SVG) |
+| Icons           | Lucide React (clean, consistent icon set)                                         |
+| Rust            | Tauri 2 API, serde, tauri-plugin-notification, tauri-plugin-dialog                |
+| Package manager | pnpm (workspace)                                                                  |
 
 ### Why Recharts instead of hand-rolled SVG?
 
 The mobile app uses hand-rolled SVG polylines because React Native's SVG ecosystem is limited. On desktop, Recharts provides:
+
 - Interactive tooltips (hover to see exact price/date)
 - Responsive sizing
 - Legend support
@@ -401,17 +474,17 @@ const routes = [
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| Cmd/Ctrl+K | Open search |
-| Cmd/Ctrl+N | New alert (on product detail) |
-| Cmd/Ctrl+E | Export watchlist |
-| Cmd/Ctrl+I | Import watchlist |
-| Cmd/Ctrl+, | Open settings |
-| Cmd/Ctrl+Shift+T | Toggle theme |
-| Cmd/Ctrl+R | Refresh data |
-| Escape | Close modal/overlay |
-| Cmd/Ctrl+1-6 | Navigate to tab (Home/Watchlist/Alerts/Compare/Search/Settings) |
+| Shortcut         | Action                                                          |
+| ---------------- | --------------------------------------------------------------- |
+| Cmd/Ctrl+K       | Open search                                                     |
+| Cmd/Ctrl+N       | New alert (on product detail)                                   |
+| Cmd/Ctrl+E       | Export watchlist                                                |
+| Cmd/Ctrl+I       | Import watchlist                                                |
+| Cmd/Ctrl+,       | Open settings                                                   |
+| Cmd/Ctrl+Shift+T | Toggle theme                                                    |
+| Cmd/Ctrl+R       | Refresh data                                                    |
+| Escape           | Close modal/overlay                                             |
+| Cmd/Ctrl+1-6     | Navigate to tab (Home/Watchlist/Alerts/Compare/Search/Settings) |
 
 ---
 
@@ -487,16 +560,16 @@ packages:
 
 ## Error Handling and Edge Cases
 
-| Scenario | Behavior |
-|----------|----------|
-| localStorage cleared externally | App shows empty state, prompts to import or re-add products |
-| Import file is malformed JSON/CSV | Show error toast: "Invalid file format. Expected JSON or CSV." |
-| Import file has unknown product IDs | Skip unknown entries, report count in summary toast |
-| Export write fails (permission denied, disk full) | Show error toast with reason, no data loss |
-| Background poller permission denied | Log warning, disable auto-poll, notify user once |
-| Price drop detected while app is closed | Notification queued by OS; alert marked triggered when app opens |
-| Multiple alerts on same product fire simultaneously | Each alert fires independently, no dedup |
-| localStorage 5MB limit exceeded | Show warning: "Storage nearly full. Export and delete old data." |
+| Scenario                                            | Behavior                                                         |
+| --------------------------------------------------- | ---------------------------------------------------------------- |
+| localStorage cleared externally                     | App shows empty state, prompts to import or re-add products      |
+| Import file is malformed JSON/CSV                   | Show error toast: "Invalid file format. Expected JSON or CSV."   |
+| Import file has unknown product IDs                 | Skip unknown entries, report count in summary toast              |
+| Export write fails (permission denied, disk full)   | Show error toast with reason, no data loss                       |
+| Background poller permission denied                 | Log warning, disable auto-poll, notify user once                 |
+| Price drop detected while app is closed             | Notification queued by OS; alert marked triggered when app opens |
+| Multiple alerts on same product fire simultaneously | Each alert fires independently, no dedup                         |
+| localStorage 5MB limit exceeded                     | Show warning: "Storage nearly full. Export and delete old data." |
 
 ---
 
@@ -520,10 +593,10 @@ packages:
 
 ## Risks and Mitigations
 
-| Risk | Mitigation |
-|------|-----------|
-| lib/ refactor breaks mobile | StorageAdapter factory preserves backward-compatible default export |
-| Tauri 2 is newer/less stable | Use Tauri 2 stable (released). Community is large, docs are good |
-| NativeWind in Tauri webview | NativeWind 4 works in browsers. If issues, fall back to raw Tailwind |
-| Background polling battery drain | User-configurable interval, default 15 min, can set to manual |
-| Large lib/ import size | Only import what's needed. Vite tree-shakes effectively |
+| Risk                             | Mitigation                                                           |
+| -------------------------------- | -------------------------------------------------------------------- |
+| lib/ refactor breaks mobile      | StorageAdapter factory preserves backward-compatible default export  |
+| Tauri 2 is newer/less stable     | Use Tauri 2 stable (released). Community is large, docs are good     |
+| NativeWind in Tauri webview      | NativeWind 4 works in browsers. If issues, fall back to raw Tailwind |
+| Background polling battery drain | User-configurable interval, default 15 min, can set to manual        |
+| Large lib/ import size           | Only import what's needed. Vite tree-shakes effectively              |

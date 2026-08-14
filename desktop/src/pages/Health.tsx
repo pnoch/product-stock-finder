@@ -45,7 +45,9 @@ export function Health() {
     error: health.filter((h) => h.status === "error").length,
   };
 
-  const filtered = health.filter((h) => filter === "all" || h.status === filter);
+  const filtered = health.filter(
+    (h) => filter === "all" || h.status === filter,
+  );
 
   const statusColors: Record<HealthStatus, string> = {
     working: "#00C896",
@@ -103,7 +105,9 @@ export function Health() {
               />
               <div className="flex-1">
                 <p className="font-medium text-sm">
-                  {distributor ? `${distributor.countryFlag} ${distributor.name}` : h.distributorId}
+                  {distributor
+                    ? `${distributor.countryFlag} ${distributor.name}`
+                    : h.distributorId}
                 </p>
                 <p className="text-xs text-gray-500">
                   {h.reason || h.status}
@@ -120,7 +124,8 @@ export function Health() {
         })}
         {filtered.length === 0 && (
           <p className="text-center text-gray-500 mt-10">
-            No distributor health data. Tap "Test All Distributors" to run a check.
+            No distributor health data. Tap "Test All Distributors" to run a
+            check.
           </p>
         )}
       </div>

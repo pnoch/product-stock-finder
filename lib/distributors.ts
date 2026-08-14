@@ -13,10 +13,10 @@ export const DISTRIBUTORS: Distributor[] = [
     notes: "In-stock, fastest to Thailand",
     shippingCosts: {
       "Asia-Pacific": 15,
-      "Europe": 40,
+      Europe: 40,
       "North America": 45,
       "Middle East": 35,
-      "Africa": 50,
+      Africa: 50,
     },
   },
   {
@@ -35,11 +35,11 @@ export const DISTRIBUTORS: Distributor[] = [
       "Invoice",
     ],
     shippingCosts: {
-      "Europe": 12,
+      Europe: 12,
       "North America": 35,
       "Asia-Pacific": 40,
       "Middle East": 30,
-      "Africa": 45,
+      Africa: 45,
     },
   },
   {
@@ -53,11 +53,11 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Online Payment", "Bank Transfer", "Credit Card"],
     notes: "Best overall price",
     shippingCosts: {
-      "Europe": 18,
+      Europe: 18,
       "North America": 38,
       "Asia-Pacific": 42,
       "Middle East": 32,
-      "Africa": 48,
+      Africa: 48,
     },
   },
   {
@@ -76,11 +76,11 @@ export const DISTRIBUTORS: Distributor[] = [
     ],
     notes: "Best August price",
     shippingCosts: {
-      "Europe": 16,
+      Europe: 16,
       "North America": 36,
       "Asia-Pacific": 40,
       "Middle East": 32,
-      "Africa": 46,
+      Africa: 46,
     },
   },
   {
@@ -93,11 +93,11 @@ export const DISTRIBUTORS: Distributor[] = [
     website: "https://aerial.net",
     paymentMethods: ["Credit Card", "Bank Transfer"],
     shippingCosts: {
-      "Europe": 20,
+      Europe: 20,
       "North America": 40,
       "Asia-Pacific": 44,
       "Middle East": 34,
-      "Africa": 50,
+      Africa: 50,
     },
   },
   {
@@ -111,11 +111,11 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card", "PayPal", "Bank Transfer"],
     notes: "Official MikroTik certified distributor",
     shippingCosts: {
-      "Europe": 14,
+      Europe: 14,
       "North America": 34,
       "Asia-Pacific": 38,
       "Middle East": 30,
-      "Africa": 44,
+      Africa: 44,
     },
   },
   {
@@ -128,8 +128,8 @@ export const DISTRIBUTORS: Distributor[] = [
     website: "https://miro.co.za",
     paymentMethods: ["Credit Card", "EFT"],
     shippingCosts: {
-      "Africa": 20,
-      "Europe": 35,
+      Africa: 20,
+      Europe: 35,
       "North America": 45,
       "Asia-Pacific": 50,
       "Middle East": 40,
@@ -147,10 +147,10 @@ export const DISTRIBUTORS: Distributor[] = [
     notes: "24-month local warranty",
     shippingCosts: {
       "Middle East": 15,
-      "Europe": 30,
+      Europe: 30,
       "Asia-Pacific": 35,
       "North America": 40,
-      "Africa": 38,
+      Africa: 38,
     },
   },
   {
@@ -165,10 +165,10 @@ export const DISTRIBUTORS: Distributor[] = [
     notes: "Wire transfer only",
     shippingCosts: {
       "North America": 18,
-      "Europe": 40,
+      Europe: 40,
       "Middle East": 45,
       "Asia-Pacific": 55,
-      "Africa": 60,
+      Africa: 60,
     },
   },
   {
@@ -183,10 +183,10 @@ export const DISTRIBUTORS: Distributor[] = [
     notes: "Wire transfer only",
     shippingCosts: {
       "North America": 20,
-      "Europe": 42,
+      Europe: 42,
       "Middle East": 47,
       "Asia-Pacific": 57,
-      "Africa": 62,
+      Africa: 62,
     },
   },
   {
@@ -200,10 +200,10 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card", "Bank Transfer"],
     shippingCosts: {
       "North America": 15,
-      "Europe": 38,
+      Europe: 38,
       "Middle East": 43,
       "Asia-Pacific": 53,
-      "Africa": 58,
+      Africa: 58,
     },
   },
   {
@@ -217,10 +217,10 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card", "PayPal", "Financing"],
     shippingCosts: {
       "North America": 12,
-      "Europe": 36,
+      Europe: 36,
       "Middle East": 41,
       "Asia-Pacific": 51,
-      "Africa": 56,
+      Africa: 56,
     },
   },
   {
@@ -234,10 +234,10 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card", "Bank Transfer"],
     shippingCosts: {
       "Asia-Pacific": 15,
-      "Europe": 45,
+      Europe: 45,
       "North America": 55,
       "Middle East": 40,
-      "Africa": 60,
+      Africa: 60,
     },
   },
   {
@@ -251,10 +251,10 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card"],
     shippingCosts: {
       "Asia-Pacific": 12,
-      "Europe": 42,
+      Europe: 42,
       "North America": 52,
       "Middle East": 38,
-      "Africa": 58,
+      Africa: 58,
     },
   },
   {
@@ -268,10 +268,10 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card", "Bank Transfer", "Afterpay"],
     shippingCosts: {
       "Asia-Pacific": 10,
-      "Europe": 38,
+      Europe: 38,
       "North America": 48,
       "Middle East": 35,
-      "Africa": 55,
+      Africa: 55,
     },
   },
   {
@@ -285,10 +285,10 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card"],
     shippingCosts: {
       "Asia-Pacific": 8,
-      "Europe": 36,
+      Europe: 36,
       "North America": 46,
       "Middle East": 33,
-      "Africa": 53,
+      Africa: 53,
     },
   },
   {
@@ -301,11 +301,11 @@ export const DISTRIBUTORS: Distributor[] = [
     website: "https://getic.com",
     paymentMethods: ["Credit Card", "Bank Transfer"],
     shippingCosts: {
-      "Europe": 18,
+      Europe: 18,
       "North America": 40,
       "Asia-Pacific": 44,
       "Middle East": 34,
-      "Africa": 50,
+      Africa: 50,
     },
   },
   {
@@ -318,11 +318,11 @@ export const DISTRIBUTORS: Distributor[] = [
     website: "https://b2b.100mega.com",
     paymentMethods: ["Bank Transfer", "Credit Card"],
     shippingCosts: {
-      "Europe": 20,
+      Europe: 20,
       "North America": 42,
       "Asia-Pacific": 46,
       "Middle East": 36,
-      "Africa": 52,
+      Africa: 52,
     },
   },
   {
@@ -336,11 +336,11 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card", "Bank Transfer"],
     notes: "MikroTik distributor since 2001, ISO 9001:2015",
     shippingCosts: {
-      "Europe": 17,
+      Europe: 17,
       "North America": 38,
       "Asia-Pacific": 42,
       "Middle East": 33,
-      "Africa": 48,
+      Africa: 48,
     },
   },
   {
@@ -354,10 +354,10 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card", "Bank Transfer"],
     shippingCosts: {
       "North America": 16,
-      "Europe": 40,
+      Europe: 40,
       "Middle East": 45,
       "Asia-Pacific": 55,
-      "Africa": 60,
+      Africa: 60,
     },
   },
   {
@@ -371,10 +371,10 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card", "Bank Transfer"],
     shippingCosts: {
       "North America": 18,
-      "Europe": 42,
+      Europe: 42,
       "Middle East": 47,
       "Asia-Pacific": 57,
-      "Africa": 62,
+      Africa: 62,
     },
   },
   {
@@ -388,10 +388,10 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card"],
     shippingCosts: {
       "North America": 14,
-      "Europe": 38,
+      Europe: 38,
       "Middle East": 43,
       "Asia-Pacific": 53,
-      "Africa": 58,
+      Africa: 58,
     },
   },
   {
@@ -405,10 +405,10 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card", "Bank Transfer"],
     shippingCosts: {
       "North America": 20,
-      "Europe": 42,
+      Europe: 42,
       "Middle East": 47,
       "Asia-Pacific": 57,
-      "Africa": 62,
+      Africa: 62,
     },
   },
   {
@@ -422,10 +422,10 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card"],
     shippingCosts: {
       "North America": 12,
-      "Europe": 36,
+      Europe: 36,
       "Middle East": 41,
       "Asia-Pacific": 51,
-      "Africa": 56,
+      Africa: 56,
     },
   },
   {
@@ -439,10 +439,10 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card", "PayPal"],
     shippingCosts: {
       "North America": 12,
-      "Europe": 36,
+      Europe: 36,
       "Middle East": 41,
       "Asia-Pacific": 51,
-      "Africa": 56,
+      Africa: 56,
     },
   },
 ];

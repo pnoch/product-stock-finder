@@ -71,7 +71,9 @@ describe("listProductsMissingImage", () => {
   });
 
   it("excludes products that already have an image", async () => {
-    mockedGenerateImage.mockResolvedValue({ url: "https://img.example.com/x.png" });
+    mockedGenerateImage.mockResolvedValue({
+      url: "https://img.example.com/x.png",
+    });
     await getProductImage("mikrotik-crs804-4ddq-hrm");
     const missing = await listProductsMissingImage();
     expect(missing).not.toContain("mikrotik-crs804-4ddq-hrm");

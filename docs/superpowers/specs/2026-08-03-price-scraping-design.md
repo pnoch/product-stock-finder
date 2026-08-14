@@ -13,6 +13,7 @@ Implement real price scraping so the app shows live prices, stock status, and pr
 ### Approach: Parallel Independent Scrapers
 
 Each platform implements its own set of 25 parsers independently:
+
 - **Desktop:** Rust with `reqwest` + `scraper` crate
 - **Mobile:** TypeScript with `fetch` + `cheerio`
 
@@ -47,10 +48,10 @@ lib/scrapers/mobile/        Mobile TypeScript scrapers
 ```typescript
 interface ScrapeResult {
   price: number;
-  currency: string;        // "USD", "EUR", "GBP", "MYR", etc.
+  currency: string; // "USD", "EUR", "GBP", "MYR", etc.
   stockStatus: StockStatus; // "in_stock" | "back_order" | "out_of_stock"
-  expectedDate?: string;    // "Sept 15, 2026" if back_order
-  url: string;              // product page URL
+  expectedDate?: string; // "Sept 15, 2026" if back_order
+  url: string; // product page URL
 }
 ```
 
@@ -58,11 +59,11 @@ interface ScrapeResult {
 
 ```typescript
 interface DistributorParser {
-  id: string;                    // "server2u-my"
-  baseUrl: string;               // "https://server2u.com"
+  id: string; // "server2u-my"
+  baseUrl: string; // "https://server2u.com"
   buildSearchUrl: (model: string) => string;
   parsePrice: (html: string) => ScrapeResult | null;
-  rateLimitMs: number;           // min ms between requests
+  rateLimitMs: number; // min ms between requests
 }
 ```
 
@@ -101,7 +102,9 @@ fn parse_html(html: &str) -> Result<ScrapeResult, ScrapeError> {
 ### Mobile (TypeScript)
 
 ```typescript
-export async function scrapeServer2U(model: string): Promise<ScrapeResult | null> {
+export async function scrapeServer2U(
+  model: string,
+): Promise<ScrapeResult | null> {
   const url = `https://server2u.com/search?q=${model}`;
   const html = await fetchWithRateLimit(url, 2000);
   return parseHtml(html);
@@ -109,8 +112,14 @@ export async function scrapeServer2U(model: string): Promise<ScrapeResult | null
 
 function parseHtml(html: string): ScrapeResult | null {
   const $ = cheerio.load(html);
-  const price = parseFloat($(".product-price").text().replace(/[^0-9.]/g, ""));
-  const stock = $(".stock-status").text().includes("In Stock") ? "in_stock" : "out_of_stock";
+  const price = parseFloat(
+    $(".product-price")
+      .text()
+      .replace(/[^0-9.]/g, ""),
+  );
+  const stock = $(".stock-status").text().includes("In Stock")
+    ? "in_stock"
+    : "out_of_stock";
   return { price, currency: "MYR", stockStatus: stock, url: "..." };
 }
 ```
@@ -154,7 +163,9 @@ For each product + distributor combination:
 3. Update fields: `price`, `stockStatus`, `expectedDate`, `lastChecked`, `url`
 4. Append new `PricePoint` to `priceHistory`:
    ```typescript
-   { date: now.toISOString(), price, currency, stockStatus }
+   {
+     date: (now.toISOString(), price, currency, stockStatus);
+   }
    ```
 5. If `priceHistory.length > 90` → trim to 90 days
 6. Save updated product back to storage
@@ -264,29 +275,34 @@ Attempt 4+: skip this distributor this cycle, log warning
 ## Implementation Phases
 
 ### Phase 1: Shared Scraping Foundation
+
 - Create `lib/scrapers/types.ts`, `registry.ts`, `utils.ts`
 - Define parser interface and shared types
 - Add scraper status to `AppSettings` type
 
 ### Phase 2: Desktop Rust Scrapers
+
 - Add `reqwest`, `scraper` crates to Cargo.toml
 - Implement 25 distributor parsers
 - Add `check_all_prices` Tauri command
 - Integrate with system tray and background timer
 
 ### Phase 3: Mobile TypeScript Scrapers
+
 - Add `cheerio` dependency
 - Implement 25 distributor parsers
 - Update `background-price-check.ts` to use real scrapers
 - Add "Check Now" trigger
 
 ### Phase 4: UI Integration
+
 - Add last-refreshed indicator to product cards
 - Add scraper status dashboard in Settings
 - Add scrape progress indicator
 - Update StockBadge and PriceSparkline with live data
 
 ### Phase 5: Testing & Hardening
+
 - Write HTML fixtures for all 25 distributors
 - Unit tests for each parser
 - Integration tests for scrape cycle
@@ -294,30 +310,30 @@ Attempt 4+: skip this distributor this cycle, log warning
 
 ## Distributors (25 total)
 
-| ID | Name | Country | Region | Website |
-|----|------|---------|--------|---------|
-| server2u-my | Server2U | Malaysia | Asia-Pacific | server2u.com |
-| linitx-uk | Linitx | UK | Europe | linitx.com |
-| interprojekt-pl | Inter Projekt | Poland | Europe | interprojekt.pl |
-| nasstore-eu | NAS Store EU | EU | Europe | nasstore.eu |
-| aerial-gr | Aerial.net | Greece | Europe | aerial.net |
-| mikrotikstore-de | MikroTik Store EU | Germany | Europe | mikrotik-store.eu |
-| miro-za | MiRO Distribution | South Africa | Africa | miro.co.za |
-| gearup-ae | Gear-Up.me | UAE | Middle East | gear-up.me |
-| balticnetworks-us | Baltic Networks | US | North America | balticnetworks.com |
-| linktechs-us | Link Technologies | US | North America | shop.linktechs.net |
-| Winncom | Winncom | US | North America | winncom.com |
-| bhphoto-us | B&H Photo Video | US | North America | bhphotovideo.com |
-| duxtel-au | DuxTel | Australia | Asia-Pacific | store.duxtel.com |
-| wisp-au | WISP | Australia | Asia-Pacific | wisp.net.au |
-| pbtech-nz | PB Tech | New Zealand | Asia-Pacific | pbtech.co.nz |
-| gowifi-nz | GoWiFi | New Zealand | Asia-Pacific | gowifi.co.nz |
-| getic-gr | Getic | Greece | Europe | getic.com |
-| 100mega-cz | 100MEGA Distribution | Czech Republic | Europe | b2b.100mega.com |
-| hellascom-gr | HellasCom | Greece | Europe | hellascom.gr |
-| rocnoc-us | ROC-NOC | US | North America | roc-noc.com |
-| networkdevices-us | Network Devices Inc | US | North America | networkdevicesinc.com |
-| flytec-us | Flytec Computers | US | North America | flyteccomputers.com |
-| mbsiwav-ca | MBS I-WAV | Canada | North America | mbsiwav.com |
-| multilink-us | Multilink | US | North America | shop.multilink.us |
-| neobits-us | Neobits | US | North America | neobits.com |
+| ID                | Name                 | Country        | Region        | Website               |
+| ----------------- | -------------------- | -------------- | ------------- | --------------------- |
+| server2u-my       | Server2U             | Malaysia       | Asia-Pacific  | server2u.com          |
+| linitx-uk         | Linitx               | UK             | Europe        | linitx.com            |
+| interprojekt-pl   | Inter Projekt        | Poland         | Europe        | interprojekt.pl       |
+| nasstore-eu       | NAS Store EU         | EU             | Europe        | nasstore.eu           |
+| aerial-gr         | Aerial.net           | Greece         | Europe        | aerial.net            |
+| mikrotikstore-de  | MikroTik Store EU    | Germany        | Europe        | mikrotik-store.eu     |
+| miro-za           | MiRO Distribution    | South Africa   | Africa        | miro.co.za            |
+| gearup-ae         | Gear-Up.me           | UAE            | Middle East   | gear-up.me            |
+| balticnetworks-us | Baltic Networks      | US             | North America | balticnetworks.com    |
+| linktechs-us      | Link Technologies    | US             | North America | shop.linktechs.net    |
+| Winncom           | Winncom              | US             | North America | winncom.com           |
+| bhphoto-us        | B&H Photo Video      | US             | North America | bhphotovideo.com      |
+| duxtel-au         | DuxTel               | Australia      | Asia-Pacific  | store.duxtel.com      |
+| wisp-au           | WISP                 | Australia      | Asia-Pacific  | wisp.net.au           |
+| pbtech-nz         | PB Tech              | New Zealand    | Asia-Pacific  | pbtech.co.nz          |
+| gowifi-nz         | GoWiFi               | New Zealand    | Asia-Pacific  | gowifi.co.nz          |
+| getic-gr          | Getic                | Greece         | Europe        | getic.com             |
+| 100mega-cz        | 100MEGA Distribution | Czech Republic | Europe        | b2b.100mega.com       |
+| hellascom-gr      | HellasCom            | Greece         | Europe        | hellascom.gr          |
+| rocnoc-us         | ROC-NOC              | US             | North America | roc-noc.com           |
+| networkdevices-us | Network Devices Inc  | US             | North America | networkdevicesinc.com |
+| flytec-us         | Flytec Computers     | US             | North America | flyteccomputers.com   |
+| mbsiwav-ca        | MBS I-WAV            | Canada         | North America | mbsiwav.com           |
+| multilink-us      | Multilink            | US             | North America | shop.multilink.us     |
+| neobits-us        | Neobits              | US             | North America | neobits.com           |

@@ -11,7 +11,12 @@ const VIEWPORTS = [
   { width: 1280, height: 720 },
 ];
 
-const COOKIE_DIR = join(process.env.HOME || "~", ".cache", "product-stock-finder", "cookies");
+const COOKIE_DIR = join(
+  process.env.HOME || "~",
+  ".cache",
+  "product-stock-finder",
+  "cookies",
+);
 
 function getRandomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -131,7 +136,9 @@ class BrowserPool {
           return this.browsers.pop()!;
         }
       }
-      throw new Error("Browser pool exhausted: no browsers available after waiting");
+      throw new Error(
+        "Browser pool exhausted: no browsers available after waiting",
+      );
     });
   }
 
@@ -153,7 +160,10 @@ class BrowserPool {
 
 export const browserPool = new BrowserPool();
 
-async function createStealthContext(browser: Browser, url: string): Promise<BrowserContext> {
+async function createStealthContext(
+  browser: Browser,
+  url: string,
+): Promise<BrowserContext> {
   const userAgent = getRandomItem(USER_AGENTS);
   const viewport = getRandomItem(VIEWPORTS);
   const domain = extractDomain(url);
@@ -199,7 +209,9 @@ async function createStealthContext(browser: Browser, url: string): Promise<Brow
     const originalQuery = window.navigator.permissions.query;
     (window.navigator.permissions as any).query = (parameters: any) =>
       parameters.name === "notifications"
-        ? Promise.resolve({ state: Notification.permission } as PermissionStatus)
+        ? Promise.resolve({
+            state: Notification.permission,
+          } as PermissionStatus)
         : originalQuery(parameters);
 
     // Override WebGL vendor and renderer
@@ -218,24 +230,29 @@ async function createStealthContext(browser: Browser, url: string): Promise<Brow
   return context;
 }
 
-async function waitForCloudflare(page: any, timeoutMs: number): Promise<boolean> {
+async function waitForCloudflare(
+  page: any,
+  timeoutMs: number,
+): Promise<boolean> {
   const startTime = Date.now();
   while (Date.now() - startTime < timeoutMs) {
     const content = await page.content();
-    
+
     // Check for Cloudflare challenge
-    if (content.includes("cf-browser-verification") || 
-        content.includes("Checking your browser") ||
-        content.includes("Just a moment...")) {
+    if (
+      content.includes("cf-browser-verification") ||
+      content.includes("Checking your browser") ||
+      content.includes("Just a moment...")
+    ) {
       await page.waitForTimeout(2000);
       continue;
     }
-    
+
     // Check for 403
     if (content.includes("403 Forbidden")) {
       return false;
     }
-    
+
     // Page loaded successfully
     return true;
   }
@@ -250,7 +267,7 @@ export async function fetchWithBrowser(
   let context: BrowserContext | undefined;
   let page;
   const domain = extractDomain(url);
-  
+
   try {
     context = await createStealthContext(browser, url);
     page = await context.newPage();

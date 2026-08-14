@@ -30,7 +30,9 @@ describe("fetchPriceInsight", () => {
       insight: "Price is down 7% over 30 days.",
       generatedAt: 1000,
     });
-    expect(query).toHaveBeenCalledWith({ productId: "mikrotik-crs804-4ddq-hrm" });
+    expect(query).toHaveBeenCalledWith({
+      productId: "mikrotik-crs804-4ddq-hrm",
+    });
   });
 
   it("returns null when the server returns null", async () => {
@@ -46,12 +48,14 @@ describe("fetchPriceInsight", () => {
   });
 
   it("returns null when the query times out", async () => {
-    const query = vi.fn().mockImplementation(
-      () =>
-        new Promise<{ insight: string; generatedAt: number }>((resolve) =>
-          setTimeout(() => resolve({ insight: "x", generatedAt: 1 }), 10_000),
-        ),
-    );
+    const query = vi
+      .fn()
+      .mockImplementation(
+        () =>
+          new Promise<{ insight: string; generatedAt: number }>((resolve) =>
+            setTimeout(() => resolve({ insight: "x", generatedAt: 1 }), 10_000),
+          ),
+      );
     mockClientQuery(query);
     expect(await fetchPriceInsight("x")).toBeNull();
   });

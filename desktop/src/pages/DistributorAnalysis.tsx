@@ -34,7 +34,10 @@ export function DistributorAnalysis() {
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="flex items-center mb-4">
-        <button onClick={() => navigate("/watchlist")} className="text-blue-600 dark:text-brand-400 mr-3">
+        <button
+          onClick={() => navigate("/watchlist")}
+          className="text-blue-600 dark:text-brand-400 mr-3"
+        >
           ‹ Back
         </button>
         <h1 className="text-2xl font-bold">Distributor Analysis</h1>
@@ -62,7 +65,8 @@ export function DistributorAnalysis() {
                     {distrib?.countryFlag} {distrib?.name ?? a.distributorId}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg {formatPrice(a.averagePrice, displayCurrency)} (incl. tax)
+                    {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg{" "}
+                    {formatPrice(a.averagePrice, displayCurrency)} (incl. tax)
                   </p>
                 </div>
                 <p className="text-base font-bold text-brand-600 dark:text-brand-400">

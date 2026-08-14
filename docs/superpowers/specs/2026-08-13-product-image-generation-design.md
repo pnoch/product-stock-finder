@@ -50,10 +50,10 @@ server/routers.ts ──► server/product-images.ts
 
 Keyed by `productId`. One row per product.
 
-| Column | Type | Notes |
-| --- | --- | --- |
-| `productId` | varchar(128) | PK |
-| `imageUrl` | text | not null — generated image URL |
+| Column      | Type         | Notes                          |
+| ----------- | ------------ | ------------------------------ |
+| `productId` | varchar(128) | PK                             |
+| `imageUrl`  | text         | not null — generated image URL |
 
 Primary key on `productId`.
 

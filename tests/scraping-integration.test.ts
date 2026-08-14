@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { PARSERS, getParserByDistributorId } from "../lib/scrapers/registry";
-import { parsePriceFromText, inferStockStatus, fetchWithRateLimit } from "../lib/scrapers/utils";
+import {
+  parsePriceFromText,
+  inferStockStatus,
+  fetchWithRateLimit,
+} from "../lib/scrapers/utils";
 
 describe("Scraping Integration", () => {
   describe("Parser Registry", () => {
@@ -37,7 +41,7 @@ describe("Scraping Integration", () => {
       expect(parsePriceFromText("$123.45")).toBe(123.45);
       expect(parsePriceFromText("€1,234.56")).toBe(1234.56);
       expect(parsePriceFromText("£99")).toBe(99);
-      expect(parsePriceFromText("RM 1,299.00")).toBe(1299.00);
+      expect(parsePriceFromText("RM 1,299.00")).toBe(1299.0);
       expect(parsePriceFromText("invalid")).toBeNull();
     });
 
@@ -91,10 +95,10 @@ describe("Scraping Integration", () => {
         status: 404,
         statusText: "Not Found",
       });
-      
+
       // fetchWithRateLimit should throw on non-ok status
       await expect(
-        fetchWithRateLimit("https://example.com/404", 0)
+        fetchWithRateLimit("https://example.com/404", 0),
       ).rejects.toThrow("HTTP 404");
     });
 
@@ -104,9 +108,9 @@ describe("Scraping Integration", () => {
         status: 429,
         statusText: "Too Many Requests",
       });
-      
+
       await expect(
-        fetchWithRateLimit("https://example.com/429", 0)
+        fetchWithRateLimit("https://example.com/429", 0),
       ).rejects.toThrow("HTTP 429");
     });
 
@@ -114,9 +118,7 @@ describe("Scraping Integration", () => {
       const parser = getParserByDistributorId("server2u-my");
       expect(parser).toBeDefined();
 
-      const result = parser?.parsePrice(
-        "<html><body>Invalid</body></html>"
-      );
+      const result = parser?.parsePrice("<html><body>Invalid</body></html>");
       expect(result).toBeNull();
     });
 
@@ -136,7 +138,7 @@ describe("Scraping Integration", () => {
       const start = Date.now();
       await fetchWithRateLimit("https://example.com/test", 100);
       const elapsed = Date.now() - start;
-      
+
       // Should have waited at least 100ms
       expect(elapsed).toBeGreaterThanOrEqual(90);
     });
@@ -183,7 +185,9 @@ describe("Scraping Integration", () => {
     it("should parse with useBrowser flag", async () => {
       const { nasstoreParser } = await import("@/lib/scrapers/nasstore");
       expect(nasstoreParser.useBrowser).toBe(true);
-      expect(nasstoreParser.browserOptions?.waitForSelector).toBe(".product-price, .price");
+      expect(nasstoreParser.browserOptions?.waitForSelector).toBe(
+        ".product-price, .price",
+      );
     });
   });
 

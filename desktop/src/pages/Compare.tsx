@@ -9,7 +9,12 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
 import { MultiLineChart } from "../components/MultiLineChart";
 import { TimeRangeChips } from "../components/TimeRangeChips";
-import { GitCompareArrows, TrendingDown, TrendingUp, Minus } from "lucide-react";
+import {
+  GitCompareArrows,
+  TrendingDown,
+  TrendingUp,
+  Minus,
+} from "lucide-react";
 
 const CHART_COLORS = [
   "#0F52BA",
@@ -84,10 +89,12 @@ export function Compare() {
     const data = dates.map((d) => dateMap.get(d)!);
 
     const distributors = Array.from(
-      new Set(product.listings.map((l) => {
-        const dist = DISTRIBUTORS.find((d) => d.id === l.distributorId);
-        return dist?.name ?? l.distributorId;
-      })),
+      new Set(
+        product.listings.map((l) => {
+          const dist = DISTRIBUTORS.find((d) => d.id === l.distributorId);
+          return dist?.name ?? l.distributorId;
+        }),
+      ),
     );
 
     return { data, distributors, colors: CHART_COLORS };

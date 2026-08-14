@@ -1,16 +1,28 @@
 import * as cheerio from "cheerio";
 import { DistributorParser, ScrapeResult } from "./types";
-import { fetchWithRateLimit, parsePriceFromText, inferStockStatus } from "./utils";
+import {
+  fetchWithRateLimit,
+  parsePriceFromText,
+  inferStockStatus,
+} from "./utils";
 import { getTaxRate } from "../tax";
 
 function parseHtml(html: string, url: string): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $("[data-product-price-without-tax], .price--withoutTax.price-primary, .price-section--withoutTax, .price").first().text();
+  const priceText = $(
+    "[data-product-price-without-tax], .price--withoutTax.price-primary, .price-section--withoutTax, .price",
+  )
+    .first()
+    .text();
   const price = parsePriceFromText(priceText);
   if (!price) return null;
 
-  const stockText = $(".card-section--availability, .button--disabled, .stock-status").first().text();
+  const stockText = $(
+    ".card-section--availability, .button--disabled, .stock-status",
+  )
+    .first()
+    .text();
   const stockStatus = inferStockStatus(stockText);
 
   return {

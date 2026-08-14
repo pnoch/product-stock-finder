@@ -20,14 +20,16 @@ describe("Server2U Parser", () => {
   it("should return null for 404 page fixture", () => {
     const fixturePath = path.join(FIXTURES_DIR, "server2u-my.html");
     expect(fs.existsSync(fixturePath)).toBe(true);
-    
+
     const html = fs.readFileSync(fixturePath, "utf-8");
     const result = server2uParser.parsePrice(html);
     expect(result).toBeNull();
   });
 
   it("should return null for invalid HTML", () => {
-    const result = server2uParser.parsePrice("<html><body>No price here</body></html>");
+    const result = server2uParser.parsePrice(
+      "<html><body>No price here</body></html>",
+    );
     expect(result).toBeNull();
   });
 
@@ -35,7 +37,7 @@ describe("Server2U Parser", () => {
     const html = `<div><span class="price">RM 1,299.00</span><span class="stock-status">In Stock</span></div>`;
     const result = server2uParser.parsePrice(html);
     expect(result).not.toBeNull();
-    expect(result!.price).toBe(1299.00);
+    expect(result!.price).toBe(1299.0);
     expect(result!.currency).toBe("MYR");
     expect(result!.stockStatus).toBe("in_stock");
   });

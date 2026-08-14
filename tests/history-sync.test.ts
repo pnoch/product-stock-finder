@@ -3,7 +3,11 @@ import type { Product } from "../lib/types";
 
 const state = vi.hoisted(() => ({
   watchlistStore: [] as Product[],
-  uploaded: [] as Array<{ distributorId: string; modelNumber: string; points: unknown[] }>,
+  uploaded: [] as Array<{
+    distributorId: string;
+    modelNumber: string;
+    points: unknown[];
+  }>,
 }));
 
 vi.mock("../lib/storage", () => ({
@@ -11,9 +15,11 @@ vi.mock("../lib/storage", () => ({
 }));
 
 vi.mock("../lib/server-prices", () => ({
-  uploadServerHistory: vi.fn(async (distributorId: string, modelNumber: string, points: unknown[]) => {
-    state.uploaded.push({ distributorId, modelNumber, points });
-  }),
+  uploadServerHistory: vi.fn(
+    async (distributorId: string, modelNumber: string, points: unknown[]) => {
+      state.uploaded.push({ distributorId, modelNumber, points });
+    },
+  ),
 }));
 
 import { backfillLocalHistory } from "../lib/history-sync";

@@ -821,7 +821,12 @@ export default function ProductDetailScreen() {
         {productImage && (
           <Image
             source={{ uri: productImage }}
-            style={{ width: 96, height: 96, borderRadius: 12, marginBottom: 12 }}
+            style={{
+              width: 96,
+              height: 96,
+              borderRadius: 12,
+              marginBottom: 12,
+            }}
           />
         )}
 
@@ -959,8 +964,7 @@ export default function ProductDetailScreen() {
                     fontWeight: "500",
                   }}
                 >
-                  Last refreshed:{" "}
-                  {formatLastRefreshed(product.lastRefreshed)}
+                  Last refreshed: {formatLastRefreshed(product.lastRefreshed)}
                 </Text>
               </View>
             );
@@ -1264,7 +1268,9 @@ export default function ProductDetailScreen() {
                   backgroundColor: colors.primary,
                 }}
               >
-                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+                <Text
+                  style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}
+                >
                   Show All
                 </Text>
               </TouchableOpacity>
@@ -1380,9 +1386,7 @@ export default function ProductDetailScreen() {
                     <Text
                       style={{
                         color:
-                          regionFilter === region
-                            ? "#fff"
-                            : colors.foreground,
+                          regionFilter === region ? "#fff" : colors.foreground,
                         fontSize: 13,
                         fontWeight: "600",
                       }}
@@ -1403,17 +1407,44 @@ export default function ProductDetailScreen() {
                     borderColor: colors.border,
                   }}
                 >
-                  <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600", letterSpacing: 0.5 }}>
+                  <Text
+                    style={{
+                      color: colors.muted,
+                      fontSize: 12,
+                      fontWeight: "600",
+                      letterSpacing: 0.5,
+                    }}
+                  >
                     BEST DEAL (incl. shipping to {shippingRegion})
                   </Text>
                   {(() => {
                     const distrib = getDistributorById(bestDeal.distributorId);
                     return (
-                      <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
-                        <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700", flex: 1 }}>
-                          {distrib?.countryFlag} {distrib?.name ?? bestDeal.distributorId}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginTop: 8,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: colors.foreground,
+                            fontSize: 16,
+                            fontWeight: "700",
+                            flex: 1,
+                          }}
+                        >
+                          {distrib?.countryFlag}{" "}
+                          {distrib?.name ?? bestDeal.distributorId}
                         </Text>
-                        <Text style={{ color: colors.primary, fontSize: 18, fontWeight: "700" }}>
+                        <Text
+                          style={{
+                            color: colors.primary,
+                            fontSize: 18,
+                            fontWeight: "700",
+                          }}
+                        >
                           {formatPrice(bestDeal.total, bestDeal.currency)}
                         </Text>
                       </View>
@@ -1424,7 +1455,10 @@ export default function ProductDetailScreen() {
                       Price: {formatPrice(bestDeal.price, bestDeal.currency)}
                     </Text>
                     <Text style={{ color: colors.muted, fontSize: 12 }}>
-                      Tax: {bestDeal.tax > 0 ? formatPrice(bestDeal.tax, bestDeal.currency) : "Tax-free"}
+                      Tax:{" "}
+                      {bestDeal.tax > 0
+                        ? formatPrice(bestDeal.tax, bestDeal.currency)
+                        : "Tax-free"}
                     </Text>
                     <Text style={{ color: colors.muted, fontSize: 12 }}>
                       Ship: {formatPrice(bestDeal.shipping, bestDeal.currency)}
@@ -1509,7 +1543,12 @@ export default function ProductDetailScreen() {
                         )}
                         {listing.taxRate != null && listing.taxRate > 0 ? (
                           <Text style={{ color: colors.muted, fontSize: 11 }}>
-                            +{formatPrice(listing.price * listing.taxRate, listing.currency)} tax
+                            +
+                            {formatPrice(
+                              listing.price * listing.taxRate,
+                              listing.currency,
+                            )}{" "}
+                            tax
                           </Text>
                         ) : (
                           <Text style={{ color: colors.muted, fontSize: 11 }}>
@@ -1602,8 +1641,7 @@ export default function ProductDetailScreen() {
                             marginTop: distributor?.paymentMethods ? 2 : 8,
                           }}
                         >
-                          🕐 Updated{" "}
-                          {formatLastRefreshed(listing.lastChecked)}
+                          🕐 Updated {formatLastRefreshed(listing.lastChecked)}
                         </Text>
                       );
                     })()}
@@ -2124,7 +2162,8 @@ function PriceHistoryChart({
   if (!points) return null;
 
   const lineColor = points.trend === "down" ? colors.success : colors.error;
-  const { coords, polylineStr, minP, maxP, padL, padR, padT, padB, usableH } = points;
+  const { coords, polylineStr, minP, maxP, padL, padR, padT, padB, usableH } =
+    points;
   const midP = (minP + maxP) / 2;
   const midY = padT + usableH / 2;
   const minY = padT + usableH;
@@ -2142,121 +2181,121 @@ function PriceHistoryChart({
       }}
     >
       <Svg width={width} height={height}>
-      {[maxY, midY, minY].map((y, i) => (
-        <Line
-          key={i}
-          x1={padL}
-          y1={y}
-          x2={width - 16}
-          y2={y}
-          stroke={colors.border}
-          strokeWidth={0.5}
-          strokeDasharray="4,4"
+        {[maxY, midY, minY].map((y, i) => (
+          <Line
+            key={i}
+            x1={padL}
+            y1={y}
+            x2={width - 16}
+            y2={y}
+            stroke={colors.border}
+            strokeWidth={0.5}
+            strokeDasharray="4,4"
+          />
+        ))}
+        <SvgText
+          x={padL - 6}
+          y={maxY + 4}
+          fontSize={10}
+          fill={colors.muted}
+          textAnchor="end"
+        >
+          {maxP.toFixed(0)}
+        </SvgText>
+        <SvgText
+          x={padL - 6}
+          y={midY + 4}
+          fontSize={10}
+          fill={colors.muted}
+          textAnchor="end"
+        >
+          {midP.toFixed(0)}
+        </SvgText>
+        <SvgText
+          x={padL - 6}
+          y={minY + 4}
+          fontSize={10}
+          fill={colors.muted}
+          textAnchor="end"
+        >
+          {minP.toFixed(0)}
+        </SvgText>
+        <Polyline
+          points={polylineStr}
+          fill="none"
+          stroke={lineColor}
+          strokeWidth={2}
+          strokeLinejoin="round"
+          strokeLinecap="round"
         />
-      ))}
-      <SvgText
-        x={padL - 6}
-        y={maxY + 4}
-        fontSize={10}
-        fill={colors.muted}
-        textAnchor="end"
-      >
-        {maxP.toFixed(0)}
-      </SvgText>
-      <SvgText
-        x={padL - 6}
-        y={midY + 4}
-        fontSize={10}
-        fill={colors.muted}
-        textAnchor="end"
-      >
-        {midP.toFixed(0)}
-      </SvgText>
-      <SvgText
-        x={padL - 6}
-        y={minY + 4}
-        fontSize={10}
-        fill={colors.muted}
-        textAnchor="end"
-      >
-        {minP.toFixed(0)}
-      </SvgText>
-      <Polyline
-        points={polylineStr}
-        fill="none"
-        stroke={lineColor}
-        strokeWidth={2}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      {coords.map((c, i) => (
-        <Circle key={i} cx={c.x} cy={c.y} r={3} fill={lineColor} />
-      ))}
-      {[0, Math.floor((coords.length - 1) / 2), coords.length - 1].map(
-        (idx) => {
-          const c = coords[idx];
-          const label = new Date(c.date).toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-          });
+        {coords.map((c, i) => (
+          <Circle key={i} cx={c.x} cy={c.y} r={3} fill={lineColor} />
+        ))}
+        {[0, Math.floor((coords.length - 1) / 2), coords.length - 1].map(
+          (idx) => {
+            const c = coords[idx];
+            const label = new Date(c.date).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            });
+            return (
+              <SvgText
+                key={idx}
+                x={c.x}
+                y={height - padB + 16}
+                fontSize={10}
+                fill={colors.muted}
+                textAnchor="middle"
+              >
+                {label}
+              </SvgText>
+            );
+          },
+        )}
+        {(() => {
+          const minCoord = coords.reduce((a, b) => (b.price < a.price ? b : a));
+          const maxCoord = coords.reduce((a, b) => (b.price > a.price ? b : a));
           return (
-            <SvgText
-              key={idx}
-              x={c.x}
-              y={height - padB + 16}
-              fontSize={10}
-              fill={colors.muted}
-              textAnchor="middle"
-            >
-              {label}
-            </SvgText>
+            <>
+              <Rect
+                x={minCoord.x - 22}
+                y={minCoord.y - 16}
+                width={44}
+                height={14}
+                rx={4}
+                fill={colors.error + "33"}
+              />
+              <SvgText
+                x={minCoord.x}
+                y={minCoord.y - 5}
+                fontSize={9}
+                fill={colors.error}
+                textAnchor="middle"
+                fontWeight="700"
+              >
+                LOW {minP.toFixed(0)}
+              </SvgText>
+              <Rect
+                x={maxCoord.x - 24}
+                y={maxCoord.y + 4}
+                width={48}
+                height={14}
+                rx={4}
+                fill={colors.success + "33"}
+              />
+              <SvgText
+                x={maxCoord.x}
+                y={maxCoord.y + 14}
+                fontSize={9}
+                fill={colors.success}
+                textAnchor="middle"
+                fontWeight="700"
+              >
+                HIGH {maxP.toFixed(0)}
+              </SvgText>
+            </>
           );
-        },
-      )}
-      {(() => {
-        const minCoord = coords.reduce((a, b) => (b.price < a.price ? b : a));
-        const maxCoord = coords.reduce((a, b) => (b.price > a.price ? b : a));
-        return (
-          <>
-            <Rect
-              x={minCoord.x - 22}
-              y={minCoord.y - 16}
-              width={44}
-              height={14}
-              rx={4}
-              fill={colors.error + "33"}
-            />
-            <SvgText
-              x={minCoord.x}
-              y={minCoord.y - 5}
-              fontSize={9}
-              fill={colors.error}
-              textAnchor="middle"
-              fontWeight="700"
-            >
-              LOW {minP.toFixed(0)}
-            </SvgText>
-            <Rect
-              x={maxCoord.x - 24}
-              y={maxCoord.y + 4}
-              width={48}
-              height={14}
-              rx={4}
-              fill={colors.success + "33"}
-            />
-            <SvgText
-              x={maxCoord.x}
-              y={maxCoord.y + 14}
-              fontSize={9}
-              fill={colors.success}
-              textAnchor="middle"
-              fontWeight="700"
-            >
-              HIGH {maxP.toFixed(0)}
-            </SvgText>
-          </>
-        );
-      })()}
+        })()}
         {selectedIndex != null && coords[selectedIndex] && (
           <>
             <Line
@@ -2295,14 +2334,17 @@ function PriceHistoryChart({
               fill={colors.muted}
               textAnchor="middle"
             >
-              {new Date(coords[selectedIndex].date).toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric",
-              })}
+              {new Date(coords[selectedIndex].date).toLocaleDateString(
+                undefined,
+                {
+                  month: "short",
+                  day: "numeric",
+                },
+              )}
             </SvgText>
           </>
         )}
-    </Svg>
+      </Svg>
     </Pressable>
   );
 }

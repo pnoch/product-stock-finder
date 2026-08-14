@@ -24,7 +24,9 @@ export default function HealthScreen() {
   const colors = useColors();
   const router = useRouter();
   const [health, setHealth] = useState<DistributorHealth[]>([]);
-  const [filter, setFilter] = useState<"all" | "working" | "blocked" | "error">("all");
+  const [filter, setFilter] = useState<"all" | "working" | "blocked" | "error">(
+    "all",
+  );
   const [testing, setTesting] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -47,9 +49,11 @@ export default function HealthScreen() {
     setTesting(true);
     setProgress(0);
     try {
-      const results = await healthService.testAllDistributors((current, total) => {
-        setProgress(Math.round((current / total) * 100));
-      });
+      const results = await healthService.testAllDistributors(
+        (current, total) => {
+          setProgress(Math.round((current / total) * 100));
+        },
+      );
       setHealth(results);
     } finally {
       setTesting(false);
@@ -62,20 +66,33 @@ export default function HealthScreen() {
     error: health.filter((h) => h.status === "error").length,
   };
 
-  const filtered = health.filter((h) => filter === "all" || h.status === filter);
+  const filtered = health.filter(
+    (h) => filter === "all" || h.status === filter,
+  );
 
   return (
     <ScreenContainer>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ marginRight: 12 }}
+        >
           <Text style={{ color: colors.primary, fontSize: 16 }}>‹ Back</Text>
         </TouchableOpacity>
-        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}>
+        <Text
+          style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}
+        >
           Distributor Health
         </Text>
       </View>
 
-      <View style={{ flexDirection: "row", paddingHorizontal: 16, marginBottom: 12 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          paddingHorizontal: 16,
+          marginBottom: 12,
+        }}
+      >
         {(["all", "working", "blocked", "error"] as const).map((f) => (
           <TouchableOpacity
             key={f}
@@ -118,7 +135,9 @@ export default function HealthScreen() {
         {testing ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={{ color: "#fff", fontWeight: "700" }}>Test All Distributors</Text>
+          <Text style={{ color: "#fff", fontWeight: "700" }}>
+            Test All Distributors
+          </Text>
         )}
       </TouchableOpacity>
 
@@ -146,7 +165,9 @@ export default function HealthScreen() {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+      >
         {filtered.map((h) => {
           const distributor = getDistributorById(h.distributorId);
           if (!distributor) return null;
@@ -171,7 +192,13 @@ export default function HealthScreen() {
                 }}
               />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.foreground, fontWeight: "500", fontSize: 14 }}>
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontWeight: "500",
+                    fontSize: 14,
+                  }}
+                >
                   {distributor.countryFlag} {distributor.name}
                 </Text>
                 <Text style={{ color: colors.muted, fontSize: 12 }}>
@@ -188,8 +215,11 @@ export default function HealthScreen() {
           );
         })}
         {filtered.length === 0 && (
-          <Text style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}>
-            No distributor health data. Tap &quot;Test All Distributors&quot; to run a check.
+          <Text
+            style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}
+          >
+            No distributor health data. Tap &quot;Test All Distributors&quot; to
+            run a check.
           </Text>
         )}
       </ScrollView>

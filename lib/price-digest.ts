@@ -1,10 +1,5 @@
 import { formatPrice, getBestPrice } from "./currency";
-import type {
-  AppSettings,
-  PriceAlert,
-  Product,
-  StockStatus,
-} from "./types";
+import type { AppSettings, PriceAlert, Product, StockStatus } from "./types";
 
 export interface DigestProductState {
   productId: string;

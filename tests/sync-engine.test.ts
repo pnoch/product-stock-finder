@@ -65,7 +65,10 @@ function makeProduct(id: string, listings: DistributorListing[] = []): Product {
   };
 }
 
-function makeAlert(id: string, overrides: Partial<PriceAlert> = {}): PriceAlert {
+function makeAlert(
+  id: string,
+  overrides: Partial<PriceAlert> = {},
+): PriceAlert {
   return {
     id,
     productId: "p1",
@@ -121,18 +124,20 @@ describe("syncNow", () => {
   it("pulls and merges server items on first sync without re-pushing them", async () => {
     const storage = makeStorage();
     const serverProduct = makeProduct("p1", [listing("d1", 100, "in_stock")]);
-    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
-      lastSyncedAt: 2000,
-      items: [
-        {
-          collection: "watchlist",
-          id: "p1",
-          data: serverProduct,
-          updatedAt: 1500,
-          deletedAt: null,
-        },
-      ],
-    }));
+    const pull = vi.fn(
+      async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+        lastSyncedAt: 2000,
+        items: [
+          {
+            collection: "watchlist",
+            id: "p1",
+            data: serverProduct,
+            updatedAt: 1500,
+            deletedAt: null,
+          },
+        ],
+      }),
+    );
     const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
     await syncNow({
       storage,
@@ -150,21 +155,25 @@ describe("syncNow", () => {
 
   it("server wins per item when newer", async () => {
     const storage = makeStorage();
-    await storage.addToWatchlist(makeProduct("p1", [listing("d1", 100, "in_stock")]));
+    await storage.addToWatchlist(
+      makeProduct("p1", [listing("d1", 100, "in_stock")]),
+    );
     await storage.setItemSyncMeta("watchlist", "p1", 1000);
     const serverProduct = makeProduct("p1", [listing("d1", 90, "in_stock")]);
-    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
-      lastSyncedAt: 5000,
-      items: [
-        {
-          collection: "watchlist",
-          id: "p1",
-          data: serverProduct,
-          updatedAt: 4000,
-          deletedAt: null,
-        },
-      ],
-    }));
+    const pull = vi.fn(
+      async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+        lastSyncedAt: 5000,
+        items: [
+          {
+            collection: "watchlist",
+            id: "p1",
+            data: serverProduct,
+            updatedAt: 4000,
+            deletedAt: null,
+          },
+        ],
+      }),
+    );
     const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
     await syncNow({
       storage,
@@ -179,21 +188,25 @@ describe("syncNow", () => {
 
   it("keeps local when local is newer and pushes it", async () => {
     const storage = makeStorage();
-    await storage.addToWatchlist(makeProduct("p1", [listing("d1", 100, "in_stock")]));
+    await storage.addToWatchlist(
+      makeProduct("p1", [listing("d1", 100, "in_stock")]),
+    );
     await storage.setItemSyncMeta("watchlist", "p1", 5000);
     const serverProduct = makeProduct("p1", [listing("d1", 90, "in_stock")]);
-    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
-      lastSyncedAt: 6000,
-      items: [
-        {
-          collection: "watchlist",
-          id: "p1",
-          data: serverProduct,
-          updatedAt: 4000,
-          deletedAt: null,
-        },
-      ],
-    }));
+    const pull = vi.fn(
+      async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+        lastSyncedAt: 6000,
+        items: [
+          {
+            collection: "watchlist",
+            id: "p1",
+            data: serverProduct,
+            updatedAt: 4000,
+            deletedAt: null,
+          },
+        ],
+      }),
+    );
     const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1 }));
     await syncNow({
       storage,
@@ -210,18 +223,20 @@ describe("syncNow", () => {
     const storage = makeStorage();
     await storage.addToWatchlist(makeProduct("p1"));
     await storage.setItemSyncMeta("watchlist", "p1", 1000);
-    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
-      lastSyncedAt: 5000,
-      items: [
-        {
-          collection: "watchlist",
-          id: "p1",
-          data: null,
-          updatedAt: 4000,
-          deletedAt: 4000,
-        },
-      ],
-    }));
+    const pull = vi.fn(
+      async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+        lastSyncedAt: 5000,
+        items: [
+          {
+            collection: "watchlist",
+            id: "p1",
+            data: null,
+            updatedAt: 4000,
+            deletedAt: 4000,
+          },
+        ],
+      }),
+    );
     const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
     await syncNow({
       storage,
@@ -237,23 +252,30 @@ describe("syncNow", () => {
     const storage = makeStorage();
     const localListing = listing("d1", 100, "in_stock");
     localListing.priceHistory = [
-      { date: "2026-01-01", price: 100, currency: "USD", stockStatus: "in_stock" },
+      {
+        date: "2026-01-01",
+        price: 100,
+        currency: "USD",
+        stockStatus: "in_stock",
+      },
     ];
     await storage.addToWatchlist(makeProduct("p1", [localListing]));
     await storage.setItemSyncMeta("watchlist", "p1", 1000);
     const serverProduct = makeProduct("p1", [listing("d1", 90, "in_stock")]);
-    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
-      lastSyncedAt: 5000,
-      items: [
-        {
-          collection: "watchlist",
-          id: "p1",
-          data: serverProduct,
-          updatedAt: 4000,
-          deletedAt: null,
-        },
-      ],
-    }));
+    const pull = vi.fn(
+      async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+        lastSyncedAt: 5000,
+        items: [
+          {
+            collection: "watchlist",
+            id: "p1",
+            data: serverProduct,
+            updatedAt: 4000,
+            deletedAt: null,
+          },
+        ],
+      }),
+    );
     const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
     await syncNow({
       storage,
@@ -271,7 +293,12 @@ describe("syncNow", () => {
     const storage = makeStorage();
     const localListing = listing("d1", 100, "in_stock");
     localListing.priceHistory = [
-      { date: "2026-01-01", price: 100, currency: "USD", stockStatus: "in_stock" },
+      {
+        date: "2026-01-01",
+        price: 100,
+        currency: "USD",
+        stockStatus: "in_stock",
+      },
     ];
     await storage.addToWatchlist(makeProduct("p1", [localListing]));
     const pull = vi.fn(async () => ({ lastSyncedAt: 2000, items: [] }));
@@ -289,7 +316,9 @@ describe("syncNow", () => {
     expect(pushed[0]!.collection).toBe("watchlist");
     expect(pushed[0]!.id).toBe("p1");
     expect(pushed[0]!.updatedAt).toBe(3000);
-    expect((pushed[0]!.data as Product).listings[0]!.priceHistory).toBeUndefined();
+    expect(
+      (pushed[0]!.data as Product).listings[0]!.priceHistory,
+    ).toBeUndefined();
     const meta = await storage.getSyncMeta();
     expect(meta.lastSyncedAt).toBe(3000);
     expect(meta.lastSyncError).toBeNull();
@@ -351,7 +380,9 @@ describe("syncNow", () => {
       push: failingPush,
       now: () => 3000,
     });
-    expect((await storage.getSyncMeta()).lastSyncError).toContain("Push failed");
+    expect((await storage.getSyncMeta()).lastSyncError).toContain(
+      "Push failed",
+    );
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -418,18 +449,20 @@ describe("syncNow", () => {
     );
     await storage.setItemSyncMeta("watchlist", "p1", 4000);
     const serverProduct = makeProduct("p1", [listing("d1", 90, "in_stock")]);
-    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
-      lastSyncedAt: 5000,
-      items: [
-        {
-          collection: "watchlist",
-          id: "p1",
-          data: serverProduct,
-          updatedAt: 4000,
-          deletedAt: null,
-        },
-      ],
-    }));
+    const pull = vi.fn(
+      async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+        lastSyncedAt: 5000,
+        items: [
+          {
+            collection: "watchlist",
+            id: "p1",
+            data: serverProduct,
+            updatedAt: 4000,
+            deletedAt: null,
+          },
+        ],
+      }),
+    );
     const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
     await syncNow({
       storage,
@@ -471,18 +504,20 @@ describe("syncNow", () => {
     await storage.saveSettings({ ...DEFAULT_SETTINGS, displayCurrency: "EUR" });
     await storage.setItemSyncMeta("settings", "settings", 1000);
     const serverSettings = { ...DEFAULT_SETTINGS, displayCurrency: "GBP" };
-    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
-      lastSyncedAt: 5000,
-      items: [
-        {
-          collection: "settings",
-          id: "settings",
-          data: serverSettings,
-          updatedAt: 4000,
-          deletedAt: null,
-        },
-      ],
-    }));
+    const pull = vi.fn(
+      async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+        lastSyncedAt: 5000,
+        items: [
+          {
+            collection: "settings",
+            id: "settings",
+            data: serverSettings,
+            updatedAt: 4000,
+            deletedAt: null,
+          },
+        ],
+      }),
+    );
     const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
     await syncNow({
       storage,
@@ -498,25 +533,27 @@ describe("syncNow", () => {
     const storage = makeStorage();
     const dateReminder = makeReminder("r1", { reminderType: "date" });
     const stockWatch = makeReminder("w1", { reminderType: "back_in_stock" });
-    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
-      lastSyncedAt: 5000,
-      items: [
-        {
-          collection: "reminders",
-          id: "r1",
-          data: dateReminder,
-          updatedAt: 4000,
-          deletedAt: null,
-        },
-        {
-          collection: "reminders",
-          id: "w1",
-          data: stockWatch,
-          updatedAt: 4000,
-          deletedAt: null,
-        },
-      ],
-    }));
+    const pull = vi.fn(
+      async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+        lastSyncedAt: 5000,
+        items: [
+          {
+            collection: "reminders",
+            id: "r1",
+            data: dateReminder,
+            updatedAt: 4000,
+            deletedAt: null,
+          },
+          {
+            collection: "reminders",
+            id: "w1",
+            data: stockWatch,
+            updatedAt: 4000,
+            deletedAt: null,
+          },
+        ],
+      }),
+    );
     const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
     await syncNow({
       storage,

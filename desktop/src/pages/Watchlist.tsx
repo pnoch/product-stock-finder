@@ -1,6 +1,14 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { RefreshCw, Trash2, ArrowUpDown, Package, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import {
+  RefreshCw,
+  Trash2,
+  ArrowUpDown,
+  Package,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+} from "lucide-react";
 import { useWatchlist, useSettings } from "../hooks/use-storage";
 import { storage } from "../storage";
 import { formatPrice, getBestPrice } from "../../../lib/currency";
@@ -112,8 +120,10 @@ export function Watchlist() {
           cmp = a.name.localeCompare(b.name);
           break;
         case "price": {
-          const aPrice = getBestPrice(a.listings, displayCurrency)?.price ?? Infinity;
-          const bPrice = getBestPrice(b.listings, displayCurrency)?.price ?? Infinity;
+          const aPrice =
+            getBestPrice(a.listings, displayCurrency)?.price ?? Infinity;
+          const bPrice =
+            getBestPrice(b.listings, displayCurrency)?.price ?? Infinity;
           cmp = aPrice - bPrice;
           break;
         }
@@ -186,33 +196,43 @@ export function Watchlist() {
           </button>
           <button
             onClick={handleRefresh}
-          disabled={refreshing}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-          Refresh
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
+          >
+            <RefreshCw
+              className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
+            />
+            Refresh
           </button>
         </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
         <div className="flex items-baseline justify-between">
-          <span className="text-sm text-gray-500 dark:text-gray-400">Total Value</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Total Value
+          </span>
           <span className="text-2xl font-bold">
             {formatPrice(summary.totalValue, displayCurrency)}
           </span>
         </div>
         <div className="flex gap-4 mt-3">
           <div className="flex-1">
-            <p className="text-lg font-semibold text-emerald-600">{summary.inStock}</p>
+            <p className="text-lg font-semibold text-emerald-600">
+              {summary.inStock}
+            </p>
             <p className="text-xs text-gray-500">In Stock</p>
           </div>
           <div className="flex-1">
-            <p className="text-lg font-semibold text-amber-600">{summary.backOrder}</p>
+            <p className="text-lg font-semibold text-amber-600">
+              {summary.backOrder}
+            </p>
             <p className="text-xs text-gray-500">Back Order</p>
           </div>
           <div className="flex-1">
-            <p className="text-lg font-semibold text-red-600">{summary.outOfStock}</p>
+            <p className="text-lg font-semibold text-red-600">
+              {summary.outOfStock}
+            </p>
             <p className="text-xs text-gray-500">Out of Stock</p>
           </div>
           <div className="flex-1">
@@ -314,9 +334,15 @@ export function Watchlist() {
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-1 text-sm">
-                      {trend === "up" && <TrendingUp className="w-4 h-4 text-red-500" />}
-                      {trend === "down" && <TrendingDown className="w-4 h-4 text-emerald-500" />}
-                      {trend === "flat" && <Minus className="w-4 h-4 text-gray-400" />}
+                      {trend === "up" && (
+                        <TrendingUp className="w-4 h-4 text-red-500" />
+                      )}
+                      {trend === "down" && (
+                        <TrendingDown className="w-4 h-4 text-emerald-500" />
+                      )}
+                      {trend === "flat" && (
+                        <Minus className="w-4 h-4 text-gray-400" />
+                      )}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">

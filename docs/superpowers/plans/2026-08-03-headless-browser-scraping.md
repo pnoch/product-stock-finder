@@ -13,11 +13,13 @@
 ## File Structure
 
 ### New Files
+
 - `lib/scrapers/browser.ts` — BrowserPool class + `fetchWithBrowser()` function
 - `tests/scrapers/browser.test.ts` — Unit tests for BrowserPool and fetchWithBrowser
 - `desktop/src-tauri/src/scrapers/browser.rs` — Rust BrowserPool + fetch_with_browser
 
 ### Modified Files
+
 - `lib/scrapers/types.ts` — add `useBrowser?` and `browserOptions?` to DistributorParser
 - `lib/scrapers/utils.ts` — no changes needed (fetchWithBrowser goes in browser.ts)
 - 15 parser files — add `useBrowser: true` flag
@@ -29,6 +31,7 @@
 ## Task 1: Update DistributorParser Interface
 
 **Files:**
+
 - Modify: `lib/scrapers/types.ts:11-17`
 
 - [ ] **Step 1: Add useBrowser and browserOptions to DistributorParser**
@@ -65,6 +68,7 @@ git commit -m "feat: add useBrowser and browserOptions to DistributorParser inte
 ## Task 2: Create BrowserPool and fetchWithBrowser
 
 **Files:**
+
 - Create: `lib/scrapers/browser.ts`
 
 - [ ] **Step 1: Create browser.ts with BrowserPool and fetchWithBrowser**
@@ -143,6 +147,7 @@ git commit -m "feat: add BrowserPool and fetchWithBrowser for Playwright headles
 ## Task 3: Write BrowserPool Unit Tests
 
 **Files:**
+
 - Create: `tests/scrapers/browser.test.ts`
 
 - [ ] **Step 1: Create browser.test.ts with tests**
@@ -227,6 +232,7 @@ git commit -m "test: add BrowserPool and fetchWithBrowser unit tests"
 ## Task 4: Update First Parser (nasstore) with useBrowser Flag
 
 **Files:**
+
 - Modify: `lib/scrapers/nasstore.ts`
 
 - [ ] **Step 1: Read nasstore.ts to understand current structure**
@@ -256,7 +262,9 @@ export const nasstoreParser: DistributorParser = {
 - [ ] **Step 3: Update scrapeNasStore to use fetchWithBrowser when useBrowser is true**
 
 ```typescript
-export async function scrapeNasStore(model: string): Promise<ScrapeResult | null> {
+export async function scrapeNasStore(
+  model: string,
+): Promise<ScrapeResult | null> {
   try {
     const url = nasstoreParser.buildSearchUrl(model);
     let html: string;
@@ -290,6 +298,7 @@ git commit -m "feat: add useBrowser flag to nasstore parser"
 ## Task 5: Update All 15 Parsers with useBrowser Flag
 
 **Files:**
+
 - Modify: `lib/scrapers/winncom.ts`
 - Modify: `lib/scrapers/bhphoto.ts`
 - Modify: `lib/scrapers/wisp.ts`
@@ -492,6 +501,7 @@ git commit -m "feat: add useBrowser flag to all 15 Cloudflare/JS-rendered parser
 ## Task 6: Create Rust BrowserPool for Desktop
 
 **Files:**
+
 - Create: `desktop/src-tauri/src/scrapers/browser.rs`
 - Modify: `desktop/src-tauri/src/scrapers/mod.rs`
 - Modify: `desktop/src-tauri/Cargo.toml`
@@ -562,21 +572,21 @@ pub async fn fetch_with_browser(
         .map_err(|e| e.to_string())?;
     let page = context.new_page().await
         .map_err(|e| e.to_string())?;
-    
+
     page.goto(url).await
         .map_err(|e| e.to_string())?;
-    
+
     if let Some(selector) = wait_for_selector {
         page.wait_for_selector(selector).await
             .map_err(|e| e.to_string())?;
     }
-    
+
     let html = page.content().await
         .map_err(|e| e.to_string())?;
-    
+
     let _ = page.close().await;
     let _ = browser.close().await;
-    
+
     Ok(html)
 }
 ```
@@ -604,6 +614,7 @@ git commit -m "feat: add Rust BrowserPool and fetch_with_browser for desktop"
 ## Task 7: Update Desktop Scrapers to Use Browser
 
 **Files:**
+
 - Modify: `desktop/src-tauri/src/scrapers/nasstore.rs`
 - (and 14 other parser files)
 
@@ -614,14 +625,14 @@ use crate::scrapers::browser::fetch_with_browser;
 
 pub async fn scrape_nasstore(model: &str) -> Result<ScrapeResult, String> {
     let url = format!("https://nasstore.com.au/search?q={}", urlencoding::encode(model));
-    
+
     let html = if true { // use_browser flag
         fetch_with_browser(&url, Some(".product-price, .price"), Some(30000)).await?
     } else {
         crate::scrapers::fetch_html(&url, 2000).await
             .map_err(|e| e.to_string())?
     };
-    
+
     parse_html(&html, &url)
 }
 ```
@@ -645,6 +656,7 @@ git commit -m "feat: update desktop scrapers to use browser when useBrowser is t
 ## Task 8: Integration Test with Browser Parsers
 
 **Files:**
+
 - Modify: `tests/scraping-integration.test.ts`
 
 - [ ] **Step 1: Add test for browser-based parsing**
@@ -654,7 +666,9 @@ describe("Browser Parser Integration", () => {
   it("should parse with useBrowser flag", async () => {
     const { nasstoreParser } = await import("@/lib/scrapers/nasstore");
     expect(nasstoreParser.useBrowser).toBe(true);
-    expect(nasstoreParser.browserOptions?.waitForSelector).toBe(".product-price, .price");
+    expect(nasstoreParser.browserOptions?.waitForSelector).toBe(
+      ".product-price, .price",
+    );
   });
 });
 ```

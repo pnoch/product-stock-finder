@@ -48,7 +48,10 @@ describe("fetchProductImage", () => {
 
   it("returns null when the request times out", async () => {
     mockImagesGet(
-      () => new Promise<never>((_resolve) => setTimeout(() => _resolve({} as never), 50)),
+      () =>
+        new Promise<never>((_resolve) =>
+          setTimeout(() => _resolve({} as never), 50),
+        ),
     );
     const result = await fetchProductImage("a", { timeoutMs: 10 });
     expect(result).toBeNull();

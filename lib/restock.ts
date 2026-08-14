@@ -43,7 +43,8 @@ async function runCheckRestocks(): Promise<void> {
     if (prevStatus !== "in_stock" && newStatus === "in_stock") {
       // Back in stock — fire notification and remove watch
       const notificationsEnabled =
-        settings.notificationsEnabled !== false && settings.stockAlerts !== false;
+        settings.notificationsEnabled !== false &&
+        settings.stockAlerts !== false;
       if (notificationsEnabled && Platform.OS !== "web") {
         try {
           const distrib = getDistributorById(watch.distributorId);
@@ -65,7 +66,11 @@ async function runCheckRestocks(): Promise<void> {
     } else if (prevStatus !== newStatus) {
       // Status changed to another non-in-stock state — update cache
       try {
-        await updateStockWatchStatus(watch.productId, watch.distributorId, newStatus);
+        await updateStockWatchStatus(
+          watch.productId,
+          watch.distributorId,
+          newStatus,
+        );
       } catch {
         // Ignore cache-update failures
       }

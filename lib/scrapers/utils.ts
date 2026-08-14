@@ -15,13 +15,26 @@ export function getRandomUserAgent(): string {
 
 export function inferStockStatus(text: string): StockStatus {
   const lower = text.toLowerCase();
-  if (lower.includes("in stock") || lower.includes("available") || lower.includes("add to cart")) {
+  if (
+    lower.includes("in stock") ||
+    lower.includes("available") ||
+    lower.includes("add to cart")
+  ) {
     return "in_stock";
   }
-  if (lower.includes("back order") || lower.includes("backorder") || lower.includes("pre-order") || lower.includes("expected")) {
+  if (
+    lower.includes("back order") ||
+    lower.includes("backorder") ||
+    lower.includes("pre-order") ||
+    lower.includes("expected")
+  ) {
     return "back_order";
   }
-  if (lower.includes("out of stock") || lower.includes("unavailable") || lower.includes("sold out")) {
+  if (
+    lower.includes("out of stock") ||
+    lower.includes("unavailable") ||
+    lower.includes("sold out")
+  ) {
     return "out_of_stock";
   }
   return "unknown";
@@ -29,17 +42,17 @@ export function inferStockStatus(text: string): StockStatus {
 
 export function extractCurrency(text: string): string | null {
   const symbols: Record<string, string> = {
-    "$": "USD",
+    $: "USD",
     "€": "EUR",
     "£": "GBP",
-    "R": "ZAR",
-    "A$": "AUD",
-    "NZ$": "NZD",
-    "C$": "CAD",
-    "RM": "MYR",
+    R: "ZAR",
+    A$: "AUD",
+    NZ$: "NZD",
+    C$: "CAD",
+    RM: "MYR",
     "د.إ": "AED",
-    "S$": "SGD",
-    "HK$": "HKD",
+    S$: "SGD",
+    HK$: "HKD",
     "฿": "THB",
   };
   for (const [symbol, code] of Object.entries(symbols)) {
@@ -50,13 +63,13 @@ export function extractCurrency(text: string): string | null {
 
 export async function fetchWithRateLimit(
   url: string,
-  rateLimitMs: number
+  rateLimitMs: number,
 ): Promise<string> {
   await new Promise((resolve) => setTimeout(resolve, rateLimitMs));
   const response = await fetch(url, {
     headers: {
       "User-Agent": getRandomUserAgent(),
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       "Accept-Language": "en-US,en;q=0.9",
       "Accept-Encoding": "gzip, deflate",
     },

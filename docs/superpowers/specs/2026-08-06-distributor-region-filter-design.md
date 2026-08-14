@@ -15,21 +15,23 @@ Add region filter chips to the Watchlist and Product Detail screens. On the Watc
 A platform-agnostic module consumed by all four screens.
 
 **Functions:**
+
 ```typescript
-export function getAllRegions(): string[]
+export function getAllRegions(): string[];
 // Returns the distinct regions from DISTRIBUTORS (e.g. ["Africa", "Asia-Pacific", "Europe", "Middle East", "North America"])
 
-export function productHasRegion(product: Product, region: string): boolean
+export function productHasRegion(product: Product, region: string): boolean;
 // Returns true if any of the product's listings has a distributor in the given region
 
 export function filterListingsByRegion(
   listings: DistributorListing[],
   region: string,
-): DistributorListing[]
+): DistributorListing[];
 // Returns only the listings whose distributor is in the given region
 ```
 
 **Behavior:**
+
 - Uses `getDistributorById()` from `lib/distributors.ts` to map each listing's `distributorId` to its region
 - Listing with unknown distributor (not found in `DISTRIBUTORS`) → excluded from all region filters
 - `getAllRegions()` returns distinct, non-empty regions in a stable order
@@ -69,10 +71,12 @@ export function filterListingsByRegion(
 ## Files
 
 **New:**
+
 - `lib/region-filter.ts` — shared region filter utility
 - `tests/region-filter.test.ts` — unit tests
 
 **Modified:**
+
 - `app/(tabs)/watchlist.tsx` — add region filter chips
 - `app/product/[id].tsx` — add region filter chips
 - `desktop/src/pages/Watchlist.tsx` — add region filter chips

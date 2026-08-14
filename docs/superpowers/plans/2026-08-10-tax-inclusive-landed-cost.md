@@ -13,10 +13,12 @@
 ## File Structure
 
 ### New Files
+
 - `lib/tax.ts` — shared tax module
 - `tests/tax.test.ts` — unit tests
 
 ### Modified Files
+
 - `lib/types.ts` — add `taxRate` to `DistributorListing`
 - `lib/scrapers/types.ts` — add `taxRate` to `ScrapeResult`
 - 25 scraper files — set `taxRate` from country map
@@ -32,6 +34,7 @@
 ## Task 1: Create Shared Tax Module
 
 **Files:**
+
 - Create: `lib/tax.ts`
 - Test: `tests/tax.test.ts`
 
@@ -109,6 +112,7 @@ git commit -m "feat: add shared tax module with country tax rates"
 ## Task 2: Add taxRate to Types
 
 **Files:**
+
 - Modify: `lib/types.ts`
 - Modify: `lib/scrapers/types.ts`
 
@@ -163,6 +167,7 @@ git commit -m "feat: add taxRate to DistributorListing and ScrapeResult"
 ## Task 3: Set taxRate in Scrapers
 
 **Files:**
+
 - Modify: 25 scraper files in `lib/scrapers/`
 
 - [ ] **Step 1: Update each scraper to set taxRate**
@@ -200,13 +205,13 @@ For each scraper, add `taxRate` to the returned `ScrapeResult` object. Example f
 ```typescript
 import { getTaxRate } from "../tax";
 
-  return {
-    price,
-    currency: "MYR",
-    stockStatus,
-    url,
-    taxRate: getTaxRate("Malaysia"),
-  };
+return {
+  price,
+  currency: "MYR",
+  stockStatus,
+  url,
+  taxRate: getTaxRate("Malaysia"),
+};
 ```
 
 - [ ] **Step 2: Run typecheck to verify no errors**
@@ -231,6 +236,7 @@ git commit -m "feat: set taxRate in all scrapers from country map"
 ## Task 4: Update Best Deal to Include Tax
 
 **Files:**
+
 - Modify: `lib/best-deal.ts`
 - Modify: `tests/best-deal.test.ts`
 
@@ -239,23 +245,28 @@ git commit -m "feat: set taxRate in all scrapers from country map"
 Append to `tests/best-deal.test.ts`:
 
 ```typescript
-  it("includes tax in the total landed cost", () => {
-    const listings = [
-      makeListing({ distributorId: "server2u-my", price: 100, currency: "USD", taxRate: 0.2 }),
-    ];
-    const deal = findBestDeal(listings, "Asia-Pacific", "USD");
-    expect(deal).not.toBeNull();
-    expect(deal!.tax).toBeCloseTo(20, 2); // 100 * 0.2
-    expect(deal!.total).toBeCloseTo(deal!.price + deal!.tax + deal!.shipping, 2);
-  });
+it("includes tax in the total landed cost", () => {
+  const listings = [
+    makeListing({
+      distributorId: "server2u-my",
+      price: 100,
+      currency: "USD",
+      taxRate: 0.2,
+    }),
+  ];
+  const deal = findBestDeal(listings, "Asia-Pacific", "USD");
+  expect(deal).not.toBeNull();
+  expect(deal!.tax).toBeCloseTo(20, 2); // 100 * 0.2
+  expect(deal!.total).toBeCloseTo(deal!.price + deal!.tax + deal!.shipping, 2);
+});
 
-  it("treats missing taxRate as tax-free", () => {
-    const listings = [
-      makeListing({ distributorId: "server2u-my", price: 100, currency: "USD" }),
-    ];
-    const deal = findBestDeal(listings, "Asia-Pacific", "USD");
-    expect(deal!.tax).toBe(0);
-  });
+it("treats missing taxRate as tax-free", () => {
+  const listings = [
+    makeListing({ distributorId: "server2u-my", price: 100, currency: "USD" }),
+  ];
+  const deal = findBestDeal(listings, "Asia-Pacific", "USD");
+  expect(deal!.tax).toBe(0);
+});
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -295,9 +306,17 @@ export function findBestDeal(
     const shippingCost = distributor.shippingCosts[destinationRegion];
     if (shippingCost == null) continue;
 
-    const price = convertPrice(listing.price, listing.currency, displayCurrency);
+    const price = convertPrice(
+      listing.price,
+      listing.currency,
+      displayCurrency,
+    );
     // Shipping is denominated in the distributor's native currency
-    const shipping = convertPrice(shippingCost, distributor.currency, displayCurrency);
+    const shipping = convertPrice(
+      shippingCost,
+      distributor.currency,
+      displayCurrency,
+    );
     const tax = price * (listing.taxRate ?? 0);
     const total = price + tax + shipping;
 
@@ -334,6 +353,7 @@ git commit -m "feat: include tax in best deal total landed cost"
 ## Task 5: Update Distributor Analysis to Include Tax
 
 **Files:**
+
 - Modify: `lib/distributor-analysis.ts`
 - Modify: `tests/distributor-analysis.test.ts`
 
@@ -342,16 +362,21 @@ git commit -m "feat: include tax in best deal total landed cost"
 Append to `tests/distributor-analysis.test.ts`:
 
 ```typescript
-  it("includes tax in totalCost", () => {
-    const watchlist = [
-      makeProduct("p1", [
-        makeListing({ distributorId: "server2u-my", price: 100, currency: "USD", taxRate: 0.2 }),
-      ]),
-    ];
-    const result = analyzeDistributors(watchlist, "USD");
-    const server2u = result.find((r) => r.distributorId === "server2u-my");
-    expect(server2u!.totalCost).toBeCloseTo(120, 2); // 100 + 20 tax
-  });
+it("includes tax in totalCost", () => {
+  const watchlist = [
+    makeProduct("p1", [
+      makeListing({
+        distributorId: "server2u-my",
+        price: 100,
+        currency: "USD",
+        taxRate: 0.2,
+      }),
+    ]),
+  ];
+  const result = analyzeDistributors(watchlist, "USD");
+  const server2u = result.find((r) => r.distributorId === "server2u-my");
+  expect(server2u!.totalCost).toBeCloseTo(120, 2); // 100 + 20 tax
+});
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -364,9 +389,9 @@ Expected: FAIL (totalCost doesn't include tax yet)
 Modify `lib/distributor-analysis.ts` to include tax in totalCost. The `cheapest` listing selection stays the same, but when adding to `totalCost`, include tax:
 
 ```typescript
-      coverage++;
-      const price = convertPrice(cheapest.price, cheapest.currency, displayCurrency);
-      totalCost += price + price * (cheapest.taxRate ?? 0);
+coverage++;
+const price = convertPrice(cheapest.price, cheapest.currency, displayCurrency);
+totalCost += price + price * (cheapest.taxRate ?? 0);
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -386,6 +411,7 @@ git commit -m "feat: include tax in distributor analysis totalCost"
 ## Task 6: Update Mobile Product Detail (Best Deal Card + Listings Table)
 
 **Files:**
+
 - Modify: `app/product/[id].tsx`
 
 - [ ] **Step 1: Update the Best Deal card**
@@ -411,7 +437,10 @@ to:
     Price: {formatPrice(bestDeal.price, bestDeal.currency)}
   </Text>
   <Text style={{ color: colors.muted, fontSize: 12 }}>
-    Tax: {bestDeal.tax > 0 ? formatPrice(bestDeal.tax, bestDeal.currency) : "Tax-free"}
+    Tax:{" "}
+    {bestDeal.tax > 0
+      ? formatPrice(bestDeal.tax, bestDeal.currency)
+      : "Tax-free"}
   </Text>
   <Text style={{ color: colors.muted, fontSize: 12 }}>
     Ship: {formatPrice(bestDeal.shipping, bestDeal.currency)}
@@ -424,13 +453,15 @@ to:
 In the distributor listings table (where each listing row shows price), add a tax display. Find the row where the listing price is shown and add tax info:
 
 ```tsx
-{listing.taxRate != null && listing.taxRate > 0 ? (
-  <Text style={{ color: colors.muted, fontSize: 11 }}>
-    +{formatPrice(listing.price * listing.taxRate, listing.currency)} tax
-  </Text>
-) : (
-  <Text style={{ color: colors.muted, fontSize: 11 }}>Tax-free</Text>
-)}
+{
+  listing.taxRate != null && listing.taxRate > 0 ? (
+    <Text style={{ color: colors.muted, fontSize: 11 }}>
+      +{formatPrice(listing.price * listing.taxRate, listing.currency)} tax
+    </Text>
+  ) : (
+    <Text style={{ color: colors.muted, fontSize: 11 }}>Tax-free</Text>
+  );
+}
 ```
 
 Place it near the price display in each listing row.
@@ -452,6 +483,7 @@ git commit -m "feat: show tax in mobile best deal card and listings table"
 ## Task 7: Update Desktop Product Detail (Best Deal Card + Listings Table)
 
 **Files:**
+
 - Modify: `desktop/src/pages/ProductDetail.tsx`
 
 - [ ] **Step 1: Update the Best Deal card**
@@ -477,7 +509,10 @@ to:
     Price: {formatPrice(bestDeal.price, bestDeal.currency)}
   </p>
   <p className="text-xs text-gray-500 dark:text-gray-400">
-    Tax: {bestDeal.tax > 0 ? formatPrice(bestDeal.tax, bestDeal.currency) : "Tax-free"}
+    Tax:{" "}
+    {bestDeal.tax > 0
+      ? formatPrice(bestDeal.tax, bestDeal.currency)
+      : "Tax-free"}
   </p>
   <p className="text-xs text-gray-500 dark:text-gray-400">
     Ship: {formatPrice(bestDeal.shipping, bestDeal.currency)}
@@ -490,13 +525,15 @@ to:
 In the distributor listings table (where each listing row shows price), add a tax display. Find the row where the listing price is shown and add tax info:
 
 ```tsx
-{listing.taxRate != null && listing.taxRate > 0 ? (
-  <p className="text-xs text-gray-500 dark:text-gray-400">
-    +{formatPrice(listing.price * listing.taxRate, listing.currency)} tax
-  </p>
-) : (
-  <p className="text-xs text-gray-500 dark:text-gray-400">Tax-free</p>
-)}
+{
+  listing.taxRate != null && listing.taxRate > 0 ? (
+    <p className="text-xs text-gray-500 dark:text-gray-400">
+      +{formatPrice(listing.price * listing.taxRate, listing.currency)} tax
+    </p>
+  ) : (
+    <p className="text-xs text-gray-500 dark:text-gray-400">Tax-free</p>
+  );
+}
 ```
 
 Place it near the price display in each listing row.
@@ -518,6 +555,7 @@ git commit -m "feat: show tax in desktop best deal card and listings table"
 ## Task 8: Update Distributor Analysis Screens
 
 **Files:**
+
 - Modify: `app/distributor-analysis.tsx`
 - Modify: `desktop/src/pages/DistributorAnalysis.tsx`
 
@@ -527,7 +565,8 @@ In `app/distributor-analysis.tsx`, the `totalCost` shown is now tax-inclusive (f
 
 ```tsx
 <Text style={{ color: colors.muted, fontSize: 12 }}>
-  {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg {formatPrice(a.averagePrice, displayCurrency)} (incl. tax)
+  {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg{" "}
+  {formatPrice(a.averagePrice, displayCurrency)} (incl. tax)
 </Text>
 ```
 
@@ -537,7 +576,8 @@ In `desktop/src/pages/DistributorAnalysis.tsx`, do the same:
 
 ```tsx
 <p className="text-xs text-gray-500 dark:text-gray-400">
-  {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg {formatPrice(a.averagePrice, displayCurrency)} (incl. tax)
+  {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg{" "}
+  {formatPrice(a.averagePrice, displayCurrency)} (incl. tax)
 </p>
 ```
 

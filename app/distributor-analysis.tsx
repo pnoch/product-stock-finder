@@ -12,7 +12,10 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { getWatchlist, getSettings } from "@/lib/storage";
 import { getDistributorById } from "@/lib/distributors";
-import { analyzeDistributors, DistributorAnalysis } from "@/lib/distributor-analysis";
+import {
+  analyzeDistributors,
+  DistributorAnalysis,
+} from "@/lib/distributor-analysis";
 import { formatPrice } from "@/lib/currency";
 
 export default function DistributorAnalysisScreen() {
@@ -43,10 +46,15 @@ export default function DistributorAnalysisScreen() {
   return (
     <ScreenContainer>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ marginRight: 12 }}
+        >
           <Text style={{ color: colors.primary, fontSize: 16 }}>‹ Back</Text>
         </TouchableOpacity>
-        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}>
+        <Text
+          style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}
+        >
           Distributor Analysis
         </Text>
       </View>
@@ -54,11 +62,15 @@ export default function DistributorAnalysisScreen() {
       {loading ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : analysis.length === 0 ? (
-        <Text style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}>
+        <Text
+          style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}
+        >
           Add products to see distributor analysis.
         </Text>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+        >
           {analysis.map((a) => {
             const distrib = getDistributorById(a.distributorId);
             return (
@@ -73,14 +85,27 @@ export default function DistributorAnalysisScreen() {
                 }}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.foreground, fontWeight: "500", fontSize: 14 }}>
+                  <Text
+                    style={{
+                      color: colors.foreground,
+                      fontWeight: "500",
+                      fontSize: 14,
+                    }}
+                  >
                     {distrib?.countryFlag} {distrib?.name ?? a.distributorId}
                   </Text>
                   <Text style={{ color: colors.muted, fontSize: 12 }}>
-                    {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg {formatPrice(a.averagePrice, displayCurrency)} (incl. tax)
+                    {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg{" "}
+                    {formatPrice(a.averagePrice, displayCurrency)} (incl. tax)
                   </Text>
                 </View>
-                <Text style={{ color: colors.primary, fontSize: 16, fontWeight: "700" }}>
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontSize: 16,
+                    fontWeight: "700",
+                  }}
+                >
                   {formatPrice(a.totalCost, displayCurrency)}
                 </Text>
               </View>

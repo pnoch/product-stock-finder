@@ -20,14 +20,16 @@ describe("Gearup Parser", () => {
   it("should return null for 404 page fixture", () => {
     const fixturePath = path.join(FIXTURES_DIR, "gearup-ae.html");
     expect(fs.existsSync(fixturePath)).toBe(true);
-    
+
     const html = fs.readFileSync(fixturePath, "utf-8");
     const result = gearupParser.parsePrice(html);
     expect(result).toBeNull();
   });
 
   it("should return null for invalid HTML", () => {
-    const result = gearupParser.parsePrice("<html><body>No price here</body></html>");
+    const result = gearupParser.parsePrice(
+      "<html><body>No price here</body></html>",
+    );
     expect(result).toBeNull();
   });
 
@@ -35,7 +37,7 @@ describe("Gearup Parser", () => {
     const html = `<div><span class="price">1099.00 AED</span><span class="stock-status">In Stock</span></div>`;
     const result = gearupParser.parsePrice(html);
     expect(result).not.toBeNull();
-    expect(result!.price).toBe(1099.00);
+    expect(result!.price).toBe(1099.0);
     expect(result!.currency).toBe("AED");
     expect(result!.stockStatus).toBe("in_stock");
   });

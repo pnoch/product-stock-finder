@@ -20,14 +20,16 @@ describe("Hellascom Parser", () => {
   it("should return null for 404 page fixture", () => {
     const fixturePath = path.join(FIXTURES_DIR, "hellascom-gr.html");
     expect(fs.existsSync(fixturePath)).toBe(true);
-    
+
     const html = fs.readFileSync(fixturePath, "utf-8");
     const result = hellascomParser.parsePrice(html);
     expect(result).toBeNull();
   });
 
   it("should return null for invalid HTML", () => {
-    const result = hellascomParser.parsePrice("<html><body>No price here</body></html>");
+    const result = hellascomParser.parsePrice(
+      "<html><body>No price here</body></html>",
+    );
     expect(result).toBeNull();
   });
 
@@ -35,7 +37,7 @@ describe("Hellascom Parser", () => {
     const html = `<div><span class="price">€279.00</span><span class="stock-status">In Stock</span></div>`;
     const result = hellascomParser.parsePrice(html);
     expect(result).not.toBeNull();
-    expect(result!.price).toBe(279.00);
+    expect(result!.price).toBe(279.0);
     expect(result!.currency).toBe("EUR");
     expect(result!.stockStatus).toBe("in_stock");
   });

@@ -6,11 +6,19 @@ import { getTaxRate } from "../tax";
 function parseHtml(html: string, url: string): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(".product-price, .price, [data-price], [itemprop='price']").first().text();
+  const priceText = $(
+    ".product-price, .price, [data-price], [itemprop='price']",
+  )
+    .first()
+    .text();
   const price = parsePriceFromText(priceText);
   if (!price) return null;
 
-  const stockText = $(".availability, .stock, [itemprop='availability'], .stock-status").first().text();
+  const stockText = $(
+    ".availability, .stock, [itemprop='availability'], .stock-status",
+  )
+    .first()
+    .text();
   const stockStatus = inferStockStatus(stockText);
 
   return {
@@ -35,9 +43,7 @@ export const miroParser: DistributorParser = {
   },
 };
 
-export async function scrapeMiro(
-  model: string,
-): Promise<ScrapeResult | null> {
+export async function scrapeMiro(model: string): Promise<ScrapeResult | null> {
   try {
     const url = miroParser.buildSearchUrl(model);
     const html = await fetchWithParser(miroParser, url);

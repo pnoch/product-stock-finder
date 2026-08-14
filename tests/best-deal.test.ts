@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import { findBestDeal } from "@/lib/best-deal";
 import type { DistributorListing } from "@/lib/types";
 
-function makeListing(overrides: Partial<DistributorListing> = {}): DistributorListing {
+function makeListing(
+  overrides: Partial<DistributorListing> = {},
+): DistributorListing {
   return {
     distributorId: "server2u-my",
     productId: "p1",
@@ -19,9 +21,17 @@ function makeListing(overrides: Partial<DistributorListing> = {}): DistributorLi
 describe("findBestDeal", () => {
   it("returns the lowest total landed cost (price + shipping)", () => {
     const listings = [
-      makeListing({ distributorId: "server2u-my", price: 100, currency: "USD" }),
+      makeListing({
+        distributorId: "server2u-my",
+        price: 100,
+        currency: "USD",
+      }),
       makeListing({ distributorId: "linitx-uk", price: 90, currency: "USD" }),
-      makeListing({ distributorId: "interprojekt-pl", price: 80, currency: "USD" }),
+      makeListing({
+        distributorId: "interprojekt-pl",
+        price: 80,
+        currency: "USD",
+      }),
     ];
     const deal = findBestDeal(listings, "Asia-Pacific", "USD");
     expect(deal).not.toBeNull();
@@ -36,8 +46,16 @@ describe("findBestDeal", () => {
 
   it("skips out-of-stock listings", () => {
     const listings = [
-      makeListing({ distributorId: "server2u-my", price: 100, stockStatus: "out_of_stock" }),
-      makeListing({ distributorId: "linitx-uk", price: 90, stockStatus: "in_stock" }),
+      makeListing({
+        distributorId: "server2u-my",
+        price: 100,
+        stockStatus: "out_of_stock",
+      }),
+      makeListing({
+        distributorId: "linitx-uk",
+        price: 90,
+        stockStatus: "in_stock",
+      }),
     ];
     const deal = findBestDeal(listings, "Asia-Pacific", "USD");
     expect(deal!.distributorId).toBe("linitx-uk");
@@ -54,7 +72,11 @@ describe("findBestDeal", () => {
 
   it("converts price and shipping to display currency", () => {
     const listings = [
-      makeListing({ distributorId: "server2u-my", price: 100, currency: "USD" }),
+      makeListing({
+        distributorId: "server2u-my",
+        price: 100,
+        currency: "USD",
+      }),
     ];
     const deal = findBestDeal(listings, "Asia-Pacific", "USD");
     expect(deal!.currency).toBe("USD");
@@ -74,17 +96,29 @@ describe("findBestDeal", () => {
 
   it("includes tax in the total landed cost", () => {
     const listings = [
-      makeListing({ distributorId: "server2u-my", price: 100, currency: "USD", taxRate: 0.2 }),
+      makeListing({
+        distributorId: "server2u-my",
+        price: 100,
+        currency: "USD",
+        taxRate: 0.2,
+      }),
     ];
     const deal = findBestDeal(listings, "Asia-Pacific", "USD");
     expect(deal).not.toBeNull();
     expect(deal!.tax).toBeCloseTo(20, 2); // 100 * 0.2
-    expect(deal!.total).toBeCloseTo(deal!.price + deal!.tax + deal!.shipping, 2);
+    expect(deal!.total).toBeCloseTo(
+      deal!.price + deal!.tax + deal!.shipping,
+      2,
+    );
   });
 
   it("treats missing taxRate as tax-free", () => {
     const listings = [
-      makeListing({ distributorId: "server2u-my", price: 100, currency: "USD" }),
+      makeListing({
+        distributorId: "server2u-my",
+        price: 100,
+        currency: "USD",
+      }),
     ];
     const deal = findBestDeal(listings, "Asia-Pacific", "USD");
     expect(deal!.tax).toBe(0);

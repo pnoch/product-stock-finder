@@ -13,10 +13,12 @@
 ## File Structure
 
 ### New Files
+
 - `lib/region-filter.ts` — shared region filter utility
 - `tests/region-filter.test.ts` — unit tests
 
 ### Modified Files
+
 - `app/(tabs)/watchlist.tsx` — add region filter chips
 - `app/product/[id].tsx` — add region filter chips
 - `desktop/src/pages/Watchlist.tsx` — add region filter chips
@@ -27,6 +29,7 @@
 ## Task 1: Create Shared Region Filter Utility
 
 **Files:**
+
 - Create: `lib/region-filter.ts`
 - Test: `tests/region-filter.test.ts`
 
@@ -174,6 +177,7 @@ git commit -m "feat: add region filter utility with tests"
 ## Task 2: Add Region Filter to Mobile Watchlist
 
 **Files:**
+
 - Modify: `app/(tabs)/watchlist.tsx`
 
 - [ ] **Step 1: Add imports**
@@ -214,7 +218,15 @@ Then use `filteredWatchlist` wherever `watchlist` was used for rendering (FlatLi
 Add a region filter chip row below the sort bar. Find the sort bar section and add after it:
 
 ```tsx
-<View style={{ flexDirection: "row", paddingHorizontal: 16, marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+<View
+  style={{
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    flexWrap: "wrap",
+    gap: 8,
+  }}
+>
   {["all", ...regions].map((region) => (
     <TouchableOpacity
       key={region}
@@ -223,7 +235,8 @@ Add a region filter chip row below the sort bar. Find the sort bar section and a
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 16,
-        backgroundColor: regionFilter === region ? colors.primary : colors.surface,
+        backgroundColor:
+          regionFilter === region ? colors.primary : colors.surface,
         borderWidth: 1,
         borderColor: colors.border,
       }}
@@ -259,6 +272,7 @@ git commit -m "feat: add region filter to mobile watchlist"
 ## Task 3: Add Region Filter to Mobile Product Detail
 
 **Files:**
+
 - Modify: `app/product/[id].tsx`
 
 - [ ] **Step 1: Add imports**
@@ -296,7 +310,9 @@ Then change the render loop at line 1259 from `sortedListings.map` to `visibleLi
 Add a region filter chip row above the "ALL DISTRIBUTORS" label (around line 1256). Add before the `{bestInStockListing && (...)}` block:
 
 ```tsx
-<View style={{ flexDirection: "row", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+<View
+  style={{ flexDirection: "row", marginBottom: 12, flexWrap: "wrap", gap: 8 }}
+>
   {["all", ...regions].map((region) => (
     <TouchableOpacity
       key={region}
@@ -305,7 +321,8 @@ Add a region filter chip row above the "ALL DISTRIBUTORS" label (around line 125
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 16,
-        backgroundColor: regionFilter === region ? colors.primary : colors.surface,
+        backgroundColor:
+          regionFilter === region ? colors.primary : colors.surface,
         borderWidth: 1,
         borderColor: colors.border,
       }}
@@ -341,6 +358,7 @@ git commit -m "feat: add region filter to mobile product detail"
 ## Task 4: Add Region Filter to Desktop Watchlist
 
 **Files:**
+
 - Modify: `desktop/src/pages/Watchlist.tsx`
 
 - [ ] **Step 1: Add imports**
@@ -415,6 +433,7 @@ git commit -m "feat: add region filter to desktop watchlist"
 ## Task 5: Add Region Filter to Desktop Product Detail
 
 **Files:**
+
 - Modify: `desktop/src/pages/ProductDetail.tsx`
 
 - [ ] **Step 1: Add imports**
@@ -422,7 +441,10 @@ git commit -m "feat: add region filter to desktop watchlist"
 Add to the imports in `desktop/src/pages/ProductDetail.tsx`:
 
 ```typescript
-import { getAllRegions, filterListingsByRegion } from "../../../lib/region-filter";
+import {
+  getAllRegions,
+  filterListingsByRegion,
+} from "../../../lib/region-filter";
 ```
 
 - [ ] **Step 2: Add region state**

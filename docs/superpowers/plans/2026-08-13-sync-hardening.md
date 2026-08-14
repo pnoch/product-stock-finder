@@ -17,6 +17,7 @@
 ### Task 1: Server deviceId guards + router-boundary regression tests
 
 **Files:**
+
 - Modify: `server/routers.ts` (uploadConfig input ~line 128, pull input ~line 165)
 - Test: `tests/notifications-router.test.ts`
 
@@ -25,48 +26,48 @@
 Append to `tests/notifications-router.test.ts` inside the `describe("notifications router", ...)` block (after the existing tests, before the closing `});`):
 
 ```ts
-  it("forwards stock watch lastKnownStatus through uploadConfig", async () => {
-    mockedUpsert.mockResolvedValue(undefined);
-    const caller = appRouter.createCaller(createPublicContext());
-    await caller.notifications.uploadConfig({
-      deviceId: "dev-1",
-      alerts: [],
-      stockWatches: [
-        {
-          id: "w1",
-          productId: "mikrotik-crs804-4ddq-hrm",
-          distributorId: "d1",
-          lastKnownStatus: "back_order",
-        },
-      ],
-      dateReminders: [],
-    });
-    expect(mockedUpsert).toHaveBeenCalledWith("dev-1", {
-      alerts: [],
-      stockWatches: [
-        {
-          id: "w1",
-          productId: "mikrotik-crs804-4ddq-hrm",
-          distributorId: "d1",
-          lastKnownStatus: "back_order",
-        },
-      ],
-      dateReminders: [],
-    });
+it("forwards stock watch lastKnownStatus through uploadConfig", async () => {
+  mockedUpsert.mockResolvedValue(undefined);
+  const caller = appRouter.createCaller(createPublicContext());
+  await caller.notifications.uploadConfig({
+    deviceId: "dev-1",
+    alerts: [],
+    stockWatches: [
+      {
+        id: "w1",
+        productId: "mikrotik-crs804-4ddq-hrm",
+        distributorId: "d1",
+        lastKnownStatus: "back_order",
+      },
+    ],
+    dateReminders: [],
   });
+  expect(mockedUpsert).toHaveBeenCalledWith("dev-1", {
+    alerts: [],
+    stockWatches: [
+      {
+        id: "w1",
+        productId: "mikrotik-crs804-4ddq-hrm",
+        distributorId: "d1",
+        lastKnownStatus: "back_order",
+      },
+    ],
+    dateReminders: [],
+  });
+});
 
-  it("rejects an oversized deviceId for uploadConfig", async () => {
-    const caller = appRouter.createCaller(createPublicContext());
-    await expect(
-      caller.notifications.uploadConfig({
-        deviceId: "x".repeat(129),
-        alerts: [],
-        stockWatches: [],
-        dateReminders: [],
-      }),
-    ).rejects.toThrow();
-    expect(mockedUpsert).not.toHaveBeenCalled();
-  });
+it("rejects an oversized deviceId for uploadConfig", async () => {
+  const caller = appRouter.createCaller(createPublicContext());
+  await expect(
+    caller.notifications.uploadConfig({
+      deviceId: "x".repeat(129),
+      alerts: [],
+      stockWatches: [],
+      dateReminders: [],
+    }),
+  ).rejects.toThrow();
+  expect(mockedUpsert).not.toHaveBeenCalled();
+});
 ```
 
 - [ ] **Step 2: Run tests to see which fail**
@@ -120,6 +121,7 @@ git commit -m "feat(server): guard notification deviceId length and pin lastKnow
 ### Task 2: Sync status persistence + engine tests
 
 **Files:**
+
 - Modify: `lib/types.ts` (SyncMeta, line 130)
 - Modify: `lib/sync.ts` (`doSync`, lines 45-101)
 - Modify: `lib/storage.ts` (`getSyncMeta`, `persistSyncMeta`) — **plan amendment:** these two functions round-trip only `lastSyncedAt`/`items`, so the new fields would be stripped on read and write. They must thread `lastSyncOkAt`/`lastSyncError` through.
@@ -133,81 +135,82 @@ In `tests/sync-engine.test.ts`, inside the `describe("syncNow", ...)` block, mak
 **1a. Extend the existing success test** (the test starting at line 270, "pushes dirty local items with stripped priceHistory and advances lastSyncedAt"). After the existing `expect(meta.lastSyncedAt).toBe(3000);` add:
 
 ```ts
-    expect(meta.lastSyncError).toBeNull();
-    expect(meta.lastSyncOkAt).toBe(3000);
+expect(meta.lastSyncError).toBeNull();
+expect(meta.lastSyncOkAt).toBe(3000);
 ```
 
 **1b. Extend the existing push-failure test** (line 297, "keeps lastSyncedAt unchanged when push fails"). After the existing `expect(meta.lastSyncedAt).toBe(0);` add:
 
 ```ts
-    expect(meta.lastSyncError).toContain("Push failed");
+expect(meta.lastSyncError).toContain("Push failed");
 ```
 
 **1c. Add a pull-failure test.** Append after the push-failure test:
 
 ```ts
-  it("keeps lastSyncedAt unchanged and records an error when pull fails", async () => {
-    const storage = makeStorage();
-    const pull = vi.fn(async () => {
-      throw new Error("network down");
-    });
-    const push = vi.fn();
-    await expect(
-      syncNow({
-        storage,
-        isSignedIn: () => true,
-        pull,
-        push,
-        now: () => 3000,
-      }),
-    ).resolves.toBeUndefined();
-    const meta = await storage.getSyncMeta();
-    expect(meta.lastSyncedAt).toBe(0);
-    expect(meta.lastSyncError).toContain("Pull failed");
-    expect(push).not.toHaveBeenCalled();
+it("keeps lastSyncedAt unchanged and records an error when pull fails", async () => {
+  const storage = makeStorage();
+  const pull = vi.fn(async () => {
+    throw new Error("network down");
   });
-```
-
-**1d. Add a resurrection test.** Append:
-
-```ts
-  it("pushes a re-added item as a live update, not a tombstone", async () => {
-    const storage = makeStorage();
-    await storage.addToWatchlist(makeProduct("p1"));
-    await storage.setItemSyncMeta("watchlist", "p1", 1000);
-    await storage.removeFromWatchlist("p1");
-    await storage.markItemDeleted("watchlist", "p1", 2000);
-    await storage.addToWatchlist(makeProduct("p1"));
-    const pull = vi.fn(async () => ({ lastSyncedAt: 1500, items: [] }));
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1 }));
-    await syncNow({
+  const push = vi.fn();
+  await expect(
+    syncNow({
       storage,
       isSignedIn: () => true,
       pull,
       push,
       now: () => 3000,
-    });
-    expect(push).toHaveBeenCalledTimes(1);
-    const pushed = push.mock.calls[0]![0];
-    expect(pushed).toHaveLength(1);
-    expect(pushed[0]!.collection).toBe("watchlist");
-    expect(pushed[0]!.id).toBe("p1");
-    expect(pushed[0]!.deletedAt).toBeNull();
-    expect(pushed[0]!.data).toBeTruthy();
+    }),
+  ).resolves.toBeUndefined();
+  const meta = await storage.getSyncMeta();
+  expect(meta.lastSyncedAt).toBe(0);
+  expect(meta.lastSyncError).toContain("Pull failed");
+  expect(push).not.toHaveBeenCalled();
+});
+```
+
+**1d. Add a resurrection test.** Append:
+
+```ts
+it("pushes a re-added item as a live update, not a tombstone", async () => {
+  const storage = makeStorage();
+  await storage.addToWatchlist(makeProduct("p1"));
+  await storage.setItemSyncMeta("watchlist", "p1", 1000);
+  await storage.removeFromWatchlist("p1");
+  await storage.markItemDeleted("watchlist", "p1", 2000);
+  await storage.addToWatchlist(makeProduct("p1"));
+  const pull = vi.fn(async () => ({ lastSyncedAt: 1500, items: [] }));
+  const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1 }));
+  await syncNow({
+    storage,
+    isSignedIn: () => true,
+    pull,
+    push,
+    now: () => 3000,
   });
+  expect(push).toHaveBeenCalledTimes(1);
+  const pushed = push.mock.calls[0]![0];
+  expect(pushed).toHaveLength(1);
+  expect(pushed[0]!.collection).toBe("watchlist");
+  expect(pushed[0]!.id).toBe("p1");
+  expect(pushed[0]!.deletedAt).toBeNull();
+  expect(pushed[0]!.data).toBeTruthy();
+});
 ```
 
 **1e. Add an LWW-tie test.** Append:
 
 ```ts
-  it("keeps local when pulled updatedAt equals local meta updatedAt", async () => {
-    const storage = makeStorage();
-    await storage.addToWatchlist(
-      makeProduct("p1", [listing("d1", 100, "in_stock")]),
-    );
-    await storage.setItemSyncMeta("watchlist", "p1", 4000);
-    const serverProduct = makeProduct("p1", [listing("d1", 90, "in_stock")]);
-    const pull = vi.fn(async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+it("keeps local when pulled updatedAt equals local meta updatedAt", async () => {
+  const storage = makeStorage();
+  await storage.addToWatchlist(
+    makeProduct("p1", [listing("d1", 100, "in_stock")]),
+  );
+  await storage.setItemSyncMeta("watchlist", "p1", 4000);
+  const serverProduct = makeProduct("p1", [listing("d1", 90, "in_stock")]);
+  const pull = vi.fn(
+    async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
       lastSyncedAt: 5000,
       items: [
         {
@@ -218,17 +221,18 @@ In `tests/sync-engine.test.ts`, inside the `describe("syncNow", ...)` block, mak
           deletedAt: null,
         },
       ],
-    }));
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
-    await syncNow({
-      storage,
-      isSignedIn: () => true,
-      pull,
-      push,
-      now: () => 6000,
-    });
-    expect((await storage.getWatchlist())[0]!.listings[0]!.price).toBe(100);
+    }),
+  );
+  const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
+  await syncNow({
+    storage,
+    isSignedIn: () => true,
+    pull,
+    push,
+    now: () => 6000,
   });
+  expect((await storage.getWatchlist())[0]!.listings[0]!.price).toBe(100);
+});
 ```
 
 - [ ] **Step 2: Run tests to verify the status ones fail**
@@ -241,12 +245,17 @@ Expected: the two extended tests + the pull-failure test FAIL (no `lastSyncError
 In `tests/storage.test.ts`, inside the existing `describe("sync meta", ...)` block (after the "setItemSyncMeta records an item and saveSyncMeta persists lastSyncedAt" test at line 317), add:
 
 ```ts
-  it("round-trips lastSyncOkAt and lastSyncError through saveSyncMeta", async () => {
-    await saveSyncMeta({ lastSyncedAt: 5000, items: {}, lastSyncError: "Push failed: network", lastSyncOkAt: 4000 });
-    const meta = await getSyncMeta();
-    expect(meta.lastSyncError).toBe("Push failed: network");
-    expect(meta.lastSyncOkAt).toBe(4000);
+it("round-trips lastSyncOkAt and lastSyncError through saveSyncMeta", async () => {
+  await saveSyncMeta({
+    lastSyncedAt: 5000,
+    items: {},
+    lastSyncError: "Push failed: network",
+    lastSyncOkAt: 4000,
   });
+  const meta = await getSyncMeta();
+  expect(meta.lastSyncError).toBe("Push failed: network");
+  expect(meta.lastSyncOkAt).toBe(4000);
+});
 ```
 
 In `lib/types.ts`, change the `SyncMeta` interface (line 130) from:
@@ -254,7 +263,10 @@ In `lib/types.ts`, change the `SyncMeta` interface (line 130) from:
 ```ts
 export interface SyncMeta {
   lastSyncedAt: number;
-  items: Record<string, Record<string, { updatedAt: number; deleted: boolean }>>;
+  items: Record<
+    string,
+    Record<string, { updatedAt: number; deleted: boolean }>
+  >;
 }
 ```
 
@@ -265,7 +277,10 @@ export interface SyncMeta {
   lastSyncedAt: number;
   lastSyncOkAt?: number;
   lastSyncError?: string | null;
-  items: Record<string, Record<string, { updatedAt: number; deleted: boolean }>>;
+  items: Record<
+    string,
+    Record<string, { updatedAt: number; deleted: boolean }>
+  >;
 }
 ```
 
@@ -274,81 +289,81 @@ In `lib/sync.ts`, make three edits:
 **3a. Pull-failure path** (lines 46-51). Change:
 
 ```ts
-  let pulled: { lastSyncedAt: number; items: SyncItem[] };
-  try {
-    pulled = await opts.pull(since);
-  } catch (error) {
-    console.warn("[Sync] Pull failed; skipping sync", error);
-    return;
-  }
+let pulled: { lastSyncedAt: number; items: SyncItem[] };
+try {
+  pulled = await opts.pull(since);
+} catch (error) {
+  console.warn("[Sync] Pull failed; skipping sync", error);
+  return;
+}
 ```
 
 to:
 
 ```ts
-  let pulled: { lastSyncedAt: number; items: SyncItem[] };
-  try {
-    pulled = await opts.pull(since);
-  } catch (error) {
-    console.warn("[Sync] Pull failed; skipping sync", error);
-    await storage.saveSyncMeta({
-      ...(await storage.getSyncMeta()),
-      lastSyncError: `Pull failed: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    });
-    return;
-  }
+let pulled: { lastSyncedAt: number; items: SyncItem[] };
+try {
+  pulled = await opts.pull(since);
+} catch (error) {
+  console.warn("[Sync] Pull failed; skipping sync", error);
+  await storage.saveSyncMeta({
+    ...(await storage.getSyncMeta()),
+    lastSyncError: `Pull failed: ${
+      error instanceof Error ? error.message : String(error)
+    }`,
+  });
+  return;
+}
 ```
 
 **3b. Push-failure path** (lines 77-83). Change:
 
 ```ts
-    try {
-      await opts.push(dirty);
-    } catch (error) {
-      console.warn("[Sync] Push failed; local changes kept", error);
-      return;
-    }
+try {
+  await opts.push(dirty);
+} catch (error) {
+  console.warn("[Sync] Push failed; local changes kept", error);
+  return;
+}
 ```
 
 to:
 
 ```ts
-    try {
-      await opts.push(dirty);
-    } catch (error) {
-      console.warn("[Sync] Push failed; local changes kept", error);
-      await storage.saveSyncMeta({
-        ...(await storage.getSyncMeta()),
-        lastSyncError: `Push failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      });
-      return;
-    }
+try {
+  await opts.push(dirty);
+} catch (error) {
+  console.warn("[Sync] Push failed; local changes kept", error);
+  await storage.saveSyncMeta({
+    ...(await storage.getSyncMeta()),
+    lastSyncError: `Push failed: ${
+      error instanceof Error ? error.message : String(error)
+    }`,
+  });
+  return;
+}
 ```
 
 **3c. Success path** (lines 96-101). Change:
 
 ```ts
-  const nextCursor = Math.max(pulled.lastSyncedAt, nowValue);
-  await storage.saveSyncMeta({
-    ...(await storage.getSyncMeta()),
-    lastSyncedAt: nextCursor,
-  });
+const nextCursor = Math.max(pulled.lastSyncedAt, nowValue);
+await storage.saveSyncMeta({
+  ...(await storage.getSyncMeta()),
+  lastSyncedAt: nextCursor,
+});
 ```
 
 to:
 
 ```ts
-  const nextCursor = Math.max(pulled.lastSyncedAt, nowValue);
-  await storage.saveSyncMeta({
-    ...(await storage.getSyncMeta()),
-    lastSyncedAt: nextCursor,
-    lastSyncError: null,
-    lastSyncOkAt: nowValue,
-  });
+const nextCursor = Math.max(pulled.lastSyncedAt, nowValue);
+await storage.saveSyncMeta({
+  ...(await storage.getSyncMeta()),
+  lastSyncedAt: nextCursor,
+  lastSyncError: null,
+  lastSyncOkAt: nowValue,
+});
 ```
 
 **3d. Thread the new fields through `lib/storage.ts`.**
@@ -356,27 +371,27 @@ to:
 In `getSyncMeta()` (lines 360-373), change the return statement:
 
 ```ts
-      return {
-        lastSyncedAt:
-          typeof parsed.lastSyncedAt === "number" ? parsed.lastSyncedAt : 0,
-        items: parsed.items ?? {},
-      };
+return {
+  lastSyncedAt:
+    typeof parsed.lastSyncedAt === "number" ? parsed.lastSyncedAt : 0,
+  items: parsed.items ?? {},
+};
 ```
 
 to:
 
 ```ts
-      return {
-        lastSyncedAt:
-          typeof parsed.lastSyncedAt === "number" ? parsed.lastSyncedAt : 0,
-        lastSyncOkAt:
-          typeof parsed.lastSyncOkAt === "number" ? parsed.lastSyncOkAt : undefined,
-        lastSyncError:
-          typeof parsed.lastSyncError === "string" || parsed.lastSyncError === null
-            ? parsed.lastSyncError
-            : undefined,
-        items: parsed.items ?? {},
-      };
+return {
+  lastSyncedAt:
+    typeof parsed.lastSyncedAt === "number" ? parsed.lastSyncedAt : 0,
+  lastSyncOkAt:
+    typeof parsed.lastSyncOkAt === "number" ? parsed.lastSyncOkAt : undefined,
+  lastSyncError:
+    typeof parsed.lastSyncError === "string" || parsed.lastSyncError === null
+      ? parsed.lastSyncError
+      : undefined,
+  items: parsed.items ?? {},
+};
 ```
 
 In `persistSyncMeta()` (lines 382-391), change the `JSON.stringify` argument:
@@ -427,6 +442,7 @@ Expected: PASS (including the new sync-meta round-trip test).
 ### Task 3: `formatSyncStatus` helper + unit tests
 
 **Files:**
+
 - Modify: `lib/sync.ts`
 - Create: `tests/sync-status.test.ts`
 
@@ -453,7 +469,11 @@ describe("formatSyncStatus", () => {
 
   it("prompts sign-in even when a prior error exists", () => {
     expect(
-      formatSyncStatus(makeMeta({ lastSyncError: "Pull failed: x" }), false, Date.now()),
+      formatSyncStatus(
+        makeMeta({ lastSyncError: "Pull failed: x" }),
+        false,
+        Date.now(),
+      ),
     ).toEqual({ label: "Sign in to sync across devices", tone: "muted" });
   });
 
@@ -585,6 +605,7 @@ git commit -m "feat(sync): add formatSyncStatus helper"
 ### Task 4: Sync-setup handle + Settings UI
 
 **Files:**
+
 - Modify: `lib/sync.ts` (add `registerSyncSetup`/`getSyncSetup`)
 - Modify: `app/_layout.tsx` (register the setup)
 - Modify: `app/(tabs)/settings.tsx`
@@ -618,29 +639,29 @@ import { setupSync, registerSyncSetup, type SyncSetup } from "@/lib/sync";
 Change the setup effect (lines 188-195) from:
 
 ```tsx
-  useEffect(() => {
-    syncRef.current = setupSync({
-      storage: defaultStorage,
-      isSignedIn: () => isAuthenticatedRef.current,
-      pull: (since) => trpcClient.sync.pull.query({ since }),
-      push: (items) => trpcClient.sync.push.mutate({ items }),
-    });
-  }, [trpcClient]);
+useEffect(() => {
+  syncRef.current = setupSync({
+    storage: defaultStorage,
+    isSignedIn: () => isAuthenticatedRef.current,
+    pull: (since) => trpcClient.sync.pull.query({ since }),
+    push: (items) => trpcClient.sync.push.mutate({ items }),
+  });
+}, [trpcClient]);
 ```
 
 to:
 
 ```tsx
-  useEffect(() => {
-    const setup = setupSync({
-      storage: defaultStorage,
-      isSignedIn: () => isAuthenticatedRef.current,
-      pull: (since) => trpcClient.sync.pull.query({ since }),
-      push: (items) => trpcClient.sync.push.mutate({ items }),
-    });
-    syncRef.current = setup;
-    registerSyncSetup(setup);
-  }, [trpcClient]);
+useEffect(() => {
+  const setup = setupSync({
+    storage: defaultStorage,
+    isSignedIn: () => isAuthenticatedRef.current,
+    pull: (since) => trpcClient.sync.pull.query({ since }),
+    push: (items) => trpcClient.sync.push.mutate({ items }),
+  });
+  syncRef.current = setup;
+  registerSyncSetup(setup);
+}, [trpcClient]);
 ```
 
 - [ ] **Step 3: Update `app/(tabs)/settings.tsx`**
@@ -654,7 +675,12 @@ import { formatSyncStatus, getSyncSetup } from "@/lib/sync";
 Add `SyncMeta` to the `@/lib/types` import (line 26):
 
 ```ts
-import { AppSettings, Product, DistributorListing, SyncMeta } from "@/lib/types";
+import {
+  AppSettings,
+  Product,
+  DistributorListing,
+  SyncMeta,
+} from "@/lib/types";
 ```
 
 **3b. Add `descriptionColor` to `SettingRow`** (lines 32-83). Change the props type:
@@ -678,158 +704,158 @@ function SettingRow({
 Change the description `Text` (lines 74-78) from:
 
 ```tsx
-        {description && (
-          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>
-            {description}
-          </Text>
-        )}
+{
+  description && (
+    <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>
+      {description}
+    </Text>
+  );
+}
 ```
 
 to:
 
 ```tsx
-        {description && (
-          <Text
-            style={{
-              color: descriptionColor ?? colors.muted,
-              fontSize: 12,
-              marginTop: 1,
-            }}
-          >
-            {description}
-          </Text>
-        )}
+{
+  description && (
+    <Text
+      style={{
+        color: descriptionColor ?? colors.muted,
+        fontSize: 12,
+        marginTop: 1,
+      }}
+    >
+      {description}
+    </Text>
+  );
+}
 ```
 
 **3c. Replace the sync status state.** Change line 118:
 
 ```ts
-  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
 ```
 
 to:
 
 ```ts
-  const [syncMeta, setSyncMeta] = useState<SyncMeta | null>(null);
+const [syncMeta, setSyncMeta] = useState<SyncMeta | null>(null);
 ```
 
 **3d. Update the polling effect** (lines 121-137). Change `setLastSyncedAt(meta.lastSyncedAt || null);` to `setSyncMeta(meta);`:
 
 ```ts
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    let cancelled = false;
-    const refresh = async () => {
-      const meta = await getSyncMeta();
-      if (!cancelled) {
-        setSyncMeta(meta);
-        setNow(Date.now());
-      }
-    };
-    refresh();
-    const interval = setInterval(refresh, 30000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [isAuthenticated]);
+useEffect(() => {
+  if (!isAuthenticated) return;
+  let cancelled = false;
+  const refresh = async () => {
+    const meta = await getSyncMeta();
+    if (!cancelled) {
+      setSyncMeta(meta);
+      setNow(Date.now());
+    }
+  };
+  refresh();
+  const interval = setInterval(refresh, 30000);
+  return () => {
+    cancelled = true;
+    clearInterval(interval);
+  };
+}, [isAuthenticated]);
 ```
 
 **3e. Replace the `syncStatusLabel` IIFE** (lines 139-146) with a status object plus a "Sync now" handler:
 
 ```ts
-  const syncStatus = syncMeta
-    ? formatSyncStatus(syncMeta, isAuthenticated, now)
-    : isAuthenticated
-      ? { label: "Not synced yet", tone: "muted" as const }
-      : { label: "Sign in to sync across devices", tone: "muted" as const };
+const syncStatus = syncMeta
+  ? formatSyncStatus(syncMeta, isAuthenticated, now)
+  : isAuthenticated
+    ? { label: "Not synced yet", tone: "muted" as const }
+    : { label: "Sign in to sync across devices", tone: "muted" as const };
 
-  const handleSyncNow = useCallback(async () => {
-    if (Platform.OS !== "web")
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await getSyncSetup()?.syncNow();
-    const meta = await getSyncMeta();
-    setSyncMeta(meta);
-    setNow(Date.now());
-  }, []);
+const handleSyncNow = useCallback(async () => {
+  if (Platform.OS !== "web")
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  await getSyncSetup()?.syncNow();
+  const meta = await getSyncMeta();
+  setSyncMeta(meta);
+  setNow(Date.now());
+}, []);
 ```
 
 **3f. Update the Sync status `SettingRow`** (lines 366-389). Change it from:
 
 ```tsx
-          <SettingRow
-            icon="arrow.triangle.2.circlepath"
-            label="Sync status"
-            description={syncStatusLabel}
-            right={
-              isAuthenticated ? (
-                <TouchableOpacity
-                  onPress={logout}
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: 12,
-                    backgroundColor: colors.error + "22",
-                  }}
-                >
-                  <Text
-                    style={{ color: colors.error, fontSize: 13, fontWeight: "600" }}
-                  >
-                    Sign out
-                  </Text>
-                </TouchableOpacity>
-              ) : undefined
-            }
-          />
+<SettingRow
+  icon="arrow.triangle.2.circlepath"
+  label="Sync status"
+  description={syncStatusLabel}
+  right={
+    isAuthenticated ? (
+      <TouchableOpacity
+        onPress={logout}
+        style={{
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          borderRadius: 12,
+          backgroundColor: colors.error + "22",
+        }}
+      >
+        <Text style={{ color: colors.error, fontSize: 13, fontWeight: "600" }}>
+          Sign out
+        </Text>
+      </TouchableOpacity>
+    ) : undefined
+  }
+/>
 ```
 
 to:
 
 ```tsx
-          <SettingRow
-            icon="arrow.triangle.2.circlepath"
-            label="Sync status"
-            description={syncStatus.label}
-            descriptionColor={
-              syncStatus.tone === "error" ? colors.error : undefined
-            }
-            right={
-              isAuthenticated ? (
-                <View style={{ flexDirection: "row", gap: 8 }}>
-                  <TouchableOpacity
-                    onPress={handleSyncNow}
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 12,
-                      backgroundColor: colors.primary + "22",
-                    }}
-                  >
-                    <Text
-                      style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}
-                    >
-                      Sync now
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={logout}
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 12,
-                      backgroundColor: colors.error + "22",
-                    }}
-                  >
-                    <Text
-                      style={{ color: colors.error, fontSize: 13, fontWeight: "600" }}
-                    >
-                      Sign out
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : undefined
-            }
-          />
+<SettingRow
+  icon="arrow.triangle.2.circlepath"
+  label="Sync status"
+  description={syncStatus.label}
+  descriptionColor={syncStatus.tone === "error" ? colors.error : undefined}
+  right={
+    isAuthenticated ? (
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <TouchableOpacity
+          onPress={handleSyncNow}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 12,
+            backgroundColor: colors.primary + "22",
+          }}
+        >
+          <Text
+            style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}
+          >
+            Sync now
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={logout}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 12,
+            backgroundColor: colors.error + "22",
+          }}
+        >
+          <Text
+            style={{ color: colors.error, fontSize: 13, fontWeight: "600" }}
+          >
+            Sign out
+          </Text>
+        </TouchableOpacity>
+      </View>
+    ) : undefined
+  }
+/>
 ```
 
 - [ ] **Step 4: Typecheck**
@@ -862,6 +888,7 @@ git commit -m "feat(settings): sync status error surface and sync now button"
 ### Task 5: Checkpoint commit
 
 **Files:**
+
 - Modify: `todo.md`
 
 - [ ] **Step 1: Add the Phase 37 section to `todo.md`**

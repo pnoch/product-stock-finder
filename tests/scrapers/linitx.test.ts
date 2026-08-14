@@ -14,7 +14,9 @@ describe("Linitx Parser", () => {
   });
 
   it("should return null for invalid HTML", () => {
-    const result = linitxParser.parsePrice("<html><body>No price here</body></html>");
+    const result = linitxParser.parsePrice(
+      "<html><body>No price here</body></html>",
+    );
     expect(result).toBeNull();
   });
 
@@ -22,7 +24,7 @@ describe("Linitx Parser", () => {
     const html = `<div><span class="product__price">£299.00</span><span class="product__stock">In Stock</span></div>`;
     const result = linitxParser.parsePrice(html);
     expect(result).not.toBeNull();
-    expect(result!.price).toBe(299.00);
+    expect(result!.price).toBe(299.0);
     expect(result!.currency).toBe("GBP");
     expect(result!.stockStatus).toBe("in_stock");
   });

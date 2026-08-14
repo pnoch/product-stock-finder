@@ -37,9 +37,7 @@ export async function getInsight(
   return result;
 }
 
-async function readCached(
-  productId: string,
-): Promise<PriceInsight | null> {
+async function readCached(productId: string): Promise<PriceInsight | null> {
   const db = await getDb();
   if (!db) {
     return memoryInsights.get(productId) ?? null;
@@ -63,7 +61,11 @@ async function writeCached(
   }
   await db
     .insert(priceInsights)
-    .values({ productId, insight: insight.insight, generatedAt: insight.generatedAt })
+    .values({
+      productId,
+      insight: insight.insight,
+      generatedAt: insight.generatedAt,
+    })
     .onDuplicateKeyUpdate({
       set: { insight: insight.insight, generatedAt: insight.generatedAt },
     });
@@ -99,7 +101,8 @@ async function buildInsightContext(
     modelNumber: product.modelNumber,
     listings: listings.map((l) => ({
       distributorId: l.distributorId,
-      distributorName: getDistributorById(l.distributorId)?.name ?? l.distributorId,
+      distributorName:
+        getDistributorById(l.distributorId)?.name ?? l.distributorId,
       region: getDistributorById(l.distributorId)?.region ?? "",
       price: l.price,
       currency: l.currency,

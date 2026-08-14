@@ -15,6 +15,7 @@
 ### Task 1: Storage rate-value validation (`getFxRates`)
 
 **Files:**
+
 - Modify: `lib/storage.ts:361-380` (`getFxRates`)
 - Test: `tests/storage.test.ts` (`describe("fx rates")` block)
 
@@ -23,24 +24,27 @@
 Append two tests to the existing `describe("fx rates")` block at the end of `tests/storage.test.ts`:
 
 ```ts
-  it("drops non-numeric rate values from a tampered payload", async () => {
-    store.set(
-      "fx_rates",
-      JSON.stringify({
-        rates: { EUR: 0.9, GBP: "oops", THB: 34.5 },
-        fetchedAt: 5,
-      }),
-    );
-    expect(await getFxRates()).toEqual({ rates: { EUR: 0.9, THB: 34.5 }, fetchedAt: 5 });
+it("drops non-numeric rate values from a tampered payload", async () => {
+  store.set(
+    "fx_rates",
+    JSON.stringify({
+      rates: { EUR: 0.9, GBP: "oops", THB: 34.5 },
+      fetchedAt: 5,
+    }),
+  );
+  expect(await getFxRates()).toEqual({
+    rates: { EUR: 0.9, THB: 34.5 },
+    fetchedAt: 5,
   });
+});
 
-  it("returns null when a payload has no valid rate values", async () => {
-    store.set(
-      "fx_rates",
-      JSON.stringify({ rates: { EUR: "oops", GBP: "x" }, fetchedAt: 5 }),
-    );
-    expect(await getFxRates()).toBeNull();
-  });
+it("returns null when a payload has no valid rate values", async () => {
+  store.set(
+    "fx_rates",
+    JSON.stringify({ rates: { EUR: "oops", GBP: "x" }, fetchedAt: 5 }),
+  );
+  expect(await getFxRates()).toBeNull();
+});
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -53,19 +57,19 @@ Expected: FAIL — the current `getFxRates` returns the raw string values (`GBP:
 In `lib/storage.ts`, replace the `return { rates: parsed.rates as Record<string, number>, fetchedAt: ... }` statement inside `getFxRates` (lines 373-376) with a value-filtering loop:
 
 ```ts
-      const rates: Record<string, number> = {};
-      for (const [code, value] of Object.entries(
-        parsed.rates as Record<string, unknown>,
-      )) {
-        if (typeof value === "number" && Number.isFinite(value)) {
-          rates[code] = value;
-        }
-      }
-      if (Object.keys(rates).length === 0) return null;
-      return {
-        rates,
-        fetchedAt: typeof parsed.fetchedAt === "number" ? parsed.fetchedAt : 0,
-      };
+const rates: Record<string, number> = {};
+for (const [code, value] of Object.entries(
+  parsed.rates as Record<string, unknown>,
+)) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    rates[code] = value;
+  }
+}
+if (Object.keys(rates).length === 0) return null;
+return {
+  rates,
+  fetchedAt: typeof parsed.fetchedAt === "number" ? parsed.fetchedAt : 0,
+};
 ```
 
 The surrounding guard (`if (!parsed || typeof parsed !== "object" || !parsed.rates) return null;`) stays unchanged.
@@ -90,6 +94,7 @@ git commit -m "fix(storage): filter invalid rate values in getFxRates"
 ### Task 2: Mobile single-flight (`refreshFxRates`)
 
 **Files:**
+
 - Modify: `lib/fx.ts:35-45` (`refreshFxRates`)
 - Test: `tests/fx-client.test.ts` (`describe("fx client")` block)
 
@@ -98,14 +103,14 @@ git commit -m "fix(storage): filter invalid rate values in getFxRates"
 Append to the `describe("fx client")` block at the end of `tests/fx-client.test.ts`:
 
 ```ts
-  it("dedupes concurrent refreshFxRates calls into a single fetch", async () => {
-    const query = mockQuery({ rates: { EUR: 0.88 }, fetchedAt: 2000 });
-    const [a, b] = await Promise.all([refreshFxRates(), refreshFxRates()]);
-    await a;
-    await b;
-    expect(query).toHaveBeenCalledTimes(1);
-    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(88);
-  });
+it("dedupes concurrent refreshFxRates calls into a single fetch", async () => {
+  const query = mockQuery({ rates: { EUR: 0.88 }, fetchedAt: 2000 });
+  const [a, b] = await Promise.all([refreshFxRates(), refreshFxRates()]);
+  await a;
+  await b;
+  expect(query).toHaveBeenCalledTimes(1);
+  expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(88);
+});
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -161,6 +166,7 @@ git commit -m "feat(fx): single-flight refresh in lib/fx.ts"
 ### Task 3: Sync label dedup + setup teardown
 
 **Files:**
+
 - Modify: `lib/sync.ts:418-420` (`formatSyncStatus`) and `lib/sync.ts:435-443` (`registerSyncSetup`/`getSyncSetup`)
 - Modify: `app/_layout.tsx:189-198` (sync setup effect)
 - Test: `tests/sync-status.test.ts`
@@ -188,13 +194,13 @@ import type { SyncMeta, SyncSetup } from "../lib/types";
 **1b.** Update the failed-sync assertion (line 34). Change:
 
 ```ts
-    expect(status.label).toBe("Sync failed — Pull failed: network down");
+expect(status.label).toBe("Sync failed — Pull failed: network down");
 ```
 
 to:
 
 ```ts
-    expect(status.label).toBe("Pull failed: network down");
+expect(status.label).toBe("Pull failed: network down");
 ```
 
 **1c.** Append a new `describe` block at the end of the file:
@@ -230,17 +236,17 @@ Expected: FAIL — line 34 asserts the old prefixed label; `registerSyncSetup` r
 **3a.** In `lib/sync.ts`, change `formatSyncStatus` (lines 418-420) from:
 
 ```ts
-  if (meta.lastSyncError) {
-    return { label: `Sync failed — ${meta.lastSyncError}`, tone: "error" };
-  }
+if (meta.lastSyncError) {
+  return { label: `Sync failed — ${meta.lastSyncError}`, tone: "error" };
+}
 ```
 
 to:
 
 ```ts
-  if (meta.lastSyncError) {
-    return { label: meta.lastSyncError, tone: "error" };
-  }
+if (meta.lastSyncError) {
+  return { label: meta.lastSyncError, tone: "error" };
+}
 ```
 
 **3b.** In `lib/sync.ts`, change `registerSyncSetup` (lines 437-439) from:
@@ -265,35 +271,35 @@ export function registerSyncSetup(setup: SyncSetup | null): () => void {
 **3c.** In `app/_layout.tsx`, change the sync setup effect (lines 189-198) from:
 
 ```tsx
-  useEffect(() => {
-    const setup = setupSync({
-      storage: defaultStorage,
-      isSignedIn: () => isAuthenticatedRef.current,
-      pull: (since) => trpcClient.sync.pull.query({ since }),
-      push: (items) => trpcClient.sync.push.mutate({ items }),
-    });
-    syncRef.current = setup;
-    registerSyncSetup(setup);
-  }, [trpcClient]);
+useEffect(() => {
+  const setup = setupSync({
+    storage: defaultStorage,
+    isSignedIn: () => isAuthenticatedRef.current,
+    pull: (since) => trpcClient.sync.pull.query({ since }),
+    push: (items) => trpcClient.sync.push.mutate({ items }),
+  });
+  syncRef.current = setup;
+  registerSyncSetup(setup);
+}, [trpcClient]);
 ```
 
 to:
 
 ```tsx
-  useEffect(() => {
-    const setup = setupSync({
-      storage: defaultStorage,
-      isSignedIn: () => isAuthenticatedRef.current,
-      pull: (since) => trpcClient.sync.pull.query({ since }),
-      push: (items) => trpcClient.sync.push.mutate({ items }),
-    });
-    syncRef.current = setup;
-    const unregister = registerSyncSetup(setup);
-    return () => {
-      unregister();
-      syncRef.current = null;
-    };
-  }, [trpcClient]);
+useEffect(() => {
+  const setup = setupSync({
+    storage: defaultStorage,
+    isSignedIn: () => isAuthenticatedRef.current,
+    pull: (since) => trpcClient.sync.pull.query({ since }),
+    push: (items) => trpcClient.sync.push.mutate({ items }),
+  });
+  syncRef.current = setup;
+  const unregister = registerSyncSetup(setup);
+  return () => {
+    unregister();
+    syncRef.current = null;
+  };
+}, [trpcClient]);
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
@@ -316,6 +322,7 @@ git commit -m "fix(sync): dedup error label; add registerSyncSetup teardown"
 ### Task 4: Settings UI — sync-now loading state + success tone
 
 **Files:**
+
 - Modify: `app/(tabs)/settings.tsx` (react-native import lines 3-12, state after line 134, `handleSyncNow` lines 160-167, `descriptionColor` lines 395-398, Sync now button lines 402-420)
 
 No unit tests (React Native component screen; verified via `pnpm check` + `pnpm lint`).
@@ -358,7 +365,7 @@ import {
 After line 134 (`const [now, setNow] = useState(() => Date.now());`), add:
 
 ```tsx
-  const [syncing, setSyncing] = useState(false);
+const [syncing, setSyncing] = useState(false);
 ```
 
 - [ ] **Step 3: Wrap `handleSyncNow` in try/finally**
@@ -366,32 +373,32 @@ After line 134 (`const [now, setNow] = useState(() => Date.now());`), add:
 Change lines 160-167 from:
 
 ```tsx
-  const handleSyncNow = useCallback(async () => {
-    if (Platform.OS !== "web")
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await getSyncSetup()?.syncNow();
-    const meta = await getSyncMeta();
-    setSyncMeta(meta);
-    setNow(Date.now());
-  }, []);
+const handleSyncNow = useCallback(async () => {
+  if (Platform.OS !== "web")
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  await getSyncSetup()?.syncNow();
+  const meta = await getSyncMeta();
+  setSyncMeta(meta);
+  setNow(Date.now());
+}, []);
 ```
 
 to:
 
 ```tsx
-  const handleSyncNow = useCallback(async () => {
-    if (Platform.OS !== "web")
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setSyncing(true);
-    try {
-      await getSyncSetup()?.syncNow();
-      const meta = await getSyncMeta();
-      setSyncMeta(meta);
-      setNow(Date.now());
-    } finally {
-      setSyncing(false);
-    }
-  }, []);
+const handleSyncNow = useCallback(async () => {
+  if (Platform.OS !== "web")
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  setSyncing(true);
+  try {
+    await getSyncSetup()?.syncNow();
+    const meta = await getSyncMeta();
+    setSyncMeta(meta);
+    setNow(Date.now());
+  } finally {
+    setSyncing(false);
+  }
+}, []);
 ```
 
 - [ ] **Step 4: Map the success tone to a color**
@@ -421,54 +428,54 @@ to:
 Change the button (lines 402-420) from:
 
 ```tsx
-                  <TouchableOpacity
-                    onPress={handleSyncNow}
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 12,
-                      backgroundColor: colors.primary + "22",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: colors.primary,
-                        fontSize: 13,
-                        fontWeight: "600",
-                      }}
-                    >
-                      Sync now
-                    </Text>
-                  </TouchableOpacity>
+<TouchableOpacity
+  onPress={handleSyncNow}
+  style={{
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: colors.primary + "22",
+  }}
+>
+  <Text
+    style={{
+      color: colors.primary,
+      fontSize: 13,
+      fontWeight: "600",
+    }}
+  >
+    Sync now
+  </Text>
+</TouchableOpacity>
 ```
 
 to:
 
 ```tsx
-                  <TouchableOpacity
-                    onPress={handleSyncNow}
-                    disabled={syncing}
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 12,
-                      backgroundColor: colors.primary + "22",
-                    }}
-                  >
-                    {syncing ? (
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    ) : (
-                      <Text
-                        style={{
-                          color: colors.primary,
-                          fontSize: 13,
-                          fontWeight: "600",
-                        }}
-                      >
-                        Sync now
-                      </Text>
-                    )}
-                  </TouchableOpacity>
+<TouchableOpacity
+  onPress={handleSyncNow}
+  disabled={syncing}
+  style={{
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: colors.primary + "22",
+  }}
+>
+  {syncing ? (
+    <ActivityIndicator size="small" color={colors.primary} />
+  ) : (
+    <Text
+      style={{
+        color: colors.primary,
+        fontSize: 13,
+        fontWeight: "600",
+      }}
+    >
+      Sync now
+    </Text>
+  )}
+</TouchableOpacity>
 ```
 
 - [ ] **Step 6: Typecheck and lint**
@@ -491,6 +498,7 @@ git commit -m "feat(settings): sync-now loading state and success tone"
 ### Task 5: Symmetric pull-guard router test
 
 **Files:**
+
 - Test: `tests/notifications-router.test.ts`
 
 - [ ] **Step 1: Write the failing test**
@@ -498,13 +506,13 @@ git commit -m "feat(settings): sync-now loading state and success tone"
 Append to the `describe("notifications router")` block in `tests/notifications-router.test.ts`, after the existing "rejects an oversized deviceId for uploadConfig" test (line 152):
 
 ```ts
-  it("rejects an oversized deviceId for pull", async () => {
-    const caller = appRouter.createCaller(createPublicContext());
-    await expect(
-      caller.notifications.pull({ deviceId: "x".repeat(129) }),
-    ).rejects.toThrow();
-    expect(mockedPull).not.toHaveBeenCalled();
-  });
+it("rejects an oversized deviceId for pull", async () => {
+  const caller = appRouter.createCaller(createPublicContext());
+  await expect(
+    caller.notifications.pull({ deviceId: "x".repeat(129) }),
+  ).rejects.toThrow();
+  expect(mockedPull).not.toHaveBeenCalled();
+});
 ```
 
 - [ ] **Step 2: Run test to verify it passes**
@@ -527,6 +535,7 @@ git commit -m "test(server): pull rejects oversized deviceId"
 ### Task 6: Checkpoint commit + push
 
 **Files:**
+
 - Modify: `todo.md` (append Phase 39)
 
 - [ ] **Step 1: Run all gates**
@@ -543,9 +552,11 @@ Expected: PASS — full suite green. Baseline was 474 tests / 71 files at v3.17;
 - [ ] **Step 2: Format**
 
 Run:
+
 ```bash
 pnpm exec prettier --write lib/storage.ts lib/fx.ts lib/sync.ts app/_layout.tsx "app/(tabs)/settings.tsx" tests/storage.test.ts tests/fx-client.test.ts tests/sync-status.test.ts tests/notifications-router.test.ts
 ```
+
 Verify no errors. If any file was reformatted, re-run `pnpm check` and `pnpm test` to confirm nothing broke, then include the formatting in the checkpoint commit.
 
 - [ ] **Step 3: Append Phase 39 to `todo.md`**

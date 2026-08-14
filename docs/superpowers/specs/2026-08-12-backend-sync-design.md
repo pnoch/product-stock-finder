@@ -49,14 +49,15 @@ Key design decisions (confirmed with the user):
 
 Add to `drizzle/schema.ts` (replace the `// TODO: Add your tables here` comment). One row per item, composite PK of `(userId, itemId)`, JSON payload column, plus sync metadata. Following the existing `users` table conventions (camelCase columns).
 
-| Table | PK | Payload column | Notes |
-|---|---|---|---|
-| `watchlist_items` | `(userId, productId)` | `data` (JSON: Product minus `priceHistory`) | latest state only |
-| `price_alerts` | `(userId, alertId)` | `data` (JSON: PriceAlert) | |
-| `back_order_reminders` | `(userId, reminderId)` | `data` (JSON: BackOrderReminder) | covers date reminders + stock watches |
-| `app_settings` | `(userId)` | `data` (JSON: AppSettings) | single row per user |
+| Table                  | PK                     | Payload column                              | Notes                                 |
+| ---------------------- | ---------------------- | ------------------------------------------- | ------------------------------------- |
+| `watchlist_items`      | `(userId, productId)`  | `data` (JSON: Product minus `priceHistory`) | latest state only                     |
+| `price_alerts`         | `(userId, alertId)`    | `data` (JSON: PriceAlert)                   |                                       |
+| `back_order_reminders` | `(userId, reminderId)` | `data` (JSON: BackOrderReminder)            | covers date reminders + stock watches |
+| `app_settings`         | `(userId)`             | `data` (JSON: AppSettings)                  | single row per user                   |
 
 Every row also has:
+
 - `updatedAtMs: bigint` — epoch ms set on every upsert (last-write-wins key). Epoch-ms `bigint` (not a `timestamp` column) so client `Date.now()` values compare exactly and we avoid second-precision collisions.
 - `deletedAtMs: bigint` (nullable) — tombstone (epoch ms); when set, row is considered deleted.
 
@@ -174,6 +175,7 @@ Desktop has no deep links. Flow:
 4. Desktop then calls `syncNow()`.
 
 Implementation notes:
+
 - Tauri command in `desktop/src-tauri/src/lib.rs`: spawn a `TcpListener` on `127.0.0.1:3420`, accept one connection, read the HTTP request line, extract query params, respond with a minimal HTML/JS "You can close this window", resolve the command with the token.
 - Frontend `desktop/src/hooks/use-auth.ts` (new): wraps `getSessionToken`/`setSessionToken`/`getUserInfo`/`setUserInfo` (mirrors `lib/_core/auth.ts` but `localStorage`-based; note `getSessionToken` returns `null` on web platform in the shared module — desktop must use its own store, so do **not** reuse `lib/_core/auth.ts` for desktop).
 - `getApiBaseUrl()` from `constants/oauth.ts` is not directly reusable on desktop (imports `expo-linking`/`react-native`). Add a small desktop equivalent (`desktop/src/lib/api-base.ts`) that reads `VITE_API_BASE_URL` and falls back to the same `http://localhost:3000`.
@@ -241,6 +243,7 @@ The only existing test is a `.skip` auth test. Add `tests/sync-router.test.ts` o
 ## Files
 
 **Modified:**
+
 - `drizzle/schema.ts` — 4 new tables + relations
 - `server/routers.ts` — `sync` router
 - `server/db.ts` — add `getWatchlistItems` / `upsertSyncItem` / `getSyncedItems` / `listChangedItems` helpers (or a new `server/sync-db.ts`)
@@ -256,6 +259,7 @@ The only existing test is a `.skip` auth test. Add `tests/sync-router.test.ts` o
 - `desktop/src-tauri/tauri.conf.json` — capabilities (if needed for the command)
 
 **New:**
+
 - `lib/sync.ts` — shared sync engine
 - `desktop/src/lib/trpc.ts` — desktop tRPC client
 - `desktop/src/lib/api-base.ts` — desktop API base URL helper

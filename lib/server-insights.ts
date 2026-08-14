@@ -14,7 +14,9 @@ export async function fetchPriceInsight(
     const client = createTRPCClient();
     const result = await Promise.race([
       client.insights.get.query({ productId }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return result;
   } catch {

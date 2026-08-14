@@ -35,7 +35,12 @@ describe("fetchServerPrice", () => {
     const query = vi.fn().mockResolvedValue({
       snapshot,
       history: [
-        { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+        {
+          date: "2026-08-01T00:00:00.000Z",
+          price: 90,
+          currency: "MYR",
+          stockStatus: "in_stock",
+        },
       ],
     });
     mockClient(query, vi.fn());
@@ -43,7 +48,12 @@ describe("fetchServerPrice", () => {
     expect(result).toEqual({
       snapshot,
       history: [
-        { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
+        {
+          date: "2026-08-01T00:00:00.000Z",
+          price: 90,
+          currency: "MYR",
+          stockStatus: "in_stock",
+        },
       ],
     });
     expect(query).toHaveBeenCalledWith({
@@ -65,12 +75,15 @@ describe("fetchServerPrice", () => {
   });
 
   it("returns null when the query times out", async () => {
-    const query = vi.fn().mockImplementation(
-      () =>
-        new Promise<{ snapshot: PriceSnapshot; history: unknown[] }>((resolve) =>
-          setTimeout(() => resolve({ snapshot, history: [] }), 10_000),
-        ),
-    );
+    const query = vi
+      .fn()
+      .mockImplementation(
+        () =>
+          new Promise<{ snapshot: PriceSnapshot; history: unknown[] }>(
+            (resolve) =>
+              setTimeout(() => resolve({ snapshot, history: [] }), 10_000),
+          ),
+      );
     mockClient(query, vi.fn());
     const result = await fetchServerPrice("server2u-my", "CRS804");
     expect(result).toBeNull();
@@ -84,8 +97,18 @@ describe("uploadServerHistory", () => {
     const mutation = vi.fn().mockResolvedValue({ accepted: 2 });
     mockClient(vi.fn(), mutation);
     const points: PricePoint[] = [
-      { date: "2026-08-01T00:00:00.000Z", price: 90, currency: "MYR", stockStatus: "in_stock" },
-      { date: "2026-08-02T00:00:00.000Z", price: 88, currency: "MYR", stockStatus: "in_stock" },
+      {
+        date: "2026-08-01T00:00:00.000Z",
+        price: 90,
+        currency: "MYR",
+        stockStatus: "in_stock",
+      },
+      {
+        date: "2026-08-02T00:00:00.000Z",
+        price: 88,
+        currency: "MYR",
+        stockStatus: "in_stock",
+      },
     ];
     await uploadServerHistory("server2u-my", "CRS804", points);
     expect(mutation).toHaveBeenCalledWith({

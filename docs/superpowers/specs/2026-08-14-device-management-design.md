@@ -10,6 +10,7 @@ v4.0 introduced device↔user binding for user-scoped notifications: devices bin
 ## Goal
 
 A "Device Management" section in Settings where a signed-in user can:
+
 1. See the current device's binding status (bound to you / bound to another account / not bound).
 2. Bind the current device to their account explicitly.
 3. See every device bound to their account (platform + last seen).
@@ -39,6 +40,7 @@ All three functions follow the established memory/DB parallel pattern: when `get
 - Sort by `lastSeenAt` descending.
 
 **Memory-map access (implementation note):** the maps `memoryConfigs`/`memoryEvents`/`memoryDeliveries` (in `server/notifications.ts`) and `memoryTokens` (in `server/push-notifications.ts`) are module-private. `server/devices.ts` must NOT reach into them directly. Instead, the owning modules export two small helpers each:
+
 - `server/notifications.ts`: `export function listMemoryConfigDevices(): Array<{ deviceId: string; userId: number | null }>` and `export function removeMemoryDevice(deviceId: string): void` (deletes the config entry, the device's delivery set, and any `memoryEvents` entries with that `deviceId`).
 - `server/push-notifications.ts`: `export function listMemoryTokenDevices(): Array<{ deviceId: string; userId: number | null; platform: string | null }>` and `export function removeMemoryToken(deviceId: string): void`.
 
@@ -60,11 +62,11 @@ All three functions follow the established memory/DB parallel pattern: when `get
 
 ### New router: `devices` in `server/routers.ts`
 
-| Procedure | Type | Auth | Input | Output |
-|---|---|---|---|---|
-| `devices.list` | query | `protectedProcedure` | — | `{ devices: DeviceInfo[] }` for `ctx.user.id` |
-| `devices.current` | query | `publicProcedure` | `{ deviceId: string(1-128) }` | `{ deviceId: string; userId: number \| null }` |
-| `devices.unbind` | mutation | `protectedProcedure` | `{ deviceId: string(1-128) }` | `{ unbound: boolean }` |
+| Procedure         | Type     | Auth                 | Input                         | Output                                         |
+| ----------------- | -------- | -------------------- | ----------------------------- | ---------------------------------------------- |
+| `devices.list`    | query    | `protectedProcedure` | —                             | `{ devices: DeviceInfo[] }` for `ctx.user.id`  |
+| `devices.current` | query    | `publicProcedure`    | `{ deviceId: string(1-128) }` | `{ deviceId: string; userId: number \| null }` |
+| `devices.unbind`  | mutation | `protectedProcedure` | `{ deviceId: string(1-128) }` | `{ unbound: boolean }`                         |
 
 - `list` and `unbind` use `protectedProcedure` (from `server/_core/trpc.ts`) — UNAUTHORIZED when not authenticated.
 - `current` stays `publicProcedure` with a self-declared `deviceId` (same trust model as the existing `notifications` procedures — a device querying its own binding).

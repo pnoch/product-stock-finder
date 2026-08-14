@@ -15,6 +15,7 @@
 ### Task 1: `server/devices.ts` module + memory helpers + tests
 
 **Files:**
+
 - Modify: `server/notifications.ts` (add 2 exported helpers)
 - Modify: `server/push-notifications.ts` (add 2 exported helpers)
 - New: `server/devices.ts`
@@ -79,10 +80,7 @@ import {
   notificationEvents,
 } from "../drizzle/schema";
 import { getDb } from "./db";
-import {
-  listMemoryConfigDevices,
-  removeMemoryDevice,
-} from "./notifications";
+import { listMemoryConfigDevices, removeMemoryDevice } from "./notifications";
 import {
   listMemoryTokenDevices,
   removeMemoryToken,
@@ -158,9 +156,7 @@ export async function getDeviceBinding(
       (d) => d.deviceId === deviceId,
     );
     if (config) return { userId: config.userId };
-    const token = listMemoryTokenDevices().find(
-      (d) => d.deviceId === deviceId,
-    );
+    const token = listMemoryTokenDevices().find((d) => d.deviceId === deviceId);
     return { userId: token?.userId ?? null };
   }
   const configRows = await db
@@ -186,9 +182,7 @@ export async function unbindDevice(
     const config = listMemoryConfigDevices().find(
       (d) => d.deviceId === deviceId,
     );
-    const token = listMemoryTokenDevices().find(
-      (d) => d.deviceId === deviceId,
-    );
+    const token = listMemoryTokenDevices().find((d) => d.deviceId === deviceId);
     const boundTo = config?.userId ?? token?.userId ?? null;
     if (boundTo !== userId) return false;
     removeMemoryDevice(deviceId);
@@ -373,7 +367,12 @@ describe("devices (database backend)", () => {
           if (table === devicePushTokens) {
             return {
               where: vi.fn(async () => [
-                { deviceId: "dev-1", userId: 7, platform: "ios", updatedAt: 150 },
+                {
+                  deviceId: "dev-1",
+                  userId: 7,
+                  platform: "ios",
+                  updatedAt: 150,
+                },
               ]),
             };
           }
@@ -385,9 +384,17 @@ describe("devices (database backend)", () => {
     const devices = await listDevicesForUser(7);
     expect(devices).toHaveLength(2);
     const dev1 = devices.find((d) => d.deviceId === "dev-1");
-    expect(dev1).toEqual({ deviceId: "dev-1", platform: "ios", lastSeenAt: 150 });
+    expect(dev1).toEqual({
+      deviceId: "dev-1",
+      platform: "ios",
+      lastSeenAt: 150,
+    });
     const dev2 = devices.find((d) => d.deviceId === "dev-2");
-    expect(dev2).toEqual({ deviceId: "dev-2", platform: null, lastSeenAt: 200 });
+    expect(dev2).toEqual({
+      deviceId: "dev-2",
+      platform: null,
+      lastSeenAt: 200,
+    });
     mockedGetDb.mockResolvedValue(null);
   });
 
@@ -460,6 +467,7 @@ git commit -m "feat(devices): add server device management module"
 ### Task 2: `devices` router
 
 **Files:**
+
 - Modify: `server/routers.ts`
 - New: `tests/devices-router.test.ts`
 
@@ -468,11 +476,7 @@ git commit -m "feat(devices): add server device management module"
 Add import (with the other server imports, near line 18):
 
 ```ts
-import {
-  listDevicesForUser,
-  getDeviceBinding,
-  unbindDevice,
-} from "./devices";
+import { listDevicesForUser, getDeviceBinding, unbindDevice } from "./devices";
 ```
 
 Add the router inside `appRouter` (e.g. after the `notifications` router, before the closing `}),`):
@@ -562,7 +566,9 @@ describe("devices router", () => {
 
   it("throws UNAUTHORIZED for unbind without a user", async () => {
     const caller = appRouter.createCaller(createPublicContext());
-    await expect(caller.devices.unbind({ deviceId: "dev-1" })).rejects.toThrow();
+    await expect(
+      caller.devices.unbind({ deviceId: "dev-1" }),
+    ).rejects.toThrow();
     expect(mockedUnbind).not.toHaveBeenCalled();
   });
 
@@ -593,6 +599,7 @@ git commit -m "feat(devices): add devices router"
 ### Task 3: `lib/devices.ts` client helper
 
 **Files:**
+
 - New: `lib/devices.ts`
 
 - [ ] **Step 1: Create `lib/devices.ts`**
@@ -612,7 +619,9 @@ export async function fetchDevices(): Promise<DeviceInfo[] | null> {
     const client = createTRPCClient();
     const result = await Promise.race([
       client.devices.list.query(),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return result?.devices ?? null;
   } catch {
@@ -629,7 +638,9 @@ export async function fetchCurrentDeviceBinding(): Promise<{
     const client = createTRPCClient();
     const result = await Promise.race([
       client.devices.current.query({ deviceId }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return result ? { userId: result.userId } : null;
   } catch {
@@ -642,7 +653,9 @@ export async function unbindDevice(deviceId: string): Promise<boolean> {
     const client = createTRPCClient();
     const result = await Promise.race([
       client.devices.unbind.mutate({ deviceId }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return result?.unbound ?? false;
   } catch {
@@ -681,6 +694,7 @@ git commit -m "feat(devices): add client device management helper"
 ### Task 4: Settings "Device Management" section
 
 **Files:**
+
 - Modify: `app/(tabs)/settings.tsx`
 - Modify: `components/ui/icon-symbol.tsx`
 
@@ -798,7 +812,9 @@ const handleUnbindDevice = useCallback(
           style: "destructive",
           onPress: async () => {
             if (Platform.OS !== "web")
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Warning,
+              );
             await unbindDevice(device.deviceId);
             await loadDevices();
           },
@@ -815,53 +831,85 @@ const handleUnbindDevice = useCallback(
 Insert **after** the Account card's closing `</View>` (currently line 460) and **before** `<SectionHeader title="Notifications" />` (line 462):
 
 ```tsx
-{isAuthenticated && user ? (
-  <>
-    <SectionHeader title="Device Management" />
-    <View
-      style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        marginHorizontal: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        overflow: "hidden",
-      }}
-    >
-      <SettingRow
-        icon="iphone"
-        label="This device"
-        description={
-          devicesLoading
-            ? "Checking…"
-            : currentBinding === null
-              ? "Couldn't load device status"
-              : currentBinding.userId === user.id
-                ? "Bound to your account"
-                : currentBinding.userId
-                  ? "Bound to another account"
-                  : "Not bound to any account"
-        }
-        descriptionColor={
-          currentBinding?.userId === user.id
-            ? colors.success
-            : currentBinding && currentBinding.userId !== null
-              ? colors.warning
-              : undefined
-        }
-        right={
-          bindingAction ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : currentBinding && currentBinding.userId !== user.id ? (
-            <TouchableOpacity
-              onPress={handleBindCurrentDevice}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 12,
-                backgroundColor: colors.primary + "22",
-              }}
-            >
+{
+  isAuthenticated && user ? (
+    <>
+      <SectionHeader title="Device Management" />
+      <View
+        style={{
+          backgroundColor: colors.surface,
+          borderRadius: 16,
+          marginHorizontal: 16,
+          borderWidth: 1,
+          borderColor: colors.border,
+          overflow: "hidden",
+        }}
+      >
+        <SettingRow
+          icon="iphone"
+          label="This device"
+          description={
+            devicesLoading
+              ? "Checking…"
+              : currentBinding === null
+                ? "Couldn't load device status"
+                : currentBinding.userId === user.id
+                  ? "Bound to your account"
+                  : currentBinding.userId
+                    ? "Bound to another account"
+                    : "Not bound to any account"
+          }
+          descriptionColor={
+            currentBinding?.userId === user.id
+              ? colors.success
+              : currentBinding && currentBinding.userId !== null
+                ? colors.warning
+                : undefined
+          }
+          right={
+            bindingAction ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : currentBinding && currentBinding.userId !== user.id ? (
+              <TouchableOpacity
+                onPress={handleBindCurrentDevice}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 12,
+                  backgroundColor: colors.primary + "22",
+                }}
+              >
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontSize: 13,
+                    fontWeight: "600",
+                  }}
+                >
+                  Bind to my account
+                </Text>
+              </TouchableOpacity>
+            ) : undefined
+          }
+        />
+        {devicesLoading ? (
+          <View style={{ alignItems: "center", paddingVertical: 20 }}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : devices === null ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingVertical: 14,
+              paddingHorizontal: 16,
+            }}
+          >
+            <Text style={{ color: colors.muted, fontSize: 12 }}>
+              Couldn't load devices
+            </Text>
+            <TouchableOpacity onPress={loadDevices}>
               <Text
                 style={{
                   color: colors.primary,
@@ -869,129 +917,103 @@ Insert **after** the Account card's closing `</View>` (currently line 460) and *
                   fontWeight: "600",
                 }}
               >
-                Bind to my account
+                Retry
               </Text>
             </TouchableOpacity>
-          ) : undefined
-        }
-      />
-      {devicesLoading ? (
-        <View style={{ alignItems: "center", paddingVertical: 20 }}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      ) : devices === null ? (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            paddingVertical: 14,
-            paddingHorizontal: 16,
-          }}
-        >
-          <Text style={{ color: colors.muted, fontSize: 12 }}>
-            Couldn't load devices
-          </Text>
-          <TouchableOpacity onPress={loadDevices}>
-            <Text
-              style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}
-            >
-              Retry
+          </View>
+        ) : devices.length === 0 ? (
+          <View style={{ paddingVertical: 14, paddingHorizontal: 16 }}>
+            <Text style={{ color: colors.muted, fontSize: 12 }}>
+              No other devices bound to your account
             </Text>
-          </TouchableOpacity>
-        </View>
-      ) : devices.length === 0 ? (
-        <View style={{ paddingVertical: 14, paddingHorizontal: 16 }}>
-          <Text style={{ color: colors.muted, fontSize: 12 }}>
-            No other devices bound to your account
-          </Text>
-        </View>
-      ) : (
-        devices.map((device, idx) => (
-          <View
-            key={device.deviceId}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              paddingVertical: 12,
-              paddingHorizontal: 16,
-              borderBottomWidth: idx < devices.length - 1 ? 1 : 0,
-              borderBottomColor: colors.border,
-            }}
-          >
-            <View style={{ flex: 1 }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <Text
+          </View>
+        ) : (
+          devices.map((device, idx) => (
+            <View
+              key={device.deviceId}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderBottomWidth: idx < devices.length - 1 ? 1 : 0,
+                borderBottomColor: colors.border,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <View
                   style={{
-                    color: colors.foreground,
-                    fontWeight: "500",
-                    fontSize: 15,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
                   }}
                 >
-                  {device.deviceId.slice(0, 12)}
-                  {device.deviceId.length > 12 ? "…" : ""}
-                </Text>
-                {device.deviceId === currentDeviceId && (
-                  <View
+                  <Text
                     style={{
-                      paddingHorizontal: 6,
-                      paddingVertical: 2,
-                      borderRadius: 8,
-                      backgroundColor: colors.primary + "22",
+                      color: colors.foreground,
+                      fontWeight: "500",
+                      fontSize: 15,
                     }}
                   >
-                    <Text
+                    {device.deviceId.slice(0, 12)}
+                    {device.deviceId.length > 12 ? "…" : ""}
+                  </Text>
+                  {device.deviceId === currentDeviceId && (
+                    <View
                       style={{
-                        color: colors.primary,
-                        fontSize: 10,
-                        fontWeight: "600",
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        borderRadius: 8,
+                        backgroundColor: colors.primary + "22",
                       }}
                     >
-                      This device
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <Text
-                style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}
-              >
-                {platformLabel(device.platform)} ·{" "}
-                {formatLastSeen(device.lastSeenAt, now)}
-              </Text>
-            </View>
-            {device.deviceId !== currentDeviceId && (
-              <TouchableOpacity
-                onPress={() => handleUnbindDevice(device)}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 12,
-                  backgroundColor: colors.error + "22",
-                }}
-              >
+                      <Text
+                        style={{
+                          color: colors.primary,
+                          fontSize: 10,
+                          fontWeight: "600",
+                        }}
+                      >
+                        This device
+                      </Text>
+                    </View>
+                  )}
+                </View>
                 <Text
+                  style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}
+                >
+                  {platformLabel(device.platform)} ·{" "}
+                  {formatLastSeen(device.lastSeenAt, now)}
+                </Text>
+              </View>
+              {device.deviceId !== currentDeviceId && (
+                <TouchableOpacity
+                  onPress={() => handleUnbindDevice(device)}
                   style={{
-                    color: colors.error,
-                    fontSize: 13,
-                    fontWeight: "600",
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 12,
+                    backgroundColor: colors.error + "22",
                   }}
                 >
-                  Unbind
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        ))
-      )}
-    </View>
-  </>
-) : null}
+                  <Text
+                    style={{
+                      color: colors.error,
+                      fontSize: 13,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Unbind
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ))
+        )}
+      </View>
+    </>
+  ) : null;
+}
 ```
 
 - [ ] **Step 6: Typecheck + lint**
@@ -1011,6 +1033,7 @@ git commit -m "feat(devices): add Device Management settings section"
 ### Task 5: Checkpoint
 
 **Files:**
+
 - Modify: `todo.md`
 
 - [ ] **Step 1: Format**

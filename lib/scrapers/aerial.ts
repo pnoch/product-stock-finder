@@ -10,7 +10,9 @@ function parseHtml(html: string, url: string): ScrapeResult | null {
   const price = parsePriceFromText(priceText);
   if (!price) return null;
 
-  const stockText = $(".stock, .availability, .product-stock, .stock-status").first().text();
+  const stockText = $(".stock, .availability, .product-stock, .stock-status")
+    .first()
+    .text();
   const stockStatus = inferStockStatus(stockText);
 
   return {

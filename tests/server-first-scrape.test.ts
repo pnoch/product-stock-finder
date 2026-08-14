@@ -8,9 +8,11 @@ const state = vi.hoisted(() => ({
 
 vi.mock("../lib/storage", () => ({
   getWatchlist: vi.fn(async () => state.watchlistStore),
-  updateProductListings: vi.fn(async (productId: string, listings: DistributorListing[]) => {
-    state.updatedListings.push(listings);
-  }),
+  updateProductListings: vi.fn(
+    async (productId: string, listings: DistributorListing[]) => {
+      state.updatedListings.push(listings);
+    },
+  ),
   getSettings: vi.fn(async () => ({
     theme: "auto",
     displayCurrency: "USD",
@@ -45,7 +47,9 @@ vi.mock("../lib/scrapers/health", () => ({
 }));
 
 vi.mock("expo-task-manager", () => ({ defineTask: vi.fn() }));
-vi.mock("expo-background-task", () => ({ BackgroundTaskResult: { Success: "success" } }));
+vi.mock("expo-background-task", () => ({
+  BackgroundTaskResult: { Success: "success" },
+}));
 vi.mock("react-native", () => ({ Platform: { OS: "ios" } }));
 vi.mock("expo-notifications", () => ({
   setNotificationHandler: vi.fn(),
@@ -108,8 +112,18 @@ describe("server-first scraping", () => {
         fetchedAt: 1000,
       },
       history: [
-        { date: "2026-07-01T00:00:00.000Z", price: 95, currency: "MYR", stockStatus: "in_stock" },
-        { date: "2026-08-01T00:00:00.000Z", price: 88.5, currency: "MYR", stockStatus: "in_stock" },
+        {
+          date: "2026-07-01T00:00:00.000Z",
+          price: 95,
+          currency: "MYR",
+          stockStatus: "in_stock",
+        },
+        {
+          date: "2026-08-01T00:00:00.000Z",
+          price: 88.5,
+          currency: "MYR",
+          stockStatus: "in_stock",
+        },
       ],
     });
 
@@ -168,8 +182,18 @@ describe("server-first scraping", () => {
 
   it("uploads local history when the server history is shorter", async () => {
     const localHistory: PricePoint[] = [
-      { date: "2026-06-01T00:00:00.000Z", price: 100, currency: "USD", stockStatus: "unknown" },
-      { date: "2026-07-01T00:00:00.000Z", price: 98, currency: "USD", stockStatus: "unknown" },
+      {
+        date: "2026-06-01T00:00:00.000Z",
+        price: 100,
+        currency: "USD",
+        stockStatus: "unknown",
+      },
+      {
+        date: "2026-07-01T00:00:00.000Z",
+        price: 98,
+        currency: "USD",
+        stockStatus: "unknown",
+      },
     ];
     state.watchlistStore = [
       { ...product, listings: [{ ...listing, priceHistory: localHistory }] },

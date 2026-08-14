@@ -1,0 +1,11 @@
+# HTML fixtures are real scraped pages with intentionally malformed markup that prettier cannot parse.
+tests/fixtures/scrapers/100mega-cz.html
+tests/fixtures/scrapers/balticnetworks-us.html
+tests/fixtures/scrapers/duxtel-au.html
+tests/fixtures/scrapers/flytec-us.html
+tests/fixtures/scrapers/interprojekt-pl.html
+tests/fixtures/scrapers/linitx-uk.html
+tests/fixtures/scrapers/mbsiwav-ca.html
+tests/fixtures/scrapers/miro-za.html
+tests/fixtures/scrapers/neobits-us.html
+tests/fixtures/scrapers/winncom-us.html

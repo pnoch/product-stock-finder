@@ -12,25 +12,26 @@
 
 ## File Structure
 
-| File | Responsibility |
-| --- | --- |
-| `drizzle/schema.ts` | Add `price_insights` table + row types |
-| `drizzle/0004_*.sql` | Generated migration |
-| `server/price-insights.ts` | Insight generation + TTL cache (DB + memory fallback) |
-| `server/routers.ts` | Add `insights.get` public procedure |
-| `lib/server-insights.ts` | Mobile client helper `fetchPriceInsight` |
-| `app/product/[id].tsx` | Display insight card |
-| `desktop/src-tauri/src/lib.rs` | `fetch_price_insight` command |
-| `desktop/src/pages/ProductDetail.tsx` | Display insight card |
-| `tests/price-insights.test.ts` | Insight generation + cache tests |
-| `tests/insights-router.test.ts` | Router tests |
-| `tests/server-insights.test.ts` | Mobile helper tests |
+| File                                  | Responsibility                                        |
+| ------------------------------------- | ----------------------------------------------------- |
+| `drizzle/schema.ts`                   | Add `price_insights` table + row types                |
+| `drizzle/0004_*.sql`                  | Generated migration                                   |
+| `server/price-insights.ts`            | Insight generation + TTL cache (DB + memory fallback) |
+| `server/routers.ts`                   | Add `insights.get` public procedure                   |
+| `lib/server-insights.ts`              | Mobile client helper `fetchPriceInsight`              |
+| `app/product/[id].tsx`                | Display insight card                                  |
+| `desktop/src-tauri/src/lib.rs`        | `fetch_price_insight` command                         |
+| `desktop/src/pages/ProductDetail.tsx` | Display insight card                                  |
+| `tests/price-insights.test.ts`        | Insight generation + cache tests                      |
+| `tests/insights-router.test.ts`       | Router tests                                          |
+| `tests/server-insights.test.ts`       | Mobile helper tests                                   |
 
 ---
 
 ### Task 1: `price_insights` Drizzle table + migration
 
 **Files:**
+
 - Modify: `drizzle/schema.ts`
 - Test: `drizzle/0004_*.sql` (generated)
 
@@ -59,7 +60,7 @@ Run:
 DATABASE_URL="mysql://localhost:3306/product_stock_finder" pnpm exec drizzle-kit generate
 ```
 
-Expected: writes `drizzle/0004_*.sql` containing `CREATE TABLE \`price_insights\`` with `productId` as primary key, plus updated `drizzle/meta/_journal.json` and `drizzle/meta/0004_snapshot.json`. (This command only reads `drizzle/schema.ts` and writes SQL — it does not connect to a live DB.)
+Expected: writes `drizzle/0004_*.sql` containing `CREATE TABLE \`price_insights\``with`productId`as primary key, plus updated`drizzle/meta/\_journal.json`and`drizzle/meta/0004_snapshot.json`. (This command only reads `drizzle/schema.ts` and writes SQL — it does not connect to a live DB.)
 
 - [ ] **Step 3: Verify types**
 
@@ -78,6 +79,7 @@ git commit -m "feat(sync): add price_insights table"
 ### Task 2: Insight generation + cache — `server/price-insights.ts`
 
 **Files:**
+
 - Create: `server/price-insights.ts`
 - Test: `tests/price-insights.test.ts`
 
@@ -133,8 +135,18 @@ const snapshot: PriceSnapshot = {
 };
 
 const history: PricePoint[] = [
-  { date: "2026-07-01T00:00:00.000Z", price: 95, currency: "MYR", stockStatus: "in_stock" },
-  { date: "2026-08-01T00:00:00.000Z", price: 88.5, currency: "MYR", stockStatus: "in_stock" },
+  {
+    date: "2026-07-01T00:00:00.000Z",
+    price: 95,
+    currency: "MYR",
+    stockStatus: "in_stock",
+  },
+  {
+    date: "2026-08-01T00:00:00.000Z",
+    price: 88.5,
+    currency: "MYR",
+    stockStatus: "in_stock",
+  },
 ];
 
 describe("getInsight", () => {
@@ -157,7 +169,10 @@ describe("getInsight", () => {
       choices: [
         {
           index: 0,
-          message: { role: "assistant", content: "Price is down 7% over 30 days." },
+          message: {
+            role: "assistant",
+            content: "Price is down 7% over 30 days.",
+          },
           finish_reason: "stop",
         },
       ],
@@ -241,9 +256,7 @@ export async function getInsight(
   return result;
 }
 
-async function readCached(
-  productId: string,
-): Promise<PriceInsight | null> {
+async function readCached(productId: string): Promise<PriceInsight | null> {
   const db = await getDb();
   if (!db) {
     return memoryInsights.get(productId) ?? null;
@@ -267,7 +280,11 @@ async function writeCached(
   }
   await db
     .insert(priceInsights)
-    .values({ productId, insight: insight.insight, generatedAt: insight.generatedAt })
+    .values({
+      productId,
+      insight: insight.insight,
+      generatedAt: insight.generatedAt,
+    })
     .onDuplicateKeyUpdate({
       set: { insight: insight.insight, generatedAt: insight.generatedAt },
     });
@@ -303,7 +320,8 @@ async function buildInsightContext(
     modelNumber: product.modelNumber,
     listings: listings.map((l) => ({
       distributorId: l.distributorId,
-      distributorName: getDistributorById(l.distributorId)?.name ?? l.distributorId,
+      distributorName:
+        getDistributorById(l.distributorId)?.name ?? l.distributorId,
       region: getDistributorById(l.distributorId)?.region ?? "",
       price: l.price,
       currency: l.currency,
@@ -376,6 +394,7 @@ git commit -m "feat(server): add LLM price insight generation with TTL cache"
 ### Task 3: Router — `insights.get`
 
 **Files:**
+
 - Modify: `server/routers.ts`
 - Test: `tests/insights-router.test.ts`
 
@@ -419,7 +438,9 @@ describe("insights router", () => {
       generatedAt: 1000,
     });
     const caller = appRouter.createCaller(createPublicContext());
-    const result = await caller.insights.get({ productId: "mikrotik-crs804-4ddq-hrm" });
+    const result = await caller.insights.get({
+      productId: "mikrotik-crs804-4ddq-hrm",
+    });
     expect(result).toEqual({
       insight: "Price is down 7% over 30 days.",
       generatedAt: 1000,
@@ -437,9 +458,10 @@ describe("insights router", () => {
   it("works without authentication (public procedure)", async () => {
     mockedGetInsight.mockResolvedValue({ insight: "x", generatedAt: 1 });
     const caller = appRouter.createCaller(createPublicContext());
-    await expect(
-      caller.insights.get({ productId: "a" }),
-    ).resolves.toEqual({ insight: "x", generatedAt: 1 });
+    await expect(caller.insights.get({ productId: "a" })).resolves.toEqual({
+      insight: "x",
+      generatedAt: 1,
+    });
   });
 });
 ```
@@ -494,6 +516,7 @@ git commit -m "feat(server): add public insights.get tRPC endpoint"
 ### Task 4: Mobile client helper — `lib/server-insights.ts`
 
 **Files:**
+
 - Create: `lib/server-insights.ts`
 - Test: `tests/server-insights.test.ts`
 
@@ -534,7 +557,9 @@ describe("fetchPriceInsight", () => {
       insight: "Price is down 7% over 30 days.",
       generatedAt: 1000,
     });
-    expect(query).toHaveBeenCalledWith({ productId: "mikrotik-crs804-4ddq-hrm" });
+    expect(query).toHaveBeenCalledWith({
+      productId: "mikrotik-crs804-4ddq-hrm",
+    });
   });
 
   it("returns null when the server returns null", async () => {
@@ -550,12 +575,14 @@ describe("fetchPriceInsight", () => {
   });
 
   it("returns null when the query times out", async () => {
-    const query = vi.fn().mockImplementation(
-      () =>
-        new Promise<{ insight: string; generatedAt: number }>((resolve) =>
-          setTimeout(() => resolve({ insight: "x", generatedAt: 1 }), 10_000),
-        ),
-    );
+    const query = vi
+      .fn()
+      .mockImplementation(
+        () =>
+          new Promise<{ insight: string; generatedAt: number }>((resolve) =>
+            setTimeout(() => resolve({ insight: "x", generatedAt: 1 }), 10_000),
+          ),
+      );
     mockClientQuery(query);
     expect(await fetchPriceInsight("x")).toBeNull();
   });
@@ -588,7 +615,9 @@ export async function fetchPriceInsight(
     const client = createTRPCClient();
     const result = await Promise.race([
       client.insights.get.query({ productId }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return result;
   } catch {
@@ -619,6 +648,7 @@ git commit -m "feat(mobile): add fetchPriceInsight client helper"
 ### Task 5: Mobile product detail — display insight card
 
 **Files:**
+
 - Modify: `app/product/[id].tsx`
 
 - [ ] **Step 1: Add the import**
@@ -634,15 +664,15 @@ import { fetchPriceInsight } from "@/lib/server-insights";
 In the component, add state (near the other `useState` declarations, e.g. after `const [listings, setListings] = useState<DistributorListing[]>([]);` around line 391):
 
 ```ts
-  const [insight, setInsight] = useState<string | null>(null);
+const [insight, setInsight] = useState<string | null>(null);
 ```
 
 In the `loadData` callback (around line 422), after the existing listing-loading logic and before `setLoading(false)`, add a fire-and-forget insight fetch:
 
 ```ts
-      void fetchPriceInsight(id).then((res) => {
-        if (res) setInsight(res.insight);
-      });
+void fetchPriceInsight(id).then((res) => {
+  if (res) setInsight(res.insight);
+});
 ```
 
 > **Note:** place this inside `loadData` so it runs once per product load. The `.then` swallows null (card stays hidden) and errors are already handled inside `fetchPriceInsight`.
@@ -652,14 +682,16 @@ In the `loadData` callback (around line 422), after the existing listing-loading
 Find a suitable place in the JSX to render the card (e.g. near the best-distributor card). Add:
 
 ```tsx
-      {insight && (
-        <View className="mt-3 rounded-2xl bg-surface p-4">
-          <Text className="text-xs font-semibold uppercase tracking-wide text-muted">
-            AI insight
-          </Text>
-          <Text className="mt-1 text-sm text-foreground">{insight}</Text>
-        </View>
-      )}
+{
+  insight && (
+    <View className="mt-3 rounded-2xl bg-surface p-4">
+      <Text className="text-xs font-semibold uppercase tracking-wide text-muted">
+        AI insight
+      </Text>
+      <Text className="mt-1 text-sm text-foreground">{insight}</Text>
+    </View>
+  );
+}
 ```
 
 > **Note:** match the existing styling conventions in the file (use `useColors()` theme tokens via inline styles if the file uses them, or NativeWind classes as shown). Place the card where it reads naturally on the product screen. If the file uses inline `style={{}}` for theme colors, mirror that instead of hardcoding classes.
@@ -681,6 +713,7 @@ git commit -m "feat(mobile): show AI price insight on product detail"
 ### Task 6: Desktop — `fetch_price_insight` command + display
 
 **Files:**
+
 - Modify: `desktop/src-tauri/src/lib.rs`
 - Modify: `desktop/src/pages/ProductDetail.tsx`
 
@@ -747,28 +780,30 @@ import { getApiBaseUrl } from "../lib/api-base";
 And inside the effect (after the product is loaded), add:
 
 ```tsx
-      const base = getApiBaseUrl();
-      if (base) {
-        const { invoke } = await import("@tauri-apps/api/core");
-        invoke("fetch_price_insight", { apiBaseUrl: base, productId: id })
-          .then((res: any) => {
-            if (res && res.insight) setInsight(res.insight);
-          })
-          .catch(() => {});
-      }
+const base = getApiBaseUrl();
+if (base) {
+  const { invoke } = await import("@tauri-apps/api/core");
+  invoke("fetch_price_insight", { apiBaseUrl: base, productId: id })
+    .then((res: any) => {
+      if (res && res.insight) setInsight(res.insight);
+    })
+    .catch(() => {});
+}
 ```
 
 Render the card in the JSX (near the best-listing card):
 
 ```tsx
-      {insight && (
-        <div className="mt-3 rounded-2xl bg-surface p-4 dark:bg-surface-dark">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted dark:text-muted-dark">
-            AI insight
-          </p>
-          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{insight}</p>
-        </div>
-      )}
+{
+  insight && (
+    <div className="mt-3 rounded-2xl bg-surface p-4 dark:bg-surface-dark">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted dark:text-muted-dark">
+        AI insight
+      </p>
+      <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{insight}</p>
+    </div>
+  );
+}
 ```
 
 > **Note:** match the existing styling conventions in `ProductDetail.tsx` (it uses Tailwind classes with `dark:` variants). If the file uses a different card pattern, mirror it.
@@ -798,6 +833,7 @@ git commit -m "feat(desktop): show AI price insight on product detail"
 ### Task 7: Final verification + checkpoint commit
 
 **Files:**
+
 - Whole repo
 - Modify: `todo.md`
 

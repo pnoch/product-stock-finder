@@ -44,27 +44,29 @@ export default function RestockWatchesScreen() {
     }, [loadWatches]),
   );
 
-  const handleRemove = useCallback(
-    async (id: string) => {
-      if (Platform.OS !== "web")
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      try {
-        await removeStockWatch(id);
-        setWatches((prev) => prev.filter((w) => w.id !== id));
-      } catch {
-        // Ignore remove failures — the watch stays in the list
-      }
-    },
-    [],
-  );
+  const handleRemove = useCallback(async (id: string) => {
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await removeStockWatch(id);
+      setWatches((prev) => prev.filter((w) => w.id !== id));
+    } catch {
+      // Ignore remove failures — the watch stays in the list
+    }
+  }, []);
 
   return (
     <ScreenContainer>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ marginRight: 12 }}
+        >
           <Text style={{ color: colors.primary, fontSize: 16 }}>‹ Back</Text>
         </TouchableOpacity>
-        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}>
+        <Text
+          style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}
+        >
           Restock Watches
         </Text>
       </View>
@@ -72,10 +74,19 @@ export default function RestockWatchesScreen() {
       {loading ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+        >
           {watches.length === 0 ? (
-            <Text style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}>
-              No restock watches. Open a product and tap {"\u201C"}Watch for Restock{"\u201D"} to add one.
+            <Text
+              style={{
+                color: colors.muted,
+                textAlign: "center",
+                marginTop: 40,
+              }}
+            >
+              No restock watches. Open a product and tap {"\u201C"}Watch for
+              Restock{"\u201D"} to add one.
             </Text>
           ) : (
             watches.map((watch) => {
@@ -92,21 +103,37 @@ export default function RestockWatchesScreen() {
                   }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.foreground, fontWeight: "500", fontSize: 14 }}>
+                    <Text
+                      style={{
+                        color: colors.foreground,
+                        fontWeight: "500",
+                        fontSize: 14,
+                      }}
+                    >
                       {watch.productName}
                     </Text>
                     <Text style={{ color: colors.muted, fontSize: 12 }}>
-                      {distrib?.countryFlag} {distrib?.name ?? watch.distributorName}
+                      {distrib?.countryFlag}{" "}
+                      {distrib?.name ?? watch.distributorName}
                     </Text>
-                    <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
-                      {STATUS_LABELS[watch.lastKnownStatus ?? "unknown"] ?? "Unknown"}
+                    <Text
+                      style={{
+                        color: colors.muted,
+                        fontSize: 11,
+                        marginTop: 2,
+                      }}
+                    >
+                      {STATUS_LABELS[watch.lastKnownStatus ?? "unknown"] ??
+                        "Unknown"}
                     </Text>
                   </View>
                   <TouchableOpacity
                     onPress={() => handleRemove(watch.id)}
                     style={{ padding: 8 }}
                   >
-                    <Text style={{ color: colors.error, fontSize: 13 }}>Remove</Text>
+                    <Text style={{ color: colors.error, fontSize: 13 }}>
+                      Remove
+                    </Text>
                   </TouchableOpacity>
                 </View>
               );

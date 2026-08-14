@@ -29,6 +29,7 @@ Replace the frozen rates with live rates sourced from a server-side FX provider,
 ```
 
 Two independent processes each run the shared `lib/currency.ts` module and each apply live rates in-process:
+
 - **Server process:** `server/fx.ts` calls `setExchangeRates()` on every successful provider fetch, so server-side conversions (`server/notifications.ts` alert evaluation) use live rates automatically (same module instance).
 - **Mobile process:** `lib/fx.ts` applies stored/last-known rates at launch and refreshed rates after each fetch.
 
@@ -41,7 +42,7 @@ Add `FxRatesResult` to `lib/types.ts` (the shared cross-platform types module, a
 ```ts
 export interface FxRatesResult {
   rates: Record<string, number>; // effective rates (static ∪ live)
-  fetchedAt: number | null;      // null when never successfully fetched
+  fetchedAt: number | null; // null when never successfully fetched
 }
 ```
 
@@ -102,9 +103,9 @@ Mobile-side FX helper, mirroring `lib/server-prices.ts`:
 
 ```ts
 export async function fetchFxRates(): Promise<FxRatesResult | null>; // fx.get via createTRPCClient + 4s timeout, null on failure
-export async function loadFxRates(): Promise<void>;                  // read stored fx_rates → setExchangeRates (last-known)
-export async function refreshFxRates(): Promise<void>;               // fetch → saveFxRates → setExchangeRates; swallows errors
-export async function maybeRefreshFxRates(): Promise<void>;          // only refresh if stored rates are missing or stale (> 1h)
+export async function loadFxRates(): Promise<void>; // read stored fx_rates → setExchangeRates (last-known)
+export async function refreshFxRates(): Promise<void>; // fetch → saveFxRates → setExchangeRates; swallows errors
+export async function maybeRefreshFxRates(): Promise<void>; // only refresh if stored rates are missing or stale (> 1h)
 ```
 
 - `maybeRefreshFxRates` returns early when stored rates are fresh, avoiding a network round-trip on every launch.

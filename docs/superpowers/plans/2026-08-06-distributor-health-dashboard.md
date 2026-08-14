@@ -13,6 +13,7 @@
 ## File Structure
 
 ### New Files
+
 - `lib/scrapers/health.ts` — shared health module (types, classifyResult, testAllDistributors, createHealthService)
 - `app/health.tsx` — mobile screen
 - `desktop/src/pages/Health.tsx` — desktop screen
@@ -20,6 +21,7 @@
 - `desktop/tests/health.test.tsx` — component tests for desktop screen
 
 ### Modified Files
+
 - `lib/background-price-check.ts` — update health status during scrape
 - `desktop/src/App.tsx` — add Health route
 - `desktop/src/components/` — shared UI components if needed
@@ -29,6 +31,7 @@
 ## Task 1: Create Shared Health Module
 
 **Files:**
+
 - Create: `lib/scrapers/health.ts`
 - Test: `tests/scrapers/health.test.ts`
 
@@ -40,7 +43,12 @@ import { classifyResult } from "@/lib/scrapers/health";
 
 describe("classifyResult", () => {
   it("returns working when result has a price", () => {
-    const result = { price: 100, currency: "USD", stockStatus: "in_stock", url: "x" };
+    const result = {
+      price: 100,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "x",
+    };
     expect(classifyResult("<html></html>", result)).toBe("working");
   });
 
@@ -61,7 +69,9 @@ describe("classifyResult", () => {
   });
 
   it("returns error when an error is thrown", () => {
-    expect(classifyResult("", null, new Error("connection refused"))).toBe("error");
+    expect(classifyResult("", null, new Error("connection refused"))).toBe(
+      "error",
+    );
   });
 });
 ```
@@ -193,6 +203,7 @@ git commit -m "feat: add shared distributor health module with classification an
 ## Task 2: Add Persistence Tests
 
 **Files:**
+
 - Modify: `tests/scrapers/health.test.ts`
 
 - [ ] **Step 1: Add persistence tests**
@@ -257,6 +268,7 @@ git commit -m "test: add health service persistence tests"
 ## Task 3: Create Mobile Health Screen
 
 **Files:**
+
 - Create: `app/health.tsx`
 
 - [ ] **Step 1: Create the mobile screen**
@@ -290,7 +302,9 @@ export default function HealthScreen() {
   const colors = useColors();
   const router = useRouter();
   const [health, setHealth] = useState<DistributorHealth[]>([]);
-  const [filter, setFilter] = useState<"all" | "working" | "blocked" | "error">("all");
+  const [filter, setFilter] = useState<"all" | "working" | "blocked" | "error">(
+    "all",
+  );
   const [testing, setTesting] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -306,9 +320,11 @@ export default function HealthScreen() {
   const runTest = useCallback(async () => {
     setTesting(true);
     setProgress(0);
-    const results = await healthService.testAllDistributors((current, total) => {
-      setProgress(Math.round((current / total) * 100));
-    });
+    const results = await healthService.testAllDistributors(
+      (current, total) => {
+        setProgress(Math.round((current / total) * 100));
+      },
+    );
     setHealth(results);
     setTesting(false);
   }, []);
@@ -319,20 +335,33 @@ export default function HealthScreen() {
     error: health.filter((h) => h.status === "error").length,
   };
 
-  const filtered = health.filter((h) => filter === "all" || h.status === filter);
+  const filtered = health.filter(
+    (h) => filter === "all" || h.status === filter,
+  );
 
   return (
     <ScreenContainer>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ marginRight: 12 }}
+        >
           <Text style={{ color: colors.primary, fontSize: 16 }}>‹ Back</Text>
         </TouchableOpacity>
-        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}>
+        <Text
+          style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}
+        >
           Distributor Health
         </Text>
       </View>
 
-      <View style={{ flexDirection: "row", paddingHorizontal: 16, marginBottom: 12 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          paddingHorizontal: 16,
+          marginBottom: 12,
+        }}
+      >
         {(["all", "working", "blocked", "error"] as const).map((f) => (
           <TouchableOpacity
             key={f}
@@ -375,7 +404,9 @@ export default function HealthScreen() {
         {testing ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={{ color: "#fff", fontWeight: "700" }}>Test All Distributors</Text>
+          <Text style={{ color: "#fff", fontWeight: "700" }}>
+            Test All Distributors
+          </Text>
         )}
       </TouchableOpacity>
 
@@ -403,7 +434,9 @@ export default function HealthScreen() {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+      >
         {filtered.map((h) => {
           const distributor = getDistributorById(h.distributorId);
           if (!distributor) return null;
@@ -428,7 +461,13 @@ export default function HealthScreen() {
                 }}
               />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.foreground, fontWeight: "500", fontSize: 14 }}>
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontWeight: "500",
+                    fontSize: 14,
+                  }}
+                >
                   {distributor.countryFlag} {distributor.name}
                 </Text>
                 <Text style={{ color: colors.muted, fontSize: 12 }}>
@@ -445,8 +484,11 @@ export default function HealthScreen() {
           );
         })}
         {filtered.length === 0 && (
-          <Text style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}>
-            No distributor health data. Tap "Test All Distributors" to run a check.
+          <Text
+            style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}
+          >
+            No distributor health data. Tap "Test All Distributors" to run a
+            check.
           </Text>
         )}
       </ScrollView>
@@ -472,6 +514,7 @@ git commit -m "feat: add mobile distributor health screen"
 ## Task 4: Create Desktop Health Screen
 
 **Files:**
+
 - Create: `desktop/src/pages/Health.tsx`
 - Modify: `desktop/src/App.tsx`
 
@@ -480,7 +523,10 @@ git commit -m "feat: add mobile distributor health screen"
 ```tsx
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { createHealthService, DistributorHealth } from "../../../lib/scrapers/health";
+import {
+  createHealthService,
+  DistributorHealth,
+} from "../../../lib/scrapers/health";
 import { getDistributorById } from "../../../lib/distributors";
 import { storage } from "../storage";
 
@@ -513,9 +559,11 @@ export function Health() {
   const runTest = useCallback(async () => {
     setTesting(true);
     setProgress(0);
-    const results = await healthService.testAllDistributors((current, total) => {
-      setProgress(Math.round((current / total) * 100));
-    });
+    const results = await healthService.testAllDistributors(
+      (current, total) => {
+        setProgress(Math.round((current / total) * 100));
+      },
+    );
     setHealth(results);
     setTesting(false);
   }, []);
@@ -526,7 +574,9 @@ export function Health() {
     error: health.filter((h) => h.status === "error").length,
   };
 
-  const filtered = health.filter((h) => filter === "all" || h.status === filter);
+  const filtered = health.filter(
+    (h) => filter === "all" || h.status === filter,
+  );
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -608,7 +658,8 @@ export function Health() {
         })}
         {filtered.length === 0 && (
           <p className="text-center text-gray-500 mt-10">
-            No distributor health data. Tap "Test All Distributors" to run a check.
+            No distributor health data. Tap "Test All Distributors" to run a
+            check.
           </p>
         )}
       </div>
@@ -622,7 +673,7 @@ export function Health() {
 ```tsx
 import { Health } from "./pages/Health";
 // ...
-<Route path="/health" element={<Health />} />
+<Route path="/health" element={<Health />} />;
 ```
 
 - [ ] **Step 3: Run typecheck to verify no errors**
@@ -642,6 +693,7 @@ git commit -m "feat: add desktop distributor health screen"
 ## Task 5: Add Desktop Health Component Tests
 
 **Files:**
+
 - Create: `desktop/tests/health.test.tsx`
 
 - [ ] **Step 1: Create the test**
@@ -681,9 +733,7 @@ describe("Health", () => {
         <Health />
       </MemoryRouter>,
     );
-    expect(
-      await screen.findByText(/No distributor health data/),
-    ).toBeDefined();
+    expect(await screen.findByText(/No distributor health data/)).toBeDefined();
   });
 
   it("renders Test All button", async () => {
@@ -714,6 +764,7 @@ git commit -m "test: add desktop health screen component tests"
 ## Task 6: Wire Health Updates into Background Scrape
 
 **Files:**
+
 - Modify: `lib/background-price-check.ts`
 
 - [ ] **Step 1: Add health update to the scrape loop**

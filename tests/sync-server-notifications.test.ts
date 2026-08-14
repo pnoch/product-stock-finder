@@ -45,9 +45,11 @@ vi.mock("../lib/storage", () => ({
 }));
 
 vi.mock("../lib/notifications", () => ({
-  scheduleServerEventNotification: vi.fn(async (title: string, body: string) => {
-    state.rendered.push({ title, body });
-  }),
+  scheduleServerEventNotification: vi.fn(
+    async (title: string, body: string) => {
+      state.rendered.push({ title, body });
+    },
+  ),
 }));
 
 import { syncServerNotifications } from "../lib/server-notifications";

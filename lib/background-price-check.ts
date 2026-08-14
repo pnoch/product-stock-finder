@@ -2,7 +2,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 import { Platform } from "react-native";
-import { getAlerts, getSettings, getWatchlist, deactivateAlert, updateProductListings, getPriceDigestSnapshot, savePriceDigestSnapshot } from "./storage";
+import {
+  getAlerts,
+  getSettings,
+  getWatchlist,
+  deactivateAlert,
+  updateProductListings,
+  getPriceDigestSnapshot,
+  savePriceDigestSnapshot,
+} from "./storage";
 import { createHealthService, DistributorHealth } from "./scrapers/health";
 import { convertPrice, formatPrice } from "./currency";
 import { requestNotificationPermissions } from "./notifications";
@@ -276,8 +284,7 @@ export async function registerPriceCheckTask() {
       return;
     }
 
-    const intervalMinutes =
-      settings.checkInterval === "hourly" ? 60 : 1440;
+    const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
 
     if (!isRegistered) {
       await BackgroundTask.registerTaskAsync(PRICE_CHECK_TASK, {
@@ -362,9 +369,7 @@ export async function checkPriceDropsNow(
     if (!product?.listings?.length) continue;
     const inStockListings = product.listings.filter(
       (l) =>
-        l.stockStatus === "in_stock" &&
-        l.price > 0 &&
-        Number.isFinite(l.price),
+        l.stockStatus === "in_stock" && l.price > 0 && Number.isFinite(l.price),
     );
     if (inStockListings.length === 0) continue;
     const bestPrice = inStockListings.reduce((best, l) => {

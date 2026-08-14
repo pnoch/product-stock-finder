@@ -6,7 +6,7 @@
 
 ## Overview
 
-The app already scrapes prices on a schedule and fires instant price-drop / restock notifications. What's missing is a periodic *summary*: "since your last digest, 3 prices dropped, CRS326 came back in stock, and your watchlist is worth $X." This feature adds that digest using a snapshot-based diff — store a compact per-product state after each digest, then diff the current watchlist against it on a due check.
+The app already scrapes prices on a schedule and fires instant price-drop / restock notifications. What's missing is a periodic _summary_: "since your last digest, 3 prices dropped, CRS326 came back in stock, and your watchlist is worth $X." This feature adds that digest using a snapshot-based diff — store a compact per-product state after each digest, then diff the current watchlist against it on a due check.
 
 The digest is **opportunistic**: mobile background tasks (`expo-background-task`) only guarantee a `minimumInterval`, not exact wall-clock delivery, so the digest fires during the next background or foreground price check once the configured interval (daily/weekly) has elapsed since the last digest. This works even in manual mode — it fires on app launch if overdue.
 
@@ -51,6 +51,7 @@ maybeSendDigest(previous: DigestSnapshot | null, watchlist: Product[], settings:
 ### 2. Storage — `lib/storage.ts`
 
 New AsyncStorage key `price_digest_snapshot` with:
+
 - `getPriceDigestSnapshot(): Promise<DigestSnapshot | null>`
 - `savePriceDigestSnapshot(snapshot: DigestSnapshot): Promise<void>`
 
@@ -69,7 +70,12 @@ At the end of both the background task (`PRICE_CHECK_TASK`) and foreground `chec
 
 ```ts
 const prevDigest = await getPriceDigestSnapshot();
-const next = await maybeSendDigest(prevDigest, refreshedWatchlist, settings, alerts);
+const next = await maybeSendDigest(
+  prevDigest,
+  refreshedWatchlist,
+  settings,
+  alerts,
+);
 if (next) await savePriceDigestSnapshot(next);
 ```
 
@@ -82,10 +88,12 @@ Add `sendPriceDigestNotification(title, body)` — same pattern as the existing 
 ### 6. Desktop trigger + poller wiring
 
 **Wire the poller (pre-existing gap):**
+
 - `desktop/src/App.tsx`: on mount, read settings via `storage.getSettings()` and call `startPricePoller(intervalMinutes)` where hourly=60, daily=1440, manual=don't start.
 - `desktop/src/pages/Settings.tsx`: when `checkInterval` changes, `stopPricePoller()` then `startPricePoller()` with the new interval (or just stop for manual).
 
 **Digest:**
+
 - `desktop/src/App.tsx` (or a `usePriceDigest` hook): subscribe to the existing `prices-checked` event (`onPricesChecked` in `desktop/src/background.ts`). On each event, run the shared `maybeSendDigest` against localStorage data and send via `sendDesktopNotification`. Desktop and mobile share the exact same digest engine in `lib/price-digest.ts`.
 
 ## Data Flow
@@ -124,6 +132,7 @@ Add `sendPriceDigestNotification(title, body)` — same pattern as the existing 
 ## Files
 
 **Modified:**
+
 - `lib/storage.ts` — `price_digest_snapshot` key + get/set helpers, `clearAllData`
 - `lib/types.ts` — `AppSettings.digestFrequency`
 - `lib/background-price-check.ts` — digest call at end of both check paths
@@ -133,5 +142,6 @@ Add `sendPriceDigestNotification(title, body)` — same pattern as the existing 
 - `desktop/src/App.tsx` — start poller on load; digest listener on `prices-checked`
 
 **New:**
+
 - `lib/price-digest.ts` — shared digest engine (computeDigest / formatDigestNotification / maybeSendDigest)
 - `tests/price-digest.test.ts` — vitest unit tests

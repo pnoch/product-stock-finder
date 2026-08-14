@@ -33,7 +33,9 @@ describe("insights router", () => {
       generatedAt: 1000,
     });
     const caller = appRouter.createCaller(createPublicContext());
-    const result = await caller.insights.get({ productId: "mikrotik-crs804-4ddq-hrm" });
+    const result = await caller.insights.get({
+      productId: "mikrotik-crs804-4ddq-hrm",
+    });
     expect(result).toEqual({
       insight: "Price is down 7% over 30 days.",
       generatedAt: 1000,
@@ -51,8 +53,9 @@ describe("insights router", () => {
   it("works without authentication (public procedure)", async () => {
     mockedGetInsight.mockResolvedValue({ insight: "x", generatedAt: 1 });
     const caller = appRouter.createCaller(createPublicContext());
-    await expect(
-      caller.insights.get({ productId: "a" }),
-    ).resolves.toEqual({ insight: "x", generatedAt: 1 });
+    await expect(caller.insights.get({ productId: "a" })).resolves.toEqual({
+      insight: "x",
+      generatedAt: 1,
+    });
   });
 });

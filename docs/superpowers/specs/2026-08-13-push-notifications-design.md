@@ -45,16 +45,17 @@ Delivery paths for a single `notification_events` row:
 1. **Mobile push:** `evaluateNotifications` creates events → `sendPushForDevice` posts to Expo Push API → OS notification.
 2. **Mobile pull (fallback):** `syncServerNotifications` on launch/foreground pulls + renders locally.
 3. **Desktop:** scheduled `syncDesktopNotifications` pulls + renders native notifications.
+
 ## Data Model
 
 New Drizzle table `device_push_tokens` (mirrors `device_notification_configs`):
 
-| Column | Type | Notes |
-| ------ | ---- | ----- |
-| `deviceId` | varchar(128) | Primary key |
-| `token` | varchar(255) | Expo push token |
-| `platform` | varchar(16) | `ios` or `android` |
-| `updatedAt` | bigint | `Date.now()` |
+| Column      | Type         | Notes              |
+| ----------- | ------------ | ------------------ |
+| `deviceId`  | varchar(128) | Primary key        |
+| `token`     | varchar(255) | Expo push token    |
+| `platform`  | varchar(16)  | `ios` or `android` |
+| `updatedAt` | bigint       | `Date.now()`       |
 
 Each device registers its current push token; re-registration overwrites (upsert). A device with no row simply never receives push.
 

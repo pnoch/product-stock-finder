@@ -25,9 +25,17 @@ export function findBestDeal(
     const shippingCost = distributor.shippingCosts[destinationRegion];
     if (shippingCost == null) continue;
 
-    const price = convertPrice(listing.price, listing.currency, displayCurrency);
+    const price = convertPrice(
+      listing.price,
+      listing.currency,
+      displayCurrency,
+    );
     // Shipping is denominated in the distributor's native currency
-    const shipping = convertPrice(shippingCost, distributor.currency, displayCurrency);
+    const shipping = convertPrice(
+      shippingCost,
+      distributor.currency,
+      displayCurrency,
+    );
     const tax = price * (listing.taxRate ?? 0);
     const total = price + tax + shipping;
 

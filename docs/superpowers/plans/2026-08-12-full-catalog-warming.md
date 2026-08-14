@@ -12,20 +12,21 @@
 
 ## File Structure
 
-| File | Responsibility |
-| --- | --- |
-| `server/price-cache.ts` | Add `getAllFetchedAt()` (DB + memory fallback) |
-| `server/catalog-warmer.ts` | Pure helpers: `buildCatalogPairs`, `pickPairsToWarm` |
-| `server/prices.ts` | Add `warmCatalogRotation`, `CATALOG_WARM_PER_TICK`, wire into warmer tick |
-| `tests/price-cache.test.ts` | Add `getAllFetchedAt` tests |
-| `tests/catalog-warmer.test.ts` | `buildCatalogPairs` + `pickPairsToWarm` tests |
-| `tests/prices.test.ts` | Add `warmCatalogRotation` tests |
+| File                           | Responsibility                                                            |
+| ------------------------------ | ------------------------------------------------------------------------- |
+| `server/price-cache.ts`        | Add `getAllFetchedAt()` (DB + memory fallback)                            |
+| `server/catalog-warmer.ts`     | Pure helpers: `buildCatalogPairs`, `pickPairsToWarm`                      |
+| `server/prices.ts`             | Add `warmCatalogRotation`, `CATALOG_WARM_PER_TICK`, wire into warmer tick |
+| `tests/price-cache.test.ts`    | Add `getAllFetchedAt` tests                                               |
+| `tests/catalog-warmer.test.ts` | `buildCatalogPairs` + `pickPairsToWarm` tests                             |
+| `tests/prices.test.ts`         | Add `warmCatalogRotation` tests                                           |
 
 ---
 
 ### Task 1: `getAllFetchedAt()` in `server/price-cache.ts`
 
 **Files:**
+
 - Modify: `server/price-cache.ts`
 - Test: `tests/price-cache.test.ts`
 
@@ -54,14 +55,38 @@ describe("getAllFetchedAt", () => {
   });
 
   it("returns all cached entries with their fetchedAt", async () => {
-    await setCachedPrice("server2u-my", "CRS804", snapshot({ price: 1, fetchedAt: 1000 }));
-    await setCachedPrice("linitx-uk", "CRS804", snapshot({ price: 2, fetchedAt: 2000 }));
-    await setCachedPrice("server2u-my", "CRS326", snapshot({ price: 3, fetchedAt: 3000 }));
+    await setCachedPrice(
+      "server2u-my",
+      "CRS804",
+      snapshot({ price: 1, fetchedAt: 1000 }),
+    );
+    await setCachedPrice(
+      "linitx-uk",
+      "CRS804",
+      snapshot({ price: 2, fetchedAt: 2000 }),
+    );
+    await setCachedPrice(
+      "server2u-my",
+      "CRS326",
+      snapshot({ price: 3, fetchedAt: 3000 }),
+    );
     const entries = await getAllFetchedAt();
     expect(entries).toHaveLength(3);
-    expect(entries).toContainEqual({ distributorId: "server2u-my", modelNumber: "CRS804", fetchedAt: 1000 });
-    expect(entries).toContainEqual({ distributorId: "linitx-uk", modelNumber: "CRS804", fetchedAt: 2000 });
-    expect(entries).toContainEqual({ distributorId: "server2u-my", modelNumber: "CRS326", fetchedAt: 3000 });
+    expect(entries).toContainEqual({
+      distributorId: "server2u-my",
+      modelNumber: "CRS804",
+      fetchedAt: 1000,
+    });
+    expect(entries).toContainEqual({
+      distributorId: "linitx-uk",
+      modelNumber: "CRS804",
+      fetchedAt: 2000,
+    });
+    expect(entries).toContainEqual({
+      distributorId: "server2u-my",
+      modelNumber: "CRS326",
+      fetchedAt: 3000,
+    });
   });
 });
 ```
@@ -127,6 +152,7 @@ git commit -m "feat(server): add getAllFetchedAt to price cache"
 ### Task 2: Pure helpers — `server/catalog-warmer.ts`
 
 **Files:**
+
 - Create: `server/catalog-warmer.ts`
 - Test: `tests/catalog-warmer.test.ts`
 
@@ -161,7 +187,10 @@ describe("buildCatalogPairs", () => {
   it("returns the full cross product of catalog models and distributors", () => {
     const pairs = buildCatalogPairs();
     expect(pairs.length).toBeGreaterThan(0);
-    expect(pairs).toContainEqual({ distributorId: "server2u-my", modelNumber: "CRS804-4DDQ-hRM" });
+    expect(pairs).toContainEqual({
+      distributorId: "server2u-my",
+      modelNumber: "CRS804-4DDQ-hRM",
+    });
   });
 
   it("excludes distributors with no parser", () => {
@@ -285,6 +314,7 @@ git commit -m "feat(server): add catalog pair builders and least-recently-fetche
 ### Task 3: `warmCatalogRotation` + wire into the warmer tick
 
 **Files:**
+
 - Modify: `server/prices.ts`
 - Test: `tests/prices.test.ts`
 
@@ -313,7 +343,11 @@ import { getCachedPrice, setCachedPrice } from "../server/price-cache";
 Change to:
 
 ```ts
-import { getCachedPrice, setCachedPrice, getAllFetchedAt } from "../server/price-cache";
+import {
+  getCachedPrice,
+  setCachedPrice,
+  getAllFetchedAt,
+} from "../server/price-cache";
 ```
 
 Add the mocked variable (after `const mockedSetCached`):
@@ -349,7 +383,11 @@ describe("warmCatalogRotation", () => {
 
   it("warms the least-recently-fetched pairs", async () => {
     mockedGetAllFetchedAt.mockResolvedValue([
-      { distributorId: "server2u-my", modelNumber: "CRS804-4DDQ-hRM", fetchedAt: 1000 },
+      {
+        distributorId: "server2u-my",
+        modelNumber: "CRS804-4DDQ-hRM",
+        fetchedAt: 1000,
+      },
     ]);
     const warmed = await warmCatalogRotation(Date.now(), 3);
     expect(warmed).toBe(3);
@@ -413,20 +451,20 @@ export async function warmCatalogRotation(
 Change the warmer tick (lines 86-89) to call the rotation. Current:
 
 ```ts
-  warmerTimer = setInterval(() => {
-    void refreshNearExpiry(Date.now());
-    void purgeOldHistory(Date.now());
-  }, intervalMs);
+warmerTimer = setInterval(() => {
+  void refreshNearExpiry(Date.now());
+  void purgeOldHistory(Date.now());
+}, intervalMs);
 ```
 
 Change to:
 
 ```ts
-  warmerTimer = setInterval(() => {
-    void refreshNearExpiry(Date.now());
-    void warmCatalogRotation(CATALOG_WARM_PER_TICK);
-    void purgeOldHistory(Date.now());
-  }, intervalMs);
+warmerTimer = setInterval(() => {
+  void refreshNearExpiry(Date.now());
+  void warmCatalogRotation(CATALOG_WARM_PER_TICK);
+  void purgeOldHistory(Date.now());
+}, intervalMs);
 ```
 
 > **Note:** `warmCatalogRotation` lives in `server/prices.ts` (not `catalog-warmer.ts`) so it can call `refreshSingleFlight` directly without a circular import (`prices.ts` imports `catalog-warmer.ts`; `catalog-warmer.ts` does not import `prices.ts`).
@@ -456,6 +494,7 @@ git commit -m "feat(server): warm full catalog rotation in the price warmer"
 ### Task 4: Final verification + checkpoint commit
 
 **Files:**
+
 - Whole repo
 - Modify: `todo.md`
 

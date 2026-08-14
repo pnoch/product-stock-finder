@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Move notification *detection* (price drops, restocks, date reminders) to the server, which evaluates each device's alert config against warmed prices and queues events; the client pulls pending events on launch/foreground and shows them as local notifications.
+**Goal:** Move notification _detection_ (price drops, restocks, date reminders) to the server, which evaluates each device's alert config against warmed prices and queues events; the client pulls pending events on launch/foreground and shows them as local notifications.
 
 **Architecture:** Anonymous device ID keys everything. Client uploads its alert config (alerts/stock-watches/date-reminders) to the server via a public tRPC endpoint. The server's warmer tick calls `evaluateNotifications()`, comparing configs against warmed prices/cached stock status/reminder dates, and queues `notification_events` rows (deduped). Client pulls undelivered events, renders them as local `expo-notifications`, and reconciles local state. DB + memory `Map` fallback (matching `price-insights.ts`).
 
@@ -13,6 +13,7 @@
 ### Task 1: Drizzle tables — `device_notification_configs` + `notification_events`
 
 **Files:**
+
 - Modify: `drizzle/schema.ts` (append after `productImages`)
 - Create: `drizzle/0006_*.sql` (generated)
 
@@ -77,6 +78,7 @@ git commit -m "feat(sync): add notification config and event tables"
 ### Task 2: Server module — `server/notifications.ts`
 
 **Files:**
+
 - Create: `server/notifications.ts`
 - Test: `tests/notifications.test.ts`
 
@@ -233,7 +235,11 @@ describe("evaluateNotifications", () => {
     await upsertDeviceConfig("dev-1", {
       ...baseConfig,
       stockWatches: [
-        { id: "w1", productId: "mikrotik-crs804-4ddq-hrm", distributorId: "server2u-my" },
+        {
+          id: "w1",
+          productId: "mikrotik-crs804-4ddq-hrm",
+          distributorId: "server2u-my",
+        },
       ],
     });
     await evaluateNotifications(Date.now());
@@ -251,7 +257,9 @@ describe("evaluateNotifications", () => {
           id: "r1",
           productId: "mikrotik-crs804-4ddq-hrm",
           distributorId: "server2u-my",
-          reminderDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          reminderDate: new Date(
+            Date.now() - 24 * 60 * 60 * 1000,
+          ).toISOString(),
         },
       ],
     });
@@ -291,7 +299,12 @@ describe("evaluateNotifications", () => {
     await upsertDeviceConfig("dev-1", {
       ...baseConfig,
       alerts: [
-        { id: "a1", productId: "unknown-product", targetPrice: 100, currency: "USD" },
+        {
+          id: "a1",
+          productId: "unknown-product",
+          targetPrice: 100,
+          currency: "USD",
+        },
       ],
     });
     await evaluateNotifications(Date.now());
@@ -434,7 +447,10 @@ interface EventDraft extends Omit<InsertNotificationEventRow, "deviceId"> {
 }
 
 function newEventId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return `evt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -480,8 +496,10 @@ export async function evaluateNotifications(now: number): Promise<void> {
   for (const row of rows) {
     const config: NotificationConfig = {
       alerts: (row.alerts as NotificationConfig["alerts"]) ?? [],
-      stockWatches: (row.stockWatches as NotificationConfig["stockWatches"]) ?? [],
-      dateReminders: (row.dateReminders as NotificationConfig["dateReminders"]) ?? [],
+      stockWatches:
+        (row.stockWatches as NotificationConfig["stockWatches"]) ?? [],
+      dateReminders:
+        (row.dateReminders as NotificationConfig["dateReminders"]) ?? [],
     };
     const existing = await db
       .select({ dedupKey: notificationEvents.dedupKey })
@@ -497,7 +515,8 @@ export async function evaluateNotifications(now: number): Promise<void> {
     const toInsert = drafts
       .filter((d) => !undelivered.has(d.dedupKey))
       .map((d) => ({ ...d, deviceId: row.deviceId }));
-    if (toInsert.length > 0) await db.insert(notificationEvents).values(toInsert);
+    if (toInsert.length > 0)
+      await db.insert(notificationEvents).values(toInsert);
   }
 }
 
@@ -520,11 +539,15 @@ async function evaluateConfig(
 
 function dedupKeyFor(event: NotificationEvent): string {
   if (event.type === "price_drop") return `price_drop:${event.alertId}`;
-  if (event.type === "restock") return `restock:${event.productId}:${event.distributorId}`;
+  if (event.type === "restock")
+    return `restock:${event.productId}:${event.distributorId}`;
   return `reminder:${event.reminderId}`;
 }
 
-async function buildEvents(config: NotificationConfig, now: number): Promise<EventDraft[]> {
+async function buildEvents(
+  config: NotificationConfig,
+  now: number,
+): Promise<EventDraft[]> {
   const events: EventDraft[] = [];
 
   for (const alert of config.alerts) {
@@ -538,7 +561,11 @@ async function buildEvents(config: NotificationConfig, now: number): Promise<Eve
     for (const distributorId of distributorIds) {
       const snapshot = await getCachedPrice(distributorId, product.modelNumber);
       if (!snapshot || snapshot.stockStatus !== "in_stock") continue;
-      const converted = convertPrice(snapshot.price, snapshot.currency, alert.currency);
+      const converted = convertPrice(
+        snapshot.price,
+        snapshot.currency,
+        alert.currency,
+      );
       if (bestPrice === null || converted < bestPrice) {
         bestPrice = converted;
         bestDistributor = distributorId;
@@ -567,7 +594,10 @@ async function buildEvents(config: NotificationConfig, now: number): Promise<Eve
   for (const watch of config.stockWatches) {
     const product = PRODUCT_CATALOG.find((p) => p.id === watch.productId);
     if (!product) continue;
-    const snapshot = await getCachedPrice(watch.distributorId, product.modelNumber);
+    const snapshot = await getCachedPrice(
+      watch.distributorId,
+      product.modelNumber,
+    );
     if (!snapshot || snapshot.stockStatus !== "in_stock") continue;
     const distributorName =
       getDistributorById(watch.distributorId)?.name ?? watch.distributorId;
@@ -592,7 +622,8 @@ async function buildEvents(config: NotificationConfig, now: number): Promise<Eve
     if (!product) continue;
     if (now < new Date(reminder.reminderDate).getTime()) continue;
     const distributorName =
-      getDistributorById(reminder.distributorId)?.name ?? reminder.distributorId;
+      getDistributorById(reminder.distributorId)?.name ??
+      reminder.distributorId;
     events.push({
       id: newEventId(),
       type: "reminder",
@@ -719,6 +750,7 @@ git commit -m "feat(server): add notification config, evaluation, and event pull
 ### Task 3: tRPC router — `notifications.uploadConfig` + `notifications.pull`
 
 **Files:**
+
 - Modify: `server/routers.ts`
 - Test: `tests/notifications-router.test.ts`
 
@@ -766,7 +798,12 @@ describe("notifications router", () => {
     const result = await caller.notifications.uploadConfig({
       deviceId: "dev-1",
       alerts: [
-        { id: "a1", productId: "mikrotik-crs804-4ddq-hrm", targetPrice: 500, currency: "USD" },
+        {
+          id: "a1",
+          productId: "mikrotik-crs804-4ddq-hrm",
+          targetPrice: 500,
+          currency: "USD",
+        },
       ],
       stockWatches: [],
       dateReminders: [],
@@ -798,9 +835,11 @@ describe("notifications router", () => {
   it("works without authentication (public procedure)", async () => {
     mockedPull.mockResolvedValue([]);
     const caller = appRouter.createCaller(createPublicContext());
-    await expect(caller.notifications.pull({ deviceId: "x" })).resolves.toEqual({
-      events: [],
-    });
+    await expect(caller.notifications.pull({ deviceId: "x" })).resolves.toEqual(
+      {
+        events: [],
+      },
+    );
   });
 });
 ```
@@ -894,6 +933,7 @@ git commit -m "feat(server): add public notifications.uploadConfig and notificat
 ### Task 4: Warmer tick calls `evaluateNotifications`
 
 **Files:**
+
 - Modify: `server/prices.ts`
 - Modify: `tests/prices.test.ts`
 
@@ -1019,6 +1059,7 @@ git commit -m "feat(server): evaluate notification configs in the warmer tick"
 ### Task 5: Client device ID — `lib/device-id.ts`
 
 **Files:**
+
 - Create: `lib/device-id.ts`
 - Test: `tests/device-id.test.ts`
 
@@ -1087,7 +1128,10 @@ export async function getDeviceId(): Promise<string> {
 }
 
 function generateId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return `dev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -1116,6 +1160,7 @@ git commit -m "feat(mobile): add anonymous device id helper"
 ### Task 6: Client helper — `lib/server-notifications.ts`
 
 **Files:**
+
 - Create: `lib/server-notifications.ts`
 - Test: `tests/server-notifications.test.ts`
 
@@ -1171,7 +1216,9 @@ describe("uploadNotificationConfig", () => {
   });
 
   it("returns false when the mutate rejects", async () => {
-    mockClient({ uploadConfig: vi.fn().mockRejectedValue(new Error("network")) });
+    mockClient({
+      uploadConfig: vi.fn().mockRejectedValue(new Error("network")),
+    });
     const ok = await uploadNotificationConfig("dev-1", {
       alerts: [],
       stockWatches: [],
@@ -1201,12 +1248,14 @@ describe("pullNotificationEvents", () => {
 
   it("returns an empty array when the query times out", async () => {
     mockClient({
-      pull: vi.fn().mockImplementation(
-        () =>
-          new Promise<{ events: unknown[] }>((resolve) =>
-            setTimeout(() => resolve({ events: [] }), 10_000),
-          ),
-      ),
+      pull: vi
+        .fn()
+        .mockImplementation(
+          () =>
+            new Promise<{ events: unknown[] }>((resolve) =>
+              setTimeout(() => resolve({ events: [] }), 10_000),
+            ),
+        ),
     });
     const events = await pullNotificationEvents("dev-1");
     expect(events).toEqual([]);
@@ -1225,7 +1274,10 @@ Create `lib/server-notifications.ts`:
 
 ```ts
 import { createTRPCClient } from "./trpc";
-import type { NotificationConfig, NotificationEvent } from "../server/notifications";
+import type {
+  NotificationConfig,
+  NotificationEvent,
+} from "../server/notifications";
 
 const TIMEOUT_MS = 4000;
 
@@ -1237,7 +1289,9 @@ export async function uploadNotificationConfig(
     const client = createTRPCClient();
     await Promise.race([
       client.notifications.uploadConfig.mutate({ deviceId, ...config }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return true;
   } catch {
@@ -1252,7 +1306,9 @@ export async function pullNotificationEvents(
     const client = createTRPCClient();
     const result = await Promise.race([
       client.notifications.pull.query({ deviceId }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return result?.events ?? [];
   } catch {
@@ -1288,6 +1344,7 @@ git commit -m "feat(mobile): add notification config upload and event pull helpe
 ### Task 7: Local notification helper + launch/foreground wiring
 
 **Files:**
+
 - Modify: `lib/notifications.ts`
 - Modify: `app/_layout.tsx`
 - Modify: `lib/background-price-check.ts`
@@ -1324,7 +1381,8 @@ Append to `lib/server-notifications.ts`:
 export async function syncServerNotifications(): Promise<void> {
   try {
     const { getDeviceId } = await import("./device-id");
-    const { getAlerts, getStockWatches, getBackOrderReminders } = await import("./storage");
+    const { getAlerts, getStockWatches, getBackOrderReminders } =
+      await import("./storage");
     const { scheduleServerEventNotification } = await import("./notifications");
     const deviceId = await getDeviceId();
 
@@ -1399,8 +1457,8 @@ import { syncServerNotifications } from "@/lib/server-notifications";
 In the notification-permission effect (lines 73-86), after `checkPriceDropsNow()` (line 84), add:
 
 ```ts
-      // Pull any server-queued notification events
-      void syncServerNotifications();
+// Pull any server-queued notification events
+void syncServerNotifications();
 ```
 
 - [ ] **Step 4: Wire into `lib/background-price-check.ts` foreground path**
@@ -1414,8 +1472,8 @@ import { syncServerNotifications } from "./server-notifications";
 In `checkPriceDropsNow`, after the alert-check loop (after line 394), add:
 
 ```ts
-  // Pull any server-queued notification events (server-side detection supplement)
-  await syncServerNotifications();
+// Pull any server-queued notification events (server-side detection supplement)
+await syncServerNotifications();
 ```
 
 - [ ] **Step 5: Verify types**
@@ -1435,6 +1493,7 @@ git commit -m "feat(mobile): pull and display server-queued notification events 
 ### Task 8: Final verification + checkpoint commit
 
 **Files:**
+
 - Whole repo
 - Modify: `todo.md`
 

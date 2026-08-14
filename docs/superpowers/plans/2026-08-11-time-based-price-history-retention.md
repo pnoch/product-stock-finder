@@ -13,6 +13,7 @@
 ### Task 1: Write failing tests for `appendPricePoint`
 
 **Files:**
+
 - Create: `tests/price-history.test.ts`
 
 - [ ] **Step 1: Write the test file**
@@ -130,6 +131,7 @@ git commit -m "test: add failing appendPricePoint tests"
 ### Task 2: Implement `appendPricePoint` helper
 
 **Files:**
+
 - Create: `lib/price-history.ts`
 
 - [ ] **Step 1: Write the implementation**
@@ -144,9 +146,7 @@ export function appendPricePoint(
   now = new Date().toISOString(),
 ): PricePoint[] {
   const day = point.date.slice(0, 10);
-  const existingIdx = history.findIndex(
-    (p) => p.date.slice(0, 10) === day,
-  );
+  const existingIdx = history.findIndex((p) => p.date.slice(0, 10) === day);
 
   const result =
     existingIdx >= 0
@@ -183,6 +183,7 @@ git commit -m "feat: add appendPricePoint with time-based retention"
 ### Task 3: Wire `appendPricePoint` into mobile scrape paths
 
 **Files:**
+
 - Modify: `lib/background-price-check.ts:17` (constant), `:102-107` (background task), `:285-290` (foreground check)
 
 - [ ] **Step 1: Rename the constant**
@@ -269,6 +270,7 @@ git commit -m "feat: use time-based price history retention in scrape paths"
 ### Task 4: Write failing Rust tests for retention helpers
 
 **Files:**
+
 - Modify: `desktop/src-tauri/src/lib.rs` (add `#[cfg(test)] mod tests` at end of file, after line 810)
 
 - [ ] **Step 1: Add the test module**
@@ -370,6 +372,7 @@ git commit -m "test: add failing Rust retention tests"
 ### Task 5: Implement Rust retention helpers and wire into `update_listing_price`
 
 **Files:**
+
 - Modify: `desktop/src-tauri/src/lib.rs` (add helpers after `current_iso_timestamp` at line 671; replace history append in `update_listing_price` at lines 572-588)
 
 - [ ] **Step 1: Add the helpers**
@@ -515,6 +518,7 @@ git commit -m "feat: bound desktop price history to 90-day window"
 ### Task 6: Update todo.md and final verification
 
 **Files:**
+
 - Modify: `todo.md` (append Phase 24 section)
 
 - [ ] **Step 1: Append Phase 24 to todo.md**

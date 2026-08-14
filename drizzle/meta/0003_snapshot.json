@@ -42,12 +42,8 @@
           "name": "app_settings_userId_users_id_fk",
           "tableFrom": "app_settings",
           "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -55,9 +51,7 @@
       "compositePrimaryKeys": {
         "app_settings_userId": {
           "name": "app_settings_userId",
-          "columns": [
-            "userId"
-          ]
+          "columns": ["userId"]
         }
       },
       "uniqueConstraints": {},
@@ -108,12 +102,8 @@
           "name": "back_order_reminders_userId_users_id_fk",
           "tableFrom": "back_order_reminders",
           "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -121,10 +111,7 @@
       "compositePrimaryKeys": {
         "back_order_reminders_userId_reminderId_pk": {
           "name": "back_order_reminders_userId_reminderId_pk",
-          "columns": [
-            "userId",
-            "reminderId"
-          ]
+          "columns": ["userId", "reminderId"]
         }
       },
       "uniqueConstraints": {},
@@ -175,12 +162,8 @@
           "name": "price_alerts_userId_users_id_fk",
           "tableFrom": "price_alerts",
           "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -188,10 +171,7 @@
       "compositePrimaryKeys": {
         "price_alerts_userId_alertId_pk": {
           "name": "price_alerts_userId_alertId_pk",
-          "columns": [
-            "userId",
-            "alertId"
-          ]
+          "columns": ["userId", "alertId"]
         }
       },
       "uniqueConstraints": {},
@@ -269,10 +249,7 @@
       "compositePrimaryKeys": {
         "price_cache_distributorId_modelNumber_pk": {
           "name": "price_cache_distributorId_modelNumber_pk",
-          "columns": [
-            "distributorId",
-            "modelNumber"
-          ]
+          "columns": ["distributorId", "modelNumber"]
         }
       },
       "uniqueConstraints": {},
@@ -336,11 +313,7 @@
       "compositePrimaryKeys": {
         "price_history_distributorId_modelNumber_date_pk": {
           "name": "price_history_distributorId_modelNumber_date_pk",
-          "columns": [
-            "distributorId",
-            "modelNumber",
-            "date"
-          ]
+          "columns": ["distributorId", "modelNumber", "date"]
         }
       },
       "uniqueConstraints": {},
@@ -423,17 +396,13 @@
       "compositePrimaryKeys": {
         "users_id": {
           "name": "users_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "users_openId_unique": {
           "name": "users_openId_unique",
-          "columns": [
-            "openId"
-          ]
+          "columns": ["openId"]
         }
       },
       "checkConstraint": {}
@@ -483,12 +452,8 @@
           "name": "watchlist_items_userId_users_id_fk",
           "tableFrom": "watchlist_items",
           "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -496,10 +461,7 @@
       "compositePrimaryKeys": {
         "watchlist_items_userId_productId_pk": {
           "name": "watchlist_items_userId_productId_pk",
-          "columns": [
-            "userId",
-            "productId"
-          ]
+          "columns": ["userId", "productId"]
         }
       },
       "uniqueConstraints": {},

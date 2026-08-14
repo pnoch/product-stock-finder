@@ -40,11 +40,7 @@ vi.mock("../src/storage", () => ({
 }));
 
 function renderWithRouter(ui: React.ReactElement, route = "/") {
-  return render(
-    <MemoryRouter initialEntries={[route]}>
-      {ui}
-    </MemoryRouter>
-  );
+  return render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>);
 }
 
 describe("Home page", () => {

@@ -53,11 +53,11 @@ server/routers.ts ──► server/price-insights.ts
 
 Keyed by `productId`. One row per product.
 
-| Column | Type | Notes |
-| --- | --- | --- |
-| `productId` | varchar(128) | PK |
-| `insight` | text | not null — generated recommendation |
-| `generatedAt` | bigint | not null — epoch ms, used for TTL |
+| Column        | Type         | Notes                               |
+| ------------- | ------------ | ----------------------------------- |
+| `productId`   | varchar(128) | PK                                  |
+| `insight`     | text         | not null — generated recommendation |
+| `generatedAt` | bigint       | not null — epoch ms, used for TTL   |
 
 Primary key on `productId`.
 

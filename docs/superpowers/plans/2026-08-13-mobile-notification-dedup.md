@@ -33,6 +33,7 @@
 ### Task 1: Storage — displayed event id store
 
 **Files:**
+
 - Modify: `lib/storage.ts`
 - Test: `tests/storage.test.ts`
 
@@ -94,22 +95,22 @@ In `lib/storage.ts`:
 2. Add a new section after the `Sync Meta` section (after the `clearItemSyncMeta` function ending at line 440):
 
 ```ts
-  // ─── Displayed Event Ids (notification dedup) ──────────────────────────────
+// ─── Displayed Event Ids (notification dedup) ──────────────────────────────
 
-  async function getDisplayedEventIds(): Promise<string[]> {
-    return readList<string>(KEYS.DISPLAYED_EVENT_IDS);
-  }
+async function getDisplayedEventIds(): Promise<string[]> {
+  return readList<string>(KEYS.DISPLAYED_EVENT_IDS);
+}
 
-  async function recordDisplayedEventId(id: string): Promise<void> {
-    await enqueue(KEYS.DISPLAYED_EVENT_IDS, async () => {
-      const ids = await getDisplayedEventIds();
-      if (!ids.includes(id)) {
-        ids.push(id);
-        if (ids.length > 200) ids.splice(0, ids.length - 200);
-        await adapter.setItem(KEYS.DISPLAYED_EVENT_IDS, JSON.stringify(ids));
-      }
-    });
-  }
+async function recordDisplayedEventId(id: string): Promise<void> {
+  await enqueue(KEYS.DISPLAYED_EVENT_IDS, async () => {
+    const ids = await getDisplayedEventIds();
+    if (!ids.includes(id)) {
+      ids.push(id);
+      if (ids.length > 200) ids.splice(0, ids.length - 200);
+      await adapter.setItem(KEYS.DISPLAYED_EVENT_IDS, JSON.stringify(ids));
+    }
+  });
+}
 ```
 
 3. Add both to the `createStorage` return object (after `clearItemSyncMeta` at line 492):
@@ -143,6 +144,7 @@ git commit -m "feat(storage): track displayed notification event ids"
 ### Task 2: Push event tracking
 
 **Files:**
+
 - Modify: `lib/notifications.ts`
 - Create: `tests/push-event-tracking.test.ts`
 
@@ -318,6 +320,7 @@ git commit -m "feat(notifications): track push event ids for dedup"
 ### Task 3: Sync dedup — skip already-displayed events
 
 **Files:**
+
 - Modify: `lib/server-notifications.ts`
 - Create: `tests/sync-server-notifications.test.ts`
 
@@ -369,9 +372,11 @@ vi.mock("../lib/storage", () => ({
 }));
 
 vi.mock("../lib/notifications", () => ({
-  scheduleServerEventNotification: vi.fn(async (title: string, body: string) => {
-    state.rendered.push({ title, body });
-  }),
+  scheduleServerEventNotification: vi.fn(
+    async (title: string, body: string) => {
+      state.rendered.push({ title, body });
+    },
+  ),
 }));
 
 import { syncServerNotifications } from "../lib/server-notifications";
@@ -438,43 +443,47 @@ In `lib/server-notifications.ts`:
 1. Extend the storage dynamic-import destructure at line 50:
 
 ```ts
-    const {
-      getAlerts,
-      getStockWatches,
-      getBackOrderReminders,
-      getDisplayedEventIds,
-      recordDisplayedEventId,
-    } = await import("./storage");
+const {
+  getAlerts,
+  getStockWatches,
+  getBackOrderReminders,
+  getDisplayedEventIds,
+  recordDisplayedEventId,
+} = await import("./storage");
 ```
 
 2. Load the displayed set and gate rendering in the pull loop (lines 88-96). Replace:
 
 ```ts
-    const events = await pullNotificationEvents(deviceId);
-    for (const event of events) {
-      const stalePriceDrop =
-        event.type === "price_drop" && event.alertId && !activeAlertIds.has(event.alertId);
-      if (!stalePriceDrop) {
-        await scheduleServerEventNotification(event.title, event.body);
-      }
-      await reconcileEvent(event);
-    }
+const events = await pullNotificationEvents(deviceId);
+for (const event of events) {
+  const stalePriceDrop =
+    event.type === "price_drop" &&
+    event.alertId &&
+    !activeAlertIds.has(event.alertId);
+  if (!stalePriceDrop) {
+    await scheduleServerEventNotification(event.title, event.body);
+  }
+  await reconcileEvent(event);
+}
 ```
 
 with:
 
 ```ts
-    const displayedIds = new Set(await getDisplayedEventIds());
-    const events = await pullNotificationEvents(deviceId);
-    for (const event of events) {
-      const stalePriceDrop =
-        event.type === "price_drop" && event.alertId && !activeAlertIds.has(event.alertId);
-      if (!stalePriceDrop && !displayedIds.has(event.id)) {
-        await scheduleServerEventNotification(event.title, event.body);
-        await recordDisplayedEventId(event.id);
-      }
-      await reconcileEvent(event);
-    }
+const displayedIds = new Set(await getDisplayedEventIds());
+const events = await pullNotificationEvents(deviceId);
+for (const event of events) {
+  const stalePriceDrop =
+    event.type === "price_drop" &&
+    event.alertId &&
+    !activeAlertIds.has(event.alertId);
+  if (!stalePriceDrop && !displayedIds.has(event.id)) {
+    await scheduleServerEventNotification(event.title, event.body);
+    await recordDisplayedEventId(event.id);
+  }
+  await reconcileEvent(event);
+}
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -494,6 +503,7 @@ git commit -m "feat(notifications): dedup locally rendered server events"
 ### Task 4: Wire push tracking at launch + full verification + checkpoint
 
 **Files:**
+
 - Modify: `app/_layout.tsx`
 - Modify: `todo.md`
 
@@ -514,31 +524,31 @@ import {
 Replace the notification effect (lines 75-92):
 
 ```ts
-  // Request notification permissions and set up Android channel on first load
-  useEffect(() => {
-    if (Platform.OS === "web") return;
-    let stopPushTracking: (() => void) | null = null;
-    setupAndroidNotificationChannel().then(async () => {
-      // Only prompt for notification permission if the user has enabled notifications
-      const settings = await getSettings();
-      if (settings.notificationsEnabled) {
-        await requestNotificationPermissions();
-      }
-      // Register background price-check task
-      registerPriceCheckTask();
-      // Run a foreground check immediately on app launch
-      checkPriceDropsNow();
-      // Record eventIds from push notifications for dedup
-      stopPushTracking = setupPushEventTracking();
-      // Register for Expo push delivery (best-effort)
-      void registerPushToken();
-      // Pull any server-queued notification events
-      void syncServerNotifications();
-    });
-    return () => {
-      stopPushTracking?.();
-    };
-  }, []);
+// Request notification permissions and set up Android channel on first load
+useEffect(() => {
+  if (Platform.OS === "web") return;
+  let stopPushTracking: (() => void) | null = null;
+  setupAndroidNotificationChannel().then(async () => {
+    // Only prompt for notification permission if the user has enabled notifications
+    const settings = await getSettings();
+    if (settings.notificationsEnabled) {
+      await requestNotificationPermissions();
+    }
+    // Register background price-check task
+    registerPriceCheckTask();
+    // Run a foreground check immediately on app launch
+    checkPriceDropsNow();
+    // Record eventIds from push notifications for dedup
+    stopPushTracking = setupPushEventTracking();
+    // Register for Expo push delivery (best-effort)
+    void registerPushToken();
+    // Pull any server-queued notification events
+    void syncServerNotifications();
+  });
+  return () => {
+    stopPushTracking?.();
+  };
+}, []);
 ```
 
 - [ ] **Step 3: Run the full verification gates**
@@ -574,7 +584,7 @@ Append a new phase section at the end of `todo.md`:
 - [x] displayed_notification_event_ids storage key (getDisplayedEventIds / recordDisplayedEventId, capped 200)
 - [x] setupPushEventTracking (received + response listeners + last-response capture)
 - [x] Launch pull sync skips re-render for already-displayed events (still reconciles)
-- [x] Launch wiring in app/_layout.tsx
+- [x] Launch wiring in app/\_layout.tsx
 ```
 
 - [ ] **Step 5: Commit the checkpoint**

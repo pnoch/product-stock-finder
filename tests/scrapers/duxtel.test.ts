@@ -20,14 +20,16 @@ describe("Duxtel Parser", () => {
   it("should return null for 404 page fixture", () => {
     const fixturePath = path.join(FIXTURES_DIR, "duxtel-au.html");
     expect(fs.existsSync(fixturePath)).toBe(true);
-    
+
     const html = fs.readFileSync(fixturePath, "utf-8");
     const result = duxtelParser.parsePrice(html);
     expect(result).toBeNull();
   });
 
   it("should return null for invalid HTML", () => {
-    const result = duxtelParser.parsePrice("<html><body>No price here</body></html>");
+    const result = duxtelParser.parsePrice(
+      "<html><body>No price here</body></html>",
+    );
     expect(result).toBeNull();
   });
 
@@ -35,7 +37,7 @@ describe("Duxtel Parser", () => {
     const html = `<div><span class="price">A$749.00</span><span class="stock-status">Available</span></div>`;
     const result = duxtelParser.parsePrice(html);
     expect(result).not.toBeNull();
-    expect(result!.price).toBe(749.00);
+    expect(result!.price).toBe(749.0);
     expect(result!.currency).toBe("AUD");
     expect(result!.stockStatus).toBe("in_stock");
   });

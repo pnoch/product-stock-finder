@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import { balticnetworksParser, scrapeBalticNetworks } from "../../lib/scrapers/balticnetworks";
+import {
+  balticnetworksParser,
+  scrapeBalticNetworks,
+} from "../../lib/scrapers/balticnetworks";
 
 const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 
@@ -20,7 +23,7 @@ describe("Baltic Networks Parser", () => {
   it("should parse price from HTML fixture", () => {
     const fixturePath = path.join(FIXTURES_DIR, "balticnetworks-us.html");
     expect(fs.existsSync(fixturePath)).toBe(true);
-    
+
     const html = fs.readFileSync(fixturePath, "utf-8");
     const result = balticnetworksParser.parsePrice(html);
     expect(result).not.toBeNull();
@@ -29,7 +32,9 @@ describe("Baltic Networks Parser", () => {
   });
 
   it("should return null for invalid HTML", () => {
-    const result = balticnetworksParser.parsePrice("<html><body>No price here</body></html>");
+    const result = balticnetworksParser.parsePrice(
+      "<html><body>No price here</body></html>",
+    );
     expect(result).toBeNull();
   });
 });

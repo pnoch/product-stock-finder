@@ -20,14 +20,16 @@ describe("PBTech Parser", () => {
   it("should return null for 404 page fixture", () => {
     const fixturePath = path.join(FIXTURES_DIR, "pbtech-nz.html");
     expect(fs.existsSync(fixturePath)).toBe(true);
-    
+
     const html = fs.readFileSync(fixturePath, "utf-8");
     const result = pbtechParser.parsePrice(html);
     expect(result).toBeNull();
   });
 
   it("should return null for invalid HTML", () => {
-    const result = pbtechParser.parsePrice("<html><body>No price here</body></html>");
+    const result = pbtechParser.parsePrice(
+      "<html><body>No price here</body></html>",
+    );
     expect(result).toBeNull();
   });
 
@@ -35,7 +37,7 @@ describe("PBTech Parser", () => {
     const html = `<div><span class="price">NZ$1,299.00</span><span class="stock-status">In Stock</span></div>`;
     const result = pbtechParser.parsePrice(html);
     expect(result).not.toBeNull();
-    expect(result!.price).toBe(1299.00);
+    expect(result!.price).toBe(1299.0);
     expect(result!.currency).toBe("NZD");
     expect(result!.stockStatus).toBe("in_stock");
   });

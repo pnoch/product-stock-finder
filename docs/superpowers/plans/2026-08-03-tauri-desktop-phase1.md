@@ -15,40 +15,42 @@
 ## File Structure
 
 ### Files to Create
-| File | Purpose |
-|------|---------|
-| `desktop/package.json` | Desktop app dependencies and scripts |
-| `desktop/tsconfig.json` | TypeScript config (Vite + React) |
-| `desktop/vite.config.ts` | Vite bundler config |
-| `desktop/index.html` | Vite HTML entry |
-| `desktop/tailwind.config.js` | Tailwind configuration |
-| `desktop/postcss.config.js` | PostCSS for Tailwind |
-| `desktop/src/main.tsx` | React entry point |
-| `desktop/src/App.tsx` | Root component with React Router |
-| `desktop/src/storage.ts` | localStorage implementation of StorageAdapter |
-| `desktop/src/pages/Home.tsx` | Dashboard placeholder |
-| `desktop/src/pages/Watchlist.tsx` | Watchlist placeholder |
-| `desktop/src/pages/ProductDetail.tsx` | Product detail placeholder |
-| `desktop/src/pages/Compare.tsx` | Compare placeholder |
-| `desktop/src/pages/Alerts.tsx` | Alerts placeholder |
-| `desktop/src/pages/Search.tsx` | Search placeholder |
-| `desktop/src/pages/Settings.tsx` | Settings placeholder |
-| `desktop/src/components/Sidebar.tsx` | Sidebar navigation |
-| `desktop/src/styles/globals.css` | Global Tailwind CSS |
-| `desktop/src-tauri/Cargo.toml` | Rust dependencies |
-| `desktop/src-tauri/src/main.rs` | Tauri app entry |
-| `desktop/src-tauri/src/lib.rs` | Tauri commands (placeholder) |
-| `desktop/src-tauri/tauri.conf.json` | Tauri config |
-| `desktop/src-tauri/capabilities/default.json` | Tauri 2 capabilities |
-| `desktop/src-tauri/icons/` | App icons (placeholder) |
-| `pnpm-workspace.yaml` | Declares desktop/ as workspace |
+
+| File                                          | Purpose                                       |
+| --------------------------------------------- | --------------------------------------------- |
+| `desktop/package.json`                        | Desktop app dependencies and scripts          |
+| `desktop/tsconfig.json`                       | TypeScript config (Vite + React)              |
+| `desktop/vite.config.ts`                      | Vite bundler config                           |
+| `desktop/index.html`                          | Vite HTML entry                               |
+| `desktop/tailwind.config.js`                  | Tailwind configuration                        |
+| `desktop/postcss.config.js`                   | PostCSS for Tailwind                          |
+| `desktop/src/main.tsx`                        | React entry point                             |
+| `desktop/src/App.tsx`                         | Root component with React Router              |
+| `desktop/src/storage.ts`                      | localStorage implementation of StorageAdapter |
+| `desktop/src/pages/Home.tsx`                  | Dashboard placeholder                         |
+| `desktop/src/pages/Watchlist.tsx`             | Watchlist placeholder                         |
+| `desktop/src/pages/ProductDetail.tsx`         | Product detail placeholder                    |
+| `desktop/src/pages/Compare.tsx`               | Compare placeholder                           |
+| `desktop/src/pages/Alerts.tsx`                | Alerts placeholder                            |
+| `desktop/src/pages/Search.tsx`                | Search placeholder                            |
+| `desktop/src/pages/Settings.tsx`              | Settings placeholder                          |
+| `desktop/src/components/Sidebar.tsx`          | Sidebar navigation                            |
+| `desktop/src/styles/globals.css`              | Global Tailwind CSS                           |
+| `desktop/src-tauri/Cargo.toml`                | Rust dependencies                             |
+| `desktop/src-tauri/src/main.rs`               | Tauri app entry                               |
+| `desktop/src-tauri/src/lib.rs`                | Tauri commands (placeholder)                  |
+| `desktop/src-tauri/tauri.conf.json`           | Tauri config                                  |
+| `desktop/src-tauri/capabilities/default.json` | Tauri 2 capabilities                          |
+| `desktop/src-tauri/icons/`                    | App icons (placeholder)                       |
+| `pnpm-workspace.yaml`                         | Declares desktop/ as workspace                |
 
 ### Files to Modify
-| File | Change |
-|------|--------|
+
+| File             | Change                                                                                        |
+| ---------------- | --------------------------------------------------------------------------------------------- |
 | `lib/storage.ts` | Add `StorageAdapter` interface, `createStorage()` factory, backward-compatible default export |
-| `package.json` | Add `dev:desktop` and `build:desktop` scripts |
-| `tsconfig.json` | Exclude `desktop/` from mobile tsconfig |
+| `package.json`   | Add `dev:desktop` and `build:desktop` scripts                                                 |
+| `tsconfig.json`  | Exclude `desktop/` from mobile tsconfig                                                       |
 
 ---
 
@@ -57,6 +59,7 @@
 ### Task 1: pnpm Workspace Setup
 
 **Files:**
+
 - Create: `pnpm-workspace.yaml`
 - Modify: `package.json`
 
@@ -97,6 +100,7 @@ git commit -m "chore: add pnpm workspace for desktop app"
 ### Task 2: StorageAdapter Interface + Factory
 
 **Files:**
+
 - Modify: `lib/storage.ts`
 
 - [ ] **Step 1: Add StorageAdapter interface and createStorage factory**
@@ -234,7 +238,9 @@ export function createStorage(adapter: StorageAdapter) {
   async function getSettings(): Promise<AppSettings> {
     try {
       const raw = await adapter.getItem(KEYS.SETTINGS);
-      return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS;
+      return raw
+        ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+        : DEFAULT_SETTINGS;
     } catch {
       return DEFAULT_SETTINGS;
     }
@@ -278,9 +284,7 @@ export function createStorage(adapter: StorageAdapter) {
     await saveBackOrderReminders(reminders);
   }
 
-  async function removeBackOrderReminder(
-    reminderId: string,
-  ): Promise<void> {
+  async function removeBackOrderReminder(reminderId: string): Promise<void> {
     const reminders = await getBackOrderReminders();
     await saveBackOrderReminders(reminders.filter((r) => r.id !== reminderId));
   }
@@ -296,9 +300,7 @@ export function createStorage(adapter: StorageAdapter) {
     }
   }
 
-  async function saveStockWatches(
-    watches: BackOrderReminder[],
-  ): Promise<void> {
+  async function saveStockWatches(watches: BackOrderReminder[]): Promise<void> {
     await adapter.setItem(KEYS.STOCK_WATCHES, JSON.stringify(watches));
   }
 
@@ -425,6 +427,7 @@ export const {
 - [ ] **Step 3: Remove the old inline function definitions**
 
 Delete all the old function bodies that are now inside `createStorage` (lines ~27-254 in the original file). The file should now contain:
+
 1. Imports
 2. `StorageAdapter` interface
 3. `createStorage()` factory with all logic inside
@@ -460,6 +463,7 @@ AsyncStorage instance."
 ### Task 3: Tauri Desktop Scaffold
 
 **Files:**
+
 - Create: `desktop/package.json`
 - Create: `desktop/tsconfig.json`
 - Create: `desktop/vite.config.ts`
@@ -732,6 +736,7 @@ export function Sidebar() {
 Create each page file with a minimal placeholder:
 
 `desktop/src/pages/Home.tsx`:
+
 ```tsx
 export function Home() {
   return (
@@ -746,6 +751,7 @@ export function Home() {
 ```
 
 `desktop/src/pages/Watchlist.tsx`:
+
 ```tsx
 export function Watchlist() {
   return (
@@ -758,6 +764,7 @@ export function Watchlist() {
 ```
 
 `desktop/src/pages/ProductDetail.tsx`:
+
 ```tsx
 export function ProductDetail() {
   return (
@@ -770,6 +777,7 @@ export function ProductDetail() {
 ```
 
 `desktop/src/pages/Compare.tsx`:
+
 ```tsx
 export function Compare() {
   return (
@@ -782,6 +790,7 @@ export function Compare() {
 ```
 
 `desktop/src/pages/Alerts.tsx`:
+
 ```tsx
 export function Alerts() {
   return (
@@ -794,6 +803,7 @@ export function Alerts() {
 ```
 
 `desktop/src/pages/Search.tsx`:
+
 ```tsx
 export function Search() {
   return (
@@ -806,6 +816,7 @@ export function Search() {
 ```
 
 `desktop/src/pages/Settings.tsx`:
+
 ```tsx
 export function Settings() {
   return (
@@ -905,6 +916,7 @@ Vite builds successfully. All pages render."
 ### Task 4: Tauri Rust Backend Scaffold
 
 **Files:**
+
 - Create: `desktop/src-tauri/Cargo.toml`
 - Create: `desktop/src-tauri/src/main.rs`
 - Create: `desktop/src-tauri/src/lib.rs`
@@ -1016,11 +1028,7 @@ pub fn run() {
   "identifier": "default",
   "description": "Default capabilities for Product Stock Finder",
   "windows": ["main"],
-  "permissions": [
-    "core:default",
-    "notification:default",
-    "dialog:default"
-  ]
+  "permissions": ["core:default", "notification:default", "dialog:default"]
 }
 ```
 
@@ -1062,6 +1070,7 @@ dialog plugins."
 ### Task 5: Tauri Desktop Notifications + System Tray
 
 **Files:**
+
 - Modify: `desktop/src-tauri/src/lib.rs`
 - Create: `desktop/src/notifications.ts`
 
@@ -1151,6 +1160,7 @@ git commit -m "feat: add desktop notification command and TypeScript wrapper"
 ### Task 6: File Import/Export Rust Commands
 
 **Files:**
+
 - Modify: `desktop/src-tauri/src/lib.rs`
 - Create: `desktop/src/import-export.ts`
 
@@ -1312,7 +1322,9 @@ export async function importWatchlistFromJson(): Promise<string> {
   });
 
   if (filePath) {
-    const content = await invoke<string>("read_file", { path: filePath as string });
+    const content = await invoke<string>("read_file", {
+      path: filePath as string,
+    });
     const result = await invoke<string>("import_watchlist", {
       content,
       format: "json",
@@ -1341,12 +1353,14 @@ git commit -m "feat: add file import/export Tauri commands with JSON support"
 ### Task 7: System Tray + Background Polling
 
 **Files:**
+
 - Modify: `desktop/src-tauri/src/lib.rs`
 - Create: `desktop/src/background.ts`
 
 - [ ] **Step 1: Add tray and background polling to lib.rs**
 
 Replace the full content of `desktop/src-tauri/src/lib.rs` with the complete implementation including system tray setup, background price polling command, and all previous commands. The tray will have:
+
 - App icon
 - Context menu: "Open", "Check Now", "Quit"
 - Badge count for active alerts
@@ -1368,7 +1382,9 @@ And register it in `run()`:
 ```typescript
 import { invoke } from "@tauri-apps/api/core";
 
-export async function startPricePoller(intervalMinutes: number = 15): Promise<void> {
+export async function startPricePoller(
+  intervalMinutes: number = 15,
+): Promise<void> {
   try {
     await invoke("start_price_poller", { intervalMinutes });
   } catch (e) {

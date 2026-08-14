@@ -14,7 +14,9 @@ describe("Neobits Parser", () => {
   });
 
   it("should return null for invalid HTML", () => {
-    const result = neobitsParser.parsePrice("<html><body>No price here</body></html>");
+    const result = neobitsParser.parsePrice(
+      "<html><body>No price here</body></html>",
+    );
     expect(result).toBeNull();
   });
 

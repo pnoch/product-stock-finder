@@ -12,29 +12,30 @@
 
 ## File Structure
 
-| File | Responsibility |
-| --- | --- |
-| `lib/types.ts` | Add shared `PriceSnapshot` type |
-| `drizzle/schema.ts` | Add `price_cache` table + row types |
-| `drizzle/0002_*.sql` | Generated migration |
-| `server/price-cache.ts` | Cache backend: DB table + in-memory Map, same interface |
-| `server/prices.ts` | `getPrice`, single-flight refresh, `startWarmer` |
-| `server/routers.ts` | Add `prices.get` public procedure |
-| `lib/server-prices.ts` | Mobile client helper `fetchServerPrice` |
-| `lib/background-price-check.ts` | Server-first + local fallback in both scrape loops |
-| `desktop/src/background.ts` | Pass `apiBaseUrl` to Rust poller commands |
-| `desktop/src/App.tsx`, `desktop/src/pages/Settings.tsx` | Pass `getApiBaseUrl()` to poller |
-| `desktop/src-tauri/src/lib.rs` | `fetch_server_price` + server-first in `check_all_prices` |
-| `tests/price-cache.test.ts` | Cache backend tests |
-| `tests/prices-router.test.ts` | Router tests |
-| `tests/server-prices.test.ts` | Mobile client helper tests |
-| `tests/server-first-scrape.test.ts` | Mobile integration fallback tests |
+| File                                                    | Responsibility                                            |
+| ------------------------------------------------------- | --------------------------------------------------------- |
+| `lib/types.ts`                                          | Add shared `PriceSnapshot` type                           |
+| `drizzle/schema.ts`                                     | Add `price_cache` table + row types                       |
+| `drizzle/0002_*.sql`                                    | Generated migration                                       |
+| `server/price-cache.ts`                                 | Cache backend: DB table + in-memory Map, same interface   |
+| `server/prices.ts`                                      | `getPrice`, single-flight refresh, `startWarmer`          |
+| `server/routers.ts`                                     | Add `prices.get` public procedure                         |
+| `lib/server-prices.ts`                                  | Mobile client helper `fetchServerPrice`                   |
+| `lib/background-price-check.ts`                         | Server-first + local fallback in both scrape loops        |
+| `desktop/src/background.ts`                             | Pass `apiBaseUrl` to Rust poller commands                 |
+| `desktop/src/App.tsx`, `desktop/src/pages/Settings.tsx` | Pass `getApiBaseUrl()` to poller                          |
+| `desktop/src-tauri/src/lib.rs`                          | `fetch_server_price` + server-first in `check_all_prices` |
+| `tests/price-cache.test.ts`                             | Cache backend tests                                       |
+| `tests/prices-router.test.ts`                           | Router tests                                              |
+| `tests/server-prices.test.ts`                           | Mobile client helper tests                                |
+| `tests/server-first-scrape.test.ts`                     | Mobile integration fallback tests                         |
 
 ---
 
 ### Task 1: Shared `PriceSnapshot` type + Drizzle `price_cache` table
 
 **Files:**
+
 - Modify: `lib/types.ts`
 - Modify: `drizzle/schema.ts`
 - Test: `drizzle/0002_*.sql` (generated)
@@ -73,7 +74,9 @@ export const priceCache = mysqlTable(
     taxRate: double("taxRate"),
     fetchedAt: bigint("fetchedAt", { mode: "number" }).notNull(),
   },
-  (table) => [primaryKey({ columns: [table.distributorId, table.modelNumber] })],
+  (table) => [
+    primaryKey({ columns: [table.distributorId, table.modelNumber] }),
+  ],
 );
 
 export type PriceCacheRow = typeof priceCache.$inferSelect;
@@ -107,7 +110,7 @@ Run:
 DATABASE_URL="mysql://localhost:3306/product_stock_finder" pnpm exec drizzle-kit generate
 ```
 
-Expected: writes `drizzle/0002_*.sql` containing `CREATE TABLE \`price_cache\`` with a composite primary key on `distributorId` + `modelNumber`. (This command only reads `drizzle/schema.ts` and writes SQL — it does not connect to a live DB.)
+Expected: writes `drizzle/0002_*.sql` containing `CREATE TABLE \`price_cache\``with a composite primary key on`distributorId`+`modelNumber`. (This command only reads `drizzle/schema.ts` and writes SQL — it does not connect to a live DB.)
 
 - [ ] **Step 4: Verify types**
 
@@ -126,6 +129,7 @@ git commit -m "feat(sync): add price_cache table and PriceSnapshot type"
 ### Task 2: Cache backend — `server/price-cache.ts`
 
 **Files:**
+
 - Create: `server/price-cache.ts`
 - Test: `tests/price-cache.test.ts`
 
@@ -190,8 +194,14 @@ describe("price cache (memory backend)", () => {
     await setCachedPrice("b", "m1", snapshot({ fetchedAt: now - 100 }));
     const entries = await listNearExpiry(now, 2000);
     expect(entries).toContainEqual({ distributorId: "a", modelNumber: "m2" });
-    expect(entries).not.toContainEqual({ distributorId: "a", modelNumber: "m1" });
-    expect(entries).not.toContainEqual({ distributorId: "b", modelNumber: "m1" });
+    expect(entries).not.toContainEqual({
+      distributorId: "a",
+      modelNumber: "m1",
+    });
+    expect(entries).not.toContainEqual({
+      distributorId: "b",
+      modelNumber: "m1",
+    });
   });
 });
 ```
@@ -257,17 +267,20 @@ export async function setCachedPrice(
     taxRate: snapshot.taxRate ?? null,
     fetchedAt: snapshot.fetchedAt,
   };
-  await db.insert(priceCache).values(values).onDuplicateKeyUpdate({
-    set: {
-      price: snapshot.price,
-      currency: snapshot.currency,
-      stockStatus: snapshot.stockStatus,
-      expectedDate: snapshot.expectedDate ?? null,
-      url: snapshot.url,
-      taxRate: snapshot.taxRate ?? null,
-      fetchedAt: snapshot.fetchedAt,
-    },
-  });
+  await db
+    .insert(priceCache)
+    .values(values)
+    .onDuplicateKeyUpdate({
+      set: {
+        price: snapshot.price,
+        currency: snapshot.currency,
+        stockStatus: snapshot.stockStatus,
+        expectedDate: snapshot.expectedDate ?? null,
+        url: snapshot.url,
+        taxRate: snapshot.taxRate ?? null,
+        fetchedAt: snapshot.fetchedAt,
+      },
+    });
 }
 
 export async function listNearExpiry(
@@ -335,6 +348,7 @@ git commit -m "feat(server): add price cache backend with memory fallback"
 ### Task 3: Price service — `server/prices.ts`
 
 **Files:**
+
 - Create: `server/prices.ts`
 - Test: `tests/prices.test.ts`
 
@@ -466,11 +480,7 @@ Expected: FAIL with "Cannot find module '../server/prices'".
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { fetchWithParser } from "../lib/scrapers/utils";
 import type { PriceSnapshot } from "../lib/types";
-import {
-  getCachedPrice,
-  setCachedPrice,
-  listNearExpiry,
-} from "./price-cache";
+import { getCachedPrice, setCachedPrice, listNearExpiry } from "./price-cache";
 
 export const PRICE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const WARMER_INTERVAL_MS = 5 * 60 * 1000; // every 5 min
@@ -524,8 +534,7 @@ export async function getPrice(
   modelNumber: string,
 ): Promise<PriceSnapshot | null> {
   const cached = await getCachedPrice(distributorId, modelNumber);
-  const fresh =
-    cached !== null && Date.now() - cached.fetchedAt < PRICE_TTL_MS;
+  const fresh = cached !== null && Date.now() - cached.fetchedAt < PRICE_TTL_MS;
   if (!fresh) {
     void refreshSingleFlight(distributorId, modelNumber);
   }
@@ -581,6 +590,7 @@ git commit -m "feat(server): add price service with single-flight refresh"
 ### Task 4: Warmer tests
 
 **Files:**
+
 - Test: `tests/warmer.test.ts`
 
 - [ ] **Step 1: Write the failing tests**
@@ -701,6 +711,7 @@ git commit -m "test(server): add warmer tests"
 ### Task 5: tRPC router — `prices.get`
 
 **Files:**
+
 - Modify: `server/routers.ts`
 - Test: `tests/prices-router.test.ts`
 
@@ -836,6 +847,7 @@ git commit -m "feat(server): add public prices.get tRPC endpoint"
 ### Task 6: Mobile client helper — `lib/server-prices.ts`
 
 **Files:**
+
 - Create: `lib/server-prices.ts`
 - Test: `tests/server-prices.test.ts`
 
@@ -897,12 +909,14 @@ describe("fetchServerPrice", () => {
   });
 
   it("returns null when the query times out", async () => {
-    const query = vi.fn().mockImplementation(
-      () =>
-        new Promise<PriceSnapshot>((resolve) =>
-          setTimeout(() => resolve(snapshot), 10_000),
-        ),
-    );
+    const query = vi
+      .fn()
+      .mockImplementation(
+        () =>
+          new Promise<PriceSnapshot>((resolve) =>
+            setTimeout(() => resolve(snapshot), 10_000),
+          ),
+      );
     mockClientQuery(query);
     const result = await fetchServerPrice("server2u-my", "CRS804");
     expect(result).toBeNull();
@@ -937,7 +951,9 @@ export async function fetchServerPrice(
   try {
     const result = await Promise.race([
       getClient().prices.get.query({ distributorId, modelNumber }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return result;
   } catch {
@@ -970,6 +986,7 @@ git commit -m "feat(mobile): add fetchServerPrice client helper"
 ### Task 7: Mobile integration — server-first with local fallback
 
 **Files:**
+
 - Modify: `lib/background-price-check.ts`
 - Test: `tests/server-first-scrape.test.ts`
 
@@ -988,9 +1005,11 @@ const state = vi.hoisted(() => ({
 
 vi.mock("../lib/storage", () => ({
   getWatchlist: vi.fn(async () => state.watchlistStore),
-  updateProductListings: vi.fn(async (productId: string, listings: DistributorListing[]) => {
-    state.updatedListings.push(listings);
-  }),
+  updateProductListings: vi.fn(
+    async (productId: string, listings: DistributorListing[]) => {
+      state.updatedListings.push(listings);
+    },
+  ),
   getSettings: vi.fn(async () => ({
     theme: "auto",
     displayCurrency: "USD",
@@ -1024,7 +1043,9 @@ vi.mock("../lib/scrapers/health", () => ({
 }));
 
 vi.mock("expo-task-manager", () => ({ defineTask: vi.fn() }));
-vi.mock("expo-background-task", () => ({ BackgroundTaskResult: { Success: "success" } }));
+vi.mock("expo-background-task", () => ({
+  BackgroundTaskResult: { Success: "success" },
+}));
 
 import { fetchServerPrice } from "../lib/server-prices";
 import { getParserByDistributorId } from "../lib/scrapers/registry";
@@ -1232,29 +1253,21 @@ async function refreshListing(
 **Replace the per-listing loop body in the background task** (lines ~75-136, inside `TaskManager.defineTask`). Replace the block from `const parser = getParserByDistributorId(listing.distributorId);` through the `catch` block with:
 
 ```ts
-            const updated = await refreshListing(
-              product,
-              listing,
-              healthCollector,
-            );
-            updatedListings.push(updated);
+const updated = await refreshListing(product, listing, healthCollector);
+updatedListings.push(updated);
 
-            // 2-second delay between scrapes
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+// 2-second delay between scrapes
+await new Promise((resolve) => setTimeout(resolve, 2000));
 ```
 
 **Replace the per-listing loop body in `checkPriceDropsNow`** (lines ~270-320, the foreground path). Replace the block from `const parser = getParserByDistributorId(listing.distributorId);` through the `catch` block with:
 
 ```ts
-            const updated = await refreshListing(
-              product,
-              listing,
-              healthCollector,
-            );
-            updatedListings.push(updated);
+const updated = await refreshListing(product, listing, healthCollector);
+updatedListings.push(updated);
 
-            // 2-second delay between scrapes
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+// 2-second delay between scrapes
+await new Promise((resolve) => setTimeout(resolve, 2000));
 ```
 
 > **Note:** both loops currently contain the same scraping logic (parser lookup → fetchWithParser → parsePrice → health record → build updated listing). The refactor extracts it into `refreshListing` and both call sites become identical. Read the current file carefully and replace the exact duplicated block in each loop — do not leave any leftover `parser`/`fetchWithParser` references in the loops.
@@ -1286,6 +1299,7 @@ git commit -m "feat(mobile): try server prices first with local fallback"
 ### Task 8: Desktop integration — server-first in the Rust poller
 
 **Files:**
+
 - Modify: `desktop/src/background.ts`
 - Modify: `desktop/src/App.tsx`
 - Modify: `desktop/src/pages/Settings.tsx`
@@ -1319,7 +1333,7 @@ import { getApiBaseUrl } from "./lib/api-base";
 Change the call at line ~97:
 
 ```ts
-      await startPricePoller(intervalMinutes, getApiBaseUrl());
+await startPricePoller(intervalMinutes, getApiBaseUrl());
 ```
 
 In `desktop/src/pages/Settings.tsx`, add the import:
@@ -1331,7 +1345,7 @@ import { getApiBaseUrl } from "../lib/api-base";
 Change the call at line ~30:
 
 ```ts
-    startPricePoller(intervalMinutes, getApiBaseUrl());
+startPricePoller(intervalMinutes, getApiBaseUrl());
 ```
 
 - [ ] **Step 3: Update the Rust poller command signature**
@@ -1472,6 +1486,7 @@ git commit -m "feat(desktop): try server prices first in the price poller"
 ### Task 9: Final verification + checkpoint commit
 
 **Files:**
+
 - Whole repo
 - Modify: `todo.md`
 

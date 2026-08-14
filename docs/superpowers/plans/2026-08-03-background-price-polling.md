@@ -34,8 +34,9 @@ The mobile app's price check logic is in `lib/background-price-check.ts` (lines 
 ## File Structure
 
 ### Files to Modify
-| File | Change |
-|------|--------|
+
+| File                           | Change                                                                           |
+| ------------------------------ | -------------------------------------------------------------------------------- |
 | `desktop/src-tauri/src/lib.rs` | Implement price comparison logic in `check_price_drops` and `start_price_poller` |
 
 ---
@@ -45,6 +46,7 @@ The mobile app's price check logic is in `lib/background-price-check.ts` (lines 
 ### Task 1: Add Exchange Rates and Price Comparison Logic
 
 **Files:**
+
 - Modify: `desktop/src-tauri/src/lib.rs`
 
 - [ ] **Step 1: Add exchange rates constant and helper functions**
@@ -288,6 +290,7 @@ fall below alert thresholds."
 ## Verification
 
 After the task, run:
+
 ```bash
 cd desktop/src-tauri && cargo check
 pnpm --filter desktop check

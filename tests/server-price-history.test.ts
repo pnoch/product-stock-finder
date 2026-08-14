@@ -94,8 +94,14 @@ describe("price history (memory backend)", () => {
     ]);
     const history = await getHistory("server2u-my", "CRS804");
     expect(history).toHaveLength(2);
-    expect(history[0]).toMatchObject({ date: "2026-08-01T20:00:00.000Z", price: 95 });
-    expect(history[1]).toMatchObject({ date: "2026-08-02T00:00:00.000Z", price: 90 });
+    expect(history[0]).toMatchObject({
+      date: "2026-08-01T20:00:00.000Z",
+      price: 95,
+    });
+    expect(history[1]).toMatchObject({
+      date: "2026-08-02T00:00:00.000Z",
+      price: 90,
+    });
   });
 
   it("purgeOldHistory removes rows older than 90 days", async () => {

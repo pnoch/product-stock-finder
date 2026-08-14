@@ -28,6 +28,7 @@ appendPricePoint(
 ```
 
 Logic:
+
 1. If a point's UTC day (`point.date.slice(0, 10)`) matches an existing point's UTC day → **replace** that point in place (keeps the latest scrape, including `stockStatus`).
 2. Else → append (history stays chronological).
 3. Filter out points whose `date` is older than `now` minus `maxDays` days.
@@ -39,13 +40,19 @@ The helper is pure (no AsyncStorage, no Notifications), so it's trivially unit-t
 Both scrape paths (background task ~line 103 and foreground `checkPriceDropsNow` ~line 286) currently build the new listing with:
 
 ```ts
-priceHistory: [...listing.priceHistory, newPricePoint].slice(-MAX_PRICE_HISTORY)
+priceHistory: [...listing.priceHistory, newPricePoint].slice(
+  -MAX_PRICE_HISTORY,
+);
 ```
 
 Replace both with:
 
 ```ts
-priceHistory: appendPricePoint(listing.priceHistory, newPricePoint, PRICE_HISTORY_DAYS)
+priceHistory: appendPricePoint(
+  listing.priceHistory,
+  newPricePoint,
+  PRICE_HISTORY_DAYS,
+);
 ```
 
 Rename `MAX_PRICE_HISTORY = 90` → `PRICE_HISTORY_DAYS = 90`.
@@ -90,9 +97,11 @@ Add a small `iso_date_from_secs(secs) -> String` helper (the file already hand-r
 ## Files
 
 **Modified:**
+
 - `lib/background-price-check.ts` — use `appendPricePoint`, rename constant to `PRICE_HISTORY_DAYS`
 - `desktop/src-tauri/src/lib.rs` — bounded retention in `update_listing_price`, `iso_date_from_secs` helper
 
 **New:**
+
 - `lib/price-history.ts` — `appendPricePoint` pure helper
 - `tests/price-history.test.ts` — vitest unit tests

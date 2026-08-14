@@ -13,18 +13,20 @@
 ## File Structure
 
 ### Files to Create
-| File | Purpose |
-|------|---------|
-| `desktop/vitest.config.ts` | Vitest configuration |
-| `desktop/tests/setup.ts` | Test setup (jsdom, mocks) |
-| `desktop/tests/storage.test.ts` | Storage adapter tests (localStorage) |
-| `desktop/tests/hooks.test.ts` | React hook tests (useWatchlist, useAlerts, useSettings) |
-| `desktop/tests/components.test.tsx` | Component tests (StockBadge, Modal, EmptyState, etc.) |
-| `desktop/tests/pages.test.tsx` | Page tests (Home, Watchlist, Settings) |
+
+| File                                | Purpose                                                 |
+| ----------------------------------- | ------------------------------------------------------- |
+| `desktop/vitest.config.ts`          | Vitest configuration                                    |
+| `desktop/tests/setup.ts`            | Test setup (jsdom, mocks)                               |
+| `desktop/tests/storage.test.ts`     | Storage adapter tests (localStorage)                    |
+| `desktop/tests/hooks.test.ts`       | React hook tests (useWatchlist, useAlerts, useSettings) |
+| `desktop/tests/components.test.tsx` | Component tests (StockBadge, Modal, EmptyState, etc.)   |
+| `desktop/tests/pages.test.tsx`      | Page tests (Home, Watchlist, Settings)                  |
 
 ### Files to Modify
-| File | Change |
-|------|--------|
+
+| File                   | Change                                |
+| ---------------------- | ------------------------------------- |
 | `desktop/package.json` | Add test dependencies and test script |
 
 ---
@@ -34,6 +36,7 @@
 ### Task 1: Test Setup
 
 **Files:**
+
 - Create: `desktop/vitest.config.ts`
 - Create: `desktop/tests/setup.ts`
 - Modify: `desktop/package.json`
@@ -41,6 +44,7 @@
 - [ ] **Step 1: Add test dependencies**
 
 Run in `desktop/`:
+
 ```bash
 pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-library/user-event jsdom
 ```
@@ -48,6 +52,7 @@ pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-lib
 - [ ] **Step 2: Add test script to desktop/package.json**
 
 Add to scripts:
+
 ```json
 "test": "vitest run",
 "test:watch": "vitest"
@@ -99,6 +104,7 @@ git commit -m "chore: add vitest and testing library setup for desktop"
 ### Task 2: Storage Adapter Tests
 
 **Files:**
+
 - Create: `desktop/tests/storage.test.ts`
 
 - [ ] **Step 1: Create storage tests**
@@ -298,6 +304,7 @@ git commit -m "test: add storage adapter tests for localStorage"
 ### Task 3: Component Tests
 
 **Files:**
+
 - Create: `desktop/tests/components.test.tsx`
 
 - [ ] **Step 1: Create component tests**
@@ -341,7 +348,9 @@ describe("StockBadge", () => {
 
 describe("EmptyState", () => {
   it("renders title and description", () => {
-    render(<EmptyState icon={null} title="No items" description="Add something" />);
+    render(
+      <EmptyState icon={null} title="No items" description="Add something" />,
+    );
     expect(screen.getByText("No items")).toBeInTheDocument();
     expect(screen.getByText("Add something")).toBeInTheDocument();
   });
@@ -366,7 +375,12 @@ describe("TimeRangeChips", () => {
   it("calls onSelect when clicked", async () => {
     let selected = "1m";
     const { user } = renderWithUser(
-      <TimeRangeChips selected={selected} onSelect={(r) => { selected = r; }} />
+      <TimeRangeChips
+        selected={selected}
+        onSelect={(r) => {
+          selected = r;
+        }}
+      />,
     );
     await user.click(screen.getByText("3M"));
     expect(selected).toBe("3M");
@@ -399,6 +413,7 @@ git commit -m "test: add component tests for StockBadge, EmptyState, TimeRangeCh
 ### Task 4: Page Tests
 
 **Files:**
+
 - Create: `desktop/tests/pages.test.tsx`
 
 - [ ] **Step 1: Create page tests**
@@ -433,11 +448,7 @@ vi.mock("../src/storage", () => ({
 }));
 
 function renderWithRouter(ui: React.ReactElement, route = "/") {
-  return render(
-    <MemoryRouter initialEntries={[route]}>
-      {ui}
-    </MemoryRouter>
-  );
+  return render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>);
 }
 
 describe("Home page", () => {
@@ -505,6 +516,7 @@ git commit -m "test: add page tests for Home and Settings"
 ## Verification
 
 After all tasks, run:
+
 ```bash
 cd desktop && pnpm test
 ```

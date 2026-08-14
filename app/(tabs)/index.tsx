@@ -348,7 +348,10 @@ export default function HomeScreen() {
               Your Watchlist
             </Text>
             {watchlist.slice(0, 3).map((product) => {
-              const bestPrice = getBestPrice(product.listings ?? [], displayCurrency);
+              const bestPrice = getBestPrice(
+                product.listings ?? [],
+                displayCurrency,
+              );
               const bestStatus = getBestStatus(product);
               return (
                 <TouchableOpacity

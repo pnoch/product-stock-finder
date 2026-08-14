@@ -39,8 +39,18 @@ const snapshot: PriceSnapshot = {
 };
 
 const history: PricePoint[] = [
-  { date: "2026-07-01T00:00:00.000Z", price: 95, currency: "MYR", stockStatus: "in_stock" },
-  { date: "2026-08-01T00:00:00.000Z", price: 88.5, currency: "MYR", stockStatus: "in_stock" },
+  {
+    date: "2026-07-01T00:00:00.000Z",
+    price: 95,
+    currency: "MYR",
+    stockStatus: "in_stock",
+  },
+  {
+    date: "2026-08-01T00:00:00.000Z",
+    price: 88.5,
+    currency: "MYR",
+    stockStatus: "in_stock",
+  },
 ];
 
 describe("getInsight", () => {
@@ -56,7 +66,10 @@ describe("getInsight", () => {
       choices: [
         {
           index: 0,
-          message: { role: "assistant", content: "Price is down 7% over 30 days." },
+          message: {
+            role: "assistant",
+            content: "Price is down 7% over 30 days.",
+          },
           finish_reason: "stop",
         },
       ],

@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import { analyzeDistributors } from "@/lib/distributor-analysis";
 import type { Product, DistributorListing } from "@/lib/types";
 
-function makeListing(overrides: Partial<DistributorListing> = {}): DistributorListing {
+function makeListing(
+  overrides: Partial<DistributorListing> = {},
+): DistributorListing {
   return {
     distributorId: "server2u-my",
     productId: "p1",
@@ -34,11 +36,19 @@ describe("analyzeDistributors", () => {
   it("computes coverage, total, and average correctly", () => {
     const watchlist = [
       makeProduct("p1", [
-        makeListing({ distributorId: "server2u-my", price: 100, currency: "USD" }),
+        makeListing({
+          distributorId: "server2u-my",
+          price: 100,
+          currency: "USD",
+        }),
         makeListing({ distributorId: "linitx-uk", price: 90, currency: "USD" }),
       ]),
       makeProduct("p2", [
-        makeListing({ distributorId: "server2u-my", price: 50, currency: "USD" }),
+        makeListing({
+          distributorId: "server2u-my",
+          price: 50,
+          currency: "USD",
+        }),
       ]),
     ];
     const result = analyzeDistributors(watchlist, "USD");
@@ -57,7 +67,11 @@ describe("analyzeDistributors", () => {
   it("converts to display currency", () => {
     const watchlist = [
       makeProduct("p1", [
-        makeListing({ distributorId: "server2u-my", price: 100, currency: "USD" }),
+        makeListing({
+          distributorId: "server2u-my",
+          price: 100,
+          currency: "USD",
+        }),
       ]),
     ];
     const result = analyzeDistributors(watchlist, "EUR");
@@ -69,7 +83,11 @@ describe("analyzeDistributors", () => {
   it("sorts by total cost ascending", () => {
     const watchlist = [
       makeProduct("p1", [
-        makeListing({ distributorId: "server2u-my", price: 200, currency: "USD" }),
+        makeListing({
+          distributorId: "server2u-my",
+          price: 200,
+          currency: "USD",
+        }),
         makeListing({ distributorId: "linitx-uk", price: 50, currency: "USD" }),
       ]),
     ];
@@ -81,7 +99,10 @@ describe("analyzeDistributors", () => {
   it("excludes distributors with no in-stock listings", () => {
     const watchlist = [
       makeProduct("p1", [
-        makeListing({ distributorId: "server2u-my", stockStatus: "out_of_stock" }),
+        makeListing({
+          distributorId: "server2u-my",
+          stockStatus: "out_of_stock",
+        }),
       ]),
     ];
     const result = analyzeDistributors(watchlist, "USD");
@@ -95,7 +116,12 @@ describe("analyzeDistributors", () => {
   it("includes tax in totalCost", () => {
     const watchlist = [
       makeProduct("p1", [
-        makeListing({ distributorId: "server2u-my", price: 100, currency: "USD", taxRate: 0.2 }),
+        makeListing({
+          distributorId: "server2u-my",
+          price: 100,
+          currency: "USD",
+          taxRate: 0.2,
+        }),
       ]),
     ];
     const result = analyzeDistributors(watchlist, "USD");

@@ -13,10 +13,12 @@
 ## File Structure
 
 ### New Files
+
 - `lib/best-deal.ts` — shared best-deal utility
 - `tests/best-deal.test.ts` — unit tests
 
 ### Modified Files
+
 - `lib/types.ts` — add `shippingCosts` to `Distributor`, `shippingRegion` to `AppSettings`
 - `lib/distributors.ts` — add `shippingCosts` to each distributor
 - `lib/storage.ts` — add `shippingRegion` default to settings
@@ -30,6 +32,7 @@
 ## Task 1: Add Types and Settings Default
 
 **Files:**
+
 - Modify: `lib/types.ts`
 - Modify: `lib/storage.ts`
 
@@ -74,15 +77,15 @@ export interface AppSettings {
 In `lib/storage.ts`, add `shippingRegion: "Asia-Pacific"` to `DEFAULT_SETTINGS`:
 
 ```typescript
-  const DEFAULT_SETTINGS: AppSettings = {
-    theme: "auto",
-    displayCurrency: "USD",
-    checkInterval: "manual",
-    notificationsEnabled: true,
-    stockAlerts: true,
-    priceAlerts: true,
-    shippingRegion: "Asia-Pacific",
-  };
+const DEFAULT_SETTINGS: AppSettings = {
+  theme: "auto",
+  displayCurrency: "USD",
+  checkInterval: "manual",
+  notificationsEnabled: true,
+  stockAlerts: true,
+  priceAlerts: true,
+  shippingRegion: "Asia-Pacific",
+};
 ```
 
 - [ ] **Step 4: Run typecheck to verify no errors**
@@ -102,6 +105,7 @@ git commit -m "feat: add shippingCosts to Distributor and shippingRegion to AppS
 ## Task 2: Add Shipping Costs to Distributors
 
 **Files:**
+
 - Modify: `lib/distributors.ts`
 
 - [ ] **Step 1: Add shippingCosts to each distributor**
@@ -147,6 +151,7 @@ git commit -m "feat: add shipping costs to all distributors"
 ## Task 3: Create Shared Best Deal Utility
 
 **Files:**
+
 - Create: `lib/best-deal.ts`
 - Test: `tests/best-deal.test.ts`
 
@@ -159,7 +164,9 @@ import { describe, it, expect } from "vitest";
 import { findBestDeal } from "@/lib/best-deal";
 import type { DistributorListing } from "@/lib/types";
 
-function makeListing(overrides: Partial<DistributorListing> = {}): DistributorListing {
+function makeListing(
+  overrides: Partial<DistributorListing> = {},
+): DistributorListing {
   return {
     distributorId: "server2u-my",
     productId: "p1",
@@ -176,9 +183,17 @@ function makeListing(overrides: Partial<DistributorListing> = {}): DistributorLi
 describe("findBestDeal", () => {
   it("returns the lowest total landed cost (price + shipping)", () => {
     const listings = [
-      makeListing({ distributorId: "server2u-my", price: 100, currency: "USD" }), // shipping 15 → 115
+      makeListing({
+        distributorId: "server2u-my",
+        price: 100,
+        currency: "USD",
+      }), // shipping 15 → 115
       makeListing({ distributorId: "linitx-uk", price: 90, currency: "USD" }), // shipping 25 → 115
-      makeListing({ distributorId: "interprojekt-pl", price: 80, currency: "USD" }), // shipping 30 → 110
+      makeListing({
+        distributorId: "interprojekt-pl",
+        price: 80,
+        currency: "USD",
+      }), // shipping 30 → 110
     ];
     const deal = findBestDeal(listings, "Asia-Pacific", "USD");
     expect(deal).not.toBeNull();
@@ -188,8 +203,16 @@ describe("findBestDeal", () => {
 
   it("skips out-of-stock listings", () => {
     const listings = [
-      makeListing({ distributorId: "server2u-my", price: 100, stockStatus: "out_of_stock" }),
-      makeListing({ distributorId: "linitx-uk", price: 90, stockStatus: "in_stock" }),
+      makeListing({
+        distributorId: "server2u-my",
+        price: 100,
+        stockStatus: "out_of_stock",
+      }),
+      makeListing({
+        distributorId: "linitx-uk",
+        price: 90,
+        stockStatus: "in_stock",
+      }),
     ];
     const deal = findBestDeal(listings, "Asia-Pacific", "USD");
     expect(deal!.distributorId).toBe("linitx-uk");
@@ -206,7 +229,11 @@ describe("findBestDeal", () => {
 
   it("converts price and shipping to display currency", () => {
     const listings = [
-      makeListing({ distributorId: "server2u-my", price: 100, currency: "USD" }),
+      makeListing({
+        distributorId: "server2u-my",
+        price: 100,
+        currency: "USD",
+      }),
     ];
     // server2u shipping to Asia-Pacific is 15 MYR
     const deal = findBestDeal(listings, "Asia-Pacific", "USD");
@@ -263,8 +290,16 @@ export function findBestDeal(
     const shippingCost = distributor.shippingCosts[destinationRegion];
     if (shippingCost == null) continue;
 
-    const price = convertPrice(listing.price, listing.currency, displayCurrency);
-    const shipping = convertPrice(shippingCost, listing.currency, displayCurrency);
+    const price = convertPrice(
+      listing.price,
+      listing.currency,
+      displayCurrency,
+    );
+    const shipping = convertPrice(
+      shippingCost,
+      listing.currency,
+      displayCurrency,
+    );
     const total = price + shipping;
 
     if (!best || total < best.total) {
@@ -299,6 +334,7 @@ git commit -m "feat: add best deal utility with tests"
 ## Task 4: Add Shipping Region Selector to Mobile Settings
 
 **Files:**
+
 - Modify: `app/(tabs)/settings.tsx`
 
 - [ ] **Step 1: Add regions array**
@@ -306,7 +342,13 @@ git commit -m "feat: add best deal utility with tests"
 In the `SettingsScreen` component, add a `regions` array (near the `currencies` array at line 240):
 
 ```typescript
-const regions = ["Asia-Pacific", "Europe", "North America", "Middle East", "Africa"];
+const regions = [
+  "Asia-Pacific",
+  "Europe",
+  "North America",
+  "Middle East",
+  "Africa",
+];
 ```
 
 - [ ] **Step 2: Add shipping region selector UI**
@@ -379,6 +421,7 @@ git commit -m "feat: add shipping region selector to mobile settings"
 ## Task 5: Add Best Deal Card to Mobile Product Detail
 
 **Files:**
+
 - Modify: `app/product/[id].tsx`
 
 - [ ] **Step 1: Add import**
@@ -413,43 +456,63 @@ And in the settings load, add `setShippingRegion(settings.shippingRegion ?? "Asi
 Find where the `BestDistributorCard` is rendered (around line 1246). Add a Best Deal card above it:
 
 ```tsx
-{bestDeal && (
-  <View
-    style={{
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-    }}
-  >
-    <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600", letterSpacing: 0.5 }}>
-      BEST DEAL (incl. shipping to {shippingRegion})
-    </Text>
-    {(() => {
-      const distrib = getDistributorById(bestDeal.distributorId);
-      return (
-        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
-          <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700", flex: 1 }}>
-            {distrib?.countryFlag} {distrib?.name ?? bestDeal.distributorId}
-          </Text>
-          <Text style={{ color: colors.primary, fontSize: 18, fontWeight: "700" }}>
-            {formatPrice(bestDeal.total, bestDeal.currency)}
-          </Text>
-        </View>
-      );
-    })()}
-    <View style={{ flexDirection: "row", marginTop: 8, gap: 16 }}>
-      <Text style={{ color: colors.muted, fontSize: 12 }}>
-        Price: {formatPrice(bestDeal.price, bestDeal.currency)}
+{
+  bestDeal && (
+    <View
+      style={{
+        backgroundColor: colors.surface,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
+    >
+      <Text
+        style={{
+          color: colors.muted,
+          fontSize: 12,
+          fontWeight: "600",
+          letterSpacing: 0.5,
+        }}
+      >
+        BEST DEAL (incl. shipping to {shippingRegion})
       </Text>
-      <Text style={{ color: colors.muted, fontSize: 12 }}>
-        Shipping: {formatPrice(bestDeal.shipping, bestDeal.currency)}
-      </Text>
+      {(() => {
+        const distrib = getDistributorById(bestDeal.distributorId);
+        return (
+          <View
+            style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}
+          >
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 16,
+                fontWeight: "700",
+                flex: 1,
+              }}
+            >
+              {distrib?.countryFlag} {distrib?.name ?? bestDeal.distributorId}
+            </Text>
+            <Text
+              style={{ color: colors.primary, fontSize: 18, fontWeight: "700" }}
+            >
+              {formatPrice(bestDeal.total, bestDeal.currency)}
+            </Text>
+          </View>
+        );
+      })()}
+      <View style={{ flexDirection: "row", marginTop: 8, gap: 16 }}>
+        <Text style={{ color: colors.muted, fontSize: 12 }}>
+          Price: {formatPrice(bestDeal.price, bestDeal.currency)}
+        </Text>
+        <Text style={{ color: colors.muted, fontSize: 12 }}>
+          Shipping: {formatPrice(bestDeal.shipping, bestDeal.currency)}
+        </Text>
+      </View>
     </View>
-  </View>
-)}
+  );
+}
 ```
 
 Note: `getDistributorById` and `formatPrice` are already imported.
@@ -471,6 +534,7 @@ git commit -m "feat: add best deal card to mobile product detail"
 ## Task 6: Add Shipping Region Selector to Desktop Settings
 
 **Files:**
+
 - Modify: `desktop/src/pages/Settings.tsx`
 
 - [ ] **Step 1: Add shipping region selector**
@@ -478,7 +542,9 @@ git commit -m "feat: add best deal card to mobile product detail"
 Find the Display Currency section (around line 88). After it, add a Shipping Region section:
 
 ```tsx
-{/* Shipping Region Section */}
+{
+  /* Shipping Region Section */
+}
 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
   <div className="flex items-center gap-3 mb-4">
     <Globe className="w-5 h-5 text-brand-600 dark:text-brand-400" />
@@ -489,13 +555,15 @@ Find the Display Currency section (around line 88). After it, add a Shipping Reg
     onChange={(e) => update({ shippingRegion: e.target.value })}
     className="w-full max-w-xs px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
   >
-    {["Asia-Pacific", "Europe", "North America", "Middle East", "Africa"].map((region) => (
-      <option key={region} value={region}>
-        {region}
-      </option>
-    ))}
+    {["Asia-Pacific", "Europe", "North America", "Middle East", "Africa"].map(
+      (region) => (
+        <option key={region} value={region}>
+          {region}
+        </option>
+      ),
+    )}
   </select>
-</div>
+</div>;
 ```
 
 Note: `Globe` needs to be imported from `lucide-react`. Add it to the existing lucide import.
@@ -517,6 +585,7 @@ git commit -m "feat: add shipping region selector to desktop settings"
 ## Task 7: Add Best Deal Card to Desktop Product Detail
 
 **Files:**
+
 - Modify: `desktop/src/pages/ProductDetail.tsx`
 
 - [ ] **Step 1: Add import**
@@ -551,36 +620,38 @@ And in the settings load, add `setShippingRegion(settings.shippingRegion ?? "Asi
 Find where the best-price card is rendered. Add a Best Deal card above it:
 
 ```tsx
-{bestDeal && (
-  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-      Best Deal (incl. shipping to {shippingRegion})
-    </p>
-    {(() => {
-      const distrib = DISTRIBUTORS.find(
-        (d) => d.id === bestDeal.distributorId,
-      );
-      return (
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-base font-bold">
-            {distrib?.countryFlag} {distrib?.name ?? bestDeal.distributorId}
-          </p>
-          <p className="text-lg font-bold text-brand-600 dark:text-brand-400">
-            {formatPrice(bestDeal.total, bestDeal.currency)}
-          </p>
-        </div>
-      );
-    })()}
-    <div className="flex gap-4 mt-2">
-      <p className="text-xs text-gray-500 dark:text-gray-400">
-        Price: {formatPrice(bestDeal.price, bestDeal.currency)}
+{
+  bestDeal && (
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+        Best Deal (incl. shipping to {shippingRegion})
       </p>
-      <p className="text-xs text-gray-500 dark:text-gray-400">
-        Shipping: {formatPrice(bestDeal.shipping, bestDeal.currency)}
-      </p>
+      {(() => {
+        const distrib = DISTRIBUTORS.find(
+          (d) => d.id === bestDeal.distributorId,
+        );
+        return (
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-base font-bold">
+              {distrib?.countryFlag} {distrib?.name ?? bestDeal.distributorId}
+            </p>
+            <p className="text-lg font-bold text-brand-600 dark:text-brand-400">
+              {formatPrice(bestDeal.total, bestDeal.currency)}
+            </p>
+          </div>
+        );
+      })()}
+      <div className="flex gap-4 mt-2">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Price: {formatPrice(bestDeal.price, bestDeal.currency)}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Shipping: {formatPrice(bestDeal.shipping, bestDeal.currency)}
+        </p>
+      </div>
     </div>
-  </div>
-)}
+  );
+}
 ```
 
 Note: `DISTRIBUTORS` and `formatPrice` are already imported in the desktop ProductDetail.

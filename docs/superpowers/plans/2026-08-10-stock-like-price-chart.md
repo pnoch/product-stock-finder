@@ -13,10 +13,12 @@
 ## File Structure
 
 ### New Files
+
 - `tests/price-chart.test.ts` — unit tests for nearest-point logic
 - `desktop/tests/price-chart.test.tsx` — component tests for the desktop chart
 
 ### Modified Files
+
 - `app/product/[id].tsx` — enhance `PriceHistoryChart` with tap-to-inspect tooltip
 - `desktop/src/pages/ProductDetail.tsx` — add Price History section with Recharts chart
 
@@ -25,6 +27,7 @@
 ## Task 1: Create Nearest-Point Utility
 
 **Files:**
+
 - Create: `lib/price-chart.ts`
 - Test: `tests/price-chart.test.ts`
 
@@ -93,6 +96,7 @@ git commit -m "feat: add nearest-point utility for chart tap-to-inspect"
 ## Task 2: Add Tap-to-Inspect to Mobile Chart
 
 **Files:**
+
 - Modify: `app/product/[id].tsx`
 
 - [ ] **Step 1: Add imports**
@@ -120,181 +124,184 @@ Note: `useState` is already imported.
 In the `PriceHistoryChart` return, wrap the `<Svg>` in a `Pressable` and add a crosshair + tooltip when `selectedIndex` is set. Replace the `return (` block with:
 
 ```tsx
-  return (
-    <Pressable
-      onPress={(e) => {
-        const x = e.nativeEvent.locationX;
-        const idx = findNearestIndex(
-          ((x - padL) / (width - padL - 16)) * 100,
-          coords.length,
-        );
-        setSelectedIndex(idx);
-      }}
-    >
-      <Svg width={width} height={height}>
-        {[maxY, midY, minY].map((y, i) => (
-          <Line
-            key={i}
-            x1={padL}
-            y1={y}
-            x2={width - 16}
-            y2={y}
-            stroke={colors.border}
-            strokeWidth={0.5}
-            strokeDasharray="4,4"
-          />
-        ))}
-        <SvgText
-          x={padL - 6}
-          y={maxY + 4}
-          fontSize={10}
-          fill={colors.muted}
-          textAnchor="end"
-        >
-          {maxP.toFixed(0)}
-        </SvgText>
-        <SvgText
-          x={padL - 6}
-          y={midY + 4}
-          fontSize={10}
-          fill={colors.muted}
-          textAnchor="end"
-        >
-          {midP.toFixed(0)}
-        </SvgText>
-        <SvgText
-          x={padL - 6}
-          y={minY + 4}
-          fontSize={10}
-          fill={colors.muted}
-          textAnchor="end"
-        >
-          {minP.toFixed(0)}
-        </SvgText>
-        <Polyline
-          points={polylineStr}
-          fill="none"
-          stroke={lineColor}
-          strokeWidth={2}
-          strokeLinejoin="round"
-          strokeLinecap="round"
+return (
+  <Pressable
+    onPress={(e) => {
+      const x = e.nativeEvent.locationX;
+      const idx = findNearestIndex(
+        ((x - padL) / (width - padL - 16)) * 100,
+        coords.length,
+      );
+      setSelectedIndex(idx);
+    }}
+  >
+    <Svg width={width} height={height}>
+      {[maxY, midY, minY].map((y, i) => (
+        <Line
+          key={i}
+          x1={padL}
+          y1={y}
+          x2={width - 16}
+          y2={y}
+          stroke={colors.border}
+          strokeWidth={0.5}
+          strokeDasharray="4,4"
         />
-        {coords.map((c, i) => (
-          <Circle key={i} cx={c.x} cy={c.y} r={3} fill={lineColor} />
-        ))}
-        {[0, Math.floor((coords.length - 1) / 2), coords.length - 1].map(
-          (idx) => {
-            const c = coords[idx];
-            const label = new Date(c.date).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-            });
-            return (
-              <SvgText
-                key={idx}
-                x={c.x}
-                y={height - padB + 16}
-                fontSize={10}
-                fill={colors.muted}
-                textAnchor="middle"
-              >
-                {label}
-              </SvgText>
-            );
-          },
-        )}
-        {(() => {
-          const minCoord = coords.reduce((a, b) => (b.price < a.price ? b : a));
-          const maxCoord = coords.reduce((a, b) => (b.price > a.price ? b : a));
+      ))}
+      <SvgText
+        x={padL - 6}
+        y={maxY + 4}
+        fontSize={10}
+        fill={colors.muted}
+        textAnchor="end"
+      >
+        {maxP.toFixed(0)}
+      </SvgText>
+      <SvgText
+        x={padL - 6}
+        y={midY + 4}
+        fontSize={10}
+        fill={colors.muted}
+        textAnchor="end"
+      >
+        {midP.toFixed(0)}
+      </SvgText>
+      <SvgText
+        x={padL - 6}
+        y={minY + 4}
+        fontSize={10}
+        fill={colors.muted}
+        textAnchor="end"
+      >
+        {minP.toFixed(0)}
+      </SvgText>
+      <Polyline
+        points={polylineStr}
+        fill="none"
+        stroke={lineColor}
+        strokeWidth={2}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      {coords.map((c, i) => (
+        <Circle key={i} cx={c.x} cy={c.y} r={3} fill={lineColor} />
+      ))}
+      {[0, Math.floor((coords.length - 1) / 2), coords.length - 1].map(
+        (idx) => {
+          const c = coords[idx];
+          const label = new Date(c.date).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+          });
           return (
-            <>
-              <Rect
-                x={minCoord.x - 22}
-                y={minCoord.y - 16}
-                width={44}
-                height={14}
-                rx={4}
-                fill={colors.error + "33"}
-              />
-              <SvgText
-                x={minCoord.x}
-                y={minCoord.y - 5}
-                fontSize={9}
-                fill={colors.error}
-                textAnchor="middle"
-                fontWeight="700"
-              >
-                LOW {minP.toFixed(0)}
-              </SvgText>
-              <Rect
-                x={maxCoord.x - 24}
-                y={maxCoord.y + 4}
-                width={48}
-                height={14}
-                rx={4}
-                fill={colors.success + "33"}
-              />
-              <SvgText
-                x={maxCoord.x}
-                y={maxCoord.y + 14}
-                fontSize={9}
-                fill={colors.success}
-                textAnchor="middle"
-                fontWeight="700"
-              >
-                HIGH {maxP.toFixed(0)}
-              </SvgText>
-            </>
-          );
-        })()}
-        {selectedIndex != null && coords[selectedIndex] && (
-          <>
-            <Line
-              x1={coords[selectedIndex].x}
-              y1={padT}
-              x2={coords[selectedIndex].x}
-              y2={padT + usableH}
-              stroke={colors.muted}
-              strokeWidth={1}
-              strokeDasharray="3,3"
-            />
-            <Rect
-              x={Math.min(coords[selectedIndex].x - 40, width - 90)}
-              y={padT - 2}
-              width={80}
-              height={22}
-              rx={6}
-              fill={colors.surface}
-              stroke={colors.border}
-              strokeWidth={1}
-            />
             <SvgText
-              x={Math.min(coords[selectedIndex].x, width - 50)}
-              y={padT + 8}
+              key={idx}
+              x={c.x}
+              y={height - padB + 16}
               fontSize={10}
-              fill={colors.foreground}
-              textAnchor="middle"
-              fontWeight="700"
-            >
-              {formatPrice(coords[selectedIndex].price, currency)}
-            </SvgText>
-            <SvgText
-              x={Math.min(coords[selectedIndex].x, width - 50)}
-              y={padT + 18}
-              fontSize={8}
               fill={colors.muted}
               textAnchor="middle"
             >
-              {new Date(coords[selectedIndex].date).toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric",
-              })}
+              {label}
+            </SvgText>
+          );
+        },
+      )}
+      {(() => {
+        const minCoord = coords.reduce((a, b) => (b.price < a.price ? b : a));
+        const maxCoord = coords.reduce((a, b) => (b.price > a.price ? b : a));
+        return (
+          <>
+            <Rect
+              x={minCoord.x - 22}
+              y={minCoord.y - 16}
+              width={44}
+              height={14}
+              rx={4}
+              fill={colors.error + "33"}
+            />
+            <SvgText
+              x={minCoord.x}
+              y={minCoord.y - 5}
+              fontSize={9}
+              fill={colors.error}
+              textAnchor="middle"
+              fontWeight="700"
+            >
+              LOW {minP.toFixed(0)}
+            </SvgText>
+            <Rect
+              x={maxCoord.x - 24}
+              y={maxCoord.y + 4}
+              width={48}
+              height={14}
+              rx={4}
+              fill={colors.success + "33"}
+            />
+            <SvgText
+              x={maxCoord.x}
+              y={maxCoord.y + 14}
+              fontSize={9}
+              fill={colors.success}
+              textAnchor="middle"
+              fontWeight="700"
+            >
+              HIGH {maxP.toFixed(0)}
             </SvgText>
           </>
-        )}
-      </Svg>
-    </Pressable>
-  );
+        );
+      })()}
+      {selectedIndex != null && coords[selectedIndex] && (
+        <>
+          <Line
+            x1={coords[selectedIndex].x}
+            y1={padT}
+            x2={coords[selectedIndex].x}
+            y2={padT + usableH}
+            stroke={colors.muted}
+            strokeWidth={1}
+            strokeDasharray="3,3"
+          />
+          <Rect
+            x={Math.min(coords[selectedIndex].x - 40, width - 90)}
+            y={padT - 2}
+            width={80}
+            height={22}
+            rx={6}
+            fill={colors.surface}
+            stroke={colors.border}
+            strokeWidth={1}
+          />
+          <SvgText
+            x={Math.min(coords[selectedIndex].x, width - 50)}
+            y={padT + 8}
+            fontSize={10}
+            fill={colors.foreground}
+            textAnchor="middle"
+            fontWeight="700"
+          >
+            {formatPrice(coords[selectedIndex].price, currency)}
+          </SvgText>
+          <SvgText
+            x={Math.min(coords[selectedIndex].x, width - 50)}
+            y={padT + 18}
+            fontSize={8}
+            fill={colors.muted}
+            textAnchor="middle"
+          >
+            {new Date(coords[selectedIndex].date).toLocaleDateString(
+              undefined,
+              {
+                month: "short",
+                day: "numeric",
+              },
+            )}
+          </SvgText>
+        </>
+      )}
+    </Svg>
+  </Pressable>
+);
 ```
 
 Note: `formatPrice` is already imported. `padL`, `padT`, `padB`, `usableH`, `coords`, `minP`, `maxP`, `midP`, `maxY`, `midY`, `minY`, `polylineStr`, `lineColor` are all already computed in the `points` memo and destructured.
@@ -316,6 +323,7 @@ git commit -m "feat: add tap-to-inspect tooltip to mobile price history chart"
 ## Task 3: Add Price History Chart to Desktop Product Detail
 
 **Files:**
+
 - Modify: `desktop/src/pages/ProductDetail.tsx`
 
 - [ ] **Step 1: Add Recharts imports**
@@ -339,35 +347,41 @@ import {
 Find the "All Listings" section (around line 292). Add a "Price History" section above it that renders a Recharts chart for the best listing's price history:
 
 ```tsx
-{/* Price History Section */}
-{bestListing && bestListing.priceHistory && bestListing.priceHistory.length >= 2 && (
-  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-    <h2 className="text-lg font-semibold mb-3">Price History</h2>
-    <ResponsiveContainer width="100%" height={300}>
-      <LineChart
-        data={bestListing.priceHistory.map((p) => ({
-          date: new Date(p.date).toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-          }),
-          price: p.price,
-        }))}
-      >
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-        <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-        <YAxis tick={{ fontSize: 12 }} />
-        <Tooltip />
-        <Line
-          type="monotone"
-          dataKey="price"
-          stroke="#0F52BA"
-          strokeWidth={2}
-          dot={false}
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  </div>
-)}
+{
+  /* Price History Section */
+}
+{
+  bestListing &&
+    bestListing.priceHistory &&
+    bestListing.priceHistory.length >= 2 && (
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <h2 className="text-lg font-semibold mb-3">Price History</h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart
+            data={bestListing.priceHistory.map((p) => ({
+              date: new Date(p.date).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+              }),
+              price: p.price,
+            }))}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+            <YAxis tick={{ fontSize: 12 }} />
+            <Tooltip />
+            <Line
+              type="monotone"
+              dataKey="price"
+              stroke="#0F52BA"
+              strokeWidth={2}
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    );
+}
 ```
 
 - [ ] **Step 3: Run typecheck to verify no errors**
@@ -387,6 +401,7 @@ git commit -m "feat: add price history chart to desktop product detail"
 ## Task 4: Add Desktop Chart Component Test
 
 **Files:**
+
 - Create: `desktop/tests/price-chart.test.tsx`
 
 - [ ] **Step 1: Create the test**
@@ -396,7 +411,14 @@ Create `desktop/tests/price-chart.test.tsx`:
 ```tsx
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 describe("Price History Chart", () => {
   it("renders a Recharts line chart with price data", () => {

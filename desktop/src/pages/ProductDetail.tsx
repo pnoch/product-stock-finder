@@ -39,9 +39,7 @@ import {
 
 function PriceSparkline({ history }: { history: { price: number }[] }) {
   if (history.length < 2) {
-    return (
-      <div className="h-8 w-24 bg-gray-100 dark:bg-gray-800 rounded" />
-    );
+    return <div className="h-8 w-24 bg-gray-100 dark:bg-gray-800 rounded" />;
   }
 
   const prices = history.map((h) => h.price);
@@ -118,7 +116,7 @@ export function ProductDetail() {
 
   const visibleListings =
     regionFilter === "all"
-      ? product?.listings ?? []
+      ? (product?.listings ?? [])
       : filterListingsByRegion(product?.listings ?? [], regionFilter);
 
   const best = useMemo(() => {
@@ -288,7 +286,9 @@ export function ProductDetail() {
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
             AI insight
           </p>
-          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{insight}</p>
+          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+            {insight}
+          </p>
         </div>
       )}
 
@@ -321,42 +321,46 @@ export function ProductDetail() {
       </div>
 
       {/* Price History Section */}
-      {bestListing && bestListing.priceHistory && bestListing.priceHistory.length >= 2 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-          <h2 className="text-lg font-semibold mb-3">Price History</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart
-              data={bestListing.priceHistory.map((p) => ({
-                date: new Date(p.date).toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                }),
-                price: convertPrice(p.price, p.currency, displayCurrency),
-              }))}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis
-                tick={{ fontSize: 12 }}
-                tickFormatter={(v: number) => `${v.toFixed(0)} ${displayCurrency}`}
-              />
-              <Tooltip
-                formatter={(value: number) => [
-                  `${value.toFixed(2)} ${displayCurrency}`,
-                  "Price",
-                ]}
-              />
-              <Line
-                type="monotone"
-                dataKey="price"
-                stroke="#0F52BA"
-                strokeWidth={2}
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      {bestListing &&
+        bestListing.priceHistory &&
+        bestListing.priceHistory.length >= 2 && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+            <h2 className="text-lg font-semibold mb-3">Price History</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart
+                data={bestListing.priceHistory.map((p) => ({
+                  date: new Date(p.date).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  }),
+                  price: convertPrice(p.price, p.currency, displayCurrency),
+                }))}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                <YAxis
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(v: number) =>
+                    `${v.toFixed(0)} ${displayCurrency}`
+                  }
+                />
+                <Tooltip
+                  formatter={(value: number) => [
+                    `${value.toFixed(2)} ${displayCurrency}`,
+                    "Price",
+                  ]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="price"
+                  stroke="#0F52BA"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
 
       {/* Distributor Table */}
       <div>
@@ -390,7 +394,8 @@ export function ProductDetail() {
               return (
                 <div className="flex items-center justify-between mt-2">
                   <p className="text-base font-bold">
-                    {distrib?.countryFlag} {distrib?.name ?? bestDeal.distributorId}
+                    {distrib?.countryFlag}{" "}
+                    {distrib?.name ?? bestDeal.distributorId}
                   </p>
                   <p className="text-lg font-bold text-brand-600 dark:text-brand-400">
                     {formatPrice(bestDeal.total, bestDeal.currency)}
@@ -403,7 +408,10 @@ export function ProductDetail() {
                 Price: {formatPrice(bestDeal.price, bestDeal.currency)}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Tax: {bestDeal.tax > 0 ? formatPrice(bestDeal.tax, bestDeal.currency) : "Tax-free"}
+                Tax:{" "}
+                {bestDeal.tax > 0
+                  ? formatPrice(bestDeal.tax, bestDeal.currency)
+                  : "Tax-free"}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Ship: {formatPrice(bestDeal.shipping, bestDeal.currency)}
@@ -463,7 +471,12 @@ export function ProductDetail() {
                       </span>
                       {listing.taxRate != null && listing.taxRate > 0 ? (
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          +{formatPrice(listing.price * listing.taxRate, listing.currency)} tax
+                          +
+                          {formatPrice(
+                            listing.price * listing.taxRate,
+                            listing.currency,
+                          )}{" "}
+                          tax
                         </p>
                       ) : (
                         <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -546,9 +559,7 @@ export function ProductDetail() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Currency
-              </label>
+              <label className="block text-sm font-medium mb-1">Currency</label>
               <select
                 value={alertCurrency}
                 onChange={(e) => setAlertCurrency(e.target.value)}

@@ -13,6 +13,7 @@ The app's core value is checking a specific item's price globally. The mobile Pr
 ### Mobile: Enhance `PriceHistoryChart` in `app/product/[id].tsx`
 
 The existing `PriceHistoryChart` (around line 2022) is an SVG chart. Add tap-to-inspect:
+
 - Wrap the SVG in a `Pressable` (or use `PanResponder`) to capture taps
 - On tap, compute the nearest data point by x-position
 - Set `selectedIndex` state
@@ -24,12 +25,14 @@ The existing `PriceHistoryChart` (around line 2022) is an SVG chart. Add tap-to-
 ### Desktop: Add Price History Chart to `desktop/src/pages/ProductDetail.tsx`
 
 The desktop Product Detail has no price chart. Add a "Price History" section:
+
 - Use Recharts (already a dependency via the Compare screen's `MultiLineChart`)
 - Render a `LineChart` with the selected listing's `priceHistory`
 - Recharts' built-in `Tooltip` provides hover/tap inspection (price + date)
 - Place it in a collapsible "Price History" section on the Product Detail screen
 
 **Shared behavior** — both charts show:
+
 - Price line with trend coloring (up = red, down = green, matching the app)
 - Gridlines + axis labels
 - Tap/hover to see exact price + date at a point
@@ -54,9 +57,11 @@ The desktop Product Detail has no price chart. Add a "Price History" section:
 ## Files
 
 **Modified:**
+
 - `app/product/[id].tsx` — enhance `PriceHistoryChart` with tap-to-inspect tooltip
 - `desktop/src/pages/ProductDetail.tsx` — add Price History section with Recharts chart
 
 **New:**
+
 - `tests/price-chart.test.ts` — unit tests for nearest-point logic
 - `desktop/tests/price-chart.test.tsx` — component tests for the desktop chart

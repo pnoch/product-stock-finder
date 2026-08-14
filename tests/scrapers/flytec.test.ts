@@ -14,7 +14,9 @@ describe("Flytec Parser", () => {
   });
 
   it("should return null for invalid HTML", () => {
-    const result = flytecParser.parsePrice("<html><body>No price here</body></html>");
+    const result = flytecParser.parsePrice(
+      "<html><body>No price here</body></html>",
+    );
     expect(result).toBeNull();
   });
 

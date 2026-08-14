@@ -1,16 +1,28 @@
 import * as cheerio from "cheerio";
 import { DistributorParser, ScrapeResult } from "./types";
-import { fetchWithRateLimit, parsePriceFromText, inferStockStatus } from "./utils";
+import {
+  fetchWithRateLimit,
+  parsePriceFromText,
+  inferStockStatus,
+} from "./utils";
 import { getTaxRate } from "../tax";
 
 function parseHtml(html: string, url: string): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(".product-price, .price, [data-product-price], [itemprop='price']").first().text();
+  const priceText = $(
+    ".product-price, .price, [data-product-price], [itemprop='price']",
+  )
+    .first()
+    .text();
   const price = parsePriceFromText(priceText);
   if (!price) return null;
 
-  const stockText = $(".stock-status, .availability, .stock, [itemprop='availability']").first().text();
+  const stockText = $(
+    ".stock-status, .availability, .stock, [itemprop='availability']",
+  )
+    .first()
+    .text();
   const stockStatus = inferStockStatus(stockText);
 
   return {
@@ -25,12 +37,15 @@ function parseHtml(html: string, url: string): ScrapeResult | null {
 export const server2uParser: DistributorParser = {
   id: "server2u-my",
   baseUrl: "https://server2u.com",
-  buildSearchUrl: (model) => `https://server2u.com/shop?q=${encodeURIComponent(model)}`,
+  buildSearchUrl: (model) =>
+    `https://server2u.com/shop?q=${encodeURIComponent(model)}`,
   parsePrice: (html) => parseHtml(html, "https://server2u.com"),
   rateLimitMs: 2000,
 };
 
-export async function scrapeServer2U(model: string): Promise<ScrapeResult | null> {
+export async function scrapeServer2U(
+  model: string,
+): Promise<ScrapeResult | null> {
   try {
     const url = server2uParser.buildSearchUrl(model);
     const html = await fetchWithRateLimit(url, server2uParser.rateLimitMs);

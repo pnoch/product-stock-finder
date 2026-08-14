@@ -24,7 +24,10 @@ describe("buildCatalogPairs", () => {
   it("returns the full cross product of catalog models and distributors", () => {
     const pairs = buildCatalogPairs();
     expect(pairs.length).toBeGreaterThan(0);
-    expect(pairs).toContainEqual({ distributorId: "server2u-my", modelNumber: "CRS804-4DDQ-hRM" });
+    expect(pairs).toContainEqual({
+      distributorId: "server2u-my",
+      modelNumber: "CRS804-4DDQ-hRM",
+    });
   });
 
   it("excludes distributors with no parser", () => {

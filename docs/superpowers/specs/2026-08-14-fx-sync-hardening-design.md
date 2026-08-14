@@ -10,15 +10,15 @@ A small hardening checkpoint that closes every open review follow-up from v3.16 
 
 All seven items:
 
-| # | Area | Item |
-| - | ---- | ---- |
-| 1 | FX | `lib/storage.ts` `getFxRates` rate-value validation (NaN guard) |
-| 2 | FX | Mobile single-flight dedup in `lib/fx.ts` (launch + Settings race) |
-| 3 | Sync | `registerSyncSetup` teardown / cleanup |
-| 4 | Sync | "Sync now" loading state in Settings |
-| 5 | Sync | Success tone wired in Settings UI (currently dead) |
-| 6 | Sync | `"Sync failed — Pull failed: …"` redundant label |
-| 7 | Sync | Symmetric 129-char pull-guard router test |
+| #   | Area | Item                                                               |
+| --- | ---- | ------------------------------------------------------------------ |
+| 1   | FX   | `lib/storage.ts` `getFxRates` rate-value validation (NaN guard)    |
+| 2   | FX   | Mobile single-flight dedup in `lib/fx.ts` (launch + Settings race) |
+| 3   | Sync | `registerSyncSetup` teardown / cleanup                             |
+| 4   | Sync | "Sync now" loading state in Settings                               |
+| 5   | Sync | Success tone wired in Settings UI (currently dead)                 |
+| 6   | Sync | `"Sync failed — Pull failed: …"` redundant label                   |
+| 7   | Sync | Symmetric 129-char pull-guard router test                          |
 
 ## Non-goals
 
@@ -42,7 +42,10 @@ for (const [code, value] of Object.entries(
   if (typeof value === "number" && Number.isFinite(value)) rates[code] = value;
 }
 if (Object.keys(rates).length === 0) return null;
-return { rates, fetchedAt: typeof parsed.fetchedAt === "number" ? parsed.fetchedAt : 0 };
+return {
+  rates,
+  fetchedAt: typeof parsed.fetchedAt === "number" ? parsed.fetchedAt : 0,
+};
 ```
 
 **Rationale:** the persisted-payload boundary is the correct trust boundary. The server already validates at its boundary (`parseRates`).
@@ -80,6 +83,7 @@ export function refreshFxRates(
 ```
 
 Notes:
+
 - `maybeRefreshFxRates` calls `refreshFxRates`, so it inherits the guard.
 - No test-only reset needed: every call site awaits the returned promise and the guard self-clears in `finally`.
 
@@ -119,6 +123,7 @@ useEffect(() => {
 **File:** `app/(tabs)/settings.tsx`, `handleSyncNow` (lines 160-167) and the Sync now button (lines 402-420)
 
 **Fix:**
+
 - Add `const [syncing, setSyncing] = useState(false);`
 - `handleSyncNow` sets `setSyncing(true)` before the await and `setSyncing(false)` in a `finally`.
 - The button is `disabled={syncing}` while syncing and renders a small `ActivityIndicator` (`color={colors.primary}`) instead of the "Sync now" text.
@@ -158,12 +163,12 @@ if (meta.lastSyncError) {
 
 ## Testing
 
-| File | Change |
-| ---- | ------ |
-| `tests/storage.test.ts` | +2 tests: tampered rates payload — non-numeric value dropped, valid values kept; all-invalid payload → `null` |
-| `tests/fx-client.test.ts` | +1 test: two concurrent `refreshFxRates` calls → exactly one fetch (single-flight) |
-| `tests/sync-status.test.ts` | update line 34 assertion (Item 6) + add register/unregister teardown tests (Item 3) |
-| `tests/notifications-router.test.ts` | +1 test: oversized deviceId for `pull` rejects (Item 7) |
+| File                                 | Change                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `tests/storage.test.ts`              | +2 tests: tampered rates payload — non-numeric value dropped, valid values kept; all-invalid payload → `null` |
+| `tests/fx-client.test.ts`            | +1 test: two concurrent `refreshFxRates` calls → exactly one fetch (single-flight)                            |
+| `tests/sync-status.test.ts`          | update line 34 assertion (Item 6) + add register/unregister teardown tests (Item 3)                           |
+| `tests/notifications-router.test.ts` | +1 test: oversized deviceId for `pull` rejects (Item 7)                                                       |
 
 No changes to `tests/currency.test.ts`, `tests/fx.test.ts`.
 

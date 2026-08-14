@@ -15,24 +15,27 @@ Add a Distributor Analysis screen that shows, for each distributor, how many wat
 A platform-agnostic pure function consumed by both mobile and desktop analysis screens.
 
 **Types:**
+
 ```typescript
 export interface DistributorAnalysis {
   distributorId: string;
-  coverage: number;    // number of watchlist products this distributor carries (in-stock)
-  totalCost: number;   // sum of best in-stock price per product, converted to display currency
+  coverage: number; // number of watchlist products this distributor carries (in-stock)
+  totalCost: number; // sum of best in-stock price per product, converted to display currency
   averagePrice: number; // totalCost / coverage
 }
 ```
 
 **Function:**
+
 ```typescript
 export function analyzeDistributors(
   watchlist: Product[],
   displayCurrency: string,
-): DistributorAnalysis[]
+): DistributorAnalysis[];
 ```
 
 **Behavior:**
+
 - For each distributor in `DISTRIBUTORS`, iterate all watchlist products
 - For each product, if the distributor has an in-stock listing for that product, add that listing's price (converted to display currency) to the distributor's total and increment its coverage
 - Compute average as `totalCost / coverage` (0 if coverage is 0)
@@ -44,6 +47,7 @@ Note: A distributor's `totalCost` is the sum of its **own** in-stock listing pri
 ### Dedicated Screen (mobile + desktop)
 
 A Distributor Analysis screen that:
+
 - Lists each distributor with: flag + name, coverage count, total cost, average price
 - Sorted by total cost (cheapest first)
 - Accessible from the Watchlist screen
@@ -75,12 +79,14 @@ A Distributor Analysis screen that:
 ## Files
 
 **New:**
+
 - `lib/distributor-analysis.ts` — shared analysis utility
 - `tests/distributor-analysis.test.ts` — unit tests
 - `app/distributor-analysis.tsx` — mobile screen
 - `desktop/src/pages/DistributorAnalysis.tsx` — desktop screen
 
 **Modified:**
+
 - `app/(tabs)/watchlist.tsx` — add navigation entry
 - `desktop/src/pages/Watchlist.tsx` — add navigation link
 - `desktop/src/App.tsx` — add route

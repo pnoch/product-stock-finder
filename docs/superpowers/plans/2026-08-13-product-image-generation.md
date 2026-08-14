@@ -12,28 +12,29 @@
 
 ## File Structure
 
-| File | Responsibility |
-| --- | --- |
-| `drizzle/schema.ts` | Add `product_images` table + row types |
-| `drizzle/0005_*.sql` | Generated migration |
-| `server/product-images.ts` | Image generation + cache (DB + memory fallback) |
-| `server/routers.ts` | Add `images.get` public procedure |
-| `server/prices.ts` | Add `warmProductImages` + `IMAGES_PER_TICK` in the warmer tick |
-| `lib/server-images.ts` | Mobile client helper `fetchProductImage` |
-| `app/(tabs)/watchlist.tsx` | Display product image on watchlist cards |
-| `app/search.tsx` | Display product image on search results |
-| `app/product/[id].tsx` | Display product image on detail header |
-| `desktop/src-tauri/src/lib.rs` | `fetch_product_image` command |
-| `desktop/src/pages/Watchlist.tsx`, `Search.tsx`, `ProductDetail.tsx` | Display product image |
-| `tests/product-images.test.ts` | Image generation + cache tests |
-| `tests/images-router.test.ts` | Router tests |
-| `tests/server-images.test.ts` | Mobile helper tests |
+| File                                                                 | Responsibility                                                 |
+| -------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `drizzle/schema.ts`                                                  | Add `product_images` table + row types                         |
+| `drizzle/0005_*.sql`                                                 | Generated migration                                            |
+| `server/product-images.ts`                                           | Image generation + cache (DB + memory fallback)                |
+| `server/routers.ts`                                                  | Add `images.get` public procedure                              |
+| `server/prices.ts`                                                   | Add `warmProductImages` + `IMAGES_PER_TICK` in the warmer tick |
+| `lib/server-images.ts`                                               | Mobile client helper `fetchProductImage`                       |
+| `app/(tabs)/watchlist.tsx`                                           | Display product image on watchlist cards                       |
+| `app/search.tsx`                                                     | Display product image on search results                        |
+| `app/product/[id].tsx`                                               | Display product image on detail header                         |
+| `desktop/src-tauri/src/lib.rs`                                       | `fetch_product_image` command                                  |
+| `desktop/src/pages/Watchlist.tsx`, `Search.tsx`, `ProductDetail.tsx` | Display product image                                          |
+| `tests/product-images.test.ts`                                       | Image generation + cache tests                                 |
+| `tests/images-router.test.ts`                                        | Router tests                                                   |
+| `tests/server-images.test.ts`                                        | Mobile helper tests                                            |
 
 ---
 
 ### Task 1: `product_images` Drizzle table + migration
 
 **Files:**
+
 - Modify: `drizzle/schema.ts`
 - Test: `drizzle/0005_*.sql` (generated)
 
@@ -61,7 +62,7 @@ Run:
 DATABASE_URL="mysql://localhost:3306/product_stock_finder" pnpm exec drizzle-kit generate
 ```
 
-Expected: writes `drizzle/0005_*.sql` containing `CREATE TABLE \`product_images\`` with `productId` as primary key, plus updated `drizzle/meta/_journal.json` and `drizzle/meta/0005_snapshot.json`. (This command only reads `drizzle/schema.ts` and writes SQL — it does not connect to a live DB.)
+Expected: writes `drizzle/0005_*.sql` containing `CREATE TABLE \`product_images\``with`productId`as primary key, plus updated`drizzle/meta/\_journal.json`and`drizzle/meta/0005_snapshot.json`. (This command only reads `drizzle/schema.ts` and writes SQL — it does not connect to a live DB.)
 
 - [ ] **Step 3: Verify types**
 
@@ -80,6 +81,7 @@ git commit -m "feat(sync): add product_images table"
 ### Task 2: Image generation + cache — `server/product-images.ts`
 
 **Files:**
+
 - Create: `server/product-images.ts`
 - Test: `tests/product-images.test.ts`
 
@@ -151,7 +153,9 @@ describe("listProductsMissingImage", () => {
   });
 
   it("excludes products that already have an image", async () => {
-    mockedGenerateImage.mockResolvedValue({ url: "https://img.example.com/x.png" });
+    mockedGenerateImage.mockResolvedValue({
+      url: "https://img.example.com/x.png",
+    });
     await getProductImage("mikrotik-crs804-4ddq-hrm");
     const missing = await listProductsMissingImage();
     expect(missing).not.toContain("mikrotik-crs804-4ddq-hrm");
@@ -277,6 +281,7 @@ git commit -m "feat(server): add product image generation with URL cache"
 ### Task 3: Router — `images.get`
 
 **Files:**
+
 - Modify: `server/routers.ts`
 - Test: `tests/images-router.test.ts`
 
@@ -320,9 +325,13 @@ describe("images router", () => {
       imageUrl: "https://img.example.com/crs804.png",
     });
     const caller = appRouter.createCaller(createPublicContext());
-    const result = await caller.images.get({ productId: "mikrotik-crs804-4ddq-hrm" });
+    const result = await caller.images.get({
+      productId: "mikrotik-crs804-4ddq-hrm",
+    });
     expect(result).toEqual({ imageUrl: "https://img.example.com/crs804.png" });
-    expect(mockedGetProductImage).toHaveBeenCalledWith("mikrotik-crs804-4ddq-hrm");
+    expect(mockedGetProductImage).toHaveBeenCalledWith(
+      "mikrotik-crs804-4ddq-hrm",
+    );
   });
 
   it("returns null when there is no image", async () => {
@@ -335,9 +344,9 @@ describe("images router", () => {
   it("works without authentication (public procedure)", async () => {
     mockedGetProductImage.mockResolvedValue({ imageUrl: "x" });
     const caller = appRouter.createCaller(createPublicContext());
-    await expect(
-      caller.images.get({ productId: "a" }),
-    ).resolves.toEqual({ imageUrl: "x" });
+    await expect(caller.images.get({ productId: "a" })).resolves.toEqual({
+      imageUrl: "x",
+    });
   });
 });
 ```
@@ -392,6 +401,7 @@ git commit -m "feat(server): add public images.get tRPC endpoint"
 ### Task 4: Background pre-generate — `warmProductImages` in the warmer
 
 **Files:**
+
 - Modify: `server/prices.ts`
 - Test: `tests/prices.test.ts`
 
@@ -418,7 +428,12 @@ import { getPrice, PRICE_TTL_MS, warmCatalogRotation } from "../server/prices";
 Change to:
 
 ```ts
-import { getPrice, PRICE_TTL_MS, warmCatalogRotation, warmProductImages } from "../server/prices";
+import {
+  getPrice,
+  PRICE_TTL_MS,
+  warmCatalogRotation,
+  warmProductImages,
+} from "../server/prices";
 ```
 
 Add a new `describe` block at the end of the file:
@@ -430,7 +445,8 @@ describe("warmProductImages", () => {
   });
 
   it("returns 0 when there are no missing images", async () => {
-    const { listProductsMissingImage } = await import("../server/product-images");
+    const { listProductsMissingImage } =
+      await import("../server/product-images");
     vi.mocked(listProductsMissingImage).mockResolvedValue([]);
     const warmed = await warmProductImages(2);
     expect(warmed).toBe(0);
@@ -475,22 +491,22 @@ export async function warmProductImages(count: number): Promise<number> {
 Change the warmer tick (lines 104-108) to call it. Current:
 
 ```ts
-  warmerTimer = setInterval(() => {
-    void refreshNearExpiry(Date.now());
-    void warmCatalogRotation(CATALOG_WARM_PER_TICK);
-    void purgeOldHistory(Date.now());
-  }, intervalMs);
+warmerTimer = setInterval(() => {
+  void refreshNearExpiry(Date.now());
+  void warmCatalogRotation(CATALOG_WARM_PER_TICK);
+  void purgeOldHistory(Date.now());
+}, intervalMs);
 ```
 
 Change to:
 
 ```ts
-  warmerTimer = setInterval(() => {
-    void refreshNearExpiry(Date.now());
-    void warmCatalogRotation(CATALOG_WARM_PER_TICK);
-    void warmProductImages(IMAGES_PER_TICK);
-    void purgeOldHistory(Date.now());
-  }, intervalMs);
+warmerTimer = setInterval(() => {
+  void refreshNearExpiry(Date.now());
+  void warmCatalogRotation(CATALOG_WARM_PER_TICK);
+  void warmProductImages(IMAGES_PER_TICK);
+  void purgeOldHistory(Date.now());
+}, intervalMs);
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
@@ -518,6 +534,7 @@ git commit -m "feat(server): pre-generate product images in the warmer"
 ### Task 5: Mobile client helper — `lib/server-images.ts`
 
 **Files:**
+
 - Create: `lib/server-images.ts`
 - Test: `tests/server-images.test.ts`
 
@@ -554,7 +571,9 @@ describe("fetchProductImage", () => {
     mockClientQuery(query);
     const result = await fetchProductImage("mikrotik-crs804-4ddq-hrm");
     expect(result).toEqual({ imageUrl: "https://img.example.com/crs804.png" });
-    expect(query).toHaveBeenCalledWith({ productId: "mikrotik-crs804-4ddq-hrm" });
+    expect(query).toHaveBeenCalledWith({
+      productId: "mikrotik-crs804-4ddq-hrm",
+    });
   });
 
   it("returns null when the server returns null", async () => {
@@ -570,12 +589,14 @@ describe("fetchProductImage", () => {
   });
 
   it("returns null when the query times out", async () => {
-    const query = vi.fn().mockImplementation(
-      () =>
-        new Promise<{ imageUrl: string }>((resolve) =>
-          setTimeout(() => resolve({ imageUrl: "x" }), 10_000),
-        ),
-    );
+    const query = vi
+      .fn()
+      .mockImplementation(
+        () =>
+          new Promise<{ imageUrl: string }>((resolve) =>
+            setTimeout(() => resolve({ imageUrl: "x" }), 10_000),
+          ),
+      );
     mockClientQuery(query);
     expect(await fetchProductImage("x")).toBeNull();
   });
@@ -607,7 +628,9 @@ export async function fetchProductImage(
     const client = createTRPCClient();
     const result = await Promise.race([
       client.images.get.query({ productId }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return result;
   } catch {
@@ -638,6 +661,7 @@ git commit -m "feat(mobile): add fetchProductImage client helper"
 ### Task 6: Mobile display — watchlist, search, product detail
 
 **Files:**
+
 - Modify: `app/(tabs)/watchlist.tsx`
 - Modify: `app/search.tsx`
 - Modify: `app/product/[id].tsx`
@@ -657,27 +681,29 @@ import { fetchProductImage } from "@/lib/server-images";
 The watchlist card is a component (around line 120-160). Add image state + fetch. In the card component, add:
 
 ```ts
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  useEffect(() => {
-    let active = true;
-    fetchProductImage(product.id).then((res) => {
-      if (active && res) setImageUrl(res.imageUrl);
-    });
-    return () => {
-      active = false;
-    };
-  }, [product.id]);
+const [imageUrl, setImageUrl] = useState<string | null>(null);
+useEffect(() => {
+  let active = true;
+  fetchProductImage(product.id).then((res) => {
+    if (active && res) setImageUrl(res.imageUrl);
+  });
+  return () => {
+    active = false;
+  };
+}, [product.id]);
 ```
 
 Render the image at the top of the card (before the text block, inside the row `View`). Add a 48x48 rounded image when `imageUrl` is set:
 
 ```tsx
-      {imageUrl && (
-        <Image
-          source={{ uri: imageUrl }}
-          style={{ width: 48, height: 48, borderRadius: 8, marginRight: 10 }}
-        />
-      )}
+{
+  imageUrl && (
+    <Image
+      source={{ uri: imageUrl }}
+      style={{ width: 48, height: 48, borderRadius: 8, marginRight: 10 }}
+    />
+  );
+}
 ```
 
 > **Note:** import `Image` from `react-native` if not already imported. Match the file's inline-style convention. Place the image so it reads naturally (e.g. as the first element in the card's row layout).
@@ -711,7 +737,7 @@ function ProductImage({ productId }: { productId: string }) {
 Render it in the search result row (before the text block, inside the row `View`):
 
 ```tsx
-            <ProductImage productId={item.id} />
+<ProductImage productId={item.id} />
 ```
 
 > **Note:** import `Image`, `useState`, `useEffect` from `react-native`/`react` if not already imported. Match the file's inline-style convention.
@@ -721,26 +747,28 @@ Render it in the search result row (before the text block, inside the row `View`
 The product detail screen already has `insight` state (from Phase 30). Add image state + fetch. Add state near the other `useState` (e.g. after `const [insight, setInsight] = useState<string | null>(null);`):
 
 ```ts
-  const [productImage, setProductImage] = useState<string | null>(null);
+const [productImage, setProductImage] = useState<string | null>(null);
 ```
 
 In the `loadData` callback (around line 422), after the insight fetch, add:
 
 ```ts
-      void fetchProductImage(id).then((res) => {
-        if (res) setProductImage(res.imageUrl);
-      });
+void fetchProductImage(id).then((res) => {
+  if (res) setProductImage(res.imageUrl);
+});
 ```
 
 Render the image in the header area (near the product name). Add:
 
 ```tsx
-      {productImage && (
-        <Image
-          source={{ uri: productImage }}
-          style={{ width: 96, height: 96, borderRadius: 12, marginBottom: 12 }}
-        />
-      )}
+{
+  productImage && (
+    <Image
+      source={{ uri: productImage }}
+      style={{ width: 96, height: 96, borderRadius: 12, marginBottom: 12 }}
+    />
+  );
+}
 ```
 
 > **Note:** import `Image` from `react-native` if not already imported. Match the file's inline-style convention. Place the image near the product name/header.
@@ -762,6 +790,7 @@ git commit -m "feat(mobile): show product images on watchlist, search, and detai
 ### Task 7: Desktop — `fetch_product_image` command + display
 
 **Files:**
+
 - Modify: `desktop/src-tauri/src/lib.rs`
 - Modify: `desktop/src/pages/Watchlist.tsx`
 - Modify: `desktop/src/pages/Search.tsx`
@@ -821,7 +850,13 @@ For each of `desktop/src/pages/Watchlist.tsx`, `Search.tsx`, and `ProductDetail.
 import { useState, useEffect } from "react";
 import { getApiBaseUrl } from "../lib/api-base";
 
-export function ProductImage({ productId, size = 48 }: { productId: string; size?: number }) {
+export function ProductImage({
+  productId,
+  size = 48,
+}: {
+  productId: string;
+  size?: number;
+}) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
@@ -842,7 +877,13 @@ export function ProductImage({ productId, size = 48 }: { productId: string; size
     <img
       src={imageUrl}
       alt=""
-      style={{ width: size, height: size, borderRadius: 8, marginRight: 10, objectFit: "cover" }}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 8,
+        marginRight: 10,
+        objectFit: "cover",
+      }}
     />
   );
 }
@@ -877,6 +918,7 @@ git commit -m "feat(desktop): show product images on watchlist, search, and deta
 ### Task 8: Final verification + checkpoint commit
 
 **Files:**
+
 - Whole repo
 - Modify: `todo.md`
 

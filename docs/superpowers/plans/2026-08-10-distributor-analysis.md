@@ -13,12 +13,14 @@
 ## File Structure
 
 ### New Files
+
 - `lib/distributor-analysis.ts` — shared analysis utility
 - `tests/distributor-analysis.test.ts` — unit tests
 - `app/distributor-analysis.tsx` — mobile screen
 - `desktop/src/pages/DistributorAnalysis.tsx` — desktop screen
 
 ### Modified Files
+
 - `app/(tabs)/watchlist.tsx` — add navigation entry
 - `desktop/src/pages/Watchlist.tsx` — add navigation link
 - `desktop/src/App.tsx` — add route
@@ -28,6 +30,7 @@
 ## Task 1: Create Shared Analysis Utility
 
 **Files:**
+
 - Create: `lib/distributor-analysis.ts`
 - Test: `tests/distributor-analysis.test.ts`
 
@@ -40,7 +43,9 @@ import { describe, it, expect } from "vitest";
 import { analyzeDistributors } from "@/lib/distributor-analysis";
 import type { Product, DistributorListing } from "@/lib/types";
 
-function makeListing(overrides: Partial<DistributorListing> = {}): DistributorListing {
+function makeListing(
+  overrides: Partial<DistributorListing> = {},
+): DistributorListing {
   return {
     distributorId: "server2u-my",
     productId: "p1",
@@ -72,11 +77,19 @@ describe("analyzeDistributors", () => {
   it("computes coverage, total, and average correctly", () => {
     const watchlist = [
       makeProduct("p1", [
-        makeListing({ distributorId: "server2u-my", price: 100, currency: "USD" }),
+        makeListing({
+          distributorId: "server2u-my",
+          price: 100,
+          currency: "USD",
+        }),
         makeListing({ distributorId: "linitx-uk", price: 90, currency: "USD" }),
       ]),
       makeProduct("p2", [
-        makeListing({ distributorId: "server2u-my", price: 50, currency: "USD" }),
+        makeListing({
+          distributorId: "server2u-my",
+          price: 50,
+          currency: "USD",
+        }),
       ]),
     ];
     const result = analyzeDistributors(watchlist, "USD");
@@ -95,7 +108,11 @@ describe("analyzeDistributors", () => {
   it("converts to display currency", () => {
     const watchlist = [
       makeProduct("p1", [
-        makeListing({ distributorId: "server2u-my", price: 100, currency: "USD" }),
+        makeListing({
+          distributorId: "server2u-my",
+          price: 100,
+          currency: "USD",
+        }),
       ]),
     ];
     const result = analyzeDistributors(watchlist, "EUR");
@@ -107,7 +124,11 @@ describe("analyzeDistributors", () => {
   it("sorts by total cost ascending", () => {
     const watchlist = [
       makeProduct("p1", [
-        makeListing({ distributorId: "server2u-my", price: 200, currency: "USD" }),
+        makeListing({
+          distributorId: "server2u-my",
+          price: 200,
+          currency: "USD",
+        }),
         makeListing({ distributorId: "linitx-uk", price: 50, currency: "USD" }),
       ]),
     ];
@@ -119,7 +140,10 @@ describe("analyzeDistributors", () => {
   it("excludes distributors with no in-stock listings", () => {
     const watchlist = [
       makeProduct("p1", [
-        makeListing({ distributorId: "server2u-my", stockStatus: "out_of_stock" }),
+        makeListing({
+          distributorId: "server2u-my",
+          stockStatus: "out_of_stock",
+        }),
       ]),
     ];
     const result = analyzeDistributors(watchlist, "USD");
@@ -179,7 +203,11 @@ export function analyzeDistributors(
           : best,
       );
       coverage++;
-      totalCost += convertPrice(cheapest.price, cheapest.currency, displayCurrency);
+      totalCost += convertPrice(
+        cheapest.price,
+        cheapest.currency,
+        displayCurrency,
+      );
     }
 
     if (coverage > 0) {
@@ -213,6 +241,7 @@ git commit -m "feat: add distributor analysis utility with tests"
 ## Task 2: Create Mobile Distributor Analysis Screen
 
 **Files:**
+
 - Create: `app/distributor-analysis.tsx`
 
 - [ ] **Step 1: Create the mobile screen**
@@ -234,7 +263,10 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { getWatchlist, getSettings } from "@/lib/storage";
 import { getDistributorById } from "@/lib/distributors";
-import { analyzeDistributors, DistributorAnalysis } from "@/lib/distributor-analysis";
+import {
+  analyzeDistributors,
+  DistributorAnalysis,
+} from "@/lib/distributor-analysis";
 import { formatPrice } from "@/lib/currency";
 
 export default function DistributorAnalysisScreen() {
@@ -265,10 +297,15 @@ export default function DistributorAnalysisScreen() {
   return (
     <ScreenContainer>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ marginRight: 12 }}
+        >
           <Text style={{ color: colors.primary, fontSize: 16 }}>‹ Back</Text>
         </TouchableOpacity>
-        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}>
+        <Text
+          style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}
+        >
           Distributor Analysis
         </Text>
       </View>
@@ -276,11 +313,15 @@ export default function DistributorAnalysisScreen() {
       {loading ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : analysis.length === 0 ? (
-        <Text style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}>
+        <Text
+          style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}
+        >
           Add products to see distributor analysis.
         </Text>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+        >
           {analysis.map((a) => {
             const distrib = getDistributorById(a.distributorId);
             return (
@@ -295,14 +336,27 @@ export default function DistributorAnalysisScreen() {
                 }}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.foreground, fontWeight: "500", fontSize: 14 }}>
+                  <Text
+                    style={{
+                      color: colors.foreground,
+                      fontWeight: "500",
+                      fontSize: 14,
+                    }}
+                  >
                     {distrib?.countryFlag} {distrib?.name ?? a.distributorId}
                   </Text>
                   <Text style={{ color: colors.muted, fontSize: 12 }}>
-                    {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg {formatPrice(a.averagePrice, displayCurrency)}
+                    {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg{" "}
+                    {formatPrice(a.averagePrice, displayCurrency)}
                   </Text>
                 </View>
-                <Text style={{ color: colors.primary, fontSize: 16, fontWeight: "700" }}>
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontSize: 16,
+                    fontWeight: "700",
+                  }}
+                >
                   {formatPrice(a.totalCost, displayCurrency)}
                 </Text>
               </View>
@@ -332,6 +386,7 @@ git commit -m "feat: add mobile distributor analysis screen"
 ## Task 3: Add Mobile Navigation Entry
 
 **Files:**
+
 - Modify: `app/(tabs)/watchlist.tsx`
 
 - [ ] **Step 1: Add navigation entry**
@@ -379,6 +434,7 @@ git commit -m "feat: add distributor analysis navigation entry to mobile watchli
 ## Task 4: Create Desktop Distributor Analysis Screen
 
 **Files:**
+
 - Create: `desktop/src/pages/DistributorAnalysis.tsx`
 - Modify: `desktop/src/App.tsx`
 
@@ -391,7 +447,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { storage } from "../storage";
 import { getDistributorById } from "../../../lib/distributors";
-import { analyzeDistributors, DistributorAnalysis } from "../../../lib/distributor-analysis";
+import {
+  analyzeDistributors,
+  DistributorAnalysis,
+} from "../../../lib/distributor-analysis";
 import { formatPrice } from "../../../lib/currency";
 
 export function DistributorAnalysis() {
@@ -421,7 +480,10 @@ export function DistributorAnalysis() {
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="flex items-center mb-4">
-        <button onClick={() => navigate("/watchlist")} className="text-blue-600 dark:text-brand-400 mr-3">
+        <button
+          onClick={() => navigate("/watchlist")}
+          className="text-blue-600 dark:text-brand-400 mr-3"
+        >
           ‹ Back
         </button>
         <h1 className="text-2xl font-bold">Distributor Analysis</h1>
@@ -447,7 +509,8 @@ export function DistributorAnalysis() {
                     {distrib?.countryFlag} {distrib?.name ?? a.distributorId}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg {formatPrice(a.averagePrice, displayCurrency)}
+                    {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg{" "}
+                    {formatPrice(a.averagePrice, displayCurrency)}
                   </p>
                 </div>
                 <p className="text-base font-bold text-brand-600 dark:text-brand-400">
@@ -466,6 +529,7 @@ export function DistributorAnalysis() {
 - [ ] **Step 2: Add the route to App.tsx**
 
 In `desktop/src/App.tsx`:
+
 1. Add import: `import { DistributorAnalysis } from "./pages/DistributorAnalysis";`
 2. Add route: `<Route path="/distributor-analysis" element={<DistributorAnalysis />} />`
 
@@ -486,6 +550,7 @@ git commit -m "feat: add desktop distributor analysis screen"
 ## Task 5: Add Desktop Navigation Link
 
 **Files:**
+
 - Modify: `desktop/src/pages/Watchlist.tsx`
 
 - [ ] **Step 1: Add navigation link**

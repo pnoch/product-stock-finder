@@ -35,7 +35,8 @@ export async function getHistory(
 ): Promise<PricePoint[]> {
   const db = await getDb();
   if (!db) {
-    const points = memoryHistory.get(cacheKey(distributorId, modelNumber)) ?? [];
+    const points =
+      memoryHistory.get(cacheKey(distributorId, modelNumber)) ?? [];
     return [...points].sort((a, b) => a.date.localeCompare(b.date));
   }
   const rows = await db
@@ -79,14 +80,17 @@ export async function mergeHistory(
       stockStatus: p.stockStatus,
       fetchedAt: Date.parse(p.date),
     };
-    await db.insert(priceHistory).values(values).onDuplicateKeyUpdate({
-      set: {
-        price: p.price,
-        currency: p.currency,
-        stockStatus: p.stockStatus,
-        fetchedAt: Date.parse(p.date),
-      },
-    });
+    await db
+      .insert(priceHistory)
+      .values(values)
+      .onDuplicateKeyUpdate({
+        set: {
+          price: p.price,
+          currency: p.currency,
+          stockStatus: p.stockStatus,
+          fetchedAt: Date.parse(p.date),
+        },
+      });
   }
 }
 
