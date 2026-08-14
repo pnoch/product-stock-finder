@@ -246,7 +246,9 @@ export default function SettingsScreen() {
             style: "destructive",
             onPress: async () => {
               if (Platform.OS !== "web")
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                Haptics.notificationAsync(
+                  Haptics.NotificationFeedbackType.Warning,
+                );
               await unbindDevice(device.deviceId);
               await loadDevices();
             },
@@ -696,7 +698,11 @@ export default function SettingsScreen() {
                         )}
                       </View>
                       <Text
-                        style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}
+                        style={{
+                          color: colors.muted,
+                          fontSize: 12,
+                          marginTop: 1,
+                        }}
                       >
                         {platformLabel(device.platform)} ·{" "}
                         {formatLastSeen(device.lastSeenAt, now)}

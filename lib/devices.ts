@@ -10,7 +10,9 @@ export async function fetchDevices(): Promise<DeviceInfo[] | null> {
     const client = createTRPCClient();
     const result = await Promise.race([
       client.devices.list.query(),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return result?.devices ?? null;
   } catch {
@@ -27,7 +29,9 @@ export async function fetchCurrentDeviceBinding(): Promise<{
     const client = createTRPCClient();
     const result = await Promise.race([
       client.devices.current.query({ deviceId }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return result ? { userId: result.userId } : null;
   } catch {
@@ -40,7 +44,9 @@ export async function unbindDevice(deviceId: string): Promise<boolean> {
     const client = createTRPCClient();
     const result = await Promise.race([
       client.devices.unbind.mutate({ deviceId }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
     ]);
     return result?.unbound ?? false;
   } catch {

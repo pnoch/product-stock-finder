@@ -17,11 +17,7 @@ import { getInsight } from "./price-insights";
 import { getProductImage } from "./product-images";
 import { upsertDeviceConfig, pullPendingEvents } from "./notifications";
 import { upsertPushToken } from "./push-notifications";
-import {
-  listDevicesForUser,
-  getDeviceBinding,
-  unbindDevice,
-} from "./devices";
+import { listDevicesForUser, getDeviceBinding, unbindDevice } from "./devices";
 
 const syncItemSchema = z.object({
   collection: z.enum(["watchlist", "alerts", "reminders", "settings"]),

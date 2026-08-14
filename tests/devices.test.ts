@@ -143,7 +143,12 @@ describe("devices (database backend)", () => {
           if (table === devicePushTokens) {
             return {
               where: vi.fn(async () => [
-                { deviceId: "dev-1", userId: 7, platform: "ios", updatedAt: 150 },
+                {
+                  deviceId: "dev-1",
+                  userId: 7,
+                  platform: "ios",
+                  updatedAt: 150,
+                },
               ]),
             };
           }
@@ -155,9 +160,17 @@ describe("devices (database backend)", () => {
     const devices = await listDevicesForUser(7);
     expect(devices).toHaveLength(2);
     const dev1 = devices.find((d) => d.deviceId === "dev-1");
-    expect(dev1).toEqual({ deviceId: "dev-1", platform: "ios", lastSeenAt: 150 });
+    expect(dev1).toEqual({
+      deviceId: "dev-1",
+      platform: "ios",
+      lastSeenAt: 150,
+    });
     const dev2 = devices.find((d) => d.deviceId === "dev-2");
-    expect(dev2).toEqual({ deviceId: "dev-2", platform: null, lastSeenAt: 200 });
+    expect(dev2).toEqual({
+      deviceId: "dev-2",
+      platform: null,
+      lastSeenAt: 200,
+    });
     mockedGetDb.mockResolvedValue(null);
   });
 

@@ -93,7 +93,9 @@ describe("devices router", () => {
 
   it("throws UNAUTHORIZED for unbind without a user", async () => {
     const caller = appRouter.createCaller(createPublicContext());
-    await expect(caller.devices.unbind({ deviceId: "dev-1" })).rejects.toThrow();
+    await expect(
+      caller.devices.unbind({ deviceId: "dev-1" }),
+    ).rejects.toThrow();
     expect(mockedUnbind).not.toHaveBeenCalled();
   });
 

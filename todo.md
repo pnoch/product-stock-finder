@@ -257,7 +257,7 @@
 - [x] Server sync DB helpers (listChangedItems, upsertSyncItem, purgeOldTombstones) + protected tRPC sync router (pull/push) with tests
 - [x] Storage sync_meta key + get/saveSyncMeta helpers + onChange wiring
 - [x] Shared sync engine (lib/sync.ts): single-flight syncNow, 2s debounced setupSync, LWW pull/merge/push with tests (12)
-- [x] Mobile: launch sync on start + auth change (app/_layout.tsx), Account section + sync status in Settings
+- [x] Mobile: launch sync on start + auth change (app/\_layout.tsx), Account section + sync status in Settings
 - [x] Desktop: react-query/tRPC deps, api-base + OAuth portal helpers, localStorage auth hook (use-auth), tRPC client, Tauri start_oauth loopback command (127.0.0.1:3420), App providers + launch sync, Account section + sync status in Settings
 
 ## Phase 27: Server-Side Price Scraping
@@ -328,7 +328,7 @@
 - [x] displayed_notification_event_ids storage key (getDisplayedEventIds / recordDisplayedEventId, capped 200)
 - [x] setupPushEventTracking (received + response listeners + last-response capture)
 - [x] Launch pull sync skips re-render for already-displayed events (still reconciles)
-- [x] Launch wiring in app/_layout.tsx
+- [x] Launch wiring in app/\_layout.tsx
 
 ## Phase 35: Push Token Pruning
 
@@ -365,7 +365,7 @@
 - [x] getFxRates rate-value validation (finite numbers only; null when empty)
 - [x] Mobile single-flight refresh (refreshFxRates dedupes concurrent calls)
 - [x] Sync error label dedup (drop redundant "Sync failed —" prefix)
-- [x] registerSyncSetup teardown (cleanup nulls ref; _layout effect unregisters)
+- [x] registerSyncSetup teardown (cleanup nulls ref; \_layout effect unregisters)
 - [x] Settings "Sync now" loading state (disabled + spinner) + success tone
 - [x] Symmetric oversized-deviceId pull test (notifications.pull)
 
@@ -377,3 +377,10 @@
 - [x] Cross-device delivery + catch-up pull for devices that bind later
 - [x] Hybrid auth: anonymous devices keep device-scoped flow
 - [x] sendPushForUser (push to every bound device)
+
+## Phase 41: Device Management
+
+- [x] Server device management module (server/devices.ts): listDevicesForUser, getDeviceBinding, unbindDevice (memory/DB parallel)
+- [x] devices router: list (protected), current (public), unbind (protected)
+- [x] Client helper (lib/devices.ts): fetchDevices, fetchCurrentDeviceBinding, unbindDevice, bindCurrentDevice
+- [x] Settings "Device Management" section: current-device status, bind action, bound-devices list, unbind with destructive confirm

@@ -6,10 +6,7 @@ import {
   notificationEvents,
 } from "../drizzle/schema";
 import { getDb } from "./db";
-import {
-  listMemoryConfigDevices,
-  removeMemoryDevice,
-} from "./notifications";
+import { listMemoryConfigDevices, removeMemoryDevice } from "./notifications";
 import {
   listMemoryTokenDevices,
   removeMemoryToken,
@@ -85,9 +82,7 @@ export async function getDeviceBinding(
       (d) => d.deviceId === deviceId,
     );
     if (config) return { userId: config.userId };
-    const token = listMemoryTokenDevices().find(
-      (d) => d.deviceId === deviceId,
-    );
+    const token = listMemoryTokenDevices().find((d) => d.deviceId === deviceId);
     return { userId: token?.userId ?? null };
   }
   const configRows = await db
@@ -113,9 +108,7 @@ export async function unbindDevice(
     const config = listMemoryConfigDevices().find(
       (d) => d.deviceId === deviceId,
     );
-    const token = listMemoryTokenDevices().find(
-      (d) => d.deviceId === deviceId,
-    );
+    const token = listMemoryTokenDevices().find((d) => d.deviceId === deviceId);
     const boundTo = config?.userId ?? token?.userId ?? null;
     if (boundTo !== userId) return false;
     removeMemoryDevice(deviceId);
