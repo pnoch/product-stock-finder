@@ -486,6 +486,24 @@ export function clearNotificationsForTests(): void {
   memoryDeliveries.clear();
 }
 
+export function listMemoryConfigDevices(): Array<{
+  deviceId: string;
+  userId: number | null;
+}> {
+  return [...memoryConfigs.entries()].map(([deviceId, entry]) => ({
+    deviceId,
+    userId: entry.userId,
+  }));
+}
+
+export function removeMemoryDevice(deviceId: string): void {
+  memoryConfigs.delete(deviceId);
+  memoryDeliveries.delete(deviceId);
+  for (const [id, event] of memoryEvents) {
+    if (event.deviceId === deviceId) memoryEvents.delete(id);
+  }
+}
+
 function stripScope(event: MemoryEvent): NotificationEvent {
   return {
     id: event.id,

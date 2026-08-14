@@ -144,3 +144,19 @@ export async function pruneDeviceToken(deviceId: string): Promise<void> {
 export function clearPushTokensForTests(): void {
   memoryTokens.clear();
 }
+
+export function listMemoryTokenDevices(): Array<{
+  deviceId: string;
+  userId: number | null;
+  platform: string | null;
+}> {
+  return [...memoryTokens.entries()].map(([deviceId, token]) => ({
+    deviceId,
+    userId: token.userId,
+    platform: token.platform,
+  }));
+}
+
+export function removeMemoryToken(deviceId: string): void {
+  memoryTokens.delete(deviceId);
+}
