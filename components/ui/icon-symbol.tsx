@@ -29,6 +29,7 @@ const MAPPING = {
   "bell.badge.fill": "notification-important",
   "gearshape.fill": "settings",
   magnifyingglass: "search",
+  iphone: "smartphone",
   plus: "add",
   globe: "language",
   "cart.fill": "shopping-cart",

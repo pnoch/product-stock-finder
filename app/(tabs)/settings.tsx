@@ -36,6 +36,14 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { sendTestNotification } from "@/lib/notifications";
 import { getDistributorById } from "@/lib/distributors";
 import { getAllParserIds } from "@/lib/scrapers/registry";
+import {
+  fetchDevices,
+  fetchCurrentDeviceBinding,
+  unbindDevice,
+  bindCurrentDevice,
+} from "@/lib/devices";
+import type { DeviceInfo } from "@/lib/devices";
+import { getDeviceId } from "@/lib/device-id";
 
 function SettingRow({
   icon,
@@ -118,6 +126,24 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
+function platformLabel(platform: string | null): string {
+  if (platform === "ios") return "iOS";
+  if (platform === "android") return "Android";
+  return "Unknown";
+}
+
+function formatLastSeen(lastSeenAt: number, now: number): string {
+  if (!lastSeenAt) return "last seen unknown";
+  const diff = Math.max(0, now - lastSeenAt);
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "last seen just now";
+  if (minutes < 60) return `last seen ${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `last seen ${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `last seen ${days}d ago`;
+}
+
 export default function SettingsScreen() {
   const colors = useColors();
   const router = useRouter();
@@ -134,6 +160,13 @@ export default function SettingsScreen() {
   const [syncMeta, setSyncMeta] = useState<SyncMeta | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [syncing, setSyncing] = useState(false);
+  const [devices, setDevices] = useState<DeviceInfo[] | null>(null);
+  const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
+  const [currentBinding, setCurrentBinding] = useState<{
+    userId: number | null;
+  } | null>(null);
+  const [devicesLoading, setDevicesLoading] = useState(true);
+  const [bindingAction, setBindingAction] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -172,6 +205,62 @@ export default function SettingsScreen() {
       setSyncing(false);
     }
   }, []);
+
+  const loadDevices = useCallback(async () => {
+    setDevicesLoading(true);
+    try {
+      const [deviceList, binding, deviceId] = await Promise.all([
+        fetchDevices(),
+        fetchCurrentDeviceBinding(),
+        getDeviceId(),
+      ]);
+      setDevices(deviceList);
+      setCurrentBinding(binding);
+      setCurrentDeviceId(deviceId);
+    } finally {
+      setDevicesLoading(false);
+    }
+  }, []);
+
+  const handleBindCurrentDevice = useCallback(async () => {
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setBindingAction(true);
+    try {
+      await bindCurrentDevice();
+      await loadDevices();
+    } finally {
+      setBindingAction(false);
+    }
+  }, [loadDevices]);
+
+  const handleUnbindDevice = useCallback(
+    (device: DeviceInfo) => {
+      Alert.alert(
+        "Unbind Device",
+        `Stop ${device.deviceId.slice(0, 12)}… from receiving your notifications and remove it from your account?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Unbind",
+            style: "destructive",
+            onPress: async () => {
+              if (Platform.OS !== "web")
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              await unbindDevice(device.deviceId);
+              await loadDevices();
+            },
+          },
+        ],
+      );
+    },
+    [loadDevices],
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void loadDevices();
+  }, [isAuthenticated, loadDevices]);
 
   const handleSignIn = useCallback(() => {
     if (Platform.OS !== "web")
@@ -458,6 +547,188 @@ export default function SettingsScreen() {
             }
           />
         </View>
+
+        {isAuthenticated && user ? (
+          <>
+            <SectionHeader title="Device Management" />
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 16,
+                marginHorizontal: 16,
+                borderWidth: 1,
+                borderColor: colors.border,
+                overflow: "hidden",
+              }}
+            >
+              <SettingRow
+                icon="iphone"
+                label="This device"
+                description={
+                  devicesLoading
+                    ? "Checking…"
+                    : currentBinding === null
+                      ? "Couldn't load device status"
+                      : currentBinding.userId === user.id
+                        ? "Bound to your account"
+                        : currentBinding.userId
+                          ? "Bound to another account"
+                          : "Not bound to any account"
+                }
+                descriptionColor={
+                  currentBinding?.userId === user.id
+                    ? colors.success
+                    : currentBinding && currentBinding.userId !== null
+                      ? colors.warning
+                      : undefined
+                }
+                right={
+                  bindingAction ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : currentBinding && currentBinding.userId !== user.id ? (
+                    <TouchableOpacity
+                      onPress={handleBindCurrentDevice}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 12,
+                        backgroundColor: colors.primary + "22",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: colors.primary,
+                          fontSize: 13,
+                          fontWeight: "600",
+                        }}
+                      >
+                        Bind to my account
+                      </Text>
+                    </TouchableOpacity>
+                  ) : undefined
+                }
+              />
+              {devicesLoading ? (
+                <View style={{ alignItems: "center", paddingVertical: 20 }}>
+                  <ActivityIndicator color={colors.primary} />
+                </View>
+              ) : devices === null ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingVertical: 14,
+                    paddingHorizontal: 16,
+                  }}
+                >
+                  <Text style={{ color: colors.muted, fontSize: 12 }}>
+                    Couldn&apos;t load devices
+                  </Text>
+                  <TouchableOpacity onPress={loadDevices}>
+                    <Text
+                      style={{
+                        color: colors.primary,
+                        fontSize: 13,
+                        fontWeight: "600",
+                      }}
+                    >
+                      Retry
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : devices.length === 0 ? (
+                <View style={{ paddingVertical: 14, paddingHorizontal: 16 }}>
+                  <Text style={{ color: colors.muted, fontSize: 12 }}>
+                    No other devices bound to your account
+                  </Text>
+                </View>
+              ) : (
+                devices.map((device, idx) => (
+                  <View
+                    key={device.deviceId}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                      borderBottomWidth: idx < devices.length - 1 ? 1 : 0,
+                      borderBottomColor: colors.border,
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: colors.foreground,
+                            fontWeight: "500",
+                            fontSize: 15,
+                          }}
+                        >
+                          {device.deviceId.slice(0, 12)}
+                          {device.deviceId.length > 12 ? "…" : ""}
+                        </Text>
+                        {device.deviceId === currentDeviceId && (
+                          <View
+                            style={{
+                              paddingHorizontal: 6,
+                              paddingVertical: 2,
+                              borderRadius: 8,
+                              backgroundColor: colors.primary + "22",
+                            }}
+                          >
+                            <Text
+                              style={{
+                                color: colors.primary,
+                                fontSize: 10,
+                                fontWeight: "600",
+                              }}
+                            >
+                              This device
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text
+                        style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}
+                      >
+                        {platformLabel(device.platform)} ·{" "}
+                        {formatLastSeen(device.lastSeenAt, now)}
+                      </Text>
+                    </View>
+                    {device.deviceId !== currentDeviceId && (
+                      <TouchableOpacity
+                        onPress={() => handleUnbindDevice(device)}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 12,
+                          backgroundColor: colors.error + "22",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: colors.error,
+                            fontSize: 13,
+                            fontWeight: "600",
+                          }}
+                        >
+                          Unbind
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))
+              )}
+            </View>
+          </>
+        ) : null}
 
         <SectionHeader title="Notifications" />
         <View
