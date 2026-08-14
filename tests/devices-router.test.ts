@@ -61,7 +61,7 @@ describe("devices router", () => {
 
   it("lists devices for the signed-in user", async () => {
     mockedList.mockResolvedValue([
-      { deviceId: "dev-1", platform: "ios", lastSeenAt: 123 },
+      { deviceId: "dev-1", platform: "ios", lastSeenAt: 123, label: null },
     ]);
     const caller = appRouter.createCaller(createAuthedContext(7));
     const result = await caller.devices.list();
