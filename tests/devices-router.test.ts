@@ -6,17 +6,28 @@ vi.mock("../server/devices", () => ({
   listDevicesForUser: vi.fn(),
   getDeviceBinding: vi.fn(),
   unbindDevice: vi.fn(),
+  renameDevice: vi.fn(),
+  signOutDevice: vi.fn(),
+  cleanupStaleDevices: vi.fn(),
+  isDeviceRevoked: vi.fn(),
+  STALE_DEVICE_MS: 30 * 24 * 60 * 60 * 1000,
 }));
 
 import {
   listDevicesForUser,
   getDeviceBinding,
   unbindDevice,
+  renameDevice,
+  signOutDevice,
+  cleanupStaleDevices,
 } from "../server/devices";
 
 const mockedList = vi.mocked(listDevicesForUser);
 const mockedBinding = vi.mocked(getDeviceBinding);
 const mockedUnbind = vi.mocked(unbindDevice);
+const mockedRename = vi.mocked(renameDevice);
+const mockedSignOut = vi.mocked(signOutDevice);
+const mockedCleanup = vi.mocked(cleanupStaleDevices);
 
 function createPublicContext(): TrpcContext {
   return {
@@ -107,5 +118,76 @@ describe("devices router", () => {
       caller.devices.current({ deviceId: "x".repeat(129) }),
     ).rejects.toThrow();
     expect(mockedBinding).not.toHaveBeenCalled();
+  });
+
+  it("renames a device for the signed-in user", async () => {
+    mockedRename.mockResolvedValue(true);
+    const caller = appRouter.createCaller(createAuthedContext(7));
+    const result = await caller.devices.rename({
+      deviceId: "dev-1",
+      label: "Living Room",
+    });
+    expect(result).toEqual({ renamed: true });
+    expect(mockedRename).toHaveBeenCalledWith(7, "dev-1", "Living Room");
+  });
+
+  it("throws UNAUTHORIZED for rename without a user", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    await expect(
+      caller.devices.rename({ deviceId: "dev-1", label: "x" }),
+    ).rejects.toThrow();
+    expect(mockedRename).not.toHaveBeenCalled();
+  });
+
+  it("rejects an oversized label for rename", async () => {
+    const caller = appRouter.createCaller(createAuthedContext(7));
+    await expect(
+      caller.devices.rename({
+        deviceId: "dev-1",
+        label: "x".repeat(65),
+      }),
+    ).rejects.toThrow();
+    expect(mockedRename).not.toHaveBeenCalled();
+  });
+
+  it("rejects an oversized deviceId for rename", async () => {
+    const caller = appRouter.createCaller(createAuthedContext(7));
+    await expect(
+      caller.devices.rename({
+        deviceId: "x".repeat(129),
+        label: "x",
+      }),
+    ).rejects.toThrow();
+    expect(mockedRename).not.toHaveBeenCalled();
+  });
+
+  it("signs out a device for the signed-in user", async () => {
+    mockedSignOut.mockResolvedValue(true);
+    const caller = appRouter.createCaller(createAuthedContext(7));
+    const result = await caller.devices.signOut({ deviceId: "dev-1" });
+    expect(result).toEqual({ signedOut: true });
+    expect(mockedSignOut).toHaveBeenCalledWith(7, "dev-1");
+  });
+
+  it("throws UNAUTHORIZED for signOut without a user", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    await expect(
+      caller.devices.signOut({ deviceId: "dev-1" }),
+    ).rejects.toThrow();
+    expect(mockedSignOut).not.toHaveBeenCalled();
+  });
+
+  it("cleans up stale devices for the signed-in user", async () => {
+    mockedCleanup.mockResolvedValue(2);
+    const caller = appRouter.createCaller(createAuthedContext(7));
+    const result = await caller.devices.cleanupStale();
+    expect(result).toEqual({ removed: 2 });
+    expect(mockedCleanup).toHaveBeenCalledWith(7, expect.any(Number));
+  });
+
+  it("throws UNAUTHORIZED for cleanupStale without a user", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    await expect(caller.devices.cleanupStale()).rejects.toThrow();
+    expect(mockedCleanup).not.toHaveBeenCalled();
   });
 });

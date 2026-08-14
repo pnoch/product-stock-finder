@@ -17,7 +17,15 @@ import { getInsight } from "./price-insights";
 import { getProductImage } from "./product-images";
 import { upsertDeviceConfig, pullPendingEvents } from "./notifications";
 import { upsertPushToken } from "./push-notifications";
-import { listDevicesForUser, getDeviceBinding, unbindDevice } from "./devices";
+import {
+  listDevicesForUser,
+  getDeviceBinding,
+  unbindDevice,
+  renameDevice,
+  signOutDevice,
+  cleanupStaleDevices,
+  STALE_DEVICE_MS,
+} from "./devices";
 
 const syncItemSchema = z.object({
   collection: z.enum(["watchlist", "alerts", "reminders", "settings"]),
@@ -225,6 +233,34 @@ export const appRouter = router({
         const unbound = await unbindDevice(ctx.user.id, input.deviceId);
         return { unbound };
       }),
+    rename: protectedProcedure
+      .input(
+        z.object({
+          deviceId: z.string().min(1).max(128),
+          label: z.string().min(1).max(64),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        const renamed = await renameDevice(
+          ctx.user.id,
+          input.deviceId,
+          input.label,
+        );
+        return { renamed };
+      }),
+    signOut: protectedProcedure
+      .input(z.object({ deviceId: z.string().min(1).max(128) }))
+      .mutation(async ({ ctx, input }) => {
+        const signedOut = await signOutDevice(ctx.user.id, input.deviceId);
+        return { signedOut };
+      }),
+    cleanupStale: protectedProcedure.mutation(async ({ ctx }) => {
+      const removed = await cleanupStaleDevices(
+        ctx.user.id,
+        Date.now() - STALE_DEVICE_MS,
+      );
+      return { removed };
+    }),
   }),
 });
 
