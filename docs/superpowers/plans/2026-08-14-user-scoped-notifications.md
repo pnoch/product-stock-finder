@@ -67,6 +67,8 @@ export const notificationEvents = mysqlTable("notification_events", {
 ```
 
 > **Plan correction (approved during execution):** `deviceId` is nullable — user-scoped events store `userId` set + `deviceId` null (exactly one of `userId`/`deviceId` set per row). This was applied in Task 3 as migration 0009 (`ALTER TABLE notification_events MODIFY COLUMN deviceId`), so Task 4's `deliveredAt` drop becomes migration **0010**.
+>
+> **Post-ship fix (2149554, c301203):** the plan's LWW upserts let an anonymous call (userId null) unbind a device, contradicting the spec's "logout does not unbind" guarantee. Both `upsertDeviceConfig` and `upsertPushToken` now preserve an existing binding when the incoming `userId` is null (memory: `userId ?? existing?.userId ?? null`; DB: `onDuplicateKeyUpdate` set omits `userId` when null). Non-null `userId` still overwrites (re-binding works). +4 tests.
 
 After the `notificationEvents` type exports (line 177), add the junction table:
 
