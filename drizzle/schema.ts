@@ -39,7 +39,9 @@ export type InsertUser = typeof users.$inferInsert;
 export const watchlistItems = mysqlTable(
   "watchlist_items",
   {
-    userId: int("userId").notNull().references(() => users.id),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id),
     productId: varchar("productId", { length: 191 }).notNull(),
     data: json("data"),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
@@ -51,7 +53,9 @@ export const watchlistItems = mysqlTable(
 export const priceAlerts = mysqlTable(
   "price_alerts",
   {
-    userId: int("userId").notNull().references(() => users.id),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id),
     alertId: varchar("alertId", { length: 191 }).notNull(),
     data: json("data"),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
@@ -63,7 +67,9 @@ export const priceAlerts = mysqlTable(
 export const backOrderReminders = mysqlTable(
   "back_order_reminders",
   {
-    userId: int("userId").notNull().references(() => users.id),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id),
     reminderId: varchar("reminderId", { length: 191 }).notNull(),
     data: json("data"),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
@@ -73,7 +79,10 @@ export const backOrderReminders = mysqlTable(
 );
 
 export const appSettings = mysqlTable("app_settings", {
-  userId: int("userId").notNull().references(() => users.id).primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id)
+    .primaryKey(),
   data: json("data"),
   updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
   deletedAtMs: bigint("deletedAtMs", { mode: "number" }),
@@ -101,7 +110,9 @@ export const priceCache = mysqlTable(
     taxRate: double("taxRate"),
     fetchedAt: bigint("fetchedAt", { mode: "number" }).notNull(),
   },
-  (table) => [primaryKey({ columns: [table.distributorId, table.modelNumber] })],
+  (table) => [
+    primaryKey({ columns: [table.distributorId, table.modelNumber] }),
+  ],
 );
 
 export type PriceCacheRow = typeof priceCache.$inferSelect;

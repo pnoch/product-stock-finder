@@ -63,13 +63,18 @@ const memoryConfigs = new Map<
 const memoryEvents = new Map<string, MemoryEvent>();
 const memoryDeliveries = new Map<string, Set<string>>();
 
-interface EventDraft
-  extends Omit<InsertNotificationEventRow, "deviceId" | "userId"> {
+interface EventDraft extends Omit<
+  InsertNotificationEventRow,
+  "deviceId" | "userId"
+> {
   dedupKey: string;
 }
 
 function newEventId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return `evt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -113,7 +118,8 @@ export async function evaluateNotifications(now: number): Promise<void> {
     return;
   }
   const rows = await db.select().from(deviceNotificationConfigs);
-  const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> = [];
+  const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> =
+    [];
   const userDevices = new Map<
     number,
     Array<{ deviceId: string; config: NotificationConfig }>
@@ -137,7 +143,8 @@ export async function evaluateNotifications(now: number): Promise<void> {
 }
 
 async function evaluateMemory(now: number): Promise<void> {
-  const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> = [];
+  const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> =
+    [];
   const userDevices = new Map<
     number,
     Array<{ deviceId: string; config: NotificationConfig }>
@@ -232,7 +239,8 @@ function aggregateConfigs(configs: NotificationConfig[]): NotificationConfig {
       if (!stockWatches.has(watch.id)) stockWatches.set(watch.id, watch);
     }
     for (const reminder of config.dateReminders) {
-      if (!dateReminders.has(reminder.id)) dateReminders.set(reminder.id, reminder);
+      if (!dateReminders.has(reminder.id))
+        dateReminders.set(reminder.id, reminder);
     }
   }
   return {
@@ -249,7 +257,10 @@ async function evaluateConfigDb(
   now: number,
 ): Promise<void> {
   const existing = await db
-    .select({ id: notificationEvents.id, dedupKey: notificationEvents.dedupKey })
+    .select({
+      id: notificationEvents.id,
+      dedupKey: notificationEvents.dedupKey,
+    })
     .from(notificationEvents)
     .where(eq(notificationEvents.deviceId, deviceId));
   const delivered = await db
@@ -279,7 +290,10 @@ async function evaluateUserDb(
   const boundCount = devices.length;
   const config = aggregateConfigs(devices.map((d) => d.config));
   const existing = await db
-    .select({ id: notificationEvents.id, dedupKey: notificationEvents.dedupKey })
+    .select({
+      id: notificationEvents.id,
+      dedupKey: notificationEvents.dedupKey,
+    })
     .from(notificationEvents)
     .where(eq(notificationEvents.userId, userId));
   const eventIds = existing.map((e) => e.id);
@@ -310,11 +324,15 @@ async function evaluateUserDb(
 
 function dedupKeyFor(event: NotificationEvent): string {
   if (event.type === "price_drop") return `price_drop:${event.alertId}`;
-  if (event.type === "restock") return `restock:${event.productId}:${event.distributorId}`;
+  if (event.type === "restock")
+    return `restock:${event.productId}:${event.distributorId}`;
   return `reminder:${event.reminderId}`;
 }
 
-async function buildEvents(config: NotificationConfig, now: number): Promise<EventDraft[]> {
+async function buildEvents(
+  config: NotificationConfig,
+  now: number,
+): Promise<EventDraft[]> {
   const events: EventDraft[] = [];
 
   for (const alert of config.alerts) {
@@ -328,7 +346,11 @@ async function buildEvents(config: NotificationConfig, now: number): Promise<Eve
     for (const distributorId of distributorIds) {
       const snapshot = await getCachedPrice(distributorId, product.modelNumber);
       if (!snapshot || snapshot.stockStatus !== "in_stock") continue;
-      const converted = convertPrice(snapshot.price, snapshot.currency, alert.currency);
+      const converted = convertPrice(
+        snapshot.price,
+        snapshot.currency,
+        alert.currency,
+      );
       if (bestPrice === null || converted < bestPrice) {
         bestPrice = converted;
         bestDistributor = distributorId;
@@ -357,7 +379,10 @@ async function buildEvents(config: NotificationConfig, now: number): Promise<Eve
     const product = PRODUCT_CATALOG.find((p) => p.id === watch.productId);
     if (!product) continue;
     if (watch.lastKnownStatus === "in_stock") continue;
-    const snapshot = await getCachedPrice(watch.distributorId, product.modelNumber);
+    const snapshot = await getCachedPrice(
+      watch.distributorId,
+      product.modelNumber,
+    );
     if (!snapshot || snapshot.stockStatus !== "in_stock") continue;
     const distributorName =
       getDistributorById(watch.distributorId)?.name ?? watch.distributorId;
@@ -381,7 +406,8 @@ async function buildEvents(config: NotificationConfig, now: number): Promise<Eve
     if (!product) continue;
     if (now < new Date(reminder.reminderDate).getTime()) continue;
     const distributorName =
-      getDistributorById(reminder.distributorId)?.name ?? reminder.distributorId;
+      getDistributorById(reminder.distributorId)?.name ??
+      reminder.distributorId;
     events.push({
       id: newEventId(),
       type: "reminder",
@@ -483,7 +509,8 @@ function rowToConfig(row: {
 }): NotificationConfig {
   return {
     alerts: (row.alerts as NotificationConfig["alerts"]) ?? [],
-    stockWatches: (row.stockWatches as NotificationConfig["stockWatches"]) ?? [],
+    stockWatches:
+      (row.stockWatches as NotificationConfig["stockWatches"]) ?? [],
     dateReminders:
       (row.dateReminders as NotificationConfig["dateReminders"]) ?? [],
   };

@@ -24,7 +24,10 @@ import {
   type NotificationConfig,
 } from "../server/notifications";
 import { setCachedPrice } from "../server/price-cache";
-import { sendPushForDevice, sendPushForUser } from "../server/push-notifications";
+import {
+  sendPushForDevice,
+  sendPushForUser,
+} from "../server/push-notifications";
 import { getDb } from "../server/db";
 import {
   deviceNotificationConfigs,
@@ -219,7 +222,11 @@ describe("evaluateNotifications", () => {
     await upsertDeviceConfig("dev-1", {
       ...baseConfig,
       stockWatches: [
-        { id: "w1", productId: "mikrotik-crs804-4ddq-hrm", distributorId: "server2u-my" },
+        {
+          id: "w1",
+          productId: "mikrotik-crs804-4ddq-hrm",
+          distributorId: "server2u-my",
+        },
       ],
     });
     await evaluateNotifications(Date.now());
@@ -261,7 +268,9 @@ describe("evaluateNotifications", () => {
           id: "r1",
           productId: "mikrotik-crs804-4ddq-hrm",
           distributorId: "server2u-my",
-          reminderDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          reminderDate: new Date(
+            Date.now() - 24 * 60 * 60 * 1000,
+          ).toISOString(),
         },
       ],
     });
@@ -301,7 +310,12 @@ describe("evaluateNotifications", () => {
     await upsertDeviceConfig("dev-1", {
       ...baseConfig,
       alerts: [
-        { id: "a1", productId: "unknown-product", targetPrice: 100, currency: "USD" },
+        {
+          id: "a1",
+          productId: "unknown-product",
+          targetPrice: 100,
+          currency: "USD",
+        },
       ],
     });
     await evaluateNotifications(Date.now());

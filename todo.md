@@ -368,3 +368,12 @@
 - [x] registerSyncSetup teardown (cleanup nulls ref; _layout effect unregisters)
 - [x] Settings "Sync now" loading state (disabled + spinner) + success tone
 - [x] Symmetric oversized-deviceId pull test (notifications.pull)
+
+## Phase 40: User-Scoped Notifications
+
+- [x] Device↔user binding on authenticated uploadConfig / registerPushToken (persists across logout/login)
+- [x] notificationEventDeliveries junction for per-device delivery tracking
+- [x] Per-user event evaluation (aggregate + dedup configs across bound devices)
+- [x] Cross-device delivery + catch-up pull for devices that bind later
+- [x] Hybrid auth: anonymous devices keep device-scoped flow
+- [x] sendPushForUser (push to every bound device)

@@ -63,7 +63,11 @@ import {
   clearPushTokensForTests,
 } from "../server/push-notifications";
 
-const event = { id: "evt-1", title: "💸 Price Drop Alert!", body: "CRS804 is now $480.00!" };
+const event = {
+  id: "evt-1",
+  title: "💸 Price Drop Alert!",
+  body: "CRS804 is now $480.00!",
+};
 
 describe("push-notifications", () => {
   beforeEach(() => {
@@ -174,7 +178,9 @@ describe("push-notifications", () => {
   });
 
   it("deletes the token row when a send ticket reports DeviceNotRegistered", async () => {
-    pushState.tickets = [{ status: "error", details: { error: "DeviceNotRegistered" } }];
+    pushState.tickets = [
+      { status: "error", details: { error: "DeviceNotRegistered" } },
+    ];
     await sendPushForDevice("dev-1", [event]);
     expect(dbStub.delete).toHaveBeenCalledWith(devicePushTokens);
   });
@@ -186,7 +192,9 @@ describe("push-notifications", () => {
   });
 
   it("does not delete on other error codes", async () => {
-    pushState.tickets = [{ status: "error", details: { error: "MessageTooBig" } }];
+    pushState.tickets = [
+      { status: "error", details: { error: "MessageTooBig" } },
+    ];
     await sendPushForDevice("dev-1", [event]);
     expect(dbStub.delete).not.toHaveBeenCalled();
   });
@@ -194,7 +202,9 @@ describe("push-notifications", () => {
   it("prunes the memory token when a send ticket reports DeviceNotRegistered", async () => {
     mockedGetDb.mockResolvedValue(null);
     await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios");
-    pushState.tickets = [{ status: "error", details: { error: "DeviceNotRegistered" } }];
+    pushState.tickets = [
+      { status: "error", details: { error: "DeviceNotRegistered" } },
+    ];
     await sendPushForDevice("dev-1", [event]);
     expect(sent).toHaveLength(1);
     pushState.tickets = [{ status: "ok" }];

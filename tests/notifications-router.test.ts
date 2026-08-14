@@ -156,18 +156,22 @@ describe("notifications router", () => {
       ],
       dateReminders: [],
     });
-    expect(mockedUpsert).toHaveBeenCalledWith("dev-1", {
-      alerts: [],
-      stockWatches: [
-        {
-          id: "w1",
-          productId: "mikrotik-crs804-4ddq-hrm",
-          distributorId: "d1",
-          lastKnownStatus: "back_order",
-        },
-      ],
-      dateReminders: [],
-    }, null);
+    expect(mockedUpsert).toHaveBeenCalledWith(
+      "dev-1",
+      {
+        alerts: [],
+        stockWatches: [
+          {
+            id: "w1",
+            productId: "mikrotik-crs804-4ddq-hrm",
+            distributorId: "d1",
+            lastKnownStatus: "back_order",
+          },
+        ],
+        dateReminders: [],
+      },
+      null,
+    );
   });
 
   it("rejects an oversized deviceId for uploadConfig", async () => {

@@ -52,7 +52,10 @@ export async function sendPushForDevice(
       token = memoryTokens.get(deviceId)?.token;
     }
   } catch (error) {
-    console.warn(`[Push] Failed to read push token for device ${deviceId}:`, error);
+    console.warn(
+      `[Push] Failed to read push token for device ${deviceId}:`,
+      error,
+    );
     return;
   }
   if (!token || !Expo.isExpoPushToken(token)) return;
@@ -68,7 +71,8 @@ export async function sendPushForDevice(
       const tickets = await expo.sendPushNotificationsAsync(chunk);
       if (
         tickets.some(
-          (t) => t.status === "error" && t.details?.error === "DeviceNotRegistered",
+          (t) =>
+            t.status === "error" && t.details?.error === "DeviceNotRegistered",
         )
       ) {
         await pruneDeviceToken(deviceId);
@@ -99,7 +103,10 @@ export async function sendPushForUser(
         .map(([deviceId]) => deviceId);
     }
   } catch (error) {
-    console.warn(`[Push] Failed to read push tokens for user ${userId}:`, error);
+    console.warn(
+      `[Push] Failed to read push tokens for user ${userId}:`,
+      error,
+    );
     return;
   }
   for (const deviceId of deviceIds) {
@@ -118,7 +125,10 @@ export async function pruneDeviceToken(deviceId: string): Promise<void> {
       memoryTokens.delete(deviceId);
     }
   } catch (error) {
-    console.warn(`[Push] Failed to prune push token for device ${deviceId}:`, error);
+    console.warn(
+      `[Push] Failed to prune push token for device ${deviceId}:`,
+      error,
+    );
   }
 }
 
