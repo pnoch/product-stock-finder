@@ -148,6 +148,7 @@ describe("devices (memory backend)", () => {
   it("signs out a bound device and records revocation", async () => {
     await upsertDeviceConfig("dev-1", baseConfig, 7);
     await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios", 7);
+    await renameDevice(7, "dev-1", "Living Room");
     expect(await signOutDevice(7, "dev-1")).toBe(true);
     expect(await listDevicesForUser(7)).toEqual([]);
     expect(await getDeviceBinding("dev-1")).toEqual({ userId: null });
@@ -356,6 +357,7 @@ describe("devices (database backend)", () => {
       devicePushTokens,
       notificationEventDeliveries,
       notificationEvents,
+      deviceLabels,
     ]);
     expect(inserted).toEqual([revokedDevices]);
     mockedGetDb.mockResolvedValue(null);

@@ -195,12 +195,16 @@ export async function signOutDevice(
   const db = await getDb();
   if (!db) {
     memoryRevokedDevices.add(deviceId);
+    memoryLabels.delete(deviceId);
     return true;
   }
   await db
     .insert(revokedDevices)
     .values({ deviceId, revokedAt: Date.now() })
     .onDuplicateKeyUpdate({ set: { revokedAt: Date.now() } });
+  await db
+    .delete(deviceLabels)
+    .where(eq(deviceLabels.deviceId, deviceId));
   return true;
 }
 
