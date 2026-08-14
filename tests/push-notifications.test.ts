@@ -126,6 +126,33 @@ describe("push-notifications", () => {
     });
   });
 
+  it("omits userId from the duplicate-key update set on anonymous upsert", async () => {
+    const onUpdateSets: Array<Record<string, unknown>> = [];
+    const dbStub = {
+      insert: vi.fn(() => ({
+        values: vi.fn(() => ({
+          onDuplicateKeyUpdate: vi.fn(
+            (arg: { set: Record<string, unknown> }) => {
+              onUpdateSets.push(arg.set);
+              return Promise.resolve(undefined);
+            },
+          ),
+        })),
+      })),
+    };
+    mockedGetDb.mockResolvedValue(dbStub as never);
+
+    await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios", 7);
+    expect(onUpdateSets).toHaveLength(1);
+    expect(onUpdateSets[0]!.userId).toBe(7);
+
+    await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios");
+    expect(onUpdateSets).toHaveLength(2);
+    expect(onUpdateSets[1]).not.toHaveProperty("userId");
+
+    mockedGetDb.mockResolvedValue(null);
+  });
+
   it("sends push using the token from the database", async () => {
     await sendPushForDevice("dev-1", [event]);
     expect(sent).toHaveLength(1);
