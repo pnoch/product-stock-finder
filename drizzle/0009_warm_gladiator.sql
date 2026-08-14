@@ -1,0 +1,1 @@
+ALTER TABLE `notification_events` MODIFY COLUMN `deviceId` varchar(128);

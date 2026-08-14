@@ -165,7 +165,7 @@ export type InsertDeviceNotificationConfigRow =
 export const notificationEvents = mysqlTable("notification_events", {
   id: varchar("id", { length: 128 }).notNull().primaryKey(),
   userId: int("userId").references(() => users.id),
-  deviceId: varchar("deviceId", { length: 128 }).notNull(),
+  deviceId: varchar("deviceId", { length: 128 }),
   type: varchar("type", { length: 16 }).notNull(),
   dedupKey: varchar("dedupKey", { length: 255 }).notNull(),
   title: text("title").notNull(),
