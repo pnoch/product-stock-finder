@@ -43,7 +43,12 @@ describe("notifications router", () => {
     const result = await caller.notifications.uploadConfig({
       deviceId: "dev-1",
       alerts: [
-        { id: "a1", productId: "mikrotik-crs804-4ddq-hrm", targetPrice: 500, currency: "USD" },
+        {
+          id: "a1",
+          productId: "mikrotik-crs804-4ddq-hrm",
+          targetPrice: 500,
+          currency: "USD",
+        },
       ],
       stockWatches: [],
       dateReminders: [],
@@ -75,9 +80,11 @@ describe("notifications router", () => {
   it("works without authentication (public procedure)", async () => {
     mockedPull.mockResolvedValue([]);
     const caller = appRouter.createCaller(createPublicContext());
-    await expect(caller.notifications.pull({ deviceId: "x" })).resolves.toEqual({
-      events: [],
-    });
+    await expect(caller.notifications.pull({ deviceId: "x" })).resolves.toEqual(
+      {
+        events: [],
+      },
+    );
   });
 
   it("registers a push token for a device", async () => {

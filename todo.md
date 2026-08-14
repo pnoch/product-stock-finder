@@ -359,3 +359,12 @@
 - [x] Mobile fx helper: fetch/load/refresh + maybeRefresh (lib/fx.ts), persisted to fx_rates AsyncStorage
 - [x] Launch + Settings refresh wiring; every existing conversion uses live rates
 - [x] Tests: fx service (6), currency live-rates (3), storage round-trip (4), fx client (7)
+
+## Phase 39: FX + Sync Hardening
+
+- [x] getFxRates rate-value validation (finite numbers only; null when empty)
+- [x] Mobile single-flight refresh (refreshFxRates dedupes concurrent calls)
+- [x] Sync error label dedup (drop redundant "Sync failed —" prefix)
+- [x] registerSyncSetup teardown (cleanup nulls ref; _layout effect unregisters)
+- [x] Settings "Sync now" loading state (disabled + spinner) + success tone
+- [x] Symmetric oversized-deviceId pull test (notifications.pull)

@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatSyncStatus,
-  getSyncSetup,
-  registerSyncSetup,
-} from "../lib/sync";
+import { formatSyncStatus, getSyncSetup, registerSyncSetup } from "../lib/sync";
 import type { SyncSetup } from "../lib/sync";
 import type { SyncMeta } from "../lib/types";
 
