@@ -17,6 +17,11 @@ import { getInsight } from "./price-insights";
 import { getProductImage } from "./product-images";
 import { upsertDeviceConfig, pullPendingEvents } from "./notifications";
 import { upsertPushToken } from "./push-notifications";
+import {
+  listDevicesForUser,
+  getDeviceBinding,
+  unbindDevice,
+} from "./devices";
 
 const syncItemSchema = z.object({
   collection: z.enum(["watchlist", "alerts", "reminders", "settings"]),
@@ -204,6 +209,25 @@ export const appRouter = router({
           ctx.user?.id ?? null,
         );
         return { accepted: true } as const;
+      }),
+  }),
+
+  devices: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const devices = await listDevicesForUser(ctx.user.id);
+      return { devices };
+    }),
+    current: publicProcedure
+      .input(z.object({ deviceId: z.string().min(1).max(128) }))
+      .query(async ({ input }) => {
+        const { userId } = await getDeviceBinding(input.deviceId);
+        return { deviceId: input.deviceId, userId };
+      }),
+    unbind: protectedProcedure
+      .input(z.object({ deviceId: z.string().min(1).max(128) }))
+      .mutation(async ({ ctx, input }) => {
+        const unbound = await unbindDevice(ctx.user.id, input.deviceId);
+        return { unbound };
       }),
   }),
 });
