@@ -9,23 +9,27 @@ export interface PushableEvent {
   body: string;
 }
 
-const memoryTokens = new Map<string, { token: string; platform: string }>();
+const memoryTokens = new Map<
+  string,
+  { token: string; platform: string; userId: number | null }
+>();
 
 export async function upsertPushToken(
   deviceId: string,
   token: string,
   platform: "ios" | "android",
+  userId: number | null = null,
 ): Promise<void> {
   const db = await getDb();
   if (!db) {
-    memoryTokens.set(deviceId, { token, platform });
+    memoryTokens.set(deviceId, { token, platform, userId });
     return;
   }
   await db
     .insert(devicePushTokens)
-    .values({ deviceId, token, platform, updatedAt: Date.now() })
+    .values({ deviceId, token, platform, userId, updatedAt: Date.now() })
     .onDuplicateKeyUpdate({
-      set: { token, platform, updatedAt: Date.now() },
+      set: { token, platform, userId, updatedAt: Date.now() },
     });
 }
 
@@ -72,6 +76,34 @@ export async function sendPushForDevice(
     }
   } catch (error) {
     console.warn(`[Push] Failed to send push for device ${deviceId}:`, error);
+  }
+}
+
+export async function sendPushForUser(
+  userId: number,
+  events: PushableEvent[],
+): Promise<void> {
+  if (events.length === 0) return;
+  let deviceIds: string[] = [];
+  try {
+    const db = await getDb();
+    if (db) {
+      const rows = await db
+        .select({ deviceId: devicePushTokens.deviceId })
+        .from(devicePushTokens)
+        .where(eq(devicePushTokens.userId, userId));
+      deviceIds = rows.map((r) => r.deviceId);
+    } else {
+      deviceIds = [...memoryTokens.entries()]
+        .filter(([, t]) => t.userId === userId)
+        .map(([deviceId]) => deviceId);
+    }
+  } catch (error) {
+    console.warn(`[Push] Failed to read push tokens for user ${userId}:`, error);
+    return;
+  }
+  for (const deviceId of deviceIds) {
+    await sendPushForDevice(deviceId, events);
   }
 }
 

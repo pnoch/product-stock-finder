@@ -25,7 +25,14 @@ const dbStub = {
   })),
 };
 
-const sent = vi.hoisted(() => [] as unknown[]);
+type PushMessage = {
+  to: string;
+  title: string;
+  body: string;
+  data: { eventId: string };
+};
+
+const sent = vi.hoisted(() => [] as PushMessage[][]);
 
 const pushState = vi.hoisted(() => ({
   tickets: [{ status: "ok" }] as Array<{
@@ -42,7 +49,7 @@ vi.mock("expo-server-sdk", () => ({
       return [messages];
     }
     async sendPushNotificationsAsync(chunk: unknown) {
-      sent.push(chunk);
+      sent.push(chunk as PushMessage[]);
       return pushState.tickets;
     }
   },
@@ -51,6 +58,7 @@ vi.mock("expo-server-sdk", () => ({
 import {
   upsertPushToken,
   sendPushForDevice,
+  sendPushForUser,
   pruneDeviceToken,
   clearPushTokensForTests,
 } from "../server/push-notifications";
@@ -192,5 +200,58 @@ describe("push-notifications", () => {
     pushState.tickets = [{ status: "ok" }];
     await sendPushForDevice("dev-1", [event]);
     expect(sent).toHaveLength(1);
+  });
+
+  describe("sendPushForUser", () => {
+    beforeEach(() => {
+      clearPushTokensForTests();
+      sent.length = 0;
+      pushState.tickets = [{ status: "ok" }];
+      vi.clearAllMocks();
+      mockedGetDb.mockResolvedValue(null);
+    });
+
+    it("sends a user event to every device bound to the user", async () => {
+      await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios", 7);
+      await upsertPushToken("dev-2", "ExponentPushToken[def456]", "android", 7);
+      await sendPushForUser(7, [event]);
+      expect(sent).toHaveLength(2);
+      expect(sent[0]![0]!.to).toBe("ExponentPushToken[abc123]");
+      expect(sent[1]![0]!.to).toBe("ExponentPushToken[def456]");
+    });
+
+    it("skips devices bound to other users", async () => {
+      await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios", 7);
+      await upsertPushToken("dev-2", "ExponentPushToken[def456]", "android", 8);
+      await sendPushForUser(7, [event]);
+      expect(sent).toHaveLength(1);
+      expect(sent[0]![0]!.to).toBe("ExponentPushToken[abc123]");
+    });
+
+    it("no-ops when the user has no bound devices", async () => {
+      await sendPushForUser(7, [event]);
+      expect(sent).toHaveLength(0);
+    });
+
+    it("sends using device tokens read from the database", async () => {
+      mockedGetDb.mockResolvedValue({
+        insert: vi.fn(() => ({
+          values: vi.fn(() => ({
+            onDuplicateKeyUpdate: vi.fn(async () => undefined),
+          })),
+        })),
+        select: vi.fn(() => ({
+          from: vi.fn(() => ({
+            where: vi.fn(async () => [
+              { deviceId: "dev-1", token: "ExponentPushToken[dbpath]" },
+            ]),
+          })),
+        })),
+      } as never);
+      await upsertPushToken("dev-1", "ExponentPushToken[dbpath]", "ios", 7);
+      await sendPushForUser(7, [event]);
+      expect(sent).toHaveLength(1);
+      expect(sent[0]![0]!.to).toBe("ExponentPushToken[dbpath]");
+    });
   });
 });
