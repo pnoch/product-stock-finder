@@ -1,6 +1,9 @@
 import { eq } from "drizzle-orm";
 import { Expo } from "expo-server-sdk";
-import { devicePushTokens } from "../drizzle/schema";
+import {
+  devicePushTokens,
+  type InsertDevicePushTokenRow,
+} from "../drizzle/schema";
 import { getDb } from "./db";
 
 export interface PushableEvent {
@@ -22,15 +25,21 @@ export async function upsertPushToken(
 ): Promise<void> {
   const db = await getDb();
   if (!db) {
-    memoryTokens.set(deviceId, { token, platform, userId });
+    const existing = memoryTokens.get(deviceId);
+    const effectiveUserId = userId ?? existing?.userId ?? null;
+    memoryTokens.set(deviceId, { token, platform, userId: effectiveUserId });
     return;
   }
+  const set: Partial<InsertDevicePushTokenRow> = {
+    token,
+    platform,
+    updatedAt: Date.now(),
+  };
+  if (userId !== null) set.userId = userId;
   await db
     .insert(devicePushTokens)
     .values({ deviceId, token, platform, userId, updatedAt: Date.now() })
-    .onDuplicateKeyUpdate({
-      set: { token, platform, userId, updatedAt: Date.now() },
-    });
+    .onDuplicateKeyUpdate({ set });
 }
 
 export async function sendPushForDevice(

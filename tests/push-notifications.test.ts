@@ -243,6 +243,13 @@ describe("push-notifications", () => {
       expect(sent).toHaveLength(0);
     });
 
+    it("keeps the user binding when a bound device re-registers anonymously", async () => {
+      await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios", 7);
+      await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios");
+      await sendPushForUser(7, [event]);
+      expect(sent).toHaveLength(1);
+    });
+
     it("sends using device tokens read from the database", async () => {
       mockedGetDb.mockResolvedValue({
         insert: vi.fn(() => ({

@@ -493,6 +493,30 @@ describe("user-scoped notifications (memory)", () => {
     expect(dev1Second).toEqual([]);
   });
 
+  it("keeps a device bound to its user across an anonymous re-upsert", async () => {
+    await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
+      price: 480,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://example.com",
+      fetchedAt: Date.now(),
+    });
+    const alert = {
+      id: "a1",
+      productId: "mikrotik-crs804-4ddq-hrm",
+      targetPrice: 500,
+      currency: "USD",
+    };
+    await upsertDeviceConfig("dev-1", { ...baseConfig, alerts: [alert] }, 7);
+    await upsertDeviceConfig("dev-1", { ...baseConfig, alerts: [alert] });
+    await evaluateNotifications(Date.now());
+    const userEvents = await pullPendingEvents("dev-1", 7);
+    expect(userEvents).toHaveLength(1);
+    expect(userEvents[0]!.alertId).toBe("a1");
+    const anonEvents = await pullPendingEvents("dev-1");
+    expect(anonEvents).toEqual([]);
+  });
+
   it("re-binds a device to a new user", async () => {
     await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
       price: 480,
@@ -633,6 +657,44 @@ describe("user-scoped notifications (database)", () => {
       7,
       expect.arrayContaining([expect.objectContaining({ type: "price_drop" })]),
     );
+    mockedGetDb.mockResolvedValue(null);
+  });
+
+  it("omits userId from the duplicate-key update set on anonymous upsert", async () => {
+    const onUpdateSets: Array<Record<string, unknown>> = [];
+    const storedSnapshots: Array<Record<string, unknown>> = [];
+    const dbStub = {
+      insert: vi.fn((table: unknown) => ({
+        values: vi.fn((rows: unknown) => {
+          if (table === priceCache) {
+            storedSnapshots.push(rows as Record<string, unknown>);
+          }
+          return {
+            onDuplicateKeyUpdate: vi.fn(
+              (arg: { set: Record<string, unknown> }) => {
+                onUpdateSets.push(arg.set);
+                return Promise.resolve(undefined);
+              },
+            ),
+          };
+        }),
+      })),
+    };
+    mockedGetDb.mockResolvedValue(dbStub as never);
+    const config: NotificationConfig = { ...baseConfig };
+
+    await upsertDeviceConfig("dev-1", config, 7);
+    expect(onUpdateSets).toHaveLength(1);
+    expect(onUpdateSets[0]!.userId).toBe(7);
+
+    await upsertDeviceConfig("dev-1", config);
+    expect(onUpdateSets).toHaveLength(2);
+    expect(onUpdateSets[1]).not.toHaveProperty("userId");
+
+    await upsertDeviceConfig("dev-1", config, 8);
+    expect(onUpdateSets).toHaveLength(3);
+    expect(onUpdateSets[2]!.userId).toBe(8);
+
     mockedGetDb.mockResolvedValue(null);
   });
 

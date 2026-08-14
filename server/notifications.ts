@@ -3,6 +3,7 @@ import {
   deviceNotificationConfigs,
   notificationEvents,
   notificationEventDeliveries,
+  type InsertDeviceNotificationConfigRow,
   type InsertNotificationEventRow,
 } from "../drizzle/schema";
 import { PRODUCT_CATALOG } from "../lib/catalog";
@@ -87,9 +88,18 @@ export async function upsertDeviceConfig(
 ): Promise<void> {
   const db = await getDb();
   if (!db) {
-    memoryConfigs.set(deviceId, { config, userId });
+    const existing = memoryConfigs.get(deviceId);
+    const effectiveUserId = userId ?? existing?.userId ?? null;
+    memoryConfigs.set(deviceId, { config, userId: effectiveUserId });
     return;
   }
+  const set: Partial<InsertDeviceNotificationConfigRow> = {
+    alerts: config.alerts,
+    stockWatches: config.stockWatches,
+    dateReminders: config.dateReminders,
+    updatedAt: Date.now(),
+  };
+  if (userId !== null) set.userId = userId;
   await db
     .insert(deviceNotificationConfigs)
     .values({
@@ -100,15 +110,7 @@ export async function upsertDeviceConfig(
       dateReminders: config.dateReminders,
       updatedAt: Date.now(),
     })
-    .onDuplicateKeyUpdate({
-      set: {
-        userId,
-        alerts: config.alerts,
-        stockWatches: config.stockWatches,
-        dateReminders: config.dateReminders,
-        updatedAt: Date.now(),
-      },
-    });
+    .onDuplicateKeyUpdate({ set });
 }
 
 export async function evaluateNotifications(now: number): Promise<void> {
