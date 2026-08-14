@@ -8,6 +8,7 @@ vi.mock("../server/price-cache", async (importOriginal) => {
 vi.mock("../server/push-notifications", () => ({
   upsertPushToken: vi.fn(),
   sendPushForDevice: vi.fn(),
+  sendPushForUser: vi.fn(),
   clearPushTokensForTests: vi.fn(),
 }));
 
@@ -23,7 +24,7 @@ import {
   type NotificationConfig,
 } from "../server/notifications";
 import { setCachedPrice } from "../server/price-cache";
-import { sendPushForDevice } from "../server/push-notifications";
+import { sendPushForDevice, sendPushForUser } from "../server/push-notifications";
 import { getDb } from "../server/db";
 import { deviceNotificationConfigs, notificationEvents, priceCache } from "../drizzle/schema";
 
@@ -370,5 +371,152 @@ describe("pullPendingEvents", () => {
     expect(dev2).toHaveLength(1);
     expect(dev1[0]!.alertId).toBe("a1");
     expect(dev2[0]!.alertId).toBe("a2");
+  });
+});
+
+describe("user-scoped notifications (memory)", () => {
+  beforeEach(() => {
+    clearNotificationsForTests();
+    vi.clearAllMocks();
+    mockedGetDb.mockResolvedValue(null);
+  });
+
+  it("dedupes an alert shared across a user's devices into one event", async () => {
+    await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
+      price: 480,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://example.com",
+      fetchedAt: Date.now(),
+    });
+    const alert = {
+      id: "a1",
+      productId: "mikrotik-crs804-4ddq-hrm",
+      targetPrice: 500,
+      currency: "USD",
+    };
+    await upsertDeviceConfig("dev-1", { ...baseConfig, alerts: [alert] }, 7);
+    await upsertDeviceConfig("dev-2", { ...baseConfig, alerts: [alert] }, 7);
+    await evaluateNotifications(Date.now());
+    const dev1 = await pullPendingEvents("dev-1", 7);
+    const dev2 = await pullPendingEvents("dev-2", 7);
+    expect(dev1).toHaveLength(1);
+    expect(dev2).toHaveLength(1);
+    expect(dev1[0]!.id).toBe(dev2[0]!.id);
+    expect(vi.mocked(sendPushForUser)).toHaveBeenCalledWith(
+      7,
+      expect.arrayContaining([expect.objectContaining({ type: "price_drop" })]),
+    );
+  });
+
+  it("catches up a device that binds after the event fired", async () => {
+    await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
+      price: 480,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://example.com",
+      fetchedAt: Date.now(),
+    });
+    await upsertDeviceConfig(
+      "dev-1",
+      {
+        ...baseConfig,
+        alerts: [
+          {
+            id: "a1",
+            productId: "mikrotik-crs804-4ddq-hrm",
+            targetPrice: 500,
+            currency: "USD",
+          },
+        ],
+      },
+      7,
+    );
+    await evaluateNotifications(Date.now());
+    await upsertDeviceConfig("dev-2", { ...baseConfig }, 7);
+    const dev1 = await pullPendingEvents("dev-1", 7);
+    expect(dev1).toHaveLength(1);
+    const dev2 = await pullPendingEvents("dev-2", 7);
+    expect(dev2).toHaveLength(1);
+    expect(dev2[0]!.id).toBe(dev1[0]!.id);
+  });
+
+  it("marks delivery per device, not per user", async () => {
+    await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
+      price: 480,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://example.com",
+      fetchedAt: Date.now(),
+    });
+    await upsertDeviceConfig(
+      "dev-1",
+      {
+        ...baseConfig,
+        alerts: [
+          {
+            id: "a1",
+            productId: "mikrotik-crs804-4ddq-hrm",
+            targetPrice: 500,
+            currency: "USD",
+          },
+        ],
+      },
+      7,
+    );
+    await upsertDeviceConfig("dev-2", { ...baseConfig }, 7);
+    await evaluateNotifications(Date.now());
+    const dev1First = await pullPendingEvents("dev-1", 7);
+    expect(dev1First).toHaveLength(1);
+    const dev2First = await pullPendingEvents("dev-2", 7);
+    expect(dev2First).toHaveLength(1);
+    const dev1Second = await pullPendingEvents("dev-1", 7);
+    expect(dev1Second).toEqual([]);
+  });
+
+  it("re-binds a device to a new user", async () => {
+    await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
+      price: 480,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://example.com",
+      fetchedAt: Date.now(),
+    });
+    await upsertDeviceConfig(
+      "dev-1",
+      {
+        ...baseConfig,
+        alerts: [
+          {
+            id: "a1",
+            productId: "mikrotik-crs804-4ddq-hrm",
+            targetPrice: 500,
+            currency: "USD",
+          },
+        ],
+      },
+      7,
+    );
+    await upsertDeviceConfig(
+      "dev-1",
+      {
+        ...baseConfig,
+        alerts: [
+          {
+            id: "a2",
+            productId: "mikrotik-crs804-4ddq-hrm",
+            targetPrice: 500,
+            currency: "USD",
+          },
+        ],
+      },
+      8,
+    );
+    await evaluateNotifications(Date.now());
+    const user7 = await pullPendingEvents("dev-1", 7);
+    expect(user7).toEqual([]);
+    const user8 = await pullPendingEvents("dev-1", 8);
+    expect(user8).toHaveLength(1);
+    expect(user8[0]!.alertId).toBe("a2");
   });
 });
