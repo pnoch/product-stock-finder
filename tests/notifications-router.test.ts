@@ -34,6 +34,30 @@ function createPublicContext(): TrpcContext {
   };
 }
 
+function createAuthedContext(userId: number): TrpcContext {
+  return {
+    user: {
+      id: userId,
+      openId: `open-${userId}`,
+      name: null,
+      email: null,
+      loginMethod: null,
+      role: "user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    } as TrpcContext["user"],
+    req: {
+      protocol: "https",
+      hostname: "localhost",
+      headers: {},
+    } as TrpcContext["req"],
+    res: {
+      clearCookie: (_name: string, _options: Record<string, unknown>) => {},
+    } as TrpcContext["res"],
+  };
+}
+
 describe("notifications router", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -74,7 +98,7 @@ describe("notifications router", () => {
     const result = await caller.notifications.pull({ deviceId: "dev-1" });
     expect(result.events).toHaveLength(1);
     expect(result.events[0]!.alertId).toBe("a1");
-    expect(mockedPull).toHaveBeenCalledWith("dev-1");
+    expect(mockedPull).toHaveBeenCalledWith("dev-1", undefined);
   });
 
   it("works without authentication (public procedure)", async () => {
@@ -100,6 +124,7 @@ describe("notifications router", () => {
       "dev-1",
       "ExponentPushToken[abc123]",
       "ios",
+      null,
     );
   });
 
@@ -142,7 +167,7 @@ describe("notifications router", () => {
         },
       ],
       dateReminders: [],
-    });
+    }, null);
   });
 
   it("rejects an oversized deviceId for uploadConfig", async () => {
@@ -164,5 +189,44 @@ describe("notifications router", () => {
       caller.notifications.pull({ deviceId: "x".repeat(129) }),
     ).rejects.toThrow();
     expect(mockedPull).not.toHaveBeenCalled();
+  });
+
+  it("pulls user-scoped events when authenticated", async () => {
+    mockedPull.mockResolvedValue([]);
+    const caller = appRouter.createCaller(createAuthedContext(7));
+    await caller.notifications.pull({ deviceId: "dev-1" });
+    expect(mockedPull).toHaveBeenCalledWith("dev-1", 7);
+  });
+
+  it("binds the device to the user on authenticated uploadConfig", async () => {
+    mockedUpsert.mockResolvedValue(undefined);
+    const caller = appRouter.createCaller(createAuthedContext(7));
+    await caller.notifications.uploadConfig({
+      deviceId: "dev-1",
+      alerts: [],
+      stockWatches: [],
+      dateReminders: [],
+    });
+    expect(mockedUpsert).toHaveBeenCalledWith(
+      "dev-1",
+      { alerts: [], stockWatches: [], dateReminders: [] },
+      7,
+    );
+  });
+
+  it("binds the device to the user on authenticated registerPushToken", async () => {
+    mockedUpsertPush.mockResolvedValue(undefined);
+    const caller = appRouter.createCaller(createAuthedContext(7));
+    await caller.notifications.registerPushToken({
+      deviceId: "dev-1",
+      token: "ExponentPushToken[abc123]",
+      platform: "ios",
+    });
+    expect(mockedUpsertPush).toHaveBeenCalledWith(
+      "dev-1",
+      "ExponentPushToken[abc123]",
+      "ios",
+      7,
+    );
   });
 });

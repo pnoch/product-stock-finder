@@ -167,18 +167,25 @@ export const appRouter = router({
           ),
         }),
       )
-      .mutation(async ({ input }) => {
-        await upsertDeviceConfig(input.deviceId, {
-          alerts: input.alerts,
-          stockWatches: input.stockWatches,
-          dateReminders: input.dateReminders,
-        });
+      .mutation(async ({ input, ctx }) => {
+        await upsertDeviceConfig(
+          input.deviceId,
+          {
+            alerts: input.alerts,
+            stockWatches: input.stockWatches,
+            dateReminders: input.dateReminders,
+          },
+          ctx.user?.id ?? null,
+        );
         return { accepted: true } as const;
       }),
     pull: publicProcedure
       .input(z.object({ deviceId: z.string().min(1).max(128) }))
-      .query(async ({ input }) => {
-        const events = await pullPendingEvents(input.deviceId);
+      .query(async ({ input, ctx }) => {
+        const events = await pullPendingEvents(
+          input.deviceId,
+          ctx.user?.id ?? undefined,
+        );
         return { events };
       }),
     registerPushToken: publicProcedure
@@ -189,8 +196,13 @@ export const appRouter = router({
           platform: z.enum(["ios", "android"]),
         }),
       )
-      .mutation(async ({ input }) => {
-        await upsertPushToken(input.deviceId, input.token, input.platform);
+      .mutation(async ({ input, ctx }) => {
+        await upsertPushToken(
+          input.deviceId,
+          input.token,
+          input.platform,
+          ctx.user?.id ?? null,
+        );
         return { accepted: true } as const;
       }),
   }),
