@@ -48,6 +48,9 @@ import {
 } from "@/lib/devices";
 import type { DeviceInfo } from "@/lib/devices";
 import { getDeviceId } from "@/lib/device-id";
+import { ConnectionBadge } from "@/components/connection-badge";
+import { useConnection } from "@/hooks/use-connection";
+import { formatLastRefreshed } from "@/lib/last-refreshed";
 
 function SettingRow({
   icon,
@@ -161,6 +164,7 @@ export default function SettingsScreen() {
   });
   const [products, setProducts] = useState<Product[]>([]);
   const { user, isAuthenticated, logout } = useAuth();
+  const connection = useConnection();
   const [syncMeta, setSyncMeta] = useState<SyncMeta | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [syncing, setSyncing] = useState(false);
@@ -461,6 +465,65 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-5 pt-4 pb-2">
           <Text className="text-2xl font-bold text-foreground">Settings</Text>
+        </View>
+
+        <SectionHeader title="Connection" />
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            padding: 16,
+            gap: 12,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <ConnectionBadge status={connection.status} />
+            <TouchableOpacity
+              disabled={connection.isRefreshing}
+              onPress={() => {
+                if (Platform.OS !== "web")
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                connection.refetch();
+              }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+            >
+              {connection.isRefreshing ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <IconSymbol
+                  name="arrow.clockwise"
+                  size={18}
+                  color={colors.primary}
+                />
+              )}
+              <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                Check Now
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={{ color: colors.muted, fontSize: 13 }}>
+            {connection.status === "connected"
+              ? "Live price checks are active."
+              : connection.status === "signed-out"
+                ? "Sign in to sync prices with the backend."
+                : "Backend unreachable. Showing saved prices."}
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>
+            {connection.lastCheckedAt
+              ? `Last checked ${formatLastRefreshed(
+                  new Date(connection.lastCheckedAt).toISOString(),
+                )}`
+              : "Never checked"}
+          </Text>
         </View>
 
         <SectionHeader title="Account" />
