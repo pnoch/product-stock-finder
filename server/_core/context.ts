@@ -1,21 +1,20 @@
 import { TRPCError } from "@trpc/server";
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
-import type { User } from "../../drizzle/schema";
 import { DEVICE_REVOKED_ERR_MSG } from "../../shared/const.js";
 import { isDeviceRevoked } from "../devices";
-import { sdk } from "./sdk";
+import { sdk, type AuthenticatedUser } from "./sdk";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
   res: CreateExpressContextOptions["res"];
-  user: User | null;
+  user: AuthenticatedUser | null;
   deviceId: string | null;
 };
 
 export async function createContext(
   opts: CreateExpressContextOptions,
 ): Promise<TrpcContext> {
-  let user: User | null = null;
+  let user: AuthenticatedUser | null = null;
 
   try {
     user = await sdk.authenticateRequest(opts.req);
@@ -25,10 +24,13 @@ export async function createContext(
   }
 
   const rawDeviceId = opts.req.headers["x-device-id"];
-  const deviceId = typeof rawDeviceId === "string" ? rawDeviceId : null;
+  const headerDeviceId =
+    typeof rawDeviceId === "string" ? rawDeviceId : null;
+  const claimDeviceId = user?.sessionDeviceId ?? null;
+  const effectiveDeviceId = claimDeviceId ?? headerDeviceId;
 
-  if (deviceId && user) {
-    const revoked = await isDeviceRevoked(deviceId);
+  if (effectiveDeviceId && user) {
+    const revoked = await isDeviceRevoked(effectiveDeviceId);
     if (revoked) {
       throw new TRPCError({
         code: "FORBIDDEN",
@@ -41,6 +43,6 @@ export async function createContext(
     req: opts.req,
     res: opts.res,
     user,
-    deviceId,
+    deviceId: effectiveDeviceId,
   };
 }

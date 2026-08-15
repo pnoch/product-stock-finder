@@ -82,6 +82,41 @@ describe("createContext revocation check", () => {
     expect(ctx.deviceId).toBeNull();
     expect(mockedRevoked).not.toHaveBeenCalled();
   });
+
+  it("throws DEVICE_REVOKED based on the token claim even when the header is absent", async () => {
+    mockedAuth.mockResolvedValue({ id: 7, sessionDeviceId: "dev-claim" } as any);
+    mockedRevoked.mockResolvedValue(true);
+    await expect(
+      createContext({ req: makeReq(), res: makeRes() } as any),
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: DEVICE_REVOKED_ERR_MSG,
+    });
+  });
+
+  it("prefers the token claim over the header for ctx.deviceId", async () => {
+    mockedAuth.mockResolvedValue({ id: 7, sessionDeviceId: "dev-claim" } as any);
+    mockedRevoked.mockResolvedValue(false);
+    const ctx = await createContext({
+      req: makeReq({ "x-device-id": "dev-header" }),
+      res: makeRes(),
+    } as any);
+    expect(ctx.deviceId).toBe("dev-claim");
+  });
+
+  it("falls back to the header when the token has no deviceId claim", async () => {
+    mockedAuth.mockResolvedValue({ id: 7, sessionDeviceId: null } as any);
+    mockedRevoked.mockResolvedValue(true);
+    await expect(
+      createContext({
+        req: makeReq({ "x-device-id": "dev-header" }),
+        res: makeRes(),
+      } as any),
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: DEVICE_REVOKED_ERR_MSG,
+    });
+  });
 });
 
 import * as Auth from "@/lib/_core/auth";
