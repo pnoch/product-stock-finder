@@ -412,3 +412,11 @@
 - [x] createContext revocation check passes user.id (claim-authoritative check stays scoped to the user)
 - [x] OAuth login un-revokes the synced user's device (skips with a warning when no numeric id resolves)
 - [x] Cross-user isolation tests: A's sign-out never blocks B; B's login never clears A's revocation
+
+## Phase 45 — End-to-End Live Mode (v4.5)
+
+- [x] Connection status hook (`/api/health` probe + auth) with three states
+- [x] Home header connection badge + Settings Connection card
+- [x] React Query live price layer (`useLiveProduct` / `useLiveWatchlist`) with AsyncStorage seed + persistence
+- [x] Product detail + compare render live prices with server refresh
+- [x] Watchlist renders live prices with Refresh all + pull-to-refresh
