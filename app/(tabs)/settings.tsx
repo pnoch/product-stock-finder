@@ -10,6 +10,8 @@ import {
   Alert,
   Platform,
   ActivityIndicator,
+  Modal,
+  TextInput,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 
@@ -39,7 +41,9 @@ import { getAllParserIds } from "@/lib/scrapers/registry";
 import {
   fetchDevices,
   fetchCurrentDeviceBinding,
-  unbindDevice,
+  renameDevice,
+  signOutDevice,
+  cleanupStaleDevices,
   bindCurrentDevice,
 } from "@/lib/devices";
 import type { DeviceInfo } from "@/lib/devices";
@@ -167,6 +171,9 @@ export default function SettingsScreen() {
   } | null>(null);
   const [devicesLoading, setDevicesLoading] = useState(true);
   const [bindingAction, setBindingAction] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<DeviceInfo | null>(null);
+  const [renameLabel, setRenameLabel] = useState("");
+  const [renaming, setRenaming] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -234,22 +241,23 @@ export default function SettingsScreen() {
     }
   }, [loadDevices]);
 
-  const handleUnbindDevice = useCallback(
+  const handleSignOutDevice = useCallback(
     (device: DeviceInfo) => {
+      const name = device.label ?? `${device.deviceId.slice(0, 12)}…`;
       Alert.alert(
-        "Unbind Device",
-        `Stop ${device.deviceId.slice(0, 12)}… from receiving your notifications and remove it from your account?`,
+        "Sign Out Device",
+        `Sign out ${name} and remove it from your account? It will be signed out on its next connection.`,
         [
           { text: "Cancel", style: "cancel" },
           {
-            text: "Unbind",
+            text: "Sign Out",
             style: "destructive",
             onPress: async () => {
               if (Platform.OS !== "web")
                 Haptics.notificationAsync(
                   Haptics.NotificationFeedbackType.Warning,
                 );
-              await unbindDevice(device.deviceId);
+              await signOutDevice(device.deviceId);
               await loadDevices();
             },
           },
@@ -259,9 +267,33 @@ export default function SettingsScreen() {
     [loadDevices],
   );
 
+  const openRenameModal = useCallback((device: DeviceInfo) => {
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setRenameTarget(device);
+    setRenameLabel(device.label ?? "");
+  }, []);
+
+  const handleRename = useCallback(async () => {
+    if (!renameTarget) return;
+    const label = renameLabel.trim();
+    if (!label) return;
+    setRenaming(true);
+    try {
+      await renameDevice(renameTarget.deviceId, label);
+      setRenameTarget(null);
+      await loadDevices();
+    } finally {
+      setRenaming(false);
+    }
+  }, [renameTarget, renameLabel, loadDevices]);
+
   useEffect(() => {
     if (!isAuthenticated) return;
-    void loadDevices();
+    void (async () => {
+      await cleanupStaleDevices();
+      await loadDevices();
+    })();
   }, [isAuthenticated, loadDevices]);
 
   const handleSignIn = useCallback(() => {
@@ -673,8 +705,8 @@ export default function SettingsScreen() {
                             fontSize: 15,
                           }}
                         >
-                          {device.deviceId.slice(0, 12)}
-                          {device.deviceId.length > 12 ? "…" : ""}
+                          {device.label ??
+                            `${device.deviceId.slice(0, 12)}${device.deviceId.length > 12 ? "…" : ""}`}
                         </Text>
                         {device.deviceId === currentDeviceId && (
                           <View
@@ -708,31 +740,165 @@ export default function SettingsScreen() {
                         {formatLastSeen(device.lastSeenAt, now)}
                       </Text>
                     </View>
-                    {device.deviceId !== currentDeviceId && (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
                       <TouchableOpacity
-                        onPress={() => handleUnbindDevice(device)}
+                        onPress={() => openRenameModal(device)}
                         style={{
                           paddingHorizontal: 12,
                           paddingVertical: 6,
                           borderRadius: 12,
-                          backgroundColor: colors.error + "22",
+                          backgroundColor: colors.primary + "22",
                         }}
                       >
                         <Text
                           style={{
-                            color: colors.error,
+                            color: colors.primary,
                             fontSize: 13,
                             fontWeight: "600",
                           }}
                         >
-                          Unbind
+                          Rename
                         </Text>
                       </TouchableOpacity>
-                    )}
+                      {device.deviceId !== currentDeviceId && (
+                        <TouchableOpacity
+                          onPress={() => handleSignOutDevice(device)}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: 12,
+                            backgroundColor: colors.error + "22",
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: colors.error,
+                              fontSize: 13,
+                              fontWeight: "600",
+                            }}
+                          >
+                            Sign out
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
                 ))
               )}
             </View>
+
+            {/* Rename Device Modal */}
+            <Modal
+              visible={!!renameTarget}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setRenameTarget(null)}
+            >
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: "flex-end",
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                }}
+              >
+                <View
+                  style={{
+                    backgroundColor: colors.background,
+                    borderTopLeftRadius: 24,
+                    borderTopRightRadius: 24,
+                    padding: 24,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.foreground,
+                      fontSize: 20,
+                      fontWeight: "700",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Rename Device ✏️
+                  </Text>
+                  <Text
+                    style={{
+                      color: colors.muted,
+                      fontSize: 14,
+                      marginBottom: 16,
+                    }}
+                  >
+                    Give this device a friendly name
+                  </Text>
+                  <TextInput
+                    value={renameLabel}
+                    onChangeText={setRenameLabel}
+                    placeholder="e.g. Living Room"
+                    placeholderTextColor={colors.muted}
+                    maxLength={64}
+                    autoFocus
+                    style={{
+                      backgroundColor: colors.surface,
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      color: colors.foreground,
+                      fontSize: 16,
+                      marginBottom: 20,
+                    }}
+                  />
+                  <View style={{ flexDirection: "row", gap: 10 }}>
+                    <TouchableOpacity
+                      onPress={() => setRenameTarget(null)}
+                      style={{
+                        flex: 1,
+                        backgroundColor: colors.surface,
+                        borderRadius: 14,
+                        paddingVertical: 14,
+                        alignItems: "center",
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: colors.foreground,
+                          fontWeight: "600",
+                        }}
+                      >
+                        Cancel
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleRename}
+                      disabled={renaming || !renameLabel.trim()}
+                      style={{
+                        flex: 1,
+                        backgroundColor: colors.primary,
+                        borderRadius: 14,
+                        paddingVertical: 14,
+                        alignItems: "center",
+                        opacity: renaming || !renameLabel.trim() ? 0.5 : 1,
+                      }}
+                    >
+                      {renaming ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={{ color: "#fff", fontWeight: "600" }}>
+                          Save
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
           </>
         ) : null}
 
