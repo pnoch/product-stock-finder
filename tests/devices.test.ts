@@ -240,6 +240,12 @@ describe("devices (database backend)", () => {
     return search(node);
   };
 
+  const hasIsNullClause = (condition: unknown): boolean =>
+    treeHas(
+      condition,
+      (value) => typeof value === "string" && /\bis\s+null\b/i.test(value),
+    );
+
   it("lists a user's devices with max lastSeenAt and token platform", async () => {
     const dbStub = {
       select: vi.fn(() => ({
@@ -487,10 +493,6 @@ describe("devices (database backend)", () => {
   it("checks revocation in the database scoped to the user", async () => {
     const hasLiteral = (condition: unknown, target: unknown): boolean =>
       treeHas(condition, (value) => value === target);
-    const hasIsNullClause = (condition: unknown): boolean =>
-      treeHas(condition, (value) =>
-        typeof value === "string" && /\bis\s+null\b/i.test(value),
-      );
     const dbStub = {
       select: vi.fn(() => ({
         from: vi.fn((table: unknown) => {
@@ -500,7 +502,7 @@ describe("devices (database backend)", () => {
                 const deviceBound = hasLiteral(condition, "dev-1");
                 const userBound = hasLiteral(condition, 7);
                 const hasNullTerm = hasIsNullClause(condition);
-                return deviceBound && (userBound || hasNullTerm)
+                return deviceBound && userBound && hasNullTerm
                   ? [
                       {
                         id: 1,
@@ -524,10 +526,6 @@ describe("devices (database backend)", () => {
   });
 
   it("treats a legacy NULL userId row as a global block", async () => {
-    const hasIsNullClause = (condition: unknown): boolean =>
-      treeHas(condition, (value) =>
-        typeof value === "string" && /\bis\s+null\b/i.test(value),
-      );
     const dbStub = {
       select: vi.fn(() => ({
         from: vi.fn((table: unknown) => {
