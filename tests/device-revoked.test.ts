@@ -15,6 +15,10 @@ vi.mock("@/lib/_core/auth", () => ({
   clearUserInfo: vi.fn(async () => {}),
 }));
 
+vi.mock("@/lib/_core/api", () => ({
+  logout: vi.fn(async () => {}),
+}));
+
 import { sdk } from "../server/_core/sdk";
 import { isDeviceRevoked } from "../server/devices";
 
@@ -81,6 +85,7 @@ describe("createContext revocation check", () => {
 });
 
 import * as Auth from "@/lib/_core/auth";
+import * as Api from "@/lib/_core/api";
 import {
   handleDeviceRevoked,
   registerDeviceRevokedHandler,
@@ -90,6 +95,7 @@ import {
 
 const mockedRemove = vi.mocked(Auth.removeSessionToken);
 const mockedClear = vi.mocked(Auth.clearUserInfo);
+const mockedLogout = vi.mocked(Api.logout);
 
 describe("lib/device-revoked", () => {
   beforeEach(() => {
@@ -102,6 +108,7 @@ describe("lib/device-revoked", () => {
     registerDeviceRevokedHandler(handler);
     await handleDeviceRevoked();
     await handleDeviceRevoked();
+    expect(mockedLogout).toHaveBeenCalledTimes(1);
     expect(mockedRemove).toHaveBeenCalledTimes(1);
     expect(mockedClear).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledTimes(1);
@@ -109,6 +116,15 @@ describe("lib/device-revoked", () => {
 
   it("clears the session even with no handler registered", async () => {
     await handleDeviceRevoked();
+    expect(mockedLogout).toHaveBeenCalledTimes(1);
+    expect(mockedRemove).toHaveBeenCalledTimes(1);
+    expect(mockedClear).toHaveBeenCalledTimes(1);
+  });
+
+  it("still clears the local session when logout fails", async () => {
+    mockedLogout.mockRejectedValueOnce(new Error("network"));
+    await handleDeviceRevoked();
+    expect(mockedLogout).toHaveBeenCalledTimes(1);
     expect(mockedRemove).toHaveBeenCalledTimes(1);
     expect(mockedClear).toHaveBeenCalledTimes(1);
   });
