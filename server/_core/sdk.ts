@@ -3,6 +3,7 @@ import {
   COOKIE_NAME,
   ONE_YEAR_MS,
 } from "../../shared/const.js";
+import { decodeOAuthState } from "../../shared/oauth-state.js";
 import { ForbiddenError } from "../../shared/_core/errors.js";
 import axios, { type AxiosInstance } from "axios";
 import { parse as parseCookieHeader } from "cookie";
@@ -26,6 +27,7 @@ export type SessionPayload = {
   openId: string;
   appId: string;
   name: string;
+  deviceId?: string | null;
 };
 
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
@@ -42,11 +44,6 @@ class OAuthService {
     }
   }
 
-  private decodeState(state: string): string {
-    const redirectUri = atob(state);
-    return redirectUri;
-  }
-
   async getTokenByCode(
     code: string,
     state: string,
@@ -55,7 +52,7 @@ class OAuthService {
       clientId: ENV.appId,
       grantType: "authorization_code",
       code,
-      redirectUri: this.decodeState(state),
+      redirectUri: decodeOAuthState(state).redirectUri,
     };
 
     const { data } = await this.client.post<ExchangeTokenResponse>(
@@ -170,13 +167,14 @@ class SDKServer {
    */
   async createSessionToken(
     openId: string,
-    options: { expiresInMs?: number; name?: string } = {},
+    options: { expiresInMs?: number; name?: string; deviceId?: string } = {},
   ): Promise<string> {
     return this.signSession(
       {
         openId,
         appId: ENV.appId,
         name: options.name || "",
+        deviceId: options.deviceId ?? null,
       },
       options,
     );
@@ -195,6 +193,7 @@ class SDKServer {
       openId: payload.openId,
       appId: payload.appId,
       name: payload.name,
+      ...(payload.deviceId ? { deviceId: payload.deviceId } : {}),
     })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setExpirationTime(expirationSeconds)
@@ -203,7 +202,7 @@ class SDKServer {
 
   async verifySession(
     cookieValue: string | undefined | null,
-  ): Promise<{ openId: string; appId: string; name: string } | null> {
+  ): Promise<{ openId: string; appId: string; name: string; deviceId: string | null } | null> {
     if (!cookieValue) {
       console.warn("[Auth] Missing session cookie");
       return null;
@@ -229,6 +228,8 @@ class SDKServer {
         openId,
         appId,
         name,
+        deviceId:
+          typeof payload.deviceId === "string" ? payload.deviceId : null,
       };
     } catch (error) {
       console.warn("[Auth] Session verification failed", String(error));
@@ -316,7 +317,10 @@ class SDKServer {
       lastSignedIn: signedInAt,
     });
 
-    return user;
+    return {
+      ...user,
+      sessionDeviceId: session.deviceId ?? null,
+    };
   }
 }
 
@@ -326,6 +330,7 @@ const CRON_OPEN_ID_PREFIX = "cron_";
 export type AuthenticatedUser = User & {
   taskUid?: string;
   isCron?: boolean;
+  sessionDeviceId?: string | null;
 };
 
 function buildCronUser(
@@ -344,6 +349,7 @@ function buildCronUser(
     lastSignedIn: now,
     taskUid: userInfo.taskUid ?? undefined,
     isCron: true,
+    sessionDeviceId: null,
   } as AuthenticatedUser;
 }
 
