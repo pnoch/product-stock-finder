@@ -387,7 +387,7 @@
 
 ## Phase 42: Device Labels & Remote Sign-Out
 
-- [x] Server device labels (server/devices.ts): renameDevice, getDeviceLabel (memory/DB parallel)
+- [x] Server device labels (server/devices.ts): renameDevice, label on DeviceInfo/listDevicesForUser (memory/DB parallel)
 - [x] device_labels + revoked_devices tables (drizzle/schema.ts)
 - [x] Remote sign-out (unbind + revocation marker) via signOutDevice — replaces devices.unbind (removed)
 - [x] 30-day idle cleanup (client-triggered): cleanupStaleDevices (STALE_DEVICE_MS)

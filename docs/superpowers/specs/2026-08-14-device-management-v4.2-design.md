@@ -164,6 +164,12 @@ All functions follow the established memory/DB parallel pattern (`getDb()` null 
 - Server-side scheduled cleanup (client-triggered only).
 - Revocation-marker cleanup / expiry.
 
+## Known limitations
+
+- **Revoked device cannot re-authenticate in-app.** The revocation marker is never cleared (cleanup/expiry is out of scope), and `deviceId` is stable across re-login, so a revoked device is blocked from authenticated features until app data is wiped (regenerating the deviceId). Re-signing in on that device → first authenticated tRPC call → FORBIDDEN → session cleared → repeat. A user-verified un-revoke path is a possible future enhancement.
+- **Revocation is a UX mechanism, not a security boundary.** `x-device-id` is client-controlled and unauthenticated; a modified client can omit or spoof the header and continue using a still-valid session token. It reliably forces the stock app to sign out but does not stop a determined attacker.
+- **Cleanup can race the current device on first launch after 30+ days idle.** `cleanupStaleDevices()` (fire-and-forget in `_layout.tsx`/Settings) can read a stale `lastSeenAt` before the launch sync refreshes it and unbind the actively-used device. Self-healing (re-upload recreates the row), but can drop notifications and briefly remove the device from the list. Excluding the caller's own deviceId from cleanup is a possible improvement.
+
 ## Files touched
 
 **Schema:** `drizzle/schema.ts` (+2 tables), `drizzle/meta/*` (migration).
