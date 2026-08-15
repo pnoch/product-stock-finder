@@ -24,8 +24,7 @@ export async function createContext(
   }
 
   const rawDeviceId = opts.req.headers["x-device-id"];
-  const headerDeviceId =
-    typeof rawDeviceId === "string" ? rawDeviceId : null;
+  const headerDeviceId = typeof rawDeviceId === "string" ? rawDeviceId : null;
   const claimDeviceId = user?.sessionDeviceId ?? null;
   const effectiveDeviceId = claimDeviceId ?? headerDeviceId;
 

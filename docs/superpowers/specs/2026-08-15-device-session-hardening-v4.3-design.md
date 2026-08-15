@@ -21,14 +21,14 @@ Resolve all three:
 
 ## Decisions (from brainstorming)
 
-| Question | Decision |
-| -------- | -------- |
-| Scope | All three limitations addressed in one phase |
-| Un-revoke verification | **Login is the un-revoke**: successful OAuth exchange clears the marker for the authenticating deviceId (account credential = proof of ownership). No explicit "restore" action or endpoint. |
-| Hardening approach | **Device-bound sessions** (JWT claim) — not a server-side session registry (larger; rejected in brainstorming) |
-| DeviceId source for revocation | Token claim preferred (`user.sessionDeviceId`); header used only as fallback for legacy tokens / anonymous context |
-| Cleanup race | `cleanupStaleDevices(userId, cutoffMs, excludeDeviceId?)` skips the caller's device; router passes `ctx.deviceId` |
-| Legacy token handling | Grace: tokens without a `deviceId` claim keep working via header check; no forced logout |
+| Question                       | Decision                                                                                                                                                                                     |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scope                          | All three limitations addressed in one phase                                                                                                                                                 |
+| Un-revoke verification         | **Login is the un-revoke**: successful OAuth exchange clears the marker for the authenticating deviceId (account credential = proof of ownership). No explicit "restore" action or endpoint. |
+| Hardening approach             | **Device-bound sessions** (JWT claim) — not a server-side session registry (larger; rejected in brainstorming)                                                                               |
+| DeviceId source for revocation | Token claim preferred (`user.sessionDeviceId`); header used only as fallback for legacy tokens / anonymous context                                                                           |
+| Cleanup race                   | `cleanupStaleDevices(userId, cutoffMs, excludeDeviceId?)` skips the caller's device; router passes `ctx.deviceId`                                                                            |
+| Legacy token handling          | Grace: tokens without a `deviceId` claim keep working via header check; no forced logout                                                                                                     |
 
 ## Architecture
 
@@ -134,7 +134,7 @@ No server-side session registry. Revocation stays a per-request check (`isDevice
 
 - A determined attacker who can complete OAuth on the target device (knows the account password) can re-login and clear the marker — inherent to password-based auth; remote sign-out remains a UX/revocation tool, not a defense against a fully-compromised account.
 - Legacy tokens issued before this change carry no `deviceId` claim and are only revoked via the header path until the user next logs in.
-- The cleanup race is eliminated for the calling device (its own `deviceId` is excluded), but a *second* device that is genuinely stale can still be cleaned up concurrently — correct behavior.
+- The cleanup race is eliminated for the calling device (its own `deviceId` is excluded), but a _second_ device that is genuinely stale can still be cleaned up concurrently — correct behavior.
 
 ## Files touched
 

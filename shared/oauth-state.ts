@@ -23,9 +23,10 @@ export function encodeOAuthState(
   return btoaSafe(JSON.stringify({ redirectUri, deviceId }));
 }
 
-export function decodeOAuthState(
-  state: string,
-): { redirectUri: string; deviceId: string | undefined } {
+export function decodeOAuthState(state: string): {
+  redirectUri: string;
+  deviceId: string | undefined;
+} {
   const decoded = atobSafe(state);
   try {
     const parsed = JSON.parse(decoded) as {

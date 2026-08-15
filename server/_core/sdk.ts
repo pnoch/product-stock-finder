@@ -202,7 +202,12 @@ class SDKServer {
 
   async verifySession(
     cookieValue: string | undefined | null,
-  ): Promise<{ openId: string; appId: string; name: string; deviceId: string | null } | null> {
+  ): Promise<{
+    openId: string;
+    appId: string;
+    name: string;
+    deviceId: string | null;
+  } | null> {
     if (!cookieValue) {
       console.warn("[Auth] Missing session cookie");
       return null;

@@ -3,7 +3,10 @@ import { encodeOAuthState, decodeOAuthState } from "../shared/oauth-state";
 
 describe("oauth-state", () => {
   it("round-trips redirectUri and deviceId", () => {
-    const state = encodeOAuthState("http://localhost:8081/oauth/callback", "dev-1");
+    const state = encodeOAuthState(
+      "http://localhost:8081/oauth/callback",
+      "dev-1",
+    );
     expect(decodeOAuthState(state)).toEqual({
       redirectUri: "http://localhost:8081/oauth/callback",
       deviceId: "dev-1",

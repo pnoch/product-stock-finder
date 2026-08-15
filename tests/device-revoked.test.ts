@@ -84,7 +84,10 @@ describe("createContext revocation check", () => {
   });
 
   it("throws DEVICE_REVOKED based on the token claim even when the header is absent", async () => {
-    mockedAuth.mockResolvedValue({ id: 7, sessionDeviceId: "dev-claim" } as any);
+    mockedAuth.mockResolvedValue({
+      id: 7,
+      sessionDeviceId: "dev-claim",
+    } as any);
     mockedRevoked.mockResolvedValue(true);
     await expect(
       createContext({ req: makeReq(), res: makeRes() } as any),
@@ -95,7 +98,10 @@ describe("createContext revocation check", () => {
   });
 
   it("prefers the token claim over the header for ctx.deviceId", async () => {
-    mockedAuth.mockResolvedValue({ id: 7, sessionDeviceId: "dev-claim" } as any);
+    mockedAuth.mockResolvedValue({
+      id: 7,
+      sessionDeviceId: "dev-claim",
+    } as any);
     mockedRevoked.mockResolvedValue(false);
     const ctx = await createContext({
       req: makeReq({ "x-device-id": "dev-header" }),
@@ -119,7 +125,10 @@ describe("createContext revocation check", () => {
   });
 
   it("throws when the claim is revoked even if the header is clean", async () => {
-    mockedAuth.mockResolvedValue({ id: 7, sessionDeviceId: "dev-claim" } as any);
+    mockedAuth.mockResolvedValue({
+      id: 7,
+      sessionDeviceId: "dev-claim",
+    } as any);
     mockedRevoked.mockResolvedValue(true);
     await expect(
       createContext({

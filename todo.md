@@ -394,3 +394,12 @@
 - [x] x-device-id header + createContext revocation check (throws DEVICE_REVOKED_ERR_MSG)
 - [x] lib/device-revoked.ts: revokedDeviceLink detects the error and clears the local session
 - [x] Settings Rename modal + Sign out action (app/(tabs)/settings.tsx)
+
+## Phase 43: Device Session Hardening & Un-Revoke
+
+- [x] Shared OAuth state helpers (shared/oauth-state.ts): encodeOAuthState/decodeOAuthState (deviceId in state, legacy base64 tolerated)
+- [x] Device-bound sessions: deviceId claim in session JWTs (server/\_core/sdk.ts); authenticateRequest exposes sessionDeviceId
+- [x] createContext revocation check prefers the token claim over the x-device-id header
+- [x] Login is the un-revoke: /api/oauth/callback + /api/oauth/mobile call unrevokeDevice(deviceId) and bind deviceId into the issued token
+- [x] unrevokeDevice (server/devices.ts) clears the revoked_devices marker (memory/DB parallel)
+- [x] cleanupStaleDevices excludes the caller's deviceId (router passes ctx.deviceId)
