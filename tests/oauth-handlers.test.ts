@@ -41,6 +41,8 @@ const mockedGetUser = vi.mocked(getUserByOpenId);
 const mockedUpsert = vi.mocked(upsertUser);
 const mockedUnrevoke = vi.mocked(unrevokeDevice);
 
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
 const WEB_CALLBACK = "/api/oauth/callback";
 const MOBILE_EXCHANGE = "/api/oauth/mobile";
 const FRONTEND_URL =
@@ -97,8 +99,8 @@ function makeRes() {
 
 describe("registerOAuthRoutes web callback (GET /api/oauth/callback)", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.resetAllMocks();
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -202,12 +204,31 @@ describe("registerOAuthRoutes web callback (GET /api/oauth/callback)", () => {
     );
     expect(res.status).not.toHaveBeenCalledWith(500);
   });
+
+  it("responds 500 when the exchange fails", async () => {
+    const getHandler = setupRoutes();
+    const state = encodeOAuthState("http://localhost:8081/oauth/callback", "dev-1");
+
+    mockedExchange.mockRejectedValue(new Error("boom"));
+
+    const res = makeRes();
+    await getHandler("GET", WEB_CALLBACK)(makeReq({ code: "code", state }), res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ error: "OAuth callback failed" });
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "[OAuth] Callback failed",
+      expect.any(Error),
+    );
+    expect(mockedCreateToken).not.toHaveBeenCalled();
+    expect(res.redirect).not.toHaveBeenCalled();
+  });
 });
 
 describe("registerOAuthRoutes mobile exchange (GET /api/oauth/mobile)", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.resetAllMocks();
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -258,6 +279,24 @@ describe("registerOAuthRoutes mobile exchange (GET /api/oauth/mobile)", () => {
       expect.objectContaining({ app_session_id: "sess-token" }),
     );
     expect(res.status).not.toHaveBeenCalledWith(500);
+  });
+
+  it("responds 500 when the exchange fails", async () => {
+    const getHandler = setupRoutes();
+    const state = encodeOAuthState("http://localhost:8081/oauth/callback", "dev-1");
+
+    mockedExchange.mockRejectedValue(new Error("boom"));
+
+    const res = makeRes();
+    await getHandler("GET", MOBILE_EXCHANGE)(makeReq({ code: "code", state }), res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ error: "OAuth mobile exchange failed" });
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "[OAuth] Mobile exchange failed",
+      expect.any(Error),
+    );
+    expect(mockedCreateToken).not.toHaveBeenCalled();
   });
 
   it("rejects with 400 when code is missing", async () => {
