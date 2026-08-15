@@ -1,4 +1,11 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ScrollView,
   Text,
@@ -15,17 +22,17 @@ import Svg, { Polyline, Circle, Line, Text as SvgText } from "react-native-svg";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { getWatchlist, addAlert } from "@/lib/storage";
+import { useLiveProduct } from "@/hooks/use-live-prices";
+import { addAlert } from "@/lib/storage";
 import {
   schedulePriceAlert,
   requestNotificationPermissions,
 } from "@/lib/notifications";
-import { SAMPLE_LISTINGS } from "@/lib/sample-data";
-import { PRODUCT_CATALOG } from "@/lib/catalog";
 import { DistributorListing, PricePoint, PriceAlert } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { PRODUCT_CATALOG } from "@/lib/catalog";
 
 // ─── Chart colors for up to 5 distributors ───────────────────────────────────
 const CHART_COLORS = ["#0a7ea4", "#22C55E", "#F59E0B", "#EF4444", "#8B5CF6"];
@@ -397,78 +404,28 @@ export default function CompareScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const colors = useColors();
-  const [listings, setListings] = useState<DistributorListing[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [productName, setProductName] = useState("");
   const [timeRange, setTimeRange] = useState<TimeRange>("3M");
   const [sortBy, setSortBy] = useState<SortBy>("trend");
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const { product, listings, loaded, isRefreshingAny, refresh } =
+    useLiveProduct(id);
+  const productName =
+    product?.name ??
+    PRODUCT_CATALOG.find((p) => p.id === id)?.name ??
+    (id as string);
+  const notFound = loaded && listings.length === 0;
   const { width: windowWidth } = useWindowDimensions();
   const chartWidth = windowWidth - 32;
 
+  const selectionInitialized = useRef(false);
   useEffect(() => {
-    let active = true;
-    getWatchlist().then((wl) => {
-      if (!active) return;
-      const product = wl.find((p) => p.id === id);
-      if (!product) {
-        // Fall back to sample data so Compare still works without a watchlist visit
-        const sampleLs = SAMPLE_LISTINGS[id as string] ?? [];
-        if (sampleLs.length === 0) {
-          setNotFound(true);
-          setLoading(false);
-          return;
-        }
-        setProductName(
-          PRODUCT_CATALOG.find((p) => p.id === id)?.name ?? (id as string),
-        );
-        setListings(sampleLs);
-        const withHistory = sampleLs.filter(
-          (l) => l.priceHistory && l.priceHistory.length >= 2,
-        );
-        setSelected(
-          new Set(withHistory.slice(0, 3).map((l) => l.distributorId)),
-        );
-        setLoading(false);
-        return;
-      }
-      setProductName(product.name);
-      let ls = product.listings ?? [];
-      const hasHistory = ls.some(
-        (l) => l.priceHistory && l.priceHistory.length >= 2,
-      );
-      if (!hasHistory) {
-        const sampleLs = SAMPLE_LISTINGS[id as string] ?? [];
-        if (sampleLs.length > 0) {
-          ls =
-            ls.length > 0
-              ? ls.map((l) => {
-                  if (!l.priceHistory || l.priceHistory.length < 2) {
-                    const sample = sampleLs.find(
-                      (s) => s.distributorId === l.distributorId,
-                    );
-                    return sample
-                      ? { ...l, priceHistory: sample.priceHistory }
-                      : l;
-                  }
-                  return l;
-                })
-              : sampleLs;
-        }
-      }
-      setListings(ls);
-      const withHistory = ls.filter(
-        (l) => l.priceHistory && l.priceHistory.length >= 2,
-      );
-      const preSelect = withHistory.slice(0, 3).map((l) => l.distributorId);
-      setSelected(new Set(preSelect));
-      setLoading(false);
-    });
-    return () => {
-      active = false;
-    };
-  }, [id]);
+    if (!loaded || selectionInitialized.current) return;
+    selectionInitialized.current = true;
+    const withHistory = listings.filter(
+      (l) => l.priceHistory && l.priceHistory.length >= 2,
+    );
+    setSelected(new Set(withHistory.slice(0, 3).map((l) => l.distributorId)));
+  }, [loaded, listings]);
 
   const toggleSelect = useCallback((distributorId: string) => {
     if (Platform.OS !== "web")
@@ -609,7 +566,7 @@ export default function CompareScreen() {
 
   return (
     <ScreenContainer>
-      {loading ? (
+      {!loaded ? (
         <View
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         >
@@ -685,6 +642,25 @@ export default function CompareScreen() {
                 {productName}
               </Text>
             </View>
+            <TouchableOpacity
+              onPress={() => {
+                if (Platform.OS !== "web")
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                refresh();
+              }}
+              disabled={isRefreshingAny}
+              style={{ padding: 4 }}
+            >
+              {isRefreshingAny ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <IconSymbol
+                  name="arrow.clockwise"
+                  size={20}
+                  color={colors.primary}
+                />
+              )}
+            </TouchableOpacity>
           </View>
 
           {/* Chart card */}
