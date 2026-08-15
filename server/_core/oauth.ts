@@ -1,6 +1,8 @@
+import { decodeOAuthState } from "../../shared/oauth-state.js";
 import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
 import type { Express, Request, Response } from "express";
 import { getUserByOpenId, upsertUser } from "../db";
+import { unrevokeDevice } from "../devices";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 
@@ -72,12 +74,21 @@ export function registerOAuthRoutes(app: Express) {
     }
 
     try {
+      const { deviceId } = decodeOAuthState(state);
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
       await syncUser(userInfo);
+      if (deviceId) {
+        try {
+          await unrevokeDevice(deviceId);
+        } catch (error) {
+          console.error("[OAuth] Failed to un-revoke device:", error);
+        }
+      }
       const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
         name: userInfo.name || "",
         expiresInMs: ONE_YEAR_MS,
+        deviceId,
       });
 
       const cookieOptions = getSessionCookieOptions(req);
@@ -109,13 +120,21 @@ export function registerOAuthRoutes(app: Express) {
     }
 
     try {
+      const { deviceId } = decodeOAuthState(state);
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
       const user = await syncUser(userInfo);
-
+      if (deviceId) {
+        try {
+          await unrevokeDevice(deviceId);
+        } catch (error) {
+          console.error("[OAuth] Failed to un-revoke device:", error);
+        }
+      }
       const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
         name: userInfo.name || "",
         expiresInMs: ONE_YEAR_MS,
+        deviceId,
       });
 
       const cookieOptions = getSessionCookieOptions(req);

@@ -1,3 +1,5 @@
+import { getDeviceId } from "@/lib/device-id";
+import { encodeOAuthState } from "@/shared/oauth-state";
 import * as Linking from "expo-linking";
 import * as ReactNative from "react-native";
 
@@ -56,17 +58,6 @@ export function getApiBaseUrl(): string {
 export const SESSION_TOKEN_KEY = "app_session_token";
 export const USER_INFO_KEY = "manus-runtime-user-info";
 
-const encodeState = (value: string) => {
-  if (typeof globalThis.btoa === "function") {
-    return globalThis.btoa(value);
-  }
-  const BufferImpl = (globalThis as Record<string, any>).Buffer;
-  if (BufferImpl) {
-    return BufferImpl.from(value, "utf-8").toString("base64");
-  }
-  return value;
-};
-
 /**
  * Get the redirect URI for OAuth callback.
  * - Web: uses API server callback endpoint
@@ -82,9 +73,10 @@ export const getRedirectUri = () => {
   }
 };
 
-export const getLoginUrl = () => {
+export async function getLoginUrl(): Promise<string> {
   const redirectUri = getRedirectUri();
-  const state = encodeState(redirectUri);
+  const deviceId = await getDeviceId();
+  const state = encodeOAuthState(redirectUri, deviceId);
 
   const url = new URL(`${OAUTH_PORTAL_URL}/app-auth`);
   url.searchParams.set("appId", APP_ID);
@@ -93,7 +85,7 @@ export const getLoginUrl = () => {
   url.searchParams.set("type", "signIn");
 
   return url.toString();
-};
+}
 
 /**
  * Start OAuth login flow.
@@ -106,7 +98,7 @@ export const getLoginUrl = () => {
  * @returns Always null, the callback is handled via deep link.
  */
 export async function startOAuthLogin(): Promise<string | null> {
-  const loginUrl = getLoginUrl();
+  const loginUrl = await getLoginUrl();
 
   if (ReactNative.Platform.OS === "web") {
     // On web, just redirect
