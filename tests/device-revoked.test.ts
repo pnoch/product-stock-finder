@@ -95,6 +95,7 @@ describe("createContext revocation check", () => {
       code: "FORBIDDEN",
       message: DEVICE_REVOKED_ERR_MSG,
     });
+    expect(mockedRevoked).toHaveBeenCalledWith(7, "dev-claim");
   });
 
   it("prefers the token claim over the header for ctx.deviceId", async () => {
@@ -108,6 +109,7 @@ describe("createContext revocation check", () => {
       res: makeRes(),
     } as any);
     expect(ctx.deviceId).toBe("dev-claim");
+    expect(mockedRevoked).toHaveBeenCalledWith(7, "dev-claim");
   });
 
   it("falls back to the header when the token has no deviceId claim", async () => {
@@ -122,6 +124,7 @@ describe("createContext revocation check", () => {
       code: "FORBIDDEN",
       message: DEVICE_REVOKED_ERR_MSG,
     });
+    expect(mockedRevoked).toHaveBeenCalledWith(7, "dev-header");
   });
 
   it("throws when the claim is revoked even if the header is clean", async () => {

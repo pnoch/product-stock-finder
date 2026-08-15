@@ -29,7 +29,7 @@ export async function createContext(
   const effectiveDeviceId = claimDeviceId ?? headerDeviceId;
 
   if (effectiveDeviceId && user) {
-    const revoked = await isDeviceRevoked(effectiveDeviceId);
+    const revoked = await isDeviceRevoked(user.id, effectiveDeviceId);
     if (revoked) {
       throw new TRPCError({
         code: "FORBIDDEN",
