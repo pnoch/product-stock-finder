@@ -39,21 +39,6 @@ export async function fetchCurrentDeviceBinding(): Promise<{
   }
 }
 
-export async function unbindDevice(deviceId: string): Promise<boolean> {
-  try {
-    const client = createTRPCClient();
-    const result = await Promise.race([
-      client.devices.unbind.mutate({ deviceId }),
-      new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), TIMEOUT_MS),
-      ),
-    ]);
-    return result?.unbound ?? false;
-  } catch {
-    return false;
-  }
-}
-
 export async function bindCurrentDevice(): Promise<void> {
   try {
     const { registerPushToken } = await import("./push-token");

@@ -20,7 +20,6 @@ import { upsertPushToken } from "./push-notifications";
 import {
   listDevicesForUser,
   getDeviceBinding,
-  unbindDevice,
   renameDevice,
   signOutDevice,
   cleanupStaleDevices,
@@ -226,12 +225,6 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const { userId } = await getDeviceBinding(input.deviceId);
         return { deviceId: input.deviceId, userId };
-      }),
-    unbind: protectedProcedure
-      .input(z.object({ deviceId: z.string().min(1).max(128) }))
-      .mutation(async ({ ctx, input }) => {
-        const unbound = await unbindDevice(ctx.user.id, input.deviceId);
-        return { unbound };
       }),
     rename: protectedProcedure
       .input(

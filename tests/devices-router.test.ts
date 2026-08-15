@@ -5,7 +5,6 @@ import type { TrpcContext } from "../server/_core/context";
 vi.mock("../server/devices", () => ({
   listDevicesForUser: vi.fn(),
   getDeviceBinding: vi.fn(),
-  unbindDevice: vi.fn(),
   renameDevice: vi.fn(),
   signOutDevice: vi.fn(),
   cleanupStaleDevices: vi.fn(),
@@ -16,7 +15,6 @@ vi.mock("../server/devices", () => ({
 import {
   listDevicesForUser,
   getDeviceBinding,
-  unbindDevice,
   renameDevice,
   signOutDevice,
   cleanupStaleDevices,
@@ -24,7 +22,6 @@ import {
 
 const mockedList = vi.mocked(listDevicesForUser);
 const mockedBinding = vi.mocked(getDeviceBinding);
-const mockedUnbind = vi.mocked(unbindDevice);
 const mockedRename = vi.mocked(renameDevice);
 const mockedSignOut = vi.mocked(signOutDevice);
 const mockedCleanup = vi.mocked(cleanupStaleDevices);
@@ -94,22 +91,6 @@ describe("devices router", () => {
     const result = await caller.devices.current({ deviceId: "dev-1" });
     expect(result).toEqual({ deviceId: "dev-1", userId: 7 });
     expect(mockedBinding).toHaveBeenCalledWith("dev-1");
-  });
-
-  it("unbinds a device for the signed-in user", async () => {
-    mockedUnbind.mockResolvedValue(true);
-    const caller = appRouter.createCaller(createAuthedContext(7));
-    const result = await caller.devices.unbind({ deviceId: "dev-1" });
-    expect(result).toEqual({ unbound: true });
-    expect(mockedUnbind).toHaveBeenCalledWith(7, "dev-1");
-  });
-
-  it("throws UNAUTHORIZED for unbind without a user", async () => {
-    const caller = appRouter.createCaller(createPublicContext());
-    await expect(
-      caller.devices.unbind({ deviceId: "dev-1" }),
-    ).rejects.toThrow();
-    expect(mockedUnbind).not.toHaveBeenCalled();
   });
 
   it("rejects an oversized deviceId for current", async () => {
