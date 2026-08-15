@@ -403,3 +403,12 @@
 - [x] Login is the un-revoke: /api/oauth/callback + /api/oauth/mobile call unrevokeDevice(deviceId) and bind deviceId into the issued token
 - [x] unrevokeDevice (server/devices.ts) clears the revoked_devices marker (memory/DB parallel)
 - [x] cleanupStaleDevices excludes the caller's deviceId (router passes ctx.deviceId)
+
+## Phase 44: User-Scoped Device Revocation
+
+- [x] revoked_devices gains userId (surrogate id PK + unique index on (userId, deviceId)); legacy rows keep NULL = global legacy block
+- [x] isDeviceRevoked(userId, deviceId) matches userId OR NULL; unrevokeDevice(userId, deviceId) clears the caller's row and any global legacy block
+- [x] signOutDevice stores the revoking userId; memory backend uses composite keys (${userId}:${deviceId} plus *:${deviceId})
+- [x] createContext revocation check passes user.id (claim-authoritative check stays scoped to the user)
+- [x] OAuth login un-revokes the synced user's device (skips with a warning when no numeric id resolves)
+- [x] Cross-user isolation tests: A's sign-out never blocks B; B's login never clears A's revocation
