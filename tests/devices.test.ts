@@ -22,6 +22,7 @@ import {
   getDeviceBinding,
   unbindDevice,
   renameDevice,
+  unrevokeDevice,
   signOutDevice,
   cleanupStaleDevices,
   isDeviceRevoked,
@@ -165,6 +166,19 @@ describe("devices (memory backend)", () => {
   it("does not revoke a device when unbinding it directly", async () => {
     await upsertDeviceConfig("dev-1", baseConfig, 7);
     expect(await unbindDevice(7, "dev-1")).toBe(true);
+    expect(await isDeviceRevoked("dev-1")).toBe(false);
+  });
+
+  it("un-revokes a device so it can authenticate again", async () => {
+    await upsertDeviceConfig("dev-1", baseConfig, 7);
+    await signOutDevice(7, "dev-1");
+    expect(await isDeviceRevoked("dev-1")).toBe(true);
+    await unrevokeDevice("dev-1");
+    expect(await isDeviceRevoked("dev-1")).toBe(false);
+  });
+
+  it("un-revoking a clean device is a no-op", async () => {
+    await unrevokeDevice("dev-1");
     expect(await isDeviceRevoked("dev-1")).toBe(false);
   });
 
@@ -360,6 +374,49 @@ describe("devices (database backend)", () => {
       deviceLabels,
     ]);
     expect(inserted).toEqual([revokedDevices]);
+    mockedGetDb.mockResolvedValue(null);
+  });
+
+  it("un-revokes by deleting the revoked_devices row", async () => {
+    const deleted: unknown[] = [];
+    const dbStub = {
+      delete: vi.fn((table: unknown) => {
+        deleted.push(table);
+        return { where: vi.fn(async () => undefined) };
+      }),
+    };
+    mockedGetDb.mockResolvedValue(dbStub as never);
+    await unrevokeDevice("dev-1");
+    expect(deleted).toEqual([revokedDevices]);
+    mockedGetDb.mockResolvedValue(null);
+  });
+
+  it("excludes the caller's deviceId during cleanup", async () => {
+    const deleted: unknown[] = [];
+    const dbStub = {
+      select: vi.fn(() => ({
+        from: vi.fn((table: unknown) => {
+          if (table === deviceNotificationConfigs) {
+            return {
+              where: vi.fn(async () => [
+                { deviceId: "stale", userId: 7, updatedAt: 1000 },
+                { deviceId: "fresh", userId: 7, updatedAt: Date.now() },
+              ]),
+            };
+          }
+          if (table === deviceLabels) return Promise.resolve([]);
+          return { where: vi.fn(async () => []) };
+        }),
+      })),
+      delete: vi.fn((table: unknown) => {
+        deleted.push(table);
+        return { where: vi.fn(async () => undefined) };
+      }),
+    };
+    mockedGetDb.mockResolvedValue(dbStub as never);
+    const removed = await cleanupStaleDevices(7, Date.now() - 5000, "stale");
+    expect(removed).toBe(0);
+    expect(deleted).toEqual([]);
     mockedGetDb.mockResolvedValue(null);
   });
 

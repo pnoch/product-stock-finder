@@ -206,13 +206,24 @@ export async function signOutDevice(
   return true;
 }
 
+export async function unrevokeDevice(deviceId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    memoryRevokedDevices.delete(deviceId);
+    return;
+  }
+  await db.delete(revokedDevices).where(eq(revokedDevices.deviceId, deviceId));
+}
+
 export async function cleanupStaleDevices(
   userId: number,
   cutoffMs: number,
+  excludeDeviceId?: string | null,
 ): Promise<number> {
   const devices = await listDevicesForUser(userId);
   let removed = 0;
   for (const device of devices) {
+    if (device.deviceId === excludeDeviceId) continue;
     if (device.lastSeenAt > 0 && device.lastSeenAt < cutoffMs) {
       await unbindDevice(userId, device.deviceId);
       removed += 1;

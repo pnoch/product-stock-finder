@@ -251,6 +251,7 @@ export const appRouter = router({
       const removed = await cleanupStaleDevices(
         ctx.user.id,
         Date.now() - STALE_DEVICE_MS,
+        ctx.deviceId,
       );
       return { removed };
     }),

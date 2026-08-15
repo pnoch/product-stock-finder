@@ -163,7 +163,21 @@ describe("devices router", () => {
     const caller = appRouter.createCaller(createAuthedContext(7));
     const result = await caller.devices.cleanupStale();
     expect(result).toEqual({ removed: 2 });
-    expect(mockedCleanup).toHaveBeenCalledWith(7, expect.any(Number));
+    expect(mockedCleanup).toHaveBeenCalledWith(7, expect.any(Number), null);
+  });
+
+  it("excludes the caller's deviceId when cleaning up stale devices", async () => {
+    mockedCleanup.mockResolvedValue(1);
+    const ctx = createAuthedContext(7);
+    ctx.deviceId = "dev-current";
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.devices.cleanupStale();
+    expect(result).toEqual({ removed: 1 });
+    expect(mockedCleanup).toHaveBeenCalledWith(
+      7,
+      expect.any(Number),
+      "dev-current",
+    );
   });
 
   it("throws UNAUTHORIZED for cleanupStale without a user", async () => {
