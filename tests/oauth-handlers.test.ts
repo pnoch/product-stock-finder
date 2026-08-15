@@ -101,6 +101,17 @@ describe("registerOAuthRoutes web callback (GET /api/oauth/callback)", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockedGetUser.mockResolvedValue({
+      id: 1,
+      openId: "open-1",
+      name: "U",
+      email: null,
+      loginMethod: null,
+      role: "user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    });
   });
 
   afterEach(() => {
@@ -118,7 +129,7 @@ describe("registerOAuthRoutes web callback (GET /api/oauth/callback)", () => {
     const res = makeRes();
     await getHandler("GET", WEB_CALLBACK)(makeReq({ code: "code", state }), res);
 
-    expect(mockedUnrevoke).toHaveBeenCalledWith("dev-1");
+    expect(mockedUnrevoke).toHaveBeenCalledWith(1, "dev-1");
     expect(mockedCreateToken).toHaveBeenCalledWith(
       "open-1",
       expect.objectContaining({ deviceId: "dev-1" }),
@@ -192,6 +203,7 @@ describe("registerOAuthRoutes web callback (GET /api/oauth/callback)", () => {
     const res = makeRes();
     await getHandler("GET", WEB_CALLBACK)(makeReq({ code: "code", state }), res);
 
+    expect(mockedUnrevoke).toHaveBeenCalledWith(1, "dev-1");
     expect(mockedCreateToken).toHaveBeenCalledWith(
       "open-1",
       expect.objectContaining({ deviceId: "dev-1" }),
@@ -223,12 +235,47 @@ describe("registerOAuthRoutes web callback (GET /api/oauth/callback)", () => {
     expect(mockedCreateToken).not.toHaveBeenCalled();
     expect(res.redirect).not.toHaveBeenCalled();
   });
+
+  it("skips un-revoke when no numeric user id resolves", async () => {
+    mockedExchange.mockResolvedValue({ accessToken: "at" } as any);
+    mockedGetUserInfo.mockResolvedValue({ openId: "open-1", name: "U" } as any);
+    mockedGetUser.mockResolvedValue(undefined);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const getHandler = setupRoutes();
+    const res = makeRes();
+    await getHandler("GET", WEB_CALLBACK)(
+      makeReq({
+        code: "c",
+        state: encodeOAuthState("http://localhost:8081/oauth/callback", "dev-1"),
+      }),
+      res,
+    );
+    expect(mockedUnrevoke).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      "[OAuth] Skipping un-revoke: no numeric user id",
+    );
+    expect(mockedCreateToken).toHaveBeenCalledWith(
+      "open-1",
+      expect.objectContaining({ deviceId: "dev-1" }),
+    );
+  });
 });
 
 describe("registerOAuthRoutes mobile exchange (GET /api/oauth/mobile)", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockedGetUser.mockResolvedValue({
+      id: 1,
+      openId: "open-1",
+      name: "U",
+      email: null,
+      loginMethod: null,
+      role: "user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    });
   });
 
   afterEach(() => {
@@ -246,7 +293,7 @@ describe("registerOAuthRoutes mobile exchange (GET /api/oauth/mobile)", () => {
     const res = makeRes();
     await getHandler("GET", MOBILE_EXCHANGE)(makeReq({ code: "code", state }), res);
 
-    expect(mockedUnrevoke).toHaveBeenCalledWith("dev-1");
+    expect(mockedUnrevoke).toHaveBeenCalledWith(1, "dev-1");
     expect(mockedCreateToken).toHaveBeenCalledWith(
       "open-1",
       expect.objectContaining({ deviceId: "dev-1" }),
@@ -275,6 +322,7 @@ describe("registerOAuthRoutes mobile exchange (GET /api/oauth/mobile)", () => {
     const res = makeRes();
     await getHandler("GET", MOBILE_EXCHANGE)(makeReq({ code: "code", state }), res);
 
+    expect(mockedUnrevoke).toHaveBeenCalledWith(1, "dev-1");
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ app_session_id: "sess-token" }),
     );

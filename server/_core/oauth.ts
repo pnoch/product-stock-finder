@@ -77,12 +77,17 @@ export function registerOAuthRoutes(app: Express) {
       const { deviceId } = decodeOAuthState(state);
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
-      await syncUser(userInfo);
+      const user = await syncUser(userInfo);
       if (deviceId) {
-        try {
-          await unrevokeDevice(deviceId);
-        } catch (error) {
-          console.error("[OAuth] Failed to un-revoke device:", error);
+        const userId = (user as { id?: number | null }).id;
+        if (userId != null) {
+          try {
+            await unrevokeDevice(userId, deviceId);
+          } catch (error) {
+            console.error("[OAuth] Failed to un-revoke device:", error);
+          }
+        } else {
+          console.warn("[OAuth] Skipping un-revoke: no numeric user id");
         }
       }
       const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
@@ -125,10 +130,15 @@ export function registerOAuthRoutes(app: Express) {
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
       const user = await syncUser(userInfo);
       if (deviceId) {
-        try {
-          await unrevokeDevice(deviceId);
-        } catch (error) {
-          console.error("[OAuth] Failed to un-revoke device:", error);
+        const userId = (user as { id?: number | null }).id;
+        if (userId != null) {
+          try {
+            await unrevokeDevice(userId, deviceId);
+          } catch (error) {
+            console.error("[OAuth] Failed to un-revoke device:", error);
+          }
+        } else {
+          console.warn("[OAuth] Skipping un-revoke: no numeric user id");
         }
       }
       const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
