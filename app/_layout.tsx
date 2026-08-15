@@ -5,7 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-import { Platform } from "react-native";
+import { Alert, Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import {
@@ -41,6 +41,11 @@ import {
   subscribeSafeAreaInsets,
 } from "@/lib/_core/manus-runtime";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  registerDeviceRevokedHandler,
+  resetDeviceRevoked,
+} from "@/lib/device-revoked";
+import { cleanupStaleDevices } from "@/lib/devices";
 import { setupSync, registerSyncSetup, type SyncSetup } from "@/lib/sync";
 import { backfillLocalHistory } from "@/lib/history-sync";
 import { syncServerNotifications } from "@/lib/server-notifications";
@@ -181,7 +186,7 @@ export default function RootLayout() {
   );
   const [trpcClient] = useState(() => createTRPCClient());
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, refresh } = useAuth();
   const isAuthenticatedRef = useRef(isAuthenticated);
   isAuthenticatedRef.current = isAuthenticated;
   const syncRef = useRef<SyncSetup | null>(null);
@@ -203,10 +208,22 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (isAuthenticated) {
+      resetDeviceRevoked();
       syncRef.current?.syncNow();
       void backfillLocalHistory();
+      void cleanupStaleDevices();
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    return registerDeviceRevokedHandler(() => {
+      Alert.alert(
+        "Signed Out",
+        "You were signed out on another device.",
+        [{ text: "OK", onPress: () => void refresh() }],
+      );
+    });
+  }, [refresh]);
 
   useEffect(() => {
     void loadFxRates();
