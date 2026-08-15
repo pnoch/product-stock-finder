@@ -153,33 +153,49 @@ describe("devices (memory backend)", () => {
     expect(await signOutDevice(7, "dev-1")).toBe(true);
     expect(await listDevicesForUser(7)).toEqual([]);
     expect(await getDeviceBinding("dev-1")).toEqual({ userId: null });
-    expect(await isDeviceRevoked("dev-1")).toBe(true);
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(true);
   });
 
   it("refuses to sign out another user's device", async () => {
     await upsertDeviceConfig("dev-1", baseConfig, 7);
     expect(await signOutDevice(8, "dev-1")).toBe(false);
-    expect(await isDeviceRevoked("dev-1")).toBe(false);
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(false);
     expect(await listDevicesForUser(7)).toHaveLength(1);
   });
 
   it("does not revoke a device when unbinding it directly", async () => {
     await upsertDeviceConfig("dev-1", baseConfig, 7);
     expect(await unbindDevice(7, "dev-1")).toBe(true);
-    expect(await isDeviceRevoked("dev-1")).toBe(false);
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(false);
   });
 
   it("un-revokes a device so it can authenticate again", async () => {
     await upsertDeviceConfig("dev-1", baseConfig, 7);
     await signOutDevice(7, "dev-1");
-    expect(await isDeviceRevoked("dev-1")).toBe(true);
-    await unrevokeDevice("dev-1");
-    expect(await isDeviceRevoked("dev-1")).toBe(false);
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(true);
+    await unrevokeDevice(7, "dev-1");
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(false);
   });
 
   it("un-revoking a clean device is a no-op", async () => {
-    await unrevokeDevice("dev-1");
-    expect(await isDeviceRevoked("dev-1")).toBe(false);
+    await unrevokeDevice(7, "dev-1");
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(false);
+  });
+
+  it("revokes only the signing-out user on a shared device", async () => {
+    await upsertDeviceConfig("dev-1", baseConfig, 7);
+    await signOutDevice(7, "dev-1");
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(true);
+    expect(await isDeviceRevoked(8, "dev-1")).toBe(false);
+  });
+
+  it("un-revoking one user does not clear another user's revocation", async () => {
+    await upsertDeviceConfig("dev-1", baseConfig, 7);
+    await signOutDevice(7, "dev-1");
+    await unrevokeDevice(8, "dev-1");
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(true);
+    await unrevokeDevice(7, "dev-1");
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(false);
   });
 
   it("skips devices with unknown lastSeenAt during cleanup", async () => {
@@ -196,7 +212,7 @@ describe("devices (memory backend)", () => {
     await signOutDevice(7, "dev-1");
     clearDevicesForTests();
     expect(await listDevicesForUser(7)).toEqual([]);
-    expect(await isDeviceRevoked("dev-1")).toBe(false);
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(false);
   });
 });
 
@@ -386,7 +402,7 @@ describe("devices (database backend)", () => {
       }),
     };
     mockedGetDb.mockResolvedValue(dbStub as never);
-    await unrevokeDevice("dev-1");
+    await unrevokeDevice(7, "dev-1");
     expect(deleted).toEqual([revokedDevices]);
     mockedGetDb.mockResolvedValue(null);
   });
@@ -449,23 +465,36 @@ describe("devices (database backend)", () => {
     mockedGetDb.mockResolvedValue(null);
   });
 
-  it("checks revocation in the database", async () => {
+  it("checks revocation in the database scoped to the user", async () => {
+    const findDeviceId = (node: unknown, target: string): boolean => {
+      const visited = new Set<object>();
+      const search = (n: unknown): boolean => {
+        if (!n || typeof n !== "object") return false;
+        const obj = n as Record<string, unknown>;
+        if (obj.value === target) return true;
+        if (visited.has(obj)) return false;
+        visited.add(obj);
+        return Object.values(obj).some((child) => search(child));
+      };
+      return search(node);
+    };
     const dbStub = {
       select: vi.fn(() => ({
         from: vi.fn((table: unknown) => {
           if (table === revokedDevices) {
             return {
-              where: vi.fn(async (condition: unknown) => {
-                const chunks = (condition as { queryChunks?: unknown[] })
-                  .queryChunks;
-                const boundDevice =
-                  chunks?.some(
-                    (chunk) => (chunk as { value?: string }).value === "dev-1",
-                  ) ?? false;
-                return boundDevice
-                  ? [{ deviceId: "dev-1", revokedAt: Date.now() }]
-                  : [];
-              }),
+              where: vi.fn(async (condition: unknown) =>
+                findDeviceId(condition, "dev-1")
+                  ? [
+                      {
+                        id: 1,
+                        deviceId: "dev-1",
+                        userId: 7,
+                        revokedAt: Date.now(),
+                      },
+                    ]
+                  : [],
+              ),
             };
           }
           return { where: vi.fn(async () => []) };
@@ -473,8 +502,48 @@ describe("devices (database backend)", () => {
       })),
     };
     mockedGetDb.mockResolvedValue(dbStub as never);
-    expect(await isDeviceRevoked("dev-1")).toBe(true);
-    expect(await isDeviceRevoked("dev-2")).toBe(false);
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(true);
+    expect(await isDeviceRevoked(7, "dev-2")).toBe(false);
+    mockedGetDb.mockResolvedValue(null);
+  });
+
+  it("treats a legacy NULL userId row as a global block", async () => {
+    const dbStub = {
+      select: vi.fn(() => ({
+        from: vi.fn((table: unknown) => {
+          if (table === revokedDevices) {
+            return {
+              where: vi.fn(async () => [
+                {
+                  id: 1,
+                  deviceId: "dev-1",
+                  userId: null,
+                  revokedAt: Date.now(),
+                },
+              ]),
+            };
+          }
+          return { where: vi.fn(async () => []) };
+        }),
+      })),
+    };
+    mockedGetDb.mockResolvedValue(dbStub as never);
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(true);
+    expect(await isDeviceRevoked(8, "dev-1")).toBe(true);
+    mockedGetDb.mockResolvedValue(null);
+  });
+
+  it("un-revoking deletes the caller's row", async () => {
+    const deleted: unknown[] = [];
+    const dbStub = {
+      delete: vi.fn((table: unknown) => {
+        deleted.push(table);
+        return { where: vi.fn(async () => undefined) };
+      }),
+    };
+    mockedGetDb.mockResolvedValue(dbStub as never);
+    await unrevokeDevice(7, "dev-1");
+    expect(deleted).toEqual([revokedDevices]);
     mockedGetDb.mockResolvedValue(null);
   });
 });

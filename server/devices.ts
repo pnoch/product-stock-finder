@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import {
   deviceLabels,
   deviceNotificationConfigs,
@@ -194,25 +194,36 @@ export async function signOutDevice(
   if (!unbound) return false;
   const db = await getDb();
   if (!db) {
-    memoryRevokedDevices.add(deviceId);
+    memoryRevokedDevices.add(`${userId}:${deviceId}`);
     memoryLabels.delete(deviceId);
     return true;
   }
   await db
     .insert(revokedDevices)
-    .values({ deviceId, revokedAt: Date.now() })
+    .values({ deviceId, userId, revokedAt: Date.now() })
     .onDuplicateKeyUpdate({ set: { revokedAt: Date.now() } });
   await db.delete(deviceLabels).where(eq(deviceLabels.deviceId, deviceId));
   return true;
 }
 
-export async function unrevokeDevice(deviceId: string): Promise<void> {
+export async function unrevokeDevice(
+  userId: number,
+  deviceId: string,
+): Promise<void> {
   const db = await getDb();
   if (!db) {
-    memoryRevokedDevices.delete(deviceId);
+    memoryRevokedDevices.delete(`${userId}:${deviceId}`);
+    memoryRevokedDevices.delete(`*:${deviceId}`);
     return;
   }
-  await db.delete(revokedDevices).where(eq(revokedDevices.deviceId, deviceId));
+  await db
+    .delete(revokedDevices)
+    .where(
+      and(
+        eq(revokedDevices.deviceId, deviceId),
+        or(eq(revokedDevices.userId, userId), isNull(revokedDevices.userId)),
+      ),
+    );
 }
 
 export async function cleanupStaleDevices(
@@ -232,13 +243,26 @@ export async function cleanupStaleDevices(
   return removed;
 }
 
-export async function isDeviceRevoked(deviceId: string): Promise<boolean> {
+export async function isDeviceRevoked(
+  userId: number,
+  deviceId: string,
+): Promise<boolean> {
   const db = await getDb();
-  if (!db) return memoryRevokedDevices.has(deviceId);
+  if (!db) {
+    return (
+      memoryRevokedDevices.has(`${userId}:${deviceId}`) ||
+      memoryRevokedDevices.has(`*:${deviceId}`)
+    );
+  }
   const rows = await db
     .select()
     .from(revokedDevices)
-    .where(eq(revokedDevices.deviceId, deviceId));
+    .where(
+      and(
+        eq(revokedDevices.deviceId, deviceId),
+        or(eq(revokedDevices.userId, userId), isNull(revokedDevices.userId)),
+      ),
+    );
   return rows.length > 0;
 }
 
