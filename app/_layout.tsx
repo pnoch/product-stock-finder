@@ -217,11 +217,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     return registerDeviceRevokedHandler(() => {
-      Alert.alert(
-        "Signed Out",
-        "You were signed out on another device.",
-        [{ text: "OK", onPress: () => void refresh() }],
-      );
+      Alert.alert("Signed Out", "You were signed out on another device.", [
+        { text: "OK", onPress: () => void refresh() },
+      ]);
     });
   }, [refresh]);
 

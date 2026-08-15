@@ -25,18 +25,20 @@ export const trpc = createTRPCReact<AppRouter>();
 const revokedDeviceLink: TRPCLink<AppRouter> = () => {
   return ({ op, next }) => {
     return observable((observer) => {
-      return next(op).pipe(
-        tap({
-          error(result) {
-            if (
-              result instanceof Error &&
-              result.message === DEVICE_REVOKED_ERR_MSG
-            ) {
-              void handleDeviceRevoked();
-            }
-          },
-        }),
-      ).subscribe(observer);
+      return next(op)
+        .pipe(
+          tap({
+            error(result) {
+              if (
+                result instanceof Error &&
+                result.message === DEVICE_REVOKED_ERR_MSG
+              ) {
+                void handleDeviceRevoked();
+              }
+            },
+          }),
+        )
+        .subscribe(observer);
     });
   };
 };

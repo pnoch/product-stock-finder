@@ -202,9 +202,7 @@ export async function signOutDevice(
     .insert(revokedDevices)
     .values({ deviceId, revokedAt: Date.now() })
     .onDuplicateKeyUpdate({ set: { revokedAt: Date.now() } });
-  await db
-    .delete(deviceLabels)
-    .where(eq(deviceLabels.deviceId, deviceId));
+  await db.delete(deviceLabels).where(eq(deviceLabels.deviceId, deviceId));
   return true;
 }
 

@@ -403,8 +403,7 @@ describe("devices (database backend)", () => {
                   .queryChunks;
                 const boundDevice =
                   chunks?.some(
-                    (chunk) =>
-                      (chunk as { value?: string }).value === "dev-1",
+                    (chunk) => (chunk as { value?: string }).value === "dev-1",
                   ) ?? false;
                 return boundDevice
                   ? [{ deviceId: "dev-1", revokedAt: Date.now() }]
