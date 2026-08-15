@@ -64,3 +64,51 @@ export async function bindCurrentDevice(): Promise<void> {
     // best-effort
   }
 }
+
+export async function renameDevice(
+  deviceId: string,
+  label: string,
+): Promise<boolean> {
+  try {
+    const client = createTRPCClient();
+    const result = await Promise.race([
+      client.devices.rename.mutate({ deviceId, label }),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
+    ]);
+    return result?.renamed ?? false;
+  } catch {
+    return false;
+  }
+}
+
+export async function signOutDevice(deviceId: string): Promise<boolean> {
+  try {
+    const client = createTRPCClient();
+    const result = await Promise.race([
+      client.devices.signOut.mutate({ deviceId }),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
+    ]);
+    return result?.signedOut ?? false;
+  } catch {
+    return false;
+  }
+}
+
+export async function cleanupStaleDevices(): Promise<number> {
+  try {
+    const client = createTRPCClient();
+    const result = await Promise.race([
+      client.devices.cleanupStale.mutate(),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
+    ]);
+    return result?.removed ?? 0;
+  } catch {
+    return 0;
+  }
+}
