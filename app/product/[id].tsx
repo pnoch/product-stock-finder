@@ -21,9 +21,9 @@ import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { useLiveProduct } from "@/hooks/use-live-prices";
 import {
   getWatchlist,
-  updateProductListings,
   addAlert,
   getStockWatches,
   addStockWatch,
@@ -34,7 +34,6 @@ import {
   getBackOrderReminders,
 } from "@/lib/storage";
 import {
-  Product,
   DistributorListing,
   PriceAlert,
   PricePoint,
@@ -390,11 +389,10 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const colors = useColors();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [listings, setListings] = useState<DistributorListing[]>([]);
+  const { product, listings, loaded, isRefreshingAny, lastUpdatedAt, refresh } =
+    useLiveProduct(id);
   const [insight, setInsight] = useState<string | null>(null);
   const [productImage, setProductImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [alertModalVisible, setAlertModalVisible] = useState(false);
   const [alertPrice, setAlertPrice] = useState("");
   const [alertCurrency, setAlertCurrency] = useState("USD");
@@ -425,27 +423,12 @@ export default function ProductDetailScreen() {
   const chartHeight = 200;
 
   const loadData = useCallback(async () => {
-    setLoading(true);
-    const watchlist = await getWatchlist();
-    const found = watchlist.find((p) => p.id === id);
-    if (found) {
-      setProduct(found);
-      // Use existing listings or load sample data for demo
-      const existingListings = found.listings?.length
-        ? found.listings
-        : (SAMPLE_LISTINGS[id] ?? []);
-      setListings(existingListings);
-      if (!found.listings?.length && SAMPLE_LISTINGS[id]) {
-        await updateProductListings(id, SAMPLE_LISTINGS[id]);
-      }
-    }
     void fetchPriceInsight(id).then((res) => {
       if (res) setInsight(res.insight);
     });
     void fetchProductImage(id).then((res) => {
       if (res) setProductImage(res.imageUrl);
     });
-    setLoading(false);
   }, [id]);
 
   useEffect(() => {
@@ -749,7 +732,7 @@ export default function ProductDetailScreen() {
     );
   }, [reminderListing, reminderDate, product]);
 
-  if (loading) {
+  if (!loaded) {
     return (
       <ScreenContainer>
         <View
@@ -933,7 +916,10 @@ export default function ProductDetailScreen() {
           </View>
           {/* Last Refreshed Indicator */}
           {(() => {
-            const refreshColor = getLastRefreshedColor(product.lastRefreshed);
+            const refreshTime = lastUpdatedAt
+              ? new Date(lastUpdatedAt).toISOString()
+              : product.lastRefreshed;
+            const refreshColor = getLastRefreshedColor(refreshTime);
             const colorMap = {
               green: colors.success,
               yellow: colors.warning,
@@ -964,7 +950,7 @@ export default function ProductDetailScreen() {
                     fontWeight: "500",
                   }}
                 >
-                  Last refreshed: {formatLastRefreshed(product.lastRefreshed)}
+                  Last refreshed: {formatLastRefreshed(refreshTime)}
                 </Text>
               </View>
             );
@@ -1059,10 +1045,11 @@ export default function ProductDetailScreen() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
+            disabled={isRefreshingAny}
             onPress={() => {
               if (Platform.OS !== "web")
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              loadData();
+              refresh();
             }}
             style={{
               backgroundColor: colors.surface,
@@ -1076,11 +1063,15 @@ export default function ProductDetailScreen() {
               gap: 6,
             }}
           >
-            <IconSymbol
-              name="arrow.clockwise"
-              size={16}
-              color={colors.foreground}
-            />
+            {isRefreshingAny ? (
+              <ActivityIndicator size="small" color={colors.foreground} />
+            ) : (
+              <IconSymbol
+                name="arrow.clockwise"
+                size={16}
+                color={colors.foreground}
+              />
+            )}
             <Text
               style={{
                 color: colors.foreground,
