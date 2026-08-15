@@ -32,4 +32,15 @@ describe("session device binding", () => {
     const session = await sdk.verifySession(token);
     expect(session?.deviceId).toBeNull();
   });
+
+  it("treats a non-string deviceId claim as absent", async () => {
+    const token = await sdk.signSession({
+      openId: "open-1",
+      appId: "app",
+      name: "U",
+      deviceId: 123,
+    } as any);
+    const session = await sdk.verifySession(token);
+    expect(session?.deviceId).toBeNull();
+  });
 });
