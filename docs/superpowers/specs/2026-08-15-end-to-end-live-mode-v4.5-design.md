@@ -65,7 +65,7 @@ Colors come from theme tokens via `useColors()` (success/warning/error) — no h
 New section above the existing Account/sign-in area:
 - Status text (Connected / Signed out / Offline) with a colored dot
 - "Last checked" timestamp (relative)
-- Sign-in CTA reusing the existing "Sign in to sync" row (`settings.tsx:494-521`) when signed out
+- Sign-in CTA reusing the existing "Sign in to sync" row (`settings.tsx:495-521`) when signed out
 - A short note that live refresh requires the backend (only when `"offline"`)
 
 The hook is the single source of truth for both surfaces.
@@ -76,8 +76,8 @@ The hook is the single source of truth for both surfaces.
 
 - **`applyServerPrice(listing: DistributorListing, serverResult: ServerPriceResult | null): DistributorListing`**
   - `serverResult == null` → returns `listing` unchanged.
-  - Else: when `snapshot` is present, override `price`, `currency`, `stockStatus`, `expectedDate`, `url`, and set `lastChecked = Date.now()`. Always compute `priceHistory = appendPricePoint(mergePriceHistory(listing.priceHistory, serverResult.history), snapshotPoint, 90)` when `history` is non-empty (reuses `lib/price-history.ts` pure helpers). Build the snapshot `PricePoint` from the snapshot's price/currency/date the same way `refreshListing` does (`lib/background-price-check.ts:78-83`).
-  - No network, no storage, no side effects.
+  - Else: when `snapshot` is present, override `price`, `currency`, `stockStatus`, `expectedDate`, `url`, and set `lastChecked = new Date().toISOString()` (matching `refreshListing`'s `lastChecked: now` at `lib/background-price-check.ts:102`; `DistributorListing.lastChecked` is an ISO string, `lib/types.ts:38`). Always compute `priceHistory = appendPricePoint(mergePriceHistory(listing.priceHistory, serverResult.history), snapshotPoint, 90)` when `history` is non-empty (reuses `lib/price-history.ts` pure helpers). Build the snapshot `PricePoint` exactly as `refreshListing` does (`lib/background-price-check.ts:77-83`): `{ date: new Date().toISOString(), price: snapshot.price, currency: snapshot.currency, stockStatus: snapshot.stockStatus }` (no `expectedDate` — `PricePoint` has none, `lib/types.ts:43-48`).
+  - No network, no storage, no side effects. **No `uploadServerHistory` call** — the live layer is read-only; the server persists its own history via the single-flight scrape (`server/prices.ts`), and the upload path stays owned by `refreshListing`/`checkPriceDropsNow`.
 
 - **`deriveListingQueries(product: Product, listings: DistributorListing[])`**
   - Returns an array of React Query configs: `{ queryKey: ["price", distributorId, modelNumber], queryFn: () => fetchServerPrice(distributorId, modelNumber), staleTime: 60_000, retry: 1 }`, one per listing, with a stable identity across renders (memoized upstream).
