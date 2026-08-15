@@ -117,6 +117,17 @@ describe("createContext revocation check", () => {
       message: DEVICE_REVOKED_ERR_MSG,
     });
   });
+
+  it("throws when the claim is revoked even if the header is clean", async () => {
+    mockedAuth.mockResolvedValue({ id: 7, sessionDeviceId: "dev-claim" } as any);
+    mockedRevoked.mockResolvedValue(true);
+    await expect(
+      createContext({
+        req: makeReq({ "x-device-id": "dev-header" }),
+        res: makeRes(),
+      } as any),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
 });
 
 import * as Auth from "@/lib/_core/auth";
