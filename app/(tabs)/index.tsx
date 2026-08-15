@@ -16,6 +16,8 @@ import { getWatchlist, getAlerts, getSettings } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { formatPrice, getBestPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { ConnectionBadge } from "@/components/connection-badge";
+import { useConnection } from "@/hooks/use-connection";
 
 function StockBadge({
   status,
@@ -115,6 +117,7 @@ function SummaryCard({
 export default function HomeScreen() {
   const router = useRouter();
   const colors = useColors();
+  const connection = useConnection();
   const [watchlist, setWatchlist] = useState<Product[]>([]);
   const [alertCount, setAlertCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -191,23 +194,33 @@ export default function HomeScreen() {
               Global availability monitor
             </Text>
           </View>
-          <TouchableOpacity
-            style={{
-              backgroundColor: colors.primary,
-              borderRadius: 20,
-              width: 40,
-              height: 40,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-            onPress={() => {
-              if (Platform.OS !== "web")
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/search");
-            }}
-          >
-            <IconSymbol name="plus" size={22} color="#fff" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <ConnectionBadge
+              status={connection.status}
+              onPress={
+                connection.status === "signed-out"
+                  ? () => router.push("/settings")
+                  : undefined
+              }
+            />
+            <TouchableOpacity
+              style={{
+                backgroundColor: colors.primary,
+                borderRadius: 20,
+                width: 40,
+                height: 40,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onPress={() => {
+                if (Platform.OS !== "web")
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push("/search");
+              }}
+            >
+              <IconSymbol name="plus" size={22} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Summary Cards */}
