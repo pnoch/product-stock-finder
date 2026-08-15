@@ -271,6 +271,7 @@ export function clearDevicesForTests(): void {
   memoryRevokedDevices.clear();
 }
 
+// Test-only: mirrors the DB legacy NULL-userId global block in the memory backend.
 export function seedGlobalRevocationForTests(deviceId: string): void {
   memoryRevokedDevices.add(`*:${deviceId}`);
 }

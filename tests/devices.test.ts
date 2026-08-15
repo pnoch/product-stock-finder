@@ -253,30 +253,19 @@ describe("devices (database backend)", () => {
   const hasLiteral = (condition: unknown, target: unknown): boolean =>
     treeHas(condition, (value) => value === target);
 
-  const hasIsNullClause = (condition: unknown): boolean => {
-    const visited = new Set<object>();
-    const search = (n: unknown): boolean => {
-      if (!n || typeof n !== "object") return false;
-      if (visited.has(n)) return false;
-      visited.add(n);
-      const obj = n as Record<string, unknown>;
-      for (const value of Object.values(obj)) {
-        if (
-          Array.isArray(value) &&
-          value.some(
-            (chunk) =>
-              typeof chunk === "string" &&
-              chunk.trim().toLowerCase() === "is null",
-          )
-        ) {
-          return true;
-        }
-        if (value && typeof value === "object" && search(value)) return true;
-      }
-      return false;
-    };
-    return search(condition);
-  };
+  // drizzle renders `isNull(col)` as sql`${col} is null`, so its queryChunks
+  // array contains a literal " is null" string chunk. Match on the chunk array
+  // (not any string) so `isNotNull` and unrelated strings never false-positive.
+  const hasIsNullClause = (condition: unknown): boolean =>
+    treeHas(
+      condition,
+      (value) =>
+        Array.isArray(value) &&
+        value.some(
+          (chunk) =>
+            typeof chunk === "string" && chunk.trim().toLowerCase() === "is null",
+        ),
+    );
 
   it("lists a user's devices with max lastSeenAt and token platform", async () => {
     const dbStub = {
