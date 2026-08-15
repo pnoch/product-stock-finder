@@ -1,0 +1,89 @@
+import { appendPricePoint, mergePriceHistory } from "@/lib/price-history";
+import { fetchServerPrice } from "@/lib/server-prices";
+import type {
+  DistributorListing,
+  PricePoint,
+  ServerPriceResult,
+} from "@/lib/types";
+
+export const PRICE_HISTORY_DAYS = 90;
+export const PRICE_STALE_TIME_MS = 60_000;
+
+export type ConnectionStatus = "connected" | "signed-out" | "offline";
+
+export function deriveConnectionStatus(args: {
+  reachable: boolean;
+  isAuthenticated: boolean;
+}): ConnectionStatus {
+  if (!args.reachable) return "offline";
+  return args.isAuthenticated ? "connected" : "signed-out";
+}
+
+export function applyServerPrice(
+  listing: DistributorListing,
+  serverResult: ServerPriceResult | null,
+): DistributorListing {
+  if (!serverResult) return listing;
+  const now = new Date().toISOString();
+  const mergedHistory = mergePriceHistory(
+    listing.priceHistory,
+    serverResult.history,
+    PRICE_HISTORY_DAYS,
+  );
+  const snapshot = serverResult.snapshot;
+  if (!snapshot) {
+    return { ...listing, priceHistory: mergedHistory };
+  }
+  const snapshotPoint: PricePoint = {
+    date: now,
+    price: snapshot.price,
+    currency: snapshot.currency,
+    stockStatus: snapshot.stockStatus,
+  };
+  return {
+    ...listing,
+    price: snapshot.price,
+    currency: snapshot.currency,
+    stockStatus: snapshot.stockStatus,
+    expectedDate: snapshot.expectedDate,
+    url: snapshot.url,
+    lastChecked: now,
+    priceHistory: appendPricePoint(
+      mergedHistory,
+      snapshotPoint,
+      PRICE_HISTORY_DAYS,
+    ),
+  };
+}
+
+export function composeLiveListings(
+  seeds: DistributorListing[],
+  results: (ServerPriceResult | null)[],
+): DistributorListing[] {
+  return seeds.map((seed, i) => applyServerPrice(seed, results[i] ?? null));
+}
+
+export function deriveListingQueries(
+  modelNumber: string,
+  listings: DistributorListing[],
+) {
+  return listings.map((listing) => ({
+    queryKey: ["price", listing.distributorId, modelNumber] as const,
+    queryFn: () => fetchServerPrice(listing.distributorId, modelNumber),
+    staleTime: PRICE_STALE_TIME_MS,
+    retry: 1,
+  }));
+}
+
+export function mergeSampleHistory(
+  listings: DistributorListing[],
+  sampleListings: DistributorListing[],
+): DistributorListing[] {
+  return listings.map((l) => {
+    if (l.priceHistory && l.priceHistory.length >= 2) return l;
+    const sample = sampleListings.find(
+      (s) => s.distributorId === l.distributorId,
+    );
+    return sample ? { ...l, priceHistory: sample.priceHistory } : l;
+  });
+}
