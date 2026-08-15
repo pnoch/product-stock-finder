@@ -8,6 +8,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
 
@@ -223,10 +224,21 @@ export const deviceLabels = mysqlTable("device_labels", {
 export type DeviceLabelRow = typeof deviceLabels.$inferSelect;
 export type InsertDeviceLabelRow = typeof deviceLabels.$inferInsert;
 
-export const revokedDevices = mysqlTable("revoked_devices", {
-  deviceId: varchar("deviceId", { length: 128 }).notNull().primaryKey(),
-  revokedAt: bigint("revokedAt", { mode: "number" }).notNull(),
-});
+export const revokedDevices = mysqlTable(
+  "revoked_devices",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    deviceId: varchar("deviceId", { length: 128 }).notNull(),
+    userId: int("userId"),
+    revokedAt: bigint("revokedAt", { mode: "number" }).notNull(),
+  },
+  (t) => ({
+    uniqUserDevice: uniqueIndex("revoked_devices_user_device").on(
+      t.userId,
+      t.deviceId,
+    ),
+  }),
+);
 
 export type RevokedDeviceRow = typeof revokedDevices.$inferSelect;
 export type InsertRevokedDeviceRow = typeof revokedDevices.$inferInsert;
