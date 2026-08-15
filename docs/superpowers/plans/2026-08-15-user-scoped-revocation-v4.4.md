@@ -183,21 +183,9 @@ Replace the DB-backend "checks revocation in the database" test (lines ~452-479)
     expect(await isDeviceRevoked(8, "dev-1")).toBe(true);
     mockedGetDb.mockResolvedValue(null);
   });
-
-  it("un-revoking deletes the caller's row", async () => {
-    const deleted: unknown[] = [];
-    const dbStub = {
-      delete: vi.fn((table: unknown) => {
-        deleted.push(table);
-        return { where: vi.fn(async () => undefined) };
-      }),
-    };
-    mockedGetDb.mockResolvedValue(dbStub as never);
-    await unrevokeDevice(7, "dev-1");
-    expect(deleted).toEqual([revokedDevices]);
-    mockedGetDb.mockResolvedValue(null);
-  });
 ```
+
+> **Code-review note:** The DB scoping tests assert the `userId = ? OR userId IS NULL` clauses directly. The "scoped to the user" stub returns a row only when the condition tree contains the deviceId literal AND (the caller's numeric userId OR an `is null` term); the "legacy NULL" stub returns a row only when the `is null` term is present (detected via the `" is null"` SQL string fragment, which survives across drizzle versions). The tree-search helpers use a visited-set guard because drizzle's condition graph is cyclic (`column.table.columns`). The "un-revoking deletes the caller's row" test was redundant with the pre-existing "un-revokes by deleting the revoked_devices row" test and is intentionally omitted.
 
 - [ ] **Step 2: Run tests to verify they fail**
 

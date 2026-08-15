@@ -221,6 +221,25 @@ describe("devices (database backend)", () => {
     vi.clearAllMocks();
   });
 
+  const treeHas = (
+    node: unknown,
+    match: (value: unknown) => boolean,
+  ): boolean => {
+    const visited = new Set<object>();
+    const search = (n: unknown): boolean => {
+      if (!n || typeof n !== "object") return false;
+      if (visited.has(n)) return false;
+      visited.add(n);
+      const obj = n as Record<string, unknown>;
+      for (const value of Object.values(obj)) {
+        if (match(value)) return true;
+        if (value && typeof value === "object" && search(value)) return true;
+      }
+      return false;
+    };
+    return search(node);
+  };
+
   it("lists a user's devices with max lastSeenAt and token platform", async () => {
     const dbStub = {
       select: vi.fn(() => ({
@@ -466,25 +485,22 @@ describe("devices (database backend)", () => {
   });
 
   it("checks revocation in the database scoped to the user", async () => {
-    const findDeviceId = (node: unknown, target: string): boolean => {
-      const visited = new Set<object>();
-      const search = (n: unknown): boolean => {
-        if (!n || typeof n !== "object") return false;
-        const obj = n as Record<string, unknown>;
-        if (obj.value === target) return true;
-        if (visited.has(obj)) return false;
-        visited.add(obj);
-        return Object.values(obj).some((child) => search(child));
-      };
-      return search(node);
-    };
+    const hasLiteral = (condition: unknown, target: unknown): boolean =>
+      treeHas(condition, (value) => value === target);
+    const hasIsNullClause = (condition: unknown): boolean =>
+      treeHas(condition, (value) =>
+        typeof value === "string" && /\bis\s+null\b/i.test(value),
+      );
     const dbStub = {
       select: vi.fn(() => ({
         from: vi.fn((table: unknown) => {
           if (table === revokedDevices) {
             return {
-              where: vi.fn(async (condition: unknown) =>
-                findDeviceId(condition, "dev-1")
+              where: vi.fn(async (condition: unknown) => {
+                const deviceBound = hasLiteral(condition, "dev-1");
+                const userBound = hasLiteral(condition, 7);
+                const hasNullTerm = hasIsNullClause(condition);
+                return deviceBound && (userBound || hasNullTerm)
                   ? [
                       {
                         id: 1,
@@ -493,8 +509,8 @@ describe("devices (database backend)", () => {
                         revokedAt: Date.now(),
                       },
                     ]
-                  : [],
-              ),
+                  : [];
+              }),
             };
           }
           return { where: vi.fn(async () => []) };
@@ -508,19 +524,27 @@ describe("devices (database backend)", () => {
   });
 
   it("treats a legacy NULL userId row as a global block", async () => {
+    const hasIsNullClause = (condition: unknown): boolean =>
+      treeHas(condition, (value) =>
+        typeof value === "string" && /\bis\s+null\b/i.test(value),
+      );
     const dbStub = {
       select: vi.fn(() => ({
         from: vi.fn((table: unknown) => {
           if (table === revokedDevices) {
             return {
-              where: vi.fn(async () => [
-                {
-                  id: 1,
-                  deviceId: "dev-1",
-                  userId: null,
-                  revokedAt: Date.now(),
-                },
-              ]),
+              where: vi.fn(async (condition: unknown) =>
+                hasIsNullClause(condition)
+                  ? [
+                      {
+                        id: 1,
+                        deviceId: "dev-1",
+                        userId: null,
+                        revokedAt: Date.now(),
+                      },
+                    ]
+                  : [],
+              ),
             };
           }
           return { where: vi.fn(async () => []) };
@@ -530,20 +554,6 @@ describe("devices (database backend)", () => {
     mockedGetDb.mockResolvedValue(dbStub as never);
     expect(await isDeviceRevoked(7, "dev-1")).toBe(true);
     expect(await isDeviceRevoked(8, "dev-1")).toBe(true);
-    mockedGetDb.mockResolvedValue(null);
-  });
-
-  it("un-revoking deletes the caller's row", async () => {
-    const deleted: unknown[] = [];
-    const dbStub = {
-      delete: vi.fn((table: unknown) => {
-        deleted.push(table);
-        return { where: vi.fn(async () => undefined) };
-      }),
-    };
-    mockedGetDb.mockResolvedValue(dbStub as never);
-    await unrevokeDevice(7, "dev-1");
-    expect(deleted).toEqual([revokedDevices]);
     mockedGetDb.mockResolvedValue(null);
   });
 });
