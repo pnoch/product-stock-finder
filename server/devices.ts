@@ -270,3 +270,7 @@ export function clearDevicesForTests(): void {
   memoryLabels.clear();
   memoryRevokedDevices.clear();
 }
+
+export function seedGlobalRevocationForTests(deviceId: string): void {
+  memoryRevokedDevices.add(`*:${deviceId}`);
+}

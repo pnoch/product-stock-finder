@@ -27,6 +27,7 @@ import {
   cleanupStaleDevices,
   isDeviceRevoked,
   clearDevicesForTests,
+  seedGlobalRevocationForTests,
   STALE_DEVICE_MS,
 } from "../server/devices";
 import {
@@ -198,6 +199,15 @@ describe("devices (memory backend)", () => {
     expect(await isDeviceRevoked(7, "dev-1")).toBe(false);
   });
 
+  it("a global memory revocation blocks every user until un-revoked", async () => {
+    seedGlobalRevocationForTests("dev-1");
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(true);
+    expect(await isDeviceRevoked(8, "dev-1")).toBe(true);
+    await unrevokeDevice(7, "dev-1");
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(false);
+    expect(await isDeviceRevoked(8, "dev-1")).toBe(false);
+  });
+
   it("skips devices with unknown lastSeenAt during cleanup", async () => {
     await upsertDeviceConfig("dev-1", baseConfig, 7);
     await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios", 7);
@@ -240,11 +250,33 @@ describe("devices (database backend)", () => {
     return search(node);
   };
 
-  const hasIsNullClause = (condition: unknown): boolean =>
-    treeHas(
-      condition,
-      (value) => typeof value === "string" && /\bis\s+null\b/i.test(value),
-    );
+  const hasLiteral = (condition: unknown, target: unknown): boolean =>
+    treeHas(condition, (value) => value === target);
+
+  const hasIsNullClause = (condition: unknown): boolean => {
+    const visited = new Set<object>();
+    const search = (n: unknown): boolean => {
+      if (!n || typeof n !== "object") return false;
+      if (visited.has(n)) return false;
+      visited.add(n);
+      const obj = n as Record<string, unknown>;
+      for (const value of Object.values(obj)) {
+        if (
+          Array.isArray(value) &&
+          value.some(
+            (chunk) =>
+              typeof chunk === "string" &&
+              chunk.trim().toLowerCase() === "is null",
+          )
+        ) {
+          return true;
+        }
+        if (value && typeof value === "object" && search(value)) return true;
+      }
+      return false;
+    };
+    return search(condition);
+  };
 
   it("lists a user's devices with max lastSeenAt and token platform", async () => {
     const dbStub = {
@@ -418,17 +450,26 @@ describe("devices (database backend)", () => {
     mockedGetDb.mockResolvedValue(null);
   });
 
-  it("un-revokes by deleting the revoked_devices row", async () => {
+  it("un-revokes by deleting the caller's scoped revoked_devices row", async () => {
     const deleted: unknown[] = [];
+    let whereCondition: unknown;
     const dbStub = {
       delete: vi.fn((table: unknown) => {
         deleted.push(table);
-        return { where: vi.fn(async () => undefined) };
+        return {
+          where: vi.fn(async (condition: unknown) => {
+            whereCondition = condition;
+            return undefined;
+          }),
+        };
       }),
     };
     mockedGetDb.mockResolvedValue(dbStub as never);
     await unrevokeDevice(7, "dev-1");
     expect(deleted).toEqual([revokedDevices]);
+    expect(hasLiteral(whereCondition, "dev-1")).toBe(true);
+    expect(hasLiteral(whereCondition, 7)).toBe(true);
+    expect(hasIsNullClause(whereCondition)).toBe(true);
     mockedGetDb.mockResolvedValue(null);
   });
 
@@ -491,8 +532,6 @@ describe("devices (database backend)", () => {
   });
 
   it("checks revocation in the database scoped to the user", async () => {
-    const hasLiteral = (condition: unknown, target: unknown): boolean =>
-      treeHas(condition, (value) => value === target);
     const dbStub = {
       select: vi.fn(() => ({
         from: vi.fn((table: unknown) => {
@@ -522,6 +561,7 @@ describe("devices (database backend)", () => {
     mockedGetDb.mockResolvedValue(dbStub as never);
     expect(await isDeviceRevoked(7, "dev-1")).toBe(true);
     expect(await isDeviceRevoked(7, "dev-2")).toBe(false);
+    expect(await isDeviceRevoked(8, "dev-1")).toBe(false);
     mockedGetDb.mockResolvedValue(null);
   });
 
