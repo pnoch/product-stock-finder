@@ -10,17 +10,13 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import {
-  getWatchlist,
-  getSettings,
-  removeFromWatchlist,
-  refreshWatchlistPrices,
-} from "@/lib/storage";
+import { useLiveWatchlist } from "@/hooks/use-live-prices";
+import { getSettings, removeFromWatchlist } from "@/lib/storage";
 import { computeWatchlistSummary } from "@/lib/watchlist-summary";
 import { Product } from "@/lib/types";
 import { formatPrice, getBestPrice, convertPrice } from "@/lib/currency";
@@ -260,8 +256,13 @@ function ProductCard({
 export default function WatchlistScreen() {
   const router = useRouter();
   const colors = useColors();
-  const [watchlist, setWatchlist] = useState<Product[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
+  const {
+    products: watchlist,
+    loaded,
+    isRefreshingAny,
+    reload,
+    refreshAll,
+  } = useLiveWatchlist();
   const [sortMode, setSortMode] = useState<SortMode>("recent");
   const [checking, setChecking] = useState(false);
   const [checkProgress, setCheckProgress] = useState<{
@@ -273,15 +274,16 @@ export default function WatchlistScreen() {
   const regions = useMemo(() => getAllRegions(), []);
 
   const loadData = useCallback(async () => {
-    const list = await getWatchlist();
-    setWatchlist(list);
     const settings = await getSettings();
     setDisplayCurrency(settings?.displayCurrency ?? "USD");
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      void reload();
+      void loadData();
+    }, [reload, loadData]),
+  );
 
   const filteredWatchlist = useMemo(
     () =>
@@ -295,13 +297,6 @@ export default function WatchlistScreen() {
     () => computeWatchlistSummary(filteredWatchlist, displayCurrency),
     [filteredWatchlist, displayCurrency],
   );
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await refreshWatchlistPrices();
-    await loadData();
-    setRefreshing(false);
-  }, [loadData]);
 
   const handleDelete = useCallback(
     (productId: string, productName: string) => {
@@ -319,13 +314,13 @@ export default function WatchlistScreen() {
                   Haptics.NotificationFeedbackType.Warning,
                 );
               await removeFromWatchlist(productId);
-              await loadData();
+              await reload();
             },
           },
         ],
       );
     },
-    [loadData],
+    [reload],
   );
 
   const handleCheckNow = useCallback(async () => {
@@ -338,12 +333,26 @@ export default function WatchlistScreen() {
       await checkPriceDropsNow((current, total) => {
         setCheckProgress({ current, total });
       });
+      await reload();
+      void refreshAll();
       await loadData();
     } finally {
       setChecking(false);
       setCheckProgress(null);
     }
-  }, [checking, watchlist.length, loadData]);
+  }, [checking, watchlist.length, reload, refreshAll, loadData]);
+
+  if (!loaded) {
+    return (
+      <ScreenContainer>
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>
@@ -383,6 +392,40 @@ export default function WatchlistScreen() {
               style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}
             >
               Analysis
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              void refreshAll();
+            }}
+            disabled={isRefreshingAny}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 20,
+              paddingHorizontal: 14,
+              height: 40,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            {isRefreshingAny ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <IconSymbol
+                name="arrow.clockwise"
+                size={16}
+                color={colors.primary}
+              />
+            )}
+            <Text
+              style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}
+            >
+              Refresh all
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -625,8 +668,8 @@ export default function WatchlistScreen() {
         }}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
+            refreshing={isRefreshingAny}
+            onRefresh={refreshAll}
             tintColor={colors.primary}
           />
         }
