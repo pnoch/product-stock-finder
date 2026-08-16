@@ -35,7 +35,7 @@
 
 - [x] Build Alerts screen
 - [x] Implement price alert creation and management
-- [ ] Build price history chart (sparkline)
+- [x] Build price history chart (sparkline) — PriceSparkline component (components/price-sparkline.tsx), product detail + compare screens
 - [x] Add price comparison table
 - [x] Implement local notifications for alerts
 
@@ -45,7 +45,7 @@
 - [x] Add loading states and skeleton screens
 - [x] Add empty states for all screens
 - [x] Add haptic feedback
-- [ ] Add share functionality
+- [x] Add share functionality — Share.share in product detail (app/product/[id].tsx)
 - [x] Final QA and bug fixes
 - [x] Save checkpoint
 
