@@ -9,7 +9,7 @@ import type {
   SyncMeta,
   SyncStampedItem,
 } from "./types";
-import { PRICE_HISTORY_SYNC_DAYS } from "@/shared/const";
+import { PRICE_HISTORY_DAYS, PRICE_HISTORY_SYNC_DAYS } from "@/shared/const";
 import { mergePriceHistory } from "@/lib/price-history";
 
 export interface SyncNowOptions {
@@ -276,7 +276,7 @@ async function applyLocalItem(
                   priceHistory: mergePriceHistory(
                     local.priceHistory,
                     l.priceHistory ?? [],
-                    PRICE_HISTORY_SYNC_DAYS,
+                    PRICE_HISTORY_DAYS,
                   ),
                 }
               : l;

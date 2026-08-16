@@ -1,3 +1,4 @@
+import { PRICE_HISTORY_DAYS } from "@/shared/const";
 import { appendPricePoint, mergePriceHistory } from "@/lib/price-history";
 import { fetchServerPrice } from "@/lib/server-prices";
 import type {
@@ -6,7 +7,7 @@ import type {
   ServerPriceResult,
 } from "@/lib/types";
 
-export const PRICE_HISTORY_DAYS = 90;
+export { PRICE_HISTORY_DAYS };
 export const PRICE_STALE_TIME_MS = 60_000;
 
 export type ConnectionStatus = "connected" | "signed-out" | "offline";

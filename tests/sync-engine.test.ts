@@ -290,7 +290,7 @@ describe("syncNow", () => {
     expect(product.listings[0]!.priceHistory).toHaveLength(1);
   });
 
-  it("pushes dirty local items with stripped priceHistory and advances lastSyncedAt", async () => {
+  it("pushes dirty local items with capped priceHistory and advances lastSyncedAt", async () => {
     const storage = makeStorage();
     const localListing = listing("d1", 100, "in_stock");
     localListing.priceHistory = [
@@ -861,5 +861,58 @@ describe("syncNow", () => {
     });
     const history = (await storage.getWatchlist())[0]!.listings[0]!.priceHistory;
     expect(history.map((p) => p.date)).toEqual([daysAgo(7), daysAgo(6)]);
+  });
+
+  it("preserves local price history older than the 30-day sync window on merge", async () => {
+    const storage = makeStorage();
+    const daysAgo = (n: number) =>
+      new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+    const localListing = listing("d1", 100, "in_stock");
+    localListing.priceHistory = [
+      {
+        date: daysAgo(60),
+        price: 120,
+        currency: "USD",
+        stockStatus: "in_stock",
+      },
+    ];
+    await storage.addToWatchlist(makeProduct("p1", [localListing]));
+    await storage.setItemSyncMeta("watchlist", "p1", 1000);
+    const serverProduct = makeProduct("p1", [listing("d1", 90, "in_stock")]);
+    serverProduct.listings[0]!.priceHistory = [
+      {
+        date: daysAgo(6),
+        price: 90,
+        currency: "USD",
+        stockStatus: "in_stock",
+      },
+    ];
+    const pull = vi.fn(
+      async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+        lastSyncedAt: 5000,
+        items: [
+          {
+            collection: "watchlist",
+            id: "p1",
+            data: serverProduct,
+            updatedAt: 4000,
+            deletedAt: null,
+          },
+        ],
+      }),
+    );
+    const push = vi.fn(async (_items: SyncItem[]) => ({
+      accepted: 0,
+      stamped: [],
+    }));
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 6000,
+    });
+    const history = (await storage.getWatchlist())[0]!.listings[0]!.priceHistory;
+    expect(history.map((p) => p.date)).toEqual([daysAgo(60), daysAgo(6)]);
   });
 });
