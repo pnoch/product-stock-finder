@@ -955,6 +955,8 @@ describe("syncNow", () => {
       expect(push).toHaveBeenCalledTimes(4);
 
       // A new edit after a successful sync must be pushed (serverNow > cursor).
+      // NOTE: relies on vitest fake timers advancing the mocked Date so the
+      // clock-offset correction yields a timestamp above the cursor.
       fail = true;
       await vi.advanceTimersByTimeAsync(1000);
       await storage.addToWatchlist(makeProduct("p2"));

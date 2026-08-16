@@ -455,7 +455,9 @@ export function setupSync(
     await syncNow(opts).catch((error) => {
       console.warn("[Sync] Background sync failed", error);
     });
-    await afterSync();
+    await afterSync().catch((error) => {
+      console.warn("[Sync] Retry scheduling failed", error);
+    });
   };
 
   const schedule = () => {
@@ -471,7 +473,9 @@ export function setupSync(
     await syncNow(opts).catch((error) => {
       console.warn("[Sync] Launch sync failed", error);
     });
-    await afterSync();
+    await afterSync().catch((error) => {
+      console.warn("[Sync] Retry scheduling failed", error);
+    });
   };
 
   opts.storage.setOnChange((collection, itemId) => {
