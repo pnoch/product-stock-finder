@@ -6,6 +6,11 @@ const state = vi.hoisted(() => ({
   updatedListings: [] as DistributorListing[][],
 }));
 
+const healthMocks = vi.hoisted(() => ({
+  getDistributorHealth: vi.fn(async () => []),
+  saveDistributorHealth: vi.fn(async () => {}),
+}));
+
 vi.mock("../lib/storage", () => ({
   getWatchlist: vi.fn(async () => state.watchlistStore),
   updateProductListings: vi.fn(
@@ -45,8 +50,8 @@ vi.mock("../lib/scrapers/resilient", () => ({
 
 vi.mock("../lib/scrapers/health", () => ({
   createHealthService: vi.fn(() => ({
-    getDistributorHealth: vi.fn(async () => []),
-    saveDistributorHealth: vi.fn(async () => {}),
+    getDistributorHealth: healthMocks.getDistributorHealth,
+    saveDistributorHealth: healthMocks.saveDistributorHealth,
   })),
 }));
 
@@ -190,6 +195,64 @@ describe("server-first scraping", () => {
 
     expect(state.updatedListings).toHaveLength(1);
     expect(state.updatedListings[0][0]).toEqual(listing);
+  });
+
+  it("records blocked health when the local fetch is blocked", async () => {
+    mockedFetchServer.mockResolvedValue(null);
+    mockedGetParser.mockReturnValue({
+      id: "server2u-my",
+      baseUrl: "https://server2u.com",
+      buildSearchUrl: (m: string) => `https://server2u.com/shop?q=${m}`,
+      parsePrice: () => null,
+      rateLimitMs: 0,
+    });
+    mockedFetchLocal.mockResolvedValue({
+      status: "blocked",
+      method: "plain",
+      error: "blocked by site",
+    });
+
+    await checkPriceDropsNow();
+
+    expect(state.updatedListings).toHaveLength(1);
+    expect(state.updatedListings[0][0]).toEqual(listing);
+    expect(healthMocks.saveDistributorHealth).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          distributorId: "server2u-my",
+          status: "blocked",
+        }),
+      ]),
+    );
+  });
+
+  it("records blocked health when the local fetch is skipped due to cooldown", async () => {
+    mockedFetchServer.mockResolvedValue(null);
+    mockedGetParser.mockReturnValue({
+      id: "server2u-my",
+      baseUrl: "https://server2u.com",
+      buildSearchUrl: (m: string) => `https://server2u.com/shop?q=${m}`,
+      parsePrice: () => null,
+      rateLimitMs: 0,
+    });
+    mockedFetchLocal.mockResolvedValue({
+      status: "skipped",
+      method: "none",
+    });
+
+    await checkPriceDropsNow();
+
+    expect(state.updatedListings).toHaveLength(1);
+    expect(state.updatedListings[0][0]).toEqual(listing);
+    expect(healthMocks.saveDistributorHealth).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          distributorId: "server2u-my",
+          status: "blocked",
+          reason: "in cooldown",
+        }),
+      ]),
+    );
   });
 
   it("uploads local history when the server history is shorter", async () => {
