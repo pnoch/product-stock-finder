@@ -1133,7 +1133,7 @@ import {
 } from "../server/sync-db";
 import type { SyncItem } from "../lib/types";
 
-const TEST_URL = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
+const TEST_URL = process.env.TEST_DATABASE_URL;
 const runDbTests = Boolean(process.env.RUN_DB_TESTS) && Boolean(TEST_URL);
 if (TEST_URL) process.env.DATABASE_URL = TEST_URL;
 
@@ -1327,7 +1327,7 @@ import type {
   StockStatus,
 } from "../lib/types";
 
-const TEST_URL = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
+const TEST_URL = process.env.TEST_DATABASE_URL;
 const runDbTests = Boolean(process.env.RUN_DB_TESTS) && Boolean(TEST_URL);
 if (TEST_URL) process.env.DATABASE_URL = TEST_URL;
 
