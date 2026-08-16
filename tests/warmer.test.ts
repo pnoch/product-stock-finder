@@ -6,8 +6,12 @@ vi.mock("../lib/scrapers/registry", () => ({
   getParserByDistributorId: vi.fn(),
 }));
 
-vi.mock("../lib/scrapers/utils", () => ({
-  fetchWithParser: vi.fn(),
+vi.mock("../lib/scrapers/resilient", () => ({
+  resilientFetch: vi.fn(),
+  createMemoryBreakerStore: vi.fn(() => ({
+    get: vi.fn(async () => null),
+    set: vi.fn(async () => {}),
+  })),
 }));
 
 vi.mock("../server/price-cache", () => ({
@@ -18,13 +22,13 @@ vi.mock("../server/price-cache", () => ({
 }));
 
 import { getParserByDistributorId } from "../lib/scrapers/registry";
-import { fetchWithParser } from "../lib/scrapers/utils";
+import { resilientFetch } from "../lib/scrapers/resilient";
 import { listNearExpiry, setCachedPrice } from "../server/price-cache";
 import { refreshNearExpiry, startWarmer } from "../server/prices";
 import type { ScrapeResult } from "../lib/scrapers/types";
 
 const mockedGetParser = vi.mocked(getParserByDistributorId);
-const mockedFetch = vi.mocked(fetchWithParser);
+const mockedFetch = vi.mocked(resilientFetch);
 const mockedListNearExpiry = vi.mocked(listNearExpiry);
 const mockedSetCached = vi.mocked(setCachedPrice);
 
@@ -48,7 +52,11 @@ describe("warmer", () => {
     vi.clearAllMocks();
     mockedGetParser.mockReturnValue(parser);
     parser.parsePrice = () => scrapeResult;
-    mockedFetch.mockResolvedValue("<html>price</html>");
+    mockedFetch.mockResolvedValue({
+      status: "ok",
+      html: "<html>price</html>",
+      method: "plain",
+    });
     mockedSetCached.mockResolvedValue(undefined);
   });
 
