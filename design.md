@@ -1,12 +1,12 @@
-# Stock Tracker Pro — Design Document
+# Product Stock Finder — Design Document
 
 ## App Overview
 
-A professional mobile app for tracking product availability and prices across 50+ global electronics distributors. Target users are IT professionals, procurement teams, and electronics enthusiasts who need to monitor hard-to-find products globally.
+A professional mobile app for tracking product availability and prices across 25 global electronics distributors. Target users are IT professionals, procurement teams, and electronics enthusiasts who need to monitor hard-to-find products globally.
 
 ## Brand Identity
 
-- **App Name:** Stock Tracker Pro
+- **App Name:** Product Stock Finder
 - **Tagline:** "Never miss a deal. Never miss a restock."
 - **Primary Color:** #0F52BA (Sapphire Blue) — professional, trustworthy
 - **Accent Color:** #00C896 (Emerald Green) — in-stock status, positive signals
@@ -116,7 +116,7 @@ Bottom Tab Bar (4 tabs):
 - 🔴 Red pill: "Out of Stock"
 - ⚪ Gray pill: "Unknown"
 
-## Pre-loaded Distributor Database (50+ sites)
+## Pre-loaded Distributor Database (25 sites)
 
 Regions covered: USA, Europe (UK, Germany, Poland, Greece, EU), Asia-Pacific (Malaysia, Singapore, Hong Kong, Australia), Middle East (UAE), Africa (South Africa)
 

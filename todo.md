@@ -1,4 +1,4 @@
-# Stock Tracker Pro — TODO
+# Product Stock Finder — TODO
 
 ## Phase 1: Architecture & Design
 
@@ -25,7 +25,7 @@
 
 ## Phase 4: Distributor Database & Stock Check
 
-- [x] Create distributor database (30+ distributors)
+- [x] Create distributor database (25 distributors)
 - [x] Build distributor row component
 - [x] Implement stock status badges
 - [x] Add "Open in Browser" functionality
