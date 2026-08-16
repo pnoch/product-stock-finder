@@ -1071,11 +1071,11 @@ invoking adapter methods at import time.
 
 ## Verification Checklist (from design §6)
 
-- [ ] Retry/backoff: transient errors retried up to 2× with 1s/2s backoff.
-- [ ] Escalation: plain blocked → browser; browser blocked → no plain fallback; browser unavailable → plain fallback.
-- [ ] Cooldown/skip: in-cooldown requests return `skipped` with no network call.
-- [ ] Re-probe: after cooldown expires, next request attempts again.
-- [ ] Threshold: 3 consecutive transient failures → 15min cooldown.
-- [ ] Blocked detection: 403/429 + Cloudflare markers.
-- [ ] Both stores: memory (server) and storage-backed (client) round-trip.
-- [ ] Integration: `server/prices.ts` and `lib/background-price-check.ts` both route through `resilientFetch`.
+- [x] Retry/backoff: transient errors retried up to 2× with 1s/2s backoff.
+- [x] Escalation: plain blocked → browser; browser blocked → no plain fallback; browser unavailable → plain fallback.
+- [x] Cooldown/skip: in-cooldown requests return `skipped` with no network call.
+- [x] Re-probe: after cooldown expires, next request attempts again.
+- [x] Threshold: 3 consecutive transient failures → 15min cooldown.
+- [x] Blocked detection: 403/429 + Cloudflare markers.
+- [x] Both stores: memory (server) and storage-backed (client) round-trip.
+- [x] Integration: `server/prices.ts` and `lib/background-price-check.ts` both route through `resilientFetch`.
