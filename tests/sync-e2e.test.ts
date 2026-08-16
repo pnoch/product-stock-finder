@@ -9,7 +9,6 @@ import type { TrpcContext } from "../server/_core/context";
 import type {
   AppSettings,
   DistributorListing,
-  PriceAlert,
   Product,
   StockStatus,
 } from "../lib/types";
@@ -119,7 +118,10 @@ describe.skipIf(!runDbTests)("sync e2e", () => {
     };
   }
 
-  function makeProduct(id: string, listings: DistributorListing[] = []): Product {
+  function makeProduct(
+    id: string,
+    listings: DistributorListing[] = [],
+  ): Product {
     return {
       id,
       name: `Product ${id}`,
@@ -145,7 +147,9 @@ describe.skipIf(!runDbTests)("sync e2e", () => {
   it("round-trips watchlist, alerts, settings, and capped price history between two devices", async () => {
     const deviceA = makeDevice();
     const deviceB = makeDevice();
-    const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
+    const weekAgo = new Date(Date.now() - 7 * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
 
     const localListing = listing("d1", 100, "in_stock");
     localListing.priceHistory = [

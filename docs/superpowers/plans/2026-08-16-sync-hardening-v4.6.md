@@ -1309,8 +1309,9 @@ git commit -m "test(sync): add MySQL integration tests for sync-db"
 - Modify: `tests/sync-engine.test.ts` (add regression test: settings with no stamped meta entry is not pushed)
 
 > **Implementation notes (deviations from the original snippet):**
-> - The test calls `syncNow` directly, bypassing `setupSync`'s `onChange → markDirty` wiring that the real app relies on. So after each mutation the test explicitly marks the item dirty with `setItemSyncMeta`/`markItemDeleted` (mirroring `markDirty`'s effect). Without this, `saveSettings`/`saveWatchlist`/`removeFromWatchlist` never bump sync meta and the changes are never pushed.
+> - The test calls `syncNow` directly, bypassing `setupSync`'s `onChange → markDirty` wiring that the real app relies on. The initial watchlist/alert adds need no explicit stamp (they push via `collectDirty`'s `!entry` branch), but the settings save, the price edit, and the deletion do: the test marks them dirty explicitly with `setItemSyncMeta`/`markItemDeleted` (mirroring `markDirty`'s effect). Without this, `saveSettings`/`saveWatchlist`/`removeFromWatchlist` never bump sync meta and the changes are never pushed.
 > - The original snippet's settings behavior was NOT changed in `lib/sync.ts`: settings with no stamped meta entry must NOT be pushed (a fresh device pushing defaults could overwrite another device's settings). The regression test added to `sync-engine.test.ts` locks this in.
+> - The committed test calls the tRPC procedures directly (`caller.sync.pull({ since })` / `caller.sync.push({ items })`) rather than the snippet's `.query()`/`.mutate()` forms, matching the repo's existing convention in `tests/sync-router.test.ts`.
 
 - [ ] **Step 1: Create the end-to-end test file**
 
