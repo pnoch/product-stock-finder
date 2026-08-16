@@ -1,6 +1,7 @@
 import type { ScrapeResult } from "./types";
 import { PARSERS } from "./registry";
 import { fetchWithParser } from "./utils";
+import { classifyFetchStatus } from "./resilient";
 import type { StorageAdapter } from "../storage";
 
 export type HealthStatus = "working" | "blocked" | "error";
@@ -22,14 +23,7 @@ export function classifyResult(
   error?: unknown,
 ): HealthStatus {
   if (error) return "error";
-  if (
-    html.includes("403 Forbidden") ||
-    html.includes("Access Denied") ||
-    html.includes("cf-browser-verification") ||
-    html.includes("Checking your browser")
-  ) {
-    return "blocked";
-  }
+  if (classifyFetchStatus(html) === "blocked") return "blocked";
   if (result && result.price > 0) return "working";
   return "error";
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { classifyResult, createHealthService } from "@/lib/scrapers/health";
+import { BLOCKED_MARKERS } from "@/lib/scrapers/resilient";
 
 describe("classifyResult", () => {
   it("returns working when result has a price", () => {
@@ -42,6 +43,12 @@ describe("classifyResult", () => {
       url: "x",
     };
     expect(classifyResult("Access Denied", result)).toBe("blocked");
+  });
+
+  it("detects every marker from the single source of truth", () => {
+    for (const marker of BLOCKED_MARKERS) {
+      expect(classifyResult(marker, null)).toBe("blocked");
+    }
   });
 });
 

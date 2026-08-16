@@ -25,7 +25,7 @@ export interface BreakerStateStore {
   set(entry: BreakerEntry): Promise<void>;
 }
 
-const BLOCKED_MARKERS = [
+export const BLOCKED_MARKERS = [
   "403 Forbidden",
   "Access Denied",
   "cf-browser-verification",
