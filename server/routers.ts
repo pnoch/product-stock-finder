@@ -15,6 +15,7 @@ import { getFxRates } from "./fx";
 import { mergeHistory } from "./price-history";
 import { getInsight } from "./price-insights";
 import { getProductImage } from "./product-images";
+import type { SyncStampedItem } from "../lib/types";
 import { upsertDeviceConfig, pullPendingEvents } from "./notifications";
 import { upsertPushToken } from "./push-notifications";
 import {
@@ -66,17 +67,26 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) {
           console.warn("[Sync] Database not available; accepting nothing");
-          return { accepted: 0 };
+          return { accepted: 0, stamped: [] };
         }
+        const stamped: SyncStampedItem[] = [];
         let accepted = 0;
         for (const item of input.items) {
-          if (await upsertSyncItem(ctx.user.id, item)) accepted += 1;
+          const result = await upsertSyncItem(ctx.user.id, item);
+          if (result.accepted) {
+            accepted += 1;
+            stamped.push({
+              collection: item.collection,
+              id: item.id,
+              updatedAt: result.updatedAt,
+            });
+          }
         }
         await purgeOldTombstones(
           ctx.user.id,
           Date.now() - TOMBSTONE_PURGE_WINDOW_MS,
         );
-        return { accepted };
+        return { accepted, stamped };
       }),
   }),
 

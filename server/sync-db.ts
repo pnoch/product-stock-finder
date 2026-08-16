@@ -108,16 +108,19 @@ export async function listChangedItems(
 }
 
 /**
- * Last-write-wins upsert. Returns true when the incoming item was accepted
- * (row absent, or incoming.updatedAt strictly newer than the existing row).
- * Tombstoned items (deletedAt set) are soft-deleted so pull can propagate them.
+ * Last-write-wins upsert. The stored row's updatedAtMs is stamped with the
+ * server clock (not the client's), so LWW ordering is server-authoritative.
+ * Returns { accepted, updatedAt }: accepted is false when the incoming item
+ * is not newer than the existing row; updatedAt is the server-stamped value
+ * on acceptance (or the existing row's timestamp on rejection).
  */
 export async function upsertSyncItem(
   userId: number,
   item: SyncItem,
-): Promise<boolean> {
+): Promise<{ accepted: boolean; updatedAt: number }> {
   const db = await getDb();
-  if (!db) return false;
+  if (!db) return { accepted: false, updatedAt: item.updatedAt };
+  const stampedAt = Date.now();
 
   switch (item.collection) {
     case "watchlist": {
@@ -132,7 +135,7 @@ export async function upsertSyncItem(
         )
         .limit(1);
       if (existing.length > 0 && existing[0]!.updatedAtMs >= item.updatedAt) {
-        return false;
+        return { accepted: false, updatedAt: existing[0]!.updatedAtMs };
       }
       await db
         .insert(watchlistItems)
@@ -140,17 +143,17 @@ export async function upsertSyncItem(
           userId,
           productId: item.id,
           data: item.data,
-          updatedAtMs: item.updatedAt,
+          updatedAtMs: stampedAt,
           deletedAtMs: item.deletedAt,
         })
         .onDuplicateKeyUpdate({
           set: {
             data: item.data,
-            updatedAtMs: item.updatedAt,
+            updatedAtMs: stampedAt,
             deletedAtMs: item.deletedAt,
           },
         });
-      return true;
+      return { accepted: true, updatedAt: stampedAt };
     }
     case "alerts": {
       const existing = await db
@@ -161,7 +164,7 @@ export async function upsertSyncItem(
         )
         .limit(1);
       if (existing.length > 0 && existing[0]!.updatedAtMs >= item.updatedAt) {
-        return false;
+        return { accepted: false, updatedAt: existing[0]!.updatedAtMs };
       }
       await db
         .insert(priceAlerts)
@@ -169,17 +172,17 @@ export async function upsertSyncItem(
           userId,
           alertId: item.id,
           data: item.data,
-          updatedAtMs: item.updatedAt,
+          updatedAtMs: stampedAt,
           deletedAtMs: item.deletedAt,
         })
         .onDuplicateKeyUpdate({
           set: {
             data: item.data,
-            updatedAtMs: item.updatedAt,
+            updatedAtMs: stampedAt,
             deletedAtMs: item.deletedAt,
           },
         });
-      return true;
+      return { accepted: true, updatedAt: stampedAt };
     }
     case "reminders": {
       const existing = await db
@@ -193,7 +196,7 @@ export async function upsertSyncItem(
         )
         .limit(1);
       if (existing.length > 0 && existing[0]!.updatedAtMs >= item.updatedAt) {
-        return false;
+        return { accepted: false, updatedAt: existing[0]!.updatedAtMs };
       }
       await db
         .insert(backOrderReminders)
@@ -201,17 +204,17 @@ export async function upsertSyncItem(
           userId,
           reminderId: item.id,
           data: item.data,
-          updatedAtMs: item.updatedAt,
+          updatedAtMs: stampedAt,
           deletedAtMs: item.deletedAt,
         })
         .onDuplicateKeyUpdate({
           set: {
             data: item.data,
-            updatedAtMs: item.updatedAt,
+            updatedAtMs: stampedAt,
             deletedAtMs: item.deletedAt,
           },
         });
-      return true;
+      return { accepted: true, updatedAt: stampedAt };
     }
     case "settings": {
       const existing = await db
@@ -220,24 +223,24 @@ export async function upsertSyncItem(
         .where(eq(appSettings.userId, userId))
         .limit(1);
       if (existing.length > 0 && existing[0]!.updatedAtMs >= item.updatedAt) {
-        return false;
+        return { accepted: false, updatedAt: existing[0]!.updatedAtMs };
       }
       await db
         .insert(appSettings)
         .values({
           userId,
           data: item.data,
-          updatedAtMs: item.updatedAt,
+          updatedAtMs: stampedAt,
           deletedAtMs: item.deletedAt,
         })
         .onDuplicateKeyUpdate({
           set: {
             data: item.data,
-            updatedAtMs: item.updatedAt,
+            updatedAtMs: stampedAt,
             deletedAtMs: item.deletedAt,
           },
         });
-      return true;
+      return { accepted: true, updatedAt: stampedAt };
     }
   }
 }

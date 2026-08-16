@@ -41,6 +41,6 @@ describe("sync router", () => {
   it("push accepts nothing when DB is unavailable", async () => {
     const caller = appRouter.createCaller(createAuthContext());
     const result = await caller.sync.push({ items: [] });
-    expect(result).toEqual({ accepted: 0 });
+    expect(result).toEqual({ accepted: 0, stamped: [] });
   });
 });
