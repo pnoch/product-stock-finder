@@ -9,6 +9,7 @@ import type {
   Product,
   StockStatus,
   SyncItem,
+  SyncStampedItem,
 } from "../lib/types";
 
 function makeAdapter() {
@@ -138,7 +139,7 @@ describe("syncNow", () => {
         ],
       }),
     );
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -174,7 +175,7 @@ describe("syncNow", () => {
         ],
       }),
     );
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -207,7 +208,7 @@ describe("syncNow", () => {
         ],
       }),
     );
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1, stamped: [] }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -237,7 +238,7 @@ describe("syncNow", () => {
         ],
       }),
     );
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -276,7 +277,7 @@ describe("syncNow", () => {
         ],
       }),
     );
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -302,7 +303,14 @@ describe("syncNow", () => {
     ];
     await storage.addToWatchlist(makeProduct("p1", [localListing]));
     const pull = vi.fn(async () => ({ lastSyncedAt: 2000, items: [] }));
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1 }));
+    const push = vi.fn(
+      async (
+        _items: SyncItem[],
+      ): Promise<{ accepted: number; stamped: SyncStampedItem[] }> => ({
+        accepted: 1,
+        stamped: [{ collection: "watchlist", id: "p1", updatedAt: 2500 }],
+      }),
+    );
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -315,12 +323,12 @@ describe("syncNow", () => {
     expect(pushed).toHaveLength(1);
     expect(pushed[0]!.collection).toBe("watchlist");
     expect(pushed[0]!.id).toBe("p1");
-    expect(pushed[0]!.updatedAt).toBe(3000);
+    expect(pushed[0]!.updatedAt).toBe(2000);
     expect(
       (pushed[0]!.data as Product).listings[0]!.priceHistory,
     ).toBeUndefined();
     const meta = await storage.getSyncMeta();
-    expect(meta.lastSyncedAt).toBe(3000);
+    expect(meta.lastSyncedAt).toBe(2000);
     expect(meta.lastSyncError).toBeNull();
     expect(meta.lastSyncOkAt).toBe(3000);
   });
@@ -387,7 +395,7 @@ describe("syncNow", () => {
       storage,
       isSignedIn: () => true,
       pull: vi.fn(async () => ({ lastSyncedAt: 4000, items: [] })),
-      push: vi.fn(async (_items: SyncItem[]) => ({ accepted: 1 })),
+      push: vi.fn(async (_items: SyncItem[]) => ({ accepted: 1, stamped: [] })),
       now: () => 5000,
     });
     const meta = await storage.getSyncMeta();
@@ -425,7 +433,7 @@ describe("syncNow", () => {
     await storage.markItemDeleted("watchlist", "p1", 2000);
     await storage.addToWatchlist(makeProduct("p1"));
     const pull = vi.fn(async () => ({ lastSyncedAt: 1500, items: [] }));
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1, stamped: [] }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -463,7 +471,7 @@ describe("syncNow", () => {
         ],
       }),
     );
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -483,7 +491,7 @@ describe("syncNow", () => {
           resolvePull = res;
         }),
     );
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
     const opts = {
       storage,
       isSignedIn: () => true,
@@ -518,7 +526,7 @@ describe("syncNow", () => {
         ],
       }),
     );
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -554,7 +562,7 @@ describe("syncNow", () => {
         ],
       }),
     );
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -575,7 +583,7 @@ describe("syncNow", () => {
     await storage.removeFromWatchlist("p1");
     await storage.markItemDeleted("watchlist", "p1", 2000);
     const pull = vi.fn(async () => ({ lastSyncedAt: 1500, items: [] }));
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1 }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1, stamped: [] }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -590,5 +598,112 @@ describe("syncNow", () => {
     expect(pushed[0]!.id).toBe("p1");
     expect(pushed[0]!.deletedAt).toBe(2000);
     expect(pushed[0]!.data).toBeNull();
+  });
+
+  it("applies server-stamped timestamps from the push response to sync meta", async () => {
+    const storage = makeStorage();
+    await storage.addToWatchlist(makeProduct("p1"));
+    const pull = vi.fn(async () => ({ lastSyncedAt: 2000, items: [] }));
+    const push = vi.fn(
+      async (
+        _items: SyncItem[],
+      ): Promise<{ accepted: number; stamped: SyncStampedItem[] }> => ({
+        accepted: 1,
+        stamped: [{ collection: "watchlist", id: "p1", updatedAt: 2500 }],
+      }),
+    );
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 3000,
+    });
+    const meta = await storage.getSyncMeta();
+    expect(meta.items.watchlist?.p1?.updatedAt).toBe(2500);
+  });
+
+  it("does not advance per-item meta for rejected pushes", async () => {
+    const storage = makeStorage();
+    await storage.addToWatchlist(makeProduct("p1"));
+    await storage.setItemSyncMeta("watchlist", "p1", 1000);
+    const pull = vi.fn(async () => ({ lastSyncedAt: 2000, items: [] }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({
+      accepted: 0,
+      stamped: [],
+    }));
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 3000,
+    });
+    const meta = await storage.getSyncMeta();
+    expect(meta.items.watchlist?.p1?.updatedAt).toBe(1000);
+  });
+
+  it("uses the server cursor (pulled.lastSyncedAt) for lastSyncedAt", async () => {
+    const storage = makeStorage();
+    await storage.addToWatchlist(makeProduct("p1"));
+    const pull = vi.fn(async () => ({ lastSyncedAt: 2000, items: [] }));
+    const push = vi.fn(
+      async (
+        _items: SyncItem[],
+      ): Promise<{ accepted: number; stamped: SyncStampedItem[] }> => ({
+        accepted: 1,
+        stamped: [{ collection: "watchlist", id: "p1", updatedAt: 2500 }],
+      }),
+    );
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 9000,
+    });
+    const meta = await storage.getSyncMeta();
+    expect(meta.lastSyncedAt).toBe(2000);
+    expect(meta.lastSyncOkAt).toBe(9000);
+  });
+
+  it("marks offline edits with server-corrected time so a slow clock does not lose edits", async () => {
+    const storage = makeStorage();
+    const now = Date.now();
+    // Server clock is 1 hour ahead of the client clock (client is slow).
+    await storage.saveSyncMeta({
+      lastSyncedAt: now + 3_600_000,
+      lastSyncOkAt: now,
+      items: {},
+    });
+    await storage.addToWatchlist(makeProduct("p1"));
+    const pull = vi.fn(async () => ({
+      lastSyncedAt: now + 3_600_000 + 5000,
+      items: [],
+    }));
+    const push = vi.fn(
+      async (
+        _items: SyncItem[],
+      ): Promise<{ accepted: number; stamped: SyncStampedItem[] }> => ({
+        accepted: 1,
+        stamped: [
+          {
+            collection: "watchlist",
+            id: "p1",
+            updatedAt: now + 3_600_000 + 5000,
+          },
+        ],
+      }),
+    );
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => now + 1000,
+    });
+    expect(push).toHaveBeenCalledTimes(1);
+    const pushed = push.mock.calls[0]![0];
+    expect(pushed[0]!.updatedAt).toBe(now + 3_600_000 + 5000);
   });
 });

@@ -7,6 +7,7 @@ import type {
   Product,
   SyncItem,
   SyncMeta,
+  SyncStampedItem,
 } from "./types";
 
 export interface SyncNowOptions {
@@ -15,7 +16,9 @@ export interface SyncNowOptions {
   pull: (
     since: number | null,
   ) => Promise<{ lastSyncedAt: number; items: SyncItem[] }>;
-  push: (items: SyncItem[]) => Promise<{ accepted: number }>;
+  push: (
+    items: SyncItem[],
+  ) => Promise<{ accepted: number; stamped: SyncStampedItem[] }>;
   now?: () => number;
 }
 
@@ -86,11 +89,13 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     storage.setChangeSuppressed(false);
   }
 
-  const dirty = await collectDirty(storage, oldCursor, applied, nowValue);
+  const dirty = await collectDirty(storage, oldCursor, applied, pulled.lastSyncedAt);
 
   if (dirty.length > 0) {
+    let stamped: SyncStampedItem[] = [];
     try {
-      await opts.push(dirty);
+      const result = await opts.push(dirty);
+      stamped = result.stamped;
     } catch (error) {
       console.warn("[Sync] Push failed; local changes kept", error);
       await storage.saveSyncMeta({
@@ -101,11 +106,16 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
       });
       return;
     }
+    const stampedByKey = new Map(
+      stamped.map((s) => [`${s.collection}:${s.id}`, s.updatedAt]),
+    );
     const metaAfter = await storage.getSyncMeta();
     for (const item of dirty) {
+      const stampedAt = stampedByKey.get(`${item.collection}:${item.id}`);
+      if (stampedAt === undefined) continue;
       const col = metaAfter.items[item.collection] ?? {};
       col[item.id] = {
-        updatedAt: item.updatedAt,
+        updatedAt: stampedAt,
         deleted: item.deletedAt !== null,
       };
       metaAfter.items[item.collection] = col;
@@ -113,7 +123,7 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     await storage.saveSyncMeta(metaAfter);
   }
 
-  const nextCursor = Math.max(pulled.lastSyncedAt, nowValue);
+  const nextCursor = pulled.lastSyncedAt;
   await storage.saveSyncMeta({
     ...(await storage.getSyncMeta()),
     lastSyncedAt: nextCursor,
@@ -358,12 +368,22 @@ async function itemExists(
   }
 }
 
+// Best estimate of the server clock: the measured offset from the last
+// successful sync (lastSyncedAt is server time, lastSyncOkAt is client time)
+// applied to the current client time. Keeps offline edits server-comparable
+// so device clock skew cannot lose or wrongly win edits.
+async function serverNow(storage: Storage): Promise<number> {
+  const meta = await storage.getSyncMeta();
+  const okAt = meta.lastSyncOkAt ?? meta.lastSyncedAt;
+  return Date.now() + (meta.lastSyncedAt - okAt);
+}
+
 async function markDirty(
   storage: Storage,
   collection: Collection,
   id: string,
 ): Promise<void> {
-  const now = Date.now();
+  const now = await serverNow(storage);
   const exists = await itemExists(storage, collection, id);
   if (exists) {
     await storage.setItemSyncMeta(collection, id, now);
