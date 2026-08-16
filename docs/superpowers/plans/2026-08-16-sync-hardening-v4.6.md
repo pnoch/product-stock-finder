@@ -12,6 +12,8 @@
 
 **Design refinement (flagged during planning):** Pure push-response stamping only re-anchors meta to server time *after* a sync. Edits made *between* syncs still carry client-clock timestamps, so a device whose clock is behind can still lose an offline edit (its timestamp reads older than the server's). The plan therefore adds a minimal client-side clock-offset correction: `markDirty` timestamps offline edits as `Date.now() + (lastSyncedAt - lastSyncOkAt)`, and the sync cursor becomes `pulled.lastSyncedAt` (server time) instead of `max(pulled.lastSyncedAt, clientNow)`. This is a few lines, keeps the server fully authoritative, and makes the spec's "no silent data loss" claim actually true.
 
+**Design refinement 2 (decided during Task 3 code review):** Dirty push payloads carry the per-item corrected edit time (`entry.updatedAt` from `markDirty`/`serverNow`), not the sync cursor, so the server's LWW reject check compares against the actual edit time ("latest edit wins"), not "latest sync wins". `collectDirty` uses `entry.updatedAt` when the meta entry exists and is not deleted, falling back to the cursor (`now`) for brand-new items. (Note: the Task 3 Step 6 assertion `pushed[0]!.updatedAt` toBe `2000` still holds because that test's item has no meta entry and hits the fallback.)
+
 ---
 
 ## File Structure
