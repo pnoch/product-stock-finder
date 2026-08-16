@@ -170,6 +170,28 @@ describe("resilientFetch", () => {
     expect(browserMock.fetchWithBrowser).toHaveBeenCalledTimes(1);
   });
 
+  it("reports blocked when plain is blocked and browser escalation fails", async () => {
+    const fetchMock = vi.fn(
+      async () => new Response("403 Forbidden", { status: 403 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    browserMock.fetchWithBrowser.mockRejectedValue(
+      new Error("browser not available"),
+    );
+    const state = createMemoryBreakerStore();
+    const outcome = await resilientFetch({
+      parser: makeParser(),
+      url: "https://example.com/search?q=CRS804",
+      state,
+      now: () => 1000,
+      retryBaseMs: 1,
+    });
+    expect(outcome.status).toBe("blocked");
+    const entry = await state.get("d1");
+    expect(entry?.status).toBe("blocked");
+    expect(entry?.cooldownUntil).toBe(1000 + 30 * 60 * 1000);
+  });
+
   it("breaks the circuit on blocked and enters cooldown", async () => {
     const fetchMock = vi.fn(
       async () => new Response("403 Forbidden", { status: 403 }),

@@ -230,9 +230,11 @@ export async function resilientFetch(
     method: "none",
     error: "no attempt made",
   };
+  let blockedOutcome: FetchOutcome | null = null;
 
   for (const method of methods) {
     const outcome = await attemptMethod(method, opts, maxRetries, retryBaseMs);
+    if (outcome.status === "blocked" && !blockedOutcome) blockedOutcome = outcome;
     lastOutcome = outcome;
     if (outcome.status === "ok") {
       await recordSuccess(opts.state, opts.parser.id, now());
@@ -245,6 +247,8 @@ export async function resilientFetch(
     if (method === "browser") continue;
     break;
   }
+
+  if (blockedOutcome) lastOutcome = blockedOutcome;
 
   const isBlocked = lastOutcome.status === "blocked";
   const next: BreakerEntry = {
