@@ -1168,7 +1168,10 @@ describe.skipIf(!runDbTests)("sync-db", () => {
   async function createUser(openId: string): Promise<number> {
     const db = await getDb();
     if (!db) throw new Error("Test DB not available");
-    await db.insert(users).values({ openId });
+    await db
+      .insert(users)
+      .values({ openId })
+      .onDuplicateKeyUpdate({ set: { openId } });
     const [row] = await db
       .select({ id: users.id })
       .from(users)
