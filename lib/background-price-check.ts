@@ -16,7 +16,10 @@ import { convertPrice, formatPrice } from "./currency";
 import { requestNotificationPermissions } from "./notifications";
 import * as Notifications from "expo-notifications";
 import { getParserByDistributorId } from "./scrapers/registry";
-import { fetchWithParser } from "./scrapers/utils";
+import {
+  createStorageBreakerStore,
+  resilientFetch,
+} from "./scrapers/resilient";
 import { fetchServerPrice, uploadServerHistory } from "./server-prices";
 import { PricePoint, DistributorListing, Product } from "./types";
 import { appendPricePoint, mergePriceHistory } from "./price-history";
@@ -28,6 +31,7 @@ import { PRICE_HISTORY_DAYS } from "@/shared/const";
 export const PRICE_CHECK_TASK = "price-drop-check";
 
 const healthService = createHealthService(AsyncStorage);
+const breakerStore = createStorageBreakerStore(AsyncStorage);
 
 function createHealthCollector() {
   const updates = new Map<string, DistributorHealth>();
@@ -110,46 +114,48 @@ async function refreshListing(
   const parser = getParserByDistributorId(listing.distributorId);
   if (!parser) return listing;
 
-  try {
-    const url = parser.buildSearchUrl(product.modelNumber);
-    const html = await fetchWithParser(parser, url);
-    const result = parser.parsePrice(html);
+  const url = parser.buildSearchUrl(product.modelNumber);
+  const outcome = await resilientFetch({ parser, url, state: breakerStore });
 
-    if (result) {
-      healthCollector.record(parser.id, "working");
-      const now = new Date().toISOString();
-      const newPricePoint: PricePoint = {
-        date: now,
-        price: result.price,
-        currency: result.currency,
-        stockStatus: result.stockStatus,
-      };
-      return {
-        ...listing,
-        price: result.price,
-        currency: result.currency,
-        stockStatus: result.stockStatus,
-        expectedDate: result.expectedDate,
-        url: result.url,
-        lastChecked: now,
-        priceHistory: appendPricePoint(
-          listing.priceHistory,
-          newPricePoint,
-          PRICE_HISTORY_DAYS,
-        ),
-      };
+  if (outcome.status !== "ok" || !outcome.html) {
+    if (outcome.status === "blocked") {
+      healthCollector.record(parser.id, "blocked", outcome.error ?? "blocked by site");
+    } else if (outcome.status === "skipped") {
+      healthCollector.record(parser.id, "blocked", "in cooldown");
+    } else {
+      healthCollector.record(parser.id, "error", outcome.error ?? "no price found");
     }
-    if (
-      html.includes("403 Forbidden") ||
-      html.includes("Access Denied") ||
-      html.includes("cf-browser-verification") ||
-      html.includes("Checking your browser")
-    ) {
-      healthCollector.record(parser.id, "blocked", "blocked by site");
+    return listing;
+  }
+
+  try {
+    const result = parser.parsePrice(outcome.html);
+    if (!result) {
+      healthCollector.record(parser.id, "error", "no price found");
       return listing;
     }
-    healthCollector.record(parser.id, "error", "no price found");
-    return listing;
+    healthCollector.record(parser.id, "working");
+    const now = new Date().toISOString();
+    const newPricePoint: PricePoint = {
+      date: now,
+      price: result.price,
+      currency: result.currency,
+      stockStatus: result.stockStatus,
+    };
+    return {
+      ...listing,
+      price: result.price,
+      currency: result.currency,
+      stockStatus: result.stockStatus,
+      expectedDate: result.expectedDate,
+      url: result.url,
+      lastChecked: now,
+      priceHistory: appendPricePoint(
+        listing.priceHistory,
+        newPricePoint,
+        PRICE_HISTORY_DAYS,
+      ),
+    };
   } catch (error) {
     healthCollector.record(
       parser.id,

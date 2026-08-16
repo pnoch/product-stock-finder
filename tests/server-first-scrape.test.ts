@@ -35,8 +35,12 @@ vi.mock("../lib/scrapers/registry", () => ({
   getParserByDistributorId: vi.fn(),
 }));
 
-vi.mock("../lib/scrapers/utils", () => ({
-  fetchWithParser: vi.fn(),
+vi.mock("../lib/scrapers/resilient", () => ({
+  resilientFetch: vi.fn(),
+  createStorageBreakerStore: vi.fn(() => ({
+    get: vi.fn(async () => null),
+    set: vi.fn(async () => {}),
+  })),
 }));
 
 vi.mock("../lib/scrapers/health", () => ({
@@ -67,13 +71,13 @@ vi.mock("../lib/server-notifications", () => ({
 
 import { fetchServerPrice, uploadServerHistory } from "../lib/server-prices";
 import { getParserByDistributorId } from "../lib/scrapers/registry";
-import { fetchWithParser } from "../lib/scrapers/utils";
+import { resilientFetch } from "../lib/scrapers/resilient";
 import { checkPriceDropsNow } from "../lib/background-price-check";
 
 const mockedFetchServer = vi.mocked(fetchServerPrice);
 const mockedUploadHistory = vi.mocked(uploadServerHistory);
 const mockedGetParser = vi.mocked(getParserByDistributorId);
-const mockedFetchLocal = vi.mocked(fetchWithParser);
+const mockedFetchLocal = vi.mocked(resilientFetch);
 
 const listing: DistributorListing = {
   distributorId: "server2u-my",
@@ -153,7 +157,11 @@ describe("server-first scraping", () => {
       }),
       rateLimitMs: 0,
     });
-    mockedFetchLocal.mockResolvedValue("<html>price</html>");
+    mockedFetchLocal.mockResolvedValue({
+      status: "ok",
+      html: "<html>price</html>",
+      method: "plain",
+    });
 
     await checkPriceDropsNow();
 
@@ -172,7 +180,11 @@ describe("server-first scraping", () => {
       parsePrice: () => null,
       rateLimitMs: 0,
     });
-    mockedFetchLocal.mockResolvedValue("<html>no price</html>");
+    mockedFetchLocal.mockResolvedValue({
+      status: "ok",
+      html: "<html>no price</html>",
+      method: "plain",
+    });
 
     await checkPriceDropsNow();
 
