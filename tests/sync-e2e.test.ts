@@ -145,11 +145,12 @@ describe.skipIf(!runDbTests)("sync e2e", () => {
   it("round-trips watchlist, alerts, settings, and capped price history between two devices", async () => {
     const deviceA = makeDevice();
     const deviceB = makeDevice();
+    const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
 
     const localListing = listing("d1", 100, "in_stock");
     localListing.priceHistory = [
       {
-        date: new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10),
+        date: weekAgo,
         price: 100,
         currency: "USD",
         stockStatus: "in_stock",
@@ -184,7 +185,7 @@ describe.skipIf(!runDbTests)("sync e2e", () => {
     expect(bWatchlist[0]!.id).toBe("p1");
     expect(bWatchlist[0]!.listings[0]!.priceHistory).toEqual([
       {
-        date: new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10),
+        date: weekAgo,
         price: 100,
         currency: "USD",
         stockStatus: "in_stock",
