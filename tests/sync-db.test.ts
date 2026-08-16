@@ -10,7 +10,7 @@ import {
 } from "../server/sync-db";
 import type { SyncItem } from "../lib/types";
 
-const TEST_URL = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
+const TEST_URL = process.env.TEST_DATABASE_URL;
 const runDbTests = Boolean(process.env.RUN_DB_TESTS) && Boolean(TEST_URL);
 if (TEST_URL) process.env.DATABASE_URL = TEST_URL;
 
@@ -72,6 +72,7 @@ describe.skipIf(!runDbTests)("sync-db", () => {
     const result = await upsertSyncItem(userA, item({ updatedAt: 1000 }));
     expect(result.accepted).toBe(true);
     expect(result.updatedAt).toBeGreaterThanOrEqual(Date.now() - 5000);
+    expect(result.updatedAt).toBeLessThanOrEqual(Date.now() + 5000);
     const changed = await listChangedItems(userA, null);
     expect(changed).toHaveLength(1);
     expect(changed[0]!.updatedAt).toBe(result.updatedAt);
@@ -103,7 +104,7 @@ describe.skipIf(!runDbTests)("sync-db", () => {
     await upsertSyncItem(userA, item({ id: "p2", updatedAt: Date.now() }));
     const first = await listChangedItems(userA, null);
     expect(first.map((i) => i.id).sort()).toEqual(["p1", "p2"]);
-    const since = first[0]!.updatedAt;
+    const since = first.find((i) => i.id === "p1")!.updatedAt;
     const second = await listChangedItems(userA, since);
     expect(second.map((i) => i.id)).toEqual(["p2"]);
   });
@@ -141,10 +142,7 @@ describe.skipIf(!runDbTests)("sync-db", () => {
       userA,
       item({ id: "recent", updatedAt: recent, deletedAt: recent }),
     );
-    await purgeOldTombstones(
-      userA,
-      Date.now() - TOMBSTONE_PURGE_WINDOW_MS,
-    );
+    await purgeOldTombstones(userA, Date.now() - TOMBSTONE_PURGE_WINDOW_MS);
     const changed = await listChangedItems(userA, null);
     expect(changed.map((i) => i.id)).toEqual(["recent"]);
   });
