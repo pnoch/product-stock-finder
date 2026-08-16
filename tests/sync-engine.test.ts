@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createStorage, type Storage } from "../lib/storage";
-import { syncNow } from "../lib/sync";
+import { setupSync, syncNow } from "../lib/sync";
 import type {
   AppSettings,
   BackOrderReminder,
@@ -705,5 +705,67 @@ describe("syncNow", () => {
     expect(push).toHaveBeenCalledTimes(1);
     const pushed = push.mock.calls[0]![0];
     expect(pushed[0]!.updatedAt).toBe(now + 3_600_000 + 5000);
+  });
+
+  it("pushes the per-item corrected edit time instead of the sync cursor", async () => {
+    const storage = makeStorage();
+    const now = Date.now();
+    await storage.addToWatchlist(makeProduct("p1"));
+    await storage.setItemSyncMeta("watchlist", "p1", now + 3_600_000);
+    const pull = vi.fn(async () => ({ lastSyncedAt: now, items: [] }));
+    const push = vi.fn(
+      async (
+        _items: SyncItem[],
+      ): Promise<{ accepted: number; stamped: SyncStampedItem[] }> => ({
+        accepted: 1,
+        stamped: [],
+      }),
+    );
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => now,
+    });
+    expect(push).toHaveBeenCalledTimes(1);
+    const pushed = push.mock.calls[0]![0];
+    expect(pushed[0]!.updatedAt).toBe(now + 3_600_000);
+  });
+
+  it("marks offline edits with serverNow via the change listener", async () => {
+    const storage = makeStorage();
+    const now = Date.now();
+    await storage.saveSyncMeta({
+      lastSyncedAt: now + 3_600_000,
+      lastSyncOkAt: now,
+      items: {},
+    });
+    const pull = vi.fn(async () => ({
+      lastSyncedAt: now + 3_600_000,
+      items: [],
+    }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({
+      accepted: 0,
+      stamped: [],
+    }));
+    setupSync({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => now + 1000,
+      debounceMs: 100_000,
+    });
+    await storage.addToWatchlist(makeProduct("p1"));
+    await vi.waitFor(async () => {
+      const meta = await storage.getSyncMeta();
+      expect(meta.items.watchlist?.p1?.updatedAt).toBeGreaterThan(
+        now + 3_600_000 - 1000,
+      );
+      expect(meta.items.watchlist?.p1?.updatedAt).toBeLessThan(
+        now + 3_600_000 + 1000,
+      );
+    });
   });
 });

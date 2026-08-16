@@ -153,7 +153,7 @@ async function collectDirty(
           collection: "settings",
           id: SETTINGS_ID,
           data: local.settings,
-          updatedAt: now,
+          updatedAt: entry ? entry.updatedAt : now,
           deletedAt: null,
         });
       }
@@ -169,7 +169,7 @@ async function collectDirty(
           collection,
           id: item.id,
           data: serializeItem(collection, item),
-          updatedAt: now,
+          updatedAt: entry && !entry.deleted ? entry.updatedAt : now,
           deletedAt: null,
         });
         if (entry?.deleted) {
