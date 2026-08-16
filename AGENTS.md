@@ -9,7 +9,7 @@ Guidance for AI coding agents working in this repository. Read this before touch
 - **App name in UI:** "Product Stock Finder" (see git log — was renamed from "Stock Tracker Pro"; do not revert)
 - **Bundle ID:** `com.app.stock_tracker_pro`
 - **Platform targets:** iOS, Android, Web (Expo web)
-- **State:** Local-only via AsyncStorage. No live scraping — listings are seeded from `lib/sample-data.ts` and `app/_layout.tsx`. The backend (server/, drizzle/) is scaffolded but unused by the app's current feature set.
+- **State:** Local-first with optional backend sync. AsyncStorage is the source of truth when signed out; when signed in, `lib/sync.ts` syncs watchlist/alerts/reminders/settings with the server (last-write-wins + tombstones, server-authoritative timestamps). Live scraping runs through `lib/scrapers/` (plain HTTP → headless browser escalation with circuit breakers). The backend (Express + tRPC + Drizzle) is fully integrated — see server routers below. CRS804 + CRS326 are auto-seeded from `lib/sample-data.ts` at first launch so Home/Watchlist/Product Detail have price history immediately.
 
 ## Tech Stack
 
@@ -18,10 +18,11 @@ Guidance for AI coding agents working in this repository. Read this before touch
 | Framework          | Expo SDK 54, React Native 0.81, React 19, Expo Router 6 (typed routes, react compiler enabled)                                          |
 | Language           | TypeScript 5.9 (strict)                                                                                                                 |
 | Styling            | NativeWind 4 (Tailwind) + inline styles. Theme tokens in `theme.config.js`, surfaced via `lib/_core/theme.ts` and `hooks/use-colors.ts` |
-| State              | AsyncStorage (`lib/storage.ts`), React Query + tRPC client wired but only `system`/`auth` routers exist server-side                     |
-| Notifications      | expo-notifications (local), expo-background-task for price-drop polling                                                                 |
+| State              | AsyncStorage (`lib/storage.ts`) as local source of truth + backend sync (`lib/sync.ts`). React Query + tRPC v11 client (`lib/trpc.ts`) |
+| Notifications      | expo-notifications (local + server-scheduled events), expo-background-task for price-drop polling, server push (expo + push tokens)    |
 | Charts             | react-native-svg (hand-rolled SVG polylines — no chart library)                                                                         |
-| Backend (scaffold) | Express + tRPC v11 + Drizzle (MySQL) + Manus OAuth. See `server/README.md`. Currently unused by app features.                           |
+| Scraping           | `lib/scrapers/` — typed parsers per distributor, `resilientFetch` (retry/backoff, plain→browser escalation, circuit breaker, blocked detection) |
+| Backend            | Express + tRPC v11 + Drizzle (MySQL) + Manus OAuth. See `server/README.md`. Routers: sync, prices, fx, insights, images, notifications, devices |
 | Package manager    | pnpm (via corepack; `packageManager: pnpm@9.12.0`). Node linker hoisted (`.npmrc`).                                                     |
 
 ## Commands
@@ -48,37 +49,72 @@ pnpm qr           # generate dev QR code
 
 ```
 app/                    Expo Router routes (file-based)
-  _layout.tsx           Root layout — seeds CRS804 + CRS326 on first launch, sets up
-                        notifications, background price-check task, tRPC/QueryClient
+  _layout.tsx           Root layout — seeds CRS804 + CRS326, sets up notifications,
+                        background price-check task, sync engine (setupSync), push-token
+                        registration, server notification pull, fx rate loading, device
+                        cleanup, tRPC/QueryClient providers
   (tabs)/               Bottom-tab screens: index (Home), watchlist, alerts, settings
   product/[id].tsx      Product detail (largest screen — ~1187 lines)
   compare/[id].tsx      Multi-distributor price history comparison chart
   search.tsx            Add-product search
   oauth/callback.tsx    Manus OAuth callback (backend auth flow)
   dev/theme-lab.tsx     Theme dev playground
-components/             Reusable UI (PriceSparkline, ScreenContainer, HapticTab, IconSymbol)
+components/             Reusable UI (PriceSparkline, ScreenContainer, HapticTab, IconSymbol,
+                        notification-center, connection-badge)
 components/ui/          IconSymbol (iOS .ios.tsx + cross-platform .tsx with Android/web mappings)
 lib/                   App logic
-  types.ts             Core domain types (Product, DistributorListing, PriceAlert, etc.)
-  storage.ts           AsyncStorage CRUD (watchlist, alerts, reminders, stock watches, settings)
+  types.ts             Core domain types (Product, DistributorListing, PriceAlert, SyncItem, etc.)
+  storage.ts           AsyncStorage CRUD + sync meta (watchlist, alerts, reminders, stock
+                       watches, settings, digest snapshot, fx rates, notification history)
+  sync.ts              Sync engine (setupSync, syncNow): pull/push, LWW merge, tombstones
+  history-sync.ts      Price-history backfill/upload to server
+  scrapers/            Distributor parsers + resilient.ts (resilientFetch, breakers, classifier)
   distributors.ts      Static distributor database (30+ entries)
   catalog.ts           Pre-loaded product catalog
-  sample-data.ts        Seeded 10-point 90-day price history per distributor (CRS804, CRS326)
+  sample-data.ts       Seeded 10-point 90-day price history per distributor (CRS804, CRS326)
   currency.ts          Static exchange rates, convertPrice, formatPrice, getBestPrice
-  notifications.ts     expo-notifications helpers (stock/price/back-order/test)
+  fx.ts                Live FX rates from server (loadFxRates, maybeRefreshFxRates)
+  live-prices.ts       Live price fetching (server-first, local fallback), connection status
+  server-prices.ts     tRPC wrappers for prices.get / prices.uploadHistory
+  server-insights.ts   tRPC wrapper for insights.get (LLM price insight)
+  server-images.ts     tRPC wrapper for images.get (product image)
+  server-notifications.ts  tRPC wrappers for notifications.uploadConfig/pull
+  push-token.ts        Expo push token registration
+  notifications.ts     expo-notifications helpers (stock/price/back-order/test, event dedup)
   background-price-check.ts   TaskManager + expo-background-task price-drop polling
+  devices.ts           Device list/rename/sign-out/cleanup via tRPC
+  device-id.ts         Persistent device id generation
+  device-revoked.ts    Device-revoked handling (sign-out on other device)
+  price-chart.ts, price-history.ts, price-digest.ts, restock.ts, tax.ts, region-filter.ts,
+  best-deal.ts, distributor-analysis.ts, watchlist-summary.ts, last-refreshed.ts
+  health.ts            Distributor health probe (classifyResult → classifyFetchStatus)
   theme-provider.tsx   NativeWind + Appearance theme provider
   trpc.ts              tRPC React client setup
   _core/               Framework-level (manus-runtime, auth, api, theme) — avoid editing
-hooks/                 use-auth, use-colors, use-color-scheme, use-alert-badge
+hooks/                 use-auth, use-colors, use-color-scheme, use-alert-badge, use-live-prices,
+                       use-connection
 constants/             const.ts, oauth.ts, theme.ts (re-exports)
-server/                Express + tRPC backend (scaffolded, see server/README.md)
+server/                Express + tRPC backend (see server/README.md)
   _core/               Framework backend code — do not modify unless extending infra
-  routers.ts           App router — currently only system + auth
-  db.ts, storage.ts    DB/S3 helpers
-drizzle/              MySQL schema (users table only so far)
+  routers.ts           App router — sync (pull/push), auth, prices, fx, insights, images,
+                       notifications (uploadConfig/pull/registerPushToken), devices
+  db.ts                Drizzle connection + user helpers
+  sync-db.ts           Sync item upserts, tombstones, LWW conflict resolution
+  prices.ts            Server-side scraping via resilientFetch + price cache
+  price-cache.ts, price-history.ts, price-insights.ts, product-images.ts
+  fx.ts                Live FX rate source
+  notifications.ts, push-notifications.ts   Server notification scheduling + push tokens
+  devices.ts           Device binding, labels, sign-out, stale cleanup
+  catalog-warmer.ts    Full-catalog background warmer
+  storage.ts           S3 helpers
+drizzle/              MySQL schema — 15 tables: users, watchlistItems, priceAlerts,
+                      backOrderReminders, appSettings, priceCache, priceHistory,
+                      priceInsights, productImages, deviceNotificationConfigs,
+                      notificationEvents, notificationEventDeliveries, devicePushTokens,
+                      deviceLabels, revokedDevices
 shared/               Cross-platform types/consts; shared/_core/ — don't modify
-tests/                vitest (only auth.logout.test.ts, currently .skip)
+tests/                vitest (80+ files, incl. per-scraper tests under tests/scrapers/)
+docs/superpowers/     Design specs (specs/) + implementation plans (plans/)
 scripts/              load-env.js, generate_qr.mjs, reset-project.js
 references/           periodic-updates.md (reference docs)
 design.md             Full UI/UX design spec
@@ -98,10 +134,11 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 - `PriceAlert` — target price threshold, deactivates on trigger, stores `triggeredAt`/`triggeredPrice`
 - `BackOrderReminder` — reused for both date-based reminders and back-in-stock watches (discriminated by `reminderType`)
 - `AppSettings` — theme, displayCurrency (USD/EUR/GBP/MYR/AUD/NZD/CAD/ZAR/THB/SGD/HKD/AED), checkInterval, notification toggles
+- `SyncItem` — `{ collection, id, data, updatedAt, deletedAt }`; `Collection` = watchlist | alerts | reminders | settings
 
 ## AsyncStorage Keys (lib/storage.ts)
 
-`watchlist_products`, `price_alerts`, `app_settings`, `back_order_reminders`, `back_in_stock_watches`. Also legacy keys cleared by `clearAllData`: `recently_viewed`, `distributor_watches`, `triggered_alert_history`, `product_notes`, `has_seen_onboarding`.
+`watchlist_products`, `price_alerts`, `app_settings`, `back_order_reminders`, `back_in_stock_watches`, `price_digest_snapshot`, `sync_meta`, `displayed_notification_event_ids`, `notification_history`, `fx_rates`, `distributor_breaker`. Also legacy keys cleared by `clearAllData`: `recently_viewed`, `distributor_watches`, `triggered_alert_history`, `product_notes`, `has_seen_onboarding`.
 
 ## Conventions
 
@@ -113,10 +150,11 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 - **Notifications:** All notification scheduling must guard `Platform.OS === "web"` (return early). See `lib/notifications.ts`.
 - **Background tasks:** `TaskManager.defineTask` must be called at module-level (global scope), not inside a component — see `lib/background-price-check.ts`.
 - **Seeding:** CRS804 and CRS326 are auto-seeded into the watchlist on first launch in `app/_layout.tsx`. Keep seed listings in sync with `lib/sample-data.ts` when adding price history.
-- **Currency:** Prices are stored in their native currency; convert via `convertPrice(amount, from, to)` using static rates in `lib/currency.ts`. `getBestPrice` returns the cheapest non-out-of-stock listing in a target currency.
+- **Currency:** Prices are stored in their native currency; convert via `convertPrice(amount, from, to)` using static rates in `lib/currency.ts`. `getBestPrice` returns the cheapest non-out-of-stock listing in a target currency. Live rates come from `lib/fx.ts` (server-backed).
+- **Scraping:** New distributors go in `lib/scrapers/` as typed `DistributorParser`s registered in `lib/scrapers/registry.ts`, with a test under `tests/scrapers/`. Blocked detection lives in `resilient.ts` (`classifyFetchStatus`, `BLOCKED_MARKERS`) — do not re-implement marker lists elsewhere.
 - **No comments** unless explaining non-obvious logic. Existing code uses `// ─── Section ───` banners in storage/notifications — match that style for section dividers.
 - **Commit style:** Checkpoint commits follow `Checkpoint: vX.Y: <features>. TypeScript: 0 errors.` — match this when committing.
-- **Tests:** vitest. Only one test exists (auth.logout, currently `.skip`). Add tests under `tests/` mirroring `*.test.ts`.
+- **Tests:** vitest. 80+ test files under `tests/` (plus per-scraper tests in `tests/scrapers/`). DB-backed tests are gated on `RUN_DB_TESTS` + `TEST_DATABASE_URL`. Add new tests mirroring existing `*.test.ts`.
 
 ## Brand / Theme (theme.config.js)
 
@@ -129,15 +167,18 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 
 ## Key Flows
 
-1. **Add product:** Search (`app/search.tsx`) → tap result → `addToWatchlist` → back to watchlist.
-2. **View detail:** Watchlist card → `product/[id]` → distributor rows, best-distributor card, sparklines, set alert, remind me, watch for restock, compare button.
+1. **Add product:** Search (`app/search.tsx`) → tap result → `addToWatchlist` → back to watchlist. When signed in, the change syncs to the server.
+2. **View detail:** Watchlist card → `product/[id]` → distributor rows, best-distributor card, sparklines, set alert, remind me, watch for restock, compare button. Product image + LLM price insight are fetched from the server when available.
 3. **Compare:** Product Detail → `compare/[id]` → multi-line SVG chart with 1W/1M/3M/All filters, cheapest-region card, cross-distributor alert CTA.
 4. **Alerts:** `(tabs)/alerts.tsx` has two tabs: Alerts (price alerts + price-drop history with re-arm) and Reminders (date reminders + stock watches with reschedule).
-5. **Price-drop detection:** Background task (`PRICE_CHECK_TASK`, 15-min min interval) + foreground `checkPriceDropsNow()` on app launch. Compares best in-stock price (converted to alert currency) against target; fires notification and deactivates alert.
+5. **Price-drop detection:** Background task (`PRICE_CHECK_TASK`, 15-min min interval) + foreground `checkPriceDropsNow()` on app launch. Compares best in-stock price (converted to alert currency) against target; fires notification and deactivates alert. Uses `resilientFetch` (server-first via `fetchServerPrice`, local scrape fallback).
+6. **Sync:** When authenticated, `setupSync` (in `app/_layout.tsx`) pulls server changes since the last `lastSyncedAt`, merges LWW with local items, pushes local changes, and stamps server timestamps. Retries failed syncs on foreground. Settings screen shows sync status.
+7. **Notifications:** Alerts/reminders are scheduled locally (`lib/notifications.ts`) and mirrored server-side (`notifications.uploadConfig`); server events are pulled (`syncServerNotifications`) and push events are delivered via Expo push.
 
 ## Environment
 
-- No `.env` committed. Backend needs `DATABASE_URL`, `EXPO_PUBLIC_OAUTH_*`, `EXPO_PUBLIC_API_BASE_URL` for full functionality. App works without these (local-only mode).
+- No `.env` committed. Backend needs `DATABASE_URL`, `EXPO_PUBLIC_OAUTH_*`, `EXPO_PUBLIC_API_BASE_URL` for full functionality. Without them the app runs local-only (seeded data, local notifications) and degrades gracefully.
+- DB-backed tests use `TEST_DATABASE_URL` + `RUN_DB_TESTS=1` (see `pnpm test`).
 - `scripts/load-env.js` loads env with system > `.env` priority.
 
 ## Before You Commit
@@ -151,6 +192,7 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 ## Reference Docs
 
 - `design.md` — full UI/UX design spec (screen list, flows, component design, distributor catalog)
-- `todo.md` — phase-by-phase feature history (14 phases, all checked off)
+- `todo.md` — phase-by-phase feature history (49 phases through v4.7.2)
 - `server/README.md` — backend guide (auth, DB, tRPC, storage, LLM, image gen) — read only if adding backend features
+- `docs/superpowers/` — design specs (`specs/`) and implementation plans (`plans/`) for recent phases
 - `references/periodic-updates.md` — reference doc on periodic updates
