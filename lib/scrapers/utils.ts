@@ -40,27 +40,6 @@ export function inferStockStatus(text: string): StockStatus {
   return "unknown";
 }
 
-export function extractCurrency(text: string): string | null {
-  const symbols: Record<string, string> = {
-    $: "USD",
-    "€": "EUR",
-    "£": "GBP",
-    R: "ZAR",
-    A$: "AUD",
-    NZ$: "NZD",
-    C$: "CAD",
-    RM: "MYR",
-    "د.إ": "AED",
-    S$: "SGD",
-    HK$: "HKD",
-    "฿": "THB",
-  };
-  for (const [symbol, code] of Object.entries(symbols)) {
-    if (text.includes(symbol)) return code;
-  }
-  return null;
-}
-
 export async function fetchWithRateLimit(
   url: string,
   rateLimitMs: number,
@@ -86,19 +65,6 @@ export function parsePriceFromText(text: string): number | null {
   const cleaned = match[0].replace(/,/g, "");
   const num = parseFloat(cleaned);
   return isNaN(num) || num === 0 ? null : num;
-}
-
-export function extractExpectedDate(text: string): string | undefined {
-  const patterns = [
-    /(?:expected|available|back in stock)[:\s]*([A-Za-z]+\s+\d{1,2},?\s*\d{4})/i,
-    /(\d{1,2}\s+[A-Za-z]+\s+\d{4})/,
-    /([A-Za-z]+\s+\d{1,2},?\s*\d{4})/,
-  ];
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) return match[1];
-  }
-  return undefined;
 }
 
 export async function fetchWithParser(

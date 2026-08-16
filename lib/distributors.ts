@@ -450,7 +450,3 @@ export const DISTRIBUTORS: Distributor[] = [
 export function getDistributorById(id: string): Distributor | undefined {
   return DISTRIBUTORS.find((d) => d.id === id);
 }
-
-export function getDistributorsByRegion(region: string): Distributor[] {
-  return DISTRIBUTORS.filter((d) => d.region === region);
-}
