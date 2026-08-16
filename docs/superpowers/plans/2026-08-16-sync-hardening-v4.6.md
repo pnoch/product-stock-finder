@@ -1,6 +1,6 @@
 # Sync Hardening (v4.6) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Verify and harden the existing cross-device sync engine: server-authoritative timestamps (no clock-skew data loss), capped 30-day price-history sync, offline retry/backoff, real-MySQL integration tests, and an end-to-end sync test.
 
@@ -40,7 +40,7 @@
 - Modify: `shared/const.ts`
 - Modify: `lib/types.ts`
 
-- [ ] **Step 1: Add the price-history sync window constant**
+- [x] **Step 1: Add the price-history sync window constant**
 
 Edit `shared/const.ts` to add the last line:
 
@@ -54,7 +54,7 @@ export const DEVICE_REVOKED_ERR_MSG = "This device was signed out (10003)";
 export const PRICE_HISTORY_SYNC_DAYS = 30;
 ```
 
-- [ ] **Step 2: Add the `SyncStampedItem` type**
+- [x] **Step 2: Add the `SyncStampedItem` type**
 
 Edit `lib/types.ts` — append after the `SyncItem` interface (which ends at line 133):
 
@@ -66,12 +66,12 @@ export interface SyncStampedItem {
 }
 ```
 
-- [ ] **Step 3: Typecheck**
+- [x] **Step 3: Typecheck**
 
 Run: `pnpm check`
 Expected: 0 errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add shared/const.ts lib/types.ts
@@ -87,7 +87,7 @@ git commit -m "feat(sync): add PRICE_HISTORY_SYNC_DAYS and SyncStampedItem type"
 - Modify: `server/routers.ts`
 - Test: `tests/sync-router.test.ts`
 
-- [ ] **Step 1: Write the failing router test**
+- [x] **Step 1: Write the failing router test**
 
 Edit `tests/sync-router.test.ts` — change the push no-DB assertion (line 44):
 
@@ -99,12 +99,12 @@ Edit `tests/sync-router.test.ts` — change the push no-DB assertion (line 44):
   });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `pnpm vitest run tests/sync-router.test.ts`
 Expected: FAIL — `push` returns `{ accepted: 0 }`, not `{ accepted: 0, stamped: [] }`.
 
-- [ ] **Step 3: Change `upsertSyncItem` to stamp server time and return the stamped value**
+- [x] **Step 3: Change `upsertSyncItem` to stamp server time and return the stamped value**
 
 Edit `server/sync-db.ts`. Replace the entire `upsertSyncItem` function (lines 110–243) with:
 
@@ -248,7 +248,7 @@ export async function upsertSyncItem(
 }
 ```
 
-- [ ] **Step 4: Update the router to return stamped entries**
+- [x] **Step 4: Update the router to return stamped entries**
 
 Edit `server/routers.ts`. Add `SyncStampedItem` to the import from `../lib/types` (line 9 area):
 
@@ -288,17 +288,17 @@ Replace the `sync.push` mutation (lines 63–80) with:
       }),
 ```
 
-- [ ] **Step 5: Run the router test to verify it passes**
+- [x] **Step 5: Run the router test to verify it passes**
 
 Run: `pnpm vitest run tests/sync-router.test.ts`
 Expected: PASS (both tests).
 
-- [ ] **Step 6: Typecheck and full non-DB test run**
+- [x] **Step 6: Typecheck and full non-DB test run**
 
 Run: `pnpm check && pnpm vitest run`
 Expected: `pnpm check` 0 errors; all non-DB tests pass (the client still ignores `stamped`, so `sync-engine.test.ts` is unaffected).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add server/sync-db.ts server/routers.ts tests/sync-router.test.ts
@@ -313,7 +313,7 @@ git commit -m "feat(sync): server stamps pushed items with authoritative timesta
 - Modify: `lib/sync.ts`
 - Test: `tests/sync-engine.test.ts`
 
-- [ ] **Step 1: Write failing tests for the new client behaviors**
+- [x] **Step 1: Write failing tests for the new client behaviors**
 
 Append these three tests to `tests/sync-engine.test.ts` (inside the `describe("syncNow", ...)` block, before the closing `});` at line 594):
 
@@ -410,12 +410,12 @@ Append these three tests to `tests/sync-engine.test.ts` (inside the `describe("s
   });
 ```
 
-- [ ] **Step 2: Run the new tests to verify they fail**
+- [x] **Step 2: Run the new tests to verify they fail**
 
 Run: `pnpm vitest run tests/sync-engine.test.ts`
 Expected: The 4 new tests FAIL (client ignores `stamped`, uses `max(pulled.lastSyncedAt, now)` for the cursor, and uses raw `Date.now()` in `markDirty`).
 
-- [ ] **Step 3: Update the push contract in `SyncNowOptions`**
+- [x] **Step 3: Update the push contract in `SyncNowOptions`**
 
 Edit `lib/sync.ts`:
 
@@ -442,7 +442,7 @@ import type {
   ) => Promise<{ accepted: number; stamped: SyncStampedItem[] }>;
 ```
 
-- [ ] **Step 4: Implement stamped-meta handling and the server cursor in `doSync`**
+- [x] **Step 4: Implement stamped-meta handling and the server cursor in `doSync`**
 
 Edit `lib/sync.ts`:
 
@@ -490,7 +490,7 @@ Replace the `collectDirty` call (line 89) with:
   const dirty = await collectDirty(storage, oldCursor, applied, pulled.lastSyncedAt);
 ```
 
-- [ ] **Step 5: Implement the clock-offset correction in `markDirty`**
+- [x] **Step 5: Implement the clock-offset correction in `markDirty`**
 
 Edit `lib/sync.ts`. Replace the `markDirty` function (lines 361–373) with:
 
@@ -520,7 +520,7 @@ async function markDirty(
 }
 ```
 
-- [ ] **Step 6: Update the existing tests for the new contract**
+- [x] **Step 6: Update the existing tests for the new contract**
 
 Edit `tests/sync-engine.test.ts`:
 
@@ -553,17 +553,17 @@ Edit `tests/sync-engine.test.ts`:
     expect(meta.lastSyncOkAt).toBe(3000);
 ```
 
-- [ ] **Step 7: Run the engine tests to verify they pass**
+- [x] **Step 7: Run the engine tests to verify they pass**
 
 Run: `pnpm vitest run tests/sync-engine.test.ts`
 Expected: PASS (all existing + 4 new tests).
 
-- [ ] **Step 8: Typecheck and full non-DB test run**
+- [x] **Step 8: Typecheck and full non-DB test run**
 
 Run: `pnpm check && pnpm vitest run`
 Expected: 0 TS errors; all non-DB tests pass.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add lib/sync.ts tests/sync-engine.test.ts
@@ -578,7 +578,7 @@ git commit -m "feat(sync): client uses server-stamped timestamps and clock-offse
 - Modify: `lib/sync.ts`
 - Test: `tests/sync-engine.test.ts`
 
-- [ ] **Step 1: Write failing tests for capped history serialize/merge**
+- [x] **Step 1: Write failing tests for capped history serialize/merge**
 
 Append to `tests/sync-engine.test.ts` (inside the `describe("syncNow", ...)` block):
 
@@ -674,12 +674,12 @@ Append to `tests/sync-engine.test.ts` (inside the `describe("syncNow", ...)` blo
   });
 ```
 
-- [ ] **Step 2: Run the new tests to verify they fail**
+- [x] **Step 2: Run the new tests to verify they fail**
 
 Run: `pnpm vitest run tests/sync-engine.test.ts`
 Expected: Both new tests FAIL (serialize strips `priceHistory`; apply keeps only local history).
 
-- [ ] **Step 3: Implement capped serialize and merge-on-apply**
+- [x] **Step 3: Implement capped serialize and merge-on-apply**
 
 Edit `lib/sync.ts`:
 
@@ -758,7 +758,7 @@ Replace the watchlist branch of `applyLocalItem` (lines 244–268) with:
     }
 ```
 
-- [ ] **Step 4: Update the two existing tests affected by the history change**
+- [x] **Step 4: Update the two existing tests affected by the history change**
 
 Edit `tests/sync-engine.test.ts`:
 
@@ -796,17 +796,17 @@ and replace the assertion (line 319–321):
     ).toHaveLength(1);
 ```
 
-- [ ] **Step 5: Run the engine tests to verify they pass**
+- [x] **Step 5: Run the engine tests to verify they pass**
 
 Run: `pnpm vitest run tests/sync-engine.test.ts`
 Expected: PASS (all tests).
 
-- [ ] **Step 6: Typecheck and full non-DB test run**
+- [x] **Step 6: Typecheck and full non-DB test run**
 
 Run: `pnpm check && pnpm vitest run`
 Expected: 0 TS errors; all non-DB tests pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/sync.ts tests/sync-engine.test.ts
@@ -822,7 +822,7 @@ git commit -m "feat(sync): sync capped 30-day price history across devices"
 - Modify: `app/_layout.tsx`
 - Test: `tests/sync-engine.test.ts`
 
-- [ ] **Step 1: Write failing tests for backoff scheduling**
+- [x] **Step 1: Write failing tests for backoff scheduling**
 
 First update the import at the top of `tests/sync-engine.test.ts` (line 3) to include `setupSync`:
 
@@ -884,12 +884,12 @@ Then append to `tests/sync-engine.test.ts` (inside the `describe("syncNow", ...)
 
 Note: this test asserts the full backoff ladder (2s debounce → 30s → 60s → 120s retries, reset to 30s after success). `vi.useFakeTimers()` mocks `setTimeout` and `Date`; `vi.advanceTimersByTimeAsync` flushes microtasks between timer fires.
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `pnpm vitest run tests/sync-engine.test.ts`
 Expected: The backoff test FAILS — `setupSync` currently has no retry timer, so `push` is called only once.
 
-- [ ] **Step 3: Implement the backoff scheduler in `setupSync`**
+- [x] **Step 3: Implement the backoff scheduler in `setupSync`**
 
 Edit `lib/sync.ts`. Replace the entire `setupSync` function (lines 375–403) with:
 
@@ -966,12 +966,12 @@ export function setupSync(
 }
 ```
 
-- [ ] **Step 4: Run the backoff test to verify it passes**
+- [x] **Step 4: Run the backoff test to verify it passes**
 
 Run: `pnpm vitest run tests/sync-engine.test.ts`
 Expected: PASS (all tests, including backoff).
 
-- [ ] **Step 5: Add the foreground retry hook in the root layout**
+- [x] **Step 5: Add the foreground retry hook in the root layout**
 
 Edit `app/_layout.tsx`:
 
@@ -1016,12 +1016,12 @@ Add a new effect after the sync-setup effect (after line 207):
   }, []);
 ```
 
-- [ ] **Step 6: Typecheck and full non-DB test run**
+- [x] **Step 6: Typecheck and full non-DB test run**
 
 Run: `pnpm check && pnpm vitest run`
 Expected: 0 TS errors; all non-DB tests pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/sync.ts app/_layout.tsx tests/sync-engine.test.ts
@@ -1035,7 +1035,7 @@ git commit -m "feat(sync): exponential backoff retries and foreground retry hook
 **Files:**
 - Create: `scripts/setup-test-db.sh`
 
-- [ ] **Step 1: Create the setup script**
+- [x] **Step 1: Create the setup script**
 
 Create `scripts/setup-test-db.sh`:
 
@@ -1083,7 +1083,7 @@ echo "Test DB ready: $TEST_DATABASE_URL"
 echo "Run DB tests with: TEST_DATABASE_URL=\"$TEST_DATABASE_URL\" RUN_DB_TESTS=1 pnpm test"
 ```
 
-- [ ] **Step 2: Make it executable and run it**
+- [x] **Step 2: Make it executable and run it**
 
 Run:
 ```bash
@@ -1093,7 +1093,7 @@ chmod +x scripts/setup-test-db.sh
 
 Expected: prints `Test DB ready: mysql://...@127.0.0.1:3307/stock_tracker_test` and the run command. The migrations apply cleanly (the `users` table and all sync tables exist in the test DB).
 
-- [ ] **Step 3: Verify the test DB schema**
+- [x] **Step 3: Verify the test DB schema**
 
 Run:
 ```bash
@@ -1102,7 +1102,7 @@ docker exec promptgen-mysql mysql -u root -p"$(docker inspect promptgen-mysql --
 
 Expected: lists `users`, `watchlist_items`, `price_alerts`, `back_order_reminders`, `app_settings`, and the other schema tables.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add scripts/setup-test-db.sh
@@ -1116,7 +1116,7 @@ git commit -m "chore(sync): add test DB bootstrap script"
 **Files:**
 - Create: `tests/sync-db.test.ts`
 
-- [ ] **Step 1: Create the integration test file**
+- [x] **Step 1: Create the integration test file**
 
 Create `tests/sync-db.test.ts`:
 
@@ -1274,7 +1274,7 @@ describe.skipIf(!runDbTests)("sync-db", () => {
 });
 ```
 
-- [ ] **Step 2: Run the DB tests to verify they pass**
+- [x] **Step 2: Run the DB tests to verify they pass**
 
 Run: `TEST_DATABASE_URL="$(docker inspect promptgen-mysql --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^MYSQL_USER=//p'):$(docker inspect promptgen-mysql --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^MYSQL_PASSWORD=//p')@127.0.0.1:3307/stock_tracker_test" RUN_DB_TESTS=1 pnpm vitest run tests/sync-db.test.ts`
 
@@ -1282,17 +1282,17 @@ Run: `TEST_DATABASE_URL="$(docker inspect promptgen-mysql --format '{{range .Con
 
 Expected: PASS (all 7 tests).
 
-- [ ] **Step 3: Verify the tests are skipped without the flag**
+- [x] **Step 3: Verify the tests are skipped without the flag**
 
 Run: `pnpm vitest run tests/sync-db.test.ts`
 Expected: PASS with the suite skipped (0 tests run, no DB connection attempted).
 
-- [ ] **Step 4: Typecheck**
+- [x] **Step 4: Typecheck**
 
 Run: `pnpm check`
 Expected: 0 errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/sync-db.test.ts
@@ -1313,7 +1313,7 @@ git commit -m "test(sync): add MySQL integration tests for sync-db"
 > - The original snippet's settings behavior was NOT changed in `lib/sync.ts`: settings with no stamped meta entry must NOT be pushed (a fresh device pushing defaults could overwrite another device's settings). The regression test added to `sync-engine.test.ts` locks this in.
 > - The committed test calls the tRPC procedures directly (`caller.sync.pull({ since })` / `caller.sync.push({ items })`) rather than the snippet's `.query()`/`.mutate()` forms, matching the repo's existing convention in `tests/sync-router.test.ts`.
 
-- [ ] **Step 1: Create the end-to-end test file**
+- [x] **Step 1: Create the end-to-end test file**
 
 Create `tests/sync-e2e.test.ts`:
 
@@ -1563,23 +1563,23 @@ describe.skipIf(!runDbTests)("sync e2e", () => {
 });
 ```
 
-- [ ] **Step 2: Run the e2e tests to verify they pass**
+- [x] **Step 2: Run the e2e tests to verify they pass**
 
 Run: `TEST_DATABASE_URL="$(docker inspect promptgen-mysql --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^MYSQL_USER=//p'):$(docker inspect promptgen-mysql --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^MYSQL_PASSWORD=//p')@127.0.0.1:3307/stock_tracker_test" RUN_DB_TESTS=1 pnpm vitest run tests/sync-e2e.test.ts`
 
 Expected: PASS (both tests).
 
-- [ ] **Step 3: Verify the tests are skipped without the flag**
+- [x] **Step 3: Verify the tests are skipped without the flag**
 
 Run: `pnpm vitest run tests/sync-e2e.test.ts`
 Expected: PASS with the suite skipped.
 
-- [ ] **Step 4: Typecheck**
+- [x] **Step 4: Typecheck**
 
 Run: `pnpm check`
 Expected: 0 errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/sync-e2e.test.ts
@@ -1592,21 +1592,21 @@ git commit -m "test(sync): add end-to-end sync test against real MySQL"
 
 **Files:** none (verification only)
 
-- [ ] **Step 1: Full non-DB verification**
+- [x] **Step 1: Full non-DB verification**
 
 Run: `pnpm check && pnpm lint && pnpm test`
 Expected: 0 TS errors, lint clean, all non-DB tests pass (DB suites skipped).
 
-- [ ] **Step 2: Full DB verification**
+- [x] **Step 2: Full DB verification**
 
 Run: `TEST_DATABASE_URL="$(docker inspect promptgen-mysql --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^MYSQL_USER=//p'):$(docker inspect promptgen-mysql --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^MYSQL_PASSWORD=//p')@127.0.0.1:3307/stock_tracker_test" RUN_DB_TESTS=1 pnpm test`
 Expected: all tests pass including `sync-db.test.ts` and `sync-e2e.test.ts`.
 
-- [ ] **Step 3: Update todo.md**
+- [x] **Step 3: Update todo.md**
 
 Append a new phase entry to `todo.md` summarizing the sync hardening work (match the existing phase style).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add todo.md
