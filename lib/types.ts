@@ -132,6 +132,12 @@ export interface SyncItem {
   deletedAt: number | null;
 }
 
+export interface SyncStampedItem {
+  collection: Collection;
+  id: string;
+  updatedAt: number;
+}
+
 export interface SyncMeta {
   lastSyncedAt: number;
   lastSyncOkAt?: number;
