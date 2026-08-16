@@ -10,5 +10,6 @@ export default defineConfig({
   test: {
     exclude: ["desktop/**", "node_modules/**"],
     setupFiles: ["tests/setup.ts"],
+    fileParallelism: false,
   },
 });
