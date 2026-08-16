@@ -413,7 +413,7 @@ export default function CompareScreen() {
     product?.name ??
     PRODUCT_CATALOG.find((p) => p.id === id)?.name ??
     (id as string);
-  const notFound = loaded && listings.length === 0;
+  const notFound = loaded && !product && listings.length === 0;
   const { width: windowWidth } = useWindowDimensions();
   const chartWidth = windowWidth - 32;
 
@@ -643,10 +643,16 @@ export default function CompareScreen() {
               </Text>
             </View>
             <TouchableOpacity
-              onPress={() => {
+              onPress={async () => {
                 if (Platform.OS !== "web")
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                refresh();
+                const ok = await refresh();
+                if (!ok) {
+                  RNAlert.alert(
+                    "Couldn't refresh prices",
+                    "The server is unreachable. Showing saved prices.",
+                  );
+                }
               }}
               disabled={isRefreshingAny}
               style={{ padding: 4 }}

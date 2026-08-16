@@ -395,10 +395,16 @@ export default function WatchlistScreen() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => {
+            onPress={async () => {
               if (Platform.OS !== "web")
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              void refreshAll();
+              const ok = await refreshAll();
+              if (!ok) {
+                Alert.alert(
+                  "Couldn't refresh prices",
+                  "The server is unreachable. Showing saved prices.",
+                );
+              }
             }}
             disabled={isRefreshingAny}
             style={{

@@ -146,6 +146,28 @@ describe("useLiveProduct", () => {
     expect(result.current.listings[0].stockStatus).toBe("out_of_stock");
   });
 
+  it("does not persist when every server fetch fails", async () => {
+    vi.mocked(fetchServerPrice).mockResolvedValue(null);
+    const { result } = renderHook(() => useLiveProduct("p1"), {
+      wrapper: makeWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    await waitFor(() => expect(result.current.listings[0].price).toBe(100));
+    await new Promise((r) => setTimeout(r, 800));
+    expect(updateProductListings).not.toHaveBeenCalled();
+  });
+
+  it("reports a failed refresh", async () => {
+    vi.mocked(fetchServerPrice).mockResolvedValue(null);
+    const { result } = renderHook(() => useLiveProduct("p1"), {
+      wrapper: makeWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(await result.current.refresh()).toBe(false);
+  });
+
   it("refetches on refresh()", async () => {
     const { result } = renderHook(() => useLiveProduct("p1"), {
       wrapper: makeWrapper(),

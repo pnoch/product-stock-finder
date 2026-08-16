@@ -84,6 +84,17 @@ export function mergeSampleHistory(
     const sample = sampleListings.find(
       (s) => s.distributorId === l.distributorId,
     );
-    return sample ? { ...l, priceHistory: sample.priceHistory } : l;
+    if (!sample) return l;
+    if (l.priceHistory && l.priceHistory.length === 1) {
+      return {
+        ...l,
+        priceHistory: mergePriceHistory(
+          l.priceHistory,
+          sample.priceHistory ?? [],
+          PRICE_HISTORY_DAYS,
+        ),
+      };
+    }
+    return { ...l, priceHistory: sample.priceHistory };
   });
 }

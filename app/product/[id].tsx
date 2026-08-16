@@ -1046,10 +1046,16 @@ export default function ProductDetailScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             disabled={isRefreshingAny}
-            onPress={() => {
+            onPress={async () => {
               if (Platform.OS !== "web")
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              refresh();
+              const ok = await refresh();
+              if (!ok) {
+                Alert.alert(
+                  "Couldn't refresh prices",
+                  "The server is unreachable. Showing saved prices.",
+                );
+              }
             }}
             style={{
               backgroundColor: colors.surface,

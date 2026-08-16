@@ -217,4 +217,20 @@ describe("mergeSampleHistory", () => {
     expect(result[0].priceHistory).toHaveLength(2);
     expect(result[0].priceHistory[0].price).toBe(80);
   });
+
+  it("appends sample history to a 1-point real history instead of replacing it", () => {
+    const sample = [
+      listing({
+        distributorId: "dist-1",
+        priceHistory: [point("2026-08-10T09:00:00.000Z", 100)],
+      }),
+    ];
+    const onePoint = listing({
+      priceHistory: [point("2026-08-01T09:00:00.000Z", 80)],
+    });
+    const result = mergeSampleHistory([onePoint], sample);
+    expect(result[0].priceHistory).toHaveLength(2);
+    expect(result[0].priceHistory[0].price).toBe(80);
+    expect(result[0].priceHistory[1].price).toBe(100);
+  });
 });

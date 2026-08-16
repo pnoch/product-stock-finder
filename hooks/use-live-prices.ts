@@ -95,8 +95,12 @@ export function useLiveProduct(productId: string) {
 
   const refresh = useCallback(async () => {
     await loadSeed();
-    await queryClient.invalidateQueries({ queryKey: ["price"] });
-  }, [loadSeed, queryClient]);
+    const keys = queries.map((q) => q.queryKey);
+    await Promise.all(
+      keys.map((key) => queryClient.invalidateQueries({ queryKey: key })),
+    );
+    return keys.some((key) => queryClient.getQueryData(key) != null);
+  }, [loadSeed, queryClient, queries]);
 
   const isRefreshingAny = results.some((r) => r.isFetching);
 
@@ -149,6 +153,9 @@ export function useLiveWatchlist() {
 
   const results = useQueries({ queries });
 
+  const resultsRef = useRef(results);
+  resultsRef.current = results;
+
   const liveProducts = useMemo(() => {
     let idx = 0;
     return products.map((p) => {
@@ -180,8 +187,16 @@ export function useLiveWatchlist() {
   useEffect(() => {
     if (!loaded || !hasLiveData) return;
     const timer = setTimeout(() => {
-      for (const p of liveProductsRef.current) {
-        void updateProductListings(p.id, p.listings);
+      const ref = liveProductsRef.current;
+      const res = resultsRef.current;
+      let idx = 0;
+      for (const p of ref) {
+        const count = p.listings?.length ?? 0;
+        const hasLive = res
+          .slice(idx, idx + count)
+          .some((r) => r.data != null);
+        idx += count;
+        if (hasLive) void updateProductListings(p.id, p.listings);
       }
     }, PERSIST_DEBOUNCE_MS);
     return () => clearTimeout(timer);
@@ -189,8 +204,12 @@ export function useLiveWatchlist() {
 
   const refreshAll = useCallback(async () => {
     await reload();
-    await queryClient.invalidateQueries({ queryKey: ["price"] });
-  }, [reload, queryClient]);
+    const keys = queries.map((q) => q.queryKey);
+    await Promise.all(
+      keys.map((key) => queryClient.invalidateQueries({ queryKey: key })),
+    );
+    return keys.some((key) => queryClient.getQueryData(key) != null);
+  }, [reload, queryClient, queries]);
 
   const isRefreshingAny = results.some((r) => r.isFetching);
 
