@@ -537,6 +537,26 @@ describe("syncNow", () => {
     expect((await storage.getSettings()).displayCurrency).toBe("GBP");
   });
 
+  it("does not push settings with no stamped meta entry", async () => {
+    const storage = makeStorage();
+    await storage.saveSettings({ ...DEFAULT_SETTINGS, displayCurrency: "EUR" });
+    const pull = vi.fn(
+      async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+        lastSyncedAt: 5000,
+        items: [],
+      }),
+    );
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 6000,
+    });
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("merges pulled reminders into the correct array by reminderType", async () => {
     const storage = makeStorage();
     const dateReminder = makeReminder("r1", { reminderType: "date" });
