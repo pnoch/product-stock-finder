@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "expo-router";
+import Constants from "expo-constants";
 import {
   ScrollView,
   Text,
@@ -1474,7 +1475,9 @@ export default function SettingsScreen() {
             label="Version"
             description="Product Stock Finder"
             right={
-              <Text style={{ color: colors.muted, fontSize: 14 }}>1.0.0</Text>
+              <Text style={{ color: colors.muted, fontSize: 14 }}>
+                {Constants.expoConfig?.version ?? "dev"}
+              </Text>
             }
           />
           <TouchableOpacity
@@ -1517,7 +1520,7 @@ export default function SettingsScreen() {
 
         <View style={{ alignItems: "center", marginTop: 32 }}>
           <Text style={{ color: colors.muted, fontSize: 12 }}>
-            Product Stock Finder · v1.0.0
+            Product Stock Finder · v{Constants.expoConfig?.version ?? "dev"}
           </Text>
           <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>
             Track smarter. Buy better.
