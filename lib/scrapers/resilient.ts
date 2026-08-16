@@ -1,3 +1,5 @@
+import type { StorageAdapter } from "../storage";
+
 export type FetchStatus = "ok" | "blocked" | "error" | "skipped";
 
 export interface FetchOutcome {
@@ -46,6 +48,40 @@ export function createMemoryBreakerStore(): BreakerStateStore {
     },
     async set(entry) {
       entries.set(entry.distributorId, entry);
+    },
+  };
+}
+
+export function createStorageBreakerStore(
+  adapter: Pick<StorageAdapter, "getItem" | "setItem">,
+): BreakerStateStore {
+  const KEY = "distributor_breaker";
+
+  async function readList(): Promise<BreakerEntry[]> {
+    try {
+      const raw = await adapter.getItem(KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as BreakerEntry[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return {
+    async get(distributorId) {
+      const list = await readList();
+      return list.find((e) => e.distributorId === distributorId) ?? null;
+    },
+    async set(entry) {
+      try {
+        const list = await readList();
+        const next = list.filter((e) => e.distributorId !== entry.distributorId);
+        next.push(entry);
+        await adapter.setItem(KEY, JSON.stringify(next));
+      } catch {
+        // Ignore persistence errors
+      }
     },
   };
 }
