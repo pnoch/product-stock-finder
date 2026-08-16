@@ -120,12 +120,32 @@ async function fetchPlain(
   return { html, status: response.status };
 }
 
+export class BrowserUnavailableError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "BrowserUnavailableError";
+  }
+}
+
+let browserUnavailableReason: string | null = null;
+
 async function fetchBrowser(
   parser: DistributorParser,
   url: string,
 ): Promise<string> {
-  const { fetchWithBrowser } = await import("./browser");
-  return fetchWithBrowser(url, parser.browserOptions);
+  if (browserUnavailableReason) {
+    throw new BrowserUnavailableError(browserUnavailableReason);
+  }
+  let mod: typeof import("./browser");
+  try {
+    mod = await import("./browser");
+  } catch (error) {
+    browserUnavailableReason = "browser module unavailable";
+    throw new BrowserUnavailableError(browserUnavailableReason, {
+      cause: error,
+    });
+  }
+  return mod.fetchWithBrowser(url, parser.browserOptions);
 }
 
 function blockCooldownMs(
@@ -190,6 +210,7 @@ async function attemptMethod(
         method,
         error: error instanceof Error ? error.message : String(error),
       };
+      if (error instanceof BrowserUnavailableError) break;
     }
   }
   return last;

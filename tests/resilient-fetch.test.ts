@@ -4,6 +4,7 @@ import {
   createMemoryBreakerStore,
   createStorageBreakerStore,
   resilientFetch,
+  BrowserUnavailableError,
   type BreakerEntry,
 } from "../lib/scrapers/resilient";
 import type { DistributorParser } from "../lib/scrapers/types";
@@ -346,5 +347,25 @@ describe("resilientFetch", () => {
     });
     expect(outcome.status).toBe("ok");
     expect(outcome.method).toBe("plain");
+  });
+
+  it("fast-fails a browser-unavailable error without retrying", async () => {
+    const fetchMock = vi.fn(
+      async () => new Response("<html>price</html>", { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    browserMock.fetchWithBrowser.mockRejectedValue(
+      new BrowserUnavailableError("browser module unavailable"),
+    );
+    const state = createMemoryBreakerStore();
+    const outcome = await resilientFetch({
+      parser: makeParser({ useBrowser: true, browserOptions: { timeoutMs: 1000 } }),
+      url: "https://example.com/search?q=CRS804",
+      state,
+      retryBaseMs: 1000,
+    });
+    expect(outcome.status).toBe("ok");
+    expect(outcome.method).toBe("plain");
+    expect(browserMock.fetchWithBrowser).toHaveBeenCalledTimes(1);
   });
 });
