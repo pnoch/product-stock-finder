@@ -1,4 +1,4 @@
-import type { StorageAdapter } from "../storage";
+import { DISTRIBUTOR_BREAKER_KEY, type StorageAdapter } from "../storage";
 import { getRandomUserAgent } from "./utils";
 import type { DistributorParser } from "./types";
 
@@ -57,11 +57,9 @@ export function createMemoryBreakerStore(): BreakerStateStore {
 export function createStorageBreakerStore(
   adapter: Pick<StorageAdapter, "getItem" | "setItem">,
 ): BreakerStateStore {
-  const KEY = "distributor_breaker";
-
   async function readList(): Promise<BreakerEntry[]> {
     try {
-      const raw = await adapter.getItem(KEY);
+      const raw = await adapter.getItem(DISTRIBUTOR_BREAKER_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) ? (parsed as BreakerEntry[]) : [];
@@ -80,7 +78,7 @@ export function createStorageBreakerStore(
         const list = await readList();
         const next = list.filter((e) => e.distributorId !== entry.distributorId);
         next.push(entry);
-        await adapter.setItem(KEY, JSON.stringify(next));
+        await adapter.setItem(DISTRIBUTOR_BREAKER_KEY, JSON.stringify(next));
       } catch {
         // Ignore persistence errors
       }

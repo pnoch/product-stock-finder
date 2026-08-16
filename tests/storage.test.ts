@@ -63,6 +63,7 @@ import {
   saveFxRates,
   clearAllData,
   createStorage,
+  DISTRIBUTOR_BREAKER_KEY,
 } from "../lib/storage";
 
 function makeProduct(id: string, listings: DistributorListing[] = []): Product {
@@ -404,6 +405,12 @@ describe("clearAllData", () => {
     await clearAllData();
     expect(await getWatchlist()).toEqual([]);
     expect(await getAlerts()).toEqual([]);
+  });
+
+  it("clearAllData removes the distributor breaker state", async () => {
+    store.set(DISTRIBUTOR_BREAKER_KEY, JSON.stringify([{ distributorId: "d1" }]));
+    await clearAllData();
+    expect(store.has(DISTRIBUTOR_BREAKER_KEY)).toBe(false);
   });
 });
 

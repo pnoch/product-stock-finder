@@ -17,6 +17,8 @@ export interface StorageAdapter {
   multiRemove(keys: string[]): Promise<void>;
 }
 
+export const DISTRIBUTOR_BREAKER_KEY = "distributor_breaker";
+
 export function createStorage(
   adapter: StorageAdapter,
   opts?: { onChange?: (collection: Collection, itemId: string) => void },
@@ -576,6 +578,7 @@ export function createStorage(
       "product_notes",
       "has_seen_onboarding",
       "price_digest_snapshot",
+      DISTRIBUTOR_BREAKER_KEY,
     ]);
   }
 
