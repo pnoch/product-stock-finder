@@ -5,7 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-import { Alert, Platform } from "react-native";
+import { Alert, AppState, Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import {
@@ -19,6 +19,7 @@ import {
   updateProductListings,
   getSettings,
   defaultStorage,
+  getSyncMeta,
 } from "@/lib/storage";
 import {
   registerPriceCheckTask,
@@ -46,7 +47,12 @@ import {
   resetDeviceRevoked,
 } from "@/lib/device-revoked";
 import { cleanupStaleDevices } from "@/lib/devices";
-import { setupSync, registerSyncSetup, type SyncSetup } from "@/lib/sync";
+import {
+  setupSync,
+  registerSyncSetup,
+  getSyncSetup,
+  type SyncSetup,
+} from "@/lib/sync";
 import { backfillLocalHistory } from "@/lib/history-sync";
 import { syncServerNotifications } from "@/lib/server-notifications";
 import { registerPushToken } from "@/lib/push-token";
@@ -205,6 +211,24 @@ export default function RootLayout() {
       syncRef.current = null;
     };
   }, [trpcClient]);
+
+  // Retry a failed sync when the app returns to the foreground.
+  useEffect(() => {
+    const onActive = async () => {
+      const setup = getSyncSetup();
+      if (!setup) return;
+      const meta = await getSyncMeta();
+      if (meta.lastSyncError) void setup.syncNow();
+    };
+    if (Platform.OS === "web") {
+      window.addEventListener("focus", onActive);
+      return () => window.removeEventListener("focus", onActive);
+    }
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") void onActive();
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {

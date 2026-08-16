@@ -915,4 +915,56 @@ describe("syncNow", () => {
     const history = (await storage.getWatchlist())[0]!.listings[0]!.priceHistory;
     expect(history.map((p) => p.date)).toEqual([daysAgo(60), daysAgo(6)]);
   });
+
+  it("schedules exponential backoff retries after a failed push and resets on success", async () => {
+    vi.useFakeTimers();
+    try {
+      const storage = makeStorage();
+      await storage.addToWatchlist(makeProduct("p1"));
+      let fail = true;
+      const push = vi.fn(
+        async (
+          _items: SyncItem[],
+        ): Promise<{ accepted: number; stamped: SyncStampedItem[] }> => {
+          if (fail) throw new Error("network");
+          return {
+            accepted: 1,
+            stamped: [{ collection: "watchlist", id: "p1", updatedAt: 4000 }],
+          };
+        },
+      );
+      const setup = setupSync({
+        storage,
+        isSignedIn: () => true,
+        pull: vi.fn(async () => ({ lastSyncedAt: 2000, items: [] })),
+        push,
+        now: () => Date.now(),
+      });
+      setup.schedule();
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(push).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(push).toHaveBeenCalledTimes(2);
+
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(push).toHaveBeenCalledTimes(3);
+
+      fail = false;
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(push).toHaveBeenCalledTimes(4);
+
+      // A new edit after a successful sync must be pushed (serverNow > cursor).
+      fail = true;
+      await vi.advanceTimersByTimeAsync(1000);
+      await storage.addToWatchlist(makeProduct("p2"));
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(push).toHaveBeenCalledTimes(5);
+
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(push).toHaveBeenCalledTimes(6);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

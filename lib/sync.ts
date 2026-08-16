@@ -409,30 +409,71 @@ async function markDirty(
   }
 }
 
+const RETRY_BASE_MS = 30_000;
+const RETRY_MAX_MS = 5 * 60_000;
+
 export function setupSync(
   opts: SyncNowOptions & { debounceMs?: number },
 ): SyncSetup {
   const debounceMs = opts.debounceMs ?? 2000;
   let timer: ReturnType<typeof setTimeout> | null = null;
-  const run = () => {
+  let retryTimer: ReturnType<typeof setTimeout> | null = null;
+  let retryDelayMs = RETRY_BASE_MS;
+
+  const clearRetry = () => {
+    if (retryTimer) {
+      clearTimeout(retryTimer);
+      retryTimer = null;
+    }
+    retryDelayMs = RETRY_BASE_MS;
+  };
+
+  const scheduleRetry = () => {
+    if (retryTimer) return;
+    retryTimer = setTimeout(() => {
+      retryTimer = null;
+      void run();
+    }, retryDelayMs);
+    retryDelayMs = Math.min(retryDelayMs * 2, RETRY_MAX_MS);
+  };
+
+  const afterSync = async () => {
+    if (!opts.isSignedIn()) {
+      clearRetry();
+      return;
+    }
+    const meta = await opts.storage.getSyncMeta();
+    if (meta.lastSyncError) {
+      scheduleRetry();
+    } else {
+      clearRetry();
+    }
+  };
+
+  const run = async () => {
     timer = null;
-    syncNow(opts).catch((error) => {
+    await syncNow(opts).catch((error) => {
       console.warn("[Sync] Background sync failed", error);
     });
+    await afterSync();
   };
+
   const schedule = () => {
     if (timer) clearTimeout(timer);
     timer = setTimeout(run, debounceMs);
   };
-  const runNow = () => {
+
+  const runNow = async () => {
     if (timer) {
       clearTimeout(timer);
       timer = null;
     }
-    return syncNow(opts).catch((error) => {
+    await syncNow(opts).catch((error) => {
       console.warn("[Sync] Launch sync failed", error);
     });
+    await afterSync();
   };
+
   opts.storage.setOnChange((collection, itemId) => {
     markDirty(opts.storage, collection, itemId).then(() => schedule());
   });
