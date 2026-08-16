@@ -1,5 +1,3 @@
-import type { StorageAdapter } from "../storage";
-
 export type FetchStatus = "ok" | "blocked" | "error" | "skipped";
 
 export interface FetchOutcome {
