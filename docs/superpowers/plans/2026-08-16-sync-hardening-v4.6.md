@@ -1305,6 +1305,12 @@ git commit -m "test(sync): add MySQL integration tests for sync-db"
 
 **Files:**
 - Create: `tests/sync-e2e.test.ts`
+- Modify: `vitest.config.ts` (set `fileParallelism: false` so the DB suites truncating shared tables cannot race)
+- Modify: `tests/sync-engine.test.ts` (add regression test: settings with no stamped meta entry is not pushed)
+
+> **Implementation notes (deviations from the original snippet):**
+> - The test calls `syncNow` directly, bypassing `setupSync`'s `onChange → markDirty` wiring that the real app relies on. So after each mutation the test explicitly marks the item dirty with `setItemSyncMeta`/`markItemDeleted` (mirroring `markDirty`'s effect). Without this, `saveSettings`/`saveWatchlist`/`removeFromWatchlist` never bump sync meta and the changes are never pushed.
+> - The original snippet's settings behavior was NOT changed in `lib/sync.ts`: settings with no stamped meta entry must NOT be pushed (a fresh device pushing defaults could overwrite another device's settings). The regression test added to `sync-engine.test.ts` locks this in.
 
 - [ ] **Step 1: Create the end-to-end test file**
 
@@ -1485,6 +1491,9 @@ describe.skipIf(!runDbTests)("sync e2e", () => {
       stockAlerts: true,
       priceAlerts: true,
     } as AppSettings);
+    // The app marks items dirty via setupSync's onChange hook; this test calls
+    // syncNow directly, so mark the settings entry dirty explicitly.
+    await deviceA.setItemSyncMeta("settings", "settings", Date.now());
 
     await syncDevice(deviceA);
     await syncDevice(deviceB);
@@ -1507,12 +1516,14 @@ describe.skipIf(!runDbTests)("sync e2e", () => {
     const bProduct = (await deviceB.getWatchlist())[0]!;
     bProduct.listings[0]!.price = 90;
     await deviceB.saveWatchlist([bProduct]);
+    await deviceB.setItemSyncMeta("watchlist", "p1", Date.now());
     await syncDevice(deviceB);
     await syncDevice(deviceA);
     expect((await deviceA.getWatchlist())[0]!.listings[0]!.price).toBe(90);
 
     // Device A deletes the product; device B sees the tombstone.
     await deviceA.removeFromWatchlist("p1");
+    await deviceA.markItemDeleted("watchlist", "p1", Date.now());
     await syncDevice(deviceA);
     await syncDevice(deviceB);
     expect(await deviceB.getWatchlist()).toEqual([]);
