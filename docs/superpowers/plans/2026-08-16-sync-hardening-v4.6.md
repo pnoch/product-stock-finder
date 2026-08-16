@@ -739,7 +739,7 @@ Replace the watchlist branch of `applyLocalItem` (lines 244–268) with:
                   priceHistory: mergePriceHistory(
                     local.priceHistory,
                     l.priceHistory ?? [],
-                    PRICE_HISTORY_SYNC_DAYS,
+                    PRICE_HISTORY_DAYS,
                   ),
                 }
               : l;
@@ -1615,5 +1615,5 @@ git commit -m "Checkpoint: v4.6: sync hardening (server-authoritative timestamps
 **Type consistency:**
 - `SyncStampedItem` (Task 1) is used by the `push` contract (Task 3), the router response (Task 2), and the client `doSync` (Task 3).
 - `upsertSyncItem` returns `{ accepted: boolean; updatedAt: number }` everywhere it is called (Task 2 router).
-- `PRICE_HISTORY_SYNC_DAYS` (Task 1) is used by `serializeItem` and `applyLocalItem` (Task 4) and matches `mergePriceHistory`'s `maxDays` param.
+- `PRICE_HISTORY_SYNC_DAYS` (Task 1) is used by `serializeItem` (the 30-day push cap); `applyLocalItem` merges with `PRICE_HISTORY_DAYS` (90) so a device's accumulated local history survives pulls (user-approved decision during Task 4 review).
 - The `push` mock shape `{ accepted, stamped }` is consistent across all updated tests.

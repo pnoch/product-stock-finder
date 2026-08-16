@@ -64,7 +64,7 @@ DB-backed tests run behind `RUN_DB_TESTS=1` against a dedicated `stock_tracker_t
 
 ### Apply/merge (`lib/sync.ts` `applyLocalItem`, watchlist branch)
 
-- When a synced listing arrives with `priceHistory`, merge it into the local listing's existing history using `mergePriceHistory(localHistory, incomingHistory, PRICE_HISTORY_SYNC_DAYS)` (dedupe by day, keep the later point, 30-day window).
+- When a synced listing arrives with `priceHistory`, merge it into the local listing's existing history using `mergePriceHistory(localHistory, incomingHistory, PRICE_HISTORY_DAYS)` (dedupe by day, keep the later point, 90-day local retention — the push cap is 30 days, but the merge preserves the device's own accumulated history).
 - Local history that is newer/fuller is preserved; incoming fills gaps. This is the same merge the live-price layer already uses.
 
 **Trade-off:** a fresh device starts with the last 30 days of history, not the full 90-day window. Full history still accumulates locally over time via scraping. Accepted by the user.

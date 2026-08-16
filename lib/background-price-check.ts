@@ -23,10 +23,9 @@ import { appendPricePoint, mergePriceHistory } from "./price-history";
 import { checkRestocks } from "./restock";
 import { maybeSendDigest } from "./price-digest";
 import { syncServerNotifications } from "./server-notifications";
+import { PRICE_HISTORY_DAYS } from "@/shared/const";
 
 export const PRICE_CHECK_TASK = "price-drop-check";
-
-const PRICE_HISTORY_DAYS = 90;
 
 const healthService = createHealthService(AsyncStorage);
 
