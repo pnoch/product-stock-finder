@@ -9,6 +9,8 @@ import type {
   SyncMeta,
   SyncStampedItem,
 } from "./types";
+import { PRICE_HISTORY_SYNC_DAYS } from "@/shared/const";
+import { mergePriceHistory } from "@/lib/price-history";
 
 export interface SyncNowOptions {
   storage: Storage;
@@ -229,6 +231,9 @@ async function collectLocalState(storage: Storage): Promise<{
 function serializeItem(collection: Collection, item: unknown): unknown {
   if (collection !== "watchlist") return item;
   const product = item as Product;
+  const cutoff = new Date();
+  cutoff.setUTCDate(cutoff.getUTCDate() - PRICE_HISTORY_SYNC_DAYS);
+  const cutoffDay = cutoff.toISOString().slice(0, 10);
   return {
     ...product,
     listings: product.listings.map((l) => ({
@@ -241,6 +246,9 @@ function serializeItem(collection: Collection, item: unknown): unknown {
       url: l.url,
       lastChecked: l.lastChecked,
       taxRate: l.taxRate,
+      priceHistory: l.priceHistory.filter(
+        (p) => p.date.slice(0, 10) >= cutoffDay,
+      ),
     })),
   };
 }
@@ -262,7 +270,16 @@ async function applyLocalItem(
             const local = existing.listings.find(
               (el) => el.distributorId === l.distributorId,
             );
-            return local ? { ...l, priceHistory: local.priceHistory } : l;
+            return local
+              ? {
+                  ...l,
+                  priceHistory: mergePriceHistory(
+                    local.priceHistory,
+                    l.priceHistory ?? [],
+                    PRICE_HISTORY_SYNC_DAYS,
+                  ),
+                }
+              : l;
           }),
         };
         await storage.saveWatchlist(

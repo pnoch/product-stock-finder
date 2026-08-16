@@ -254,7 +254,7 @@ describe("syncNow", () => {
     const localListing = listing("d1", 100, "in_stock");
     localListing.priceHistory = [
       {
-        date: "2026-01-01",
+        date: new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10),
         price: 100,
         currency: "USD",
         stockStatus: "in_stock",
@@ -295,7 +295,7 @@ describe("syncNow", () => {
     const localListing = listing("d1", 100, "in_stock");
     localListing.priceHistory = [
       {
-        date: "2026-01-01",
+        date: new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10),
         price: 100,
         currency: "USD",
         stockStatus: "in_stock",
@@ -326,7 +326,7 @@ describe("syncNow", () => {
     expect(pushed[0]!.updatedAt).toBe(2000);
     expect(
       (pushed[0]!.data as Product).listings[0]!.priceHistory,
-    ).toBeUndefined();
+    ).toHaveLength(1);
     const meta = await storage.getSyncMeta();
     expect(meta.lastSyncedAt).toBe(2000);
     expect(meta.lastSyncError).toBeNull();
@@ -767,5 +767,99 @@ describe("syncNow", () => {
         now + 3_600_000 + 1000,
       );
     });
+  });
+
+  it("serializes capped price history (last 30 days) in pushed items", async () => {
+    const storage = makeStorage();
+    const daysAgo = (n: number) =>
+      new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+    const localListing = listing("d1", 100, "in_stock");
+    localListing.priceHistory = [
+      {
+        date: daysAgo(45),
+        price: 120,
+        currency: "USD",
+        stockStatus: "in_stock",
+      },
+      {
+        date: daysAgo(7),
+        price: 100,
+        currency: "USD",
+        stockStatus: "in_stock",
+      },
+    ];
+    await storage.addToWatchlist(makeProduct("p1", [localListing]));
+    const pull = vi.fn(async () => ({ lastSyncedAt: 2000, items: [] }));
+    const push = vi.fn(
+      async (
+        _items: SyncItem[],
+      ): Promise<{ accepted: number; stamped: SyncStampedItem[] }> => ({
+        accepted: 1,
+        stamped: [{ collection: "watchlist", id: "p1", updatedAt: 2500 }],
+      }),
+    );
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 3000,
+    });
+    const pushed = push.mock.calls[0]![0];
+    const history = (pushed[0]!.data as Product).listings[0]!.priceHistory;
+    expect(history.map((p) => p.date)).toEqual([daysAgo(7)]);
+  });
+
+  it("merges pulled price history into local history on apply", async () => {
+    const storage = makeStorage();
+    const daysAgo = (n: number) =>
+      new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+    const localListing = listing("d1", 100, "in_stock");
+    localListing.priceHistory = [
+      {
+        date: daysAgo(7),
+        price: 100,
+        currency: "USD",
+        stockStatus: "in_stock",
+      },
+    ];
+    await storage.addToWatchlist(makeProduct("p1", [localListing]));
+    await storage.setItemSyncMeta("watchlist", "p1", 1000);
+    const serverProduct = makeProduct("p1", [listing("d1", 90, "in_stock")]);
+    serverProduct.listings[0]!.priceHistory = [
+      {
+        date: daysAgo(6),
+        price: 90,
+        currency: "USD",
+        stockStatus: "in_stock",
+      },
+    ];
+    const pull = vi.fn(
+      async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+        lastSyncedAt: 5000,
+        items: [
+          {
+            collection: "watchlist",
+            id: "p1",
+            data: serverProduct,
+            updatedAt: 4000,
+            deletedAt: null,
+          },
+        ],
+      }),
+    );
+    const push = vi.fn(async (_items: SyncItem[]) => ({
+      accepted: 0,
+      stamped: [],
+    }));
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 6000,
+    });
+    const history = (await storage.getWatchlist())[0]!.listings[0]!.priceHistory;
+    expect(history.map((p) => p.date)).toEqual([daysAgo(7), daysAgo(6)]);
   });
 });
