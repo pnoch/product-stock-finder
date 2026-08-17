@@ -468,3 +468,13 @@
 - [x] scheduleServerEventNotification delegates to displayWebNotification on web (dynamic import, non-fatal)
 - [x] Settings gets a web-only "Web Notifications" toggle with permission-denied hint
 - [x] webNotificationsEnabled AppSettings field (default off), syncs via existing settings sync
+
+## Phase 52: Web Push Background Delivery (v5.0)
+
+- [x] Server sends web pushes via web-push (VAPID) with 404/410 token pruning (server/web-push.ts)
+- [x] device_push_tokens stores web PushSubscription JSON (token column → text; platform "web")
+- [x] sendPushForDevice routes platform "web" to sendWebPush; Expo path unchanged
+- [x] public/sw.js service worker shows notifications when no tab is focused; notificationclick focuses/opens
+- [x] lib/web-push.ts: SW registration, PushManager subscribe/unsubscribe, base64url helper
+- [x] Web Notifications toggle subscribes/unsubscribes; SW-shown event ids dedup the foreground pull
+- [x] scripts/generate-vapid-keys.js + VAPID env docs
