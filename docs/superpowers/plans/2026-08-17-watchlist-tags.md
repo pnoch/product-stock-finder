@@ -182,9 +182,9 @@ describe("matchesTagFilter", () => {
     expect(matchesTagFilter(makeProduct(), ["a"])).toBe(false);
   });
 
-  it("silently ignores orphaned tag ids", () => {
-    const p = makeProduct({ tags: ["a", "missing"] });
-    expect(matchesTagFilter(p, ["a"])).toBe(true);
+  it("silently ignores orphaned tag ids in the filter selection", () => {
+    const p = makeProduct({ tags: ["a"] });
+    expect(matchesTagFilter(p, ["a", "missing"])).toBe(true);
     expect(matchesTagFilter(p, ["missing"])).toBe(false);
   });
 });
