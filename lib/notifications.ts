@@ -1,6 +1,7 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { recordDisplayedEventId } from "./storage";
+import { displayWebNotification } from "./web-notifications";
 
 // ─── Notification Handler ─────────────────────────────────────────────────────
 // Must be called at module level (outside any component) so it's set before
@@ -190,7 +191,10 @@ export async function scheduleServerEventNotification(
   title: string,
   body: string,
 ): Promise<void> {
-  if (Platform.OS === "web") return;
+  if (Platform.OS === "web") {
+    displayWebNotification(title, body);
+    return;
+  }
   const granted = await requestNotificationPermissions();
   if (!granted) return;
   try {

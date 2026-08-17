@@ -41,6 +41,10 @@ vi.mock("../lib/storage", () => ({
   }),
 }));
 
+vi.mock("../lib/web-notifications", () => ({
+  displayWebNotification: vi.fn(),
+}));
+
 import { setupPushEventTracking } from "../lib/notifications";
 
 describe("setupPushEventTracking", () => {
