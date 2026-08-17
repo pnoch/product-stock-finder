@@ -270,7 +270,7 @@ export function generateTagId(): string {
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `pnpm test tests/tags.test.ts`
-Expected: PASS (all 14 tests).
+Expected: PASS (all 13 tests).
 
 - [ ] **Step 5: Commit**
 
