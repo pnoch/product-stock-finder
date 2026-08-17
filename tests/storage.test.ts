@@ -6,6 +6,7 @@ import type {
   BackOrderReminder,
   DistributorListing,
   NotificationHistoryEntry,
+  TagDefinition,
 } from "../lib/types";
 
 // In-memory AsyncStorage mock
@@ -64,6 +65,13 @@ import {
   clearAllData,
   createStorage,
   DISTRIBUTOR_BREAKER_KEY,
+  getTagDefinitions,
+  saveTagDefinitions,
+  setProductTags,
+  createTag,
+  renameTag,
+  setTagColor,
+  deleteTag,
 } from "../lib/storage";
 
 function makeProduct(id: string, listings: DistributorListing[] = []): Product {
@@ -537,5 +545,64 @@ describe("fx rates", () => {
       JSON.stringify({ rates: { EUR: "oops", GBP: "x" }, fetchedAt: 5 }),
     );
     expect(await getFxRates()).toBeNull();
+  });
+});
+
+describe("watchlist tags", () => {
+  it("returns empty tag definitions by default", async () => {
+    expect(await getTagDefinitions()).toEqual({});
+  });
+
+  it("creates a tag and persists it", async () => {
+    const tag = await createTag("Backhaul", "#00C896");
+    expect(tag.id).toBeTruthy();
+    expect(tag.name).toBe("Backhaul");
+    expect((await getTagDefinitions())[tag.id]).toEqual(tag);
+  });
+
+  it("rejects duplicate tag names case-insensitively", async () => {
+    await createTag("Backhaul", "#00C896");
+    await expect(createTag("backhaul", "#EF4444")).rejects.toThrow();
+  });
+
+  it("renames a tag", async () => {
+    const tag = await createTag("Backhaul", "#00C896");
+    await renameTag(tag.id, "Core");
+    expect((await getTagDefinitions())[tag.id].name).toBe("Core");
+  });
+
+  it("rejects renaming to an existing name", async () => {
+    const a = await createTag("A", "#00C896");
+    await createTag("B", "#EF4444");
+    await expect(renameTag(a.id, "b")).rejects.toThrow();
+  });
+
+  it("changes a tag color", async () => {
+    const tag = await createTag("A", "#00C896");
+    await setTagColor(tag.id, "#EF4444");
+    expect((await getTagDefinitions())[tag.id].color).toBe("#EF4444");
+  });
+
+  it("deletes a tag and strips it from products", async () => {
+    const tag = await createTag("A", "#00C896");
+    await addToWatchlist(makeProduct("p1", []));
+    await setProductTags("p1", [tag.id]);
+    await deleteTag(tag.id);
+    expect(await getTagDefinitions()).toEqual({});
+    expect((await getWatchlist())[0].tags ?? []).toEqual([]);
+  });
+
+  it("saveTagDefinitions does not clobber other settings", async () => {
+    await saveSettings({ ...(await getSettings()), displayCurrency: "EUR" });
+    await saveTagDefinitions({ a: { id: "a", name: "A", color: "#00C896" } });
+    expect((await getSettings()).displayCurrency).toBe("EUR");
+  });
+
+  it("setProductTags updates a product's tags", async () => {
+    await addToWatchlist(makeProduct("p1", []));
+    await setProductTags("p1", ["a", "b"]);
+    expect((await getWatchlist())[0].tags).toEqual(["a", "b"]);
+    await setProductTags("p1", []);
+    expect((await getWatchlist())[0].tags ?? []).toEqual([]);
   });
 });
