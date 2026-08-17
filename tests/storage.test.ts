@@ -6,7 +6,6 @@ import type {
   BackOrderReminder,
   DistributorListing,
   NotificationHistoryEntry,
-  TagDefinition,
 } from "../lib/types";
 
 // In-memory AsyncStorage mock
