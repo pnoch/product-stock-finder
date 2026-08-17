@@ -5,6 +5,7 @@ self.addEventListener("push", (event) => {
   } catch {
     // malformed payloads are ignored
   }
+  if (!data || typeof data !== "object") data = {};
   const { title = "Product Stock Finder", body = "", eventId = null } = data;
   event.waitUntil(
     (async () => {
