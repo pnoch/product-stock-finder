@@ -14,6 +14,12 @@ export interface PriceSnapshot {
   fetchedAt: number;
 }
 
+export interface TagDefinition {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface Distributor {
   id: string;
   name: string;
@@ -69,6 +75,7 @@ export interface Product {
   lastRefreshed?: string; // ISO date string — set when listings are refreshed
   isWatched: boolean;
   listings: DistributorListing[];
+  tags?: string[];
 }
 
 export interface PriceAlert {
@@ -121,6 +128,7 @@ export interface AppSettings {
   shippingRegion?: string;
   digestFrequency?: "off" | "daily" | "weekly";
   webNotificationsEnabled?: boolean;
+  tagDefinitions?: Record<string, TagDefinition>;
 }
 
 export type Collection = "watchlist" | "alerts" | "reminders" | "settings";
