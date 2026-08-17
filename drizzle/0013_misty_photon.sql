@@ -1,0 +1,1 @@
+ALTER TABLE `device_push_tokens` MODIFY COLUMN `token` text NOT NULL;
