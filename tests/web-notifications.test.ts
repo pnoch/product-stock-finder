@@ -128,7 +128,7 @@ describe("web notifications", () => {
     expect(result).toBe("granted");
     expect(state.webNotificationsEnabled).toBe(true);
     await vi.advanceTimersByTimeAsync(60_000);
-    expect(state.syncCalls).toBeGreaterThan(0);
+    expect(state.syncCalls).toBe(1);
   });
 
   it("setWebNotificationsEnabled(true) does not persist when denied", async () => {
@@ -159,7 +159,7 @@ describe("web notifications", () => {
     const cleanup = setupWebNotifications();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(60_000);
-    expect(state.syncCalls).toBeGreaterThan(0);
+    expect(state.syncCalls).toBe(1);
     cleanup();
   });
 

@@ -69,7 +69,9 @@ function stopPolling(): void {
 
 export function setupWebNotifications(): () => void {
   if (!isWeb()) return () => {};
+  let disposed = false;
   void getSettings().then((settings) => {
+    if (disposed) return;
     if (
       settings.webNotificationsEnabled &&
       window.Notification?.permission === "granted"
@@ -78,6 +80,7 @@ export function setupWebNotifications(): () => void {
     }
   });
   return () => {
+    disposed = true;
     stopPolling();
   };
 }
