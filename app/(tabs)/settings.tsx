@@ -1010,6 +1010,10 @@ export default function SettingsScreen() {
                     value={!!settings.webNotificationsEnabled}
                     onValueChange={(v) => {
                       void setWebNotificationsEnabled(v).then((permission) => {
+                        setSettings((prev) => ({
+                          ...prev,
+                          webNotificationsEnabled: v && permission === "granted",
+                        }));
                         if (v && permission !== "granted") {
                           setWebNotificationHint(
                             permission === "denied"
