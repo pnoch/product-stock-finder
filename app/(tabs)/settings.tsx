@@ -37,6 +37,7 @@ import {
 } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { sendTestNotification } from "@/lib/notifications";
+import { setWebNotificationsEnabled } from "@/lib/web-notifications";
 import { getDistributorById } from "@/lib/distributors";
 import { getAllParserIds } from "@/lib/scrapers/registry";
 import {
@@ -163,6 +164,9 @@ export default function SettingsScreen() {
     stockAlerts: true,
     priceAlerts: true,
   });
+  const [webNotificationHint, setWebNotificationHint] = useState<string | null>(
+    null,
+  );
   const [products, setProducts] = useState<Product[]>([]);
   const { user, isAuthenticated, logout } = useAuth();
   const connection = useConnection();
@@ -995,6 +999,54 @@ export default function SettingsScreen() {
               />
             }
           />
+          {Platform.OS === "web" && (
+            <>
+              <SettingRow
+                icon="bell.badge.fill"
+                label="Web Notifications"
+                description="Show price and stock alerts in your browser"
+                right={
+                  <Switch
+                    value={!!settings.webNotificationsEnabled}
+                    onValueChange={(v) => {
+                      void setWebNotificationsEnabled(v).then((permission) => {
+                        if (v && permission !== "granted") {
+                          setWebNotificationHint(
+                            permission === "denied"
+                              ? "Notifications are blocked in your browser settings."
+                              : "Allow notifications in your browser to receive alerts.",
+                          );
+                        } else {
+                          setWebNotificationHint(null);
+                        }
+                      });
+                    }}
+                    trackColor={{
+                      false: colors.border,
+                      true: colors.primary + "88",
+                    }}
+                    thumbColor={
+                      settings.webNotificationsEnabled
+                        ? colors.primary
+                        : colors.muted
+                    }
+                  />
+                }
+              />
+              {webNotificationHint && (
+                <Text
+                  style={{
+                    color: colors.warning,
+                    fontSize: 13,
+                    paddingHorizontal: 16,
+                    paddingBottom: 12,
+                  }}
+                >
+                  {webNotificationHint}
+                </Text>
+              )}
+            </>
+          )}
           <SettingRow
             icon="checkmark.circle.fill"
             label="Stock Alerts"
