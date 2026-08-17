@@ -50,7 +50,18 @@ deviceLabels, revokedDevices. Migrations in `drizzle/migrations/`; apply with `p
 - `DATABASE_URL` (MySQL), `JWT_SECRET`, `VITE_APP_ID`, `OAUTH_SERVER_URL`,
   `VITE_OAUTH_PORTAL_URL`, `OWNER_OPEN_ID`, `OWNER_NAME`, `BUILT_IN_FORGE_API_URL`,
   `BUILT_IN_FORGE_API_KEY`
+- `CORS_ALLOWED_ORIGINS` — comma-separated list of allowed browser origins (e.g.
+  `http://localhost:8081,https://app.example.com`). Required when the web app is
+  served from a different origin than the API (cross-origin dev). When the web
+  build is served same-origin by the backend, it is not needed.
 - Expo runtime: `EXPO_PUBLIC_APP_ID`, `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_OAUTH_PORTAL_URL`
+
+## Web Build
+
+The web app exports as an SPA (`web.output: "single"` in `app.config.ts`), so
+`expo export -p web` produces a single `dist/index.html`. Hosts must fall back
+to `index.html` for unknown paths (SPA routing) and serve `dist/sw.js` for web
+push. There is no per-route server-rendered HTML.
 
 ## Web Push (VAPID)
 

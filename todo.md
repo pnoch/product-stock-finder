@@ -478,3 +478,9 @@
 - [x] lib/web-push.ts: SW registration, PushManager subscribe/unsubscribe, base64url helper
 - [x] Web Notifications toggle subscribes/unsubscribes; SW-shown event ids dedup the foreground pull
 - [x] scripts/generate-vapid-keys.js + VAPID env docs
+
+## Phase 53: Web Build Fixes (v5.1)
+
+- [x] Web export fixed: playwright excluded from the web bundle via lib/scrapers/browser.web.ts stub (resilient.ts dynamic import was pulling playwright-core into Metro's web build)
+- [x] React hydration error #418 eliminated: NativeWind 4's react-native-css-interop emits different classNames in SSR vs client hydration; switched web.output from "static" to "single" (SPA) in app.config.ts — no per-route server-rendered HTML, hosts must SPA-fallback to index.html
+- [x] CORS_ALLOWED_ORIGINS documented in server/README.md (required for cross-origin web dev)
