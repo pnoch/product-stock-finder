@@ -52,8 +52,8 @@ deviceLabels, revokedDevices. Migrations in `drizzle/migrations/`; apply with `p
   `BUILT_IN_FORGE_API_KEY`
 - `CORS_ALLOWED_ORIGINS` — comma-separated list of allowed browser origins (e.g.
   `http://localhost:8081,https://app.example.com`). Required when the web app is
-  served from a different origin than the API (cross-origin dev). When the web
-  build is served same-origin by the backend, it is not needed.
+  served from a different origin than the API (cross-origin dev). Not needed if
+  the web build is hosted behind the same origin as the API.
 - Expo runtime: `EXPO_PUBLIC_APP_ID`, `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_OAUTH_PORTAL_URL`
 
 ## Web Build
