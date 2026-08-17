@@ -72,6 +72,7 @@ const MAPPING = {
   "arrow.left.arrow.right": "swap-horiz",
   "chart.bar.xaxis": "bar-chart",
   "square.and.pencil": "edit-note",
+  "slider.horizontal.3": "tune",
 } as IconMapping;
 
 /**
