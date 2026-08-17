@@ -207,7 +207,7 @@ export type InsertNotificationEventDeliveryRow =
 export const devicePushTokens = mysqlTable("device_push_tokens", {
   deviceId: varchar("deviceId", { length: 128 }).notNull().primaryKey(),
   userId: int("userId").references(() => users.id),
-  token: varchar("token", { length: 255 }).notNull(),
+  token: text("token").notNull(),
   platform: varchar("platform", { length: 16 }).notNull(),
   updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
 });

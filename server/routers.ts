@@ -210,8 +210,8 @@ export const appRouter = router({
       .input(
         z.object({
           deviceId: z.string().min(1).max(128),
-          token: z.string().min(1).max(255),
-          platform: z.enum(["ios", "android"]),
+          token: z.string().min(1).max(2048),
+          platform: z.enum(["ios", "android", "web"]),
         }),
       )
       .mutation(async ({ input, ctx }) => {

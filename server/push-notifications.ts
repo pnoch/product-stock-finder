@@ -20,7 +20,7 @@ const memoryTokens = new Map<
 export async function upsertPushToken(
   deviceId: string,
   token: string,
-  platform: "ios" | "android",
+  platform: "ios" | "android" | "web",
   userId: number | null = null,
 ): Promise<void> {
   const db = await getDb();

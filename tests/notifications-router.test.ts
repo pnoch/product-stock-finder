@@ -130,13 +130,36 @@ describe("notifications router", () => {
     );
   });
 
+  it("registers a web push subscription", async () => {
+    mockedUpsertPush.mockResolvedValue(undefined);
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.notifications.registerPushToken({
+      deviceId: "dev-1",
+      token: JSON.stringify({
+        endpoint: "https://push.example.com/abc",
+        keys: { p256dh: "p256dh-key", auth: "auth-key" },
+      }),
+      platform: "web",
+    });
+    expect(result).toEqual({ accepted: true });
+    expect(mockedUpsertPush).toHaveBeenCalledWith(
+      "dev-1",
+      JSON.stringify({
+        endpoint: "https://push.example.com/abc",
+        keys: { p256dh: "p256dh-key", auth: "auth-key" },
+      }),
+      "web",
+      null,
+    );
+  });
+
   it("rejects an invalid platform for registerPushToken", async () => {
     const caller = appRouter.createCaller(createPublicContext());
     await expect(
       caller.notifications.registerPushToken({
         deviceId: "dev-1",
         token: "ExponentPushToken[abc123]",
-        platform: "web",
+        platform: "desktop",
       } as never),
     ).rejects.toThrow();
     expect(mockedUpsertPush).not.toHaveBeenCalled();
