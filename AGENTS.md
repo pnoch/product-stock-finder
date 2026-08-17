@@ -68,7 +68,10 @@ lib/                   App logic
                        watches, settings, digest snapshot, fx rates, notification history)
   sync.ts              Sync engine (setupSync, syncNow): pull/push, LWW merge, tombstones
   history-sync.ts      Price-history backfill/upload to server
-  scrapers/            Distributor parsers + resilient.ts (resilientFetch, breakers, classifier)
+  scrapers/            Distributor parsers + resilient.ts (resilientFetch, breakers, classifier).
+                       browser.ts = node Playwright escalation; browser.web.ts = web stub with the
+                       same export surface (keeps playwright out of the web bundle — guarded by
+                       tests/scrapers/browser-web.test.ts)
   distributors.ts      Static distributor database (25 entries)
   catalog.ts           Pre-loaded product catalog
   sample-data.ts       Seeded 10-point 90-day price history per distributor (CRS804, CRS326)
@@ -151,7 +154,7 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 - **Background tasks:** `TaskManager.defineTask` must be called at module-level (global scope), not inside a component — see `lib/background-price-check.ts`.
 - **Seeding:** CRS804 and CRS326 are auto-seeded into the watchlist on first launch in `app/_layout.tsx`. Keep seed listings in sync with `lib/sample-data.ts` when adding price history.
 - **Currency:** Prices are stored in their native currency; convert via `convertPrice(amount, from, to)` using static rates in `lib/currency.ts`. `getBestPrice` returns the cheapest non-out-of-stock listing in a target currency. Live rates come from `lib/fx.ts` (server-backed).
-- **Scraping:** New distributors go in `lib/scrapers/` as typed `DistributorParser`s registered in `lib/scrapers/registry.ts`, with a test under `tests/scrapers/`. Blocked detection lives in `resilient.ts` (`classifyFetchStatus`, `BLOCKED_MARKERS`) — do not re-implement marker lists elsewhere.
+- **Scraping:** New distributors go in `lib/scrapers/` as typed `DistributorParser`s registered in `lib/scrapers/registry.ts`, with a test under `tests/scrapers/`. Blocked detection lives in `resilient.ts` (`classifyFetchStatus`, `BLOCKED_MARKERS`) — do not re-implement marker lists elsewhere. Playwright escalation lives in `lib/scrapers/browser.ts` (node-only); `browser.web.ts` is the web stub with the same export surface so `expo export -p web` stays playwright-free — `tests/scrapers/browser-web.test.ts` guards both surface parity and that only `browser.ts` statically imports playwright.
 - **No comments** unless explaining non-obvious logic. Existing code uses `// ─── Section ───` banners in storage/notifications — match that style for section dividers.
 - **Commit style:** Checkpoint commits follow `Checkpoint: vX.Y: <features>. TypeScript: 0 errors.` — match this when committing.
 - **Tests:** vitest. 80+ test files under `tests/` (plus per-scraper tests in `tests/scrapers/`). DB-backed tests are gated on `RUN_DB_TESTS` + `TEST_DATABASE_URL`. Add new tests mirroring existing `*.test.ts`.
@@ -175,9 +178,21 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 6. **Sync:** When authenticated, `setupSync` (in `app/_layout.tsx`) pulls server changes since the last `lastSyncedAt`, merges LWW with local items, pushes local changes, and stamps server timestamps. Retries failed syncs on foreground. Settings screen shows sync status.
 7. **Notifications:** Alerts/reminders are scheduled locally (`lib/notifications.ts`) and mirrored server-side (`notifications.uploadConfig`); server events are pulled (`syncServerNotifications`) and push events are delivered via Expo push.
 
+## Web Build
+
+- The web export is an SPA: `app.config.ts` sets `web.output: "single"`, so
+  `expo export -p web` emits a single `dist/index.html`. Hosts must fall back to
+  `index.html` for unknown paths (deep links like `/product/[id]`) and serve
+  `dist/sw.js` for web push. There is no per-route server-rendered HTML.
+- Do not switch back to `output: "static"`: NativeWind 4's
+  `react-native-css-interop` emits different classNames in SSR vs client
+  hydration, causing React hydration error #418 on every interop-wrapped route.
+- `expo export -p web` requires `--clear` after changing `EXPO_PUBLIC_*` env
+  (Metro's transform cache otherwise misses the new value).
+
 ## Environment
 
-- No `.env` committed. Backend needs `DATABASE_URL`, `EXPO_PUBLIC_OAUTH_*`, `EXPO_PUBLIC_API_BASE_URL` for full functionality. Web push needs `VAPID_SUBJECT`/`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` (server) and `EXPO_PUBLIC_VAPID_PUBLIC_KEY` (client); without them the app runs local-only and web notifications fall back to foreground pull.
+- No `.env` committed. Backend needs `DATABASE_URL`, `EXPO_PUBLIC_OAUTH_*`, `EXPO_PUBLIC_API_BASE_URL` for full functionality. Web push needs `VAPID_SUBJECT`/`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` (server) and `EXPO_PUBLIC_VAPID_PUBLIC_KEY` (client); without them the app runs local-only and web notifications fall back to foreground pull. End-to-end web push can't be verified in headless Chromium (no push service) — use a real browser over HTTPS.
 - DB-backed tests use `TEST_DATABASE_URL` + `RUN_DB_TESTS=1` (see `pnpm test`).
 - `scripts/load-env.js` loads env with system > `.env` priority.
 
@@ -192,7 +207,7 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 ## Reference Docs
 
 - `design.md` — full UI/UX design spec (screen list, flows, component design, distributor catalog)
-- `todo.md` — phase-by-phase feature history (49 phases through v4.7.2)
+- `todo.md` — phase-by-phase feature history (53 phases through v5.1)
 - `server/README.md` — backend guide (auth, DB, tRPC, storage, LLM, image gen) — read only if adding backend features
 - `docs/superpowers/` — design specs (`specs/`) and implementation plans (`plans/`) for recent phases
 - `references/periodic-updates.md` — reference doc on periodic updates
