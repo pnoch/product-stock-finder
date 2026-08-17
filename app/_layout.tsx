@@ -25,6 +25,7 @@ import {
   registerPriceCheckTask,
   checkPriceDropsNow,
 } from "@/lib/background-price-check";
+import { setupWebNotifications } from "@/lib/web-notifications";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
 import { SAMPLE_LISTINGS } from "@/lib/sample-data";
 import { DistributorListing } from "@/lib/types";
@@ -107,6 +108,15 @@ export default function RootLayout() {
     });
     return () => {
       stopPushTracking();
+    };
+  }, []);
+
+  // Web notifications: poll server events while the tab is open
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const stopWebNotifications = setupWebNotifications();
+    return () => {
+      stopWebNotifications();
     };
   }, []);
 
