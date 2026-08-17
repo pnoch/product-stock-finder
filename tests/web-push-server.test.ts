@@ -1,8 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const sent = vi.hoisted(
-  () =>
-    [] as Array<{ subscription: unknown; payload: string }>,
+  () => [] as Array<{ subscription: unknown; payload: string }>,
 );
 const sendError = vi.hoisted(() => ({ statusCode: 0 }));
 

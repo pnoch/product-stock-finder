@@ -24,7 +24,11 @@ export async function sendWebPush(
   try {
     await webPush.sendNotification(
       subscription,
-      JSON.stringify({ title: event.title, body: event.body, eventId: event.id }),
+      JSON.stringify({
+        title: event.title,
+        body: event.body,
+        eventId: event.id,
+      }),
     );
   } catch (error) {
     const statusCode = (error as { statusCode?: number }).statusCode;
