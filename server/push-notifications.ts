@@ -5,6 +5,7 @@ import {
   type InsertDevicePushTokenRow,
 } from "../drizzle/schema";
 import { getDb } from "./db";
+import { sendWebPush, type WebPushSubscription } from "./web-push";
 
 export interface PushableEvent {
   id: string;
@@ -49,16 +50,23 @@ export async function sendPushForDevice(
   if (events.length === 0) return;
   // Token lookup is best-effort: a failing read must not abort the caller's loop.
   let token: string | undefined;
+  let platform: string | undefined;
   try {
     const db = await getDb();
     if (db) {
       const rows = await db
-        .select({ token: devicePushTokens.token })
+        .select({
+          token: devicePushTokens.token,
+          platform: devicePushTokens.platform,
+        })
         .from(devicePushTokens)
         .where(eq(devicePushTokens.deviceId, deviceId));
       token = rows[0]?.token;
+      platform = rows[0]?.platform;
     } else {
-      token = memoryTokens.get(deviceId)?.token;
+      const mem = memoryTokens.get(deviceId);
+      token = mem?.token;
+      platform = mem?.platform;
     }
   } catch (error) {
     console.warn(
@@ -67,7 +75,22 @@ export async function sendPushForDevice(
     );
     return;
   }
-  if (!token || !Expo.isExpoPushToken(token)) return;
+  if (!token) return;
+  if (platform === "web") {
+    try {
+      const subscription = JSON.parse(token) as WebPushSubscription;
+      for (const event of events) {
+        await sendWebPush(deviceId, subscription, event);
+      }
+    } catch (error) {
+      console.warn(
+        `[Push] Failed to send web push for device ${deviceId}:`,
+        error,
+      );
+    }
+    return;
+  }
+  if (!Expo.isExpoPushToken(token)) return;
   try {
     const expo = new Expo({ accessToken: process.env.EXPO_PUSH_ACCESS_TOKEN });
     const messages = events.map((e) => ({

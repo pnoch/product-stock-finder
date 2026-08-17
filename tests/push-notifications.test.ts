@@ -55,6 +55,10 @@ vi.mock("expo-server-sdk", () => ({
   },
 }));
 
+vi.mock("../server/web-push", () => ({
+  sendWebPush: vi.fn(async () => {}),
+}));
+
 import {
   upsertPushToken,
   sendPushForDevice,
@@ -62,6 +66,7 @@ import {
   pruneDeviceToken,
   clearPushTokensForTests,
 } from "../server/push-notifications";
+import { sendWebPush } from "../server/web-push";
 
 const event = {
   id: "evt-1",
@@ -102,6 +107,32 @@ describe("push-notifications", () => {
   it("no-ops when the stored token is not a valid Expo push token", async () => {
     mockedGetDb.mockResolvedValue(null);
     await upsertPushToken("dev-1", "not-an-expo-token", "android");
+    await sendPushForDevice("dev-1", [event]);
+    expect(sent).toHaveLength(0);
+  });
+
+  it("routes web subscriptions through sendWebPush", async () => {
+    mockedGetDb.mockResolvedValue(null);
+    const subscription = {
+      endpoint: "https://push.example.com/abc",
+      keys: { p256dh: "p256dh-key", auth: "auth-key" },
+    };
+    await upsertPushToken("dev-1", JSON.stringify(subscription), "web");
+    await sendPushForDevice("dev-1", [event]);
+    expect(sendWebPush).toHaveBeenCalledWith("dev-1", subscription, event);
+    expect(sent).toHaveLength(0);
+  });
+
+  it("does not send Expo push for web subscriptions", async () => {
+    mockedGetDb.mockResolvedValue(null);
+    await upsertPushToken(
+      "dev-1",
+      JSON.stringify({
+        endpoint: "https://push.example.com/abc",
+        keys: { p256dh: "p256dh-key", auth: "auth-key" },
+      }),
+      "web",
+    );
     await sendPushForDevice("dev-1", [event]);
     expect(sent).toHaveLength(0);
   });
