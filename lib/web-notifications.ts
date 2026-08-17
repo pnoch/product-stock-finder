@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { getSettings, saveSettings } from "./storage";
+import { getSettings, saveSettings, recordDisplayedEventId } from "./storage";
 import { syncServerNotifications } from "./server-notifications";
 
 const POLL_INTERVAL_MS = 60 * 1000;
@@ -42,6 +42,35 @@ export function displayWebNotification(title: string, body: string): void {
   }
 }
 
+async function syncPushSubscription(enabled: boolean): Promise<void> {
+  const { subscribeWebPush, unsubscribeWebPush } = await import("./web-push");
+  if (enabled) {
+    await subscribeWebPush();
+  } else {
+    await unsubscribeWebPush();
+  }
+}
+
+let messageListener: ((event: MessageEvent) => void) | null = null;
+
+function startPushDedupListener(): void {
+  if (messageListener) return;
+  messageListener = (event: MessageEvent) => {
+    const data = event.data as { type?: string; eventId?: string } | null;
+    if (data?.type === "web-push-shown" && data.eventId) {
+      void recordDisplayedEventId(data.eventId);
+    }
+  };
+  navigator.serviceWorker?.addEventListener("message", messageListener);
+}
+
+function stopPushDedupListener(): void {
+  if (messageListener) {
+    navigator.serviceWorker?.removeEventListener("message", messageListener);
+    messageListener = null;
+  }
+}
+
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let focusListener: (() => void) | null = null;
 
@@ -70,6 +99,7 @@ function stopPolling(): void {
 export function setupWebNotifications(): () => void {
   if (!isWeb()) return () => {};
   let disposed = false;
+  startPushDedupListener();
   void getSettings().then((settings) => {
     if (disposed) return;
     if (
@@ -82,6 +112,7 @@ export function setupWebNotifications(): () => void {
   return () => {
     disposed = true;
     stopPolling();
+    stopPushDedupListener();
   };
 }
 
@@ -94,12 +125,14 @@ export async function setWebNotificationsEnabled(
     if (permission === "granted") {
       const settings = await getSettings();
       await saveSettings({ ...settings, webNotificationsEnabled: true });
+      await syncPushSubscription(true);
       startPolling();
     }
     return permission;
   }
   const settings = await getSettings();
   await saveSettings({ ...settings, webNotificationsEnabled: false });
+  await syncPushSubscription(false);
   stopPolling();
   return "denied";
 }

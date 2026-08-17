@@ -8,6 +8,7 @@ const state = vi.hoisted(() => ({
   displayed: [] as Array<{ title: string; body: string }>,
   syncCalls: 0,
   webNotificationsEnabled: false,
+  recordedEventIds: [] as string[],
 }));
 
 vi.mock("react-native", () => ({
@@ -31,12 +32,20 @@ vi.mock("../lib/storage", () => ({
   saveSettings: vi.fn(async (settings: Record<string, unknown>) => {
     state.webNotificationsEnabled = Boolean(settings.webNotificationsEnabled);
   }),
+  recordDisplayedEventId: vi.fn(async (id: string) => {
+    state.recordedEventIds.push(id);
+  }),
 }));
 
 vi.mock("../lib/server-notifications", () => ({
   syncServerNotifications: vi.fn(async () => {
     state.syncCalls += 1;
   }),
+}));
+
+vi.mock("../lib/web-push", () => ({
+  subscribeWebPush: vi.fn(async () => true),
+  unsubscribeWebPush: vi.fn(async () => {}),
 }));
 
 import {
@@ -46,6 +55,7 @@ import {
   setWebNotificationsEnabled,
   setupWebNotifications,
 } from "../lib/web-notifications";
+import { subscribeWebPush, unsubscribeWebPush } from "../lib/web-push";
 
 class MockNotification {
   static permission: NotificationPermission = "default";
@@ -76,6 +86,29 @@ describe("web notifications", () => {
     MockNotification.requestPermission.mockClear();
     // @ts-expect-error jsdom has no Notification
     window.Notification = MockNotification;
+    state.recordedEventIds = [];
+    const serviceWorkerListeners: Record<
+      string,
+      Array<(event: MessageEvent) => void>
+    > = {};
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: {
+        addEventListener: (type: string, cb: (event: MessageEvent) => void) => {
+          (serviceWorkerListeners[type] ??= []).push(cb);
+        },
+        removeEventListener: (
+          type: string,
+          cb: (event: MessageEvent) => void,
+        ) => {
+          serviceWorkerListeners[type] = (
+            serviceWorkerListeners[type] ?? []
+          ).filter((f) => f !== cb);
+        },
+      },
+    });
+    (globalThis as Record<string, unknown>).__swListeners =
+      serviceWorkerListeners;
     // Reset module-level poll timer between tests
     await setWebNotificationsEnabled(false);
   });
@@ -170,6 +203,35 @@ describe("web notifications", () => {
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(60_000);
     expect(state.syncCalls).toBe(0);
+    cleanup();
+  });
+
+  it("setWebNotificationsEnabled(true) subscribes for background push", async () => {
+    const result = await setWebNotificationsEnabled(true);
+    expect(result).toBe("granted");
+    expect(subscribeWebPush).toHaveBeenCalled();
+  });
+
+  it("setWebNotificationsEnabled(false) unsubscribes from background push", async () => {
+    await setWebNotificationsEnabled(false);
+    expect(unsubscribeWebPush).toHaveBeenCalled();
+  });
+
+  it("setupWebNotifications records displayed event ids from the service worker", async () => {
+    state.webNotificationsEnabled = true;
+    state.permission = "granted";
+    MockNotification.permission = "granted";
+    const cleanup = setupWebNotifications();
+    const listeners = (globalThis as Record<string, unknown>)
+      .__swListeners as Record<string, Array<(event: MessageEvent) => void>>;
+    for (const cb of listeners.message ?? []) {
+      cb(
+        new MessageEvent("message", {
+          data: { type: "web-push-shown", eventId: "evt-9" },
+        }),
+      );
+    }
+    expect(state.recordedEventIds).toContain("evt-9");
     cleanup();
   });
 });
