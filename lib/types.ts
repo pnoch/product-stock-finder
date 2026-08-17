@@ -120,6 +120,7 @@ export interface AppSettings {
   lastScrapeTime?: string;
   shippingRegion?: string;
   digestFrequency?: "off" | "daily" | "weekly";
+  webNotificationsEnabled?: boolean;
 }
 
 export type Collection = "watchlist" | "alerts" | "reminders" | "settings";

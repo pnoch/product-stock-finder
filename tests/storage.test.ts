@@ -237,6 +237,7 @@ describe("settings", () => {
     expect(s.theme).toBe("auto");
     expect(s.displayCurrency).toBe("USD");
     expect(s.checkInterval).toBe("manual");
+    expect(s.webNotificationsEnabled).toBe(false);
   });
 
   it("merges stored settings over defaults", async () => {
