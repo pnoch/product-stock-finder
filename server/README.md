@@ -52,6 +52,19 @@ deviceLabels, revokedDevices. Migrations in `drizzle/migrations/`; apply with `p
   `BUILT_IN_FORGE_API_KEY`
 - Expo runtime: `EXPO_PUBLIC_APP_ID`, `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_OAUTH_PORTAL_URL`
 
+## Web Push (VAPID)
+
+Web push delivery requires three env vars (generate a keypair with
+`node scripts/generate-vapid-keys.js`):
+
+- `VAPID_SUBJECT` — a `mailto:` contact for the push service
+- `VAPID_PUBLIC_KEY` — the VAPID public key
+- `VAPID_PRIVATE_KEY` — the VAPID private key
+
+The client needs the matching public key bundled as
+`EXPO_PUBLIC_VAPID_PUBLIC_KEY`. Without these vars, web push silently no-ops
+and the app keeps working (foreground pull only).
+
 ## Running & Testing
 
 - Dev: `pnpm dev:server` (tsx watch). Build: `pnpm build` (esbuild → `dist/`). Prod: `pnpm start`.
