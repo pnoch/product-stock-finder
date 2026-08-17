@@ -460,3 +460,11 @@
 - [x] Unused deps removed: expo-audio, expo-video, expo-image, expo-keep-awake, expo-system-ui (+ their app.config.ts plugins); lockfile pruned
 - [x] Docs fixed: design.md/todo.md/AGENTS.md app name + distributor counts (25); server/README.md rewritten from template boilerplate to accurate backend guide
 - [x] Price-check logic deduped: runPriceCheckCore extracted in lib/background-price-check.ts; PRICE_CHECK_TASK and checkPriceDropsNow are thin wrappers (net -87 lines, behavior unchanged)
+
+## Phase 51: Web Notifications (v4.9)
+
+- [x] Web notification permission + display via Web Notification API (lib/web-notifications.ts)
+- [x] 60s pull polling of server events while the web tab is open (setupWebNotifications + focus listener)
+- [x] scheduleServerEventNotification delegates to displayWebNotification on web (dynamic import, non-fatal)
+- [x] Settings gets a web-only "Web Notifications" toggle with permission-denied hint
+- [x] webNotificationsEnabled AppSettings field (default off), syncs via existing settings sync
