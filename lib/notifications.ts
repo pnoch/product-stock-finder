@@ -191,8 +191,12 @@ export async function scheduleServerEventNotification(
   body: string,
 ): Promise<void> {
   if (Platform.OS === "web") {
-    const { displayWebNotification } = await import("./web-notifications");
-    displayWebNotification(title, body);
+    try {
+      const { displayWebNotification } = await import("./web-notifications");
+      displayWebNotification(title, body);
+    } catch {
+      // server event failures are non-fatal
+    }
     return;
   }
   const granted = await requestNotificationPermissions();
