@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Modal,
+  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -60,27 +61,33 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
   };
 
   const handleDelete = (tag: TagDefinition) => {
+    const doDelete = () => {
+      void (async () => {
+        try {
+          await deleteTag(tag.id);
+          await refresh();
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Could not delete tag");
+        }
+      })();
+    };
+    if (Platform.OS === "web") {
+      if (
+        typeof window !== "undefined" &&
+        window.confirm(
+          `Delete "${tag.name}"? Products keep their other tags.`,
+        )
+      ) {
+        doDelete();
+      }
+      return;
+    }
     Alert.alert(
       "Delete Tag",
       `Delete "${tag.name}"? Products keep their other tags.`,
       [
         { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            void (async () => {
-              try {
-                await deleteTag(tag.id);
-                await refresh();
-              } catch (e) {
-                setError(
-                  e instanceof Error ? e.message : "Could not delete tag",
-                );
-              }
-            })();
-          },
-        },
+        { text: "Delete", style: "destructive", onPress: doDelete },
       ],
     );
   };
