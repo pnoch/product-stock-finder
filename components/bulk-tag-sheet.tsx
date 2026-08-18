@@ -58,6 +58,7 @@ export function BulkTagSheet({
     try {
       await addTagsToProducts(productIds, selected);
       onChanged();
+      onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not apply tags");
     }
