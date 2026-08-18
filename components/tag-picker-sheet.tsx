@@ -30,7 +30,7 @@ export function TagPickerSheet({ visible, product, onClose, onChanged }: Props) 
 
   useEffect(() => {
     if (!visible || !product) return;
-    void getTagDefinitions().then(setDefs);
+    void getTagDefinitions().then(setDefs).catch(() => {});
     setSelected(product.tags ?? []);
     setNewTagName("");
     setError(null);
