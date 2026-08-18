@@ -152,6 +152,11 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 - **Haptics:** `expo-haptics` is used for tap feedback (`Haptics.impactAsync`) and notifications (`notificationAsync`). Follow existing patterns on tappable elements.
 - **Notifications:** All notification scheduling must guard `Platform.OS === "web"` (return early). See `lib/notifications.ts`.
 - **Background tasks:** `TaskManager.defineTask` must be called at module-level (global scope), not inside a component — see `lib/background-price-check.ts`.
+- **Tags:** Watchlist tags are many-per-product colored labels. Definitions live in
+  `AppSettings.tagDefinitions` (synced via the `settings` collection); products carry
+  `tags?: string[]` of tag ids (synced via `watchlist`). Palette + helpers in
+  `lib/tags.ts`; storage CRUD in `lib/storage.ts`. Rendering/filtering must silently
+  ignore orphaned tag ids.
 - **Seeding:** CRS804 and CRS326 are auto-seeded into the watchlist on first launch in `app/_layout.tsx`. Keep seed listings in sync with `lib/sample-data.ts` when adding price history.
 - **Currency:** Prices are stored in their native currency; convert via `convertPrice(amount, from, to)` using static rates in `lib/currency.ts`. `getBestPrice` returns the cheapest non-out-of-stock listing in a target currency. Live rates come from `lib/fx.ts` (server-backed).
 - **Scraping:** New distributors go in `lib/scrapers/` as typed `DistributorParser`s registered in `lib/scrapers/registry.ts`, with a test under `tests/scrapers/`. Blocked detection lives in `resilient.ts` (`classifyFetchStatus`, `BLOCKED_MARKERS`) — do not re-implement marker lists elsewhere. Playwright escalation lives in `lib/scrapers/browser.ts` (node-only); `browser.web.ts` is the web stub with the same export surface so `expo export -p web` stays playwright-free — `tests/scrapers/browser-web.test.ts` guards both surface parity and that only `browser.ts` statically imports playwright.

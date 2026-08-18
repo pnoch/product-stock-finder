@@ -484,3 +484,11 @@
 - [x] Web export fixed: playwright excluded from the web bundle via lib/scrapers/browser.web.ts stub (resilient.ts dynamic import was pulling playwright-core into Metro's web build)
 - [x] React hydration error #418 eliminated: NativeWind 4's react-native-css-interop emits different classNames in SSR vs client hydration; switched web.output from "static" to "single" (SPA) in app.config.ts — no per-route server-rendered HTML, hosts must SPA-fallback to index.html
 - [x] CORS_ALLOWED_ORIGINS documented in server/README.md (required for cross-origin web dev)
+
+## Phase 54: Watchlist Tags (v5.2)
+
+- [x] Colored tags (10-color palette) assignable per product via a tag picker sheet on each watchlist card
+- [x] Tag definitions stored in AppSettings.tagDefinitions; product tags on Product.tags — both sync via existing watchlist/settings collections (no backend changes)
+- [x] Tag filter chip row on the watchlist screen with OR semantics, combined with the region filter
+- [x] Sheet-based tag management: rename, recolor, delete (strips id from products)
+- [x] lib/tags.ts helpers + storage CRUD with unit tests
