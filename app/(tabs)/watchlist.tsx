@@ -396,23 +396,29 @@ export default function WatchlistScreen() {
 
   const handleDelete = useCallback(
     (productId: string, productName: string) => {
+      const doRemove = async () => {
+        if (Platform.OS !== "web")
+          Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Warning,
+          );
+        await removeFromWatchlist(productId);
+        await reload();
+      };
+      if (Platform.OS === "web") {
+        if (
+          typeof window !== "undefined" &&
+          window.confirm(`Remove "${productName}" from your watchlist?`)
+        ) {
+          void doRemove();
+        }
+        return;
+      }
       Alert.alert(
         "Remove Product",
         `Remove "${productName}" from your watchlist?`,
         [
           { text: "Cancel", style: "cancel" },
-          {
-            text: "Remove",
-            style: "destructive",
-            onPress: async () => {
-              if (Platform.OS !== "web")
-                Haptics.notificationAsync(
-                  Haptics.NotificationFeedbackType.Warning,
-                );
-              await removeFromWatchlist(productId);
-              await reload();
-            },
-          },
+          { text: "Remove", style: "destructive", onPress: doRemove },
         ],
       );
     },
