@@ -119,6 +119,9 @@ function ProductCard({
       ?.stockStatus ??
     "out_of_stock";
   const distributorCount = product.listings?.length ?? 0;
+  const validTags = (product.tags ?? []).filter((id) =>
+    getTagById(tagDefinitions, id),
+  );
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   useEffect(() => {
@@ -217,7 +220,7 @@ function ProductCard({
           })()}
         </View>
       </View>
-      {(product.tags?.length ?? 0) > 0 && (
+      {validTags.length > 0 && (
         <View
           style={{
             flexDirection: "row",
@@ -226,7 +229,7 @@ function ProductCard({
             marginTop: 10,
           }}
         >
-          {(product.tags ?? []).slice(0, 3).map((id) => {
+          {validTags.slice(0, 3).map((id) => {
             const tag = getTagById(tagDefinitions, id);
             if (!tag) return null;
             return (
@@ -258,7 +261,7 @@ function ProductCard({
               </View>
             );
           })}
-          {(product.tags?.length ?? 0) > 3 && (
+          {validTags.length > 3 && (
             <Text
               style={{
                 color: colors.muted,
@@ -266,7 +269,7 @@ function ProductCard({
                 alignSelf: "center",
               }}
             >
-              +{(product.tags?.length ?? 0) - 3}
+              +{validTags.length - 3}
             </Text>
           )}
         </View>
@@ -356,7 +359,9 @@ export default function WatchlistScreen() {
   const loadData = useCallback(async () => {
     const settings = await getSettings();
     setDisplayCurrency(settings?.displayCurrency ?? "USD");
-    setTagDefinitions(await getTagDefinitions());
+    const defs = await getTagDefinitions();
+    setTagDefinitions(defs);
+    setSelectedTagIds((prev) => prev.filter((id) => id in defs));
   }, []);
 
   useFocusEffect(
