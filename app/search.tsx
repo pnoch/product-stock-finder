@@ -8,10 +8,10 @@ import {
   TextInput,
   ActivityIndicator,
   Platform,
-  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -55,7 +55,7 @@ export default function SearchScreen() {
     async (item: (typeof PRODUCT_CATALOG)[0]) => {
       if (adding) return;
       if (trackedIds.has(item.id)) {
-        Alert.alert(
+        showAlert(
           "Already Tracked",
           `"${item.name}" is already in your watchlist.`,
         );

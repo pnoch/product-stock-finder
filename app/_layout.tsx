@@ -5,9 +5,10 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-import { Alert, AppState, Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
+import { showAlert } from "@/lib/alert";
 import {
   requestNotificationPermissions,
   setupAndroidNotificationChannel,
@@ -253,7 +254,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     return registerDeviceRevokedHandler(() => {
-      Alert.alert("Signed Out", "You were signed out on another device.", [
+      showAlert("Signed Out", "You were signed out on another device.", [
         { text: "OK", onPress: () => void refresh() },
       ]);
     });

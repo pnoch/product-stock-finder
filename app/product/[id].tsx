@@ -5,7 +5,6 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Alert,
   TextInput,
   Modal,
   Linking,
@@ -18,6 +17,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -373,12 +373,12 @@ async function openListingUrl(url: string) {
   try {
     const supported = await Linking.canOpenURL(url);
     if (!supported) {
-      Alert.alert("Cannot Open Link", "No app is available to open this URL.");
+      showAlert("Cannot Open Link", "No app is available to open this URL.");
       return;
     }
     await Linking.openURL(url);
   } catch {
-    Alert.alert(
+    showAlert(
       "Error",
       "Could not open the distributor link. Please try again later.",
     );
@@ -523,7 +523,7 @@ export default function ProductDetailScreen() {
           delete n[listing.distributorId];
           return n;
         });
-        Alert.alert(
+        showAlert(
           "Watch Removed",
           `You'll no longer be notified when ${getDistributorById(listing.distributorId)?.name ?? listing.distributorId} gets ${product?.name} back in stock.`,
         );
@@ -545,7 +545,7 @@ export default function ProductDetailScreen() {
         setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
         if (Platform.OS !== "web")
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert(
+        showAlert(
           "Watching for Restock 👀",
           `You'll be notified the next time you open the app and ${distributor?.name ?? listing.distributorId} has ${product?.name} back in stock.`,
         );
@@ -557,7 +557,7 @@ export default function ProductDetailScreen() {
   const handleSetAlert = useCallback(async () => {
     const price = parseFloat(alertPrice);
     if (isNaN(price) || price <= 0) {
-      Alert.alert("Invalid Price", "Please enter a valid target price.");
+      showAlert("Invalid Price", "Please enter a valid target price.");
       return;
     }
     const newAlert: PriceAlert = {
@@ -576,7 +576,7 @@ export default function ProductDetailScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setAlertModalVisible(false);
     setAlertPrice("");
-    Alert.alert(
+    showAlert(
       "Alert Set",
       `You'll be notified when the price drops below ${formatPrice(price, alertCurrency)}.`,
     );
@@ -643,13 +643,13 @@ export default function ProductDetailScreen() {
     const bestListing = inStockListings[0] ?? sortedListings[0];
     const url = bestListing?.url ?? "";
     if (!url) {
-      Alert.alert("No Link", "No distributor URL available to copy.");
+      showAlert("No Link", "No distributor URL available to copy.");
       return;
     }
     await Clipboard.setStringAsync(url);
     if (Platform.OS !== "web")
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert(
+    showAlert(
       "Link Copied!",
       "The distributor URL has been copied to your clipboard.",
     );
@@ -659,7 +659,7 @@ export default function ProductDetailScreen() {
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (Platform.OS === "web") {
-      Alert.alert(
+      showAlert(
         "Not Available",
         "Push notifications are only available on iOS and Android devices.",
       );
@@ -667,7 +667,7 @@ export default function ProductDetailScreen() {
     }
     const granted = await requestNotificationPermissions();
     if (!granted) {
-      Alert.alert(
+      showAlert(
         "Permission Denied",
         "Please enable notifications in your device settings to receive stock alerts.",
       );
@@ -687,7 +687,7 @@ export default function ProductDetailScreen() {
       targetListing?.currency ?? "USD",
     );
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert(
+    showAlert(
       "Notification Sent!",
       `A "Back In Stock" alert for ${product?.name} has been sent to your device.`,
     );
@@ -726,7 +726,7 @@ export default function ProductDetailScreen() {
     if (Platform.OS !== "web")
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setReminderListing(null);
-    Alert.alert(
+    showAlert(
       "Reminder Set! 📅",
       `You'll be reminded to check ${distributorName} for ${product.name} on ${reminderDate.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}.`,
     );
@@ -1051,7 +1051,7 @@ export default function ProductDetailScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               const ok = await refresh();
               if (!ok) {
-                Alert.alert(
+                showAlert(
                   "Couldn't refresh prices",
                   "The server is unreachable. Showing saved prices.",
                 );
@@ -1303,7 +1303,7 @@ export default function ProductDetailScreen() {
                       Haptics.notificationAsync(
                         Haptics.NotificationFeedbackType.Success,
                       );
-                    Alert.alert(
+                    showAlert(
                       "Alert Set ✅",
                       `You'll be notified when the price drops below ${formatPrice(suggestedPrice, bestInStockListing.currency)} (5% off current).`,
                     );

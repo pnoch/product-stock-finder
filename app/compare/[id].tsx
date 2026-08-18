@@ -12,12 +12,12 @@ import {
   View,
   TouchableOpacity,
   Platform,
-  Alert as RNAlert,
   ActivityIndicator,
   useWindowDimensions,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { showAlert } from "@/lib/alert";
 import Svg, { Polyline, Circle, Line, Text as SvgText } from "react-native-svg";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -456,7 +456,7 @@ export default function CompareScreen() {
   const handleCrossAlert = useCallback(async () => {
     const inStock = listings.filter((l) => l.stockStatus === "in_stock");
     if (inStock.length === 0) {
-      RNAlert.alert(
+      showAlert(
         "No in-stock distributors",
         "There are no in-stock distributors to set an alert for.",
       );
@@ -472,7 +472,7 @@ export default function CompareScreen() {
     const dist = getDistributorById(bestListing.distributorId);
     const granted = await requestNotificationPermissions();
     if (!granted) {
-      RNAlert.alert(
+      showAlert(
         "Permission Denied",
         "Please enable notifications in your device settings to receive price alerts.",
       );
@@ -489,7 +489,7 @@ export default function CompareScreen() {
     };
     await addAlert(alert);
     await schedulePriceAlert(productName || "Product", targetUSD, "USD");
-    RNAlert.alert(
+    showAlert(
       "Alert Set!",
       `You'll be notified when any distributor drops below $${targetUSD.toFixed(2)} (5% below current best of $${bestUSD.toFixed(2)} at ${dist?.name ?? bestListing.distributorId}).`,
     );
@@ -648,7 +648,7 @@ export default function CompareScreen() {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 const ok = await refresh();
                 if (!ok) {
-                  RNAlert.alert(
+                  showAlert(
                     "Couldn't refresh prices",
                     "The server is unreachable. Showing saved prices.",
                   );

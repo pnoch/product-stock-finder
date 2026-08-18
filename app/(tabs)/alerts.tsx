@@ -7,11 +7,11 @@ import {
   Switch,
   RefreshControl,
   Platform,
-  Alert,
   Modal,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { NotificationCenter } from "@/components/notification-center";
@@ -104,7 +104,7 @@ export default function AlertsScreen() {
 
   const handleDeleteReminder = useCallback(
     async (reminder: BackOrderReminder) => {
-      Alert.alert(
+      showAlert(
         "Cancel Reminder",
         `Cancel the reminder for ${reminder.productName} at ${reminder.distributorName}?`,
         [
@@ -132,7 +132,7 @@ export default function AlertsScreen() {
 
   const handleRemoveStockWatch = useCallback(
     async (watch: BackOrderReminder) => {
-      Alert.alert(
+      showAlert(
         "Remove Watch",
         `Stop watching ${watch.distributorName} for ${watch.productName}?`,
         [
@@ -175,7 +175,7 @@ export default function AlertsScreen() {
     setRescheduleTarget(null);
     setShowReschedulePicker(false);
     await loadData();
-    Alert.alert(
+    showAlert(
       "Reminder Rescheduled ✅",
       `You'll be reminded on ${rescheduleDate.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}.`,
     );

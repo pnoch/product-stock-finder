@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -502,7 +503,7 @@ export default function WatchlistScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               const ok = await refreshAll();
               if (!ok) {
-                Alert.alert(
+                showAlert(
                   "Couldn't refresh prices",
                   "The server is unreachable. Showing saved prices.",
                 );

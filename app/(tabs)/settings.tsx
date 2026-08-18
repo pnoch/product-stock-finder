@@ -8,13 +8,13 @@ import {
   TouchableOpacity,
   Switch,
   Linking,
-  Alert,
   Platform,
   ActivityIndicator,
   Modal,
   TextInput,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { startOAuthLogin } from "@/constants/oauth";
@@ -253,7 +253,7 @@ export default function SettingsScreen() {
   const handleSignOutDevice = useCallback(
     (device: DeviceInfo) => {
       const name = device.label ?? `${device.deviceId.slice(0, 12)}…`;
-      Alert.alert(
+      showAlert(
         "Sign Out Device",
         `Sign out ${name} and remove it from your account? It will be signed out on its next connection.`,
         [
@@ -333,7 +333,7 @@ export default function SettingsScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const sent = await sendTestNotification();
     if (!sent) {
-      Alert.alert(
+      showAlert(
         "Permission Required",
         "Please enable notifications in your device settings to receive stock and price alerts.",
         [{ text: "OK" }],
