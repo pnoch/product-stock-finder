@@ -20,6 +20,16 @@ export interface TagDefinition {
   color: string;
 }
 
+export type WatchlistSort =
+  | "recent"
+  | "best_price"
+  | "az"
+  | "price_drop"
+  | "status"
+  | "region";
+
+export type WatchlistGroup = "off" | "tag" | "status" | "region";
+
 export interface Distributor {
   id: string;
   name: string;
@@ -129,6 +139,8 @@ export interface AppSettings {
   digestFrequency?: "off" | "daily" | "weekly";
   webNotificationsEnabled?: boolean;
   tagDefinitions?: Record<string, TagDefinition>;
+  watchlistSort?: WatchlistSort;
+  watchlistGroup?: WatchlistGroup;
 }
 
 export type Collection = "watchlist" | "alerts" | "reminders" | "settings";

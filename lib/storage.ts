@@ -89,6 +89,8 @@ export function createStorage(
     priceAlerts: true,
     shippingRegion: "Asia-Pacific",
     webNotificationsEnabled: false,
+    watchlistSort: "recent",
+    watchlistGroup: "off",
   };
 
   // ─── Watchlist ──────────────────────────────────────────────────────────────
