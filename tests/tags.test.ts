@@ -77,11 +77,15 @@ describe("matchesTagFilter", () => {
   });
 
   it("matches when the product has any selected tag (OR)", () => {
-    expect(matchesTagFilter(makeProduct({ tags: ["b"] }), ["a", "b"])).toBe(true);
+    expect(matchesTagFilter(makeProduct({ tags: ["b"] }), ["a", "b"])).toBe(
+      true,
+    );
   });
 
   it("does not match when the product has none of the selected tags", () => {
-    expect(matchesTagFilter(makeProduct({ tags: ["c"] }), ["a", "b"])).toBe(false);
+    expect(matchesTagFilter(makeProduct({ tags: ["c"] }), ["a", "b"])).toBe(
+      false,
+    );
   });
 
   it("does not match a product with no tags", () => {

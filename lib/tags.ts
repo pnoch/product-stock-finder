@@ -27,9 +27,7 @@ export function tagColor(
   return getTagById(defs, id)?.color ?? TAG_PALETTE[0];
 }
 
-export function nextTagColor(
-  defs: Record<string, TagDefinition>,
-): string {
+export function nextTagColor(defs: Record<string, TagDefinition>): string {
   const used = new Set(Object.values(defs).map((d) => d.color));
   const free = TAG_PALETTE.find((c) => !used.has(c));
   if (free) return free;

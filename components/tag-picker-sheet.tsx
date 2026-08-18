@@ -21,7 +21,12 @@ interface Props {
   onChanged: () => void;
 }
 
-export function TagPickerSheet({ visible, product, onClose, onChanged }: Props) {
+export function TagPickerSheet({
+  visible,
+  product,
+  onClose,
+  onChanged,
+}: Props) {
   const colors = useColors();
   const [defs, setDefs] = useState<Record<string, TagDefinition>>({});
   const [selected, setSelected] = useState<string[]>([]);
@@ -30,7 +35,9 @@ export function TagPickerSheet({ visible, product, onClose, onChanged }: Props) 
 
   useEffect(() => {
     if (!visible || !product) return;
-    void getTagDefinitions().then(setDefs).catch(() => {});
+    void getTagDefinitions()
+      .then(setDefs)
+      .catch(() => {});
     setSelected(product.tags ?? []);
     setNewTagName("");
     setError(null);
@@ -108,7 +115,9 @@ export function TagPickerSheet({ visible, product, onClose, onChanged }: Props) 
           </Text>
           <ScrollView style={{ maxHeight: 300 }}>
             {tags.length === 0 && (
-              <Text style={{ color: colors.muted, fontSize: 14, marginBottom: 12 }}>
+              <Text
+                style={{ color: colors.muted, fontSize: 14, marginBottom: 12 }}
+              >
                 No tags yet — create one below.
               </Text>
             )}

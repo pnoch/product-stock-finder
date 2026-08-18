@@ -35,7 +35,9 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
 
   useEffect(() => {
     if (!visible) return;
-    void getTagDefinitions().then(setDefs).catch(() => {});
+    void getTagDefinitions()
+      .then(setDefs)
+      .catch(() => {});
     setEditingId(null);
     setEditName("");
     setError(null);
