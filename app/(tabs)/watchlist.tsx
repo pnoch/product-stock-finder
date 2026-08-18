@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  FlatList,
+  SectionList,
   Image,
   Text,
   TextInput,
@@ -1115,14 +1115,15 @@ export default function WatchlistScreen() {
         </View>
       )}
 
-      <FlatList
-        data={sortWatchlist(filteredWatchlist, sortMode)}
+      <SectionList
+        sections={sections.map((s) => ({ ...s, data: s.products }))}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
           paddingHorizontal: 20,
           paddingBottom: 24,
           flexGrow: 1,
         }}
+        stickySectionHeadersEnabled={false}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshingAny}
@@ -1148,7 +1149,10 @@ export default function WatchlistScreen() {
                 marginTop: 16,
               }}
             >
-              {regionFilter !== "all" || selectedTagIds.length > 0
+              {regionFilter !== "all" ||
+              selectedTagIds.length > 0 ||
+              statusFilter !== "all" ||
+              query.trim().length > 0
                 ? "No products match your filters"
                 : "No products yet"}
             </Text>
@@ -1160,11 +1164,17 @@ export default function WatchlistScreen() {
                 marginTop: 8,
               }}
             >
-              {regionFilter !== "all" || selectedTagIds.length > 0
+              {regionFilter !== "all" ||
+              selectedTagIds.length > 0 ||
+              statusFilter !== "all" ||
+              query.trim().length > 0
                 ? "Try clearing your filters or adding products"
                 : "Add products to track their availability and prices globally"}
             </Text>
-            {regionFilter !== "all" || selectedTagIds.length > 0 ? (
+            {regionFilter !== "all" ||
+            selectedTagIds.length > 0 ||
+            statusFilter !== "all" ||
+            query.trim().length > 0 ? (
               <TouchableOpacity
                 style={{
                   backgroundColor: colors.primary,
@@ -1176,6 +1186,8 @@ export default function WatchlistScreen() {
                 onPress={() => {
                   setRegionFilter("all");
                   setSelectedTagIds([]);
+                  setStatusFilter("all");
+                  setQuery("");
                 }}
               >
                 <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
@@ -1204,10 +1216,63 @@ export default function WatchlistScreen() {
             )}
           </View>
         }
+        renderSectionHeader={({ section }) => {
+          if (groupMode === "off") return null;
+          const tag =
+            groupMode === "tag"
+              ? Object.values(tagDefinitions).find(
+                  (t) => t.name === section.title,
+                )
+              : undefined;
+          return (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                paddingVertical: 8,
+                backgroundColor: colors.background,
+              }}
+            >
+              {tag && (
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: tag.color,
+                  }}
+                />
+              )}
+              <Text
+                style={{ color: colors.foreground, fontWeight: "700", fontSize: 14 }}
+              >
+                {section.title}
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                · {section.products.length}
+              </Text>
+            </View>
+          );
+        }}
         renderItem={({ item }) => (
           <ProductCard
             product={item}
-            onPress={() => router.push(`/product/${item.id}`)}
+            selectionMode={selectionMode}
+            selected={selectedIds.has(item.id)}
+            onPress={() => {
+              if (selectionMode) {
+                toggleSelection(item.id);
+              } else {
+                router.push(`/product/${item.id}`);
+              }
+            }}
+            onLongPress={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setSelectionMode(true);
+              setSelectedIds(new Set([item.id]));
+            }}
             onDelete={() => handleDelete(item.id, item.name)}
             onTagPress={() => setPickerProduct(item)}
             tagDefinitions={tagDefinitions}
@@ -1230,6 +1295,13 @@ export default function WatchlistScreen() {
           void reload();
           void loadData();
         }}
+      />
+      <BulkTagSheet
+        visible={bulkTagVisible}
+        productIds={Array.from(selectedIds)}
+        tagDefinitions={tagDefinitions}
+        onClose={() => setBulkTagVisible(false)}
+        onChanged={handleBulkTagChanged}
       />
     </ScreenContainer>
   );
