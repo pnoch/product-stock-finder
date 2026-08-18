@@ -89,7 +89,7 @@ lib/                   App logic
   device-id.ts         Persistent device id generation
   device-revoked.ts    Device-revoked handling (sign-out on other device)
   price-chart.ts, price-history.ts, price-digest.ts, restock.ts, tax.ts, region-filter.ts,
-  best-deal.ts, distributor-analysis.ts, watchlist-summary.ts, last-refreshed.ts
+  best-deal.ts, distributor-analysis.ts, watchlist-summary.ts, watchlist-org.ts, last-refreshed.ts
   health.ts            Distributor health probe (classifyResult → classifyFetchStatus)
   theme-provider.tsx   NativeWind + Appearance theme provider
   trpc.ts              tRPC React client setup

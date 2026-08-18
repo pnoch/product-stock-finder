@@ -492,3 +492,12 @@
 - [x] Tag filter chip row on the watchlist screen with OR semantics, combined with the region filter
 - [x] Sheet-based tag management: rename, recolor, delete (strips id from products)
 - [x] lib/tags.ts helpers + storage CRUD with unit tests
+
+## Phase 55: Watchlist Organization (v5.3)
+
+- [x] lib/watchlist-org.ts: productStatus/productRegion/priceDropPercent, filterWatchlist (region+tag+status+query AND), sortWatchlist (6 modes), groupWatchlist (off/tag/status/region with untagged + multi-tag duplication)
+- [x] Tappable summary counts filter by stock status; search bar matches name+model; Sort dropdown + group chips
+- [x] Grouped section headers (tag color dot, status, region) above the list
+- [x] Long-press bulk selection: delete (confirm) + add-tags via BulkTagSheet (addTagsToProducts storage helper)
+- [x] watchlistSort/watchlistGroup persisted in AppSettings and synced via settings collection
+- [x] Tests: watchlist-org unit tests + addTagsToProducts storage test
