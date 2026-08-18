@@ -16,9 +16,9 @@ import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveWatchlist } from "@/hooks/use-live-prices";
-import { getSettings, removeFromWatchlist } from "@/lib/storage";
+import { getSettings, getTagDefinitions, removeFromWatchlist } from "@/lib/storage";
 import { computeWatchlistSummary } from "@/lib/watchlist-summary";
-import { Product } from "@/lib/types";
+import { Product, TagDefinition } from "@/lib/types";
 import { formatPrice, getBestPrice, convertPrice } from "@/lib/currency";
 import {
   formatLastRefreshed,
@@ -27,6 +27,9 @@ import {
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { checkPriceDropsNow } from "@/lib/background-price-check";
 import { getAllRegions, productHasRegion } from "@/lib/region-filter";
+import { getTagById, matchesTagFilter } from "@/lib/tags";
+import { TagPickerSheet } from "@/components/tag-picker-sheet";
+import { TagManageSheet } from "@/components/tag-manage-sheet";
 import { fetchProductImage } from "@/lib/server-images";
 
 type SortMode = "recent" | "best_price" | "az";
@@ -99,10 +102,14 @@ function ProductCard({
   product,
   onPress,
   onDelete,
+  onTagPress,
+  tagDefinitions,
 }: {
   product: Product;
   onPress: () => void;
   onDelete: () => void;
+  onTagPress: () => void;
+  tagDefinitions: Record<string, TagDefinition>;
 }) {
   const colors = useColors();
   const bestPrice = getBestPrice(product.listings ?? [], "USD");
@@ -210,6 +217,60 @@ function ProductCard({
           })()}
         </View>
       </View>
+      {(product.tags?.length ?? 0) > 0 && (
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 6,
+            marginTop: 10,
+          }}
+        >
+          {(product.tags ?? []).slice(0, 3).map((id) => {
+            const tag = getTagById(tagDefinitions, id);
+            if (!tag) return null;
+            return (
+              <View
+                key={id}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: colors.surface,
+                  borderRadius: 10,
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <View
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: 3.5,
+                    backgroundColor: tag.color,
+                    marginRight: 5,
+                  }}
+                />
+                <Text style={{ color: colors.muted, fontSize: 11 }}>
+                  {tag.name}
+                </Text>
+              </View>
+            );
+          })}
+          {(product.tags?.length ?? 0) > 3 && (
+            <Text
+              style={{
+                color: colors.muted,
+                fontSize: 11,
+                alignSelf: "center",
+              }}
+            >
+              +{(product.tags?.length ?? 0) - 3}
+            </Text>
+          )}
+        </View>
+      )}
       <View
         style={{
           flexDirection: "row",
@@ -242,6 +303,19 @@ function ProductCard({
         <TouchableOpacity
           onPress={(e) => {
             e.stopPropagation();
+            onTagPress();
+          }}
+          style={{ padding: 4, marginRight: 4 }}
+        >
+          <IconSymbol
+            name="tag.fill"
+            size={16}
+            color={(product.tags?.length ?? 0) > 0 ? colors.primary : colors.muted}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={(e) => {
+            e.stopPropagation();
             onDelete();
           }}
           style={{ padding: 4 }}
@@ -271,11 +345,18 @@ export default function WatchlistScreen() {
   } | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [regionFilter, setRegionFilter] = useState<string>("all");
+  const [tagDefinitions, setTagDefinitions] = useState<
+    Record<string, TagDefinition>
+  >({});
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [pickerProduct, setPickerProduct] = useState<Product | null>(null);
+  const [manageVisible, setManageVisible] = useState(false);
   const regions = useMemo(() => getAllRegions(), []);
 
   const loadData = useCallback(async () => {
     const settings = await getSettings();
     setDisplayCurrency(settings?.displayCurrency ?? "USD");
+    setTagDefinitions(await getTagDefinitions());
   }, []);
 
   useFocusEffect(
@@ -287,16 +368,26 @@ export default function WatchlistScreen() {
 
   const filteredWatchlist = useMemo(
     () =>
-      regionFilter === "all"
-        ? watchlist
-        : watchlist.filter((p) => productHasRegion(p, regionFilter)),
-    [watchlist, regionFilter],
+      watchlist.filter(
+        (p) =>
+          (regionFilter === "all" || productHasRegion(p, regionFilter)) &&
+          matchesTagFilter(p, selectedTagIds),
+      ),
+    [watchlist, regionFilter, selectedTagIds],
   );
 
   const summary = useMemo(
     () => computeWatchlistSummary(filteredWatchlist, displayCurrency),
     [filteredWatchlist, displayCurrency],
   );
+
+  const toggleTagFilter = useCallback((tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId)
+        ? prev.filter((id) => id !== tagId)
+        : [...prev, tagId],
+    );
+  }, []);
 
   const handleDelete = useCallback(
     (productId: string, productName: string) => {
@@ -664,6 +755,65 @@ export default function WatchlistScreen() {
         </View>
       )}
 
+      {Object.keys(tagDefinitions).length > 0 && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            marginBottom: 8,
+            gap: 8,
+          }}
+        >
+          <View style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {Object.values(tagDefinitions).map((tag) => {
+              const active = selectedTagIds.includes(tag.id);
+              return (
+                <TouchableOpacity
+                  key={tag.id}
+                  onPress={() => toggleTagFilter(tag.id)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 16,
+                    backgroundColor: active ? colors.primary : colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: active ? "#fff" : tag.color,
+                      marginRight: 6,
+                    }}
+                  />
+                  <Text
+                    style={{
+                      color: active ? "#fff" : colors.foreground,
+                      fontSize: 13,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {tag.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <TouchableOpacity
+            onPress={() => setManageVisible(true)}
+            style={{ padding: 4 }}
+          >
+            <IconSymbol name="slider.horizontal.3" size={18} color={colors.muted} />
+          </TouchableOpacity>
+        </View>
+      )}
+
       <FlatList
         data={sortWatchlist(filteredWatchlist, sortMode)}
         keyExtractor={(item) => item.id}
@@ -697,8 +847,8 @@ export default function WatchlistScreen() {
                 marginTop: 16,
               }}
             >
-              {regionFilter !== "all"
-                ? "No products in this region"
+              {regionFilter !== "all" || selectedTagIds.length > 0
+                ? "No products match your filters"
                 : "No products yet"}
             </Text>
             <Text
@@ -709,11 +859,11 @@ export default function WatchlistScreen() {
                 marginTop: 8,
               }}
             >
-              {regionFilter !== "all"
-                ? `No tracked products have distributors in ${regionFilter}`
+              {regionFilter !== "all" || selectedTagIds.length > 0
+                ? "Try clearing your filters or adding products"
                 : "Add products to track their availability and prices globally"}
             </Text>
-            {regionFilter !== "all" ? (
+            {regionFilter !== "all" || selectedTagIds.length > 0 ? (
               <TouchableOpacity
                 style={{
                   backgroundColor: colors.primary,
@@ -722,12 +872,13 @@ export default function WatchlistScreen() {
                   paddingVertical: 12,
                   marginTop: 20,
                 }}
-                onPress={() => setRegionFilter("all")}
+                onPress={() => {
+                  setRegionFilter("all");
+                  setSelectedTagIds([]);
+                }}
               >
-                <Text
-                  style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
-                >
-                  Show All
+                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
+                  Clear Filters
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -745,9 +896,7 @@ export default function WatchlistScreen() {
                   router.push("/search");
                 }}
               >
-                <Text
-                  style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
-                >
+                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
                   Add Product
                 </Text>
               </TouchableOpacity>
@@ -759,8 +908,27 @@ export default function WatchlistScreen() {
             product={item}
             onPress={() => router.push(`/product/${item.id}`)}
             onDelete={() => handleDelete(item.id, item.name)}
+            onTagPress={() => setPickerProduct(item)}
+            tagDefinitions={tagDefinitions}
           />
         )}
+      />
+      <TagPickerSheet
+        visible={!!pickerProduct}
+        product={pickerProduct}
+        onClose={() => setPickerProduct(null)}
+        onChanged={() => {
+          void reload();
+          void loadData();
+        }}
+      />
+      <TagManageSheet
+        visible={manageVisible}
+        onClose={() => setManageVisible(false)}
+        onChanged={() => {
+          void reload();
+          void loadData();
+        }}
       />
     </ScreenContainer>
   );
