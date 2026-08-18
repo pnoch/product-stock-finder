@@ -276,6 +276,23 @@ export function createStorage(
     });
   }
 
+  async function addTagsToProducts(
+    productIds: string[],
+    tagIds: string[],
+  ): Promise<void> {
+    await enqueue(KEYS.WATCHLIST, async () => {
+      const list = await getWatchlist();
+      const idSet = new Set(productIds);
+      const updated = list.map((p) =>
+        idSet.has(p.id)
+          ? { ...p, tags: Array.from(new Set([...(p.tags ?? []), ...tagIds])) }
+          : p,
+      );
+      await saveWatchlist(updated);
+      for (const id of productIds) notify("watchlist", id);
+    });
+  }
+
   async function createTag(
     name: string,
     color: string,
@@ -688,6 +705,7 @@ export function createStorage(
     getTagDefinitions,
     saveTagDefinitions,
     setProductTags,
+    addTagsToProducts,
     createTag,
     renameTag,
     setTagColor,
@@ -749,6 +767,7 @@ export const {
   getTagDefinitions,
   saveTagDefinitions,
   setProductTags,
+  addTagsToProducts,
   createTag,
   renameTag,
   setTagColor,
