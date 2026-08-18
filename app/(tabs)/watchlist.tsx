@@ -3,6 +3,7 @@ import {
   FlatList,
   Image,
   Text,
+  TextInput,
   View,
   TouchableOpacity,
   RefreshControl,
@@ -17,9 +18,19 @@ import { showAlert } from "@/lib/alert";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveWatchlist } from "@/hooks/use-live-prices";
-import { getSettings, getTagDefinitions, removeFromWatchlist } from "@/lib/storage";
+import {
+  getSettings,
+  saveSettings,
+  getTagDefinitions,
+  removeFromWatchlist,
+} from "@/lib/storage";
 import { computeWatchlistSummary } from "@/lib/watchlist-summary";
-import { Product, TagDefinition } from "@/lib/types";
+import {
+  Product,
+  TagDefinition,
+  WatchlistGroup,
+  WatchlistSort,
+} from "@/lib/types";
 import { formatPrice, getBestPrice, convertPrice } from "@/lib/currency";
 import {
   formatLastRefreshed,
@@ -27,40 +38,21 @@ import {
 } from "@/lib/last-refreshed";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { checkPriceDropsNow } from "@/lib/background-price-check";
-import { getAllRegions, productHasRegion } from "@/lib/region-filter";
-import { getTagById, matchesTagFilter } from "@/lib/tags";
+import { getAllRegions } from "@/lib/region-filter";
+import { getTagById } from "@/lib/tags";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { TagManageSheet } from "@/components/tag-manage-sheet";
+import { BulkTagSheet } from "@/components/bulk-tag-sheet";
 import { fetchProductImage } from "@/lib/server-images";
-
-type SortMode = "recent" | "best_price" | "az";
-
-const SORT_OPTIONS: { key: SortMode; label: string }[] = [
-  { key: "recent", label: "Recent" },
-  { key: "best_price", label: "Best Price" },
-  { key: "az", label: "A–Z" },
-];
-
-function sortWatchlist(list: Product[], mode: SortMode): Product[] {
-  const copy = [...list];
-  if (mode === "recent") {
-    return copy.sort(
-      (a, b) =>
-        new Date(b.addedAt ?? 0).getTime() - new Date(a.addedAt ?? 0).getTime(),
-    );
-  }
-  if (mode === "az") {
-    return copy.sort((a, b) => a.name.localeCompare(b.name));
-  }
-  if (mode === "best_price") {
-    return copy.sort((a, b) => {
-      const pa = getBestPrice(a.listings ?? [], "USD")?.price ?? Infinity;
-      const pb = getBestPrice(b.listings ?? [], "USD")?.price ?? Infinity;
-      return pa - pb;
-    });
-  }
-  return copy;
-}
+import {
+  filterWatchlist,
+  groupWatchlist,
+  productStatus,
+  sortWatchlist,
+  GROUP_OPTIONS,
+  SORT_OPTIONS,
+  type StatusFilter,
+} from "@/lib/watchlist-org";
 
 function StockBadge({ status }: { status: string }) {
   const colors = useColors();
@@ -105,20 +97,22 @@ function ProductCard({
   onDelete,
   onTagPress,
   tagDefinitions,
+  selectionMode = false,
+  selected = false,
+  onLongPress,
 }: {
   product: Product;
   onPress: () => void;
   onDelete: () => void;
   onTagPress: () => void;
   tagDefinitions: Record<string, TagDefinition>;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onLongPress?: () => void;
 }) {
   const colors = useColors();
   const bestPrice = getBestPrice(product.listings ?? [], "USD");
-  const bestStatus =
-    product.listings?.find((l) => l.stockStatus === "in_stock")?.stockStatus ??
-    product.listings?.find((l) => l.stockStatus === "back_order")
-      ?.stockStatus ??
-    "out_of_stock";
+  const bestStatus = productStatus(product);
   const distributorCount = product.listings?.length ?? 0;
   const validTags = (product.tags ?? []).filter((id) =>
     getTagById(tagDefinitions, id),
@@ -142,10 +136,12 @@ function ProductCard({
         borderRadius: 16,
         padding: 16,
         marginBottom: 12,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: selectionMode ? 2 : 1,
+        borderColor: selected ? colors.primary : colors.border,
       }}
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
     >
       <View
         style={{
@@ -154,6 +150,22 @@ function ProductCard({
           alignItems: "flex-start",
         }}
       >
+        {selectionMode && (
+          <View
+            style={{
+              width: 26,
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 8,
+            }}
+          >
+            <IconSymbol
+              name={selected ? "checkmark.circle.fill" : "circle.fill"}
+              size={22}
+              color={selected ? colors.primary : colors.muted}
+            />
+          </View>
+        )}
         {imageUrl && (
           <Image
             source={{ uri: imageUrl }}
@@ -341,7 +353,11 @@ export default function WatchlistScreen() {
     reload,
     refreshAll,
   } = useLiveWatchlist();
-  const [sortMode, setSortMode] = useState<SortMode>("recent");
+  const [sortMode, setSortMode] = useState<WatchlistSort>("recent");
+  const [groupMode, setGroupMode] = useState<WatchlistGroup>("off");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [query, setQuery] = useState("");
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [checking, setChecking] = useState(false);
   const [checkProgress, setCheckProgress] = useState<{
     current: number;
@@ -355,11 +371,16 @@ export default function WatchlistScreen() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [pickerProduct, setPickerProduct] = useState<Product | null>(null);
   const [manageVisible, setManageVisible] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkTagVisible, setBulkTagVisible] = useState(false);
   const regions = useMemo(() => getAllRegions(), []);
 
   const loadData = useCallback(async () => {
     const settings = await getSettings();
     setDisplayCurrency(settings?.displayCurrency ?? "USD");
+    setSortMode(settings?.watchlistSort ?? "recent");
+    setGroupMode(settings?.watchlistGroup ?? "off");
     const defs = await getTagDefinitions();
     setTagDefinitions(defs);
     setSelectedTagIds((prev) => prev.filter((id) => id in defs));
@@ -374,17 +395,28 @@ export default function WatchlistScreen() {
 
   const filteredWatchlist = useMemo(
     () =>
-      watchlist.filter(
-        (p) =>
-          (regionFilter === "all" || productHasRegion(p, regionFilter)) &&
-          matchesTagFilter(p, selectedTagIds),
+      filterWatchlist(watchlist, {
+        region: regionFilter,
+        tagIds: selectedTagIds,
+        status: statusFilter,
+        query,
+      }),
+    [watchlist, regionFilter, selectedTagIds, statusFilter, query],
+  );
+
+  const sections = useMemo(
+    () =>
+      groupWatchlist(
+        sortWatchlist(filteredWatchlist, sortMode),
+        groupMode,
+        tagDefinitions,
       ),
-    [watchlist, regionFilter, selectedTagIds],
+    [filteredWatchlist, sortMode, groupMode, tagDefinitions],
   );
 
   const summary = useMemo(
-    () => computeWatchlistSummary(filteredWatchlist, displayCurrency),
-    [filteredWatchlist, displayCurrency],
+    () => computeWatchlistSummary(watchlist, displayCurrency),
+    [watchlist, displayCurrency],
   );
 
   const toggleTagFilter = useCallback((tagId: string) => {
@@ -394,6 +426,57 @@ export default function WatchlistScreen() {
         : [...prev, tagId],
     );
   }, []);
+
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const exitSelection = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleBulkDelete = useCallback(() => {
+    const ids = Array.from(selectedIds);
+    const count = ids.length;
+    const doRemove = async () => {
+      if (Platform.OS !== "web")
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      for (const id of ids) await removeFromWatchlist(id);
+      await reload();
+      exitSelection();
+    };
+    if (Platform.OS === "web") {
+      if (
+        typeof window !== "undefined" &&
+        window.confirm(
+          `Remove ${count} product${count !== 1 ? "s" : ""} from your watchlist?`,
+        )
+      ) {
+        void doRemove();
+      }
+      return;
+    }
+    Alert.alert(
+      "Remove Products",
+      `Remove ${count} product${count !== 1 ? "s" : ""} from your watchlist?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Remove", style: "destructive", onPress: doRemove },
+      ],
+    );
+  }, [selectedIds, reload, exitSelection]);
+
+  const handleBulkTagChanged = useCallback(() => {
+    void reload();
+    void loadData();
+    exitSelection();
+  }, [reload, loadData, exitSelection]);
 
   const handleDelete = useCallback(
     (productId: string, productName: string) => {
@@ -445,6 +528,18 @@ export default function WatchlistScreen() {
     }
   }, [checking, watchlist.length, reload, refreshAll, loadData]);
 
+  const persistViewPrefs = useCallback(
+    async (sort: WatchlistSort, group: WatchlistGroup) => {
+      const settings = await getSettings();
+      await saveSettings({
+        ...settings,
+        watchlistSort: sort,
+        watchlistGroup: group,
+      });
+    },
+    [],
+  );
+
   if (!loaded) {
     return (
       <ScreenContainer>
@@ -459,14 +554,75 @@ export default function WatchlistScreen() {
 
   return (
     <ScreenContainer>
-      <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
-        <View>
-          <Text className="text-2xl font-bold text-foreground">Watchlist</Text>
-          <Text className="text-muted text-sm">
-            {filteredWatchlist.length} product
-            {filteredWatchlist.length !== 1 ? "s" : ""} tracked
-          </Text>
+      {selectionMode ? (
+        <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
+          <View>
+            <Text className="text-2xl font-bold text-foreground">
+              {selectedIds.size} Selected
+            </Text>
+            <Text className="text-muted text-sm">Tap products to select</Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TouchableOpacity
+              onPress={handleBulkDelete}
+              style={{
+                backgroundColor: colors.error,
+                borderRadius: 20,
+                paddingHorizontal: 14,
+                height: 40,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <IconSymbol name="trash.fill" size={16} color="#fff" />
+              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+                Delete
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setBulkTagVisible(true)}
+              style={{
+                backgroundColor: colors.primary,
+                borderRadius: 20,
+                paddingHorizontal: 14,
+                height: 40,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <IconSymbol name="tag.fill" size={16} color="#fff" />
+              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+                Tag
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={exitSelection}
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 20,
+                width: 40,
+                height: 40,
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <IconSymbol name="xmark" size={18} color={colors.foreground} />
+            </TouchableOpacity>
+          </View>
         </View>
+      ) : (
+        <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
+          <View>
+            <Text className="text-2xl font-bold text-foreground">Watchlist</Text>
+            <Text className="text-muted text-sm">
+              {filteredWatchlist.length} product
+              {filteredWatchlist.length !== 1 ? "s" : ""} tracked
+            </Text>
+          </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <TouchableOpacity
             onPress={() => {
@@ -581,6 +737,7 @@ export default function WatchlistScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      )}
 
       {watchlist.length > 0 && (
         <View
@@ -614,45 +771,59 @@ export default function WatchlistScreen() {
               {formatPrice(summary.totalValue, displayCurrency)}
             </Text>
           </View>
-          <View style={{ flexDirection: "row", marginTop: 12, gap: 12 }}>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
+          <View style={{ flexDirection: "row", marginTop: 12, gap: 8 }}>
+            {(
+              [
+                {
+                  key: "in_stock",
+                  label: "In Stock",
+                  value: summary.inStock,
                   color: colors.success,
-                  fontSize: 16,
-                  fontWeight: "600",
-                }}
-              >
-                {summary.inStock}
-              </Text>
-              <Text style={{ color: colors.muted, fontSize: 12 }}>
-                In Stock
-              </Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
+                },
+                {
+                  key: "back_order",
+                  label: "Back Order",
+                  value: summary.backOrder,
                   color: colors.warning,
-                  fontSize: 16,
-                  fontWeight: "600",
+                },
+                {
+                  key: "out_of_stock",
+                  label: "Out of Stock",
+                  value: summary.outOfStock,
+                  color: colors.error,
+                },
+              ] as const
+            ).map((col) => (
+              <TouchableOpacity
+                key={col.key}
+                onPress={() => {
+                  if (Platform.OS !== "web")
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setStatusFilter((prev) =>
+                    prev === col.key ? "all" : col.key,
+                  );
+                }}
+                style={{
+                  flex: 1,
+                  borderRadius: 10,
+                  paddingVertical: 4,
+                  paddingHorizontal: 6,
+                  backgroundColor:
+                    statusFilter === col.key
+                      ? col.color + "22"
+                      : "transparent",
                 }}
               >
-                {summary.backOrder}
-              </Text>
-              <Text style={{ color: colors.muted, fontSize: 12 }}>
-                Back Order
-              </Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{ color: colors.error, fontSize: 16, fontWeight: "600" }}
-              >
-                {summary.outOfStock}
-              </Text>
-              <Text style={{ color: colors.muted, fontSize: 12 }}>
-                Out of Stock
-              </Text>
-            </View>
+                <Text
+                  style={{ color: col.color, fontSize: 16, fontWeight: "600" }}
+                >
+                  {col.value}
+                </Text>
+                <Text style={{ color: colors.muted, fontSize: 12 }}>
+                  {col.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
             <View style={{ flex: 1 }}>
               <Text
                 style={{
@@ -671,6 +842,49 @@ export default function WatchlistScreen() {
         </View>
       )}
 
+      {watchlist.length > 0 && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginHorizontal: 16,
+            marginBottom: 10,
+            paddingHorizontal: 12,
+            height: 40,
+            borderRadius: 12,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <IconSymbol name="magnifyingglass" size={16} color={colors.muted} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search watchlist..."
+            placeholderTextColor={colors.muted}
+            style={{
+              flex: 1,
+              marginLeft: 8,
+              color: colors.foreground,
+              fontSize: 14,
+            }}
+          />
+          {query.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setQuery("")}
+              style={{ padding: 4 }}
+            >
+              <IconSymbol
+                name="xmark.circle.fill"
+                size={16}
+                color={colors.muted}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
       {checking && checkProgress && (
         <View
           className="h-1 mx-4 mb-2 rounded-full overflow-hidden"
@@ -686,46 +900,121 @@ export default function WatchlistScreen() {
         </View>
       )}
 
-      {/* Sort Bar */}
       {watchlist.length > 0 && (
         <View
           style={{
             flexDirection: "row",
-            paddingHorizontal: 20,
+            alignItems: "center",
+            paddingHorizontal: 16,
             paddingBottom: 10,
             gap: 8,
+            flexWrap: "wrap",
           }}
         >
-          {SORT_OPTIONS.map((opt) => (
-            <TouchableOpacity
-              key={opt.key}
-              onPress={() => {
-                if (Platform.OS !== "web")
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setSortMode(opt.key);
-              }}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 7,
-                borderRadius: 20,
-                backgroundColor:
-                  sortMode === opt.key ? colors.primary : colors.surface,
-                borderWidth: 1,
-                borderColor:
-                  sortMode === opt.key ? colors.primary : colors.border,
-              }}
+          <TouchableOpacity
+            onPress={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setSortMenuOpen((v) => !v);
+            }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              paddingHorizontal: 14,
+              paddingVertical: 7,
+              borderRadius: 20,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <Text
+              style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }}
             >
-              <Text
+              Sort: {SORT_OPTIONS.find((o) => o.key === sortMode)?.label}
+            </Text>
+            <IconSymbol name="chevron.down" size={12} color={colors.muted} />
+          </TouchableOpacity>
+          {GROUP_OPTIONS.map((opt) => {
+            const active = groupMode === opt.key;
+            return (
+              <TouchableOpacity
+                key={opt.key}
+                onPress={() => {
+                  if (Platform.OS !== "web")
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setGroupMode(opt.key);
+                  void persistViewPrefs(sortMode, opt.key);
+                }}
                 style={{
-                  color: sortMode === opt.key ? "#fff" : colors.muted,
-                  fontWeight: "600",
-                  fontSize: 13,
+                  paddingHorizontal: 12,
+                  paddingVertical: 7,
+                  borderRadius: 20,
+                  backgroundColor: active ? colors.primary : colors.surface,
+                  borderWidth: 1,
+                  borderColor: active ? colors.primary : colors.border,
                 }}
               >
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={{
+                    color: active ? "#fff" : colors.muted,
+                    fontWeight: "600",
+                    fontSize: 13,
+                  }}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+
+      {sortMenuOpen && (
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 10,
+            borderRadius: 12,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            overflow: "hidden",
+          }}
+        >
+          {SORT_OPTIONS.map((opt) => {
+            const active = sortMode === opt.key;
+            return (
+              <TouchableOpacity
+                key={opt.key}
+                onPress={() => {
+                  if (Platform.OS !== "web")
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setSortMode(opt.key);
+                  setSortMenuOpen(false);
+                  void persistViewPrefs(opt.key, groupMode);
+                }}
+                style={{
+                  paddingVertical: 10,
+                  paddingHorizontal: 14,
+                  backgroundColor: active
+                    ? colors.primary + "18"
+                    : "transparent",
+                }}
+              >
+                <Text
+                  style={{
+                    color: active ? colors.primary : colors.foreground,
+                    fontWeight: "600",
+                    fontSize: 14,
+                  }}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
 
