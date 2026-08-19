@@ -1,7 +1,8 @@
-import type { ScrapeResult } from "./types";
+import type { DistributorParser, ScrapeResult } from "./types";
 import { PARSERS } from "./registry";
 import { fetchWithParser } from "./utils";
 import { classifyFetchStatus } from "./resilient";
+import type { FetchOutcome } from "./resilient";
 import type { StorageAdapter } from "../storage";
 
 export type HealthStatus = "working" | "blocked" | "error";
@@ -38,6 +39,24 @@ export function classifyResult(
   if (classifyFetchStatus(html) === "blocked") return "blocked";
   if (result && result.price > 0) return "working";
   return "error";
+}
+
+export function classifyProbeOutcome(
+  outcome: FetchOutcome,
+  parser: DistributorParser,
+): { status: HealthStatus; reason?: string } {
+  if (outcome.status === "ok" && outcome.html) {
+    const result = parser.parsePrice(outcome.html);
+    const status = classifyResult(outcome.html, result);
+    return { status, reason: status === "error" ? "no price found" : undefined };
+  }
+  if (outcome.status === "blocked") {
+    return { status: "blocked", reason: outcome.error ?? "blocked by site" };
+  }
+  if (outcome.status === "skipped") {
+    return { status: "blocked", reason: "in cooldown" };
+  }
+  return { status: "error", reason: outcome.error ?? "no price found" };
 }
 
 export function pruneHealthHistory(

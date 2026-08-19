@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import {
+  classifyProbeOutcome,
   classifyResult,
   computeHealthStats,
   createHealthService,
@@ -10,6 +11,7 @@ import type {
   HealthSample,
   HealthStatus,
 } from "@/lib/scrapers/health";
+import type { DistributorParser, ScrapeResult } from "@/lib/scrapers/types";
 import { BLOCKED_MARKERS } from "@/lib/scrapers/resilient";
 
 vi.mock("@/lib/scrapers/utils", async (importOriginal) => {
@@ -268,5 +270,68 @@ describe("computeHealthStats", () => {
 
   it("skips distributors with no samples", () => {
     expect(computeHealthStats({ d1: [] })).toEqual({});
+  });
+});
+
+describe("classifyProbeOutcome", () => {
+  function mockParser(
+    parsePrice: (html: string) => ScrapeResult | null,
+  ): DistributorParser {
+    return {
+      id: "test-parser",
+      baseUrl: "https://example.com",
+      buildSearchUrl: () => "https://example.com/search?q=CRS326",
+      parsePrice,
+      rateLimitMs: 0,
+    };
+  }
+
+  const workingParser = mockParser(() => ({
+    price: 100,
+    currency: "USD",
+    stockStatus: "in_stock" as const,
+    url: "x",
+  }));
+
+  it("maps ok outcome with a price to working", () => {
+    expect(
+      classifyProbeOutcome(
+        { status: "ok", method: "plain", html: "<html></html>" },
+        workingParser,
+      ),
+    ).toEqual({ status: "working" });
+  });
+
+  it("maps ok outcome without a price to error", () => {
+    expect(
+      classifyProbeOutcome(
+        { status: "ok", method: "plain", html: "<html></html>" },
+        mockParser(() => null),
+      ),
+    ).toEqual({ status: "error", reason: "no price found" });
+  });
+
+  it("maps blocked outcome to blocked", () => {
+    expect(
+      classifyProbeOutcome(
+        { status: "blocked", method: "plain", error: "403 Forbidden" },
+        workingParser,
+      ),
+    ).toEqual({ status: "blocked", reason: "403 Forbidden" });
+  });
+
+  it("maps skipped outcome to blocked with cooldown reason", () => {
+    expect(
+      classifyProbeOutcome({ status: "skipped", method: "none" }, workingParser),
+    ).toEqual({ status: "blocked", reason: "in cooldown" });
+  });
+
+  it("maps error outcome to error", () => {
+    expect(
+      classifyProbeOutcome(
+        { status: "error", method: "plain", error: "timeout" },
+        workingParser,
+      ),
+    ).toEqual({ status: "error", reason: "timeout" });
   });
 });
