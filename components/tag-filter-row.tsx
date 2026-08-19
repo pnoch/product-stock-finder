@@ -1,0 +1,136 @@
+import { Text, TouchableOpacity, View } from "react-native";
+
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useColors } from "@/hooks/use-colors";
+import { TagDefinition } from "@/lib/types";
+
+interface Props {
+  tagDefinitions: Record<string, TagDefinition>;
+  selectedTagIds: string[];
+  tagMatchMode: "any" | "all";
+  counts: Record<string, number>;
+  onToggleTag: (tagId: string) => void;
+  onChangeMode: (mode: "any" | "all") => void;
+  onClearAll: () => void;
+  onManage?: () => void;
+}
+
+export function TagFilterRow({
+  tagDefinitions,
+  selectedTagIds,
+  tagMatchMode,
+  counts,
+  onToggleTag,
+  onChangeMode,
+  onClearAll,
+  onManage,
+}: Props) {
+  const colors = useColors();
+  const tags = Object.values(tagDefinitions);
+  if (tags.length === 0) return null;
+  const hasSelection = selectedTagIds.length > 0;
+  const showMode = selectedTagIds.length >= 2;
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        marginBottom: 8,
+        gap: 8,
+      }}
+    >
+      <View
+        style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+      >
+        {tags.map((tag) => {
+          const active = selectedTagIds.includes(tag.id);
+          return (
+            <TouchableOpacity
+              key={tag.id}
+              onPress={() => onToggleTag(tag.id)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 16,
+                backgroundColor: active ? colors.primary : colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: active ? "#fff" : tag.color,
+                  marginRight: 6,
+                }}
+              />
+              <Text
+                style={{
+                  color: active ? "#fff" : colors.foreground,
+                  fontSize: 13,
+                  fontWeight: "600",
+                }}
+              >
+                {tag.name} · {counts[tag.id] ?? 0}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      {showMode && (
+        <View
+          style={{
+            flexDirection: "row",
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: colors.border,
+            overflow: "hidden",
+          }}
+        >
+          {(["any", "all"] as const).map((mode) => {
+            const active = tagMatchMode === mode;
+            return (
+              <TouchableOpacity
+                key={mode}
+                onPress={() => onChangeMode(mode)}
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  backgroundColor: active ? colors.primary : colors.surface,
+                }}
+              >
+                <Text
+                  style={{
+                    color: active ? "#fff" : colors.foreground,
+                    fontSize: 12,
+                    fontWeight: "600",
+                  }}
+                >
+                  {mode === "any" ? "Any" : "All"}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+      {hasSelection && (
+        <TouchableOpacity onPress={onClearAll} style={{ padding: 4 }}>
+          <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600" }}>
+            Clear
+          </Text>
+        </TouchableOpacity>
+      )}
+      {onManage && (
+        <TouchableOpacity onPress={onManage} style={{ padding: 4 }}>
+          <IconSymbol name="slider.horizontal.3" size={18} color={colors.muted} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
