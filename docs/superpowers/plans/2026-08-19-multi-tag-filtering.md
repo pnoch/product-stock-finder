@@ -82,7 +82,7 @@ describe("matchesTagFilterMode", () => {
   it("silently ignores orphaned tag ids in both modes", () => {
     const p = makeProduct({ tags: ["a"] });
     expect(matchesTagFilterMode(p, ["a", "missing"], "any")).toBe(true);
-    expect(matchesTagFilterMode(p, ["a", "missing"], "all")).toBe(true);
+    expect(matchesTagFilterMode(p, ["a", "missing"], "all")).toBe(false);
     expect(matchesTagFilterMode(p, ["missing"], "all")).toBe(false);
   });
 });
