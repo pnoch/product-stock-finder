@@ -511,3 +511,11 @@
 - [x] Watchlist uses TagFilterRow; counts update with active filters
 - [x] Add Product screen: tag filter row over the catalog + tag assignment (row icon + post-add sheet)
 - [x] Tests: tags OR/AND + watchlist-org tag modes + countTagMatches
+
+## Phase 57: Distributor Health History & Trends (v5.5)
+
+- [x] Rolling capped health history per distributor (30 days / 90 samples, local AsyncStorage)
+- [x] Passive capture: background price-check collector + manual Test All record history samples
+- [x] computeHealthStats: uptime %, trend (up/down/flat), status sparkline (working/blocked/error)
+- [x] Health dashboard rows show uptime %, trend glyph, and SVG sparkline
+- [x] Tests: health history storage, pruning, computeHealthStats, capture integration
