@@ -24,6 +24,7 @@ import {
 } from "@/lib/storage";
 import {
   registerPriceCheckTask,
+  registerHealthProbeTask,
   checkPriceDropsNow,
 } from "@/lib/background-price-check";
 import { setupWebNotifications } from "@/lib/web-notifications";
@@ -101,6 +102,8 @@ export default function RootLayout() {
       }
       // Register background price-check task
       registerPriceCheckTask();
+      // Register background health probe task
+      registerHealthProbeTask();
       // Run a foreground check immediately on app launch
       checkPriceDropsNow();
       // Register for Expo push delivery (best-effort)
