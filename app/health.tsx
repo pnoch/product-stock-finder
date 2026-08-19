@@ -8,17 +8,46 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import Svg, { Polyline } from "react-native-svg";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import {
+  computeHealthStats,
   createHealthService,
   DistributorHealth,
+  HealthStats,
   HealthStatus,
 } from "@/lib/scrapers/health";
 import { getDistributorById } from "@/lib/distributors";
 
 const healthService = createHealthService(AsyncStorage);
+
+function HealthSparkline({ data, color }: { data: number[]; color: string }) {
+  if (data.length < 2) return null;
+  const width = 60;
+  const height = 24;
+  const pad = 2;
+  const usableW = width - pad * 2;
+  const usableH = height - pad * 2;
+  const coords = data.map((v, i) => {
+    const x = pad + (i / (data.length - 1)) * usableW;
+    const y = pad + (1 - v) * usableH;
+    return `${x},${y}`;
+  });
+  return (
+    <Svg width={width} height={height}>
+      <Polyline
+        points={coords.join(" ")}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
 
 export default function HealthScreen() {
   const colors = useColors();
@@ -29,6 +58,7 @@ export default function HealthScreen() {
   );
   const [testing, setTesting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [stats, setStats] = useState<Record<string, HealthStats>>({});
 
   const statusColors: Record<HealthStatus, string> = {
     working: colors.success,
@@ -39,6 +69,8 @@ export default function HealthScreen() {
   const loadHealth = useCallback(async () => {
     const data = await healthService.getDistributorHealth();
     setHealth(data);
+    const history = await healthService.getHealthHistory();
+    setStats(computeHealthStats(history));
   }, []);
 
   useEffect(() => {
@@ -55,6 +87,8 @@ export default function HealthScreen() {
         },
       );
       setHealth(results);
+      const history = await healthService.getHealthHistory();
+      setStats(computeHealthStats(history));
     } finally {
       setTesting(false);
     }
@@ -206,11 +240,40 @@ export default function HealthScreen() {
                   {h.responseTimeMs ? ` · ${h.responseTimeMs}ms` : ""}
                 </Text>
               </View>
-              <Text style={{ color: colors.muted, fontSize: 11 }}>
-                {h.lastChecked
-                  ? new Date(h.lastChecked).toLocaleTimeString()
-                  : "Never"}
-              </Text>
+              <View style={{ alignItems: "flex-end", marginLeft: 8 }}>
+                <Text style={{ color: colors.muted, fontSize: 11 }}>
+                  {h.lastChecked
+                    ? new Date(h.lastChecked).toLocaleTimeString()
+                    : "Never"}
+                </Text>
+                {stats[h.distributorId] ? (
+                  <>
+                    <Text
+                      style={{
+                        color: statusColors[h.status],
+                        fontSize: 12,
+                        fontWeight: "700",
+                        marginTop: 2,
+                      }}
+                    >
+                      {stats[h.distributorId].uptimePct}%{" "}
+                      {stats[h.distributorId].trend === "up"
+                        ? "▲"
+                        : stats[h.distributorId].trend === "down"
+                          ? "▼"
+                          : "–"}
+                    </Text>
+                    <HealthSparkline
+                      data={stats[h.distributorId].sparkline}
+                      color={statusColors[h.status]}
+                    />
+                  </>
+                ) : (
+                  <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
+                    –
+                  </Text>
+                )}
+              </View>
             </View>
           );
         })}
