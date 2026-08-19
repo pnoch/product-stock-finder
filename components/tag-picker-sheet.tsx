@@ -19,6 +19,7 @@ interface Props {
   product: Product | null;
   onClose: () => void;
   onChanged: () => void;
+  onApply?: (tagIds: string[]) => void;
 }
 
 export function TagPickerSheet({
@@ -26,6 +27,7 @@ export function TagPickerSheet({
   product,
   onClose,
   onChanged,
+  onApply,
 }: Props) {
   const colors = useColors();
   const [defs, setDefs] = useState<Record<string, TagDefinition>>({});
@@ -50,6 +52,7 @@ export function TagPickerSheet({
       ? selected.filter((id) => id !== tagId)
       : [...selected, tagId];
     setSelected(next);
+    if (onApply) return;
     await setProductTags(product.id, next);
     onChanged();
   };
@@ -62,10 +65,11 @@ export function TagPickerSheet({
       const tag = await createTag(name, nextTagColor(current));
       const next = [...selected, tag.id];
       setSelected(next);
-      await setProductTags(product.id, next);
       setDefs({ ...current, [tag.id]: tag });
       setNewTagName("");
       setError(null);
+      if (onApply) return;
+      await setProductTags(product.id, next);
       onChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not create tag");
@@ -207,7 +211,10 @@ export function TagPickerSheet({
             </TouchableOpacity>
           </View>
           <TouchableOpacity
-            onPress={onClose}
+            onPress={() => {
+              if (onApply) onApply(selected);
+              onClose();
+            }}
             style={{ marginTop: 16, alignItems: "center", paddingVertical: 10 }}
           >
             <Text style={{ color: colors.muted, fontWeight: "600" }}>Done</Text>
