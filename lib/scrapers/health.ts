@@ -49,6 +49,45 @@ export function pruneHealthHistory(
   return fresh.slice(-HISTORY_MAX_SAMPLES);
 }
 
+export interface HealthStats {
+  uptimePct: number;
+  trend: "up" | "down" | "flat";
+  sparkline: number[];
+}
+
+const STATUS_VALUE: Record<HealthStatus, number> = {
+  working: 1,
+  blocked: 0.5,
+  error: 0,
+};
+
+export function computeHealthStats(
+  history: HealthHistory,
+): Record<string, HealthStats> {
+  const stats: Record<string, HealthStats> = {};
+  for (const [distributorId, samples] of Object.entries(history)) {
+    if (samples.length === 0) continue;
+    const working = samples.filter((s) => s.status === "working").length;
+    const uptimePct = Math.round((working / samples.length) * 100);
+    const half = Math.floor(samples.length / 2);
+    let trend: "up" | "down" | "flat" = "flat";
+    if (half > 0) {
+      const recent = samples.slice(half);
+      const earlier = samples.slice(0, half);
+      const recentUptime =
+        recent.filter((s) => s.status === "working").length / recent.length;
+      const earlierUptime =
+        earlier.filter((s) => s.status === "working").length / earlier.length;
+      const diff = recentUptime - earlierUptime;
+      if (diff >= 0.1) trend = "up";
+      else if (diff <= -0.1) trend = "down";
+    }
+    const sparkline = samples.slice(-30).map((s) => STATUS_VALUE[s.status]);
+    stats[distributorId] = { uptimePct, trend, sparkline };
+  }
+  return stats;
+}
+
 export function createHealthService(adapter: StorageAdapter) {
   async function getDistributorHealth(): Promise<DistributorHealth[]> {
     try {
