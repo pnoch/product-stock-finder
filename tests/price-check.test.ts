@@ -276,6 +276,8 @@ describe("registerHealthProbeTask", () => {
   beforeEach(() => {
     vi.mocked(BackgroundTask.registerTaskAsync).mockClear();
     vi.mocked(BackgroundTask.unregisterTaskAsync).mockClear();
+    state.taskRegistered = false;
+    state.settingsStore = { ...state.settingsStore, checkInterval: "manual" };
   });
 
   it("registers with hourly interval when checkInterval is hourly", async () => {
