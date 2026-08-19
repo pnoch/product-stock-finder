@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { classifyResult, createHealthService } from "@/lib/scrapers/health";
+import {
+  classifyResult,
+  createHealthService,
+  pruneHealthHistory,
+} from "@/lib/scrapers/health";
+import type { HealthSample, HealthStatus } from "@/lib/scrapers/health";
 import { BLOCKED_MARKERS } from "@/lib/scrapers/resilient";
 
 describe("classifyResult", () => {
@@ -131,5 +136,36 @@ describe("health history", () => {
     expect(history["server2u-my"]).toHaveLength(1);
     expect(history["linitx-uk"]).toHaveLength(1);
     expect(history["linitx-uk"][0].status).toBe("blocked");
+  });
+});
+
+describe("pruneHealthHistory", () => {
+  const now = new Date("2026-08-19T12:00:00Z").getTime();
+
+  function sample(daysAgo: number, status: HealthStatus = "working"): HealthSample {
+    return {
+      status,
+      at: new Date(now - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
+    };
+  }
+
+  it("drops samples older than 30 days", () => {
+    const samples = [sample(31), sample(10), sample(29)];
+    expect(pruneHealthHistory(samples, now)).toEqual([sample(10), sample(29)]);
+  });
+
+  it("caps at 90 samples, keeping the newest", () => {
+    const samples: HealthSample[] = Array.from({ length: 100 }, (_, i) => ({
+      status: "working",
+      at: new Date(now - (99 - i) * 60 * 1000).toISOString(),
+    }));
+    const pruned = pruneHealthHistory(samples, now);
+    expect(pruned).toHaveLength(90);
+    expect(pruned[0]).toEqual(samples[10]);
+    expect(pruned[89]).toEqual(samples[99]);
+  });
+
+  it("returns an empty array when everything is stale", () => {
+    expect(pruneHealthHistory([sample(31), sample(40)], now)).toEqual([]);
   });
 });
