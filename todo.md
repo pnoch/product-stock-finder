@@ -519,3 +519,11 @@
 - [x] computeHealthStats: uptime %, trend (up/down/flat), status sparkline (working/blocked/error)
 - [x] Health dashboard rows show uptime %, trend glyph, and SVG sparkline
 - [x] Tests: health history storage, pruning, computeHealthStats, capture integration
+
+## Phase 58: Scheduled Health Probes (v5.6)
+
+- [x] HEALTH_PROBE_TASK background task probes all 25 distributors on the checkInterval schedule
+- [x] testAllDistributors upgraded to resilientFetch with shared circuit-breaker store
+- [x] classifyProbeOutcome maps fetch outcomes (ok/blocked/skipped/error) to health status
+- [x] registerHealthProbeTask mirrors registerPriceCheckTask (manual unregisters, web no-op)
+- [x] Tests: outcome mapping, task registration, history recording
