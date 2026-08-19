@@ -126,7 +126,7 @@ export default function SearchScreen() {
   );
 
   // Load already-tracked product ids so the + button reflects watchlist membership
-  useEffect(() => {
+  const loadData = useCallback(() => {
     getWatchlist().then((wl) => {
       setWatchlist(wl);
       setTrackedIds(new Set(wl.map((p) => p.id)));
@@ -135,6 +135,10 @@ export default function SearchScreen() {
       .then(setTagDefinitions)
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   return (
     <ScreenContainer>
@@ -381,7 +385,9 @@ export default function SearchScreen() {
           visible={!!pickerItem}
           product={pickerItem}
           onClose={() => setPickerItem(null)}
-          onChanged={() => {}}
+          onChanged={() => {
+            loadData();
+          }}
           onApply={(tagIds) => {
             if (!pickerItem) return;
             setPendingTags((prev) => ({ ...prev, [pickerItem.id]: tagIds }));
@@ -398,7 +404,9 @@ export default function SearchScreen() {
             setPostAddProduct(null);
             router.back();
           }}
-          onChanged={() => {}}
+          onChanged={() => {
+            loadData();
+          }}
         />
       )}
     </ScreenContainer>

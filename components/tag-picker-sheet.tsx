@@ -68,7 +68,10 @@ export function TagPickerSheet({
       setDefs({ ...current, [tag.id]: tag });
       setNewTagName("");
       setError(null);
-      if (onApply) return;
+      if (onApply) {
+        onChanged();
+        return;
+      }
       await setProductTags(product.id, next);
       onChanged();
     } catch (e) {
