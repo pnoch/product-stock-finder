@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   classifyResult,
   computeHealthStats,
@@ -11,6 +11,14 @@ import type {
   HealthStatus,
 } from "@/lib/scrapers/health";
 import { BLOCKED_MARKERS } from "@/lib/scrapers/resilient";
+
+vi.mock("@/lib/scrapers/utils", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/scrapers/utils")>();
+  return {
+    ...actual,
+    fetchWithParser: vi.fn(async () => "<html>Access Denied</html>"),
+  };
+});
 
 describe("classifyResult", () => {
   it("returns working when result has a price", () => {
@@ -105,6 +113,19 @@ describe("createHealthService", () => {
     await adapter.setItem("distributor_health", "not json");
     const service = createHealthService(adapter);
     expect(await service.getDistributorHealth()).toEqual([]);
+  });
+
+  it("testAllDistributors records history samples", async () => {
+    const adapter = createMockAdapter();
+    const service = createHealthService(adapter);
+    const results = await service.testAllDistributors();
+    const history = await service.getHealthHistory();
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      const samples = history[r.distributorId];
+      expect(samples).toBeDefined();
+      expect(samples[samples.length - 1].status).toBe(r.status);
+    }
   });
 });
 

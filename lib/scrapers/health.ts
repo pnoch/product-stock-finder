@@ -177,6 +177,9 @@ export function createHealthService(adapter: StorageAdapter) {
     }
 
     await saveDistributorHealth(results);
+    for (const r of results) {
+      await recordSample(r.distributorId, r.status, r.reason);
+    }
     return results;
   }
 
