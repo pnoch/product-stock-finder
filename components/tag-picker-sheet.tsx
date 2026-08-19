@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Modal,
   ScrollView,
@@ -32,6 +32,7 @@ export function TagPickerSheet({
   const colors = useColors();
   const [defs, setDefs] = useState<Record<string, TagDefinition>>({});
   const [selected, setSelected] = useState<string[]>([]);
+  const selectedRef = useRef<string[]>([]);
   const [newTagName, setNewTagName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -40,18 +41,26 @@ export function TagPickerSheet({
     void getTagDefinitions()
       .then(setDefs)
       .catch(() => {});
-    setSelected(product.tags ?? []);
+    const initial = product.tags ?? [];
+    selectedRef.current = initial;
+    setSelected(initial);
     setNewTagName("");
     setError(null);
   }, [visible, product]);
 
+  const updateSelected = (next: string[]) => {
+    selectedRef.current = next;
+    setSelected(next);
+  };
+
   if (!product) return null;
 
   const toggleTag = async (tagId: string) => {
-    const next = selected.includes(tagId)
-      ? selected.filter((id) => id !== tagId)
-      : [...selected, tagId];
-    setSelected(next);
+    const cur = selectedRef.current;
+    const next = cur.includes(tagId)
+      ? cur.filter((id) => id !== tagId)
+      : [...cur, tagId];
+    updateSelected(next);
     if (onApply) return;
     await setProductTags(product.id, next);
     onChanged();
@@ -63,8 +72,8 @@ export function TagPickerSheet({
     try {
       const current = await getTagDefinitions();
       const tag = await createTag(name, nextTagColor(current));
-      const next = [...selected, tag.id];
-      setSelected(next);
+      const next = [...selectedRef.current, tag.id];
+      updateSelected(next);
       setDefs({ ...current, [tag.id]: tag });
       setNewTagName("");
       setError(null);
@@ -215,7 +224,7 @@ export function TagPickerSheet({
           </View>
           <TouchableOpacity
             onPress={() => {
-              if (onApply) onApply(selected);
+              if (onApply) onApply(selectedRef.current);
               onClose();
             }}
             style={{ marginTop: 16, alignItems: "center", paddingVertical: 10 }}

@@ -132,7 +132,10 @@ export default function SearchScreen() {
       setTrackedIds(new Set(wl.map((p) => p.id)));
     });
     getTagDefinitions()
-      .then(setTagDefinitions)
+      .then((defs) => {
+        setTagDefinitions(defs);
+        setSelectedTagIds((prev) => prev.filter((id) => id in defs));
+      })
       .catch(() => {});
   }, []);
 
