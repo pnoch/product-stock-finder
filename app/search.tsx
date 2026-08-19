@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Image,
@@ -17,9 +17,11 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { searchCatalog, PRODUCT_CATALOG } from "@/lib/catalog";
 import { fetchProductImage } from "@/lib/server-images";
-import { addToWatchlist, getWatchlist } from "@/lib/storage";
-import { Product } from "@/lib/types";
+import { addToWatchlist, getTagDefinitions, getWatchlist } from "@/lib/storage";
+import { Product, TagDefinition } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { TagFilterRow } from "@/components/tag-filter-row";
+import { countTagMatches, filterWatchlist } from "@/lib/watchlist-org";
 
 function ProductImage({ productId }: { productId: string }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -47,9 +49,41 @@ export default function SearchScreen() {
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagMatchMode, setTagMatchMode] = useState<"any" | "all">("any");
+  const [tagDefinitions, setTagDefinitions] = useState<
+    Record<string, TagDefinition>
+  >({});
+  const [watchlist, setWatchlist] = useState<Product[]>([]);
 
   const results =
     query.trim().length > 0 ? searchCatalog(query) : PRODUCT_CATALOG;
+
+  const tagFilteredIds = useMemo(() => {
+    const matching = filterWatchlist(watchlist, {
+      region: "all",
+      status: "all",
+      query: "",
+      tagIds: selectedTagIds,
+      tagMatchMode,
+    });
+    return new Set(matching.map((p) => p.id));
+  }, [watchlist, selectedTagIds, tagMatchMode]);
+
+  const tagFilteredResults = useMemo(
+    () =>
+      results.filter(
+        (product) =>
+          tagFilteredIds.size === 0 || tagFilteredIds.has(product.id),
+      ),
+    [results, tagFilteredIds],
+  );
+
+  const tagCounts = useMemo(
+    () =>
+      countTagMatches(watchlist, { region: "all", status: "all", query: "" }),
+    [watchlist],
+  );
 
   const handleAdd = useCallback(
     async (item: (typeof PRODUCT_CATALOG)[0]) => {
@@ -83,7 +117,13 @@ export default function SearchScreen() {
 
   // Load already-tracked product ids so the + button reflects watchlist membership
   useEffect(() => {
-    getWatchlist().then((wl) => setTrackedIds(new Set(wl.map((p) => p.id))));
+    getWatchlist().then((wl) => {
+      setWatchlist(wl);
+      setTrackedIds(new Set(wl.map((p) => p.id)));
+    });
+    getTagDefinitions()
+      .then(setTagDefinitions)
+      .catch(() => {});
   }, []);
 
   return (
@@ -151,9 +191,27 @@ export default function SearchScreen() {
         )}
       </View>
 
+      {Object.keys(tagDefinitions).length > 0 && (
+        <TagFilterRow
+          tagDefinitions={tagDefinitions}
+          selectedTagIds={selectedTagIds}
+          tagMatchMode={tagMatchMode}
+          counts={tagCounts}
+          onToggleTag={(tagId) =>
+            setSelectedTagIds((prev) =>
+              prev.includes(tagId)
+                ? prev.filter((t) => t !== tagId)
+                : [...prev, tagId],
+            )
+          }
+          onChangeMode={setTagMatchMode}
+          onClearAll={() => setSelectedTagIds([])}
+        />
+      )}
+
       {/* Results */}
       <FlatList
-        data={results}
+        data={tagFilteredResults}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         ListHeaderComponent={
@@ -168,7 +226,7 @@ export default function SearchScreen() {
             }}
           >
             {query.trim()
-              ? `${results.length} result${results.length !== 1 ? "s" : ""}`
+              ? `${tagFilteredResults.length} result${tagFilteredResults.length !== 1 ? "s" : ""}`
               : "All Products"}
           </Text>
         }
@@ -183,7 +241,9 @@ export default function SearchScreen() {
                 marginTop: 12,
               }}
             >
-              No results found
+              {selectedTagIds.length > 0
+                ? "No products match these tags"
+                : "No results found"}
             </Text>
             <Text
               style={{
@@ -193,7 +253,9 @@ export default function SearchScreen() {
                 marginTop: 6,
               }}
             >
-              Try a different model number or brand name
+              {selectedTagIds.length > 0
+                ? "Try a different tag combination"
+                : "Try a different model number or brand name"}
             </Text>
           </View>
         }
