@@ -79,7 +79,11 @@ vi.mock("../lib/server-prices", () => ({
   uploadServerHistory: vi.fn(async () => {}),
 }));
 
-import { checkPriceDropsNow } from "../lib/background-price-check";
+import {
+  checkPriceDropsNow,
+  createHealthCollector,
+} from "../lib/background-price-check";
+import { createHealthService } from "../lib/scrapers/health";
 
 function makeListing(price: number, currency: string, stockStatus: string) {
   return {
@@ -213,5 +217,49 @@ describe("checkPriceDropsNow", () => {
     // Alert must stay active so it can fire once permission is granted
     expect(state.alertsStore[0]!.isActive).toBe(true);
     expect(state.alertsStore[0]!.triggeredAt).toBeUndefined();
+  });
+});
+
+describe("createHealthCollector", () => {
+  function makeAdapter() {
+    const store = new Map<string, string>();
+    return {
+      store,
+      adapter: {
+        getItem: async (key: string) => store.get(key) ?? null,
+        setItem: async (key: string, value: string) => {
+          store.set(key, value);
+        },
+        removeItem: async (key: string) => {
+          store.delete(key);
+        },
+        multiRemove: async (keys: string[]) => {
+          keys.forEach((k) => store.delete(k));
+        },
+      },
+    };
+  }
+
+  it("flush records history samples", async () => {
+    const { adapter } = makeAdapter();
+    const service = createHealthService(adapter);
+    const collector = createHealthCollector(service);
+    collector.record("d1", "working");
+    collector.record("d2", "blocked", "in cooldown");
+    await collector.flush();
+    const history = await service.getHealthHistory();
+    expect(history["d1"]).toHaveLength(1);
+    expect(history["d1"][0].status).toBe("working");
+    expect(history["d2"]).toHaveLength(1);
+    expect(history["d2"][0].status).toBe("blocked");
+    expect(history["d2"][0].reason).toBe("in cooldown");
+  });
+
+  it("flush does nothing when no updates recorded", async () => {
+    const { adapter } = makeAdapter();
+    const service = createHealthService(adapter);
+    const collector = createHealthCollector(service);
+    await collector.flush();
+    expect(await service.getHealthHistory()).toEqual({});
   });
 });

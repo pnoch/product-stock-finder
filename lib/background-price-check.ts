@@ -33,7 +33,9 @@ export const PRICE_CHECK_TASK = "price-drop-check";
 const healthService = createHealthService(AsyncStorage);
 const breakerStore = createStorageBreakerStore(AsyncStorage);
 
-function createHealthCollector() {
+export function createHealthCollector(
+  service: ReturnType<typeof createHealthService> = healthService,
+) {
   const updates = new Map<string, DistributorHealth>();
   return {
     record(
@@ -51,14 +53,17 @@ function createHealthCollector() {
     async flush() {
       if (updates.size === 0) return;
       try {
-        const current = await healthService.getDistributorHealth();
+        const current = await service.getDistributorHealth();
         const merged = current.map((h) => updates.get(h.distributorId) ?? h);
         for (const [id, entry] of updates) {
           if (!current.some((h) => h.distributorId === id)) {
             merged.push(entry);
           }
         }
-        await healthService.saveDistributorHealth(merged);
+        await service.saveDistributorHealth(merged);
+        for (const [id, entry] of updates) {
+          await service.recordSample(id, entry.status, entry.reason);
+        }
       } catch {
         // Ignore health update errors
       }
