@@ -70,19 +70,14 @@ export default function SearchScreen() {
     return new Set(matching.map((p) => p.id));
   }, [watchlist, selectedTagIds, tagMatchMode]);
 
-  const tagFilteredResults = useMemo(
-    () =>
-      results.filter(
-        (product) =>
-          tagFilteredIds.size === 0 || tagFilteredIds.has(product.id),
-      ),
-    [results, tagFilteredIds],
-  );
+  const tagFilteredResults = useMemo(() => {
+    if (selectedTagIds.length === 0) return results;
+    return results.filter((product) => tagFilteredIds.has(product.id));
+  }, [results, selectedTagIds, tagFilteredIds]);
 
   const tagCounts = useMemo(
-    () =>
-      countTagMatches(watchlist, { region: "all", status: "all", query: "" }),
-    [watchlist],
+    () => countTagMatches(watchlist, { region: "all", status: "all", query }),
+    [watchlist, query],
   );
 
   const handleAdd = useCallback(
