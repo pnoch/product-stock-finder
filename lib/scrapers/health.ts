@@ -1,7 +1,10 @@
 import type { DistributorParser, ScrapeResult } from "./types";
 import { PARSERS } from "./registry";
-import { fetchWithParser } from "./utils";
-import { classifyFetchStatus } from "./resilient";
+import {
+  classifyFetchStatus,
+  createStorageBreakerStore,
+  resilientFetch,
+} from "./resilient";
 import type { FetchOutcome } from "./resilient";
 import type { StorageAdapter } from "../storage";
 
@@ -162,6 +165,7 @@ export function createHealthService(adapter: StorageAdapter) {
     const results: DistributorHealth[] = [];
     const CONCURRENCY = 3;
     const total = PARSERS.length;
+    const breakerStore = createStorageBreakerStore(adapter);
 
     for (let i = 0; i < total; i += CONCURRENCY) {
       const batch = PARSERS.slice(i, i + CONCURRENCY);
@@ -170,13 +174,16 @@ export function createHealthService(adapter: StorageAdapter) {
           const start = Date.now();
           try {
             const url = parser.buildSearchUrl(PROBE_MODEL);
-            const html = await fetchWithParser(parser, url);
-            const result = parser.parsePrice(html);
-            const status = classifyResult(html, result);
+            const outcome = await resilientFetch({
+              parser,
+              url,
+              state: breakerStore,
+            });
+            const { status, reason } = classifyProbeOutcome(outcome, parser);
             return {
               distributorId: parser.id,
               status,
-              reason: status === "error" ? "no price found" : undefined,
+              reason,
               responseTimeMs: Date.now() - start,
               lastChecked: new Date().toISOString(),
             };

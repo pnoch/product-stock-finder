@@ -12,13 +12,18 @@ import type {
   HealthStatus,
 } from "@/lib/scrapers/health";
 import type { DistributorParser, ScrapeResult } from "@/lib/scrapers/types";
-import { BLOCKED_MARKERS } from "@/lib/scrapers/resilient";
+import { BLOCKED_MARKERS, resilientFetch } from "@/lib/scrapers/resilient";
 
-vi.mock("@/lib/scrapers/utils", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/scrapers/utils")>();
+vi.mock("@/lib/scrapers/resilient", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/lib/scrapers/resilient")>();
   return {
     ...actual,
-    fetchWithParser: vi.fn(async () => "<html>Access Denied</html>"),
+    resilientFetch: vi.fn(async () => ({
+      status: "ok",
+      method: "plain",
+      html: "<html>Access Denied</html>",
+    })),
   };
 });
 
@@ -127,6 +132,25 @@ describe("createHealthService", () => {
       const samples = history[r.distributorId];
       expect(samples).toBeDefined();
       expect(samples[samples.length - 1].status).toBe(r.status);
+    }
+  });
+
+  it("testAllDistributors records blocked status for blocked outcome", async () => {
+    vi.mocked(resilientFetch).mockImplementation(async () => ({
+      status: "blocked",
+      method: "plain",
+      error: "403 Forbidden",
+    }));
+    const adapter = createMockAdapter();
+    const service = createHealthService(adapter);
+    const results = await service.testAllDistributors();
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.every((r) => r.status === "blocked")).toBe(true);
+    const history = await service.getHealthHistory();
+    for (const r of results) {
+      const samples = history[r.distributorId];
+      expect(samples).toBeDefined();
+      expect(samples[samples.length - 1].status).toBe("blocked");
     }
   });
 });
