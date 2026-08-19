@@ -60,7 +60,7 @@ app/                    Expo Router routes (file-based)
   oauth/callback.tsx    Manus OAuth callback (backend auth flow)
   dev/theme-lab.tsx     Theme dev playground
 components/             Reusable UI (PriceSparkline, ScreenContainer, HapticTab, IconSymbol,
-                        notification-center, connection-badge)
+                        notification-center, connection-badge, TagFilterRow)
 components/ui/          IconSymbol (iOS .ios.tsx + cross-platform .tsx with Android/web mappings)
 lib/                   App logic
   types.ts             Core domain types (Product, DistributorListing, PriceAlert, SyncItem, etc.)

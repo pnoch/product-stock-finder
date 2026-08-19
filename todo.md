@@ -501,3 +501,13 @@
 - [x] Long-press bulk selection: delete (confirm) + add-tags via BulkTagSheet (addTagsToProducts storage helper)
 - [x] watchlistSort/watchlistGroup persisted in AppSettings and synced via settings collection
 - [x] Tests: watchlist-org unit tests + addTagsToProducts storage test
+
+## Phase 56: Multi-Tag Filtering (v5.4)
+
+- [x] matchesTagFilterMode: OR/AND semantics for tag filters (lib/tags.ts)
+- [x] tagMatchMode in WatchlistFilters; filterWatchlist supports any/all
+- [x] countTagMatches: dynamic per-tag counts respecting region/status/query
+- [x] Shared TagFilterRow component (chips + counts + inline Any/All toggle + Clear)
+- [x] Watchlist uses TagFilterRow; counts update with active filters
+- [x] Add Product screen: tag filter row over the catalog + tag assignment (row icon + post-add sheet)
+- [x] Tests: tags OR/AND + watchlist-org tag modes + countTagMatches
