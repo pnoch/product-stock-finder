@@ -14,6 +14,7 @@ import * as Haptics from "expo-haptics";
 import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { useColors } from "@/hooks/use-colors";
 import { searchCatalog, PRODUCT_CATALOG } from "@/lib/catalog";
 import { fetchProductImage } from "@/lib/server-images";
@@ -55,6 +56,9 @@ export default function SearchScreen() {
     Record<string, TagDefinition>
   >({});
   const [watchlist, setWatchlist] = useState<Product[]>([]);
+  const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
+  const [pickerItem, setPickerItem] = useState<Product | null>(null);
+  const [postAddProduct, setPostAddProduct] = useState<Product | null>(null);
 
   const results =
     query.trim().length > 0 ? searchCatalog(query) : PRODUCT_CATALOG;
@@ -93,21 +97,32 @@ export default function SearchScreen() {
       setAdding(item.id);
       if (Platform.OS !== "web")
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const pending = pendingTags[item.id] ?? [];
       const product: Product = {
         ...item,
         addedAt: new Date().toISOString(),
         isWatched: true,
         listings: [],
+        tags: pending,
       };
       try {
         await addToWatchlist(product);
         setTrackedIds((prev) => new Set(prev).add(item.id));
-        router.back();
+        setPendingTags((prev) => {
+          const next = { ...prev };
+          delete next[item.id];
+          return next;
+        });
+        if (pending.length > 0) {
+          setPostAddProduct(product);
+        } else {
+          router.back();
+        }
       } finally {
         setAdding(null);
       }
     },
-    [router, trackedIds, adding],
+    [router, trackedIds, adding, pendingTags],
   );
 
   // Load already-tracked product ids so the + button reflects watchlist membership
@@ -314,6 +329,26 @@ export default function SearchScreen() {
               </View>
             </View>
             <TouchableOpacity
+              onPress={() =>
+                setPickerItem({
+                  ...item,
+                  addedAt: "",
+                  isWatched: false,
+                  listings: [],
+                  tags: pendingTags[item.id] ?? [],
+                })
+              }
+              style={{
+                marginRight: 8,
+                padding: 6,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <IconSymbol name="tag.fill" size={20} color={colors.muted} />
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={() => handleAdd(item)}
               disabled={adding === item.id || trackedIds.has(item.id)}
               style={{
@@ -338,6 +373,31 @@ export default function SearchScreen() {
           </View>
         )}
       />
+
+      {pickerItem && (
+        <TagPickerSheet
+          visible={!!pickerItem}
+          product={pickerItem}
+          onClose={() => setPickerItem(null)}
+          onChanged={() => {}}
+          onApply={(tagIds) => {
+            setPendingTags((prev) => ({ ...prev, [pickerItem.id]: tagIds }));
+            setPickerItem(null);
+          }}
+        />
+      )}
+
+      {postAddProduct && (
+        <TagPickerSheet
+          visible={!!postAddProduct}
+          product={postAddProduct}
+          onClose={() => {
+            setPostAddProduct(null);
+            router.back();
+          }}
+          onChanged={() => {}}
+        />
+      )}
     </ScreenContainer>
   );
 }
