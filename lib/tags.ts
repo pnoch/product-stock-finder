@@ -37,13 +37,23 @@ export function nextTagColor(defs: Record<string, TagDefinition>): string {
   return TAG_PALETTE[(idx + 1) % TAG_PALETTE.length];
 }
 
+export function matchesTagFilterMode(
+  product: Product,
+  selectedTagIds: string[],
+  mode: "any" | "all",
+): boolean {
+  if (selectedTagIds.length === 0) return true;
+  const tags = product.tags ?? [];
+  if (mode === "all") return selectedTagIds.every((id) => tags.includes(id));
+  const selected = new Set(selectedTagIds);
+  return tags.some((id) => selected.has(id));
+}
+
 export function matchesTagFilter(
   product: Product,
   selectedTagIds: string[],
 ): boolean {
-  if (selectedTagIds.length === 0) return true;
-  const selected = new Set(selectedTagIds);
-  return (product.tags ?? []).some((id) => selected.has(id));
+  return matchesTagFilterMode(product, selectedTagIds, "any");
 }
 
 export function generateTagId(): string {

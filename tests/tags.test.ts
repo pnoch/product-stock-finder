@@ -4,6 +4,7 @@ import {
   generateTagId,
   getTagById,
   matchesTagFilter,
+  matchesTagFilterMode,
   nextTagColor,
   tagColor,
 } from "../lib/tags";
@@ -96,6 +97,45 @@ describe("matchesTagFilter", () => {
     const p = makeProduct({ tags: ["a"] });
     expect(matchesTagFilter(p, ["a", "missing"])).toBe(true);
     expect(matchesTagFilter(p, ["missing"])).toBe(false);
+  });
+});
+
+describe("matchesTagFilterMode", () => {
+  it("matches everything when no tags are selected", () => {
+    expect(matchesTagFilterMode(makeProduct(), [], "any")).toBe(true);
+    expect(matchesTagFilterMode(makeProduct(), [], "all")).toBe(true);
+    expect(matchesTagFilterMode(makeProduct({ tags: ["a"] }), [], "all")).toBe(
+      true,
+    );
+  });
+
+  it("OR mode matches when the product has any selected tag", () => {
+    const p = makeProduct({ tags: ["b"] });
+    expect(matchesTagFilterMode(p, ["a", "b"], "any")).toBe(true);
+    expect(matchesTagFilterMode(p, ["a", "c"], "any")).toBe(false);
+  });
+
+  it("AND mode matches only when the product has every selected tag", () => {
+    const p = makeProduct({ tags: ["a", "b"] });
+    expect(matchesTagFilterMode(p, ["a", "b"], "all")).toBe(true);
+    expect(matchesTagFilterMode(p, ["a", "c"], "all")).toBe(false);
+    expect(matchesTagFilterMode(p, ["a"], "all")).toBe(true);
+  });
+
+  it("AND mode requires at least one selected tag to match", () => {
+    expect(matchesTagFilterMode(makeProduct({ tags: ["a"] }), ["a"], "all")).toBe(
+      true,
+    );
+    expect(matchesTagFilterMode(makeProduct({ tags: ["a"] }), ["b"], "all")).toBe(
+      false,
+    );
+  });
+
+  it("silently ignores orphaned tag ids in both modes", () => {
+    const p = makeProduct({ tags: ["a"] });
+    expect(matchesTagFilterMode(p, ["a", "missing"], "any")).toBe(true);
+    expect(matchesTagFilterMode(p, ["a", "missing"], "all")).toBe(false);
+    expect(matchesTagFilterMode(p, ["missing"], "all")).toBe(false);
   });
 });
 
