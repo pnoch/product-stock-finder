@@ -29,6 +29,7 @@ import { syncServerNotifications } from "./server-notifications";
 import { PRICE_HISTORY_DAYS } from "@/shared/const";
 
 export const PRICE_CHECK_TASK = "price-drop-check";
+export const HEALTH_PROBE_TASK = "health-probe";
 
 const healthService = createHealthService(AsyncStorage);
 const breakerStore = createStorageBreakerStore(AsyncStorage);
@@ -283,6 +284,15 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
   }
 });
 
+TaskManager.defineTask(HEALTH_PROBE_TASK, async () => {
+  try {
+    await healthService.testAllDistributors();
+    return BackgroundTask.BackgroundTaskResult.Success;
+  } catch {
+    return BackgroundTask.BackgroundTaskResult.Failed;
+  }
+});
+
 export async function registerPriceCheckTask() {
   if (Platform.OS === "web") return;
   try {
@@ -308,6 +318,37 @@ export async function registerPriceCheckTask() {
       // Re-register to update the interval if it changed
       await BackgroundTask.unregisterTaskAsync(PRICE_CHECK_TASK);
       await BackgroundTask.registerTaskAsync(PRICE_CHECK_TASK, {
+        minimumInterval: intervalMinutes,
+      });
+    }
+  } catch {
+    // Background tasks not available on simulator/web — silently ignore
+  }
+}
+
+export async function registerHealthProbeTask() {
+  if (Platform.OS === "web") return;
+  try {
+    const settings = await getSettings();
+    const isRegistered =
+      await TaskManager.isTaskRegisteredAsync(HEALTH_PROBE_TASK);
+
+    if (settings.checkInterval === "manual") {
+      if (isRegistered) {
+        await BackgroundTask.unregisterTaskAsync(HEALTH_PROBE_TASK);
+      }
+      return;
+    }
+
+    const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
+
+    if (!isRegistered) {
+      await BackgroundTask.registerTaskAsync(HEALTH_PROBE_TASK, {
+        minimumInterval: intervalMinutes,
+      });
+    } else {
+      await BackgroundTask.unregisterTaskAsync(HEALTH_PROBE_TASK);
+      await BackgroundTask.registerTaskAsync(HEALTH_PROBE_TASK, {
         minimumInterval: intervalMinutes,
       });
     }

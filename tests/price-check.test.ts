@@ -7,20 +7,22 @@ const state = vi.hoisted(() => ({
   watchlistStore: [] as Product[],
   scheduledNotifications: [] as unknown[],
   permissionGranted: true,
-}));
-
-// Mock storage + notifications so we can drive checkPriceDropsNow deterministically
-vi.mock("../lib/storage", () => ({
-  getAlerts: vi.fn(async () => state.alertsStore.map((a) => ({ ...a }))),
-  getWatchlist: vi.fn(async () => state.watchlistStore),
-  getSettings: vi.fn(async () => ({
+  taskRegistered: false,
+  settingsStore: {
     theme: "auto",
     displayCurrency: "USD",
     checkInterval: "manual",
     notificationsEnabled: true,
     priceAlerts: true,
     stockAlerts: true,
-  })),
+  },
+}));
+
+// Mock storage + notifications so we can drive checkPriceDropsNow deterministically
+vi.mock("../lib/storage", () => ({
+  getAlerts: vi.fn(async () => state.alertsStore.map((a) => ({ ...a }))),
+  getWatchlist: vi.fn(async () => state.watchlistStore),
+  getSettings: vi.fn(async () => state.settingsStore),
   saveAlerts: vi.fn(async (alerts: PriceAlert[]) => {
     state.alertsStore.length = 0;
     state.alertsStore.push(...alerts.map((a) => ({ ...a })));
@@ -61,10 +63,14 @@ vi.mock("expo-notifications", () => ({
   }),
 }));
 
-vi.mock("expo-task-manager", () => ({ defineTask: vi.fn() }));
+vi.mock("expo-task-manager", () => ({
+  defineTask: vi.fn(),
+  isTaskRegisteredAsync: vi.fn(async () => state.taskRegistered),
+}));
 vi.mock("expo-background-task", () => ({
   BackgroundTaskResult: { Success: "success", Failed: "failed" },
   registerTaskAsync: vi.fn(),
+  unregisterTaskAsync: vi.fn(),
 }));
 vi.mock("react-native", () => ({ Platform: { OS: "ios" } }));
 
@@ -82,8 +88,10 @@ vi.mock("../lib/server-prices", () => ({
 import {
   checkPriceDropsNow,
   createHealthCollector,
+  registerHealthProbeTask,
 } from "../lib/background-price-check";
 import { createHealthService } from "../lib/scrapers/health";
+import * as BackgroundTask from "expo-background-task";
 
 function makeListing(price: number, currency: string, stockStatus: string) {
   return {
@@ -261,5 +269,37 @@ describe("createHealthCollector", () => {
     const collector = createHealthCollector(service);
     await collector.flush();
     expect(await service.getHealthHistory()).toEqual({});
+  });
+});
+
+describe("registerHealthProbeTask", () => {
+  beforeEach(() => {
+    vi.mocked(BackgroundTask.registerTaskAsync).mockClear();
+    vi.mocked(BackgroundTask.unregisterTaskAsync).mockClear();
+  });
+
+  it("registers with hourly interval when checkInterval is hourly", async () => {
+    state.settingsStore = { ...state.settingsStore, checkInterval: "hourly" };
+    await registerHealthProbeTask();
+    expect(BackgroundTask.registerTaskAsync).toHaveBeenCalledWith("health-probe", {
+      minimumInterval: 60,
+    });
+    expect(BackgroundTask.unregisterTaskAsync).not.toHaveBeenCalled();
+  });
+
+  it("registers with daily interval when checkInterval is daily", async () => {
+    state.settingsStore = { ...state.settingsStore, checkInterval: "daily" };
+    await registerHealthProbeTask();
+    expect(BackgroundTask.registerTaskAsync).toHaveBeenCalledWith("health-probe", {
+      minimumInterval: 1440,
+    });
+  });
+
+  it("unregisters when checkInterval is manual", async () => {
+    state.settingsStore = { ...state.settingsStore, checkInterval: "manual" };
+    state.taskRegistered = true;
+    await registerHealthProbeTask();
+    expect(BackgroundTask.unregisterTaskAsync).toHaveBeenCalledWith("health-probe");
+    expect(BackgroundTask.registerTaskAsync).not.toHaveBeenCalled();
   });
 });
