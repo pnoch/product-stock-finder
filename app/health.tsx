@@ -206,8 +206,9 @@ export default function HealthScreen() {
           const distributor = getDistributorById(h.distributorId);
           if (!distributor) return null;
           return (
-            <View
+            <TouchableOpacity
               key={h.distributorId}
+              onPress={() => router.push(`/health/${h.distributorId}`)}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -274,7 +275,7 @@ export default function HealthScreen() {
                   </Text>
                 )}
               </View>
-            </View>
+            </TouchableOpacity>
           );
         })}
         {filtered.length === 0 && (
