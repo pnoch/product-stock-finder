@@ -110,6 +110,35 @@ export function computeHealthStats(
   return stats;
 }
 
+export interface HealthSummary {
+  count: number;
+  firstAt: string | null;
+  lastAt: string | null;
+  avgResponseTimeMs: number | null;
+}
+
+export function computeHealthSummary(
+  samples: HealthSample[],
+): HealthSummary {
+  if (samples.length === 0) {
+    return { count: 0, firstAt: null, lastAt: null, avgResponseTimeMs: null };
+  }
+  const times = samples.map((s) => new Date(s.at).getTime());
+  const firstAt = samples[times.indexOf(Math.min(...times))].at;
+  const lastAt = samples[times.indexOf(Math.max(...times))].at;
+  const withResponse = samples.filter(
+    (s) => typeof s.responseTimeMs === "number",
+  );
+  const avgResponseTimeMs =
+    withResponse.length > 0
+      ? Math.round(
+          withResponse.reduce((sum, s) => sum + (s.responseTimeMs ?? 0), 0) /
+            withResponse.length,
+        )
+      : null;
+  return { count: samples.length, firstAt, lastAt, avgResponseTimeMs };
+}
+
 export function createHealthService(adapter: StorageAdapter) {
   async function getDistributorHealth(): Promise<DistributorHealth[]> {
     try {

@@ -3,6 +3,7 @@ import {
   classifyProbeOutcome,
   classifyResult,
   computeHealthStats,
+  computeHealthSummary,
   createHealthService,
   pruneHealthHistory,
 } from "@/lib/scrapers/health";
@@ -357,5 +358,61 @@ describe("classifyProbeOutcome", () => {
         workingParser,
       ),
     ).toEqual({ status: "error", reason: "timeout" });
+  });
+});
+
+describe("computeHealthSummary", () => {
+  function sample(
+    status: HealthStatus,
+    at: string,
+    responseTimeMs?: number,
+  ): HealthSample {
+    return { status, at, responseTimeMs };
+  }
+
+  it("returns zeroed summary for empty samples", () => {
+    expect(computeHealthSummary([])).toEqual({
+      count: 0,
+      firstAt: null,
+      lastAt: null,
+      avgResponseTimeMs: null,
+    });
+  });
+
+  it("counts samples", () => {
+    const samples = [
+      sample("working", "2026-08-01T00:00:00Z"),
+      sample("error", "2026-08-02T00:00:00Z"),
+      sample("blocked", "2026-08-03T00:00:00Z"),
+    ];
+    expect(computeHealthSummary(samples).count).toBe(3);
+  });
+
+  it("firstAt and lastAt are the oldest and newest samples", () => {
+    const samples = [
+      sample("working", "2026-08-02T00:00:00Z"),
+      sample("error", "2026-08-01T00:00:00Z"),
+      sample("blocked", "2026-08-03T00:00:00Z"),
+    ];
+    const summary = computeHealthSummary(samples);
+    expect(summary.firstAt).toBe("2026-08-01T00:00:00Z");
+    expect(summary.lastAt).toBe("2026-08-03T00:00:00Z");
+  });
+
+  it("averages response time over samples that have it", () => {
+    const samples = [
+      sample("working", "2026-08-01T00:00:00Z", 100),
+      sample("working", "2026-08-02T00:00:00Z", 300),
+      sample("working", "2026-08-03T00:00:00Z"),
+    ];
+    expect(computeHealthSummary(samples).avgResponseTimeMs).toBe(200);
+  });
+
+  it("returns null avg response time when no sample has it", () => {
+    const samples = [
+      sample("working", "2026-08-01T00:00:00Z"),
+      sample("working", "2026-08-02T00:00:00Z"),
+    ];
+    expect(computeHealthSummary(samples).avgResponseTimeMs).toBeNull();
   });
 });
