@@ -328,26 +328,28 @@ export default function SearchScreen() {
                 </Text>
               </View>
             </View>
-            <TouchableOpacity
-              onPress={() =>
-                setPickerItem({
-                  ...item,
-                  addedAt: "",
-                  isWatched: false,
-                  listings: [],
-                  tags: pendingTags[item.id] ?? [],
-                })
-              }
-              style={{
-                marginRight: 8,
-                padding: 6,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: colors.border,
-              }}
-            >
-              <IconSymbol name="tag.fill" size={20} color={colors.muted} />
-            </TouchableOpacity>
+            {!trackedIds.has(item.id) && (
+              <TouchableOpacity
+                onPress={() =>
+                  setPickerItem({
+                    ...item,
+                    addedAt: "",
+                    isWatched: false,
+                    listings: [],
+                    tags: pendingTags[item.id] ?? [],
+                  })
+                }
+                style={{
+                  marginRight: 8,
+                  padding: 6,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <IconSymbol name="tag.fill" size={20} color={colors.muted} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               onPress={() => handleAdd(item)}
               disabled={adding === item.id || trackedIds.has(item.id)}
@@ -381,6 +383,7 @@ export default function SearchScreen() {
           onClose={() => setPickerItem(null)}
           onChanged={() => {}}
           onApply={(tagIds) => {
+            if (!pickerItem) return;
             setPendingTags((prev) => ({ ...prev, [pickerItem.id]: tagIds }));
             setPickerItem(null);
           }}
