@@ -22,7 +22,7 @@ import { addToWatchlist, getTagDefinitions, getWatchlist } from "@/lib/storage";
 import { Product, TagDefinition } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TagFilterRow } from "@/components/tag-filter-row";
-import { countTagMatches, filterWatchlist } from "@/lib/watchlist-org";
+import { countTagMatchesByIds, filterWatchlist } from "@/lib/watchlist-org";
 
 function ProductImage({ productId }: { productId: string }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -79,10 +79,10 @@ export default function SearchScreen() {
     return results.filter((product) => tagFilteredIds.has(product.id));
   }, [results, selectedTagIds, tagFilteredIds]);
 
-  const tagCounts = useMemo(
-    () => countTagMatches(watchlist, { region: "all", status: "all", query }),
-    [watchlist, query],
-  );
+  const tagCounts = useMemo(() => {
+    const resultIds = new Set(results.map((p) => p.id));
+    return countTagMatchesByIds(watchlist, resultIds);
+  }, [watchlist, results]);
 
   const handleAdd = useCallback(
     async (item: (typeof PRODUCT_CATALOG)[0]) => {

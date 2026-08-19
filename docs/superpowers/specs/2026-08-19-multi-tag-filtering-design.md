@@ -124,8 +124,9 @@ Behavior:
 ## Error Handling
 
 - Tag filter row renders nothing when no tag definitions exist (both screens).
-- If `countTagMatches` or the AND filter receives a stale/orphaned tag id, it is
-  silently ignored (existing orphan-tag convention).
+- `countTagMatches` silently ignores stale/orphaned tag ids (existing orphan-tag
+  convention). In AND mode a selected orphan id matches nothing (strict `every()`
+  semantics), so no products pass — screens prune orphaned selections on load.
 - Pending tags that reference a deleted tag definition are dropped on apply.
 
 ## Testing

@@ -132,6 +132,20 @@ export function countTagMatches(
   return counts;
 }
 
+export function countTagMatchesByIds(
+  list: Product[],
+  ids: Set<string>,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const p of list) {
+    if (!ids.has(p.id)) continue;
+    for (const tagId of p.tags ?? []) {
+      counts[tagId] = (counts[tagId] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
 export function sortWatchlist(
   list: Product[],
   sort: WatchlistSort,

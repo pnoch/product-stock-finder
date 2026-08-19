@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   countTagMatches,
+  countTagMatchesByIds,
   filterWatchlist,
   groupWatchlist,
   priceDropPercent,
@@ -277,6 +278,50 @@ describe("countTagMatches", () => {
     expect(
       countTagMatches(list, { region: "all", status: "all", query: "zzz" }),
     ).toEqual({});
+  });
+});
+
+describe("countTagMatchesByIds", () => {
+  const a = makeProduct(
+    { id: "a", name: "Alpha", modelNumber: "A-1", tags: ["t1", "t2"] },
+    [makeListing("server2u-my", { stockStatus: "in_stock" })],
+  );
+  const b = makeProduct(
+    { id: "b", name: "Beta", modelNumber: "B-1", tags: ["t2"] },
+    [makeListing("server2u-my", { stockStatus: "back_order" })],
+  );
+  const c = makeProduct(
+    { id: "c", name: "Gamma", modelNumber: "C-1", tags: ["t1"] },
+    [makeListing("server2u-my", { stockStatus: "out_of_stock" })],
+  );
+  const untagged = makeProduct({ id: "d", name: "Delta", modelNumber: "D-1" }, [
+    makeListing("server2u-my", { stockStatus: "in_stock" }),
+  ]);
+  const list = [a, b, c, untagged];
+
+  it("counts tags only for products in the given id set", () => {
+    expect(countTagMatchesByIds(list, new Set(["a", "b"]))).toEqual({
+      t1: 1,
+      t2: 2,
+    });
+  });
+
+  it("counts across all ids when the set includes every product", () => {
+    expect(countTagMatchesByIds(list, new Set(list.map((p) => p.id)))).toEqual({
+      t1: 2,
+      t2: 2,
+    });
+  });
+
+  it("ignores ids not present in the list", () => {
+    expect(countTagMatchesByIds(list, new Set(["a", "zzz"]))).toEqual({
+      t1: 1,
+      t2: 1,
+    });
+  });
+
+  it("returns an empty object when no ids match", () => {
+    expect(countTagMatchesByIds(list, new Set(["zzz"]))).toEqual({});
   });
 });
 
