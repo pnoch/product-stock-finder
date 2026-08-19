@@ -527,3 +527,11 @@
 - [x] classifyProbeOutcome maps fetch outcomes (ok/blocked/skipped/error) to health status
 - [x] registerHealthProbeTask mirrors registerPriceCheckTask (manual unregisters, web no-op)
 - [x] Tests: outcome mapping, task registration, history recording
+
+## Phase 59: Health Drill-Down View (v5.7)
+
+- [x] computeHealthSummary: count, first/last probe, avg response time
+- [x] Health drill-down route (app/health/[id].tsx): summary card + full sample list
+- [x] Dashboard rows tappable → drill-down navigation
+- [x] Empty state and unknown-id handling
+- [x] Tests: computeHealthSummary
