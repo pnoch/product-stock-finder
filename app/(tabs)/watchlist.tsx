@@ -43,12 +43,14 @@ import { getTagById } from "@/lib/tags";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { TagManageSheet } from "@/components/tag-manage-sheet";
 import { BulkTagSheet } from "@/components/bulk-tag-sheet";
+import { TagFilterRow } from "@/components/tag-filter-row";
 import { fetchProductImage } from "@/lib/server-images";
 import {
   filterWatchlist,
   groupWatchlist,
   productStatus,
   sortWatchlist,
+  countTagMatches,
   GROUP_OPTIONS,
   SORT_OPTIONS,
   type StatusFilter,
@@ -369,6 +371,7 @@ export default function WatchlistScreen() {
     Record<string, TagDefinition>
   >({});
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagMatchMode, setTagMatchMode] = useState<"any" | "all">("any");
   const [pickerProduct, setPickerProduct] = useState<Product | null>(null);
   const [manageVisible, setManageVisible] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -398,10 +401,21 @@ export default function WatchlistScreen() {
       filterWatchlist(watchlist, {
         region: regionFilter,
         tagIds: selectedTagIds,
+        tagMatchMode,
         status: statusFilter,
         query,
       }),
-    [watchlist, regionFilter, selectedTagIds, statusFilter, query],
+    [watchlist, regionFilter, selectedTagIds, tagMatchMode, statusFilter, query],
+  );
+
+  const tagCounts = useMemo(
+    () =>
+      countTagMatches(watchlist, {
+        region: regionFilter,
+        status: statusFilter,
+        query,
+      }),
+    [watchlist, regionFilter, statusFilter, query],
   );
 
   const sections = useMemo(
@@ -1056,64 +1070,16 @@ export default function WatchlistScreen() {
         </View>
       )}
 
-      {Object.keys(tagDefinitions).length > 0 && (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            marginBottom: 8,
-            gap: 8,
-          }}
-        >
-          <View style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {Object.values(tagDefinitions).map((tag) => {
-              const active = selectedTagIds.includes(tag.id);
-              return (
-                <TouchableOpacity
-                  key={tag.id}
-                  onPress={() => toggleTagFilter(tag.id)}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: 16,
-                    backgroundColor: active ? colors.primary : colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: 4,
-                      backgroundColor: active ? "#fff" : tag.color,
-                      marginRight: 6,
-                    }}
-                  />
-                  <Text
-                    style={{
-                      color: active ? "#fff" : colors.foreground,
-                      fontSize: 13,
-                      fontWeight: "600",
-                    }}
-                  >
-                    {tag.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          <TouchableOpacity
-            onPress={() => setManageVisible(true)}
-            style={{ padding: 4 }}
-          >
-            <IconSymbol name="slider.horizontal.3" size={18} color={colors.muted} />
-          </TouchableOpacity>
-        </View>
-      )}
+      <TagFilterRow
+        tagDefinitions={tagDefinitions}
+        selectedTagIds={selectedTagIds}
+        tagMatchMode={tagMatchMode}
+        counts={tagCounts}
+        onToggleTag={toggleTagFilter}
+        onChangeMode={setTagMatchMode}
+        onClearAll={() => setSelectedTagIds([])}
+        onManage={() => setManageVisible(true)}
+      />
 
       <SectionList
         sections={sections.map((s) => ({ ...s, data: s.products }))}
