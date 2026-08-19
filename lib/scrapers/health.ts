@@ -14,7 +14,19 @@ export interface DistributorHealth {
   lastChecked: string;
 }
 
+export interface HealthSample {
+  status: HealthStatus;
+  reason?: string;
+  responseTimeMs?: number;
+  at: string;
+}
+
+export type HealthHistory = Record<string, HealthSample[]>;
+
 const HEALTH_KEY = "distributor_health";
+const HEALTH_HISTORY_KEY = "distributor_health_history";
+const HISTORY_MAX_SAMPLES = 90;
+const HISTORY_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const PROBE_MODEL = "CRS326";
 
 export function classifyResult(
@@ -26,6 +38,15 @@ export function classifyResult(
   if (classifyFetchStatus(html) === "blocked") return "blocked";
   if (result && result.price > 0) return "working";
   return "error";
+}
+
+export function pruneHealthHistory(
+  samples: HealthSample[],
+  now = Date.now(),
+): HealthSample[] {
+  const cutoff = now - HISTORY_MAX_AGE_MS;
+  const fresh = samples.filter((s) => new Date(s.at).getTime() >= cutoff);
+  return fresh.slice(-HISTORY_MAX_SAMPLES);
 }
 
 export function createHealthService(adapter: StorageAdapter) {
@@ -47,6 +68,33 @@ export function createHealthService(adapter: StorageAdapter) {
       await adapter.setItem(HEALTH_KEY, JSON.stringify(health));
     } catch {
       // Ignore save errors
+    }
+  }
+
+  async function getHealthHistory(): Promise<HealthHistory> {
+    try {
+      const raw = await adapter.getItem(HEALTH_HISTORY_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  async function recordSample(
+    distributorId: string,
+    status: HealthStatus,
+    reason?: string,
+  ): Promise<void> {
+    try {
+      const history = await getHealthHistory();
+      const samples = history[distributorId] ?? [];
+      samples.push({ status, reason, at: new Date().toISOString() });
+      history[distributorId] = pruneHealthHistory(samples);
+      await adapter.setItem(HEALTH_HISTORY_KEY, JSON.stringify(history));
+    } catch {
+      // Ignore history errors
     }
   }
 
@@ -93,5 +141,11 @@ export function createHealthService(adapter: StorageAdapter) {
     return results;
   }
 
-  return { getDistributorHealth, saveDistributorHealth, testAllDistributors };
+  return {
+    getDistributorHealth,
+    saveDistributorHealth,
+    testAllDistributors,
+    getHealthHistory,
+    recordSample,
+  };
 }

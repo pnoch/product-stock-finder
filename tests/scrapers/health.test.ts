@@ -97,3 +97,39 @@ describe("createHealthService", () => {
     expect(await service.getDistributorHealth()).toEqual([]);
   });
 });
+
+describe("health history", () => {
+  it("getHealthHistory returns empty object when nothing stored", async () => {
+    const adapter = createMockAdapter();
+    const service = createHealthService(adapter);
+    expect(await service.getHealthHistory()).toEqual({});
+  });
+
+  it("getHealthHistory returns empty object when stored data is corrupt", async () => {
+    const adapter = createMockAdapter();
+    await adapter.setItem("distributor_health_history", "not json");
+    const service = createHealthService(adapter);
+    expect(await service.getHealthHistory()).toEqual({});
+  });
+
+  it("recordSample appends a sample and persists it", async () => {
+    const adapter = createMockAdapter();
+    const service = createHealthService(adapter);
+    await service.recordSample("server2u-my", "working");
+    const history = await service.getHealthHistory();
+    expect(history["server2u-my"]).toHaveLength(1);
+    expect(history["server2u-my"][0].status).toBe("working");
+    expect(typeof history["server2u-my"][0].at).toBe("string");
+  });
+
+  it("recordSample keeps samples from multiple distributors separate", async () => {
+    const adapter = createMockAdapter();
+    const service = createHealthService(adapter);
+    await service.recordSample("server2u-my", "working");
+    await service.recordSample("linitx-uk", "blocked");
+    const history = await service.getHealthHistory();
+    expect(history["server2u-my"]).toHaveLength(1);
+    expect(history["linitx-uk"]).toHaveLength(1);
+    expect(history["linitx-uk"][0].status).toBe("blocked");
+  });
+});
