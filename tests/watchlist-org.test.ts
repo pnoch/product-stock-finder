@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  countTagMatches,
   filterWatchlist,
   groupWatchlist,
   priceDropPercent,
@@ -53,6 +54,7 @@ const defs: Record<string, TagDefinition> = {
 const baseFilters: WatchlistFilters = {
   region: "all",
   tagIds: [],
+  tagMatchMode: "any",
   status: "all",
   query: "",
 };
@@ -168,6 +170,113 @@ describe("filterWatchlist", () => {
     expect(
       filterWatchlist(list, { ...baseFilters, region: "Europe", tagIds: ["t1"] }).map((p) => p.id),
     ).toEqual(["c"]);
+  });
+});
+
+describe("filterWatchlist tag modes", () => {
+  const both = makeProduct(
+    { id: "x", name: "X", modelNumber: "X-1", tags: ["t1", "t2"] },
+    [makeListing("server2u-my")],
+  );
+  const onlyT1 = makeProduct(
+    { id: "y", name: "Y", modelNumber: "Y-1", tags: ["t1"] },
+    [makeListing("server2u-my")],
+  );
+  const none = makeProduct({ id: "z", name: "Z", modelNumber: "Z-1" }, [
+    makeListing("server2u-my"),
+  ]);
+  const list = [both, onlyT1, none];
+
+  it("OR mode matches products with any selected tag", () => {
+    expect(
+      filterWatchlist(list, { ...baseFilters, tagIds: ["t1", "t2"] }).map(
+        (p) => p.id,
+      ),
+    ).toEqual(["x", "y"]);
+  });
+
+  it("AND mode matches only products with every selected tag", () => {
+    expect(
+      filterWatchlist(list, {
+        ...baseFilters,
+        tagIds: ["t1", "t2"],
+        tagMatchMode: "all",
+      }).map((p) => p.id),
+    ).toEqual(["x"]);
+  });
+
+  it("AND mode with a single tag matches like OR", () => {
+    expect(
+      filterWatchlist(list, {
+        ...baseFilters,
+        tagIds: ["t1"],
+        tagMatchMode: "all",
+      }).map((p) => p.id),
+    ).toEqual(["x", "y"]);
+  });
+
+  it("AND mode combines with other filters", () => {
+    expect(
+      filterWatchlist(list, {
+        ...baseFilters,
+        tagIds: ["t1", "t2"],
+        tagMatchMode: "all",
+        status: "in_stock",
+      }).map((p) => p.id),
+    ).toEqual(["x"]);
+  });
+});
+
+describe("countTagMatches", () => {
+  const inStockT1 = makeProduct(
+    { id: "a", name: "Alpha", modelNumber: "A-1", tags: ["t1", "t2"] },
+    [makeListing("server2u-my", { stockStatus: "in_stock" })],
+  );
+  const backOrderT2 = makeProduct(
+    { id: "b", name: "Beta", modelNumber: "B-1", tags: ["t2"] },
+    [makeListing("server2u-my", { stockStatus: "back_order" })],
+  );
+  const outT1 = makeProduct(
+    { id: "c", name: "Gamma", modelNumber: "C-1", tags: ["t1"] },
+    [makeListing("server2u-my", { stockStatus: "out_of_stock" })],
+  );
+  const untagged = makeProduct({ id: "d", name: "Delta", modelNumber: "D-1" }, [
+    makeListing("server2u-my", { stockStatus: "in_stock" }),
+  ]);
+  const list = [inStockT1, backOrderT2, outT1, untagged];
+
+  it("counts products per tag across the whole list", () => {
+    expect(
+      countTagMatches(list, { region: "all", status: "all", query: "" }),
+    ).toEqual({ t1: 2, t2: 2 });
+  });
+
+  it("respects the status filter", () => {
+    expect(
+      countTagMatches(list, { region: "all", status: "in_stock", query: "" }),
+    ).toEqual({ t1: 1, t2: 1 });
+  });
+
+  it("respects the region filter", () => {
+    const eu = makeProduct(
+      { id: "e", name: "Epsilon", modelNumber: "E-1", tags: ["t1"] },
+      [makeListing("linitx-uk")],
+    );
+    expect(
+      countTagMatches([...list, eu], { region: "Europe", status: "all", query: "" }),
+    ).toEqual({ t1: 1 });
+  });
+
+  it("respects the query filter", () => {
+    expect(
+      countTagMatches(list, { region: "all", status: "all", query: "BETA" }),
+    ).toEqual({ t2: 1 });
+  });
+
+  it("returns an empty object when nothing matches", () => {
+    expect(
+      countTagMatches(list, { region: "all", status: "all", query: "zzz" }),
+    ).toEqual({});
   });
 });
 

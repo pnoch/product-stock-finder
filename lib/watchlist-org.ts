@@ -8,7 +8,7 @@ import type {
 import { convertPrice, getBestPrice } from "./currency";
 import { getDistributorById } from "./distributors";
 import { productHasRegion } from "./region-filter";
-import { matchesTagFilter } from "./tags";
+import { matchesTagFilterMode } from "./tags";
 
 export type { WatchlistGroup, WatchlistSort };
 
@@ -17,6 +17,7 @@ export type StatusFilter = "all" | StockStatus;
 export interface WatchlistFilters {
   region: string;
   tagIds: string[];
+  tagMatchMode: "any" | "all";
   status: StatusFilter;
   query: string;
 }
@@ -93,7 +94,8 @@ export function filterWatchlist(
   return list.filter((p) => {
     if (filters.region !== "all" && !productHasRegion(p, filters.region))
       return false;
-    if (!matchesTagFilter(p, filters.tagIds)) return false;
+    if (!matchesTagFilterMode(p, filters.tagIds, filters.tagMatchMode))
+      return false;
     if (filters.status !== "all" && productStatus(p) !== filters.status)
       return false;
     if (
@@ -104,6 +106,30 @@ export function filterWatchlist(
       return false;
     return true;
   });
+}
+
+export function countTagMatches(
+  list: Product[],
+  filters: Pick<WatchlistFilters, "region" | "status" | "query">,
+): Record<string, number> {
+  const q = filters.query.trim().toLowerCase();
+  const counts: Record<string, number> = {};
+  for (const p of list) {
+    if (filters.region !== "all" && !productHasRegion(p, filters.region))
+      continue;
+    if (filters.status !== "all" && productStatus(p) !== filters.status)
+      continue;
+    if (
+      q &&
+      !p.name.toLowerCase().includes(q) &&
+      !p.modelNumber.toLowerCase().includes(q)
+    )
+      continue;
+    for (const tagId of p.tags ?? []) {
+      counts[tagId] = (counts[tagId] ?? 0) + 1;
+    }
+  }
+  return counts;
 }
 
 export function sortWatchlist(
