@@ -554,3 +554,11 @@
 
 - [x] HISTORY_MAX_SAMPLES raised from 90 to 720 (30 days at hourly cadence)
 - [x] Updated pruneHealthHistory cap test
+
+## Phase 63: Health Alerts (v5.11)
+
+- [x] detectHealthAlert: fires on 3 consecutive blocked/error after working
+- [x] scheduleHealthAlert notification (web-guarded, immediate)
+- [x] checkHealthAlerts wired into probe task + collector flush
+- [x] healthAlerts settings toggle (default on)
+- [x] Tests: detectHealthAlert, checkHealthAlerts
