@@ -569,3 +569,10 @@
 - [x] scheduleHealthRecovery notification (web-guarded, immediate)
 - [x] checkHealthAlerts fires recovery + outage alerts (shared healthAlerts toggle)
 - [x] Tests: detectHealthRecovery, checkHealthAlerts recovery
+
+## Phase 65: Health Alerts in Notification Center (v5.13)
+
+- [x] NotificationHistoryEntry gains health type + healthStatus + optional productId
+- [x] scheduleHealthAlert/scheduleHealthRecovery record history entries
+- [x] Notification center renders health entries (status icon/color) + navigates to /health/[id]
+- [x] Tests: health-notifications, notification-center-helpers
