@@ -129,30 +129,41 @@ export async function scheduleHealthRecovery(
   distributorName: string,
   status: HealthStatus,
 ): Promise<string | null> {
-  if (Platform.OS === "web") return null;
-  try {
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "🟢 Distributor Recovered",
-        body: `${distributorName} is back online after being ${status}`,
-        data: { type: "health_recovery", distributorName, status },
-        sound: "default",
-      },
-      trigger: null, // immediate
-    });
-    await recordNotificationEvent({
-      id: `health-${distributorName}-${Date.now()}`,
-      type: "health",
-      title: "🟢 Distributor Recovered",
-      body: `${distributorName} is back online after being ${status}`,
-      distributorId: distributorName,
-      healthStatus: "recovered",
-      createdAt: Date.now(),
-    });
-    return id;
-  } catch {
-    return null;
+  const title = "🟢 Distributor Recovered";
+  const body = `${distributorName} is back online after being ${status}`;
+  let id: string | null = null;
+  if (Platform.OS === "web") {
+    try {
+      const { displayWebNotification } = await import("./web-notifications");
+      displayWebNotification(title, body);
+    } catch {
+      // web display failures are non-fatal
+    }
+  } else {
+    try {
+      id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data: { type: "health_recovery", distributorName, status },
+          sound: "default",
+        },
+        trigger: null, // immediate
+      });
+    } catch {
+      return null;
+    }
   }
+  await recordNotificationEvent({
+    id: `health-${distributorName}-${Date.now()}`,
+    type: "health",
+    title,
+    body,
+    distributorId: distributorName,
+    healthStatus: "recovered",
+    createdAt: Date.now(),
+  });
+  return id;
 }
 
 // ─── Schedule a price-drop notification ──────────────────────────────────────

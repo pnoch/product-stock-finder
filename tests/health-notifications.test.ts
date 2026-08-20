@@ -86,9 +86,10 @@ describe("scheduleHealthRecovery history recording", () => {
     expect(entry.title).toContain("Recovered");
   });
 
-  it("does not record on web", async () => {
+  it("displays a web notification and records history on web", async () => {
     state.platform = "web";
     await scheduleHealthRecovery("Winncom", "error");
-    expect(state.recorded).toHaveLength(0);
+    expect(state.recorded).toHaveLength(1);
+    expect(state.recorded[0].healthStatus).toBe("recovered");
   });
 });
