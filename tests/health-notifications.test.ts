@@ -31,6 +31,10 @@ vi.mock("../lib/storage", () => ({
   }),
 }));
 
+vi.mock("../lib/web-notifications", () => ({
+  displayWebNotification: vi.fn(),
+}));
+
 import { scheduleHealthAlert, scheduleHealthRecovery } from "../lib/notifications";
 
 describe("scheduleHealthAlert history recording", () => {
@@ -58,10 +62,11 @@ describe("scheduleHealthAlert history recording", () => {
     expect(entry.title).toContain("Down");
   });
 
-  it("does not record on web", async () => {
+  it("displays a web notification and records history on web", async () => {
     state.platform = "web";
     await scheduleHealthAlert("Winncom", "blocked");
-    expect(state.recorded).toHaveLength(0);
+    expect(state.recorded).toHaveLength(1);
+    expect(state.recorded[0].healthStatus).toBe("blocked");
   });
 });
 

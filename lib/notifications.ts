@@ -86,32 +86,42 @@ export async function scheduleHealthAlert(
   status: HealthStatus,
   reason?: string,
 ): Promise<string | null> {
-  if (Platform.OS === "web") return null;
-  try {
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title:
-          status === "blocked" ? "🟠 Distributor Blocked" : "🔴 Distributor Down",
-        body: `${distributorName} has been ${status} for ${HEALTH_ALERT_THRESHOLD} consecutive probes${reason ? ` — ${reason}` : ""}`,
-        data: { type: "health_alert", distributorName, status },
-        sound: "default",
-      },
-      trigger: null, // immediate
-    });
-    await recordNotificationEvent({
-      id: `health-${distributorName}-${Date.now()}`,
-      type: "health",
-      title:
-        status === "blocked" ? "🟠 Distributor Blocked" : "🔴 Distributor Down",
-      body: `${distributorName} has been ${status} for ${HEALTH_ALERT_THRESHOLD} consecutive probes${reason ? ` — ${reason}` : ""}`,
-      distributorId: distributorName,
-      healthStatus: status as "blocked" | "error",
-      createdAt: Date.now(),
-    });
-    return id;
-  } catch {
-    return null;
+  const title =
+    status === "blocked" ? "🟠 Distributor Blocked" : "🔴 Distributor Down";
+  const body = `${distributorName} has been ${status} for ${HEALTH_ALERT_THRESHOLD} consecutive probes${reason ? ` — ${reason}` : ""}`;
+  let id: string | null = null;
+  if (Platform.OS === "web") {
+    try {
+      const { displayWebNotification } = await import("./web-notifications");
+      displayWebNotification(title, body);
+    } catch {
+      // web display failures are non-fatal
+    }
+  } else {
+    try {
+      id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data: { type: "health_alert", distributorName, status },
+          sound: "default",
+        },
+        trigger: null, // immediate
+      });
+    } catch {
+      return null;
+    }
   }
+  await recordNotificationEvent({
+    id: `health-${distributorName}-${Date.now()}`,
+    type: "health",
+    title,
+    body,
+    distributorId: distributorName,
+    healthStatus: status as "blocked" | "error",
+    createdAt: Date.now(),
+  });
+  return id;
 }
 
 // ─── Schedule a distributor recovery notification ────────────────────────────
