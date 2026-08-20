@@ -9,8 +9,10 @@ import {
   computeHealthStats,
   computeHealthSummary,
   createHealthService,
+  groupSamplesByDay,
   HealthSample,
   HealthStatus,
+  timelineSegments,
 } from "@/lib/scrapers/health";
 import { getDistributorById } from "@/lib/distributors";
 
@@ -66,9 +68,8 @@ export default function HealthDetailScreen() {
     samples.length > 0 ? { [id]: samples } : {},
   )[id];
   const summary = computeHealthSummary(samples);
-  const sorted = [...samples].sort(
-    (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime(),
-  );
+  const segments = timelineSegments(samples);
+  const groups = groupSamplesByDay(samples);
 
   return (
     <ScreenContainer>
@@ -149,46 +150,92 @@ export default function HealthDetailScreen() {
               No health history yet. Run Test All or wait for scheduled probes.
             </Text>
           )}
-        </View>
-
-        {sorted.map((s, i) => (
-          <View
-            key={`${s.at}-${i}`}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              paddingVertical: 10,
-              borderBottomWidth: 1,
-              borderBottomColor: colors.border,
-            }}
-          >
+          {segments.length > 0 && (
             <View
               style={{
-                width: 10,
-                height: 10,
-                borderRadius: 5,
-                backgroundColor: statusColors[s.status],
-                marginRight: 10,
+                flexDirection: "row",
+                height: 8,
+                borderRadius: 4,
+                overflow: "hidden",
+                marginTop: 12,
               }}
-            />
-            <View style={{ flex: 1 }}>
+            >
+              {segments.map((seg, i) => (
+                <View
+                  key={i}
+                  style={{
+                    flex: seg.weight,
+                    backgroundColor: statusColors[seg.status],
+                  }}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+
+        {groups.map((g) => {
+          const working = g.samples.filter((s) => s.status === "working").length;
+          const workingPct = Math.round((working / g.samples.length) * 100);
+          return (
+            <View key={g.day}>
               <Text
                 style={{
-                  color: colors.foreground,
-                  fontSize: 14,
-                  fontWeight: "500",
+                  color: colors.muted,
+                  fontSize: 12,
+                  fontWeight: "600",
+                  textTransform: "uppercase",
+                  marginTop: 16,
+                  marginBottom: 4,
                 }}
               >
-                {new Date(s.at).toLocaleString()}
+                {new Date(g.day + "T00:00:00").toLocaleDateString(undefined, {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                })}{" "}
+                · {g.samples.length} samples · {workingPct}% working
               </Text>
-              <Text style={{ color: colors.muted, fontSize: 12 }}>
-                {s.reason || s.status}
-                {s.responseTimeMs ? ` · ${s.responseTimeMs}ms` : ""}
-              </Text>
+              {g.samples.map((s, i) => (
+                <View
+                  key={`${s.at}-${i}`}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingVertical: 10,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.border,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
+                      backgroundColor: statusColors[s.status],
+                      marginRight: 10,
+                    }}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        color: colors.foreground,
+                        fontSize: 14,
+                        fontWeight: "500",
+                      }}
+                    >
+                      {new Date(s.at).toLocaleString()}
+                    </Text>
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>
+                      {s.reason || s.status}
+                      {s.responseTimeMs ? ` · ${s.responseTimeMs}ms` : ""}
+                    </Text>
+                  </View>
+                </View>
+              ))}
             </View>
-          </View>
-        ))}
-        {sorted.length === 0 && (
+          );
+        })}
+        {groups.length === 0 && (
           <Text
             style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}
           >
