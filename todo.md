@@ -535,3 +535,11 @@
 - [x] Dashboard rows tappable → drill-down navigation
 - [x] Empty state and unknown-id handling
 - [x] Tests: computeHealthSummary
+
+## Phase 60: Health Drill-Down Polish (v5.8)
+
+- [x] timelineSegments: time-proportional status strip weights
+- [x] groupSamplesByDay: local-day grouping, newest first
+- [x] Timeline strip in drill-down summary card
+- [x] Day-grouped sample list with per-day working %
+- [x] Tests: timelineSegments, groupSamplesByDay
