@@ -299,6 +299,8 @@ Expected: PASS (all 8 tests).
 
 - [ ] **Step 5: Wire the helpers into the component**
 
+NOTE: The `TypeIconName` union already includes `"exclamationmark.triangle.fill"` and `TYPE_ICONS` already maps `health: "exclamationmark.triangle.fill"` (added in Task 1's literal fix). Skip the type/map edits below if they're already present.
+
 In `components/notification-center.tsx`:
 
 1. Add the import after the existing imports:
@@ -307,7 +309,7 @@ In `components/notification-center.tsx`:
 import { healthColor, healthIcon } from "@/lib/notification-center-helpers";
 ```
 
-2. Extend `TypeIconName` union and `TYPE_ICONS` map:
+2. Extend `TypeIconName` union and `TYPE_ICONS` map (ONLY if not already present from Task 1):
 
 ```ts
 type TypeIconName =
