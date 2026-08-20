@@ -209,15 +209,15 @@ describe("pruneHealthHistory", () => {
     expect(pruneHealthHistory(samples, now)).toEqual([sample(10), sample(29)]);
   });
 
-  it("caps at 90 samples, keeping the newest", () => {
-    const samples: HealthSample[] = Array.from({ length: 100 }, (_, i) => ({
+  it("caps at 720 samples, keeping the newest", () => {
+    const samples: HealthSample[] = Array.from({ length: 800 }, (_, i) => ({
       status: "working",
-      at: new Date(now - (99 - i) * 60 * 1000).toISOString(),
+      at: new Date(now - (799 - i) * 60 * 1000).toISOString(),
     }));
     const pruned = pruneHealthHistory(samples, now);
-    expect(pruned).toHaveLength(90);
-    expect(pruned[0]).toEqual(samples[10]);
-    expect(pruned[89]).toEqual(samples[99]);
+    expect(pruned).toHaveLength(720);
+    expect(pruned[0]).toEqual(samples[80]);
+    expect(pruned[719]).toEqual(samples[799]);
   });
 
   it("returns an empty array when everything is stale", () => {

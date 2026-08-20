@@ -29,7 +29,7 @@ export type HealthHistory = Record<string, HealthSample[]>;
 
 const HEALTH_KEY = "distributor_health";
 const HEALTH_HISTORY_KEY = "distributor_health_history";
-const HISTORY_MAX_SAMPLES = 90;
+const HISTORY_MAX_SAMPLES = 30 * 24;
 const HISTORY_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const PROBE_MODEL = "CRS326";
 
