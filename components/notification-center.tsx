@@ -27,13 +27,13 @@ type TypeIconName =
   | "dollarsign.circle.fill"
   | "checkmark.circle.fill"
   | "clock.fill"
-  | "wifi";
+  | "exclamationmark.triangle.fill";
 
 const TYPE_ICONS: Record<HistoryType, TypeIconName> = {
   price_drop: "dollarsign.circle.fill",
   restock: "checkmark.circle.fill",
   reminder: "clock.fill",
-  health: "wifi",
+  health: "exclamationmark.triangle.fill",
 };
 
 function formatRelativeTime(ts: number): string {
