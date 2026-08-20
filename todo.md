@@ -543,3 +543,9 @@
 - [x] Timeline strip in drill-down summary card
 - [x] Day-grouped sample list with per-day working %
 - [x] Tests: timelineSegments, groupSamplesByDay
+
+## Phase 61: Settings-Driven Background Task Cadence (v5.9)
+
+- [x] syncBackgroundTasks: re-registers price-check + health-probe tasks
+- [x] Settings hook: re-register on checkInterval change (manual/hourly/daily)
+- [x] Tests: syncBackgroundTasks (hourly, daily, manual)
