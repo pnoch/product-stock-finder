@@ -1,7 +1,7 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { HEALTH_ALERT_THRESHOLD, HealthStatus } from "./scrapers/health";
-import { recordDisplayedEventId } from "./storage";
+import { recordDisplayedEventId, recordNotificationEvent } from "./storage";
 
 // ─── Notification Handler ─────────────────────────────────────────────────────
 // Must be called at module level (outside any component) so it's set before
@@ -98,6 +98,16 @@ export async function scheduleHealthAlert(
       },
       trigger: null, // immediate
     });
+    await recordNotificationEvent({
+      id: `health-${distributorName}-${Date.now()}`,
+      type: "health",
+      title:
+        status === "blocked" ? "🟠 Distributor Blocked" : "🔴 Distributor Down",
+      body: `${distributorName} has been ${status} for ${HEALTH_ALERT_THRESHOLD} consecutive probes${reason ? ` — ${reason}` : ""}`,
+      distributorId: distributorName,
+      healthStatus: status as "blocked" | "error",
+      createdAt: Date.now(),
+    });
     return id;
   } catch {
     return null;
@@ -119,6 +129,15 @@ export async function scheduleHealthRecovery(
         sound: "default",
       },
       trigger: null, // immediate
+    });
+    await recordNotificationEvent({
+      id: `health-${distributorName}-${Date.now()}`,
+      type: "health",
+      title: "🟢 Distributor Recovered",
+      body: `${distributorName} is back online after being ${status}`,
+      distributorId: distributorName,
+      healthStatus: "recovered",
+      createdAt: Date.now(),
     });
     return id;
   } catch {
