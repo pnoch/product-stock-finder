@@ -549,3 +549,8 @@
 - [x] syncBackgroundTasks: re-registers price-check + health-probe tasks
 - [x] Settings hook: re-register on checkInterval change (manual/hourly/daily)
 - [x] Tests: syncBackgroundTasks (hourly, daily, manual)
+
+## Phase 62: Full 30-Day Health History Window (v5.10)
+
+- [x] HISTORY_MAX_SAMPLES raised from 90 to 720 (30 days at hourly cadence)
+- [x] Updated pruneHealthHistory cap test
