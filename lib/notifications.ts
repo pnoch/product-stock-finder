@@ -1,5 +1,6 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import { HEALTH_ALERT_THRESHOLD, HealthStatus } from "./scrapers/health";
 import { recordDisplayedEventId } from "./storage";
 
 // ─── Notification Handler ─────────────────────────────────────────────────────
@@ -69,6 +70,30 @@ export async function scheduleStockAlert(
         title: "🟢 Back In Stock!",
         body: `${productName} is now available at ${distributorName} for ${currency} ${price.toFixed(2)}`,
         data: { type: "stock_alert", productName, distributorName },
+        sound: "default",
+      },
+      trigger: null, // immediate
+    });
+    return id;
+  } catch {
+    return null;
+  }
+}
+
+// ─── Schedule a distributor health alert ─────────────────────────────────────
+export async function scheduleHealthAlert(
+  distributorName: string,
+  status: HealthStatus,
+  reason?: string,
+): Promise<string | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title:
+          status === "blocked" ? "🟠 Distributor Blocked" : "🔴 Distributor Down",
+        body: `${distributorName} has been ${status} for ${HEALTH_ALERT_THRESHOLD} consecutive probes${reason ? ` — ${reason}` : ""}`,
+        data: { type: "health_alert", distributorName, status },
         sound: "default",
       },
       trigger: null, // immediate
