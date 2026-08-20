@@ -104,6 +104,28 @@ export async function scheduleHealthAlert(
   }
 }
 
+// ─── Schedule a distributor recovery notification ────────────────────────────
+export async function scheduleHealthRecovery(
+  distributorName: string,
+  status: HealthStatus,
+): Promise<string | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "🟢 Distributor Recovered",
+        body: `${distributorName} is back online after being ${status}`,
+        data: { type: "health_recovery", distributorName, status },
+        sound: "default",
+      },
+      trigger: null, // immediate
+    });
+    return id;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Schedule a price-drop notification ──────────────────────────────────────
 export async function schedulePriceAlert(
   productName: string,
