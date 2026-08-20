@@ -13,6 +13,10 @@ import { useFocusEffect, useRouter } from "expo-router";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import {
+  healthColor,
+  healthIcon,
+} from "@/lib/notification-center-helpers";
 import { syncServerNotifications } from "@/lib/server-notifications";
 import {
   getNotificationHistory,
@@ -102,7 +106,11 @@ export function NotificationCenter({
           prev.map((e) => (e.id === item.id ? { ...e, read: true } : e)),
         );
       }
-      router.push(`/product/${item.productId}`);
+      if (item.type === "health") {
+        router.push(`/health/${item.distributorId}`);
+      } else {
+        router.push(`/product/${item.productId}`);
+      }
     },
     [router, unreadCount, applyUnread],
   );
@@ -193,9 +201,19 @@ export function NotificationCenter({
           }}
         >
           <IconSymbol
-            name={TYPE_ICONS[item.type]}
+            name={
+              item.type === "health"
+                ? healthIcon(item.healthStatus)
+                : TYPE_ICONS[item.type]
+            }
             size={22}
-            color={item.type === "reminder" ? colors.warning : colors.success}
+            color={
+              item.type === "health"
+                ? colors[healthColor(item.healthStatus)]
+                : item.type === "reminder"
+                  ? colors.warning
+                  : colors.success
+            }
           />
           <View style={{ flex: 1 }}>
             <Text
