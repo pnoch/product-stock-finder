@@ -14,12 +14,14 @@ import {
 import {
   createHealthService,
   detectHealthAlert,
+  detectHealthRecovery,
   DistributorHealth,
 } from "./scrapers/health";
 import { convertPrice, formatPrice } from "./currency";
 import {
   requestNotificationPermissions,
   scheduleHealthAlert,
+  scheduleHealthRecovery,
 } from "./notifications";
 import { getDistributorById } from "./distributors";
 import * as Notifications from "expo-notifications";
@@ -380,14 +382,16 @@ export async function checkHealthAlerts(
     if (!settings.notificationsEnabled || !settings.healthAlerts) return;
     const history = await service.getHealthHistory();
     for (const [distributorId, samples] of Object.entries(history)) {
-      if (!detectHealthAlert(samples)) continue;
       const distributor = getDistributorById(distributorId);
-      const latest = samples[samples.length - 1];
-      await scheduleHealthAlert(
-        distributor?.name ?? distributorId,
-        latest.status,
-        latest.reason,
-      );
+      const name = distributor?.name ?? distributorId;
+      if (detectHealthAlert(samples)) {
+        const latest = samples[samples.length - 1];
+        await scheduleHealthAlert(name, latest.status, latest.reason);
+      }
+      if (detectHealthRecovery(samples)) {
+        const prev = samples[samples.length - 2];
+        await scheduleHealthRecovery(name, prev.status);
+      }
     }
   } catch {
     // Ignore alert errors
