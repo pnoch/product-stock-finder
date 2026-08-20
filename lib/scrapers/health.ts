@@ -168,6 +168,37 @@ export function timelineSegments(samples: HealthSample[]): TimelineSegment[] {
   }));
 }
 
+export interface DayGroup {
+  day: string;
+  samples: HealthSample[];
+}
+
+function localDayKey(at: string): string {
+  const d = new Date(at);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export function groupSamplesByDay(samples: HealthSample[]): DayGroup[] {
+  const groups = new Map<string, HealthSample[]>();
+  for (const s of samples) {
+    const day = localDayKey(s.at);
+    const arr = groups.get(day) ?? [];
+    arr.push(s);
+    groups.set(day, arr);
+  }
+  return [...groups.entries()]
+    .map(([day, groupSamples]) => ({
+      day,
+      samples: [...groupSamples].sort(
+        (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime(),
+      ),
+    }))
+    .sort((a, b) => (a.day < b.day ? 1 : -1));
+}
+
 export function createHealthService(adapter: StorageAdapter) {
   async function getDistributorHealth(): Promise<DistributorHealth[]> {
     try {

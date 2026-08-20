@@ -476,3 +476,47 @@ describe("timelineSegments", () => {
     expect(total).toBeCloseTo(1, 5);
   });
 });
+
+describe("groupSamplesByDay", () => {
+  function sample(status: HealthStatus, at: string): HealthSample {
+    return { status, at };
+  }
+
+  it("returns empty for no samples", () => {
+    expect(groupSamplesByDay([])).toEqual([]);
+  });
+
+  it("groups samples by local day", () => {
+    const groups = groupSamplesByDay([
+      sample("working", "2026-08-19T12:00:00Z"),
+      sample("blocked", "2026-08-20T12:00:00Z"),
+      sample("error", "2026-08-19T14:00:00Z"),
+    ]);
+    expect(groups).toHaveLength(2);
+    expect(groups[0].day).toBe("2026-08-20");
+    expect(groups[1].day).toBe("2026-08-19");
+    expect(groups[1].samples).toHaveLength(2);
+  });
+
+  it("sorts newest day first", () => {
+    const days = groupSamplesByDay([
+      sample("working", "2026-08-19T12:00:00Z"),
+      sample("working", "2026-08-21T12:00:00Z"),
+      sample("working", "2026-08-20T12:00:00Z"),
+    ]).map((g) => g.day);
+    expect(days).toEqual(["2026-08-21", "2026-08-20", "2026-08-19"]);
+  });
+
+  it("sorts samples newest-first within a day", () => {
+    const group = groupSamplesByDay([
+      sample("working", "2026-08-19T12:00:00Z"),
+      sample("blocked", "2026-08-19T14:00:00Z"),
+      sample("error", "2026-08-19T10:00:00Z"),
+    ])[0];
+    expect(group.samples.map((s) => s.at)).toEqual([
+      "2026-08-19T14:00:00Z",
+      "2026-08-19T12:00:00Z",
+      "2026-08-19T10:00:00Z",
+    ]);
+  });
+});
