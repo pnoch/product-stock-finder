@@ -26,12 +26,14 @@ type HistoryType = NotificationHistoryEntry["type"];
 type TypeIconName =
   | "dollarsign.circle.fill"
   | "checkmark.circle.fill"
-  | "clock.fill";
+  | "clock.fill"
+  | "wifi";
 
 const TYPE_ICONS: Record<HistoryType, TypeIconName> = {
   price_drop: "dollarsign.circle.fill",
   restock: "checkmark.circle.fill",
   reminder: "clock.fill",
+  health: "wifi",
 };
 
 function formatRelativeTime(ts: number): string {

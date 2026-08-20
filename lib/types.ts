@@ -115,11 +115,12 @@ export interface BackOrderReminder {
 
 export interface NotificationHistoryEntry {
   id: string;
-  type: "price_drop" | "restock" | "reminder";
+  type: "price_drop" | "restock" | "reminder" | "health";
   title: string;
   body: string;
-  productId: string;
+  productId?: string;
   distributorId?: string;
+  healthStatus?: "blocked" | "error" | "recovered";
   triggeredPrice?: number;
   currency?: string;
   createdAt: number;
