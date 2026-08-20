@@ -562,3 +562,10 @@
 - [x] checkHealthAlerts wired into probe task + collector flush
 - [x] healthAlerts settings toggle (default on)
 - [x] Tests: detectHealthAlert, checkHealthAlerts
+
+## Phase 64: Health Alert Recovery Notifications (v5.12)
+
+- [x] detectHealthRecovery: fires when last working follows 3+ non-working
+- [x] scheduleHealthRecovery notification (web-guarded, immediate)
+- [x] checkHealthAlerts fires recovery + outage alerts (shared healthAlerts toggle)
+- [x] Tests: detectHealthRecovery, checkHealthAlerts recovery
