@@ -214,6 +214,19 @@ export function detectHealthAlert(
   );
 }
 
+export function detectHealthRecovery(
+  samples: HealthSample[],
+  threshold = HEALTH_ALERT_THRESHOLD,
+): boolean {
+  if (samples.length < threshold + 1) return false;
+  const last = samples[samples.length - 1];
+  const prevN = samples.slice(-(threshold + 1), -1);
+  return (
+    last.status === "working" &&
+    prevN.every((s) => s.status !== "working")
+  );
+}
+
 export function createHealthService(adapter: StorageAdapter) {
   async function getDistributorHealth(): Promise<DistributorHealth[]> {
     try {

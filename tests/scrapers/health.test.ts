@@ -6,6 +6,7 @@ import {
   computeHealthSummary,
   createHealthService,
   detectHealthAlert,
+  detectHealthRecovery,
   groupSamplesByDay,
   pruneHealthHistory,
   timelineSegments,
@@ -579,5 +580,81 @@ describe("detectHealthAlert", () => {
     ];
     expect(detectHealthAlert(samples, 2)).toBe(true);
     expect(detectHealthAlert(samples, 3)).toBe(false);
+  });
+});
+
+describe("detectHealthRecovery", () => {
+  function sample(status: HealthStatus, at: string): HealthSample {
+    return { status, at };
+  }
+
+  it("returns false with fewer than threshold + 1 samples", () => {
+    const samples = [
+      sample("error", "2026-08-01T00:00:00Z"),
+      sample("error", "2026-08-01T01:00:00Z"),
+      sample("working", "2026-08-01T02:00:00Z"),
+    ];
+    expect(detectHealthRecovery(samples)).toBe(false);
+  });
+
+  it("returns true when last working follows exactly 3 non-working", () => {
+    const samples = [
+      sample("error", "2026-08-01T00:00:00Z"),
+      sample("error", "2026-08-01T01:00:00Z"),
+      sample("error", "2026-08-01T02:00:00Z"),
+      sample("working", "2026-08-01T03:00:00Z"),
+    ];
+    expect(detectHealthRecovery(samples)).toBe(true);
+  });
+
+  it("returns true when last working follows a longer streak (4+ non-working)", () => {
+    const samples = [
+      sample("error", "2026-08-01T00:00:00Z"),
+      sample("error", "2026-08-01T01:00:00Z"),
+      sample("error", "2026-08-01T02:00:00Z"),
+      sample("error", "2026-08-01T03:00:00Z"),
+      sample("working", "2026-08-01T04:00:00Z"),
+    ];
+    expect(detectHealthRecovery(samples)).toBe(true);
+  });
+
+  it("returns false when last sample is non-working", () => {
+    const samples = [
+      sample("working", "2026-08-01T00:00:00Z"),
+      sample("error", "2026-08-01T01:00:00Z"),
+      sample("error", "2026-08-01T02:00:00Z"),
+      sample("error", "2026-08-01T03:00:00Z"),
+    ];
+    expect(detectHealthRecovery(samples)).toBe(false);
+  });
+
+  it("returns false when the preceding streak is shorter than threshold (blip)", () => {
+    const samples = [
+      sample("working", "2026-08-01T00:00:00Z"),
+      sample("error", "2026-08-01T01:00:00Z"),
+      sample("working", "2026-08-01T02:00:00Z"),
+    ];
+    expect(detectHealthRecovery(samples)).toBe(false);
+  });
+
+  it("does not re-fire on consecutive working samples", () => {
+    const samples = [
+      sample("error", "2026-08-01T00:00:00Z"),
+      sample("error", "2026-08-01T01:00:00Z"),
+      sample("error", "2026-08-01T02:00:00Z"),
+      sample("working", "2026-08-01T03:00:00Z"),
+      sample("working", "2026-08-01T04:00:00Z"),
+    ];
+    expect(detectHealthRecovery(samples)).toBe(false);
+  });
+
+  it("respects a custom threshold", () => {
+    const samples = [
+      sample("error", "2026-08-01T00:00:00Z"),
+      sample("error", "2026-08-01T01:00:00Z"),
+      sample("working", "2026-08-01T02:00:00Z"),
+    ];
+    expect(detectHealthRecovery(samples, 2)).toBe(true);
+    expect(detectHealthRecovery(samples, 3)).toBe(false);
   });
 });
