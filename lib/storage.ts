@@ -87,6 +87,7 @@ export function createStorage(
     notificationsEnabled: true,
     stockAlerts: true,
     priceAlerts: true,
+    healthAlerts: true,
     shippingRegion: "Asia-Pacific",
     webNotificationsEnabled: false,
     watchlistSort: "recent",

@@ -104,6 +104,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   notificationsEnabled: true,
   stockAlerts: true,
   priceAlerts: true,
+  healthAlerts: true,
 };
 
 describe("syncNow", () => {

@@ -11,9 +11,17 @@ import {
   getPriceDigestSnapshot,
   savePriceDigestSnapshot,
 } from "./storage";
-import { createHealthService, DistributorHealth } from "./scrapers/health";
+import {
+  createHealthService,
+  detectHealthAlert,
+  DistributorHealth,
+} from "./scrapers/health";
 import { convertPrice, formatPrice } from "./currency";
-import { requestNotificationPermissions } from "./notifications";
+import {
+  requestNotificationPermissions,
+  scheduleHealthAlert,
+} from "./notifications";
+import { getDistributorById } from "./distributors";
 import * as Notifications from "expo-notifications";
 import { getParserByDistributorId } from "./scrapers/registry";
 import {
@@ -65,6 +73,7 @@ export function createHealthCollector(
         for (const [id, entry] of updates) {
           await service.recordSample(id, entry.status, entry.reason);
         }
+        await checkHealthAlerts(service);
       } catch {
         // Ignore health update errors
       }
@@ -287,6 +296,7 @@ TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
 TaskManager.defineTask(HEALTH_PROBE_TASK, async () => {
   try {
     await healthService.testAllDistributors();
+    await checkHealthAlerts();
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch {
     return BackgroundTask.BackgroundTaskResult.Failed;
@@ -360,6 +370,28 @@ export async function registerHealthProbeTask() {
 export async function syncBackgroundTasks() {
   await registerPriceCheckTask();
   await registerHealthProbeTask();
+}
+
+export async function checkHealthAlerts(
+  service: ReturnType<typeof createHealthService> = healthService,
+) {
+  try {
+    const settings = await getSettings();
+    if (!settings.notificationsEnabled || !settings.healthAlerts) return;
+    const history = await service.getHealthHistory();
+    for (const [distributorId, samples] of Object.entries(history)) {
+      if (!detectHealthAlert(samples)) continue;
+      const distributor = getDistributorById(distributorId);
+      const latest = samples[samples.length - 1];
+      await scheduleHealthAlert(
+        distributor?.name ?? distributorId,
+        latest.status,
+        latest.reason,
+      );
+    }
+  } catch {
+    // Ignore alert errors
+  }
 }
 
 export async function checkPriceDropsNow(

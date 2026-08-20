@@ -47,6 +47,7 @@ function makeSettings(overrides: Partial<AppSettings> = {}): AppSettings {
     notificationsEnabled: true,
     stockAlerts: true,
     priceAlerts: true,
+    healthAlerts: true,
     digestFrequency: "daily",
     ...overrides,
   };

@@ -164,6 +164,7 @@ export default function SettingsScreen() {
     notificationsEnabled: true,
     stockAlerts: true,
     priceAlerts: true,
+    healthAlerts: true,
   });
   const [webNotificationHint, setWebNotificationHint] = useState<string | null>(
     null,

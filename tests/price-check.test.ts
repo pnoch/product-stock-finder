@@ -15,6 +15,7 @@ const state = vi.hoisted(() => ({
     notificationsEnabled: true,
     priceAlerts: true,
     stockAlerts: true,
+    healthAlerts: true,
   },
 }));
 
@@ -46,6 +47,7 @@ vi.mock("../lib/storage", () => ({
 
 vi.mock("../lib/notifications", () => ({
   requestNotificationPermissions: vi.fn(async () => state.permissionGranted),
+  scheduleHealthAlert: vi.fn(async () => "notif-id"),
 }));
 
 vi.mock("../lib/restock", () => ({
@@ -86,12 +88,17 @@ vi.mock("../lib/server-prices", () => ({
 }));
 
 import {
+  checkHealthAlerts,
   checkPriceDropsNow,
   createHealthCollector,
   registerHealthProbeTask,
   syncBackgroundTasks,
 } from "../lib/background-price-check";
-import { createHealthService } from "../lib/scrapers/health";
+import {
+  createHealthService,
+  HealthSample,
+} from "../lib/scrapers/health";
+import { scheduleHealthAlert } from "../lib/notifications";
 import * as BackgroundTask from "expo-background-task";
 
 function makeListing(price: number, currency: string, stockStatus: string) {
@@ -117,6 +124,12 @@ function makeAlert(overrides: Partial<PriceAlert> = {}): PriceAlert {
     createdAt: new Date().toISOString(),
     ...overrides,
   };
+}
+
+function mockHealthService(history: Record<string, HealthSample[]>) {
+  return {
+    getHealthHistory: vi.fn(async () => history),
+  } as unknown as ReturnType<typeof createHealthService>;
 }
 
 beforeEach(() => {
@@ -353,5 +366,55 @@ describe("syncBackgroundTasks", () => {
       "health-probe",
     );
     expect(BackgroundTask.registerTaskAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe("checkHealthAlerts", () => {
+  beforeEach(() => {
+    vi.mocked(scheduleHealthAlert).mockClear();
+    state.settingsStore = {
+      ...state.settingsStore,
+      notificationsEnabled: true,
+      healthAlerts: true,
+    };
+  });
+
+  it("fires scheduleHealthAlert when a distributor triggers", async () => {
+    const history: Record<string, HealthSample[]> = {
+      "winncom-us": [
+        { status: "working", at: "2026-08-01T00:00:00Z" },
+        { status: "error", at: "2026-08-01T01:00:00Z" },
+        { status: "error", at: "2026-08-01T02:00:00Z" },
+        { status: "error", at: "2026-08-01T03:00:00Z" },
+      ],
+    };
+    await checkHealthAlerts(mockHealthService(history));
+    expect(scheduleHealthAlert).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not fire when notificationsEnabled is false", async () => {
+    state.settingsStore = {
+      ...state.settingsStore,
+      notificationsEnabled: false,
+    };
+    await checkHealthAlerts(mockHealthService({}));
+    expect(scheduleHealthAlert).not.toHaveBeenCalled();
+  });
+
+  it("does not fire when healthAlerts is false", async () => {
+    state.settingsStore = { ...state.settingsStore, healthAlerts: false };
+    await checkHealthAlerts(mockHealthService({}));
+    expect(scheduleHealthAlert).not.toHaveBeenCalled();
+  });
+
+  it("does not fire when no distributor triggers", async () => {
+    const history: Record<string, HealthSample[]> = {
+      "winncom-us": [
+        { status: "working", at: "2026-08-01T00:00:00Z" },
+        { status: "working", at: "2026-08-01T01:00:00Z" },
+      ],
+    };
+    await checkHealthAlerts(mockHealthService(history));
+    expect(scheduleHealthAlert).not.toHaveBeenCalled();
   });
 });

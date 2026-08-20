@@ -133,6 +133,7 @@ export interface AppSettings {
   notificationsEnabled: boolean;
   stockAlerts: boolean;
   priceAlerts: boolean;
+  healthAlerts: boolean;
   enabledDistributors?: string[];
   lastScrapeTime?: string;
   shippingRegion?: string;
