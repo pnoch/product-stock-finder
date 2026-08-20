@@ -89,6 +89,7 @@ import {
   checkPriceDropsNow,
   createHealthCollector,
   registerHealthProbeTask,
+  syncBackgroundTasks,
 } from "../lib/background-price-check";
 import { createHealthService } from "../lib/scrapers/health";
 import * as BackgroundTask from "expo-background-task";
@@ -302,6 +303,55 @@ describe("registerHealthProbeTask", () => {
     state.taskRegistered = true;
     await registerHealthProbeTask();
     expect(BackgroundTask.unregisterTaskAsync).toHaveBeenCalledWith("health-probe");
+    expect(BackgroundTask.registerTaskAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe("syncBackgroundTasks", () => {
+  beforeEach(() => {
+    vi.mocked(BackgroundTask.registerTaskAsync).mockClear();
+    vi.mocked(BackgroundTask.unregisterTaskAsync).mockClear();
+    state.taskRegistered = false;
+    state.settingsStore = { ...state.settingsStore, checkInterval: "manual" };
+  });
+
+  it("registers both tasks with hourly interval when checkInterval is hourly", async () => {
+    state.settingsStore = { ...state.settingsStore, checkInterval: "hourly" };
+    await syncBackgroundTasks();
+    expect(BackgroundTask.registerTaskAsync).toHaveBeenCalledWith(
+      "price-drop-check",
+      { minimumInterval: 60 },
+    );
+    expect(BackgroundTask.registerTaskAsync).toHaveBeenCalledWith(
+      "health-probe",
+      { minimumInterval: 60 },
+    );
+    expect(BackgroundTask.unregisterTaskAsync).not.toHaveBeenCalled();
+  });
+
+  it("registers both tasks with daily interval when checkInterval is daily", async () => {
+    state.settingsStore = { ...state.settingsStore, checkInterval: "daily" };
+    await syncBackgroundTasks();
+    expect(BackgroundTask.registerTaskAsync).toHaveBeenCalledWith(
+      "price-drop-check",
+      { minimumInterval: 1440 },
+    );
+    expect(BackgroundTask.registerTaskAsync).toHaveBeenCalledWith(
+      "health-probe",
+      { minimumInterval: 1440 },
+    );
+  });
+
+  it("unregisters both tasks when checkInterval is manual", async () => {
+    state.settingsStore = { ...state.settingsStore, checkInterval: "manual" };
+    state.taskRegistered = true;
+    await syncBackgroundTasks();
+    expect(BackgroundTask.unregisterTaskAsync).toHaveBeenCalledWith(
+      "price-drop-check",
+    );
+    expect(BackgroundTask.unregisterTaskAsync).toHaveBeenCalledWith(
+      "health-probe",
+    );
     expect(BackgroundTask.registerTaskAsync).not.toHaveBeenCalled();
   });
 });

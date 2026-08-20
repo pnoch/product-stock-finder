@@ -357,6 +357,11 @@ export async function registerHealthProbeTask() {
   }
 }
 
+export async function syncBackgroundTasks() {
+  await registerPriceCheckTask();
+  await registerHealthProbeTask();
+}
+
 export async function checkPriceDropsNow(
   onProgress?: (current: number, total: number) => void,
 ) {
