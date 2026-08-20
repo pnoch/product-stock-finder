@@ -576,3 +576,9 @@
 - [x] scheduleHealthAlert/scheduleHealthRecovery record history entries
 - [x] Notification center renders health entries (status icon/color) + navigates to /health/[id]
 - [x] Tests: health-notifications, notification-center-helpers
+
+## Phase 66: Web Push for Health Alerts (v5.14)
+
+- [x] scheduleHealthAlert/scheduleHealthRecovery display web notifications
+- [x] Health history entries recorded on web too
+- [x] Tests: web display + recording in health-notifications
