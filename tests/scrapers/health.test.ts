@@ -5,6 +5,7 @@ import {
   computeHealthStats,
   computeHealthSummary,
   createHealthService,
+  detectHealthAlert,
   groupSamplesByDay,
   pruneHealthHistory,
   timelineSegments,
@@ -518,5 +519,65 @@ describe("groupSamplesByDay", () => {
       "2026-08-19T12:00:00Z",
       "2026-08-19T10:00:00Z",
     ]);
+  });
+});
+
+describe("detectHealthAlert", () => {
+  function sample(status: HealthStatus, at: string): HealthSample {
+    return { status, at };
+  }
+
+  it("returns false with fewer than threshold + 1 samples", () => {
+    const samples = [
+      sample("working", "2026-08-01T00:00:00Z"),
+      sample("error", "2026-08-01T01:00:00Z"),
+      sample("error", "2026-08-01T02:00:00Z"),
+    ];
+    expect(detectHealthAlert(samples)).toBe(false);
+  });
+
+  it("returns true when exactly 3 consecutive non-working follow a working sample", () => {
+    const samples = [
+      sample("working", "2026-08-01T00:00:00Z"),
+      sample("blocked", "2026-08-01T01:00:00Z"),
+      sample("error", "2026-08-01T02:00:00Z"),
+      sample("blocked", "2026-08-01T03:00:00Z"),
+    ];
+    expect(detectHealthAlert(samples)).toBe(true);
+  });
+
+  it("returns false when the streak is longer than threshold (no re-fire)", () => {
+    const samples = [
+      sample("working", "2026-08-01T00:00:00Z"),
+      sample("error", "2026-08-01T01:00:00Z"),
+      sample("error", "2026-08-01T02:00:00Z"),
+      sample("error", "2026-08-01T03:00:00Z"),
+      sample("error", "2026-08-01T04:00:00Z"),
+    ];
+    expect(detectHealthAlert(samples)).toBe(false);
+  });
+
+  it("returns true again after recovery and a new outage", () => {
+    const samples = [
+      sample("working", "2026-08-01T00:00:00Z"),
+      sample("error", "2026-08-01T01:00:00Z"),
+      sample("error", "2026-08-01T02:00:00Z"),
+      sample("error", "2026-08-01T03:00:00Z"),
+      sample("working", "2026-08-01T04:00:00Z"),
+      sample("blocked", "2026-08-01T05:00:00Z"),
+      sample("error", "2026-08-01T06:00:00Z"),
+      sample("blocked", "2026-08-01T07:00:00Z"),
+    ];
+    expect(detectHealthAlert(samples)).toBe(true);
+  });
+
+  it("respects a custom threshold", () => {
+    const samples = [
+      sample("working", "2026-08-01T00:00:00Z"),
+      sample("error", "2026-08-01T01:00:00Z"),
+      sample("error", "2026-08-01T02:00:00Z"),
+    ];
+    expect(detectHealthAlert(samples, 2)).toBe(true);
+    expect(detectHealthAlert(samples, 3)).toBe(false);
   });
 });

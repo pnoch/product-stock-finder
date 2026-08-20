@@ -199,6 +199,21 @@ export function groupSamplesByDay(samples: HealthSample[]): DayGroup[] {
     .sort((a, b) => (a.day < b.day ? 1 : -1));
 }
 
+export const HEALTH_ALERT_THRESHOLD = 3;
+
+export function detectHealthAlert(
+  samples: HealthSample[],
+  threshold = HEALTH_ALERT_THRESHOLD,
+): boolean {
+  if (samples.length < threshold + 1) return false;
+  const lastN = samples.slice(-threshold);
+  const before = samples[samples.length - threshold - 1];
+  return (
+    lastN.every((s) => s.status !== "working") &&
+    before.status === "working"
+  );
+}
+
 export function createHealthService(adapter: StorageAdapter) {
   async function getDistributorHealth(): Promise<DistributorHealth[]> {
     try {
