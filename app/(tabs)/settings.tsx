@@ -1092,6 +1092,24 @@ export default function SettingsScreen() {
               />
             }
           />
+          <SettingRow
+            icon="exclamationmark.triangle.fill"
+            label="Health Alerts"
+            description="Notify when a distributor is blocked or down"
+            right={
+              <Switch
+                value={settings.healthAlerts}
+                onValueChange={(v) => updateSetting("healthAlerts", v)}
+                trackColor={{
+                  false: colors.border,
+                  true: colors.primary + "88",
+                }}
+                thumbColor={
+                  settings.healthAlerts ? colors.primary : colors.muted
+                }
+              />
+            }
+          />
           {/* Test Notification — useful for verifying permissions on device */}
           <TouchableOpacity
             onPress={handleTestNotification}
