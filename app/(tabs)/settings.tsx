@@ -53,6 +53,7 @@ import { getDeviceId } from "@/lib/device-id";
 import { ConnectionBadge } from "@/components/connection-badge";
 import { useConnection } from "@/hooks/use-connection";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
+import { syncBackgroundTasks } from "@/lib/background-price-check";
 
 function SettingRow({
   icon,
@@ -324,6 +325,9 @@ export default function SettingsScreen() {
       const updated = { ...settings, [key]: value };
       setSettings(updated);
       await saveSettings(updated);
+      if (key === "checkInterval") {
+        void syncBackgroundTasks();
+      }
     },
     [settings],
   );
