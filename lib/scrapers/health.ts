@@ -139,6 +139,35 @@ export function computeHealthSummary(
   return { count: samples.length, firstAt, lastAt, avgResponseTimeMs };
 }
 
+export interface TimelineSegment {
+  status: HealthStatus;
+  weight: number;
+}
+
+export function timelineSegments(samples: HealthSample[]): TimelineSegment[] {
+  if (samples.length === 0) return [];
+  const sorted = [...samples].sort(
+    (a, b) => new Date(a.at).getTime() - new Date(b.at).getTime(),
+  );
+  if (sorted.length === 1) return [{ status: sorted[0].status, weight: 1 }];
+  const spans: number[] = [];
+  for (let i = 0; i < sorted.length - 1; i++) {
+    spans.push(
+      new Date(sorted[i + 1].at).getTime() - new Date(sorted[i].at).getTime(),
+    );
+  }
+  const total = spans.reduce((sum, s) => sum + s, 0);
+  if (total <= 0) {
+    return sorted.map((s) => ({ status: s.status, weight: 1 / sorted.length }));
+  }
+  spans.push(spans[spans.length - 1]);
+  const totalWithLast = spans.reduce((sum, s) => sum + s, 0);
+  return sorted.map((s, i) => ({
+    status: s.status,
+    weight: spans[i] / totalWithLast,
+  }));
+}
+
 export function createHealthService(adapter: StorageAdapter) {
   async function getDistributorHealth(): Promise<DistributorHealth[]> {
     try {

@@ -5,7 +5,9 @@ import {
   computeHealthStats,
   computeHealthSummary,
   createHealthService,
+  groupSamplesByDay,
   pruneHealthHistory,
+  timelineSegments,
 } from "@/lib/scrapers/health";
 import type {
   HealthHistory,
@@ -414,5 +416,63 @@ describe("computeHealthSummary", () => {
       sample("working", "2026-08-02T00:00:00Z"),
     ];
     expect(computeHealthSummary(samples).avgResponseTimeMs).toBeNull();
+  });
+});
+
+describe("timelineSegments", () => {
+  function sample(status: HealthStatus, at: string): HealthSample {
+    return { status, at };
+  }
+
+  it("returns empty for no samples", () => {
+    expect(timelineSegments([])).toEqual([]);
+  });
+
+  it("single sample has full weight", () => {
+    expect(
+      timelineSegments([sample("working", "2026-08-01T00:00:00Z")]),
+    ).toEqual([{ status: "working", weight: 1 }]);
+  });
+
+  it("weights are proportional to time gaps", () => {
+    const segments = timelineSegments([
+      sample("working", "2026-08-01T00:00:00Z"),
+      sample("blocked", "2026-08-01T01:00:00Z"),
+      sample("error", "2026-08-01T03:00:00Z"),
+    ]);
+    // spans: 1h, 2h, last reuses 2h -> total 5h -> weights 0.2, 0.4, 0.4
+    expect(segments[0].weight).toBeCloseTo(0.2, 5);
+    expect(segments[1].weight).toBeCloseTo(0.4, 5);
+    expect(segments[2].weight).toBeCloseTo(0.4, 5);
+  });
+
+  it("last segment reuses the previous span", () => {
+    const segments = timelineSegments([
+      sample("working", "2026-08-01T00:00:00Z"),
+      sample("blocked", "2026-08-01T01:00:00Z"),
+    ]);
+    // spans: 1h, last reuses 1h -> total 2h -> weights 0.5, 0.5
+    expect(segments[0].weight).toBeCloseTo(0.5, 5);
+    expect(segments[1].weight).toBeCloseTo(0.5, 5);
+  });
+
+  it("equal weights when all timestamps identical", () => {
+    const segments = timelineSegments([
+      sample("working", "2026-08-01T00:00:00Z"),
+      sample("blocked", "2026-08-01T00:00:00Z"),
+      sample("error", "2026-08-01T00:00:00Z"),
+    ]);
+    expect(segments.map((s) => s.weight)).toEqual([1 / 3, 1 / 3, 1 / 3]);
+  });
+
+  it("weights sum to 1", () => {
+    const segments = timelineSegments([
+      sample("working", "2026-08-01T00:00:00Z"),
+      sample("blocked", "2026-08-01T02:00:00Z"),
+      sample("error", "2026-08-01T03:00:00Z"),
+      sample("working", "2026-08-01T05:00:00Z"),
+    ]);
+    const total = segments.reduce((sum, s) => sum + s.weight, 0);
+    expect(total).toBeCloseTo(1, 5);
   });
 });
