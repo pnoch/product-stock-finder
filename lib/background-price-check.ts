@@ -387,10 +387,31 @@ export async function checkHealthAlerts(
       if (detectHealthAlert(samples)) {
         const latest = samples[samples.length - 1];
         await scheduleHealthAlert(name, latest.status, latest.reason);
+        const { uploadHealthEventToServer } = await import("./server-notifications");
+        void uploadHealthEventToServer({
+          distributorId,
+          distributorName: name,
+          status: latest.status,
+          title:
+            latest.status === "blocked"
+              ? "🟠 Distributor Blocked"
+              : "🔴 Distributor Down",
+          body: `${name} has been ${latest.status} for 3 consecutive probes${latest.reason ? ` — ${latest.reason}` : ""}`,
+          createdAt: Date.now(),
+        });
       }
       if (detectHealthRecovery(samples)) {
         const prev = samples[samples.length - 2];
         await scheduleHealthRecovery(name, prev.status);
+        const { uploadHealthEventToServer } = await import("./server-notifications");
+        void uploadHealthEventToServer({
+          distributorId,
+          distributorName: name,
+          status: prev.status,
+          title: "🟢 Distributor Recovered",
+          body: `${name} is back online after being ${prev.status}`,
+          createdAt: Date.now(),
+        });
       }
     }
   } catch {

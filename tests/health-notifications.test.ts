@@ -93,3 +93,14 @@ describe("scheduleHealthRecovery history recording", () => {
     expect(state.recorded[0].healthStatus).toBe("recovered");
   });
 });
+
+describe("scheduleHealthAlert records displayedEventId", () => {
+  it("records the event id as displayed after scheduling", async () => {
+    state.platform = "ios";
+    state.scheduled.length = 0;
+    state.recorded.length = 0;
+    await scheduleHealthAlert("Winncom", "blocked");
+    const recorded = state.recorded[0] as Record<string, unknown>;
+    expect(recorded.id).toMatch(/^health-winncom-blocked-\d+$/);
+  });
+});

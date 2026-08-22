@@ -37,6 +37,20 @@ export async function uploadNotificationConfig(
   }
 }
 
+export async function uploadHealthEventToServer(event: {
+  distributorId: string;
+  distributorName: string;
+  status: "blocked" | "error";
+  title: string;
+  body: string;
+  createdAt: number;
+}): Promise<void> {
+  const { getPendingHealthEvents, savePendingHealthEvents } = await import("./storage");
+  const pending = await getPendingHealthEvents();
+  pending.push(event);
+  await savePendingHealthEvents(pending);
+}
+
 export async function pullNotificationEvents(
   deviceId: string,
 ): Promise<NotificationEvent[]> {

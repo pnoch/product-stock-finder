@@ -112,8 +112,9 @@ export async function scheduleHealthAlert(
       return null;
     }
   }
+  const eventId = `health-${distributorName.toLowerCase()}-${status}-${Date.now()}`;
   await recordNotificationEvent({
-    id: `health-${distributorName}-${Date.now()}`,
+    id: eventId,
     type: "health",
     title,
     body,
@@ -121,6 +122,7 @@ export async function scheduleHealthAlert(
     healthStatus: status as "blocked" | "error",
     createdAt: Date.now(),
   });
+  await recordDisplayedEventId(eventId);
   return id;
 }
 
@@ -154,8 +156,9 @@ export async function scheduleHealthRecovery(
       return null;
     }
   }
+  const recoveryEventId = `health-${distributorName.toLowerCase()}-${status}-${Date.now()}`;
   await recordNotificationEvent({
-    id: `health-${distributorName}-${Date.now()}`,
+    id: recoveryEventId,
     type: "health",
     title,
     body,
@@ -163,6 +166,7 @@ export async function scheduleHealthRecovery(
     healthStatus: "recovered",
     createdAt: Date.now(),
   });
+  await recordDisplayedEventId(recoveryEventId);
   return id;
 }
 

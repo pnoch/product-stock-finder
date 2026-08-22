@@ -42,6 +42,8 @@ vi.mock("../lib/storage", () => ({
   }),
   removeStockWatch: vi.fn(async () => {}),
   removeBackOrderReminder: vi.fn(async () => {}),
+  getPendingHealthEvents: vi.fn(async () => []),
+  clearPendingHealthEvents: vi.fn(async () => {}),
 }));
 
 vi.mock("../lib/notifications", () => ({
