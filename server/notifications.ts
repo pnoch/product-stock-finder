@@ -64,6 +64,7 @@ export interface NotificationEvent {
 interface MemoryEvent extends NotificationEvent {
   userId: number | null;
   deviceId: string | null;
+  dedupKey?: string;
 }
 
 const memoryConfigs = new Map<
@@ -112,6 +113,7 @@ async function processHealthEvents(
   for (const event of healthEvents) {
     const dedupKey = dedupKeyForHealth(event);
     if (db) {
+      if (userId == null) continue;
       const existing = await db
         .select({ id: notificationEvents.id })
         .from(notificationEvents)

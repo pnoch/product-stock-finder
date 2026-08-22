@@ -391,7 +391,7 @@ export async function checkHealthAlerts(
         void uploadHealthEventToServer({
           distributorId,
           distributorName: name,
-          status: latest.status,
+          status: latest.status as "blocked" | "error",
           title:
             latest.status === "blocked"
               ? "🟠 Distributor Blocked"
@@ -407,7 +407,7 @@ export async function checkHealthAlerts(
         void uploadHealthEventToServer({
           distributorId,
           distributorName: name,
-          status: prev.status,
+          status: prev.status as "blocked" | "error",
           title: "🟢 Distributor Recovered",
           body: `${name} is back online after being ${prev.status}`,
           createdAt: Date.now(),

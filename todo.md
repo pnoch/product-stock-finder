@@ -582,3 +582,14 @@
 - [x] scheduleHealthAlert/scheduleHealthRecovery display web notifications
 - [x] Health history entries recorded on web too
 - [x] Tests: web display + recording in health-notifications
+
+## Phase 67: Server-Side Health Alert Mirroring (v5.15)
+
+- [x] Server-side healthEvents processing in processEventBatch
+- [x] sendPushForUser with excludeDeviceId param
+- [x] tRPC uploadConfig schema with healthEvents array
+- [x] Client PENDING_HEALTH_EVENTS storage CRUD
+- [x] syncServerNotifications includes pending health events
+- [x] checkHealthAlerts mirrors events to server buffer
+- [x] Stable event id pattern + displayedEventId recording
+- [x] Tests: health events processing, tRPC schema, storage CRUD, sync, health notifications
