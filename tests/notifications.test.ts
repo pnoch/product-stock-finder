@@ -698,6 +698,72 @@ describe("user-scoped notifications (database)", () => {
     mockedGetDb.mockResolvedValue(null);
   });
 
+describe("upsertDeviceConfig with healthEvents", () => {
+  beforeEach(() => {
+    clearNotificationsForTests();
+    vi.clearAllMocks();
+    mockedGetDb.mockResolvedValue(null);
+  });
+
+  it("stores health events and pushes to other devices", async () => {
+    await upsertDeviceConfig("dev-1", baseConfig, 42);
+    await upsertDeviceConfig(
+      "dev-2",
+      {
+        ...baseConfig,
+        healthEvents: [
+          {
+            id: "health-winncom-blocked-1234",
+            distributorId: "winncom",
+            distributorName: "Winncom",
+            status: "blocked",
+            title: "🟠 Distributor Blocked",
+            body: "Winncom has been blocked for 3 consecutive probes",
+            createdAt: 1234,
+          },
+        ],
+      },
+      42,
+    );
+    const events = await pullPendingEvents("dev-1", 42);
+    expect(events).toHaveLength(1);
+    expect(events[0]!.type).toBe("health");
+    expect(events[0]!.distributorId).toBe("winncom");
+    expect(sendPushForUser).toHaveBeenCalledWith(
+      42,
+      expect.arrayContaining([
+        expect.objectContaining({ id: "health-winncom-blocked-1234" }),
+      ]),
+      "dev-2",
+    );
+  });
+
+  it("deduplicates health events by id", async () => {
+    await upsertDeviceConfig("dev-1", baseConfig, 42);
+    const healthEvent = {
+      id: "health-winncom-blocked-1234",
+      distributorId: "winncom",
+      distributorName: "Winncom",
+      status: "blocked" as const,
+      title: "🟠 Distributor Blocked",
+      body: "Winncom has been blocked for 3 consecutive probes",
+      createdAt: 1234,
+    };
+    await upsertDeviceConfig(
+      "dev-2",
+      { ...baseConfig, healthEvents: [healthEvent] },
+      42,
+    );
+    await upsertDeviceConfig(
+      "dev-3",
+      { ...baseConfig, healthEvents: [healthEvent] },
+      42,
+    );
+    const events = await pullPendingEvents("dev-1", 42);
+    expect(events).toHaveLength(1);
+  });
+});
+
   it("pulls a user's undelivered events and records per-device delivery", async () => {
     const inserted: unknown[] = [];
     const dbStub = {

@@ -34,6 +34,15 @@ export interface NotificationConfig {
     distributorId: string;
     reminderDate: string;
   }>;
+  healthEvents?: Array<{
+    id: string;
+    distributorId: string;
+    distributorName: string;
+    status: "blocked" | "error";
+    title: string;
+    body: string;
+    createdAt: number;
+  }>;
 }
 
 export interface NotificationEvent {
@@ -81,6 +90,81 @@ function newEventId(): string {
   return `evt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function dedupKeyForHealth(event: {
+  distributorId: string;
+  status: string;
+  createdAt: number;
+}): string {
+  return `health:${event.distributorId}:${event.status}:${event.createdAt}`;
+}
+
+async function processHealthEvents(
+  deviceId: string,
+  config: NotificationConfig,
+  userId: number | null,
+): Promise<void> {
+  const healthEvents = config.healthEvents;
+  if (!healthEvents || healthEvents.length === 0) return;
+
+  const db = await getDb();
+  const toInsert: Array<Record<string, unknown>> = [];
+
+  for (const event of healthEvents) {
+    const dedupKey = dedupKeyForHealth(event);
+    if (db) {
+      const existing = await db
+        .select({ id: notificationEvents.id })
+        .from(notificationEvents)
+        .where(
+          and(
+            eq(notificationEvents.userId, userId),
+            eq(notificationEvents.dedupKey, dedupKey),
+          ),
+        );
+      if (existing.length > 0) continue;
+    } else {
+      const exists = [...memoryEvents.values()].some(
+        (e) => e.userId === userId && e.dedupKey === dedupKey,
+      );
+      if (exists) continue;
+    }
+
+    const dbEvent = {
+      id: event.id,
+      type: "health",
+      title: event.title,
+      body: event.body,
+      distributorId: event.distributorId,
+      productId: "",
+      payload: {
+        distributorId: event.distributorId,
+        distributorName: event.distributorName,
+        healthStatus: event.status,
+      },
+      createdAt: event.createdAt,
+      deviceId: null,
+      userId,
+      dedupKey,
+    };
+
+    if (db) {
+      await db.insert(notificationEvents).values(dbEvent);
+    } else {
+      memoryEvents.set(event.id, dbEvent as MemoryEvent);
+    }
+    toInsert.push(dbEvent);
+  }
+
+  if (toInsert.length > 0 && userId !== null) {
+    const pushable = toInsert.map((e) => ({
+      id: e.id as string,
+      title: e.title as string,
+      body: e.body as string,
+    }));
+    void sendPushForUser(userId, pushable, deviceId);
+  }
+}
+
 export async function upsertDeviceConfig(
   deviceId: string,
   config: NotificationConfig,
@@ -91,6 +175,7 @@ export async function upsertDeviceConfig(
     const existing = memoryConfigs.get(deviceId);
     const effectiveUserId = userId ?? existing?.userId ?? null;
     memoryConfigs.set(deviceId, { config, userId: effectiveUserId });
+    await processHealthEvents(deviceId, config, effectiveUserId);
     return;
   }
   const set: Partial<InsertDeviceNotificationConfigRow> = {
@@ -111,6 +196,7 @@ export async function upsertDeviceConfig(
       updatedAt: Date.now(),
     })
     .onDuplicateKeyUpdate({ set });
+  await processHealthEvents(deviceId, config, userId);
 }
 
 export async function evaluateNotifications(now: number): Promise<void> {

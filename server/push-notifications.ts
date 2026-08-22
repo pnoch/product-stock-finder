@@ -118,6 +118,7 @@ export async function sendPushForDevice(
 export async function sendPushForUser(
   userId: number,
   events: PushableEvent[],
+  excludeDeviceId?: string,
 ): Promise<void> {
   if (events.length === 0) return;
   let deviceIds: string[] = [];
@@ -142,6 +143,7 @@ export async function sendPushForUser(
     return;
   }
   for (const deviceId of deviceIds) {
+    if (deviceId === excludeDeviceId) continue;
     await sendPushForDevice(deviceId, events);
   }
 }
