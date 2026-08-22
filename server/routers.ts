@@ -183,6 +183,19 @@ export const appRouter = router({
               reminderDate: z.string().min(1),
             }),
           ),
+          healthEvents: z
+            .array(
+              z.object({
+                id: z.string().min(1),
+                distributorId: z.string().min(1),
+                distributorName: z.string().min(1),
+                status: z.enum(["blocked", "error"]),
+                title: z.string().min(1),
+                body: z.string().min(1),
+                createdAt: z.number(),
+              }),
+            )
+            .optional(),
         }),
       )
       .mutation(async ({ input, ctx }) => {
@@ -192,6 +205,7 @@ export const appRouter = router({
             alerts: input.alerts,
             stockWatches: input.stockWatches,
             dateReminders: input.dateReminders,
+            healthEvents: input.healthEvents,
           },
           ctx.user?.id ?? null,
         );

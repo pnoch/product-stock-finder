@@ -83,6 +83,38 @@ describe("notifications router", () => {
     expect(mockedUpsert).toHaveBeenCalledTimes(1);
   });
 
+  it("uploads a device config with healthEvents", async () => {
+    mockedUpsert.mockResolvedValue(undefined);
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.notifications.uploadConfig({
+      deviceId: "dev-1",
+      alerts: [],
+      stockWatches: [],
+      dateReminders: [],
+      healthEvents: [
+        {
+          id: "health-winncom-blocked-1234",
+          distributorId: "winncom",
+          distributorName: "Winncom",
+          status: "blocked",
+          title: "🟠 Distributor Blocked",
+          body: "Winncom has been blocked for 3 consecutive probes",
+          createdAt: 1234,
+        },
+      ],
+    });
+    expect(result).toEqual({ accepted: true });
+    expect(mockedUpsert).toHaveBeenCalledWith(
+      "dev-1",
+      expect.objectContaining({
+        healthEvents: expect.arrayContaining([
+          expect.objectContaining({ distributorId: "winncom" }),
+        ]),
+      }),
+      null,
+    );
+  });
+
   it("pulls pending events", async () => {
     mockedPull.mockResolvedValue([
       {
