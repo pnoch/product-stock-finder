@@ -36,6 +36,7 @@ export function createStorage(
     DISPLAYED_EVENT_IDS: "displayed_notification_event_ids",
     NOTIFICATION_HISTORY: "notification_history",
     FX_RATES: "fx_rates",
+    PENDING_HEALTH_EVENTS: "pending_health_events",
   };
 
   let onChange = opts?.onChange ?? null;
@@ -664,6 +665,38 @@ export function createStorage(
     return list.filter((e) => !e.read).length;
   }
 
+  // ─── Pending Health Events (server mirroring buffer) ─────────────────────
+
+  async function getPendingHealthEvents(): Promise<
+    Array<{
+      distributorId: string;
+      distributorName: string;
+      status: "blocked" | "error";
+      title: string;
+      body: string;
+      createdAt: number;
+    }>
+  > {
+    return readList(KEYS.PENDING_HEALTH_EVENTS);
+  }
+
+  async function savePendingHealthEvents(
+    events: Array<{
+      distributorId: string;
+      distributorName: string;
+      status: "blocked" | "error";
+      title: string;
+      body: string;
+      createdAt: number;
+    }>,
+  ): Promise<void> {
+    await adapter.setItem(KEYS.PENDING_HEALTH_EVENTS, JSON.stringify(events));
+  }
+
+  async function clearPendingHealthEvents(): Promise<void> {
+    await adapter.removeItem(KEYS.PENDING_HEALTH_EVENTS);
+  }
+
   // ─── Clear All Data ─────────────────────────────────────────────────────────
 
   async function clearAllData(): Promise<void> {
@@ -677,6 +710,7 @@ export function createStorage(
       KEYS.DISPLAYED_EVENT_IDS,
       KEYS.NOTIFICATION_HISTORY,
       KEYS.FX_RATES,
+      KEYS.PENDING_HEALTH_EVENTS,
       "recently_viewed",
       "distributor_watches",
       "triggered_alert_history",
@@ -736,6 +770,9 @@ export function createStorage(
     markNotificationRead,
     markAllNotificationsRead,
     getUnreadNotificationCount,
+    getPendingHealthEvents,
+    savePendingHealthEvents,
+    clearPendingHealthEvents,
     setOnChange,
     setChangeSuppressed,
     clearAllData,
@@ -798,6 +835,9 @@ export const {
   markNotificationRead,
   markAllNotificationsRead,
   getUnreadNotificationCount,
+  getPendingHealthEvents,
+  savePendingHealthEvents,
+  clearPendingHealthEvents,
   setOnChange,
   setChangeSuppressed,
   clearAllData,

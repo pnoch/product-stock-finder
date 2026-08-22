@@ -9,11 +9,24 @@ const TIMEOUT_MS = 4000;
 export async function uploadNotificationConfig(
   deviceId: string,
   config: NotificationConfig,
+  healthEvents?: Array<{
+    id: string;
+    distributorId: string;
+    distributorName: string;
+    status: "blocked" | "error";
+    title: string;
+    body: string;
+    createdAt: number;
+  }>,
 ): Promise<boolean> {
   try {
     const client = createTRPCClient();
     await Promise.race([
-      client.notifications.uploadConfig.mutate({ deviceId, ...config }),
+      client.notifications.uploadConfig.mutate({
+        deviceId,
+        ...config,
+        healthEvents,
+      }),
       new Promise<null>((resolve) =>
         setTimeout(() => resolve(null), TIMEOUT_MS),
       ),

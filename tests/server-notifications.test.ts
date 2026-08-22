@@ -90,3 +90,49 @@ describe("pullNotificationEvents", () => {
     expect(events).toEqual([]);
   });
 });
+
+describe("uploadNotificationConfig with healthEvents", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("includes healthEvents in the mutate call", async () => {
+    const mutate = vi.fn().mockResolvedValue({ accepted: true });
+    mockClient({ uploadConfig: mutate });
+    const ok = await uploadNotificationConfig(
+      "dev-1",
+      {
+        alerts: [],
+        stockWatches: [],
+        dateReminders: [],
+      },
+      [
+        {
+          id: "health-winncom-blocked-1234",
+          distributorId: "winncom",
+          distributorName: "Winncom",
+          status: "blocked",
+          title: "🟠 Distributor Blocked",
+          body: "Winncom has been blocked for 3 consecutive probes",
+          createdAt: 1234,
+        },
+      ],
+    );
+    expect(ok).toBe(true);
+    expect(mutate).toHaveBeenCalledWith({
+      deviceId: "dev-1",
+      alerts: [],
+      stockWatches: [],
+      dateReminders: [],
+      healthEvents: [
+        {
+          id: "health-winncom-blocked-1234",
+          distributorId: "winncom",
+          distributorName: "Winncom",
+          status: "blocked",
+          title: "🟠 Distributor Blocked",
+          body: "Winncom has been blocked for 3 consecutive probes",
+          createdAt: 1234,
+        },
+      ],
+    });
+  });
+});
