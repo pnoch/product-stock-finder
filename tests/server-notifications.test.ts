@@ -8,7 +8,27 @@ import { createTRPCClient } from "../lib/trpc";
 import {
   uploadNotificationConfig,
   pullNotificationEvents,
+  syncServerNotifications,
 } from "../lib/server-notifications";
+
+vi.mock("../lib/storage", () => ({
+  getPendingHealthEvents: vi.fn(),
+  clearPendingHealthEvents: vi.fn(),
+  getAlerts: vi.fn().mockResolvedValue([]),
+  getStockWatches: vi.fn().mockResolvedValue([]),
+  getBackOrderReminders: vi.fn().mockResolvedValue([]),
+  getDisplayedEventIds: vi.fn().mockResolvedValue([]),
+  recordDisplayedEventId: vi.fn().mockResolvedValue(undefined),
+  recordNotificationEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("../lib/device-id", () => ({
+  getDeviceId: vi.fn().mockResolvedValue("test-device"),
+}));
+
+vi.mock("../lib/notifications", () => ({
+  scheduleServerEventNotification: vi.fn().mockResolvedValue(undefined),
+}));
 
 const mockedCreateClient = vi.mocked(createTRPCClient);
 
@@ -88,6 +108,40 @@ describe("pullNotificationEvents", () => {
     });
     const events = await pullNotificationEvents("dev-1");
     expect(events).toEqual([]);
+  });
+});
+
+describe("syncServerNotifications includes health events", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("includes pending health events in uploadConfig call", async () => {
+    const mutate = vi.fn().mockResolvedValue({ accepted: true });
+    const query = vi.fn().mockResolvedValue({ events: [] });
+    mockClient({ uploadConfig: mutate, pull: query });
+
+    const storage = await import("../lib/storage");
+    vi.mocked(storage.getPendingHealthEvents).mockResolvedValue([
+      {
+        distributorId: "winncom",
+        distributorName: "Winncom",
+        status: "blocked",
+        title: "🟠 Distributor Blocked",
+        body: "Winncom has been blocked",
+        createdAt: 1234,
+      },
+    ]);
+    vi.mocked(storage.clearPendingHealthEvents).mockResolvedValue(undefined);
+
+    await syncServerNotifications();
+
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        healthEvents: expect.arrayContaining([
+          expect.objectContaining({ distributorId: "winncom" }),
+        ]),
+      }),
+    );
+    expect(storage.clearPendingHealthEvents).toHaveBeenCalled();
   });
 });
 

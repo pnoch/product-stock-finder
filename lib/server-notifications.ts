@@ -106,11 +106,29 @@ async function runSyncServerNotifications(): Promise<void> {
         reminderDate: r.reminderDate,
       }));
 
-    await uploadNotificationConfig(deviceId, {
-      alerts: activeAlerts,
-      stockWatches,
-      dateReminders,
-    });
+    const { getPendingHealthEvents, clearPendingHealthEvents } =
+      await import("./storage");
+    const pendingHealthEvents = await getPendingHealthEvents();
+
+    await uploadNotificationConfig(
+      deviceId,
+      { alerts: activeAlerts, stockWatches, dateReminders },
+      pendingHealthEvents.length > 0
+        ? pendingHealthEvents.map((e) => ({
+            id: `health-${e.distributorId}-${e.status}-${e.createdAt}`,
+            distributorId: e.distributorId,
+            distributorName: e.distributorName,
+            status: e.status,
+            title: e.title,
+            body: e.body,
+            createdAt: e.createdAt,
+          }))
+        : undefined,
+    );
+
+    if (pendingHealthEvents.length > 0) {
+      await clearPendingHealthEvents();
+    }
 
     const displayedIds = new Set(await getDisplayedEventIds());
     const events = await pullNotificationEvents(deviceId);
