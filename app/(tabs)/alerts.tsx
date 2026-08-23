@@ -39,6 +39,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { TabSwitcher, ActiveTab } from "@/components/alerts/tab-switcher";
 import { AlertCard } from "@/components/alerts/alert-card";
+import { TriggeredAlertCard } from "@/components/alerts/triggered-alert-card";
 
 export default function AlertsScreen() {
   const router = useRouter();
@@ -381,132 +382,13 @@ export default function AlertsScreen() {
                   </Text>
                 </View>
                 {triggeredAlerts.map((item) => (
-                  <View
+                  <TriggeredAlertCard
                     key={item.id}
-                    style={{
-                      backgroundColor: colors.surface,
-                      borderRadius: 14,
-                      padding: 14,
-                      marginBottom: 10,
-                      borderWidth: 1,
-                      borderColor: colors.success + "44",
-                    }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                      }}
-                    >
-                      <View style={{ flex: 1, marginRight: 10 }}>
-                        <Text
-                          style={{
-                            color: colors.foreground,
-                            fontWeight: "600",
-                            fontSize: 14,
-                          }}
-                          numberOfLines={2}
-                        >
-                          {getProductName(item.productId)}
-                        </Text>
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            marginTop: 5,
-                            gap: 5,
-                          }}
-                        >
-                          <IconSymbol
-                            name="tag.fill"
-                            size={13}
-                            color={colors.muted}
-                          />
-                          <Text style={{ color: colors.muted, fontSize: 13 }}>
-                            Target:{" "}
-                            {formatPrice(item.targetPrice, item.currency)}
-                          </Text>
-                          {item.triggeredPrice != null && (
-                            <Text
-                              style={{
-                                color: colors.success,
-                                fontSize: 13,
-                                fontWeight: "600",
-                              }}
-                            >
-                              →{" "}
-                              {formatPrice(item.triggeredPrice, item.currency)}
-                            </Text>
-                          )}
-                        </View>
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            marginTop: 4,
-                            gap: 5,
-                          }}
-                        >
-                          <IconSymbol
-                            name="checkmark.circle.fill"
-                            size={13}
-                            color={colors.success}
-                          />
-                          <Text style={{ color: colors.success, fontSize: 12 }}>
-                            Triggered{" "}
-                            {new Date(item.triggeredAt!).toLocaleDateString(
-                              undefined,
-                              {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              },
-                            )}
-                          </Text>
-                        </View>
-                      </View>
-                      <View style={{ alignItems: "flex-end", gap: 8 }}>
-                        <TouchableOpacity
-                          onPress={() => handleRearmAlert(item.id)}
-                          style={{
-                            backgroundColor: colors.primary + "18",
-                            borderRadius: 8,
-                            paddingHorizontal: 8,
-                            paddingVertical: 4,
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          <IconSymbol
-                            name="arrow.clockwise"
-                            size={12}
-                            color={colors.primary}
-                          />
-                          <Text
-                            style={{
-                              color: colors.primary,
-                              fontSize: 12,
-                              fontWeight: "600",
-                            }}
-                          >
-                            Watch Again
-                          </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => handleDeleteAlert(item.id)}
-                          style={{ padding: 4 }}
-                        >
-                          <IconSymbol
-                            name="trash.fill"
-                            size={15}
-                            color={colors.muted}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
+                    alert={item}
+                    productName={getProductName(item.productId)}
+                    onRearm={handleRearmAlert}
+                    onDelete={handleDeleteAlert}
+                  />
                 ))}
               </View>
             ) : null
