@@ -38,7 +38,7 @@ import {
 } from "@/lib/notifications";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
-type ActiveTab = "alerts" | "reminders" | "notifications";
+import { TabSwitcher, ActiveTab } from "@/components/alerts/tab-switcher";
 
 export default function AlertsScreen() {
   const router = useRouter();
@@ -262,68 +262,7 @@ export default function AlertsScreen() {
       </View>
 
       {/* Tab Switcher */}
-      <View
-        style={{
-          flexDirection: "row",
-          marginHorizontal: 20,
-          marginBottom: 12,
-          backgroundColor: colors.surface,
-          borderRadius: 12,
-          padding: 4,
-          borderWidth: 1,
-          borderColor: colors.border,
-        }}
-      >
-        {(["alerts", "reminders", "notifications"] as ActiveTab[]).map(
-          (tab) => (
-            <TouchableOpacity
-              key={tab}
-              onPress={() => {
-                if (Platform.OS !== "web")
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setActiveTab(tab);
-              }}
-              style={{
-                flex: 1,
-                paddingVertical: 8,
-                borderRadius: 9,
-                alignItems: "center",
-                flexDirection: "row",
-                justifyContent: "center",
-                gap: 6,
-                backgroundColor:
-                  activeTab === tab ? colors.primary : "transparent",
-              }}
-            >
-              <IconSymbol
-                name={
-                  tab === "alerts"
-                    ? "bell.fill"
-                    : tab === "reminders"
-                      ? "calendar"
-                      : "bell.badge.fill"
-                }
-                size={15}
-                color={activeTab === tab ? "#fff" : colors.muted}
-              />
-              <Text
-                style={{
-                  color: activeTab === tab ? "#fff" : colors.muted,
-                  fontWeight: "600",
-                  fontSize: 14,
-                }}
-              >
-                {tab === "alerts"
-                  ? "Alerts"
-                  : tab === "reminders"
-                    ? "Reminders"
-                    : "Notifications"}
-                {tabCount[tab] > 0 ? ` (${tabCount[tab]})` : ""}
-              </Text>
-            </TouchableOpacity>
-          ),
-        )}
-      </View>
+      <TabSwitcher active={activeTab} counts={tabCount} onChange={setActiveTab} />
 
       {/* Alerts Tab */}
       {activeTab === "alerts" && (
