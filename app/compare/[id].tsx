@@ -24,6 +24,7 @@ import { ChartCard } from "@/components/compare/chart-card";
 import { CheapestRegionCard } from "@/components/compare/cheapest-region-card";
 import { CurrentPricesTable } from "@/components/compare/current-prices-table";
 import { CrossAlertCTA } from "@/components/compare/cross-alert-cta";
+import { DistributorSelector } from "@/components/compare/distributor-selector";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveProduct } from "@/hooks/use-live-prices";
 import { addAlert } from "@/lib/storage";
@@ -32,7 +33,7 @@ import {
   requestNotificationPermissions,
 } from "@/lib/notifications";
 import { PriceAlert } from "@/lib/types";
-import { formatPrice, convertPrice } from "@/lib/currency";
+import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
@@ -269,178 +270,14 @@ export default function CompareScreen() {
 
           <CurrentPricesTable listings={listings} selected={selected} />
 
-          {/* Distributor selector */}
-          <View style={{ paddingHorizontal: 16 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 12,
-              }}
-            >
-              <Text
-                style={{
-                  color: colors.foreground,
-                  fontWeight: "700",
-                  fontSize: 15,
-                }}
-              >
-                Select Distributors ({selected.size}/5)
-              </Text>
-              <View style={{ flexDirection: "row", gap: 4 }}>
-                {(["trend", "price", "name"] as SortBy[]).map((s) => (
-                  <TouchableOpacity
-                    key={s}
-                    onPress={() => setSortByMode(s)}
-                    style={{
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
-                      borderRadius: 8,
-                      backgroundColor:
-                        sortBy === s ? colors.primary : colors.border + "44",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: sortBy === s ? "#fff" : colors.muted,
-                        fontSize: 11,
-                        fontWeight: "600",
-                      }}
-                    >
-                      {s === "trend"
-                        ? "Trend ▼"
-                        : s === "price"
-                          ? "Price"
-                          : "A–Z"}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-            {sortedListings.map((l) => {
-              const distributor = getDistributorById(l.distributorId);
-              const isSelected = selected.has(l.distributorId);
-              const hasHistory = l.priceHistory && l.priceHistory.length >= 2;
-              const colorIdx = Array.from(selected).indexOf(l.distributorId);
-              const chipColor = isSelected
-                ? CHART_COLORS[colorIdx % CHART_COLORS.length]
-                : colors.border;
-              const trend = priceTrends.get(l.distributorId);
-              return (
-                <TouchableOpacity
-                  key={l.distributorId}
-                  onPress={() => toggleSelect(l.distributorId)}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    backgroundColor: isSelected
-                      ? chipColor + "18"
-                      : colors.surface,
-                    borderRadius: 14,
-                    padding: 14,
-                    marginBottom: 8,
-                    borderWidth: 1.5,
-                    borderColor: isSelected ? chipColor : colors.border,
-                    opacity: !hasHistory && !isSelected ? 0.5 : 1,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 11,
-                      borderWidth: 2,
-                      borderColor: isSelected ? chipColor : colors.border,
-                      backgroundColor: isSelected ? chipColor : "transparent",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginRight: 12,
-                    }}
-                  >
-                    {isSelected && (
-                      <IconSymbol name="checkmark" size={12} color="#fff" />
-                    )}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{
-                        color: colors.foreground,
-                        fontWeight: "600",
-                        fontSize: 14,
-                      }}
-                    >
-                      {distributor?.countryFlag}{" "}
-                      {distributor?.name ?? l.distributorId}
-                    </Text>
-                    <Text style={{ color: colors.muted, fontSize: 12 }}>
-                      {hasHistory
-                        ? `${l.priceHistory!.length} price points`
-                        : "No price history"}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: "flex-end" }}>
-                    <Text
-                      style={{
-                        color: isSelected ? chipColor : colors.foreground,
-                        fontWeight: "700",
-                        fontSize: 14,
-                      }}
-                    >
-                      {formatPrice(l.price, l.currency)}
-                    </Text>
-                    {trend && trend.dir !== "flat" && (
-                      <Text
-                        style={{
-                          color:
-                            trend.dir === "down"
-                              ? colors.success
-                              : colors.error,
-                          fontSize: 11,
-                          fontWeight: "600",
-                          marginTop: 1,
-                        }}
-                      >
-                        {trend.dir === "down" ? "▼" : "▲"}{" "}
-                        {trend.pct.toFixed(1)}%
-                      </Text>
-                    )}
-                    <View
-                      style={{
-                        backgroundColor:
-                          l.stockStatus === "in_stock"
-                            ? colors.success + "22"
-                            : colors.warning + "22",
-                        borderRadius: 8,
-                        paddingHorizontal: 7,
-                        paddingVertical: 2,
-                        marginTop: 2,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color:
-                            l.stockStatus === "in_stock"
-                              ? colors.success
-                              : colors.warning,
-                          fontSize: 10,
-                          fontWeight: "600",
-                        }}
-                      >
-                        {l.stockStatus === "in_stock"
-                          ? "In Stock"
-                          : l.stockStatus === "back_order"
-                            ? "Back Order"
-                            : l.stockStatus === "unknown"
-                              ? "Unknown"
-                              : "Out of Stock"}
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <DistributorSelector
+            sortedListings={sortedListings}
+            selected={selected}
+            sortBy={sortBy}
+            onSortChange={setSortByMode}
+            onToggle={toggleSelect}
+            priceTrends={priceTrends}
+          />
         </ScrollView>
       )}
     </ScreenContainer>

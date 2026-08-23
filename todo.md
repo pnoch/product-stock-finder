@@ -632,3 +632,15 @@
 - [x] Extract RescheduleModal to components/alerts/
 - [x] Extract useAlertsData hook to hooks/
 - [x] Refactor main component to composition root
+
+## Phase 72: Compare Screen Refactor (v5.20)
+
+- [x] Extract compare-utils.ts
+- [x] Extract MultiLineChart to components/compare/
+- [x] Extract CheapestRegionCard to components/compare/
+- [x] Extract CompareHeader to components/compare/
+- [x] Extract ChartCard to components/compare/
+- [x] Extract CrossAlertCTA to components/compare/
+- [x] Extract CurrentPricesTable to components/compare/
+- [x] Extract DistributorSelector to components/compare/
+- [x] Refactor main component to composition root
