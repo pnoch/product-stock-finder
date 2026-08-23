@@ -593,3 +593,14 @@
 - [x] checkHealthAlerts mirrors events to server buffer
 - [x] Stable event id pattern + displayedEventId recording
 - [x] Tests: health events processing, tRPC schema, storage CRUD, sync, health notifications
+
+## Phase 68: Product Detail Screen Refactor (v5.16)
+
+- [x] Extract openListingUrl to lib/listing-utils.ts
+- [x] Extract shared StockBadge component
+- [x] Extract BestDistributorCard to components/
+- [x] Extract PriceHistoryChart to components/
+- [x] Deduplicate StockBadge across tabs
+- [x] Extract screen sub-components to _components.tsx
+- [x] Refactor main component to composition root
+- [x] StockBadge tests + verification
