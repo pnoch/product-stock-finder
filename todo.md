@@ -676,3 +676,11 @@
 - [x] Extract sync meta storage
 - [x] Extract notifications storage (displayed ids, history, health events)
 - [x] Public API unchanged (54 methods, named exports preserved)
+
+## Phase 76: Server Notifications Refactor (v5.24)
+
+- [x] Scaffold server/notifications/ directory (types, memory-store, mappers)
+- [x] Extract build-events module (event drafting + dedup keys)
+- [x] Extract evaluate module (memory/db evaluation paths)
+- [x] Finalize index (upsert, health mirroring, pull)
+- [x] Public API unchanged (5 functions + 2 types)
