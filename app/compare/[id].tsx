@@ -22,6 +22,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { CompareHeader } from "@/components/compare/compare-header";
 import { ChartCard } from "@/components/compare/chart-card";
 import { CheapestRegionCard } from "@/components/compare/cheapest-region-card";
+import { CrossAlertCTA } from "@/components/compare/cross-alert-cta";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveProduct } from "@/hooks/use-live-prices";
 import { addAlert } from "@/lib/storage";
@@ -263,65 +264,7 @@ export default function CompareScreen() {
           {/* Cheapest Region summary */}
           <CheapestRegionCard listings={listings} />
 
-          {/* Cross-distributor alert CTA */}
-          {listings.some((l) => l.stockStatus === "in_stock") &&
-            (() => {
-              const inStock = listings.filter(
-                (l) => l.stockStatus === "in_stock",
-              );
-              const bestUSD = Math.min(
-                ...inStock.map((l) => convertPrice(l.price, l.currency, "USD")),
-              );
-              return (
-                <TouchableOpacity
-                  onPress={handleCrossAlert}
-                  style={{
-                    marginHorizontal: 16,
-                    marginBottom: 16,
-                    backgroundColor: colors.primary + "18",
-                    borderRadius: 14,
-                    padding: 14,
-                    borderWidth: 1,
-                    borderColor: colors.primary + "44",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
-                  <IconSymbol
-                    name="bell.fill"
-                    size={18}
-                    color={colors.primary}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{
-                        color: colors.primary,
-                        fontWeight: "700",
-                        fontSize: 13,
-                      }}
-                    >
-                      Alert me if any distributor drops below
-                    </Text>
-                    <Text
-                      style={{
-                        color: colors.muted,
-                        fontSize: 12,
-                        marginTop: 1,
-                      }}
-                    >
-                      ${(bestUSD * 0.95).toFixed(2)} (5% below current best of $
-                      {bestUSD.toFixed(2)})
-                    </Text>
-                  </View>
-                  <IconSymbol
-                    name="chevron.right"
-                    size={16}
-                    color={colors.primary}
-                  />
-                </TouchableOpacity>
-              );
-            })()}
+          <CrossAlertCTA listings={listings} onPress={handleCrossAlert} />
 
           {/* Current prices comparison table */}
           {selected.size > 0 && (
