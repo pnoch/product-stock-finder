@@ -684,3 +684,12 @@
 - [x] Extract evaluate module (memory/db evaluation paths)
 - [x] Finalize index (upsert, health mirroring, pull)
 - [x] Public API unchanged (5 functions + 2 types)
+
+## Phase 77: Device Management Refactor (v5.25)
+
+- [x] Extract platformLabel/formatLastSeen to device-utils.ts with unit tests
+- [x] Extract useDeviceManagement hook (state, callbacks, effects)
+- [x] Extract CurrentDeviceRow to components/settings/device-management/
+- [x] Extract DeviceRow to components/settings/device-management/
+- [x] Extract RenameDeviceModal to components/settings/device-management/
+- [x] Refactor main section to composition root
