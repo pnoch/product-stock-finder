@@ -653,3 +653,14 @@
 - [x] Extract CatalogProductCard to components/search/
 - [x] Extract useSearchData hook to hooks/
 - [x] Refactor main component to composition root
+
+## Phase 74: Product Detail Sub-Components Refactor (v5.22)
+
+- [x] Extract ProductInfoCard to components/product/
+- [x] Extract ActionButtons to components/product/
+- [x] Extract DistributorListingCard to components/product/
+- [x] Extract DistributorListingSection to components/product/
+- [x] Extract PriceAlertModal to components/product/
+- [x] Extract ReminderDatePickerModal to components/product/
+- [x] Extract PriceChartModal to components/product/
+- [x] Clean up barrel re-exports
