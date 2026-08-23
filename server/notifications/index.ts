@@ -4,82 +4,35 @@ import {
   notificationEvents,
   notificationEventDeliveries,
   type InsertDeviceNotificationConfigRow,
-  type InsertNotificationEventRow,
-} from "../drizzle/schema";
-import { PRODUCT_CATALOG } from "../lib/catalog";
-import { getDistributorById } from "../lib/distributors";
-import { getAllParserIds } from "../lib/scrapers/registry";
-import { getCachedPrice } from "./price-cache";
-import { getDb } from "./db";
-import { convertPrice, formatPrice } from "../lib/currency";
-import { sendPushForDevice, sendPushForUser } from "./push-notifications";
+} from "../../drizzle/schema";
+import { PRODUCT_CATALOG } from "../../lib/catalog";
+import { getDistributorById } from "../../lib/distributors";
+import { getAllParserIds } from "../../lib/scrapers/registry";
+import { getCachedPrice } from "../price-cache";
+import { getDb } from "../db";
+import { convertPrice, formatPrice } from "../../lib/currency";
+import { sendPushForDevice, sendPushForUser } from "../push-notifications";
+import type {
+  EventDraft,
+  MemoryEvent,
+  NotificationConfig,
+  NotificationEvent,
+} from "./types";
+import {
+  deliveryCount,
+  memoryConfigs,
+  memoryDeliveries,
+  memoryEvents,
+  stripScope,
+} from "./memory-store";
+import { draftToEvent, rowToConfig, rowToEvent } from "./mappers";
 
-export interface NotificationConfig {
-  alerts: Array<{
-    id: string;
-    productId: string;
-    targetPrice: number;
-    currency: string;
-    distributorId?: string;
-  }>;
-  stockWatches: Array<{
-    id: string;
-    productId: string;
-    distributorId: string;
-    lastKnownStatus?: string;
-  }>;
-  dateReminders: Array<{
-    id: string;
-    productId: string;
-    distributorId: string;
-    reminderDate: string;
-  }>;
-  healthEvents?: Array<{
-    id: string;
-    distributorId: string;
-    distributorName: string;
-    status: "blocked" | "error";
-    title: string;
-    body: string;
-    createdAt: number;
-  }>;
-}
-
-export interface NotificationEvent {
-  id: string;
-  type: "price_drop" | "restock" | "reminder";
-  title: string;
-  body: string;
-  alertId?: string;
-  watchId?: string;
-  reminderId?: string;
-  productId: string;
-  distributorId?: string;
-  targetPrice?: number;
-  currency?: string;
-  triggeredPrice?: number;
-  createdAt: number;
-}
-
-interface MemoryEvent extends NotificationEvent {
-  userId: number | null;
-  deviceId: string | null;
-  dedupKey?: string;
-}
-
-const memoryConfigs = new Map<
-  string,
-  { config: NotificationConfig; userId: number | null }
->();
-const memoryEvents = new Map<string, MemoryEvent>();
-const memoryDeliveries = new Map<string, Set<string>>();
-
-interface EventDraft extends Omit<
-  InsertNotificationEventRow,
-  "deviceId" | "userId"
-> {
-  dedupKey: string;
-}
+export type { NotificationConfig, NotificationEvent } from "./types";
+export {
+  clearNotificationsForTests,
+  listMemoryConfigDevices,
+  removeMemoryDevice,
+} from "./memory-store";
 
 function newEventId(): string {
   if (
@@ -301,14 +254,6 @@ async function evaluateUserMemory(
     added.push(event);
   }
   if (added.length > 0) void sendPushForUser(userId, added);
-}
-
-function deliveryCount(eventId: string): number {
-  let count = 0;
-  for (const delivered of memoryDeliveries.values()) {
-    if (delivered.has(eventId)) count += 1;
-  }
-  return count;
 }
 
 function aggregateConfigs(configs: NotificationConfig[]): NotificationConfig {
@@ -566,105 +511,4 @@ export async function pullPendingEvents(
     );
   }
   return rows.map(rowToEvent);
-}
-
-export function clearNotificationsForTests(): void {
-  memoryConfigs.clear();
-  memoryEvents.clear();
-  memoryDeliveries.clear();
-}
-
-export function listMemoryConfigDevices(): Array<{
-  deviceId: string;
-  userId: number | null;
-}> {
-  return [...memoryConfigs.entries()].map(([deviceId, entry]) => ({
-    deviceId,
-    userId: entry.userId,
-  }));
-}
-
-export function removeMemoryDevice(deviceId: string): void {
-  memoryConfigs.delete(deviceId);
-  memoryDeliveries.delete(deviceId);
-  for (const [id, event] of memoryEvents) {
-    if (event.deviceId === deviceId) memoryEvents.delete(id);
-  }
-}
-
-function stripScope(event: MemoryEvent): NotificationEvent {
-  return {
-    id: event.id,
-    type: event.type,
-    title: event.title,
-    body: event.body,
-    alertId: event.alertId,
-    watchId: event.watchId,
-    reminderId: event.reminderId,
-    productId: event.productId,
-    distributorId: event.distributorId,
-    targetPrice: event.targetPrice,
-    currency: event.currency,
-    triggeredPrice: event.triggeredPrice,
-    createdAt: event.createdAt,
-  };
-}
-
-function rowToConfig(row: {
-  alerts: unknown;
-  stockWatches: unknown;
-  dateReminders: unknown;
-}): NotificationConfig {
-  return {
-    alerts: (row.alerts as NotificationConfig["alerts"]) ?? [],
-    stockWatches:
-      (row.stockWatches as NotificationConfig["stockWatches"]) ?? [],
-    dateReminders:
-      (row.dateReminders as NotificationConfig["dateReminders"]) ?? [],
-  };
-}
-
-function draftToEvent(draft: EventDraft): NotificationEvent {
-  const payload = (draft.payload ?? {}) as Record<string, unknown>;
-  return {
-    id: draft.id,
-    type: draft.type as NotificationEvent["type"],
-    title: draft.title,
-    body: draft.body,
-    alertId: payload.alertId as string | undefined,
-    watchId: payload.watchId as string | undefined,
-    reminderId: payload.reminderId as string | undefined,
-    productId: payload.productId as string,
-    distributorId: payload.distributorId as string | undefined,
-    targetPrice: payload.targetPrice as number | undefined,
-    currency: payload.currency as string | undefined,
-    triggeredPrice: payload.triggeredPrice as number | undefined,
-    createdAt: draft.createdAt,
-  };
-}
-
-function rowToEvent(row: {
-  id: string;
-  type: string;
-  title: string;
-  body: string;
-  payload: unknown;
-  createdAt: number;
-}): NotificationEvent {
-  const payload = (row.payload ?? {}) as Record<string, unknown>;
-  return {
-    id: row.id,
-    type: row.type as NotificationEvent["type"],
-    title: row.title,
-    body: row.body,
-    alertId: payload.alertId as string | undefined,
-    watchId: payload.watchId as string | undefined,
-    reminderId: payload.reminderId as string | undefined,
-    productId: payload.productId as string,
-    distributorId: payload.distributorId as string | undefined,
-    targetPrice: payload.targetPrice as number | undefined,
-    currency: payload.currency as string | undefined,
-    triggeredPrice: payload.triggeredPrice as number | undefined,
-    createdAt: row.createdAt,
-  };
 }
