@@ -1,6 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  PriceAlert,
   AppSettings,
   BackOrderReminder,
   NotificationHistoryEntry,
@@ -12,6 +11,7 @@ import type { TagDefinition } from "../types";
 import { StorageAdapter, DISTRIBUTOR_BREAKER_KEY } from "./adapter";
 import { createContext, STORAGE_KEYS } from "./context";
 import { createWatchlistStorage } from "./watchlist";
+import { createAlertsStorage } from "./alerts";
 
 export { StorageAdapter, DISTRIBUTOR_BREAKER_KEY };
 
@@ -31,6 +31,7 @@ export function createStorage(
     updateProductListings,
     refreshWatchlistPrices,
   } = createWatchlistStorage(ctx);
+  const alertsStorage = createAlertsStorage(ctx);
 
   const DEFAULT_SETTINGS: AppSettings = {
     theme: "auto",
@@ -45,83 +46,6 @@ export function createStorage(
     watchlistSort: "recent",
     watchlistGroup: "off",
   };
-
-  // ─── Alerts ─────────────────────────────────────────────────────────────────
-
-  async function getAlerts(): Promise<PriceAlert[]> {
-    return readList<PriceAlert>(KEYS.ALERTS);
-  }
-
-  async function saveAlerts(alerts: PriceAlert[]): Promise<void> {
-    await adapter.setItem(KEYS.ALERTS, JSON.stringify(alerts));
-  }
-
-  async function addAlert(alert: PriceAlert): Promise<void> {
-    await enqueue(KEYS.ALERTS, async () => {
-      const alerts = await getAlerts();
-      alerts.unshift(alert);
-      await saveAlerts(alerts);
-      notify("alerts", alert.id);
-    });
-  }
-
-  async function removeAlert(alertId: string): Promise<void> {
-    await enqueue(KEYS.ALERTS, async () => {
-      const alerts = await getAlerts();
-      await saveAlerts(alerts.filter((a) => a.id !== alertId));
-      notify("alerts", alertId);
-    });
-  }
-
-  async function toggleAlert(alertId: string): Promise<void> {
-    await enqueue(KEYS.ALERTS, async () => {
-      const alerts = await getAlerts();
-      const updated = alerts.map((a) =>
-        a.id === alertId ? { ...a, isActive: !a.isActive } : a,
-      );
-      await saveAlerts(updated);
-      notify("alerts", alertId);
-    });
-  }
-
-  async function rearmAlert(alertId: string): Promise<void> {
-    await enqueue(KEYS.ALERTS, async () => {
-      const alerts = await getAlerts();
-      const updated = alerts.map((a) =>
-        a.id === alertId
-          ? {
-              ...a,
-              isActive: true,
-              triggeredAt: undefined,
-              triggeredPrice: undefined,
-            }
-          : a,
-      );
-      await saveAlerts(updated);
-      notify("alerts", alertId);
-    });
-  }
-
-  async function deactivateAlert(
-    alertId: string,
-    triggeredPrice: number,
-  ): Promise<void> {
-    await enqueue(KEYS.ALERTS, async () => {
-      const alerts = await getAlerts();
-      const updated = alerts.map((a) =>
-        a.id === alertId
-          ? {
-              ...a,
-              isActive: false,
-              triggeredAt: new Date().toISOString(),
-              triggeredPrice,
-            }
-          : a,
-      );
-      await saveAlerts(updated);
-      notify("alerts", alertId);
-    });
-  }
 
   // ─── Settings ───────────────────────────────────────────────────────────────
 
@@ -619,13 +543,7 @@ export function createStorage(
     removeFromWatchlist,
     updateProductListings,
     refreshWatchlistPrices,
-    getAlerts,
-    saveAlerts,
-    addAlert,
-    removeAlert,
-    toggleAlert,
-    rearmAlert,
-    deactivateAlert,
+    ...alertsStorage,
     getSettings,
     saveSettings,
     getTagDefinitions,
