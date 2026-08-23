@@ -7,13 +7,13 @@ import {
   TextInput,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { SettingRow } from "@/components/settings/setting-row";
 import { SectionHeader } from "@/components/settings/section-header";
 import {
   formatLastSeen,
   platformLabel,
 } from "@/components/settings/device-management/device-utils";
 import { useDeviceManagement } from "@/components/settings/device-management/use-device-management";
+import { CurrentDeviceRow } from "@/components/settings/device-management/current-device-row";
 
 export function DeviceManagementSection({
   user,
@@ -59,52 +59,12 @@ export function DeviceManagementSection({
           overflow: "hidden",
         }}
       >
-        <SettingRow
-          icon="iphone"
-          label="This device"
-          description={
-            devicesLoading
-              ? "Checking…"
-              : currentBinding === null
-                ? "Couldn't load device status"
-                : currentBinding.userId === user.id
-                  ? "Bound to your account"
-                  : currentBinding.userId
-                    ? "Bound to another account"
-                    : "Not bound to any account"
-          }
-          descriptionColor={
-            currentBinding?.userId === user.id
-              ? colors.success
-              : currentBinding && currentBinding.userId !== null
-                ? colors.warning
-                : undefined
-          }
-          right={
-            bindingAction ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : currentBinding && currentBinding.userId !== user.id ? (
-              <TouchableOpacity
-                onPress={handleBindCurrentDevice}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 12,
-                  backgroundColor: colors.primary + "22",
-                }}
-              >
-                <Text
-                  style={{
-                    color: colors.primary,
-                    fontSize: 13,
-                    fontWeight: "600",
-                  }}
-                >
-                  Bind to my account
-                </Text>
-              </TouchableOpacity>
-            ) : undefined
-          }
+        <CurrentDeviceRow
+          devicesLoading={devicesLoading}
+          binding={currentBinding}
+          userId={user.id}
+          bindingAction={bindingAction}
+          onBind={handleBindCurrentDevice}
         />
         {devicesLoading ? (
           <View style={{ alignItems: "center", paddingVertical: 20 }}>
