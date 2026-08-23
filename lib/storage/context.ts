@@ -1,0 +1,83 @@
+import type { Collection } from "../types";
+import type { StorageAdapter } from "./adapter";
+
+export const STORAGE_KEYS = {
+  WATCHLIST: "watchlist_products",
+  ALERTS: "price_alerts",
+  SETTINGS: "app_settings",
+  REMINDERS: "back_order_reminders",
+  STOCK_WATCHES: "back_in_stock_watches",
+  DIGEST_SNAPSHOT: "price_digest_snapshot",
+  SYNC_META: "sync_meta",
+  DISPLAYED_EVENT_IDS: "displayed_notification_event_ids",
+  NOTIFICATION_HISTORY: "notification_history",
+  FX_RATES: "fx_rates",
+  PENDING_HEALTH_EVENTS: "pending_health_events",
+};
+
+export interface StorageContext {
+  readonly adapter: StorageAdapter;
+  readonly KEYS: typeof STORAGE_KEYS;
+  notify(collection: Collection, itemId: string): void;
+  setOnChange(
+    fn: ((collection: Collection, itemId: string) => void) | null,
+  ): void;
+  setChangeSuppressed(flag: boolean): void;
+  enqueue<T>(key: string, fn: () => Promise<T>): Promise<T>;
+  readList<T>(key: string): Promise<T[]>;
+}
+
+export function createContext(adapter: StorageAdapter): StorageContext {
+  let onChange: ((collection: Collection, itemId: string) => void) | null =
+    null;
+  let suppressChange = false;
+
+  function notify(collection: Collection, itemId: string) {
+    if (!suppressChange && onChange) onChange(collection, itemId);
+  }
+
+  function setOnChange(
+    fn: ((collection: Collection, itemId: string) => void) | null,
+  ) {
+    onChange = fn;
+  }
+
+  function setChangeSuppressed(flag: boolean) {
+    suppressChange = flag;
+  }
+
+  // Serializes read-modify-write operations per key to prevent lost updates
+  // when concurrent batches (e.g. background price checks) mutate the same list.
+  const writeQueues = new Map<string, Promise<unknown>>();
+
+  function enqueue<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    const prev = writeQueues.get(key) ?? Promise.resolve();
+    const next = prev.then(fn, fn);
+    writeQueues.set(
+      key,
+      next.catch(() => {}),
+    );
+    return next;
+  }
+
+  async function readList<T>(key: string): Promise<T[]> {
+    try {
+      const raw = await adapter.getItem(key);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return {
+    adapter,
+    KEYS: STORAGE_KEYS,
+    notify,
+    setOnChange,
+    setChangeSuppressed,
+    enqueue,
+    readList,
+  };
+}

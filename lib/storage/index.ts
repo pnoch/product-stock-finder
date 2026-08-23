@@ -1,85 +1,36 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  Product,
   PriceAlert,
   AppSettings,
-  DistributorListing,
   BackOrderReminder,
   NotificationHistoryEntry,
-} from "./types";
-import type { Collection, SyncMeta } from "./types";
-import type { DigestSnapshot } from "./price-digest";
-import { generateTagId } from "./tags";
-import type { TagDefinition } from "./types";
+} from "../types";
+import type { Collection, SyncMeta } from "../types";
+import type { DigestSnapshot } from "../price-digest";
+import { generateTagId } from "../tags";
+import type { TagDefinition } from "../types";
+import { StorageAdapter, DISTRIBUTOR_BREAKER_KEY } from "./adapter";
+import { createContext, STORAGE_KEYS } from "./context";
+import { createWatchlistStorage } from "./watchlist";
 
-export interface StorageAdapter {
-  getItem(key: string): Promise<string | null>;
-  setItem(key: string, value: string): Promise<void>;
-  removeItem(key: string): Promise<void>;
-  multiRemove(keys: string[]): Promise<void>;
-}
-
-export const DISTRIBUTOR_BREAKER_KEY = "distributor_breaker";
+export { StorageAdapter, DISTRIBUTOR_BREAKER_KEY };
 
 export function createStorage(
   adapter: StorageAdapter,
   opts?: { onChange?: (collection: Collection, itemId: string) => void },
 ) {
-  const KEYS = {
-    WATCHLIST: "watchlist_products",
-    ALERTS: "price_alerts",
-    SETTINGS: "app_settings",
-    REMINDERS: "back_order_reminders",
-    STOCK_WATCHES: "back_in_stock_watches",
-    DIGEST_SNAPSHOT: "price_digest_snapshot",
-    SYNC_META: "sync_meta",
-    DISPLAYED_EVENT_IDS: "displayed_notification_event_ids",
-    NOTIFICATION_HISTORY: "notification_history",
-    FX_RATES: "fx_rates",
-    PENDING_HEALTH_EVENTS: "pending_health_events",
-  };
+  const ctx = createContext(adapter);
+  ctx.setOnChange(opts?.onChange ?? null);
 
-  let onChange = opts?.onChange ?? null;
-  let suppressChange = false;
-
-  function notify(collection: Collection, itemId: string) {
-    if (!suppressChange && onChange) onChange(collection, itemId);
-  }
-
-  function setOnChange(
-    fn: ((collection: Collection, itemId: string) => void) | null,
-  ) {
-    onChange = fn;
-  }
-
-  function setChangeSuppressed(flag: boolean) {
-    suppressChange = flag;
-  }
-
-  // Serializes read-modify-write operations per key to prevent lost updates
-  // when concurrent batches (e.g. background price checks) mutate the same list.
-  const writeQueues = new Map<string, Promise<unknown>>();
-
-  function enqueue<T>(key: string, fn: () => Promise<T>): Promise<T> {
-    const prev = writeQueues.get(key) ?? Promise.resolve();
-    const next = prev.then(fn, fn);
-    writeQueues.set(
-      key,
-      next.catch(() => {}),
-    );
-    return next;
-  }
-
-  async function readList<T>(key: string): Promise<T[]> {
-    try {
-      const raw = await adapter.getItem(key);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }
+  const { KEYS, notify, enqueue, readList } = ctx;
+  const {
+    getWatchlist,
+    saveWatchlist,
+    addToWatchlist,
+    removeFromWatchlist,
+    updateProductListings,
+    refreshWatchlistPrices,
+  } = createWatchlistStorage(ctx);
 
   const DEFAULT_SETTINGS: AppSettings = {
     theme: "auto",
@@ -94,66 +45,6 @@ export function createStorage(
     watchlistSort: "recent",
     watchlistGroup: "off",
   };
-
-  // ─── Watchlist ──────────────────────────────────────────────────────────────
-
-  async function getWatchlist(): Promise<Product[]> {
-    return readList<Product>(KEYS.WATCHLIST);
-  }
-
-  async function saveWatchlist(products: Product[]): Promise<void> {
-    await adapter.setItem(KEYS.WATCHLIST, JSON.stringify(products));
-  }
-
-  async function addToWatchlist(product: Product): Promise<void> {
-    await enqueue(KEYS.WATCHLIST, async () => {
-      const list = await getWatchlist();
-      const exists = list.find((p) => p.id === product.id);
-      if (!exists) {
-        list.unshift({
-          ...product,
-          isWatched: true,
-          addedAt: new Date().toISOString(),
-        });
-        await saveWatchlist(list);
-        notify("watchlist", product.id);
-      }
-    });
-  }
-
-  async function removeFromWatchlist(productId: string): Promise<void> {
-    await enqueue(KEYS.WATCHLIST, async () => {
-      const list = await getWatchlist();
-      const next = list.filter((p) => p.id !== productId);
-      if (next.length !== list.length) {
-        await saveWatchlist(next);
-        notify("watchlist", productId);
-      }
-    });
-  }
-
-  async function updateProductListings(
-    productId: string,
-    listings: DistributorListing[],
-  ): Promise<void> {
-    await enqueue(KEYS.WATCHLIST, async () => {
-      const list = await getWatchlist();
-      const now = new Date().toISOString();
-      const updated = list.map((p) =>
-        p.id === productId ? { ...p, listings, lastRefreshed: now } : p,
-      );
-      await saveWatchlist(updated);
-      notify("watchlist", productId);
-    });
-  }
-
-  async function refreshWatchlistPrices(): Promise<void> {
-    const list = await getWatchlist();
-    const now = new Date().toISOString();
-    const updated = list.map((p) => ({ ...p, lastRefreshed: now }));
-    await saveWatchlist(updated);
-    for (const p of updated) notify("watchlist", p.id);
-  }
 
   // ─── Alerts ─────────────────────────────────────────────────────────────────
 
@@ -700,17 +591,17 @@ export function createStorage(
   // ─── Clear All Data ─────────────────────────────────────────────────────────
 
   async function clearAllData(): Promise<void> {
-    await adapter.multiRemove([
-      KEYS.WATCHLIST,
-      KEYS.ALERTS,
-      KEYS.SETTINGS,
-      KEYS.REMINDERS,
-      KEYS.STOCK_WATCHES,
-      KEYS.SYNC_META,
-      KEYS.DISPLAYED_EVENT_IDS,
-      KEYS.NOTIFICATION_HISTORY,
-      KEYS.FX_RATES,
-      KEYS.PENDING_HEALTH_EVENTS,
+    await ctx.adapter.multiRemove([
+      STORAGE_KEYS.WATCHLIST,
+      STORAGE_KEYS.ALERTS,
+      STORAGE_KEYS.SETTINGS,
+      STORAGE_KEYS.REMINDERS,
+      STORAGE_KEYS.STOCK_WATCHES,
+      STORAGE_KEYS.SYNC_META,
+      STORAGE_KEYS.DISPLAYED_EVENT_IDS,
+      STORAGE_KEYS.NOTIFICATION_HISTORY,
+      STORAGE_KEYS.FX_RATES,
+      STORAGE_KEYS.PENDING_HEALTH_EVENTS,
       "recently_viewed",
       "distributor_watches",
       "triggered_alert_history",
@@ -773,8 +664,8 @@ export function createStorage(
     getPendingHealthEvents,
     savePendingHealthEvents,
     clearPendingHealthEvents,
-    setOnChange,
-    setChangeSuppressed,
+    setOnChange: ctx.setOnChange,
+    setChangeSuppressed: ctx.setChangeSuppressed,
     clearAllData,
   };
 }
