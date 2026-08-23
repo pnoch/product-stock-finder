@@ -17,32 +17,12 @@ import { ScreenContainer } from "@/components/screen-container";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { useColors } from "@/hooks/use-colors";
 import { searchCatalog, PRODUCT_CATALOG } from "@/lib/catalog";
-import { fetchProductImage } from "@/lib/server-images";
+import { ProductImage } from "@/components/search/product-image";
 import { addToWatchlist, getTagDefinitions, getWatchlist } from "@/lib/storage";
 import { Product, TagDefinition } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TagFilterRow } from "@/components/tag-filter-row";
 import { countTagMatchesByIds, filterWatchlist } from "@/lib/watchlist-org";
-
-function ProductImage({ productId }: { productId: string }) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  useEffect(() => {
-    let active = true;
-    fetchProductImage(productId).then((res) => {
-      if (active && res) setImageUrl(res.imageUrl);
-    });
-    return () => {
-      active = false;
-    };
-  }, [productId]);
-  if (!imageUrl) return null;
-  return (
-    <Image
-      source={{ uri: imageUrl }}
-      style={{ width: 48, height: 48, borderRadius: 8, marginRight: 12 }}
-    />
-  );
-}
 
 export default function SearchScreen() {
   const router = useRouter();
