@@ -621,3 +621,14 @@
 - [x] Extract WatchlistHeader
 - [x] Extract SortGroupBar, RegionFilterRow, EmptyState
 - [x] Refactor main component to composition root
+
+## Phase 71: Alerts Screen Refactor (v5.19)
+
+- [x] Extract TabSwitcher to components/alerts/
+- [x] Extract AlertCard to components/alerts/
+- [x] Extract TriggeredAlertCard to components/alerts/
+- [x] Extract StockWatchCard to components/alerts/
+- [x] Extract ReminderCard to components/alerts/
+- [x] Extract RescheduleModal to components/alerts/
+- [x] Extract useAlertsData hook to hooks/
+- [x] Refactor main component to composition root
