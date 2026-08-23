@@ -1,0 +1,220 @@
+import { eq, inArray } from "drizzle-orm";
+import {
+  deviceNotificationConfigs,
+  notificationEvents,
+  notificationEventDeliveries,
+} from "../../drizzle/schema";
+import { getDb } from "../db";
+import { sendPushForDevice, sendPushForUser } from "../push-notifications";
+import type { NotificationConfig, NotificationEvent } from "./types";
+import {
+  deliveryCount,
+  memoryConfigs,
+  memoryDeliveries,
+  memoryEvents,
+} from "./memory-store";
+import { draftToEvent, rowToConfig } from "./mappers";
+import { buildEvents, dedupKeyFor } from "./build-events";
+
+export async function evaluateNotifications(now: number): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    await evaluateMemory(now);
+    return;
+  }
+  const rows = await db.select().from(deviceNotificationConfigs);
+  const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> =
+    [];
+  const userDevices = new Map<
+    number,
+    Array<{ deviceId: string; config: NotificationConfig }>
+  >();
+  for (const row of rows) {
+    const config = rowToConfig(row);
+    if (row.userId) {
+      const list = userDevices.get(row.userId) ?? [];
+      list.push({ deviceId: row.deviceId, config });
+      userDevices.set(row.userId, list);
+    } else {
+      anonDevices.push({ deviceId: row.deviceId, config });
+    }
+  }
+  for (const { deviceId, config } of anonDevices) {
+    await evaluateConfigDb(db, deviceId, config, now);
+  }
+  for (const [userId, devices] of userDevices) {
+    await evaluateUserDb(db, userId, devices, now);
+  }
+}
+
+async function evaluateMemory(now: number): Promise<void> {
+  const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> =
+    [];
+  const userDevices = new Map<
+    number,
+    Array<{ deviceId: string; config: NotificationConfig }>
+  >();
+  for (const [deviceId, entry] of memoryConfigs) {
+    if (entry.userId) {
+      const list = userDevices.get(entry.userId) ?? [];
+      list.push({ deviceId, config: entry.config });
+      userDevices.set(entry.userId, list);
+    } else {
+      anonDevices.push({ deviceId, config: entry.config });
+    }
+  }
+  for (const { deviceId, config } of anonDevices) {
+    await evaluateAnonMemory(deviceId, config, now);
+  }
+  for (const [userId, devices] of userDevices) {
+    await evaluateUserMemory(userId, devices, now);
+  }
+}
+
+async function evaluateAnonMemory(
+  deviceId: string,
+  config: NotificationConfig,
+  now: number,
+): Promise<void> {
+  const delivered = memoryDeliveries.get(deviceId) ?? new Set<string>();
+  const undelivered = new Set(
+    [...memoryEvents.values()]
+      .filter((e) => e.deviceId === deviceId)
+      .filter((e) => !delivered.has(e.id))
+      .map((e) => dedupKeyFor(e)),
+  );
+  const drafts = await buildEvents(config, now);
+  const added: NotificationEvent[] = [];
+  for (const draft of drafts) {
+    if (undelivered.has(draft.dedupKey)) continue;
+    const event = { ...draftToEvent(draft), userId: null, deviceId };
+    memoryEvents.set(event.id, event);
+    added.push(event);
+  }
+  if (added.length > 0) void sendPushForDevice(deviceId, added);
+}
+
+async function evaluateUserMemory(
+  userId: number,
+  devices: Array<{ deviceId: string; config: NotificationConfig }>,
+  now: number,
+): Promise<void> {
+  const boundCount = devices.length;
+  const config = aggregateConfigs(devices.map((d) => d.config));
+  const pending = new Set(
+    [...memoryEvents.values()]
+      .filter((e) => e.userId === userId)
+      .filter((e) => deliveryCount(e.id) < boundCount)
+      .map((e) => dedupKeyFor(e)),
+  );
+  const drafts = await buildEvents(config, now);
+  const added: NotificationEvent[] = [];
+  for (const draft of drafts) {
+    if (pending.has(draft.dedupKey)) continue;
+    const event = { ...draftToEvent(draft), userId, deviceId: null };
+    memoryEvents.set(event.id, event);
+    added.push(event);
+  }
+  if (added.length > 0) void sendPushForUser(userId, added);
+}
+
+function aggregateConfigs(configs: NotificationConfig[]): NotificationConfig {
+  const alerts = new Map<string, NotificationConfig["alerts"][number]>();
+  const stockWatches = new Map<
+    string,
+    NotificationConfig["stockWatches"][number]
+  >();
+  const dateReminders = new Map<
+    string,
+    NotificationConfig["dateReminders"][number]
+  >();
+  for (const config of configs) {
+    for (const alert of config.alerts) {
+      if (!alerts.has(alert.id)) alerts.set(alert.id, alert);
+    }
+    for (const watch of config.stockWatches) {
+      if (!stockWatches.has(watch.id)) stockWatches.set(watch.id, watch);
+    }
+    for (const reminder of config.dateReminders) {
+      if (!dateReminders.has(reminder.id))
+        dateReminders.set(reminder.id, reminder);
+    }
+  }
+  return {
+    alerts: [...alerts.values()],
+    stockWatches: [...stockWatches.values()],
+    dateReminders: [...dateReminders.values()],
+  };
+}
+
+async function evaluateConfigDb(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  deviceId: string,
+  config: NotificationConfig,
+  now: number,
+): Promise<void> {
+  const existing = await db
+    .select({
+      id: notificationEvents.id,
+      dedupKey: notificationEvents.dedupKey,
+    })
+    .from(notificationEvents)
+    .where(eq(notificationEvents.deviceId, deviceId));
+  const delivered = await db
+    .select({ eventId: notificationEventDeliveries.eventId })
+    .from(notificationEventDeliveries)
+    .where(eq(notificationEventDeliveries.deviceId, deviceId));
+  const deliveredSet = new Set(delivered.map((d) => d.eventId));
+  const undelivered = new Set(
+    existing.filter((e) => !deliveredSet.has(e.id)).map((e) => e.dedupKey),
+  );
+  const drafts = await buildEvents(config, now);
+  const toInsert = drafts
+    .filter((d) => !undelivered.has(d.dedupKey))
+    .map((d) => ({ ...d, deviceId, userId: null }));
+  if (toInsert.length > 0) {
+    await db.insert(notificationEvents).values(toInsert);
+    void sendPushForDevice(deviceId, toInsert);
+  }
+}
+
+async function evaluateUserDb(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  userId: number,
+  devices: Array<{ deviceId: string; config: NotificationConfig }>,
+  now: number,
+): Promise<void> {
+  const boundCount = devices.length;
+  const config = aggregateConfigs(devices.map((d) => d.config));
+  const existing = await db
+    .select({
+      id: notificationEvents.id,
+      dedupKey: notificationEvents.dedupKey,
+    })
+    .from(notificationEvents)
+    .where(eq(notificationEvents.userId, userId));
+  const eventIds = existing.map((e) => e.id);
+  const deliveryCounts = new Map<string, number>();
+  if (eventIds.length > 0) {
+    const deliveries = await db
+      .select({ eventId: notificationEventDeliveries.eventId })
+      .from(notificationEventDeliveries)
+      .where(inArray(notificationEventDeliveries.eventId, eventIds));
+    for (const d of deliveries) {
+      deliveryCounts.set(d.eventId, (deliveryCounts.get(d.eventId) ?? 0) + 1);
+    }
+  }
+  const pending = new Set(
+    existing
+      .filter((e) => (deliveryCounts.get(e.id) ?? 0) < boundCount)
+      .map((e) => e.dedupKey),
+  );
+  const drafts = await buildEvents(config, now);
+  const toInsert = drafts
+    .filter((d) => !pending.has(d.dedupKey))
+    .map((d) => ({ ...d, userId, deviceId: null }));
+  if (toInsert.length > 0) {
+    await db.insert(notificationEvents).values(toInsert);
+    void sendPushForUser(userId, toInsert);
+  }
+}
