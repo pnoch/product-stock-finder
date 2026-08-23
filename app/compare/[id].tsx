@@ -22,6 +22,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { CompareHeader } from "@/components/compare/compare-header";
 import { ChartCard } from "@/components/compare/chart-card";
 import { CheapestRegionCard } from "@/components/compare/cheapest-region-card";
+import { CurrentPricesTable } from "@/components/compare/current-prices-table";
 import { CrossAlertCTA } from "@/components/compare/cross-alert-cta";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveProduct } from "@/hooks/use-live-prices";
@@ -266,126 +267,7 @@ export default function CompareScreen() {
 
           <CrossAlertCTA listings={listings} onPress={handleCrossAlert} />
 
-          {/* Current prices comparison table */}
-          {selected.size > 0 && (
-            <View
-              style={{
-                marginHorizontal: 16,
-                backgroundColor: colors.surface,
-                borderRadius: 16,
-                padding: 16,
-                borderWidth: 1,
-                borderColor: colors.border,
-                marginBottom: 16,
-              }}
-            >
-              <Text
-                style={{
-                  color: colors.foreground,
-                  fontWeight: "700",
-                  fontSize: 15,
-                  marginBottom: 12,
-                }}
-              >
-                Current Prices
-              </Text>
-              {listings
-                .filter((l) => selected.has(l.distributorId))
-                .map((l, i) => {
-                  const distributor = getDistributorById(l.distributorId);
-                  const usd = convertPrice(l.price, l.currency, "USD");
-                  const color =
-                    CHART_COLORS[
-                      Array.from(selected).indexOf(l.distributorId) %
-                        CHART_COLORS.length
-                    ];
-                  return (
-                    <View
-                      key={l.distributorId}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        paddingVertical: 10,
-                        borderTopWidth: i > 0 ? 1 : 0,
-                        borderTopColor: colors.border,
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: 5,
-                          backgroundColor: color,
-                          marginRight: 10,
-                        }}
-                      />
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={{
-                            color: colors.foreground,
-                            fontWeight: "600",
-                            fontSize: 14,
-                          }}
-                        >
-                          {distributor?.countryFlag}{" "}
-                          {distributor?.name ?? l.distributorId}
-                        </Text>
-                        <Text style={{ color: colors.muted, fontSize: 12 }}>
-                          {distributor?.country}
-                        </Text>
-                      </View>
-                      <View style={{ alignItems: "flex-end" }}>
-                        <Text
-                          style={{
-                            color: colors.foreground,
-                            fontWeight: "700",
-                            fontSize: 15,
-                          }}
-                        >
-                          {formatPrice(l.price, l.currency)}
-                        </Text>
-                        {l.currency !== "USD" && (
-                          <Text style={{ color: colors.muted, fontSize: 11 }}>
-                            ≈ ${usd.toFixed(2)}
-                          </Text>
-                        )}
-                        <View
-                          style={{
-                            backgroundColor:
-                              l.stockStatus === "in_stock"
-                                ? colors.success + "22"
-                                : colors.warning + "22",
-                            borderRadius: 8,
-                            paddingHorizontal: 7,
-                            paddingVertical: 2,
-                            marginTop: 2,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              color:
-                                l.stockStatus === "in_stock"
-                                  ? colors.success
-                                  : colors.warning,
-                              fontSize: 10,
-                              fontWeight: "600",
-                            }}
-                          >
-                            {l.stockStatus === "in_stock"
-                              ? "In Stock"
-                              : l.stockStatus === "back_order"
-                                ? "Back Order"
-                                : l.stockStatus === "unknown"
-                                  ? "Unknown"
-                                  : "Out of Stock"}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  );
-                })}
-            </View>
-          )}
+          <CurrentPricesTable listings={listings} selected={selected} />
 
           {/* Distributor selector */}
           <View style={{ paddingHorizontal: 16 }}>
