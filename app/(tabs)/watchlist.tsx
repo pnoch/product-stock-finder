@@ -59,6 +59,7 @@ import { ProductCard } from "@/components/watchlist/product-card";
 import { SummaryCard } from "@/components/watchlist/summary-card";
 import { SearchBar } from "@/components/watchlist/search-bar";
 import { ProgressBar } from "@/components/watchlist/progress-bar";
+import { WatchlistHeader } from "@/components/watchlist/watchlist-header";
 
 
 
@@ -171,6 +172,18 @@ export default function WatchlistScreen() {
     setSelectionMode(false);
     setSelectedIds(new Set());
   }, []);
+
+  const handleRefreshAll = useCallback(async () => {
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const ok = await refreshAll();
+    if (!ok) {
+      showAlert(
+        "Couldn't refresh prices",
+        "The server is unreachable. Showing saved prices.",
+      );
+    }
+  }, [refreshAll]);
 
   const handleBulkDelete = useCallback(() => {
     const ids = Array.from(selectedIds);
@@ -285,190 +298,21 @@ export default function WatchlistScreen() {
 
   return (
     <ScreenContainer>
-      {selectionMode ? (
-        <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
-          <View>
-            <Text className="text-2xl font-bold text-foreground">
-              {selectedIds.size} Selected
-            </Text>
-            <Text className="text-muted text-sm">Tap products to select</Text>
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <TouchableOpacity
-              onPress={handleBulkDelete}
-              style={{
-                backgroundColor: colors.error,
-                borderRadius: 20,
-                paddingHorizontal: 14,
-                height: 40,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <IconSymbol name="trash.fill" size={16} color="#fff" />
-              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
-                Delete
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setBulkTagVisible(true)}
-              style={{
-                backgroundColor: colors.primary,
-                borderRadius: 20,
-                paddingHorizontal: 14,
-                height: 40,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <IconSymbol name="tag.fill" size={16} color="#fff" />
-              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
-                Tag
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={exitSelection}
-              style={{
-                backgroundColor: colors.surface,
-                borderRadius: 20,
-                width: 40,
-                height: 40,
-                alignItems: "center",
-                justifyContent: "center",
-                borderWidth: 1,
-                borderColor: colors.border,
-              }}
-            >
-              <IconSymbol name="xmark" size={18} color={colors.foreground} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : (
-        <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
-          <View>
-            <Text className="text-2xl font-bold text-foreground">Watchlist</Text>
-            <Text className="text-muted text-sm">
-              {filteredWatchlist.length} product
-              {filteredWatchlist.length !== 1 ? "s" : ""} tracked
-            </Text>
-          </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <TouchableOpacity
-            onPress={() => {
-              if (Platform.OS !== "web")
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/distributor-analysis");
-            }}
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: 20,
-              paddingHorizontal: 14,
-              height: 40,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <IconSymbol
-              name="chart.bar.xaxis"
-              size={16}
-              color={colors.primary}
-            />
-            <Text
-              style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}
-            >
-              Analysis
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={async () => {
-              if (Platform.OS !== "web")
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              const ok = await refreshAll();
-              if (!ok) {
-                showAlert(
-                  "Couldn't refresh prices",
-                  "The server is unreachable. Showing saved prices.",
-                );
-              }
-            }}
-            disabled={isRefreshingAny}
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: 20,
-              paddingHorizontal: 14,
-              height: 40,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            {isRefreshingAny ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <IconSymbol
-                name="arrow.clockwise"
-                size={16}
-                color={colors.primary}
-              />
-            )}
-            <Text
-              style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}
-            >
-              Refresh all
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={{
-              backgroundColor: checking ? colors.muted : colors.primary,
-              borderRadius: 20,
-              paddingHorizontal: 14,
-              height: 40,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              opacity: watchlist.length === 0 ? 0.5 : 1,
-            }}
-            onPress={handleCheckNow}
-            disabled={checking || watchlist.length === 0}
-          >
-            {checking ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <IconSymbol name="arrow.clockwise" size={16} color="#fff" />
-            )}
-            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
-              {checkProgress
-                ? `Checking ${checkProgress.current}/${checkProgress.total}`
-                : "Check Now"}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={{
-              backgroundColor: colors.primary,
-              borderRadius: 20,
-              width: 40,
-              height: 40,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-            onPress={() => {
-              if (Platform.OS !== "web")
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/search");
-            }}
-          >
-            <IconSymbol name="plus" size={22} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </View>
-      )}
+      <WatchlistHeader
+        mode={selectionMode ? "selection" : "normal"}
+        selectedCount={selectedIds.size}
+        watchlistLength={filteredWatchlist.length}
+        isRefreshingAny={isRefreshingAny}
+        checking={checking}
+        checkProgress={checkProgress}
+        onAnalysis={() => router.push("/distributor-analysis")}
+        onRefresh={handleRefreshAll}
+        onCheckNow={handleCheckNow}
+        onAdd={() => router.push("/search")}
+        onBulkDelete={handleBulkDelete}
+        onBulkTag={() => setBulkTagVisible(true)}
+        onExitSelection={exitSelection}
+      />
 
       {watchlist.length > 0 && (
         <SummaryCard
