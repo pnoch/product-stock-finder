@@ -604,3 +604,12 @@
 - [x] Extract screen sub-components to _components.tsx
 - [x] Refactor main component to composition root
 - [x] StockBadge tests + verification
+
+## Phase 69: Settings Screen Refactor (v5.17)
+
+- [x] Extract SettingRow + SectionHeader to components/settings/
+- [x] Extract PillPicker + RadioPicker (generic pickers)
+- [x] Extract ConnectionSection, AccountSection, DeviceManagementSection
+- [x] Extract NotificationsSection, ScraperStatusSection, AboutSection
+- [x] Refactor main component to composition root
+- [x] Picker tests + verification
