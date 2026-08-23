@@ -56,6 +56,9 @@ import {
   type StatusFilter,
 } from "@/lib/watchlist-org";
 import { ProductCard } from "@/components/watchlist/product-card";
+import { SummaryCard } from "@/components/watchlist/summary-card";
+import { SearchBar } from "@/components/watchlist/search-bar";
+import { ProgressBar } from "@/components/watchlist/progress-bar";
 
 
 
@@ -468,165 +471,24 @@ export default function WatchlistScreen() {
       )}
 
       {watchlist.length > 0 && (
-        <View
-          style={{
-            marginHorizontal: 16,
-            marginBottom: 12,
-            padding: 16,
-            borderRadius: 16,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "baseline",
-              justifyContent: "space-between",
-            }}
-          >
-            <Text style={{ color: colors.muted, fontSize: 13 }}>
-              Total Value
-            </Text>
-            <Text
-              style={{
-                color: colors.foreground,
-                fontSize: 22,
-                fontWeight: "700",
-              }}
-            >
-              {formatPrice(summary.totalValue, displayCurrency)}
-            </Text>
-          </View>
-          <View style={{ flexDirection: "row", marginTop: 12, gap: 8 }}>
-            {(
-              [
-                {
-                  key: "in_stock",
-                  label: "In Stock",
-                  value: summary.inStock,
-                  color: colors.success,
-                },
-                {
-                  key: "back_order",
-                  label: "Back Order",
-                  value: summary.backOrder,
-                  color: colors.warning,
-                },
-                {
-                  key: "out_of_stock",
-                  label: "Out of Stock",
-                  value: summary.outOfStock,
-                  color: colors.error,
-                },
-              ] as const
-            ).map((col) => (
-              <TouchableOpacity
-                key={col.key}
-                onPress={() => {
-                  if (Platform.OS !== "web")
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setStatusFilter((prev) =>
-                    prev === col.key ? "all" : col.key,
-                  );
-                }}
-                style={{
-                  flex: 1,
-                  borderRadius: 10,
-                  paddingVertical: 4,
-                  paddingHorizontal: 6,
-                  backgroundColor:
-                    statusFilter === col.key
-                      ? col.color + "22"
-                      : "transparent",
-                }}
-              >
-                <Text
-                  style={{ color: col.color, fontSize: 16, fontWeight: "600" }}
-                >
-                  {col.value}
-                </Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>
-                  {col.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  color: colors.foreground,
-                  fontSize: 16,
-                  fontWeight: "600",
-                }}
-              >
-                {summary.listingCount}
-              </Text>
-              <Text style={{ color: colors.muted, fontSize: 12 }}>
-                Listings
-              </Text>
-            </View>
-          </View>
-        </View>
+        <SummaryCard
+          summary={summary}
+          displayCurrency={displayCurrency}
+          statusFilter={statusFilter}
+          onStatusToggle={setStatusFilter}
+        />
       )}
 
       {watchlist.length > 0 && (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginHorizontal: 16,
-            marginBottom: 10,
-            paddingHorizontal: 12,
-            height: 40,
-            borderRadius: 12,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
-        >
-          <IconSymbol name="magnifyingglass" size={16} color={colors.muted} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search watchlist..."
-            placeholderTextColor={colors.muted}
-            style={{
-              flex: 1,
-              marginLeft: 8,
-              color: colors.foreground,
-              fontSize: 14,
-            }}
-          />
-          {query.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setQuery("")}
-              style={{ padding: 4 }}
-            >
-              <IconSymbol
-                name="xmark.circle.fill"
-                size={16}
-                color={colors.muted}
-              />
-            </TouchableOpacity>
-          )}
-        </View>
+        <SearchBar query={query} onQueryChange={setQuery} />
       )}
 
-      {checking && checkProgress && (
-        <View
-          className="h-1 mx-4 mb-2 rounded-full overflow-hidden"
-          style={{ backgroundColor: colors.primary + "20" }}
-        >
-          <View
-            className="h-full rounded-full"
-            style={{
-              width: `${(checkProgress.current / checkProgress.total) * 100}%`,
-              backgroundColor: colors.primary,
-            }}
-          />
-        </View>
-      )}
+      <ProgressBar
+        progress={
+          checkProgress ? checkProgress.current / checkProgress.total : 0
+        }
+        visible={!!(checking && checkProgress)}
+      />
 
       {watchlist.length > 0 && (
         <View
