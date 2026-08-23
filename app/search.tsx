@@ -4,7 +4,6 @@ import {
   Text,
   View,
   TouchableOpacity,
-  ActivityIndicator,
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -15,9 +14,9 @@ import { ScreenContainer } from "@/components/screen-container";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { useColors } from "@/hooks/use-colors";
 import { searchCatalog, PRODUCT_CATALOG } from "@/lib/catalog";
-import { ProductImage } from "@/components/search/product-image";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
 import { SearchEmptyState } from "@/components/search/search-empty-state";
+import { CatalogProductCard } from "@/components/search/catalog-product-card";
 import { addToWatchlist, getTagDefinitions, getWatchlist } from "@/lib/storage";
 import { Product, TagDefinition } from "@/lib/types";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -197,109 +196,19 @@ export default function SearchScreen() {
           <SearchEmptyState query={query} selectedTagIds={selectedTagIds} />
         }
         renderItem={({ item }) => (
-          <View
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: 16,
-              padding: 16,
-              marginBottom: 10,
-              borderWidth: 1,
-              borderColor: colors.border,
-              flexDirection: "row",
-              alignItems: "center",
-            }}
-          >
-            <ProductImage productId={item.id} />
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <Text
-                style={{
-                  color: colors.foreground,
-                  fontWeight: "600",
-                  fontSize: 15,
-                }}
-                numberOfLines={2}
-              >
-                {item.name}
-              </Text>
-              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 3 }}>
-                {item.modelNumber}
-              </Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 4,
-                  gap: 6,
-                }}
-              >
-                <View
-                  style={{
-                    backgroundColor: colors.primary + "22",
-                    borderRadius: 8,
-                    paddingHorizontal: 8,
-                    paddingVertical: 2,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: colors.primary,
-                      fontSize: 11,
-                      fontWeight: "600",
-                    }}
-                  >
-                    {item.brand}
-                  </Text>
-                </View>
-                <Text style={{ color: colors.muted, fontSize: 11 }}>
-                  {item.category}
-                </Text>
-              </View>
-            </View>
-            {!trackedIds.has(item.id) && (
-              <TouchableOpacity
-                onPress={() =>
-                  setPickerItem({
-                    ...item,
-                    addedAt: "",
-                    isWatched: false,
-                    listings: [],
-                    tags: pendingTags[item.id] ?? [],
-                  })
-                }
-                style={{
-                  marginRight: 8,
-                  padding: 6,
-                  borderRadius: 16,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                }}
-              >
-                <IconSymbol name="tag.fill" size={20} color={colors.muted} />
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              onPress={() => handleAdd(item)}
-              disabled={adding === item.id || trackedIds.has(item.id)}
-              style={{
-                backgroundColor: trackedIds.has(item.id)
-                  ? colors.success
-                  : colors.primary,
-                borderRadius: 20,
-                width: 36,
-                height: 36,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {adding === item.id ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : trackedIds.has(item.id) ? (
-                <IconSymbol name="checkmark" size={20} color="#fff" />
-              ) : (
-                <IconSymbol name="plus" size={20} color="#fff" />
-              )}
-            </TouchableOpacity>
-          </View>
+          <CatalogProductCard
+            product={item as Product}
+            isTracked={trackedIds.has(item.id)}
+            isAdding={adding === item.id}
+            onAdd={(p) => handleAdd(p)}
+            onTagPress={(p) => setPickerItem({
+              ...p,
+              addedAt: "",
+              isWatched: false,
+              listings: [],
+              tags: pendingTags[p.id] ?? [],
+            })}
+          />
         )}
       />
 
