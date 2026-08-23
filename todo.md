@@ -664,3 +664,15 @@
 - [x] Extract ReminderDatePickerModal to components/product/
 - [x] Extract PriceChartModal to components/product/
 - [x] Clean up barrel re-exports
+
+## Phase 75: Storage Refactor (v5.23)
+
+- [x] Scaffold lib/storage/ directory (adapter, context)
+- [x] Extract watchlist storage
+- [x] Extract alerts storage
+- [x] Extract settings + tags storage
+- [x] Extract reminders + stock watches storage
+- [x] Extract digest snapshot + fx rates storage
+- [x] Extract sync meta storage
+- [x] Extract notifications storage (displayed ids, history, health events)
+- [x] Public API unchanged (54 methods, named exports preserved)
