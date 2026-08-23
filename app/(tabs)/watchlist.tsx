@@ -1,11 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   SectionList,
-  Image,
   Text,
-  TextInput,
   View,
-  TouchableOpacity,
   RefreshControl,
   Alert,
   Platform,
@@ -16,7 +13,6 @@ import * as Haptics from "expo-haptics";
 import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
-import { StockBadge } from "@/components/stock-badge";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveWatchlist } from "@/hooks/use-live-prices";
 import {
@@ -32,27 +28,17 @@ import {
   WatchlistGroup,
   WatchlistSort,
 } from "@/lib/types";
-import { formatPrice, getBestPrice, convertPrice } from "@/lib/currency";
-import {
-  formatLastRefreshed,
-  getLastRefreshedColor,
-} from "@/lib/last-refreshed";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { checkPriceDropsNow } from "@/lib/background-price-check";
 import { getAllRegions } from "@/lib/region-filter";
-import { getTagById } from "@/lib/tags";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { TagManageSheet } from "@/components/tag-manage-sheet";
 import { BulkTagSheet } from "@/components/bulk-tag-sheet";
 import { TagFilterRow } from "@/components/tag-filter-row";
-import { fetchProductImage } from "@/lib/server-images";
 import {
   filterWatchlist,
   groupWatchlist,
   sortWatchlist,
   countTagMatches,
-  GROUP_OPTIONS,
-  SORT_OPTIONS,
   type StatusFilter,
 } from "@/lib/watchlist-org";
 import { ProductCard } from "@/components/watchlist/product-card";
@@ -60,6 +46,9 @@ import { SummaryCard } from "@/components/watchlist/summary-card";
 import { SearchBar } from "@/components/watchlist/search-bar";
 import { ProgressBar } from "@/components/watchlist/progress-bar";
 import { WatchlistHeader } from "@/components/watchlist/watchlist-header";
+import { SortGroupBar } from "@/components/watchlist/sort-group-bar";
+import { RegionFilterRow } from "@/components/watchlist/region-filter-row";
+import { EmptyState } from "@/components/watchlist/empty-state";
 
 
 
@@ -335,159 +324,29 @@ export default function WatchlistScreen() {
       />
 
       {watchlist.length > 0 && (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            paddingBottom: 10,
-            gap: 8,
-            flexWrap: "wrap",
+        <SortGroupBar
+          sortMode={sortMode}
+          groupMode={groupMode}
+          sortMenuOpen={sortMenuOpen}
+          onSortModeChange={(mode) => {
+            setSortMode(mode);
+            setSortMenuOpen(false);
+            void persistViewPrefs(mode, groupMode);
           }}
-        >
-          <TouchableOpacity
-            onPress={() => {
-              if (Platform.OS !== "web")
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setSortMenuOpen((v) => !v);
-            }}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              paddingHorizontal: 14,
-              paddingVertical: 7,
-              borderRadius: 20,
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <Text
-              style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }}
-            >
-              Sort: {SORT_OPTIONS.find((o) => o.key === sortMode)?.label}
-            </Text>
-            <IconSymbol name="chevron.down" size={12} color={colors.muted} />
-          </TouchableOpacity>
-          {GROUP_OPTIONS.map((opt) => {
-            const active = groupMode === opt.key;
-            return (
-              <TouchableOpacity
-                key={opt.key}
-                onPress={() => {
-                  if (Platform.OS !== "web")
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setGroupMode(opt.key);
-                  void persistViewPrefs(sortMode, opt.key);
-                }}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 7,
-                  borderRadius: 20,
-                  backgroundColor: active ? colors.primary : colors.surface,
-                  borderWidth: 1,
-                  borderColor: active ? colors.primary : colors.border,
-                }}
-              >
-                <Text
-                  style={{
-                    color: active ? "#fff" : colors.muted,
-                    fontWeight: "600",
-                    fontSize: 13,
-                  }}
-                >
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      )}
-
-      {sortMenuOpen && (
-        <View
-          style={{
-            marginHorizontal: 16,
-            marginBottom: 10,
-            borderRadius: 12,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-            overflow: "hidden",
+          onGroupModeChange={(mode) => {
+            setGroupMode(mode);
+            void persistViewPrefs(sortMode, mode);
           }}
-        >
-          {SORT_OPTIONS.map((opt) => {
-            const active = sortMode === opt.key;
-            return (
-              <TouchableOpacity
-                key={opt.key}
-                onPress={() => {
-                  if (Platform.OS !== "web")
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSortMode(opt.key);
-                  setSortMenuOpen(false);
-                  void persistViewPrefs(opt.key, groupMode);
-                }}
-                style={{
-                  paddingVertical: 10,
-                  paddingHorizontal: 14,
-                  backgroundColor: active
-                    ? colors.primary + "18"
-                    : "transparent",
-                }}
-              >
-                <Text
-                  style={{
-                    color: active ? colors.primary : colors.foreground,
-                    fontWeight: "600",
-                    fontSize: 14,
-                  }}
-                >
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+          onSortMenuToggle={() => setSortMenuOpen((v) => !v)}
+        />
       )}
 
       {watchlist.length > 0 && (
-        <View
-          style={{
-            flexDirection: "row",
-            paddingHorizontal: 16,
-            marginBottom: 8,
-            flexWrap: "wrap",
-            gap: 8,
-          }}
-        >
-          {["all", ...regions].map((region) => (
-            <TouchableOpacity
-              key={region}
-              onPress={() => setRegionFilter(region)}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-                backgroundColor:
-                  regionFilter === region ? colors.primary : colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-              }}
-            >
-              <Text
-                style={{
-                  color: regionFilter === region ? "#fff" : colors.foreground,
-                  fontSize: 13,
-                  fontWeight: "600",
-                }}
-              >
-                {region === "all" ? "All" : region}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <RegionFilterRow
+          regions={regions}
+          regionFilter={regionFilter}
+          onRegionChange={setRegionFilter}
+        />
       )}
 
       <TagFilterRow
@@ -518,89 +377,19 @@ export default function WatchlistScreen() {
           />
         }
         ListEmptyComponent={
-          <View
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              paddingTop: 80,
+          <EmptyState
+            query={query}
+            statusFilter={statusFilter}
+            regionFilter={regionFilter}
+            selectedTagIds={selectedTagIds}
+            onClearFilters={() => {
+              setRegionFilter("all");
+              setSelectedTagIds([]);
+              setStatusFilter("all");
+              setQuery("");
             }}
-          >
-            <IconSymbol name="list.bullet" size={48} color={colors.muted} />
-            <Text
-              style={{
-                color: colors.foreground,
-                fontWeight: "600",
-                fontSize: 18,
-                marginTop: 16,
-              }}
-            >
-              {regionFilter !== "all" ||
-              selectedTagIds.length > 0 ||
-              statusFilter !== "all" ||
-              query.trim().length > 0
-                ? "No products match your filters"
-                : "No products yet"}
-            </Text>
-            <Text
-              style={{
-                color: colors.muted,
-                fontSize: 14,
-                textAlign: "center",
-                marginTop: 8,
-              }}
-            >
-              {regionFilter !== "all" ||
-              selectedTagIds.length > 0 ||
-              statusFilter !== "all" ||
-              query.trim().length > 0
-                ? "Try clearing your filters or adding products"
-                : "Add products to track their availability and prices globally"}
-            </Text>
-            {regionFilter !== "all" ||
-            selectedTagIds.length > 0 ||
-            statusFilter !== "all" ||
-            query.trim().length > 0 ? (
-              <TouchableOpacity
-                style={{
-                  backgroundColor: colors.primary,
-                  borderRadius: 20,
-                  paddingHorizontal: 24,
-                  paddingVertical: 12,
-                  marginTop: 20,
-                }}
-                onPress={() => {
-                  setRegionFilter("all");
-                  setSelectedTagIds([]);
-                  setStatusFilter("all");
-                  setQuery("");
-                }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
-                  Clear Filters
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={{
-                  backgroundColor: colors.primary,
-                  borderRadius: 20,
-                  paddingHorizontal: 24,
-                  paddingVertical: 12,
-                  marginTop: 20,
-                }}
-                onPress={() => {
-                  if (Platform.OS !== "web")
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push("/search");
-                }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
-                  Add Product
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+            onAddProduct={() => router.push("/search")}
+          />
         }
         renderSectionHeader={({ section }) => {
           if (groupMode === "off") return null;
