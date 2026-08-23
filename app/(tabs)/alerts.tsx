@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   Platform,
-  Modal,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -35,13 +34,13 @@ import {
   cancelNotification,
   scheduleBackOrderReminder,
 } from "@/lib/notifications";
-import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { TabSwitcher, ActiveTab } from "@/components/alerts/tab-switcher";
 import { AlertCard } from "@/components/alerts/alert-card";
 import { TriggeredAlertCard } from "@/components/alerts/triggered-alert-card";
 import { StockWatchCard } from "@/components/alerts/stock-watch-card";
 import { ReminderCard } from "@/components/alerts/reminder-card";
+import { RescheduleModal } from "@/components/alerts/reschedule-modal";
 
 export default function AlertsScreen() {
   const router = useRouter();
@@ -577,131 +576,19 @@ export default function AlertsScreen() {
       )}
 
       {/* Reschedule Reminder Modal */}
-      <Modal
+      <RescheduleModal
         visible={!!rescheduleTarget}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setRescheduleTarget(null)}
-      >
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "flex-end",
-            backgroundColor: "rgba(0,0,0,0.5)",
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: colors.background,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              padding: 24,
-            }}
-          >
-            <Text
-              style={{
-                color: colors.foreground,
-                fontSize: 20,
-                fontWeight: "700",
-                marginBottom: 4,
-              }}
-            >
-              Reschedule Reminder 📅
-            </Text>
-            <Text
-              style={{ color: colors.muted, fontSize: 14, marginBottom: 20 }}
-            >
-              Choose a new date for{" "}
-              <Text style={{ fontWeight: "600", color: colors.foreground }}>
-                {rescheduleTarget?.distributorName}
-              </Text>{" "}
-              · {rescheduleTarget?.productName}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setShowReschedulePicker(true)}
-              style={{
-                backgroundColor: colors.surface,
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: colors.border,
-                padding: 16,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 20,
-              }}
-            >
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
-              >
-                <IconSymbol name="calendar" size={20} color={colors.primary} />
-                <Text
-                  style={{
-                    color: colors.foreground,
-                    fontSize: 17,
-                    fontWeight: "600",
-                  }}
-                >
-                  {rescheduleDate.toLocaleDateString(undefined, {
-                    weekday: "short",
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </Text>
-              </View>
-              <IconSymbol name="chevron.right" size={16} color={colors.muted} />
-            </TouchableOpacity>
-            {showReschedulePicker && (
-              <DateTimePicker
-                value={rescheduleDate}
-                mode="date"
-                display={Platform.OS === "ios" ? "inline" : "default"}
-                minimumDate={new Date()}
-                onChange={(_, selected) => {
-                  setShowReschedulePicker(Platform.OS === "ios");
-                  if (selected) setRescheduleDate(selected);
-                }}
-              />
-            )}
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <TouchableOpacity
-                onPress={() => {
-                  setRescheduleTarget(null);
-                  setShowReschedulePicker(false);
-                }}
-                style={{
-                  flex: 1,
-                  backgroundColor: colors.surface,
-                  borderRadius: 14,
-                  paddingVertical: 14,
-                  alignItems: "center",
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                }}
-              >
-                <Text style={{ color: colors.foreground, fontWeight: "600" }}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleReschedule}
-                style={{
-                  flex: 1,
-                  backgroundColor: colors.primary,
-                  borderRadius: 14,
-                  paddingVertical: 14,
-                  alignItems: "center",
-                }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "600" }}>
-                  Reschedule
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        target={rescheduleTarget}
+        date={rescheduleDate}
+        showPicker={showReschedulePicker}
+        onDateChange={setRescheduleDate}
+        onShowPicker={setShowReschedulePicker}
+        onConfirm={handleReschedule}
+        onCancel={() => {
+          setRescheduleTarget(null);
+          setShowReschedulePicker(false);
+        }}
+      />
     </ScreenContainer>
   );
 }
