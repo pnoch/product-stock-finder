@@ -19,6 +19,7 @@ import * as Haptics from "expo-haptics";
 import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { CompareHeader } from "@/components/compare/compare-header";
 import { MultiLineChart } from "@/components/compare/multi-line-chart";
 import { CheapestRegionCard } from "@/components/compare/cheapest-region-card";
 import { useColors } from "@/hooks/use-colors";
@@ -246,70 +247,12 @@ export default function CompareScreen() {
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
           {/* Header */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: 16,
-              paddingTop: 8,
-              paddingBottom: 16,
-              gap: 12,
-            }}
-          >
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ padding: 4 }}
-            >
-              <IconSymbol
-                name="arrow.left"
-                size={24}
-                color={colors.foreground}
-              />
-            </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  color: colors.foreground,
-                  fontSize: 18,
-                  fontWeight: "700",
-                }}
-                numberOfLines={1}
-              >
-                Compare Prices
-              </Text>
-              <Text
-                style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}
-                numberOfLines={1}
-              >
-                {productName}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={async () => {
-                if (Platform.OS !== "web")
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                const ok = await refresh();
-                if (!ok) {
-                  showAlert(
-                    "Couldn't refresh prices",
-                    "The server is unreachable. Showing saved prices.",
-                  );
-                }
-              }}
-              disabled={isRefreshingAny}
-              style={{ padding: 4 }}
-            >
-              {isRefreshingAny ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <IconSymbol
-                  name="arrow.clockwise"
-                  size={20}
-                  color={colors.primary}
-                />
-              )}
-            </TouchableOpacity>
-          </View>
+          <CompareHeader
+            productName={productName}
+            isRefreshing={isRefreshingAny}
+            onRefresh={refresh}
+            onBack={() => router.back()}
+          />
 
           {/* Chart card */}
           <View
