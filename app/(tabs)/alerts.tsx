@@ -4,7 +4,6 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Switch,
   RefreshControl,
   Platform,
   Modal,
@@ -39,6 +38,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { TabSwitcher, ActiveTab } from "@/components/alerts/tab-switcher";
+import { AlertCard } from "@/components/alerts/alert-card";
 
 export default function AlertsScreen() {
   const router = useRouter();
@@ -545,99 +545,12 @@ export default function AlertsScreen() {
             </View>
           }
           renderItem={({ item }) => (
-            <View
-              style={{
-                backgroundColor: colors.surface,
-                borderRadius: 16,
-                padding: 16,
-                marginBottom: 12,
-                borderWidth: 1,
-                borderColor: item.triggeredAt
-                  ? colors.success + "44"
-                  : colors.border,
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                }}
-              >
-                <View style={{ flex: 1, marginRight: 10 }}>
-                  <Text
-                    style={{
-                      color: colors.foreground,
-                      fontWeight: "600",
-                      fontSize: 14,
-                    }}
-                    numberOfLines={2}
-                  >
-                    {getProductName(item.productId)}
-                  </Text>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      marginTop: 6,
-                      gap: 6,
-                    }}
-                  >
-                    <IconSymbol
-                      name="tag.fill"
-                      size={14}
-                      color={colors.muted}
-                    />
-                    <Text style={{ color: colors.muted, fontSize: 13 }}>
-                      Target: {formatPrice(item.targetPrice, item.currency)}
-                    </Text>
-                  </View>
-                  {item.triggeredAt && (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 4,
-                        gap: 6,
-                      }}
-                    >
-                      <IconSymbol
-                        name="checkmark.circle.fill"
-                        size={14}
-                        color={colors.success}
-                      />
-                      <Text style={{ color: colors.success, fontSize: 12 }}>
-                        Triggered{" "}
-                        {new Date(item.triggeredAt).toLocaleDateString()}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                <View style={{ alignItems: "flex-end", gap: 8 }}>
-                  {!item.triggeredAt && (
-                    <Switch
-                      value={item.isActive}
-                      onValueChange={() => handleToggle(item.id)}
-                      trackColor={{
-                        false: colors.border,
-                        true: colors.primary + "88",
-                      }}
-                      thumbColor={item.isActive ? colors.primary : colors.muted}
-                    />
-                  )}
-                  <TouchableOpacity
-                    onPress={() => handleDeleteAlert(item.id)}
-                    style={{ padding: 4 }}
-                  >
-                    <IconSymbol
-                      name="trash.fill"
-                      size={16}
-                      color={colors.error}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
+            <AlertCard
+              alert={item}
+              productName={getProductName(item.productId)}
+              onToggle={handleToggle}
+              onDelete={handleDeleteAlert}
+            />
           )}
         />
       )}
