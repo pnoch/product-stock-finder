@@ -41,6 +41,7 @@ import { TabSwitcher, ActiveTab } from "@/components/alerts/tab-switcher";
 import { AlertCard } from "@/components/alerts/alert-card";
 import { TriggeredAlertCard } from "@/components/alerts/triggered-alert-card";
 import { StockWatchCard } from "@/components/alerts/stock-watch-card";
+import { ReminderCard } from "@/components/alerts/reminder-card";
 
 export default function AlertsScreen() {
   const router = useRouter();
@@ -554,136 +555,19 @@ export default function AlertsScreen() {
               )}
             </View>
           }
-          renderItem={({ item }) => {
-            const reminderDate = new Date(item.reminderDate);
-            const isPast = reminderDate < new Date();
-            return (
-              <View
-                style={{
-                  backgroundColor: colors.surface,
-                  borderRadius: 16,
-                  padding: 16,
-                  marginBottom: 12,
-                  borderWidth: 1,
-                  borderColor: isPast ? colors.warning + "44" : colors.border,
-                }}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <View style={{ flex: 1, marginRight: 12 }}>
-                    <Text
-                      style={{
-                        color: colors.foreground,
-                        fontWeight: "600",
-                        fontSize: 14,
-                      }}
-                      numberOfLines={2}
-                    >
-                      {item.productName}
-                    </Text>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 5,
-                        gap: 5,
-                      }}
-                    >
-                      <IconSymbol name="globe" size={13} color={colors.muted} />
-                      <Text style={{ color: colors.muted, fontSize: 13 }}>
-                        {item.distributorName}
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 4,
-                        gap: 5,
-                      }}
-                    >
-                      <IconSymbol
-                        name="calendar"
-                        size={13}
-                        color={isPast ? colors.warning : colors.primary}
-                      />
-                      <Text
-                        style={{
-                          color: isPast ? colors.warning : colors.primary,
-                          fontSize: 13,
-                          fontWeight: "500",
-                        }}
-                      >
-                        {isPast ? "Was due " : "Remind on "}
-                        {reminderDate.toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={{ alignItems: "flex-end", gap: 8 }}>
-                    {isPast && (
-                      <View
-                        style={{
-                          backgroundColor: colors.warning + "22",
-                          borderRadius: 8,
-                          paddingHorizontal: 8,
-                          paddingVertical: 3,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: colors.warning,
-                            fontSize: 11,
-                            fontWeight: "600",
-                          }}
-                        >
-                          Past Due
-                        </Text>
-                      </View>
-                    )}
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (Platform.OS !== "web")
-                          Haptics.impactAsync(
-                            Haptics.ImpactFeedbackStyle.Light,
-                          );
-                        const nextWeek = new Date();
-                        nextWeek.setDate(nextWeek.getDate() + 7);
-                        setRescheduleDate(nextWeek);
-                        setShowReschedulePicker(false);
-                        setRescheduleTarget(item);
-                      }}
-                      style={{ padding: 4 }}
-                    >
-                      <IconSymbol
-                        name="pencil"
-                        size={16}
-                        color={colors.primary}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteReminder(item)}
-                      style={{ padding: 4 }}
-                    >
-                      <IconSymbol
-                        name="trash.fill"
-                        size={16}
-                        color={colors.error}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            );
-          }}
+          renderItem={({ item }) => (
+            <ReminderCard
+              reminder={item}
+              onReschedule={(r) => {
+                const nextWeek = new Date();
+                nextWeek.setDate(nextWeek.getDate() + 7);
+                setRescheduleDate(nextWeek);
+                setShowReschedulePicker(false);
+                setRescheduleTarget(r);
+              }}
+              onDelete={handleDeleteReminder}
+            />
+          )}
         />
       )}
 
