@@ -613,3 +613,11 @@
 - [x] Extract NotificationsSection, ScraperStatusSection, AboutSection
 - [x] Refactor main component to composition root
 - [x] Picker tests + verification
+
+## Phase 70: Watchlist Screen Refactor (v5.18)
+
+- [x] Extract ProductCard to components/watchlist/
+- [x] Extract SummaryCard, SearchBar, ProgressBar
+- [x] Extract WatchlistHeader
+- [x] Extract SortGroupBar, RegionFilterRow, EmptyState
+- [x] Refactor main component to composition root
