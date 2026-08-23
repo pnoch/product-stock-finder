@@ -33,26 +33,13 @@ import { formatPrice, convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
-
-// ─── Chart colors for up to 5 distributors ───────────────────────────────────
-const CHART_COLORS = ["#0a7ea4", "#22C55E", "#F59E0B", "#EF4444", "#8B5CF6"];
-
-// ─── Time range options ───────────────────────────────────────────────────────
-type TimeRange = "1W" | "1M" | "3M" | "All";
-const TIME_RANGES: TimeRange[] = ["1W", "1M", "3M", "All"];
-type SortBy = "trend" | "price" | "name";
-const TIME_RANGE_DAYS: Record<TimeRange, number> = {
-  "1W": 7,
-  "1M": 30,
-  "3M": 90,
-  All: 9999,
-};
-
-function filterByRange(data: PricePoint[], range: TimeRange): PricePoint[] {
-  if (range === "All") return data;
-  const cutoff = Date.now() - TIME_RANGE_DAYS[range] * 86400000;
-  return data.filter((p) => new Date(p.date).getTime() >= cutoff);
-}
+import {
+  CHART_COLORS,
+  TimeRange,
+  SortBy,
+  TIME_RANGES,
+  filterByRange,
+} from "@/lib/compare-utils";
 
 // ─── Multi-series chart ───────────────────────────────────────────────────────
 function MultiLineChart({
