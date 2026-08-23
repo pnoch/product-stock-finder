@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
   Text,
@@ -17,8 +17,9 @@ import { searchCatalog, PRODUCT_CATALOG } from "@/lib/catalog";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
 import { SearchEmptyState } from "@/components/search/search-empty-state";
 import { CatalogProductCard } from "@/components/search/catalog-product-card";
-import { addToWatchlist, getTagDefinitions, getWatchlist } from "@/lib/storage";
-import { Product, TagDefinition } from "@/lib/types";
+import { addToWatchlist } from "@/lib/storage";
+import { Product } from "@/lib/types";
+import { useSearchData } from "@/hooks/use-search-data";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TagFilterRow } from "@/components/tag-filter-row";
 import { countTagMatchesByIds, filterWatchlist } from "@/lib/watchlist-org";
@@ -28,16 +29,19 @@ export default function SearchScreen() {
   const colors = useColors();
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
-  const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [tagMatchMode, setTagMatchMode] = useState<"any" | "all">("any");
-  const [tagDefinitions, setTagDefinitions] = useState<
-    Record<string, TagDefinition>
-  >({});
-  const [watchlist, setWatchlist] = useState<Product[]>([]);
   const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
   const [pickerItem, setPickerItem] = useState<Product | null>(null);
   const [postAddProduct, setPostAddProduct] = useState<Product | null>(null);
+  const {
+    watchlist,
+    trackedIds,
+    tagDefinitions,
+    selectedTagIds,
+    setSelectedTagIds,
+    tagMatchMode,
+    setTagMatchMode,
+    loadData,
+  } = useSearchData();
 
   const results =
     query.trim().length > 0 ? searchCatalog(query) : PRODUCT_CATALOG;
@@ -86,7 +90,7 @@ export default function SearchScreen() {
       };
       try {
         await addToWatchlist(product);
-        setTrackedIds((prev) => new Set(prev).add(item.id));
+        loadData();
         setPendingTags((prev) => {
           const next = { ...prev };
           delete next[item.id];
@@ -103,24 +107,6 @@ export default function SearchScreen() {
     },
     [router, trackedIds, adding, pendingTags],
   );
-
-  // Load already-tracked product ids so the + button reflects watchlist membership
-  const loadData = useCallback(() => {
-    getWatchlist().then((wl) => {
-      setWatchlist(wl);
-      setTrackedIds(new Set(wl.map((p) => p.id)));
-    });
-    getTagDefinitions()
-      .then((defs) => {
-        setTagDefinitions(defs);
-        setSelectedTagIds((prev) => prev.filter((id) => id in defs));
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
   return (
     <ScreenContainer>

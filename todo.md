@@ -644,3 +644,12 @@
 - [x] Extract CurrentPricesTable to components/compare/
 - [x] Extract DistributorSelector to components/compare/
 - [x] Refactor main component to composition root
+
+## Phase 73: Search Screen Refactor (v5.21)
+
+- [x] Extract ProductImage to components/search/
+- [x] Extract CatalogSearchBar to components/search/
+- [x] Extract SearchEmptyState to components/search/
+- [x] Extract CatalogProductCard to components/search/
+- [x] Extract useSearchData hook to hooks/
+- [x] Refactor main component to composition root
