@@ -8,12 +8,9 @@ import {
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { SectionHeader } from "@/components/settings/section-header";
-import {
-  formatLastSeen,
-  platformLabel,
-} from "@/components/settings/device-management/device-utils";
 import { useDeviceManagement } from "@/components/settings/device-management/use-device-management";
 import { CurrentDeviceRow } from "@/components/settings/device-management/current-device-row";
+import { DeviceRow } from "@/components/settings/device-management/device-row";
 
 export function DeviceManagementSection({
   user,
@@ -103,116 +100,15 @@ export function DeviceManagementSection({
           </View>
         ) : (
           devices.map((device, idx) => (
-            <View
+            <DeviceRow
               key={device.deviceId}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                borderBottomWidth: idx < devices.length - 1 ? 1 : 0,
-                borderBottomColor: colors.border,
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: colors.foreground,
-                      fontWeight: "500",
-                      fontSize: 15,
-                    }}
-                  >
-                    {device.label ??
-                      `${device.deviceId.slice(0, 12)}${device.deviceId.length > 12 ? "…" : ""}`}
-                  </Text>
-                  {device.deviceId === currentDeviceId && (
-                    <View
-                      style={{
-                        paddingHorizontal: 6,
-                        paddingVertical: 2,
-                        borderRadius: 8,
-                        backgroundColor: colors.primary + "22",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: colors.primary,
-                          fontSize: 10,
-                          fontWeight: "600",
-                        }}
-                      >
-                        This device
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                <Text
-                  style={{
-                    color: colors.muted,
-                    fontSize: 12,
-                    marginTop: 1,
-                  }}
-                >
-                  {platformLabel(device.platform)} ·{" "}
-                  {formatLastSeen(device.lastSeenAt, now)}
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <TouchableOpacity
-                  onPress={() => openRenameModal(device)}
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: 12,
-                    backgroundColor: colors.primary + "22",
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: colors.primary,
-                      fontSize: 13,
-                      fontWeight: "600",
-                    }}
-                  >
-                    Rename
-                  </Text>
-                </TouchableOpacity>
-                {device.deviceId !== currentDeviceId && (
-                  <TouchableOpacity
-                    onPress={() => handleSignOutDevice(device)}
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 12,
-                      backgroundColor: colors.error + "22",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: colors.error,
-                        fontSize: 13,
-                        fontWeight: "600",
-                      }}
-                    >
-                      Sign out
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
+              device={device}
+              isCurrent={device.deviceId === currentDeviceId}
+              now={now}
+              isLast={idx < devices.length - 1}
+              onRename={openRenameModal}
+              onSignOut={handleSignOutDevice}
+            />
           ))
         )}
       </View>
