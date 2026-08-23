@@ -15,85 +15,12 @@ import { useColors } from "@/hooks/use-colors";
 import { getWatchlist, getAlerts, getSettings } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { formatPrice, getBestPrice } from "@/lib/currency";
+import { StockBadge } from "@/components/stock-badge";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ConnectionBadge } from "@/components/connection-badge";
 import { useConnection } from "@/hooks/use-connection";
 
-function StockBadge({
-  status,
-  expectedDate,
-}: {
-  status: string;
-  expectedDate?: string;
-}) {
-  const colors = useColors();
-  if (status === "in_stock") {
-    return (
-      <View
-        style={{
-          backgroundColor: colors.success + "22",
-          borderRadius: 12,
-          paddingHorizontal: 8,
-          paddingVertical: 3,
-        }}
-      >
-        <Text
-          style={{ color: colors.success, fontSize: 11, fontWeight: "600" }}
-        >
-          ● In Stock
-        </Text>
-      </View>
-    );
-  }
-  if (status === "back_order") {
-    return (
-      <View
-        style={{
-          backgroundColor: colors.warning + "22",
-          borderRadius: 12,
-          paddingHorizontal: 8,
-          paddingVertical: 3,
-        }}
-      >
-        <Text
-          style={{ color: colors.warning, fontSize: 11, fontWeight: "600" }}
-        >
-          ● Back Order{expectedDate ? ` · ${expectedDate}` : ""}
-        </Text>
-      </View>
-    );
-  }
-  if (status === "out_of_stock") {
-    return (
-      <View
-        style={{
-          backgroundColor: colors.error + "22",
-          borderRadius: 12,
-          paddingHorizontal: 8,
-          paddingVertical: 3,
-        }}
-      >
-        <Text style={{ color: colors.error, fontSize: 11, fontWeight: "600" }}>
-          ● Out of Stock
-        </Text>
-      </View>
-    );
-  }
-  return (
-    <View
-      style={{
-        backgroundColor: colors.muted + "22",
-        borderRadius: 12,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-      }}
-    >
-      <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600" }}>
-        ● Unknown
-      </Text>
-    </View>
-  );
-}
+
 
 function SummaryCard({
   label,

@@ -16,6 +16,7 @@ import * as Haptics from "expo-haptics";
 import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { StockBadge } from "@/components/stock-badge";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveWatchlist } from "@/hooks/use-live-prices";
 import {
@@ -56,42 +57,7 @@ import {
   type StatusFilter,
 } from "@/lib/watchlist-org";
 
-function StockBadge({ status }: { status: string }) {
-  const colors = useColors();
-  const config: Record<string, { bg: string; text: string; label: string }> = {
-    in_stock: {
-      bg: colors.success + "22",
-      text: colors.success,
-      label: "In Stock",
-    },
-    back_order: {
-      bg: colors.warning + "22",
-      text: colors.warning,
-      label: "Back Order",
-    },
-    out_of_stock: {
-      bg: colors.error + "22",
-      text: colors.error,
-      label: "Out of Stock",
-    },
-    unknown: { bg: colors.muted + "22", text: colors.muted, label: "Unknown" },
-  };
-  const c = config[status] ?? config.unknown;
-  return (
-    <View
-      style={{
-        backgroundColor: c.bg,
-        borderRadius: 12,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-      }}
-    >
-      <Text style={{ color: c.text, fontSize: 11, fontWeight: "600" }}>
-        ● {c.label}
-      </Text>
-    </View>
-  );
-}
+
 
 function ProductCard({
   product,
