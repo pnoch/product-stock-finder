@@ -1,13 +1,13 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NotificationHistoryEntry } from "../types";
 import type { Collection, SyncMeta } from "../types";
-import type { DigestSnapshot } from "../price-digest";
 import { StorageAdapter, DISTRIBUTOR_BREAKER_KEY } from "./adapter";
 import { createContext, STORAGE_KEYS } from "./context";
 import { createWatchlistStorage } from "./watchlist";
 import { createAlertsStorage } from "./alerts";
 import { createRemindersStorage } from "./reminders";
 import { createSettingsStorage } from "./settings";
+import { createDigestFxStorage } from "./digest-fx";
 
 export { StorageAdapter, DISTRIBUTOR_BREAKER_KEY };
 
@@ -29,62 +29,6 @@ export function createStorage(
     refreshWatchlistPrices,
   } = watchlist;
   const alertsStorage = createAlertsStorage(ctx);
-
-  // ─── Price Digest Snapshot ──────────────────────────────────────────────────
-
-  async function getPriceDigestSnapshot(): Promise<DigestSnapshot | null> {
-    try {
-      const raw = await adapter.getItem(KEYS.DIGEST_SNAPSHOT);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  async function savePriceDigestSnapshot(
-    snapshot: DigestSnapshot,
-  ): Promise<void> {
-    await adapter.setItem(KEYS.DIGEST_SNAPSHOT, JSON.stringify(snapshot));
-  }
-
-  // ─── FX Rates ───────────────────────────────────────────────────────────────
-
-  async function getFxRates(): Promise<{
-    rates: Record<string, number>;
-    fetchedAt: number;
-  } | null> {
-    try {
-      const raw = await adapter.getItem(KEYS.FX_RATES);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as {
-        rates?: unknown;
-        fetchedAt?: unknown;
-      };
-      if (!parsed || typeof parsed !== "object" || !parsed.rates) return null;
-      const rates: Record<string, number> = {};
-      for (const [code, value] of Object.entries(
-        parsed.rates as Record<string, unknown>,
-      )) {
-        if (typeof value === "number" && Number.isFinite(value)) {
-          rates[code] = value;
-        }
-      }
-      if (Object.keys(rates).length === 0) return null;
-      return {
-        rates,
-        fetchedAt: typeof parsed.fetchedAt === "number" ? parsed.fetchedAt : 0,
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  async function saveFxRates(payload: {
-    rates: Record<string, number>;
-    fetchedAt: number;
-  }): Promise<void> {
-    await adapter.setItem(KEYS.FX_RATES, JSON.stringify(payload));
-  }
 
   // ─── Sync Meta ─────────────────────────────────────────────────────────────
 
@@ -309,10 +253,7 @@ export function createStorage(
     ...alertsStorage,
     ...createRemindersStorage(ctx),
     ...createSettingsStorage(ctx, watchlist),
-    getPriceDigestSnapshot,
-    savePriceDigestSnapshot,
-    getFxRates,
-    saveFxRates,
+    ...createDigestFxStorage(ctx),
     getSyncMeta,
     saveSyncMeta,
     setItemSyncMeta,
