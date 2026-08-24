@@ -23,6 +23,9 @@ export interface DigestSummary {
 
 export interface DigestResult {
   summary: DigestSummary;
+  valueDelta: { from: number; to: number; percent: number } | null;
+  newProducts: { productId: string; name: string }[];
+  removedProducts: { productId: string; name: string }[];
   priceChanges: {
     productId: string;
     name: string;
@@ -142,8 +145,36 @@ export function computeDigest(
       };
     });
 
+  const summary = buildSummary(current);
+  const prevSummary = buildSummary(previous?.products ?? []);
+  const valueDelta =
+    previous && prevSummary.totalValue > 0 && summary.totalValue > 0
+      ? {
+          from: prevSummary.totalValue,
+          to: summary.totalValue,
+          percent:
+            ((summary.totalValue - prevSummary.totalValue) /
+              prevSummary.totalValue) *
+            100,
+        }
+      : null;
+
+  const prevIds = new Set((previous?.products ?? []).map((p) => p.productId));
+  const currentIds = new Set(current.map((p) => p.productId));
+  const newProducts = current
+    .filter((p) => !prevIds.has(p.productId))
+    .map((p) => ({ productId: p.productId, name: p.name }));
+  const removedProducts = (previous?.products ?? [])
+    .filter((p) => !currentIds.has(p.productId))
+    .map((p) => ({ productId: p.productId, name: p.name }));
+
+  priceChanges.sort((a, b) => Math.abs(b.percent) - Math.abs(a.percent));
+
   return {
-    summary: buildSummary(current),
+    summary,
+    valueDelta,
+    newProducts,
+    removedProducts,
     priceChanges,
     stockChanges,
     alertTargetsHit,
@@ -154,16 +185,20 @@ export function formatDigestNotification(result: DigestResult): {
   title: string;
   body: string;
 } {
-  const { summary } = result;
+  const { summary, valueDelta } = result;
   const lines: string[] = [];
 
-  const value = formatPrice(summary.totalValue, "USD");
-  const counts = [
-    `${summary.inStock} in stock`,
-    `${summary.backOrder} back-order`,
-    `${summary.outOfStock} out of stock`,
-  ];
-  lines.push(`Watchlist: ${value} · ${counts.join(" · ")}`);
+  if (valueDelta) {
+    const sign = valueDelta.percent >= 0 ? "+" : "";
+    lines.push(
+      `Watchlist value ${formatPrice(valueDelta.from, "USD")} → ${formatPrice(valueDelta.to, "USD")} (${sign}${valueDelta.percent.toFixed(1)}%)`,
+    );
+  } else {
+    lines.push(`Watchlist: ${formatPrice(summary.totalValue, "USD")}`);
+  }
+  lines.push(
+    `${summary.inStock} in stock · ${summary.backOrder} back-order · ${summary.outOfStock} out of stock`,
+  );
 
   for (const c of result.priceChanges.slice(0, 3)) {
     const sign = c.percent > 0 ? "+" : "";
@@ -171,26 +206,32 @@ export function formatDigestNotification(result: DigestResult): {
       `${c.name}: ${sign}${c.percent.toFixed(0)}% (${formatPrice(c.from, "USD")} → ${formatPrice(c.to, "USD")})`,
     );
   }
-  for (const s of result.stockChanges.slice(0, 3)) {
+  for (const s of result.stockChanges.slice(0, 2)) {
     lines.push(`${s.name}: ${s.from} → ${s.to}`);
   }
-  for (const t of result.alertTargetsHit.slice(0, 3)) {
+  for (const t of result.alertTargetsHit.slice(0, 2)) {
     lines.push(
       `🎯 ${t.name}: target hit at ${formatPrice(t.price, t.currency)}`,
     );
   }
+  if (result.newProducts.length > 0)
+    lines.push(`➕ ${result.newProducts.length} product(s) added`);
+  if (result.removedProducts.length > 0)
+    lines.push(`➖ ${result.removedProducts.length} product(s) removed`);
 
   if (
     result.priceChanges.length === 0 &&
     result.stockChanges.length === 0 &&
-    result.alertTargetsHit.length === 0
+    result.alertTargetsHit.length === 0 &&
+    result.newProducts.length === 0 &&
+    result.removedProducts.length === 0
   ) {
     lines.push("No changes since your last digest.");
   }
 
   return {
     title: "📊 Price Digest",
-    body: lines.slice(0, 6).join("\n"),
+    body: lines.slice(0, 9).join("\n"),
   };
 }
 

@@ -12,8 +12,8 @@ import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { getSettings, getWatchlist } from "@/lib/storage";
-import type { Product } from "@/lib/types";
+import { getSettings, getWatchlist, getPriceDigestSnapshot } from "@/lib/storage";
+import type { Product, AppSettings } from "@/lib/types";
 import {
   computeBasketValue,
   computeDataFreshness,
@@ -21,6 +21,11 @@ import {
   computeStockHealth,
   type MoversWindow,
 } from "@/lib/watchlist-stats";
+import {
+  computeDigest,
+  type DigestSnapshot,
+} from "@/lib/price-digest";
+import { DigestCard } from "@/components/stats/digest-card";
 import { buildWatchlistShareText } from "@/lib/watchlist-share";
 import { captureAndShareImage } from "@/lib/share-image";
 import { StatsShareCard } from "@/components/share/stats-share-card";
@@ -37,18 +42,32 @@ export default function StatsScreen() {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [days, setDays] = useState<MoversWindow>(30);
   const [loaded, setLoaded] = useState(false);
+  const [digestSnapshot, setDigestSnapshot] = useState<DigestSnapshot | null>(
+    null,
+  );
+  const [digestFrequency, setDigestFrequency] = useState<string>("off");
+  const [settings, setSettings] = useState<AppSettings | null>(null);
 
   useEffect(() => {
     void (async () => {
-      const [wl, settings] = await Promise.all([
+      const [wl, loadedSettings, snapshot] = await Promise.all([
         getWatchlist(),
         getSettings(),
+        getPriceDigestSnapshot(),
       ]);
       setWatchlist(wl);
-      setDisplayCurrency(settings.displayCurrency);
+      setSettings(loadedSettings);
+      setDisplayCurrency(loadedSettings.displayCurrency);
+      setDigestFrequency(loadedSettings.digestFrequency ?? "off");
+      setDigestSnapshot(snapshot);
       setLoaded(true);
     })();
   }, []);
+
+  const digest = useMemo(() => {
+    if (!digestSnapshot || !settings || digestFrequency === "off") return null;
+    return computeDigest(digestSnapshot, watchlist, settings, []);
+  }, [digestSnapshot, watchlist, settings, digestFrequency]);
 
   const movers = useMemo(
     () => computeMovers(watchlist, displayCurrency, days),
@@ -174,6 +193,14 @@ export default function StatsScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+          {digest && (
+            <DigestCard
+              result={digest}
+              periodLabel={
+                digestFrequency === "weekly" ? "this week" : "today"
+              }
+            />
+          )}
           <MoversCard movers={movers} days={days} onDaysChange={setDays} />
           <BasketValueCard basket={basket} displayCurrency={displayCurrency} />
           <StockHealthCard health={stockHealth} />

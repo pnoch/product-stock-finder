@@ -803,3 +803,9 @@
 - [x] Add scopedAlertFor/productWideAlert helpers with tests
 - [x] Add target comparison table card on product detail
 - [x] Quick-set buttons open pre-scoped alert modal
+
+## Phase 94: Enhanced Weekly Digest (v5.42)
+
+- [x] Extend digest computation (value delta, new/removed products, mover sorting)
+- [x] Smarter push notification (value delta lead, ~9 lines)
+- [x] Add full in-app digest card on Stats screen

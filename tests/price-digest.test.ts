@@ -223,6 +223,9 @@ describe("formatDigestNotification", () => {
         outOfStock: 0,
         unknown: 0,
       },
+      valueDelta: null,
+      newProducts: [],
+      removedProducts: [],
       priceChanges: [],
       stockChanges: [],
       alertTargetsHit: [],
@@ -248,6 +251,9 @@ describe("formatDigestNotification", () => {
       stockChanges: [
         { productId: "p2", name: "CRS326", from: "back_order", to: "in_stock" },
       ],
+      valueDelta: null,
+      newProducts: [],
+      removedProducts: [],
       alertTargetsHit: [],
     });
     expect(result.body).toContain("CRS804");
@@ -265,6 +271,9 @@ describe("formatDigestNotification", () => {
         outOfStock: 0,
         unknown: 0,
       },
+      valueDelta: null,
+      newProducts: [],
+      removedProducts: [],
       priceChanges: [],
       stockChanges: [],
       alertTargetsHit: [],
@@ -394,5 +403,86 @@ describe("maybeSendDigest", () => {
     );
     expect(result).not.toBeNull();
     expect(send).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("digest enhancements", () => {
+  it("computes valueDelta across snapshots", () => {
+    const previous: DigestSnapshot = {
+      lastDigestAt: LAST,
+      products: [
+        { productId: "p1", name: "A", bestPrice: 100, stockStatus: "in_stock" },
+        { productId: "p2", name: "B", bestPrice: 50, stockStatus: "in_stock" },
+      ],
+    };
+    const watchlist = [
+      makeProduct("p1", "A", [{ price: 120, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("p2", "B", [{ price: 40, currency: "USD", stockStatus: "in_stock" }]),
+    ];
+    const result = computeDigest(previous, watchlist, makeSettings(), []);
+    expect(result.valueDelta).not.toBeNull();
+    expect(result.valueDelta!.from).toBe(150);
+    expect(result.valueDelta!.to).toBe(160);
+    expect(result.valueDelta!.percent).toBeCloseTo(6.67, 1);
+  });
+
+  it("returns null valueDelta when previous is missing", () => {
+    const watchlist = [
+      makeProduct("p1", "A", [{ price: 100, currency: "USD", stockStatus: "in_stock" }]),
+    ];
+    expect(computeDigest(null, watchlist, makeSettings(), []).valueDelta).toBeNull();
+  });
+
+  it("sorts price changes by absolute percent descending", () => {
+    const previous: DigestSnapshot = {
+      lastDigestAt: LAST,
+      products: [
+        { productId: "p1", name: "Small", bestPrice: 100, stockStatus: "in_stock" },
+        { productId: "p2", name: "Big", bestPrice: 100, stockStatus: "in_stock" },
+      ],
+    };
+    const watchlist = [
+      makeProduct("p1", "Small", [{ price: 105, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("p2", "Big", [{ price: 130, currency: "USD", stockStatus: "in_stock" }]),
+    ];
+    const result = computeDigest(previous, watchlist, makeSettings(), []);
+    expect(result.priceChanges[0].name).toBe("Big");
+    expect(result.priceChanges[1].name).toBe("Small");
+  });
+
+  it("detects added and removed products", () => {
+    const previous: DigestSnapshot = {
+      lastDigestAt: LAST,
+      products: [
+        { productId: "keep", name: "Keep", bestPrice: 10, stockStatus: "in_stock" },
+        { productId: "gone", name: "Gone", bestPrice: 20, stockStatus: "in_stock" },
+      ],
+    };
+    const watchlist = [
+      makeProduct("keep", "Keep", [{ price: 10, currency: "USD", stockStatus: "in_stock" }]),
+      makeProduct("new1", "New", [{ price: 30, currency: "USD", stockStatus: "in_stock" }]),
+    ];
+    const result = computeDigest(previous, watchlist, makeSettings(), []);
+    expect(result.newProducts.map((p) => p.productId)).toEqual(["new1"]);
+    expect(result.removedProducts.map((p) => p.productId)).toEqual(["gone"]);
+  });
+
+  it("leads the notification with value delta and biggest mover", () => {
+    const previous: DigestSnapshot = {
+      lastDigestAt: LAST,
+      products: [
+        { productId: "p1", name: "Mover", bestPrice: 100, stockStatus: "in_stock" },
+      ],
+    };
+    const watchlist = [
+      makeProduct("p1", "Mover", [{ price: 80, currency: "USD", stockStatus: "in_stock" }]),
+    ];
+    const { body } = formatDigestNotification(
+      computeDigest(previous, watchlist, makeSettings(), []),
+    );
+    const lines = body.split("\n");
+    expect(lines[0]).toMatch(/Watchlist value \$100\.00 → \$80\.00/);
+    expect(lines[0]).toContain("-20.0%");
+    expect(body).toContain("Mover: -20%");
   });
 });
