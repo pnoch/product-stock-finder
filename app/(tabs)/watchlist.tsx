@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   SectionList,
   Text,
@@ -7,6 +7,7 @@ import {
   Alert,
   Platform,
   ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -19,6 +20,7 @@ import {
   getSettings,
   saveSettings,
   getTagDefinitions,
+  addToWatchlist,
   removeFromWatchlist,
 } from "@/lib/storage";
 import { computeWatchlistSummary } from "@/lib/watchlist-summary";
@@ -42,6 +44,7 @@ import {
   type StatusFilter,
 } from "@/lib/watchlist-org";
 import { ProductCard } from "@/components/watchlist/product-card";
+import { SwipeableCard } from "@/components/watchlist/swipeable-card";
 import { SummaryCard } from "@/components/watchlist/summary-card";
 import { SearchBar } from "@/components/watchlist/search-bar";
 import { ProgressBar } from "@/components/watchlist/progress-bar";
@@ -84,6 +87,8 @@ export default function WatchlistScreen() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkTagVisible, setBulkTagVisible] = useState(false);
+  const [undoProduct, setUndoProduct] = useState<Product | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const regions = useMemo(() => getAllRegions(), []);
 
   const loadData = useCallback(async () => {
@@ -241,6 +246,37 @@ export default function WatchlistScreen() {
     },
     [reload],
   );
+
+  const showUndoBar = useCallback((product: Product) => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndoProduct(product);
+    undoTimer.current = setTimeout(() => setUndoProduct(null), 5000);
+  }, []);
+
+  const handleSwipeDelete = useCallback(
+    async (product: Product) => {
+      if (Platform.OS !== "web")
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      await removeFromWatchlist(product.id);
+      await reload();
+      showUndoBar(product);
+    },
+    [reload, showUndoBar],
+  );
+
+  const handleUndo = useCallback(async () => {
+    if (!undoProduct) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndoProduct(null);
+    await addToWatchlist(undoProduct);
+    await reload();
+  }, [undoProduct, reload]);
+
+  useEffect(() => {
+    return () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    };
+  }, []);
 
   const handleCheckNow = useCallback(async () => {
     if (checking || watchlist.length === 0) return;
@@ -432,27 +468,29 @@ export default function WatchlistScreen() {
           );
         }}
         renderItem={({ item }) => (
-          <ProductCard
-            product={item}
-            selectionMode={selectionMode}
-            selected={selectedIds.has(item.id)}
-            onPress={() => {
-              if (selectionMode) {
-                toggleSelection(item.id);
-              } else {
-                router.push(`/product/${item.id}`);
-              }
-            }}
-            onLongPress={() => {
-              if (Platform.OS !== "web")
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setSelectionMode(true);
-              setSelectedIds(new Set([item.id]));
-            }}
-            onDelete={() => handleDelete(item.id, item.name)}
-            onTagPress={() => setPickerProduct(item)}
-            tagDefinitions={tagDefinitions}
-          />
+          <SwipeableCard onDelete={() => handleSwipeDelete(item)}>
+            <ProductCard
+              product={item}
+              selectionMode={selectionMode}
+              selected={selectedIds.has(item.id)}
+              onPress={() => {
+                if (selectionMode) {
+                  toggleSelection(item.id);
+                } else {
+                  router.push(`/product/${item.id}`);
+                }
+              }}
+              onLongPress={() => {
+                if (Platform.OS !== "web")
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSelectionMode(true);
+                setSelectedIds(new Set([item.id]));
+              }}
+              onDelete={() => handleDelete(item.id, item.name)}
+              onTagPress={() => setPickerProduct(item)}
+              tagDefinitions={tagDefinitions}
+            />
+          </SwipeableCard>
         )}
       />
       <TagPickerSheet
@@ -479,6 +517,46 @@ export default function WatchlistScreen() {
         onClose={() => setBulkTagVisible(false)}
         onChanged={handleBulkTagChanged}
       />
+      {undoProduct && (
+        <View
+          style={{
+            position: "absolute",
+            left: 16,
+            right: 16,
+            bottom: 16,
+            backgroundColor: colors.foreground,
+            borderRadius: 14,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            shadowColor: "#000",
+            shadowOpacity: 0.25,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 6,
+          }}
+        >
+          <Text
+            style={{ color: colors.background, fontSize: 13, flex: 1 }}
+            numberOfLines={1}
+          >
+            Removed {undoProduct.name}
+          </Text>
+          <TouchableOpacity onPress={handleUndo}>
+            <Text
+              style={{
+                color: colors.primary,
+                fontSize: 13,
+                fontWeight: "700",
+              }}
+            >
+              Undo
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </ScreenContainer>
   );
 }

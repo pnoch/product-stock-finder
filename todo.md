@@ -759,3 +759,9 @@
 - [x] Add distributor picker chips to Set Price Alert modal
 - [x] Fix per-distributor "best alert" button to actually scope its alert
 - [x] Show distributor badge on scoped alerts in the alerts list
+
+## Phase 87: Swipe-to-Delete + Undo (v5.35)
+
+- [x] Add SwipeableCard wrapper (gesture-handler Swipeable, red Remove action)
+- [x] Wire swipe-delete into watchlist cards (no confirm on swipe path)
+- [x] Add 5-second undo snackbar restoring the full product
