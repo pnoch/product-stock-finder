@@ -24,6 +24,8 @@ interface PriceAlertModalProps {
   distributors?: { id: string; name: string; countryFlag: string }[];
   selectedDistributorId?: string | null;
   onSelectDistributor?: (id: string | null) => void;
+  direction?: "drop" | "rise";
+  onDirectionChange?: (direction: "drop" | "rise") => void;
 }
 
 export function PriceAlertModal({
@@ -39,6 +41,8 @@ export function PriceAlertModal({
   distributors,
   selectedDistributorId,
   onSelectDistributor,
+  direction,
+  onDirectionChange,
 }: PriceAlertModalProps) {
   const colors = useColors();
 
@@ -146,6 +150,54 @@ export function PriceAlertModal({
                   </Text>
                 </TouchableOpacity>
               ))}
+            </View>
+          )}
+
+          {onDirectionChange && (
+            <View
+              style={{
+                flexDirection: "row",
+                backgroundColor: colors.background,
+                borderRadius: 12,
+                padding: 3,
+                marginBottom: 16,
+              }}
+            >
+              {(
+                [
+                  { key: "drop", label: "▼ Drops below" },
+                  { key: "rise", label: "▲ Rises above" },
+                ] as const
+              ).map((opt) => {
+                const active = (direction ?? "drop") === opt.key;
+                return (
+                  <TouchableOpacity
+                    key={opt.key}
+                    onPress={() => {
+                      if (Platform.OS !== "web")
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      onDirectionChange(opt.key);
+                    }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 8,
+                      borderRadius: 10,
+                      alignItems: "center",
+                      backgroundColor: active ? colors.primary : "transparent",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: active ? "#fff" : colors.muted,
+                        fontSize: 13,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
           {distributors && distributors.length > 0 && (

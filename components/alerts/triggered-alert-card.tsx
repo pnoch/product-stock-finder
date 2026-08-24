@@ -67,7 +67,13 @@ export function TriggeredAlertCard({
               gap: 5,
             }}
           >
-            <IconSymbol name="tag.fill" size={13} color={colors.muted} />
+            <IconSymbol
+              name={alert.direction === "rise" ? "arrow.up" : "arrow.down"}
+              size={13}
+              color={
+                alert.direction === "rise" ? colors.error : colors.success
+              }
+            />
             <Text style={{ color: colors.muted, fontSize: 13 }}>
               Target: {formatPrice(alert.targetPrice, alert.currency)}
             </Text>

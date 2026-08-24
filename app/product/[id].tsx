@@ -72,6 +72,9 @@ export default function ProductDetailScreen() {
   const [alertDistributorId, setAlertDistributorId] = useState<string | null>(
     null,
   );
+  const [alertDirection, setAlertDirection] = useState<"drop" | "rise">(
+    "drop",
+  );
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [shippingRegion, setShippingRegion] = useState("Asia-Pacific");
   const [regionFilter, setRegionFilter] = useState<string>("all");
@@ -230,6 +233,7 @@ export default function ProductDetailScreen() {
       targetPrice: price,
       currency: alertCurrency,
       distributorId: alertDistributorId ?? undefined,
+      direction: alertDirection,
       isActive: true,
       createdAt: new Date().toISOString(),
     };
@@ -246,9 +250,16 @@ export default function ProductDetailScreen() {
         alertDistributorId
           ? `${getDistributorById(alertDistributorId)?.name ?? "that distributor"}'s price`
           : "the price"
-      } drops below ${formatPrice(price, alertCurrency)}.`,
+      } ${alertDirection === "rise" ? "rises above" : "drops below"} ${formatPrice(price, alertCurrency)}.`,
     );
-  }, [alertPrice, alertCurrency, id, product, alertDistributorId]);
+  }, [
+    alertPrice,
+    alertCurrency,
+    id,
+    product,
+    alertDistributorId,
+    alertDirection,
+  ]);
 
   const sortedListings = [...listings].sort((a, b) => {
     const order = { in_stock: 0, back_order: 1, out_of_stock: 2, unknown: 3 };
@@ -542,6 +553,7 @@ export default function ProductDetailScreen() {
         <ActionButtons
           onSetAlert={() => {
             setAlertDistributorId(null);
+            setAlertDirection("drop");
             setAlertModalVisible(true);
           }}
           isRefreshingAny={isRefreshingAny}
@@ -584,6 +596,8 @@ export default function ProductDetailScreen() {
         distributors={alertDistributors}
         selectedDistributorId={alertDistributorId}
         onSelectDistributor={setAlertDistributorId}
+        direction={alertDirection}
+        onDirectionChange={setAlertDirection}
       />
 
       <ReminderDatePickerModal

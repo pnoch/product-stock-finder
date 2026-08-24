@@ -39,6 +39,8 @@ const MAPPING = {
   "square.and.arrow.up": "share",
   "square.and.arrow.down": "download",
   "clock.arrow.circlepath": "history",
+  "arrow.up": "arrow-upward",
+  "arrow.down": "arrow-downward",
   "checkmark.circle.fill": "check-circle",
   "xmark.circle.fill": "cancel",
   "exclamationmark.triangle.fill": "warning",

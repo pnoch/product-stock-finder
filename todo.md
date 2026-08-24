@@ -782,3 +782,11 @@
 
 - [x] Add product-notes module with injectable storage + tests
 - [x] Add editable Notes card on product detail
+
+## Phase 91: Price-Increase Alerts (v5.39)
+
+- [x] Add direction field to PriceAlert (backward-compatible)
+- [x] Branch client + server evaluation and notification copy per direction
+- [x] Handle price_rise events in client reconciliation
+- [x] Add Drops/Rises segmented control to alert modal
+- [x] Show direction arrows on alert cards
