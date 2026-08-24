@@ -99,6 +99,7 @@ export interface PriceAlert {
   triggeredPrice?: number; // actual price when alert fired
   distributorId?: string;
   direction?: "drop" | "rise"; // absent = drop
+  snoozedUntil?: string;
 }
 
 export interface BackOrderReminder {

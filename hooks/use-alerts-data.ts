@@ -6,6 +6,7 @@ import { ActiveTab } from "@/components/alerts/tab-switcher";
 import {
   getAlerts,
   removeAlert,
+  snoozeAlert,
   toggleAlert,
   getWatchlist,
   getBackOrderReminders,
@@ -79,6 +80,20 @@ export function useAlertsData() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       await removeAlert(alertId);
       await loadData();
+    },
+    [loadData],
+  );
+
+  const handleSnoozeAlert = useCallback(
+    (alertId: string) => {
+      showAlert("Snooze Alert", "Pause notifications for this alert.", [
+        { text: "1 day", onPress: () => void snoozeAlert(alertId, 1) },
+        { text: "7 days", onPress: () => void snoozeAlert(alertId, 7) },
+        { text: "30 days", onPress: () => void snoozeAlert(alertId, 30) },
+        { text: "Wake now", onPress: () => void snoozeAlert(alertId, 0) },
+        { text: "Cancel", style: "cancel" as const },
+      ]);
+      void loadData();
     },
     [loadData],
   );
@@ -210,6 +225,7 @@ export function useAlertsData() {
     setUnreadNotifications,
     handleToggle,
     handleDeleteAlert,
+    handleSnoozeAlert,
     handleDeleteReminder,
     handleRemoveStockWatch,
     handleReschedule,

@@ -829,3 +829,10 @@
 ## Phase 98: Watchlist Insight Chips (v5.46)
 
 - [x] Surface all-time-low / dropping chips on watchlist cards
+
+## Phase 99: Snooze Alerts (v5.47)
+
+- [x] Add snoozedUntil field + snoozeAlert storage method
+- [x] Skip snoozed alerts in client + server evaluation
+- [x] Fix direction passthrough in notification config upload
+- [x] Add snooze button, choice sheet, and snoozed badge on alert cards

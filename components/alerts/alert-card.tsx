@@ -10,6 +10,7 @@ type AlertCardProps = {
   productName: string;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onSnooze?: (id: string) => void;
 };
 
 export function AlertCard({
@@ -17,8 +18,11 @@ export function AlertCard({
   productName,
   onToggle,
   onDelete,
+  onSnooze,
 }: AlertCardProps) {
   const colors = useColors();
+  const snoozed =
+    !!alert.snoozedUntil && new Date(alert.snoozedUntil) > new Date();
 
   return (
     <View
@@ -27,6 +31,7 @@ export function AlertCard({
         borderRadius: 16,
         padding: 16,
         marginBottom: 12,
+        opacity: snoozed ? 0.6 : 1,
         borderWidth: 1,
         borderColor: alert.triggeredAt
           ? colors.success + "44"
@@ -59,6 +64,15 @@ export function AlertCard({
                   ? `${dist.countryFlag} ${dist.name}`
                   : alert.distributorId;
               })()}
+            </Text>
+          )}
+          {snoozed && (
+            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
+              😴 Snoozed until{" "}
+              {new Date(alert.snoozedUntil!).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+              })}
             </Text>
           )}
           <View
@@ -112,6 +126,18 @@ export function AlertCard({
               }}
               thumbColor={alert.isActive ? colors.primary : colors.muted}
             />
+          )}
+          {onSnooze && !alert.triggeredAt && (
+            <TouchableOpacity
+              onPress={() => onSnooze(alert.id)}
+              style={{ padding: 4 }}
+            >
+              <IconSymbol
+                name="moon.zzz.fill"
+                size={16}
+                color={colors.muted}
+              />
+            </TouchableOpacity>
           )}
           <TouchableOpacity
             onPress={() => onDelete(alert.id)}

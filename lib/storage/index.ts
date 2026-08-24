@@ -88,6 +88,7 @@ export const {
   addAlert,
   removeAlert,
   toggleAlert,
+  snoozeAlert,
   rearmAlert,
   deactivateAlert,
   getSettings,

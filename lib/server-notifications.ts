@@ -101,6 +101,8 @@ async function runSyncServerNotifications(): Promise<void> {
         targetPrice: a.targetPrice,
         currency: a.currency,
         distributorId: a.distributorId,
+        direction: a.direction,
+        snoozedUntil: a.snoozedUntil,
       }));
     const activeAlertIds = new Set(activeAlerts.map((a) => a.id));
 

@@ -43,6 +43,9 @@ export async function buildEvents(
   for (const alert of config.alerts) {
     const product = PRODUCT_CATALOG.find((p) => p.id === alert.productId);
     if (!product) continue;
+    if (alert.snoozedUntil && new Date(alert.snoozedUntil).getTime() > now) {
+      continue;
+    }
     const distributorIds = alert.distributorId
       ? [alert.distributorId]
       : getAllParserIds();

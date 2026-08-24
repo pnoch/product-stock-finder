@@ -174,6 +174,8 @@ export const appRouter = router({
               targetPrice: z.number(),
               currency: z.string().min(1),
               distributorId: z.string().optional(),
+              direction: z.enum(["drop", "rise"]).optional(),
+              snoozedUntil: z.string().optional(),
             }),
           ),
           stockWatches: z.array(

@@ -75,7 +75,13 @@ export async function runPriceCheckCore(opts?: {
   if (!settings.notificationsEnabled || !settings.priceAlerts) return;
 
   const alerts = await getAlerts();
-  const activeAlerts = alerts.filter((a) => a.isActive && !a.triggeredAt);
+  const now = Date.now();
+  const activeAlerts = alerts.filter(
+    (a) =>
+      a.isActive &&
+      !a.triggeredAt &&
+      (!a.snoozedUntil || new Date(a.snoozedUntil).getTime() <= now),
+  );
   if (activeAlerts.length === 0) return;
 
   const refreshedWatchlist = await getWatchlist();

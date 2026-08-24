@@ -41,6 +41,7 @@ const MAPPING = {
   "clock.arrow.circlepath": "history",
   "arrow.up": "arrow-upward",
   "arrow.down": "arrow-downward",
+  "moon.zzz.fill": "bedtime",
   "checkmark.circle.fill": "check-circle",
   "xmark.circle.fill": "cancel",
   "exclamationmark.triangle.fill": "warning",

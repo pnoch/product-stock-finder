@@ -32,6 +32,7 @@ export default function AlertsScreen() {
     refreshing, onRefresh,
     setUnreadNotifications,
     handleToggle, handleDeleteAlert, handleDeleteReminder,
+    handleSnoozeAlert,
     handleRemoveStockWatch, handleReschedule, handleRearmAlert,
     getProductName, triggeredAlerts, totalSaved, tabCount,
     rescheduleTarget, setRescheduleTarget,
@@ -253,6 +254,7 @@ export default function AlertsScreen() {
               productName={getProductName(item.productId)}
               onToggle={handleToggle}
               onDelete={handleDeleteAlert}
+              onSnooze={handleSnoozeAlert}
             />
           )}
         />

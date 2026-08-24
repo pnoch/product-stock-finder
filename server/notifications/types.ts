@@ -8,6 +8,7 @@ export interface NotificationConfig {
     currency: string;
     distributorId?: string;
     direction?: "drop" | "rise";
+    snoozedUntil?: string;
   }>;
   stockWatches: Array<{
     id: string;

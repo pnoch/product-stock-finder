@@ -42,6 +42,25 @@ export function createAlertsStorage(ctx: StorageContext) {
     });
   }
 
+  async function snoozeAlert(alertId: string, days: number): Promise<void> {
+    await enqueue(KEYS.ALERTS, async () => {
+      const alerts = await getAlerts();
+      const updated = alerts.map((a) =>
+        a.id === alertId
+          ? {
+              ...a,
+              snoozedUntil:
+                days > 0
+                  ? new Date(Date.now() + days * 86400000).toISOString()
+                  : undefined,
+            }
+          : a,
+      );
+      await saveAlerts(updated);
+      notify("alerts", alertId);
+    });
+  }
+
   async function rearmAlert(alertId: string): Promise<void> {
     await enqueue(KEYS.ALERTS, async () => {
       const alerts = await getAlerts();
@@ -87,6 +106,7 @@ export function createAlertsStorage(ctx: StorageContext) {
     addAlert,
     removeAlert,
     toggleAlert,
+    snoozeAlert,
     rearmAlert,
     deactivateAlert,
   };
