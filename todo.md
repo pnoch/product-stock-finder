@@ -797,3 +797,9 @@
 - [x] Add view-shot capture transport with web download + native share sheet
 - [x] Add branded product + watchlist share cards
 - [x] Add Image/Text choice sheet with automatic text fallback
+
+## Phase 93: Distributor Target Table (v5.41)
+
+- [x] Add scopedAlertFor/productWideAlert helpers with tests
+- [x] Add target comparison table card on product detail
+- [x] Quick-set buttons open pre-scoped alert modal

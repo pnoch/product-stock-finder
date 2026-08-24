@@ -21,6 +21,7 @@ import { useLiveProduct } from "@/hooks/use-live-prices";
 import {
   getWatchlist,
   addAlert,
+  getAlerts,
   getStockWatches,
   addStockWatch,
   removeStockWatch,
@@ -55,6 +56,7 @@ import {
   DistributorListingSection,
   PriceAlertModal,
   NotesCard,
+  TargetTableCard,
   ReminderDatePickerModal,
   PriceChartModal,
 } from "./_components";
@@ -77,6 +79,7 @@ export default function ProductDetailScreen() {
   const [alertDirection, setAlertDirection] = useState<"drop" | "rise">(
     "drop",
   );
+  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [shippingRegion, setShippingRegion] = useState("Asia-Pacific");
   const [regionFilter, setRegionFilter] = useState<string>("all");
@@ -100,6 +103,7 @@ export default function ProductDetailScreen() {
   const chartHeight = 200;
 
   const loadData = useCallback(async () => {
+    void getAlerts().then(setAlerts);
     void fetchPriceInsight(id).then((res) => {
       if (res) setInsight(res.insight);
     });
@@ -349,6 +353,13 @@ export default function ProductDetailScreen() {
     ]);
   }, [shareAsText]);
 
+  const handleSetTarget = useCallback((distributorId: string) => {
+    setAlertDistributorId(distributorId);
+    setAlertDirection("drop");
+    setAlertPrice("");
+    setAlertModalVisible(true);
+  }, []);
+
   const handleCopyLink = useCallback(async () => {
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -587,6 +598,13 @@ export default function ProductDetailScreen() {
           onTestStockNotification={handleTestStockNotification}
           onCopyLink={handleCopyLink}
           onCompare={() => router.push(`/compare/${id}`)}
+        />
+
+        <TargetTableCard
+          listings={listings}
+          alerts={alerts}
+          productId={id}
+          onSetTarget={handleSetTarget}
         />
 
         <DistributorListingSection
