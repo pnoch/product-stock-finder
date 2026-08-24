@@ -35,6 +35,8 @@ import { formatPrice, getBestPrice } from "@/lib/currency";
 import { suggestAlertPrices } from "@/lib/alert-suggestions";
 import { getDistributorById } from "@/lib/distributors";
 import { buildShareText, buildShareRows } from "@/lib/price-share";
+import { computePriceVsAverage } from "@/lib/price-average";
+import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
 import { captureAndShareImage } from "@/lib/share-image";
 import { ProductShareCard } from "@/components/share/product-share-card";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
@@ -313,6 +315,11 @@ export default function ProductDetailScreen() {
   }, [visibleListings]);
 
   const shareCardRef = useRef<View>(null);
+  const priceVsAvg = useMemo(
+    () => computePriceVsAverage(listings, displayCurrency),
+    [listings, displayCurrency],
+  );
+
   const shareRows = useMemo(
     () => buildShareRows(sortedListings, displayCurrency),
     [sortedListings, displayCurrency],
@@ -585,6 +592,8 @@ export default function ProductDetailScreen() {
         />
 
         <NotesCard productId={id} />
+
+        {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} />}
 
         <ActionButtons
           onSetAlert={() => {

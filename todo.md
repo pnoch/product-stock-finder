@@ -815,3 +815,8 @@
 - [x] Add pure insights module (all-time lows, drop streaks, volatility)
 - [x] Unit-test metrics incl. FX skips and edge cases
 - [x] Add Product Insights card to Stats screen
+
+## Phase 96: Price vs Average (v5.44)
+
+- [x] Add pure price-vs-average computation with tests
+- [x] Add verdict indicator card on product detail
