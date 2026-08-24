@@ -52,6 +52,7 @@ import {
   ActionButtons,
   DistributorListingSection,
   PriceAlertModal,
+  NotesCard,
   ReminderDatePickerModal,
   PriceChartModal,
 } from "./_components";
@@ -535,6 +536,8 @@ export default function ProductDetailScreen() {
           displayCurrency={displayCurrency}
           productImage={productImage}
         />
+
+        <NotesCard productId={id} />
 
         <ActionButtons
           onSetAlert={() => {

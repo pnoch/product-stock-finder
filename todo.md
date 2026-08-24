@@ -777,3 +777,8 @@
 - [x] Add recent-searches module with injectable storage + tests
 - [x] Add recent chips row under the search bar
 - [x] Record queries on submit; tap chip to re-run; clear-all action
+
+## Phase 90: Product Notes (v5.38)
+
+- [x] Add product-notes module with injectable storage + tests
+- [x] Add editable Notes card on product detail

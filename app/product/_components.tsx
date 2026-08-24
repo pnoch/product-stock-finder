@@ -5,3 +5,4 @@ export { DistributorListingSection } from "@/components/product/distributor-list
 export { PriceAlertModal } from "@/components/product/price-alert-modal";
 export { ReminderDatePickerModal } from "@/components/product/reminder-date-picker-modal";
 export { PriceChartModal } from "@/components/product/price-chart-modal";
+export { NotesCard } from "@/components/product/notes-card";
