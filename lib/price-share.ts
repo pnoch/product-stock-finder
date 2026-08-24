@@ -27,14 +27,23 @@ function convert(
   return convertPrice(price, currency, displayCurrency);
 }
 
-export function buildShareText(input: PriceShareInput): string {
-  const { productName, modelNumber, listings, displayCurrency } = input;
+export interface ShareRow {
+  flag: string;
+  name: string;
+  price: number;
+}
 
-  const lines: string[] = [
-    `${productName} (${modelNumber}) — price comparison`,
-    "",
-  ];
+export interface ShareRowsResult {
+  rows: ShareRow[];
+  bestUrl: string;
+  allOutOfStock: boolean;
+  fallbackPrice: string | null;
+}
 
+export function buildShareRows(
+  listings: DistributorListing[],
+  displayCurrency: string,
+): ShareRowsResult {
   const inStock = listings
     .filter((l) => l.stockStatus === "in_stock")
     .map((l) => ({
@@ -45,34 +54,59 @@ export function buildShareText(input: PriceShareInput): string {
     .sort((a, b) => a.converted! - b.converted!)
     .slice(0, MAX_ROWS);
 
-  let bestUrl = "";
-
   if (inStock.length > 0) {
-    for (const { listing, converted } of inStock) {
-      const dist = getDistributorById(listing.distributorId);
-      lines.push(
-        `${dist?.countryFlag ?? ""} ${dist?.name ?? listing.distributorId} — ${formatPrice(
-          converted!,
-          displayCurrency,
-        )}`.trimStart(),
-      );
-      if (!bestUrl && listing.url) bestUrl = listing.url;
-    }
-  } else {
-    const cheapest = [...listings].sort((a, b) => a.price - b.price)[0];
-    if (cheapest) {
-      const converted = convert(cheapest.price, cheapest.currency, displayCurrency);
-      const priceStr =
-        converted !== null
-          ? formatPrice(converted, displayCurrency)
-          : formatPrice(cheapest.price, cheapest.currency);
-      lines.push(`All out of stock — best listed price ${priceStr}`);
-      if (cheapest.url) bestUrl = cheapest.url;
-    }
+    return {
+      rows: inStock.map(({ listing, converted }) => {
+        const dist = getDistributorById(listing.distributorId);
+        return {
+          flag: dist?.countryFlag ?? "",
+          name: dist?.name ?? listing.distributorId,
+          price: converted!,
+        };
+      }),
+      bestUrl: inStock[0].listing.url ?? "",
+      allOutOfStock: false,
+      fallbackPrice: null,
+    };
+  }
+
+  const cheapest = [...listings].sort((a, b) => a.price - b.price)[0];
+  if (!cheapest) {
+    return { rows: [], bestUrl: "", allOutOfStock: false, fallbackPrice: null };
+  }
+  const converted = convert(cheapest.price, cheapest.currency, displayCurrency);
+  return {
+    rows: [],
+    bestUrl: cheapest.url ?? "",
+    allOutOfStock: true,
+    fallbackPrice:
+      converted !== null
+        ? formatPrice(converted, displayCurrency)
+        : formatPrice(cheapest.price, cheapest.currency),
+  };
+}
+
+export function buildShareText(input: PriceShareInput): string {
+  const { productName, modelNumber, listings, displayCurrency } = input;
+  const lines: string[] = [
+    `${productName} (${modelNumber}) — price comparison`,
+    "",
+  ];
+  const { rows, bestUrl, allOutOfStock, fallbackPrice } = buildShareRows(
+    listings,
+    displayCurrency,
+  );
+
+  if (allOutOfStock && fallbackPrice) {
+    lines.push(`All out of stock — best listed price ${fallbackPrice}`);
+  }
+  for (const row of rows) {
+    lines.push(
+      `${row.flag} ${row.name} — ${formatPrice(row.price, displayCurrency)}`.trimStart(),
+    );
   }
 
   lines.push("", `Prices in ${displayCurrency} · via Product Stock Finder`);
   if (bestUrl) lines.push(bestUrl);
-
   return lines.join("\n");
 }
