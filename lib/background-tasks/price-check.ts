@@ -13,6 +13,7 @@ import { requestNotificationPermissions } from "../notifications";
 import { checkRestocks } from "../restock";
 import { maybeSendDigest } from "../price-digest";
 import { syncServerNotifications } from "../server-notifications";
+import { listingsForAlert } from "../alert-scope";
 import type { DistributorListing } from "../types";
 import { createHealthCollector } from "./health-collector";
 import { refreshListing } from "./refresh-listing";
@@ -83,7 +84,11 @@ export async function runPriceCheckCore(opts?: {
     const product = refreshedWatchlist.find((p) => p.id === alert.productId);
     if (!product?.listings?.length) continue;
 
-    const inStockListings = product.listings.filter(
+    const eligibleListings = listingsForAlert(
+      product.listings,
+      alert.distributorId,
+    );
+    const inStockListings = eligibleListings.filter(
       (l) =>
         l.stockStatus === "in_stock" &&
         l.price > 0 &&
