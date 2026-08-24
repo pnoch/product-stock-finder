@@ -38,6 +38,7 @@ const MAPPING = {
   "trash.fill": "delete",
   "square.and.arrow.up": "share",
   "square.and.arrow.down": "download",
+  "clock.arrow.circlepath": "history",
   "checkmark.circle.fill": "check-circle",
   "xmark.circle.fill": "cancel",
   "exclamationmark.triangle.fill": "warning",

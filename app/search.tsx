@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Text,
@@ -17,6 +17,12 @@ import { ManualAddSheet } from "@/components/search/manual-add-sheet";
 import { useColors } from "@/hooks/use-colors";
 import { searchCatalog, PRODUCT_CATALOG } from "@/lib/catalog";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
+import { RecentSearches } from "@/components/search/recent-searches";
+import {
+  clearRecentSearches,
+  getRecentSearches,
+  recordSearch,
+} from "@/lib/recent-searches";
 import { SearchEmptyState } from "@/components/search/search-empty-state";
 import { CatalogProductCard } from "@/components/search/catalog-product-card";
 import { addToWatchlist } from "@/lib/storage";
@@ -34,6 +40,11 @@ export default function SearchScreen() {
   const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
   const [pickerItem, setPickerItem] = useState<Product | null>(null);
   const [postAddProduct, setPostAddProduct] = useState<Product | null>(null);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  useEffect(() => {
+    void getRecentSearches().then(setRecentSearches);
+  }, []);
   const [bulkVisible, setBulkVisible] = useState(false);
   const [manualVisible, setManualVisible] = useState(false);
   const {
@@ -46,6 +57,16 @@ export default function SearchScreen() {
     setTagMatchMode,
     loadData,
   } = useSearchData();
+
+  const handleSearchSubmit = useCallback(async () => {
+    if (!query.trim()) return;
+    setRecentSearches(await recordSearch(query));
+  }, [query]);
+
+  const handleClearRecent = useCallback(async () => {
+    await clearRecentSearches();
+    setRecentSearches([]);
+  }, []);
 
   const results =
     query.trim().length > 0 ? searchCatalog(query) : PRODUCT_CATALOG;
@@ -165,7 +186,18 @@ export default function SearchScreen() {
       </View>
 
       {/* Search Bar */}
-      <CatalogSearchBar query={query} onQueryChange={setQuery} />
+      <CatalogSearchBar
+        query={query}
+        onQueryChange={setQuery}
+        onSearchSubmit={handleSearchSubmit}
+      />
+      {query.length === 0 && (
+        <RecentSearches
+          searches={recentSearches}
+          onSelect={(q) => setQuery(q)}
+          onClear={handleClearRecent}
+        />
+      )}
 
       {Object.keys(tagDefinitions).length > 0 && (
         <TagFilterRow

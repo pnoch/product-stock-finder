@@ -5,9 +5,14 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 interface CatalogSearchBarProps {
   query: string;
   onQueryChange: (query: string) => void;
+  onSearchSubmit?: (query: string) => void;
 }
 
-export function CatalogSearchBar({ query, onQueryChange }: CatalogSearchBarProps) {
+export function CatalogSearchBar({
+  query,
+  onQueryChange,
+  onSearchSubmit,
+}: CatalogSearchBarProps) {
   const colors = useColors();
 
   return (
@@ -35,6 +40,7 @@ export function CatalogSearchBar({ query, onQueryChange }: CatalogSearchBarProps
         style={{ flex: 1, color: colors.foreground, fontSize: 15 }}
         autoFocus
         returnKeyType="search"
+        onSubmitEditing={() => onSearchSubmit?.(query.trim())}
       />
       {query.length > 0 && (
         <TouchableOpacity onPress={() => onQueryChange("")}>

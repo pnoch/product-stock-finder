@@ -771,3 +771,9 @@
 - [x] Add indexForLocationX + nearestByX helpers with tests
 - [x] Drag scrubbing on product detail price history chart
 - [x] Crosshair + multi-distributor tooltip on compare chart
+
+## Phase 89: Recent Searches (v5.37)
+
+- [x] Add recent-searches module with injectable storage + tests
+- [x] Add recent chips row under the search bar
+- [x] Record queries on submit; tap chip to re-run; clear-all action
