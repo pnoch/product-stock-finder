@@ -751,3 +751,11 @@
 - [x] Add custom product slug + tRPC parse wrapper with timeout
 - [x] Build two-step ManualAddSheet (paste → AI cleanup → review → add + discover)
 - [x] Wire manual-add button into Search screen header
+
+## Phase 86: Distributor-Scoped Alerts (v5.34)
+
+- [x] Add listingsForAlert helper with tests
+- [x] Fix client alert evaluation to honor distributor scoping
+- [x] Add distributor picker chips to Set Price Alert modal
+- [x] Fix per-distributor "best alert" button to actually scope its alert
+- [x] Show distributor badge on scoped alerts in the alerts list

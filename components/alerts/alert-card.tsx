@@ -3,6 +3,7 @@ import { PriceAlert } from "@/lib/types";
 import { formatPrice } from "@/lib/currency";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { getDistributorById } from "@/lib/distributors";
 
 type AlertCardProps = {
   alert: PriceAlert;
@@ -50,6 +51,16 @@ export function AlertCard({
           >
             {productName}
           </Text>
+          {alert.distributorId && (
+            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
+              {(() => {
+                const dist = getDistributorById(alert.distributorId!);
+                return dist
+                  ? `${dist.countryFlag} ${dist.name}`
+                  : alert.distributorId;
+              })()}
+            </Text>
+          )}
           <View
             style={{
               flexDirection: "row",
