@@ -22,6 +22,7 @@ export function ProductCard({
   selectionMode = false,
   selected = false,
   onLongPress,
+  insight,
 }: {
   product: Product;
   onPress: () => void;
@@ -31,6 +32,7 @@ export function ProductCard({
   selectionMode?: boolean;
   selected?: boolean;
   onLongPress?: () => void;
+  insight?: { atAllTimeLow: boolean; dropStreak: number };
 }) {
   const colors = useColors();
   const bestPrice = getBestPrice(product.listings ?? [], "USD");
@@ -205,6 +207,63 @@ export function ProductCard({
             >
               +{validTags.length - 3}
             </Text>
+          )}
+        </View>
+      )}
+      {insight && (insight.atAllTimeLow || insight.dropStreak >= 2) && (
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 6,
+            marginTop: validTags.length > 0 ? 6 : 10,
+          }}
+        >
+          {insight.atAllTimeLow && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                backgroundColor: colors.success + "22",
+                borderRadius: 8,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.success,
+                  fontSize: 10,
+                  fontWeight: "700",
+                }}
+              >
+                🏅 All-time low
+              </Text>
+            </View>
+          )}
+          {insight.dropStreak >= 2 && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                backgroundColor: colors.primary + "22",
+                borderRadius: 8,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.primary,
+                  fontSize: 10,
+                  fontWeight: "700",
+                }}
+              >
+                ▼ Dropping ×{insight.dropStreak}
+              </Text>
+            </View>
           )}
         </View>
       )}

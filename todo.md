@@ -825,3 +825,7 @@
 
 - [x] Add pure drop-calendar computation with tests
 - [x] Add heatmap grid card with tap-for-details on Stats screen
+
+## Phase 98: Watchlist Insight Chips (v5.46)
+
+- [x] Surface all-time-low / dropping chips on watchlist cards

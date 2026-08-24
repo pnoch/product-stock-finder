@@ -24,6 +24,7 @@ import {
   removeFromWatchlist,
 } from "@/lib/storage";
 import { computeWatchlistSummary } from "@/lib/watchlist-summary";
+import { computeProductInsights } from "@/lib/product-insights";
 import {
   Product,
   TagDefinition,
@@ -144,6 +145,11 @@ export default function WatchlistScreen() {
     () => computeWatchlistSummary(watchlist, displayCurrency),
     [watchlist, displayCurrency],
   );
+
+  const insightMap = useMemo(() => {
+    const result = computeProductInsights(watchlist, displayCurrency);
+    return new Map(result.products.map((p) => [p.productId, p] as const));
+  }, [watchlist, displayCurrency]);
 
   const toggleTagFilter = useCallback((tagId: string) => {
     setSelectedTagIds((prev) =>
@@ -472,6 +478,14 @@ export default function WatchlistScreen() {
             <ProductCard
               product={item}
               selectionMode={selectionMode}
+              insight={
+                insightMap.has(item.id)
+                  ? {
+                      atAllTimeLow: insightMap.get(item.id)!.atAllTimeLow,
+                      dropStreak: insightMap.get(item.id)!.dropStreak,
+                    }
+                  : undefined
+              }
               selected={selectedIds.has(item.id)}
               onPress={() => {
                 if (selectionMode) {
