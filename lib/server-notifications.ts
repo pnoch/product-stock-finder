@@ -148,11 +148,11 @@ async function runSyncServerNotifications(): Promise<void> {
     const events = await pullNotificationEvents(deviceId);
     for (const event of events) {
       await recordNotificationEvent(event);
-      const stalePriceDrop =
-        event.type === "price_drop" &&
+      const staleFired =
+        (event.type === "price_drop" || event.type === "price_rise") &&
         event.alertId &&
         !activeAlertIds.has(event.alertId);
-      if (!stalePriceDrop && !displayedIds.has(event.id)) {
+      if (!staleFired && !displayedIds.has(event.id)) {
         await scheduleServerEventNotification(event.title, event.body);
         await recordDisplayedEventId(event.id);
       }
@@ -172,7 +172,10 @@ async function reconcileEvent(event: {
 }): Promise<void> {
   const { deactivateAlert, removeStockWatch, removeBackOrderReminder } =
     await import("./storage");
-  if (event.type === "price_drop" && event.alertId) {
+  if (
+    (event.type === "price_drop" || event.type === "price_rise") &&
+    event.alertId
+  ) {
     await deactivateAlert(event.alertId, event.triggeredPrice ?? 0);
   }
   if (event.type === "restock" && event.watchId) {

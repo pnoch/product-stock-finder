@@ -61,13 +61,20 @@ export async function buildEvents(
         bestDistributor = distributorId;
       }
     }
-    if (bestPrice === null || bestPrice > alert.targetPrice) continue;
+    const isRise = alert.direction === "rise";
+    if (isRise) {
+      if (bestPrice === null || bestPrice < alert.targetPrice) continue;
+    } else {
+      if (bestPrice === null || bestPrice > alert.targetPrice) continue;
+    }
     events.push({
       id: newEventId(),
-      type: "price_drop",
-      dedupKey: `price_drop:${alert.id}`,
-      title: "💸 Price Drop Alert!",
-      body: `${product.name} is now ${formatPrice(bestPrice, alert.currency)} — below your target of ${formatPrice(alert.targetPrice, alert.currency)}!`,
+      type: isRise ? "price_rise" : "price_drop",
+      dedupKey: `${isRise ? "price_rise" : "price_drop"}:${alert.id}`,
+      title: isRise ? "📈 Price Increase Alert!" : "💸 Price Drop Alert!",
+      body: `${product.name} is now ${formatPrice(bestPrice, alert.currency)} — ${
+        isRise ? "above" : "below"
+      } your target of ${formatPrice(alert.targetPrice, alert.currency)}!`,
       payload: {
         alertId: alert.id,
         productId: alert.productId,

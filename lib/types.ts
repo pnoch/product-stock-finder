@@ -98,6 +98,7 @@ export interface PriceAlert {
   triggeredAt?: string;
   triggeredPrice?: number; // actual price when alert fired
   distributorId?: string;
+  direction?: "drop" | "rise"; // absent = drop
 }
 
 export interface BackOrderReminder {
@@ -115,7 +116,7 @@ export interface BackOrderReminder {
 
 export interface NotificationHistoryEntry {
   id: string;
-  type: "price_drop" | "restock" | "reminder" | "health";
+  type: "price_drop" | "price_rise" | "restock" | "reminder" | "health";
   title: string;
   body: string;
   productId?: string;

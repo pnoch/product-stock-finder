@@ -29,12 +29,14 @@ import type { NotificationHistoryEntry } from "@/lib/types";
 type HistoryType = NotificationHistoryEntry["type"];
 type TypeIconName =
   | "dollarsign.circle.fill"
+  | "chart.line.uptrend.xyaxis"
   | "checkmark.circle.fill"
   | "clock.fill"
   | "exclamationmark.triangle.fill";
 
 const TYPE_ICONS: Record<HistoryType, TypeIconName> = {
   price_drop: "dollarsign.circle.fill",
+  price_rise: "chart.line.uptrend.xyaxis",
   restock: "checkmark.circle.fill",
   reminder: "clock.fill",
   health: "exclamationmark.triangle.fill",

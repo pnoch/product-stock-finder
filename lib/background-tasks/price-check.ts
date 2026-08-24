@@ -102,18 +102,24 @@ export async function runPriceCheckCore(opts?: {
       return converted < best ? converted : best;
     }, Infinity);
 
-    if (bestPrice <= alert.targetPrice) {
+    const isRise = alert.direction === "rise";
+    const triggered = isRise
+      ? bestPrice >= alert.targetPrice
+      : bestPrice <= alert.targetPrice;
+    if (triggered) {
       // Re-read alerts to avoid duplicate fire
       const currentAlerts = await getAlerts();
       const current = currentAlerts.find((a) => a.id === alert.id);
       if (current?.triggeredAt) continue;
-      // Price dropped below target — fire notification and deactivate alert
+      // Price crossed target — fire notification and deactivate alert
       const granted = await requestNotificationPermissions();
       if (!granted) continue;
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: "💸 Price Drop Alert!",
-          body: `${product.name} is now ${formatPrice(bestPrice, alert.currency)} — below your target of ${formatPrice(alert.targetPrice, alert.currency)}!`,
+          title: isRise ? "📈 Price Increase Alert!" : "💸 Price Drop Alert!",
+          body: `${product.name} is now ${formatPrice(bestPrice, alert.currency)} — ${
+            isRise ? "above" : "below"
+          } your target of ${formatPrice(alert.targetPrice, alert.currency)}!`,
           sound: true,
         },
         trigger: null,

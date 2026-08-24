@@ -7,6 +7,7 @@ export interface NotificationConfig {
     targetPrice: number;
     currency: string;
     distributorId?: string;
+    direction?: "drop" | "rise";
   }>;
   stockWatches: Array<{
     id: string;
@@ -33,7 +34,7 @@ export interface NotificationConfig {
 
 export interface NotificationEvent {
   id: string;
-  type: "price_drop" | "restock" | "reminder";
+  type: "price_drop" | "price_rise" | "restock" | "reminder";
   title: string;
   body: string;
   alertId?: string;
