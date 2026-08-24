@@ -1,10 +1,17 @@
-import { Fragment, useMemo } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { Text, View } from "react-native";
-import Svg, { Polyline, Circle, Line, Text as SvgText } from "react-native-svg";
+import Svg, {
+  Polyline,
+  Circle,
+  Line,
+  Text as SvgText,
+  Rect,
+} from "react-native-svg";
 
 import { useColors } from "@/hooks/use-colors";
 import { PricePoint } from "@/lib/types";
 import { convertPrice } from "@/lib/currency";
+import { nearestByX } from "@/lib/price-chart";
 
 export function MultiLineChart({
   series,
@@ -21,6 +28,14 @@ export function MultiLineChart({
   height: number;
 }) {
   const colors = useColors();
+  const [scrubX, setScrubX] = useState<number | null>(null);
+  const movedRef = useRef(false);
+  const padLConst = 56;
+  const padRConst = 16;
+
+  const clampScrub = (x: number) =>
+    Math.max(padLConst, Math.min(x, width - padRConst));
+
   const { allCoords, globalMin, globalMax } = useMemo(() => {
     const padL = 56,
       padR = 16,
@@ -98,7 +113,22 @@ export function MultiLineChart({
   }
 
   return (
-    <Svg width={width} height={height}>
+    <View
+      onStartShouldSetResponder={() => true}
+      onMoveShouldSetResponder={() => true}
+      onResponderGrant={(e) => {
+        movedRef.current = false;
+        setScrubX(clampScrub(e.nativeEvent.locationX));
+      }}
+      onResponderMove={(e) => {
+        movedRef.current = true;
+        setScrubX(clampScrub(e.nativeEvent.locationX));
+      }}
+      onResponderRelease={() => {
+        if (!movedRef.current) setScrubX(null);
+      }}
+    >
+      <Svg width={width} height={height}>
       {[maxY, midY, minY].map((y, i) => (
         <Line
           key={i}
@@ -188,6 +218,94 @@ export function MultiLineChart({
             );
           });
         })()}
+        {(() => {
+          if (scrubX == null || allCoords.length === 0) return null;
+          const nearestFirst = nearestByX(allCoords[0].coords, scrubX);
+          if (!nearestFirst) return null;
+          const rows = allCoords.slice(0, 6).map((s) => ({
+            label: s.label,
+            color: s.color,
+            point: nearestByX(s.coords, scrubX),
+          }));
+          const present = rows.filter((r) => r.point);
+          const extra = allCoords.length - rows.length;
+          return (
+            <>
+              <Line
+                x1={scrubX}
+                y1={padT}
+                x2={scrubX}
+                y2={padT + usableH}
+                stroke={colors.muted}
+                strokeWidth={1}
+                strokeDasharray="3,3"
+              />
+              {present.map(
+                (row) =>
+                  row.point && (
+                    <Circle
+                      key={`scrub-${row.label}`}
+                      cx={row.point.x}
+                      cy={row.point.y}
+                      r={5}
+                      fill={row.color}
+                    />
+                  ),
+              )}
+              <Rect
+                x={padLConst}
+                y={padT - 2}
+                width={Math.min(190, width / 2)}
+                height={18 + present.length * 13}
+                rx={6}
+                fill={colors.surface}
+                stroke={colors.border}
+                strokeWidth={1}
+              />
+              <SvgText
+                x={padLConst + 8}
+                y={padT + 12}
+                fontSize={9}
+                fill={colors.muted}
+                fontWeight="700"
+              >
+                {new Date(nearestFirst.date).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </SvgText>
+              {present.map((row, i) => (
+                <Fragment key={`row-${row.label}`}>
+                  <Circle
+                    cx={padLConst + 12}
+                    cy={padT + 24 + i * 13}
+                    r={3}
+                    fill={row.color}
+                  />
+                  <SvgText
+                    x={padLConst + 20}
+                    y={padT + 27 + i * 13}
+                    fontSize={9}
+                    fill={colors.foreground}
+                  >
+                    {`${row.label}  $${row.point!.usd.toFixed(2)}`}
+                  </SvgText>
+                </Fragment>
+              ))}
+              {extra > 0 && (
+                <SvgText
+                  x={padLConst + 20}
+                  y={padT + 27 + present.length * 13}
+                  fontSize={9}
+                  fill={colors.muted}
+                >
+                  {`+${extra} more`}
+                </SvgText>
+              )}
+            </>
+          );
+        })()}
     </Svg>
+    </View>
   );
 }

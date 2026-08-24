@@ -765,3 +765,9 @@
 - [x] Add SwipeableCard wrapper (gesture-handler Swipeable, red Remove action)
 - [x] Wire swipe-delete into watchlist cards (no confirm on swipe path)
 - [x] Add 5-second undo snackbar restoring the full product
+
+## Phase 88: Chart Scrubbing (v5.36)
+
+- [x] Add indexForLocationX + nearestByX helpers with tests
+- [x] Drag scrubbing on product detail price history chart
+- [x] Crosshair + multi-distributor tooltip on compare chart
