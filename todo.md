@@ -693,3 +693,12 @@
 - [x] Extract DeviceRow to components/settings/device-management/
 - [x] Extract RenameDeviceModal to components/settings/device-management/
 - [x] Refactor main section to composition root
+
+## Phase 78: Background Tasks Refactor (v5.26)
+
+- [x] Scaffold lib/background-tasks/ (shared singletons, health alerts)
+- [x] Extract health collector
+- [x] Extract listing refresh
+- [x] Extract price check core (+ foreground entry)
+- [x] Extract task definitions + registration, convert original to barrel
+- [x] Public API unchanged (9 exports)
