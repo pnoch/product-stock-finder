@@ -68,6 +68,9 @@ export default function ProductDetailScreen() {
   const [alertModalVisible, setAlertModalVisible] = useState(false);
   const [alertPrice, setAlertPrice] = useState("");
   const [alertCurrency, setAlertCurrency] = useState("USD");
+  const [alertDistributorId, setAlertDistributorId] = useState<string | null>(
+    null,
+  );
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [shippingRegion, setShippingRegion] = useState("Asia-Pacific");
   const [regionFilter, setRegionFilter] = useState<string>("all");
@@ -225,6 +228,7 @@ export default function ProductDetailScreen() {
       productId: id,
       targetPrice: price,
       currency: alertCurrency,
+      distributorId: alertDistributorId ?? undefined,
       isActive: true,
       createdAt: new Date().toISOString(),
     };
@@ -237,9 +241,13 @@ export default function ProductDetailScreen() {
     setAlertPrice("");
     showAlert(
       "Alert Set",
-      `You'll be notified when the price drops below ${formatPrice(price, alertCurrency)}.`,
+      `You'll be notified when ${
+        alertDistributorId
+          ? `${getDistributorById(alertDistributorId)?.name ?? "that distributor"}'s price`
+          : "the price"
+      } drops below ${formatPrice(price, alertCurrency)}.`,
     );
-  }, [alertPrice, alertCurrency, id, product]);
+  }, [alertPrice, alertCurrency, id, product, alertDistributorId]);
 
   const sortedListings = [...listings].sort((a, b) => {
     const order = { in_stock: 0, back_order: 1, out_of_stock: 2, unknown: 3 };
@@ -268,6 +276,23 @@ export default function ProductDetailScreen() {
     () => suggestAlertPrices(product?.listings ?? [], alertCurrency),
     [product, alertCurrency],
   );
+
+  const alertDistributors = useMemo(() => {
+    const seen = new Map<
+      string,
+      { id: string; name: string; countryFlag: string }
+    >();
+    for (const listing of visibleListings) {
+      if (seen.has(listing.distributorId)) continue;
+      const dist = getDistributorById(listing.distributorId);
+      seen.set(listing.distributorId, {
+        id: listing.distributorId,
+        name: dist?.name ?? listing.distributorId,
+        countryFlag: dist?.countryFlag ?? "",
+      });
+    }
+    return [...seen.values()];
+  }, [visibleListings]);
 
   const handleShare = useCallback(async () => {
     if (Platform.OS !== "web")
@@ -396,6 +421,7 @@ export default function ProductDetailScreen() {
         productId: id,
         targetPrice: suggestedPrice,
         currency: listing.currency,
+        distributorId: listing.distributorId,
         isActive: true,
         createdAt: new Date().toISOString(),
       };
@@ -511,7 +537,10 @@ export default function ProductDetailScreen() {
         />
 
         <ActionButtons
-          onSetAlert={() => setAlertModalVisible(true)}
+          onSetAlert={() => {
+            setAlertDistributorId(null);
+            setAlertModalVisible(true);
+          }}
           isRefreshingAny={isRefreshingAny}
           onRefresh={refresh}
           onShare={handleShare}
@@ -549,6 +578,9 @@ export default function ProductDetailScreen() {
         setAlertCurrency={setAlertCurrency}
         productName={product.name}
         suggestions={alertSuggestions}
+        distributors={alertDistributors}
+        selectedDistributorId={alertDistributorId}
+        onSelectDistributor={setAlertDistributorId}
       />
 
       <ReminderDatePickerModal

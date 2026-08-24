@@ -21,6 +21,9 @@ interface PriceAlertModalProps {
   setAlertCurrency: (currency: string) => void;
   productName: string;
   suggestions?: AlertSuggestion[];
+  distributors?: { id: string; name: string; countryFlag: string }[];
+  selectedDistributorId?: string | null;
+  onSelectDistributor?: (id: string | null) => void;
 }
 
 export function PriceAlertModal({
@@ -33,6 +36,9 @@ export function PriceAlertModal({
   setAlertCurrency,
   productName,
   suggestions,
+  distributors,
+  selectedDistributorId,
+  onSelectDistributor,
 }: PriceAlertModalProps) {
   const colors = useColors();
 
@@ -140,6 +146,84 @@ export function PriceAlertModal({
                   </Text>
                 </TouchableOpacity>
               ))}
+            </View>
+          )}
+          {distributors && distributors.length > 0 && (
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 8,
+                marginBottom: 16,
+              }}
+            >
+              <TouchableOpacity
+                onPress={() => {
+                  if (Platform.OS !== "web")
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onSelectDistributor?.(null);
+                }}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor:
+                    selectedDistributorId == null
+                      ? colors.primary
+                      : colors.border,
+                  backgroundColor:
+                    selectedDistributorId == null
+                      ? colors.primary + "22"
+                      : "transparent",
+                }}
+              >
+                <Text
+                  style={{
+                    color:
+                      selectedDistributorId == null
+                        ? colors.primary
+                        : colors.muted,
+                    fontSize: 12,
+                    fontWeight: "600",
+                  }}
+                >
+                  All distributors
+                </Text>
+              </TouchableOpacity>
+              {distributors.map((d) => {
+                const selected = selectedDistributorId === d.id;
+                return (
+                  <TouchableOpacity
+                    key={d.id}
+                    onPress={() => {
+                      if (Platform.OS !== "web")
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      onSelectDistributor?.(d.id);
+                    }}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: selected ? colors.primary : colors.border,
+                      backgroundColor: selected
+                        ? colors.primary + "22"
+                        : "transparent",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: selected ? colors.primary : colors.muted,
+                        fontSize: 12,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {d.countryFlag} {d.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
           <TextInput
