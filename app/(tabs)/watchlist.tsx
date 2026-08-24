@@ -309,6 +309,7 @@ export default function WatchlistScreen() {
           displayCurrency={displayCurrency}
           statusFilter={statusFilter}
           onStatusToggle={setStatusFilter}
+          onViewStats={() => router.push("/stats")}
         />
       )}
 

@@ -702,3 +702,11 @@
 - [x] Extract price check core (+ foreground entry)
 - [x] Extract task definitions + registration, convert original to barrel
 - [x] Public API unchanged (9 exports)
+
+## Phase 79: Watchlist Statistics (v5.27)
+
+- [x] Add pure stats module (movers, basket value, stock health, freshness)
+- [x] Unit-test stats computations incl. edge cases
+- [x] Build Movers/Basket/StockHealth/Freshness cards
+- [x] Add Statistics screen (app/stats.tsx) with empty state
+- [x] Wire "View statistics" entry from Watchlist summary card

@@ -1,7 +1,12 @@
-import { Text, View, TouchableOpacity } from "react-native";
+import {
+  Platform,
+  Text,
+  View,
+  TouchableOpacity,
+} from "react-native";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { formatPrice } from "@/lib/currency";
 import type { WatchlistSummary } from "@/lib/watchlist-summary";
 import type { StatusFilter } from "@/lib/watchlist-org";
@@ -11,11 +16,13 @@ export function SummaryCard({
   displayCurrency,
   statusFilter,
   onStatusToggle,
+  onViewStats,
 }: {
   summary: WatchlistSummary;
   displayCurrency: string;
   statusFilter: StatusFilter;
   onStatusToggle: (status: StatusFilter) => void;
+  onViewStats: () => void;
 }) {
   const colors = useColors();
 
@@ -117,6 +124,30 @@ export function SummaryCard({
           </Text>
         </View>
       </View>
+      <TouchableOpacity
+        onPress={() => {
+          if (Platform.OS !== "web")
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onViewStats();
+        }}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          marginTop: 12,
+          paddingTop: 12,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+        }}
+      >
+        <Text
+          style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}
+        >
+          View statistics
+        </Text>
+        <IconSymbol name="chevron.right" size={12} color={colors.primary} />
+      </TouchableOpacity>
     </View>
   );
 }
