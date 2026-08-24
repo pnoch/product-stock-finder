@@ -710,3 +710,10 @@
 - [x] Build Movers/Basket/StockHealth/Freshness cards
 - [x] Add Statistics screen (app/stats.tsx) with empty state
 - [x] Wire "View statistics" entry from Watchlist summary card
+
+## Phase 80: Data Export/Import (v5.28)
+
+- [x] Add pure backup module (build/parse/apply, merge-by-id) with unit tests
+- [x] Add platform file transport (share sheet, web download, document picker/upload)
+- [x] Add Data section to Settings with Export/Import rows
+- [x] Stamp sync-meta on import so signed-in imports win LWW

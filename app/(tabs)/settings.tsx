@@ -23,6 +23,7 @@ import { syncBackgroundTasks } from "@/lib/background-price-check";
 import { ConnectionSection } from "@/components/settings/connection-section";
 import { AccountSection } from "@/components/settings/account-section";
 import { DeviceManagementSection } from "@/components/settings/device-management-section";
+import { DataSection } from "@/components/settings/data-section";
 import { NotificationsSection } from "@/components/settings/notifications-section";
 import { ScraperStatusSection } from "@/components/settings/scraper-status-section";
 import { AboutSection } from "@/components/settings/about-section";
@@ -214,6 +215,8 @@ export default function SettingsScreen() {
           isAuthenticated={isAuthenticated}
           colors={colors}
         />
+
+        <DataSection />
 
         <NotificationsSection
           settings={settings}

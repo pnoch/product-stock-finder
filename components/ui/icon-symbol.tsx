@@ -36,6 +36,7 @@ const MAPPING = {
   "star.fill": "star",
   "trash.fill": "delete",
   "square.and.arrow.up": "share",
+  "square.and.arrow.down": "download",
   "checkmark.circle.fill": "check-circle",
   "xmark.circle.fill": "cancel",
   "exclamationmark.triangle.fill": "warning",
