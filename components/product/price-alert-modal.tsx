@@ -4,9 +4,12 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
+  Platform,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
-import { EXCHANGE_RATES } from "@/lib/currency";
+import { EXCHANGE_RATES, formatPrice } from "@/lib/currency";
+import type { AlertSuggestion } from "@/lib/alert-suggestions";
 
 interface PriceAlertModalProps {
   visible: boolean;
@@ -17,6 +20,7 @@ interface PriceAlertModalProps {
   alertCurrency: string;
   setAlertCurrency: (currency: string) => void;
   productName: string;
+  suggestions?: AlertSuggestion[];
 }
 
 export function PriceAlertModal({
@@ -28,6 +32,7 @@ export function PriceAlertModal({
   alertCurrency,
   setAlertCurrency,
   productName,
+  suggestions,
 }: PriceAlertModalProps) {
   const colors = useColors();
 
@@ -97,6 +102,46 @@ export function PriceAlertModal({
               </TouchableOpacity>
             ))}
           </View>
+          {suggestions && suggestions.length > 0 && (
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 8,
+                marginBottom: 16,
+              }}
+            >
+              {suggestions.map((suggestion) => (
+                <TouchableOpacity
+                  key={suggestion.key}
+                  onPress={() => {
+                    if (Platform.OS !== "web")
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setAlertPrice(String(suggestion.price));
+                  }}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 14,
+                    borderWidth: 1,
+                    borderColor: colors.primary,
+                    backgroundColor: colors.primary + "22",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.primary,
+                      fontSize: 12,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {suggestion.label} ·{" "}
+                    {formatPrice(suggestion.price, alertCurrency)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
           <TextInput
             value={alertPrice}
             onChangeText={setAlertPrice}

@@ -730,3 +730,10 @@
 - [x] Add pure share-text builder (top-5 in-stock prices, FX conversion, OOS fallback)
 - [x] Unit-test formatting edge cases
 - [x] Wire product detail Share button to the new comparison text
+
+## Phase 83: Alert Price Suggestions (v5.31)
+
+- [x] Add pure suggestion module (near-low, below-avg, under-current)
+- [x] Unit-test strategy math, dedupe, FX guards
+- [x] Render suggestion chips in Set Price Alert modal
+- [x] Wire suggestions into product detail screen

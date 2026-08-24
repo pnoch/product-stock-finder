@@ -31,6 +31,7 @@ import {
 } from "@/lib/storage";
 import { DistributorListing, PriceAlert } from "@/lib/types";
 import { formatPrice, getBestPrice } from "@/lib/currency";
+import { suggestAlertPrices } from "@/lib/alert-suggestions";
 import { getDistributorById } from "@/lib/distributors";
 import { buildShareText } from "@/lib/price-share";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
@@ -261,6 +262,11 @@ export default function ProductDetailScreen() {
   const bestDeal = useMemo(
     () => findBestDeal(visibleListings, shippingRegion, displayCurrency),
     [visibleListings, shippingRegion, displayCurrency],
+  );
+
+  const alertSuggestions = useMemo(
+    () => suggestAlertPrices(product?.listings ?? [], alertCurrency),
+    [product, alertCurrency],
   );
 
   const handleShare = useCallback(async () => {
@@ -542,6 +548,7 @@ export default function ProductDetailScreen() {
         alertCurrency={alertCurrency}
         setAlertCurrency={setAlertCurrency}
         productName={product.name}
+        suggestions={alertSuggestions}
       />
 
       <ReminderDatePickerModal
