@@ -32,6 +32,7 @@ import {
 import { DistributorListing, PriceAlert } from "@/lib/types";
 import { formatPrice, getBestPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
+import { buildShareText } from "@/lib/price-share";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
 import { findBestDeal } from "@/lib/best-deal";
 import { fetchPriceInsight } from "@/lib/server-insights";
@@ -265,28 +266,20 @@ export default function ProductDetailScreen() {
   const handleShare = useCallback(async () => {
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const inStockListings = sortedListings.filter(
-      (l) => l.stockStatus === "in_stock",
-    );
-    const bestListing = inStockListings[0] ?? sortedListings[0];
-    const distributor = bestListing
-      ? getDistributorById(bestListing.distributorId)
-      : null;
-    const priceStr = bestListing
-      ? formatPrice(bestListing.price, bestListing.currency)
-      : "N/A";
-    const statusStr =
-      inStockListings.length > 0
-        ? `In Stock at ${distributor?.name ?? "a distributor"} for ${priceStr}`
-        : `Back Order - best price ${priceStr}`;
-    const url = bestListing?.url ?? "";
-    const message = `${product?.name} (${product?.modelNumber})\n${statusStr}\n${url}`;
     try {
-      await Share.share({ message, title: product?.name ?? "Product" });
+      await Share.share({
+        message: buildShareText({
+          productName: product?.name ?? "Product",
+          modelNumber: product?.modelNumber ?? "",
+          listings: sortedListings,
+          displayCurrency,
+        }),
+        title: product?.name ?? "Product",
+      });
     } catch {
       // User cancelled share
     }
-  }, [product, sortedListings]);
+  }, [product, sortedListings, displayCurrency]);
 
   const handleCopyLink = useCallback(async () => {
     if (Platform.OS !== "web")

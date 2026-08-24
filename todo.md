@@ -724,3 +724,9 @@
 - [x] Unit-test parsing and catalog matching edge cases
 - [x] Build paste-sheet modal with live matched/not-found preview
 - [x] Wire "Import list" button into Search screen header
+
+## Phase 82: Rich Text Price Share (v5.30)
+
+- [x] Add pure share-text builder (top-5 in-stock prices, FX conversion, OOS fallback)
+- [x] Unit-test formatting edge cases
+- [x] Wire product detail Share button to the new comparison text
