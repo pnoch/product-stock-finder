@@ -820,3 +820,8 @@
 
 - [x] Add pure price-vs-average computation with tests
 - [x] Add verdict indicator card on product detail
+
+## Phase 97: Drop Calendar (v5.45)
+
+- [x] Add pure drop-calendar computation with tests
+- [x] Add heatmap grid card with tap-for-details on Stats screen

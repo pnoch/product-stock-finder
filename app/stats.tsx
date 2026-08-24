@@ -22,7 +22,9 @@ import {
   type MoversWindow,
 } from "@/lib/watchlist-stats";
 import { computeProductInsights } from "@/lib/product-insights";
+import { computeDropCalendar } from "@/lib/drop-calendar";
 import { InsightsCard } from "@/components/stats/insights-card";
+import { DropCalendarCard } from "@/components/stats/drop-calendar-card";
 import {
   computeDigest,
   type DigestSnapshot,
@@ -73,6 +75,11 @@ export default function StatsScreen() {
 
   const insights = useMemo(
     () => computeProductInsights(watchlist, displayCurrency),
+    [watchlist, displayCurrency],
+  );
+
+  const dropCalendar = useMemo(
+    () => computeDropCalendar(watchlist, displayCurrency, 30),
     [watchlist, displayCurrency],
   );
 
@@ -210,6 +217,11 @@ export default function StatsScreen() {
           )}
           <MoversCard movers={movers} days={days} onDaysChange={setDays} />
           <InsightsCard result={insights} />
+          <DropCalendarCard
+            result={dropCalendar}
+            days={30}
+            now={Date.now()}
+          />
           <BasketValueCard basket={basket} displayCurrency={displayCurrency} />
           <StockHealthCard health={stockHealth} />
           <DataFreshnessCard freshness={freshness} />
