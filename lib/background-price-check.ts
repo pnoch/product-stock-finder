@@ -10,7 +10,6 @@ import {
   getPriceDigestSnapshot,
   savePriceDigestSnapshot,
 } from "./storage";
-import { createHealthService, DistributorHealth } from "./scrapers/health";
 import { convertPrice, formatPrice } from "./currency";
 import { requestNotificationPermissions } from "./notifications";
 import * as Notifications from "expo-notifications";
@@ -27,48 +26,12 @@ import { healthService, breakerStore } from "./background-tasks/instances";
 import { checkHealthAlerts } from "./background-tasks/health-alerts";
 
 export { checkHealthAlerts } from "./background-tasks/health-alerts";
+import { createHealthCollector } from "./background-tasks/health-collector";
+
+export { createHealthCollector } from "./background-tasks/health-collector";
 
 export const PRICE_CHECK_TASK = "price-drop-check";
 export const HEALTH_PROBE_TASK = "health-probe";
-
-export function createHealthCollector(
-  service: ReturnType<typeof createHealthService> = healthService,
-) {
-  const updates = new Map<string, DistributorHealth>();
-  return {
-    record(
-      parserId: string,
-      status: "working" | "blocked" | "error",
-      reason?: string,
-    ) {
-      updates.set(parserId, {
-        distributorId: parserId,
-        status,
-        reason,
-        lastChecked: new Date().toISOString(),
-      });
-    },
-    async flush() {
-      if (updates.size === 0) return;
-      try {
-        const current = await service.getDistributorHealth();
-        const merged = current.map((h) => updates.get(h.distributorId) ?? h);
-        for (const [id, entry] of updates) {
-          if (!current.some((h) => h.distributorId === id)) {
-            merged.push(entry);
-          }
-        }
-        await service.saveDistributorHealth(merged);
-        for (const [id, entry] of updates) {
-          await service.recordSample(id, entry.status, entry.reason);
-        }
-        await checkHealthAlerts(service);
-      } catch {
-        // Ignore health update errors
-      }
-    },
-  };
-}
 
 async function refreshListing(
   product: Product,
