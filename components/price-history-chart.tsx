@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
-import { Pressable } from "react-native";
+import { View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { PricePoint } from "@/lib/types";
 import { formatPrice } from "@/lib/currency";
-import { findNearestIndex } from "@/lib/price-chart";
+import { indexForLocationX } from "@/lib/price-chart";
 import Svg, {
   Polyline,
   Circle,
@@ -74,14 +74,29 @@ export function PriceHistoryChart({
   const maxY = padT;
 
   return (
-    <Pressable
-      onPress={(e) => {
-        const x = e.nativeEvent.locationX;
-        const idx = findNearestIndex(
-          ((x - padL) / (width - padL - padR)) * 100,
+    <View
+      onStartShouldSetResponder={() => true}
+      onMoveShouldSetResponder={() => true}
+      onResponderGrant={(e) => {
+        const idx = indexForLocationX(
+          e.nativeEvent.locationX,
+          width,
+          padL,
+          padR,
           coords.length,
         );
         setSelectedIndex((prev) => (prev === idx ? null : idx));
+      }}
+      onResponderMove={(e) => {
+        setSelectedIndex(
+          indexForLocationX(
+            e.nativeEvent.locationX,
+            width,
+            padL,
+            padR,
+            coords.length,
+          ),
+        );
       }}
     >
       <Svg width={width} height={height}>
@@ -249,6 +264,6 @@ export function PriceHistoryChart({
           </>
         )}
       </Svg>
-    </Pressable>
+    </View>
   );
 }
