@@ -15,6 +15,7 @@ import { getFxRates } from "./fx";
 import { mergeHistory } from "./price-history";
 import { getInsight } from "./price-insights";
 import { getProductImage } from "./product-images";
+import { parseProductText } from "./product-parse";
 import type { SyncStampedItem } from "../lib/types";
 import { upsertDeviceConfig, pullPendingEvents } from "./notifications";
 import { upsertPushToken } from "./push-notifications";
@@ -150,6 +151,14 @@ export const appRouter = router({
       .input(z.object({ productId: z.string().min(1) }))
       .query(async ({ input }) => {
         return getProductImage(input.productId);
+      }),
+  }),
+
+  products: router({
+    parse: publicProcedure
+      .input(z.object({ raw: z.string().min(1).max(2000) }))
+      .query(async ({ input }) => {
+        return { product: await parseProductText(input.raw) };
       }),
   }),
 
