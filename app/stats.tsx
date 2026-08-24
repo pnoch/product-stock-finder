@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Platform,
   ScrollView,
+  Share,
   Text,
   TouchableOpacity,
   View,
@@ -20,6 +21,7 @@ import {
   computeStockHealth,
   type MoversWindow,
 } from "@/lib/watchlist-stats";
+import { buildWatchlistShareText } from "@/lib/watchlist-share";
 import { MoversCard } from "@/components/stats/movers-card";
 import { BasketValueCard } from "@/components/stats/basket-value-card";
 import { StockHealthCard } from "@/components/stats/stock-health-card";
@@ -56,6 +58,23 @@ export default function StatsScreen() {
   const stockHealth = useMemo(() => computeStockHealth(watchlist), [watchlist]);
   const freshness = useMemo(() => computeDataFreshness(watchlist), [watchlist]);
 
+  const handleShare = async () => {
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await Share.share({
+        message: buildWatchlistShareText({
+          watchlist,
+          displayCurrency,
+          days,
+        }),
+        title: "My Watchlist",
+      });
+    } catch {
+      // User cancelled share
+    }
+  };
+
   return (
     <ScreenContainer>
       <View
@@ -88,6 +107,13 @@ export default function StatsScreen() {
         >
           Statistics
         </Text>
+        <TouchableOpacity onPress={handleShare} style={{ padding: 4 }}>
+          <IconSymbol
+            name="square.and.arrow.up"
+            size={22}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
       </View>
 
       {loaded && watchlist.length === 0 ? (

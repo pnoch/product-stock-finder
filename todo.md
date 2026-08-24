@@ -737,3 +737,9 @@
 - [x] Unit-test strategy math, dedupe, FX guards
 - [x] Render suggestion chips in Set Price Alert modal
 - [x] Wire suggestions into product detail screen
+
+## Phase 84: Watchlist Share (v5.32)
+
+- [x] Add pure watchlist share-text builder (basket, top drops, stock health)
+- [x] Unit-test formatting incl. section omission and window labels
+- [x] Add share button to Statistics screen header
