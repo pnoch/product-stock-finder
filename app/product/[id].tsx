@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import * as Clipboard from "expo-clipboard";
 import {
   ScrollView,
@@ -33,7 +33,9 @@ import { DistributorListing, PriceAlert } from "@/lib/types";
 import { formatPrice, getBestPrice } from "@/lib/currency";
 import { suggestAlertPrices } from "@/lib/alert-suggestions";
 import { getDistributorById } from "@/lib/distributors";
-import { buildShareText } from "@/lib/price-share";
+import { buildShareText, buildShareRows } from "@/lib/price-share";
+import { captureAndShareImage } from "@/lib/share-image";
+import { ProductShareCard } from "@/components/share/product-share-card";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
 import { findBestDeal } from "@/lib/best-deal";
 import { fetchPriceInsight } from "@/lib/server-insights";
@@ -306,9 +308,13 @@ export default function ProductDetailScreen() {
     return [...seen.values()];
   }, [visibleListings]);
 
-  const handleShare = useCallback(async () => {
-    if (Platform.OS !== "web")
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const shareCardRef = useRef<View>(null);
+  const shareRows = useMemo(
+    () => buildShareRows(sortedListings, displayCurrency),
+    [sortedListings, displayCurrency],
+  );
+
+  const shareAsText = useCallback(async () => {
     try {
       await Share.share({
         message: buildShareText({
@@ -323,6 +329,25 @@ export default function ProductDetailScreen() {
       // User cancelled share
     }
   }, [product, sortedListings, displayCurrency]);
+
+  const handleShare = useCallback(() => {
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    showAlert("Share", undefined, [
+      {
+        text: "Share as Image",
+        onPress: async () => {
+          const ok = await captureAndShareImage(
+            shareCardRef,
+            "product-share",
+          );
+          if (!ok) await shareAsText();
+        },
+      },
+      { text: "Share as Text", onPress: shareAsText },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  }, [shareAsText]);
 
   const handleCopyLink = useCallback(async () => {
     if (Platform.OS !== "web")
@@ -599,6 +624,24 @@ export default function ProductDetailScreen() {
         direction={alertDirection}
         onDirectionChange={setAlertDirection}
       />
+
+      <View
+        style={{
+          position: "absolute",
+          left: -9999,
+          top: 0,
+          pointerEvents: "none",
+        }}
+      >
+        <ProductShareCard
+          ref={shareCardRef}
+          productName={product?.name ?? ""}
+          modelNumber={product?.modelNumber ?? ""}
+          rows={shareRows.rows}
+          currency={displayCurrency}
+          bestUrl={shareRows.bestUrl}
+        />
+      </View>
 
       <ReminderDatePickerModal
         visible={!!reminderListing}

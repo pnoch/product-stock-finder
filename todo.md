@@ -790,3 +790,10 @@
 - [x] Handle price_rise events in client reconciliation
 - [x] Add Drops/Rises segmented control to alert modal
 - [x] Show direction arrows on alert cards
+
+## Phase 92: Image Share Cards (v5.40)
+
+- [x] Extract shared buildShareRows data layer
+- [x] Add view-shot capture transport with web download + native share sheet
+- [x] Add branded product + watchlist share cards
+- [x] Add Image/Text choice sheet with automatic text fallback

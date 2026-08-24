@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Platform,
   ScrollView,
@@ -22,6 +22,9 @@ import {
   type MoversWindow,
 } from "@/lib/watchlist-stats";
 import { buildWatchlistShareText } from "@/lib/watchlist-share";
+import { captureAndShareImage } from "@/lib/share-image";
+import { StatsShareCard } from "@/components/share/stats-share-card";
+import { showAlert } from "@/lib/alert";
 import { MoversCard } from "@/components/stats/movers-card";
 import { BasketValueCard } from "@/components/stats/basket-value-card";
 import { StockHealthCard } from "@/components/stats/stock-health-card";
@@ -58,9 +61,9 @@ export default function StatsScreen() {
   const stockHealth = useMemo(() => computeStockHealth(watchlist), [watchlist]);
   const freshness = useMemo(() => computeDataFreshness(watchlist), [watchlist]);
 
-  const handleShare = async () => {
-    if (Platform.OS !== "web")
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const shareCardRef = useRef<View>(null);
+
+  const shareAsText = async () => {
     try {
       await Share.share({
         message: buildWatchlistShareText({
@@ -73,6 +76,25 @@ export default function StatsScreen() {
     } catch {
       // User cancelled share
     }
+  };
+
+  const handleShare = async () => {
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    showAlert("Share", undefined, [
+      {
+        text: "Share as Image",
+        onPress: async () => {
+          const ok = await captureAndShareImage(
+            shareCardRef,
+            "watchlist-share",
+          );
+          if (!ok) await shareAsText();
+        },
+      },
+      { text: "Share as Text", onPress: shareAsText },
+      { text: "Cancel", style: "cancel" },
+    ]);
   };
 
   return (
@@ -158,6 +180,32 @@ export default function StatsScreen() {
           <DataFreshnessCard freshness={freshness} />
         </ScrollView>
       )}
+
+      <View
+        style={{
+          position: "absolute",
+          left: -9999,
+          top: 0,
+          pointerEvents: "none",
+        }}
+      >
+        <StatsShareCard
+          ref={shareCardRef}
+          basketTotal={basket.total}
+          productCount={basket.productCount}
+          displayCurrency={displayCurrency}
+          drops={movers.drops.slice(0, 3).map((d) => ({
+            flag: d.countryFlag,
+            name: d.productName,
+            pct: d.changePct,
+          }))}
+          stockLine={
+            stockHealth.totalListings > 0
+              ? `${stockHealth.inStockPct}% in stock · ${stockHealth.fullyOutOfStock} fully out of stock`
+              : null
+          }
+        />
+      </View>
     </ScreenContainer>
   );
 }
