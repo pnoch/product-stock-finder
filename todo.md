@@ -717,3 +717,10 @@
 - [x] Add platform file transport (share sheet, web download, document picker/upload)
 - [x] Add Data section to Settings with Export/Import rows
 - [x] Stamp sync-meta on import so signed-in imports win LWW
+
+## Phase 81: Bulk Watchlist Import (v5.29)
+
+- [x] Add pure parse/match module (separators, quotes, dedupe, exact matching)
+- [x] Unit-test parsing and catalog matching edge cases
+- [x] Build paste-sheet modal with live matched/not-found preview
+- [x] Wire "Import list" button into Search screen header

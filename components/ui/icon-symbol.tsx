@@ -31,6 +31,7 @@ const MAPPING = {
   magnifyingglass: "search",
   iphone: "smartphone",
   plus: "add",
+  "plus.circle.fill": "add-circle",
   globe: "language",
   "cart.fill": "shopping-cart",
   "star.fill": "star",

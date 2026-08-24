@@ -12,6 +12,7 @@ import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
+import { BulkImportModal } from "@/components/search/bulk-import-modal";
 import { useColors } from "@/hooks/use-colors";
 import { searchCatalog, PRODUCT_CATALOG } from "@/lib/catalog";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
@@ -32,6 +33,7 @@ export default function SearchScreen() {
   const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
   const [pickerItem, setPickerItem] = useState<Product | null>(null);
   const [postAddProduct, setPostAddProduct] = useState<Product | null>(null);
+  const [bulkVisible, setBulkVisible] = useState(false);
   const {
     watchlist,
     trackedIds,
@@ -134,6 +136,20 @@ export default function SearchScreen() {
         >
           Add Product
         </Text>
+        <TouchableOpacity
+          onPress={() => {
+            if (Platform.OS !== "web")
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setBulkVisible(true);
+          }}
+          style={{ padding: 4 }}
+        >
+          <IconSymbol
+            name="square.and.arrow.down"
+            size={22}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
       </View>
 
       {/* Search Bar */}
@@ -227,6 +243,13 @@ export default function SearchScreen() {
           }}
         />
       )}
+
+      <BulkImportModal
+        visible={bulkVisible}
+        onClose={() => setBulkVisible(false)}
+        trackedIds={trackedIds}
+        onImported={loadData}
+      />
     </ScreenContainer>
   );
 }
