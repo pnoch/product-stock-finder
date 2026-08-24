@@ -743,3 +743,11 @@
 - [x] Add pure watchlist share-text builder (basket, top drops, stock health)
 - [x] Unit-test formatting incl. section omission and window labels
 - [x] Add share button to Statistics screen header
+
+## Phase 85: Manual Add with LLM-Assisted Cleanup (v5.33)
+
+- [x] Add server-side product text parsing via LLM (products.parse endpoint)
+- [x] Add listing discovery across all distributors (fetchServerPrice reuse)
+- [x] Add custom product slug + tRPC parse wrapper with timeout
+- [x] Build two-step ManualAddSheet (paste → AI cleanup → review → add + discover)
+- [x] Wire manual-add button into Search screen header

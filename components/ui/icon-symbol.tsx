@@ -75,6 +75,7 @@ const MAPPING = {
   "chart.bar.xaxis": "bar-chart",
   "square.and.pencil": "edit-note",
   "slider.horizontal.3": "tune",
+  "wand.and.stars": "auto-fix-high",
 } as IconMapping;
 
 /**
