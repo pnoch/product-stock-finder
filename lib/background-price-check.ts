@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 import { Platform } from "react-native";
@@ -11,25 +10,12 @@ import {
   getPriceDigestSnapshot,
   savePriceDigestSnapshot,
 } from "./storage";
-import {
-  createHealthService,
-  detectHealthAlert,
-  detectHealthRecovery,
-  DistributorHealth,
-} from "./scrapers/health";
+import { createHealthService, DistributorHealth } from "./scrapers/health";
 import { convertPrice, formatPrice } from "./currency";
-import {
-  requestNotificationPermissions,
-  scheduleHealthAlert,
-  scheduleHealthRecovery,
-} from "./notifications";
-import { getDistributorById } from "./distributors";
+import { requestNotificationPermissions } from "./notifications";
 import * as Notifications from "expo-notifications";
 import { getParserByDistributorId } from "./scrapers/registry";
-import {
-  createStorageBreakerStore,
-  resilientFetch,
-} from "./scrapers/resilient";
+import { resilientFetch } from "./scrapers/resilient";
 import { fetchServerPrice, uploadServerHistory } from "./server-prices";
 import { PricePoint, DistributorListing, Product } from "./types";
 import { appendPricePoint, mergePriceHistory } from "./price-history";
@@ -37,12 +23,13 @@ import { checkRestocks } from "./restock";
 import { maybeSendDigest } from "./price-digest";
 import { syncServerNotifications } from "./server-notifications";
 import { PRICE_HISTORY_DAYS } from "@/shared/const";
+import { healthService, breakerStore } from "./background-tasks/instances";
+import { checkHealthAlerts } from "./background-tasks/health-alerts";
+
+export { checkHealthAlerts } from "./background-tasks/health-alerts";
 
 export const PRICE_CHECK_TASK = "price-drop-check";
 export const HEALTH_PROBE_TASK = "health-probe";
-
-const healthService = createHealthService(AsyncStorage);
-const breakerStore = createStorageBreakerStore(AsyncStorage);
 
 export function createHealthCollector(
   service: ReturnType<typeof createHealthService> = healthService,
@@ -372,51 +359,6 @@ export async function registerHealthProbeTask() {
 export async function syncBackgroundTasks() {
   await registerPriceCheckTask();
   await registerHealthProbeTask();
-}
-
-export async function checkHealthAlerts(
-  service: ReturnType<typeof createHealthService> = healthService,
-) {
-  try {
-    const settings = await getSettings();
-    if (!settings.notificationsEnabled || !settings.healthAlerts) return;
-    const history = await service.getHealthHistory();
-    for (const [distributorId, samples] of Object.entries(history)) {
-      const distributor = getDistributorById(distributorId);
-      const name = distributor?.name ?? distributorId;
-      if (detectHealthAlert(samples)) {
-        const latest = samples[samples.length - 1];
-        await scheduleHealthAlert(name, latest.status, latest.reason);
-        const { uploadHealthEventToServer } = await import("./server-notifications");
-        void uploadHealthEventToServer({
-          distributorId,
-          distributorName: name,
-          status: latest.status as "blocked" | "error",
-          title:
-            latest.status === "blocked"
-              ? "🟠 Distributor Blocked"
-              : "🔴 Distributor Down",
-          body: `${name} has been ${latest.status} for 3 consecutive probes${latest.reason ? ` — ${latest.reason}` : ""}`,
-          createdAt: Date.now(),
-        });
-      }
-      if (detectHealthRecovery(samples)) {
-        const prev = samples[samples.length - 2];
-        await scheduleHealthRecovery(name, prev.status);
-        const { uploadHealthEventToServer } = await import("./server-notifications");
-        void uploadHealthEventToServer({
-          distributorId,
-          distributorName: name,
-          status: prev.status as "blocked" | "error",
-          title: "🟢 Distributor Recovered",
-          body: `${name} is back online after being ${prev.status}`,
-          createdAt: Date.now(),
-        });
-      }
-    }
-  } catch {
-    // Ignore alert errors
-  }
 }
 
 export async function checkPriceDropsNow(
