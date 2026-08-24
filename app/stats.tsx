@@ -21,6 +21,8 @@ import {
   computeStockHealth,
   type MoversWindow,
 } from "@/lib/watchlist-stats";
+import { computeProductInsights } from "@/lib/product-insights";
+import { InsightsCard } from "@/components/stats/insights-card";
 import {
   computeDigest,
   type DigestSnapshot,
@@ -68,6 +70,11 @@ export default function StatsScreen() {
     if (!digestSnapshot || !settings || digestFrequency === "off") return null;
     return computeDigest(digestSnapshot, watchlist, settings, []);
   }, [digestSnapshot, watchlist, settings, digestFrequency]);
+
+  const insights = useMemo(
+    () => computeProductInsights(watchlist, displayCurrency),
+    [watchlist, displayCurrency],
+  );
 
   const movers = useMemo(
     () => computeMovers(watchlist, displayCurrency, days),
@@ -202,6 +209,7 @@ export default function StatsScreen() {
             />
           )}
           <MoversCard movers={movers} days={days} onDaysChange={setDays} />
+          <InsightsCard result={insights} />
           <BasketValueCard basket={basket} displayCurrency={displayCurrency} />
           <StockHealthCard health={stockHealth} />
           <DataFreshnessCard freshness={freshness} />

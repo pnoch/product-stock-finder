@@ -809,3 +809,9 @@
 - [x] Extend digest computation (value delta, new/removed products, mover sorting)
 - [x] Smarter push notification (value delta lead, ~9 lines)
 - [x] Add full in-app digest card on Stats screen
+
+## Phase 95: Product Insights (v5.43)
+
+- [x] Add pure insights module (all-time lows, drop streaks, volatility)
+- [x] Unit-test metrics incl. FX skips and edge cases
+- [x] Add Product Insights card to Stats screen
