@@ -255,6 +255,12 @@ export async function maybeSendDigest(
       const elapsed =
         new Date(now).getTime() - new Date(previous.lastDigestAt).getTime();
       if (elapsed < intervalMs) return null;
+      if (
+        frequency === "weekly" &&
+        new Date(now).getDay() !== (settings.digestDayOfWeek ?? 0)
+      ) {
+        return null;
+      }
     }
 
     const result = computeDigest(previous, watchlist, settings, alerts);

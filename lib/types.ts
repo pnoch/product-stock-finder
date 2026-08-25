@@ -141,6 +141,7 @@ export interface AppSettings {
   lastScrapeTime?: string;
   shippingRegion?: string;
   digestFrequency?: "off" | "daily" | "weekly";
+  digestDayOfWeek?: number; // 0=Sunday..6=Saturday, used when digestFrequency=weekly
   basketAlertThreshold?: number | null;
   webNotificationsEnabled?: boolean;
   tagDefinitions?: Record<string, TagDefinition>;

@@ -9,6 +9,7 @@ import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SettingRow } from "@/components/settings/setting-row";
+import { PillPicker } from "@/components/settings/pill-picker";
 import { SectionHeader } from "@/components/settings/section-header";
 import { setWebNotificationsEnabled } from "@/lib/web-notifications";
 import type { AppSettings } from "@/lib/types";
@@ -167,6 +168,44 @@ export function NotificationsSection({
             />
           }
         />
+        <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
+          <PillPicker
+            icon="newspaper.fill"
+            label="Price Digest"
+            options={["Off", "Daily", "Weekly"]}
+            value={
+              settings.digestFrequency === "daily"
+                ? "Daily"
+                : settings.digestFrequency === "weekly"
+                  ? "Weekly"
+                  : "Off"
+            }
+            onSelect={(v) =>
+              updateSetting(
+                "digestFrequency",
+                v === "Daily" ? "daily" : v === "Weekly" ? "weekly" : "off",
+              )
+            }
+          />
+          {settings.digestFrequency === "weekly" && (
+            <PillPicker
+              icon="calendar"
+              label="Digest Day"
+              options={["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]}
+              value={
+                ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
+                  settings.digestDayOfWeek ?? 0
+                ]
+              }
+              onSelect={(v) =>
+                updateSetting(
+                  "digestDayOfWeek",
+                  ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(v),
+                )
+              }
+            />
+          )}
+        </View>
         {/* Test Notification — useful for verifying permissions on device */}
         <TouchableOpacity
           onPress={onTestNotification}

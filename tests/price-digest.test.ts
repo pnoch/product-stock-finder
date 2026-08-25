@@ -393,10 +393,11 @@ describe("maybeSendDigest", () => {
       products: [],
     };
     const send = vi.fn(async () => {});
+    // NOW (2026-08-11) is a Tuesday → weekday 2
     const result = await maybeSendDigest(
       previous,
       [],
-      makeSettings({ digestFrequency: "weekly" }),
+      makeSettings({ digestFrequency: "weekly", digestDayOfWeek: 2 }),
       [],
       send,
       NOW,
@@ -484,5 +485,61 @@ describe("digest enhancements", () => {
     expect(lines[0]).toMatch(/Watchlist value \$100\.00 → \$80\.00/);
     expect(lines[0]).toContain("-20.0%");
     expect(body).toContain("Mover: -20%");
+  });
+});
+
+describe("digest schedule", () => {
+  it("weekly fires only on the chosen weekday", async () => {
+    const send = vi.fn(async () => {});
+    const previous: DigestSnapshot = {
+      lastDigestAt: "2026-08-10T12:00:00.000Z", // Monday
+      products: [],
+    };
+    const watchlist = [
+      makeProduct("p1", "A", [{ price: 100, currency: "USD", stockStatus: "in_stock" }]),
+    ];
+    // NOW is Saturday (+2d) — past interval but wrong weekday
+    const wrongDay = await maybeSendDigest(
+      previous,
+      watchlist,
+      makeSettings({ digestFrequency: "weekly", digestDayOfWeek: 0 }),
+      [],
+      send,
+      NOW,
+    );
+    expect(wrongDay).toBeNull();
+    expect(send).not.toHaveBeenCalled();
+
+    const sunday = new Date(Date.parse("2026-08-16T12:00:00Z")).toISOString();
+    const rightDay = await maybeSendDigest(
+      { ...previous, lastDigestAt: "2026-08-09T12:00:00.000Z" },
+      watchlist,
+      makeSettings({ digestFrequency: "weekly", digestDayOfWeek: 0 }),
+      [],
+      send,
+      sunday,
+    );
+    expect(rightDay).not.toBeNull();
+    expect(send).toHaveBeenCalled();
+  });
+
+  it("daily ignores the weekday gate", async () => {
+    const send = vi.fn(async () => {});
+    const previous: DigestSnapshot = {
+      lastDigestAt: "2026-08-10T12:00:00.000Z",
+      products: [],
+    };
+    const result = await maybeSendDigest(
+      previous,
+      [
+        makeProduct("p1", "A", [{ price: 100, currency: "USD", stockStatus: "in_stock" }]),
+      ],
+      makeSettings({ digestFrequency: "daily" }),
+      [],
+      send,
+      NOW, // Saturday
+    );
+    expect(result).not.toBeNull();
+    expect(send).toHaveBeenCalled();
   });
 });

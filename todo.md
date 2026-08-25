@@ -866,3 +866,9 @@
 - [x] Add basketAlertThreshold setting (synced)
 - [x] Evaluate in background price check; fires once then auto-disables
 - [x] Bell + threshold sheet on Stats basket card
+
+## Phase 105: Digest Schedule Settings (v6.5)
+
+- [x] Add digestDayOfWeek setting
+- [x] Weekly digests fire on the chosen weekday
+- [x] Add Price Digest frequency + day pickers to Settings (fixes missing enable UI)
