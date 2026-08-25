@@ -10,7 +10,8 @@ import { createDigestFxStorage } from "./digest-fx";
 import { createSyncMetaStorage } from "./sync-meta";
 import { createNotificationsStorage } from "./notifications";
 
-export { StorageAdapter, DISTRIBUTOR_BREAKER_KEY };
+export { DISTRIBUTOR_BREAKER_KEY };
+export type { StorageAdapter };
 
 export function createStorage(
   adapter: StorageAdapter,
@@ -19,17 +20,7 @@ export function createStorage(
   const ctx = createContext(adapter);
   ctx.setOnChange(opts?.onChange ?? null);
 
-  const { KEYS, notify, enqueue, readList } = ctx;
   const watchlist = createWatchlistStorage(ctx);
-  const {
-    getWatchlist,
-    saveWatchlist,
-    addToWatchlist,
-    removeFromWatchlist,
-    updateProductDetails,
-    updateProductListings,
-    refreshWatchlistPrices,
-  } = watchlist;
   const alertsStorage = createAlertsStorage(ctx);
 
   // ─── Clear All Data ─────────────────────────────────────────────────────────
