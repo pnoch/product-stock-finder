@@ -854,3 +854,9 @@
 - [x] Add updateProductDetails storage method
 - [x] Add editable product details sheet
 - [x] Pencil entry on ProductInfoCard
+
+## Phase 103: Onboarding (v6.3)
+
+- [x] Add onboarding flag module with injectable storage + tests
+- [x] Add 3-slide intro pager (Welcome / Add Anything / Alerts)
+- [x] Gate first launch in root layout

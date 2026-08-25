@@ -6,7 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-import { AppState, Platform } from "react-native";
+import { AppState, Platform, View } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { showAlert } from "@/lib/alert";
@@ -29,6 +29,11 @@ import {
   checkPriceDropsNow,
 } from "@/lib/background-price-check";
 import { setupWebNotifications } from "@/lib/web-notifications";
+import {
+  hasSeenOnboarding,
+  setOnboardingSeen,
+} from "@/lib/onboarding";
+import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import { registerWebPushServiceWorker } from "@/lib/web-push";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
 import { SAMPLE_LISTINGS } from "@/lib/sample-data";
@@ -314,6 +319,30 @@ export default function RootLayout() {
       },
     };
   }, [initialInsets, initialFrame]);
+
+  const [onboardingState, setOnboardingState] = useState<
+    "checking" | "app" | "intro"
+  >("checking");
+  useEffect(() => {
+    void hasSeenOnboarding().then((seen) =>
+      setOnboardingState(seen ? "app" : "intro"),
+    );
+  }, []);
+
+  if (onboardingState === "checking") {
+    return (
+      <ThemeProvider>
+        <View style={{ flex: 1, backgroundColor: "#F8FAFC" }} />
+      </ThemeProvider>
+    );
+  }
+  if (onboardingState === "intro") {
+    return (
+      <ThemeProvider>
+        <OnboardingScreen onComplete={() => setOnboardingState("app")} />
+      </ThemeProvider>
+    );
+  }
 
   const content = (
     <GestureHandlerRootView style={{ flex: 1 }}>
