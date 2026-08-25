@@ -84,8 +84,11 @@ describe("Scraping Integration", () => {
     it("should run full scrape cycle with mocked HTTP", async () => {
       const mockHtml = `
         <html><body>
-          <div class="product-price">$99.99</div>
-          <div class="stock-status">In Stock</div>
+          <table><tr class="product">
+            <td><a href="/p/crs326">MikroTik CRS326-24G-2S+</a></td>
+            <td><div class="product-price">$99.99</div></td>
+            <td><div class="stock-status">In Stock</div></td>
+          </tr></table>
         </body></html>
       `;
 
@@ -100,6 +103,27 @@ describe("Scraping Integration", () => {
       expect(result?.price).toBe(99.99);
       expect(result?.currency).toBe("MYR");
       expect(result?.stockStatus).toBe("in_stock");
+    });
+
+    it("should reject a scrape whose priced row names a different product", async () => {
+      const mockHtml = `
+        <html><body>
+          <table><tr class="product">
+            <td><a href="/p/crs804">MikroTik CRS804-4DDQ-hRM</a></td>
+            <td><div class="product-price">$99.99</div></td>
+            <td><div class="stock-status">In Stock</div></td>
+          </tr></table>
+        </body></html>
+      `;
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(mockHtml),
+      });
+
+      const { scrapeServer2U } = await import("@/lib/scrapers/server2u");
+      const result = await scrapeServer2U("CRS326");
+      expect(result).toBeNull();
     });
   });
 
@@ -234,6 +258,30 @@ describe("Scraping Integration", () => {
       history.push(newPoint);
       expect(history).toHaveLength(2);
       expect(history[1].price).toBe(95);
+    });
+  });
+
+  describe("Model Verification", () => {
+    const MATCH_HTML = `<html><body><table><tr class="product">
+      <td><span class="price nobr product-price" data-product-price data-price-container>$480.00</span>
+      <a class="product-link" href="/p/crs804-4ddq-hrm">MikroTik CRS804-4DDQ-hRM</a></td>
+      <td><span class="stock-status availability stock">In Stock</span></td>
+    </tr></table></body></html>`;
+    const MISMATCH_HTML = MATCH_HTML.replace(
+      /crs804-4ddq-hrm/g,
+      "crs326-24g-2s-plus",
+    ).replace(/CRS804-4DDQ-hRM/g, "CRS326-24G-2S+");
+
+    it("every parser accepts a matching row with a model supplied", () => {
+      for (const parser of PARSERS) {
+        expect(parser.parsePrice(MATCH_HTML, "CRS804-4DDQ-hRM")).not.toBeNull();
+      }
+    });
+
+    it("every parser rejects a foreign row when a model is supplied", () => {
+      for (const parser of PARSERS) {
+        expect(parser.parsePrice(MISMATCH_HTML, "CRS804-4DDQ-hRM")).toBeNull();
+      }
     });
   });
 });
