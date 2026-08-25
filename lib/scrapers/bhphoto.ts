@@ -1,18 +1,24 @@
 import * as cheerio from "cheerio";
 import { DistributorParser, ScrapeResult } from "./types";
-import { fetchWithParser, parsePriceFromText, inferStockStatus } from "./utils";
+import {
+  fetchWithParser,
+  parsePriceFromText,
+  inferStockStatus,
+  modelMismatch,
+} from "./utils";
 import { getTaxRate } from "../tax";
 
-function parseHtml(html: string, url: string): ScrapeResult | null {
+function parseHtml(
+  html: string,
+  url: string,
+  model?: string,
+): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(
-    ".price, [data-selenium='uppedDecimalPriceFirst'], .product-price",
-  )
-    .first()
-    .text();
-  const price = parsePriceFromText(priceText);
+  const $price = $(".price, [data-selenium='uppedDecimalPriceFirst'], .product-price").first();
+  const price = parsePriceFromText($price.text());
   if (!price) return null;
+  if (modelMismatch($, $price, model)) return null;
 
   const stockText = $(
     ".availability, .stock, [data-selenium='availability'], .stock-status",
@@ -35,7 +41,7 @@ export const bhphotoParser: DistributorParser = {
   baseUrl: "https://bhphotovideo.com",
   buildSearchUrl: (model) =>
     `https://bhphotovideo.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://bhphotovideo.com"),
+  parsePrice: (html, model) => parseHtml(html, "https://bhphotovideo.com", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {
@@ -49,7 +55,7 @@ export async function scrapeBhphoto(
   try {
     const url = bhphotoParser.buildSearchUrl(model);
     const html = await fetchWithParser(bhphotoParser, url);
-    return parseHtml(html, url);
+    return parseHtml(html, url, model);
   } catch {
     return null;
   }

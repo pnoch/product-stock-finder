@@ -4,15 +4,21 @@ import {
   fetchWithRateLimit,
   parsePriceFromText,
   inferStockStatus,
+  modelMismatch,
 } from "./utils";
 import { getTaxRate } from "../tax";
 
-function parseHtml(html: string, url: string): ScrapeResult | null {
+function parseHtml(
+  html: string,
+  url: string,
+  model?: string,
+): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(".product-price, .price4, .price").first().text();
-  const price = parsePriceFromText(priceText);
+  const $price = $(".product-price, .price4, .price").first();
+  const price = parsePriceFromText($price.text());
   if (!price) return null;
+  if (modelMismatch($, $price, model)) return null;
 
   const stockText = $(
     ".in-stock.status4, .call-for-stock.status4, .stock-status, .availability",
@@ -35,7 +41,7 @@ export const neobitsParser: DistributorParser = {
   baseUrl: "https://neobits.com",
   buildSearchUrl: (model) =>
     `https://neobits.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://neobits.com"),
+  parsePrice: (html, model) => parseHtml(html, "https://neobits.com", model),
   rateLimitMs: 3000,
 };
 
@@ -45,7 +51,7 @@ export async function scrapeNeobits(
   try {
     const url = neobitsParser.buildSearchUrl(model);
     const html = await fetchWithRateLimit(url, neobitsParser.rateLimitMs);
-    return parseHtml(html, url);
+    return parseHtml(html, url, model);
   } catch {
     return null;
   }

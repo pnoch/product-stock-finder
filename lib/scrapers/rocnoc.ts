@@ -4,17 +4,21 @@ import {
   fetchWithRateLimit,
   parsePriceFromText,
   inferStockStatus,
+  modelMismatch,
 } from "./utils";
 import { getTaxRate } from "../tax";
 
-function parseHtml(html: string, url: string): ScrapeResult | null {
+function parseHtml(
+  html: string,
+  url: string,
+  model?: string,
+): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(".price, .product-price, td:contains('$')")
-    .first()
-    .text();
-  const price = parsePriceFromText(priceText);
+  const $price = $(".price, .product-price, td:contains('$')").first();
+  const price = parsePriceFromText($price.text());
   if (!price) return null;
+  if (modelMismatch($, $price, model)) return null;
 
   const stockText = $(".stock, .availability, .product-stock, .stock-status")
     .first()
@@ -35,7 +39,7 @@ export const rocnocParser: DistributorParser = {
   baseUrl: "https://rocnoc.com",
   buildSearchUrl: (model) =>
     `https://rocnoc.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://rocnoc.com"),
+  parsePrice: (html, model) => parseHtml(html, "https://rocnoc.com", model),
   rateLimitMs: 3000,
 };
 
@@ -45,7 +49,7 @@ export async function scrapeRocnoc(
   try {
     const url = rocnocParser.buildSearchUrl(model);
     const html = await fetchWithRateLimit(url, rocnocParser.rateLimitMs);
-    return parseHtml(html, url);
+    return parseHtml(html, url, model);
   } catch {
     return null;
   }

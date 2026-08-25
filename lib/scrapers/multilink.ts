@@ -1,18 +1,24 @@
 import * as cheerio from "cheerio";
 import { DistributorParser, ScrapeResult } from "./types";
-import { fetchWithParser, parsePriceFromText, inferStockStatus } from "./utils";
+import {
+  fetchWithParser,
+  parsePriceFromText,
+  inferStockStatus,
+  modelMismatch,
+} from "./utils";
 import { getTaxRate } from "../tax";
 
-function parseHtml(html: string, url: string): ScrapeResult | null {
+function parseHtml(
+  html: string,
+  url: string,
+  model?: string,
+): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(
-    ".product-price, .price--withoutTax, [data-product-price-without-tax], .price",
-  )
-    .first()
-    .text();
-  const price = parsePriceFromText(priceText);
+  const $price = $(".product-price, .price--withoutTax, [data-product-price-without-tax], .price").first();
+  const price = parsePriceFromText($price.text());
   if (!price) return null;
+  if (modelMismatch($, $price, model)) return null;
 
   const stockText = $(
     ".product-details__stock, .availability, .stock, .stock-status",
@@ -35,7 +41,7 @@ export const multilinkParser: DistributorParser = {
   baseUrl: "https://multilink.us",
   buildSearchUrl: (model) =>
     `https://multilink.us/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://multilink.us"),
+  parsePrice: (html, model) => parseHtml(html, "https://multilink.us", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {
@@ -49,7 +55,7 @@ export async function scrapeMultilink(
   try {
     const url = multilinkParser.buildSearchUrl(model);
     const html = await fetchWithParser(multilinkParser, url);
-    return parseHtml(html, url);
+    return parseHtml(html, url, model);
   } catch {
     return null;
   }

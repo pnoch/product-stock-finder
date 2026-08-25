@@ -4,19 +4,21 @@ import {
   fetchWithRateLimit,
   parsePriceFromText,
   inferStockStatus,
+  modelMismatch,
 } from "./utils";
 import { getTaxRate } from "../tax";
 
-function parseHtml(html: string, url: string): ScrapeResult | null {
+function parseHtml(
+  html: string,
+  url: string,
+  model?: string,
+): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(
-    ".product-price, .product-detail-price, [itemprop='price'], .price",
-  )
-    .first()
-    .text();
-  const price = parsePriceFromText(priceText);
+  const $price = $(".product-price, .product-detail-price, [itemprop='price'], .price").first();
+  const price = parsePriceFromText($price.text());
   if (!price) return null;
+  if (modelMismatch($, $price, model)) return null;
 
   const stockText = $(
     ".product-detail-delivery-status, .delivery-status, .availability, .stock-status",
@@ -39,7 +41,7 @@ export const mikrotikstoreParser: DistributorParser = {
   baseUrl: "https://mikrotik-store.eu",
   buildSearchUrl: (model) =>
     `https://mikrotik-store.eu/en/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://mikrotik-store.eu"),
+  parsePrice: (html, model) => parseHtml(html, "https://mikrotik-store.eu", model),
   rateLimitMs: 3000,
 };
 
@@ -49,7 +51,7 @@ export async function scrapeMikrotikStore(
   try {
     const url = mikrotikstoreParser.buildSearchUrl(model);
     const html = await fetchWithRateLimit(url, mikrotikstoreParser.rateLimitMs);
-    return parseHtml(html, url);
+    return parseHtml(html, url, model);
   } catch {
     return null;
   }
