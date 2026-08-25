@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import {
   deviceNotificationConfigs,
   notificationEvents,
@@ -15,6 +15,13 @@ import {
 } from "./memory-store";
 import { draftToEvent, rowToConfig } from "./mappers";
 import { buildEvents, dedupKeyFor } from "./build-events";
+
+// Once an event has been delivered everywhere its dedup key would otherwise
+// be released, and a persisting condition (price still below target, past-due
+// reminder) would re-fire on every warmer tick. Keep the key blocked for a
+// cooldown window after creation; legitimate re-fires (e.g. a second restock)
+// resume afterwards.
+const EVENT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 export async function evaluateNotifications(now: number): Promise<void> {
   const db = await getDb();
@@ -77,16 +84,19 @@ async function evaluateAnonMemory(
   now: number,
 ): Promise<void> {
   const delivered = memoryDeliveries.get(deviceId) ?? new Set<string>();
-  const undelivered = new Set(
+  const blocked = new Set(
     [...memoryEvents.values()]
       .filter((e) => e.deviceId === deviceId)
-      .filter((e) => !delivered.has(e.id))
+      .filter(
+        (e) =>
+          !delivered.has(e.id) || now - e.createdAt < EVENT_COOLDOWN_MS,
+      )
       .map((e) => dedupKeyFor(e)),
   );
   const drafts = await buildEvents(config, now);
   const added: NotificationEvent[] = [];
   for (const draft of drafts) {
-    if (undelivered.has(draft.dedupKey)) continue;
+    if (blocked.has(draft.dedupKey)) continue;
     const event = { ...draftToEvent(draft), userId: null, deviceId };
     memoryEvents.set(event.id, event);
     added.push(event);
@@ -101,16 +111,20 @@ async function evaluateUserMemory(
 ): Promise<void> {
   const boundCount = devices.length;
   const config = aggregateConfigs(devices.map((d) => d.config));
-  const pending = new Set(
+  const blocked = new Set(
     [...memoryEvents.values()]
       .filter((e) => e.userId === userId)
-      .filter((e) => deliveryCount(e.id) < boundCount)
+      .filter(
+        (e) =>
+          deliveryCount(e.id) < boundCount ||
+          now - e.createdAt < EVENT_COOLDOWN_MS,
+      )
       .map((e) => dedupKeyFor(e)),
   );
   const drafts = await buildEvents(config, now);
   const added: NotificationEvent[] = [];
   for (const draft of drafts) {
-    if (pending.has(draft.dedupKey)) continue;
+    if (blocked.has(draft.dedupKey)) continue;
     const event = { ...draftToEvent(draft), userId, deviceId: null };
     memoryEvents.set(event.id, event);
     added.push(event);
@@ -157,6 +171,7 @@ async function evaluateConfigDb(
     .select({
       id: notificationEvents.id,
       dedupKey: notificationEvents.dedupKey,
+      createdAt: notificationEvents.createdAt,
     })
     .from(notificationEvents)
     .where(eq(notificationEvents.deviceId, deviceId));
@@ -165,15 +180,23 @@ async function evaluateConfigDb(
     .from(notificationEventDeliveries)
     .where(eq(notificationEventDeliveries.deviceId, deviceId));
   const deliveredSet = new Set(delivered.map((d) => d.eventId));
-  const undelivered = new Set(
-    existing.filter((e) => !deliveredSet.has(e.id)).map((e) => e.dedupKey),
+  const blocked = new Set(
+    existing
+      .filter(
+        (e) =>
+          !deliveredSet.has(e.id) || now - e.createdAt < EVENT_COOLDOWN_MS,
+      )
+      .map((e) => e.dedupKey),
   );
   const drafts = await buildEvents(config, now);
   const toInsert = drafts
-    .filter((d) => !undelivered.has(d.dedupKey))
+    .filter((d) => !blocked.has(d.dedupKey))
     .map((d) => ({ ...d, deviceId, userId: null }));
   if (toInsert.length > 0) {
-    await db.insert(notificationEvents).values(toInsert);
+    await db
+      .insert(notificationEvents)
+      .values(toInsert)
+      .onDuplicateKeyUpdate({ set: { id: sql`id` } });
     void sendPushForDevice(deviceId, toInsert);
   }
 }
@@ -190,6 +213,7 @@ async function evaluateUserDb(
     .select({
       id: notificationEvents.id,
       dedupKey: notificationEvents.dedupKey,
+      createdAt: notificationEvents.createdAt,
     })
     .from(notificationEvents)
     .where(eq(notificationEvents.userId, userId));
@@ -206,7 +230,11 @@ async function evaluateUserDb(
   }
   const pending = new Set(
     existing
-      .filter((e) => (deliveryCounts.get(e.id) ?? 0) < boundCount)
+      .filter(
+        (e) =>
+          (deliveryCounts.get(e.id) ?? 0) < boundCount ||
+          now - e.createdAt < EVENT_COOLDOWN_MS,
+      )
       .map((e) => e.dedupKey),
   );
   const drafts = await buildEvents(config, now);
@@ -214,7 +242,10 @@ async function evaluateUserDb(
     .filter((d) => !pending.has(d.dedupKey))
     .map((d) => ({ ...d, userId, deviceId: null }));
   if (toInsert.length > 0) {
-    await db.insert(notificationEvents).values(toInsert);
+    await db
+      .insert(notificationEvents)
+      .values(toInsert)
+      .onDuplicateKeyUpdate({ set: { id: sql`id` } });
     void sendPushForUser(userId, toInsert);
   }
 }

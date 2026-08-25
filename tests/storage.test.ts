@@ -71,6 +71,10 @@ import {
   renameTag,
   setTagColor,
   deleteTag,
+  updateWatchlist,
+  updateAlerts,
+  updateReminders,
+  updateStockWatches,
 } from "../lib/storage";
 
 function makeProduct(id: string, listings: DistributorListing[] = []): Product {
@@ -603,5 +607,63 @@ describe("watchlist tags", () => {
     expect((await getWatchlist())[0].tags).toEqual(["a", "b"]);
     await setProductTags("p1", []);
     expect((await getWatchlist())[0].tags ?? []).toEqual([]);
+  });
+});
+
+describe("enqueued read-modify-write helpers", () => {
+  beforeEach(async () => {
+    await clearAllData();
+  });
+
+  it("updateWatchlist serializes with concurrent watchlist mutations", async () => {
+    await addToWatchlist(makeProduct("p1"));
+
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+
+    const transform = updateWatchlist(async (list) => {
+      await gate;
+      return list.map((p) => (p.id === "p1" ? { ...p, name: "synced" } : p));
+    });
+    const addition = addToWatchlist(makeProduct("p2"));
+
+    release();
+    await Promise.all([transform, addition]);
+
+    const list = await getWatchlist();
+    expect(list.map((p) => p.id).sort()).toEqual(["p1", "p2"]);
+    expect(list.find((p) => p.id === "p1")?.name).toBe("synced");
+  });
+
+  it("updateAlerts applies its transform to the latest stored alerts", async () => {
+    await addAlert(makeAlert("a1"));
+    await updateAlerts(async (alerts) => [
+      ...alerts,
+      makeAlert("a2", { isActive: false }),
+    ]);
+    const alerts = await getAlerts();
+    expect(alerts.map((a) => a.id).sort()).toEqual(["a1", "a2"]);
+  });
+
+  it("updateReminders and updateStockWatches apply atomically", async () => {
+    await addBackOrderReminder(
+      makeReminder("r1", { reminderType: "date" }),
+    );
+    await updateReminders(async (reminders) =>
+      reminders.map((r) =>
+        r.id === "r1" ? { ...r, reminderDate: "2026-09-01" } : r,
+      ),
+    );
+    const reminders = await getBackOrderReminders();
+    expect(reminders).toHaveLength(1);
+    expect(reminders[0]!.reminderDate).toBe("2026-09-01");
+
+    await addStockWatch(
+      makeReminder("w1", { reminderType: "back_in_stock" }),
+    );
+    await updateStockWatches(async (watches) =>
+      watches.filter((w) => w.id !== "w1"),
+    );
+    expect(await getStockWatches()).toHaveLength(0);
   });
 });

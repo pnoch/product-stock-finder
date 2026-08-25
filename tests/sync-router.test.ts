@@ -1,6 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
+
+vi.mock("../server/db", () => ({
+  getDb: vi.fn(async () => null),
+}));
+
+vi.mock("../server/sync-db", () => ({
+  listChangedItems: vi.fn(async () => []),
+  upsertSyncItem: vi.fn(),
+  purgeOldTombstones: vi.fn(),
+  shouldAcceptSyncWrite: vi.fn(),
+}));
+
 import { appRouter } from "../server/routers";
 import type { TrpcContext } from "../server/_core/context";
+import { listChangedItems } from "../server/sync-db";
+import { getDb } from "../server/db";
+
+const mockedGetDb = vi.mocked(getDb);
+const mockedListChanged = vi.mocked(listChangedItems);
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
@@ -42,5 +59,25 @@ describe("sync router", () => {
     const caller = appRouter.createCaller(createAuthContext());
     const result = await caller.sync.push({ items: [] });
     expect(result).toEqual({ accepted: 0, stamped: [] });
+  });
+});
+
+describe("sync pull cursor", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedListChanged.mockResolvedValue([]);
+  });
+
+  it("captures lastSyncedAt before querying changed items", async () => {
+    mockedGetDb.mockResolvedValue({} as never);
+    mockedListChanged.mockImplementation(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+      return [];
+    });
+    const before = Date.now();
+    const caller = appRouter.createCaller(createAuthContext());
+    const result = await caller.sync.pull({ since: null });
+    // lastSyncedAt must be captured before the 50ms query delay, not after
+    expect(result.lastSyncedAt).toBeLessThanOrEqual(before + 5);
   });
 });

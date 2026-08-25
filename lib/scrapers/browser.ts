@@ -259,6 +259,26 @@ async function waitForCloudflare(
   return false;
 }
 
+// Best-effort cleanup: every step runs even if an earlier one throws, so a
+// failing page/context close can never leak a pool slot.
+export async function teardownBrowserSession(
+  page: { close(): Promise<void> } | undefined,
+  context: { close(): Promise<void> } | undefined,
+  release: () => void,
+): Promise<void> {
+  try {
+    if (page) await page.close();
+  } catch {
+    // page already dead
+  }
+  try {
+    if (context) await context.close();
+  } catch {
+    // context already dead
+  }
+  release();
+}
+
 export async function fetchWithBrowser(
   url: string,
   options?: { waitForSelector?: string; timeoutMs?: number },
@@ -314,12 +334,8 @@ export async function fetchWithBrowser(
 
     return await page.content();
   } finally {
-    if (page) {
-      await page.close();
-    }
-    if (context) {
-      await context.close();
-    }
-    browserPool.release(browser);
+    await teardownBrowserSession(page, context, () =>
+      browserPool.release(browser),
+    );
   }
 }

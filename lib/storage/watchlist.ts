@@ -14,6 +14,18 @@ export function createWatchlistStorage(ctx: StorageContext) {
     await adapter.setItem(KEYS.WATCHLIST, JSON.stringify(products));
   }
 
+  // Enqueued read-modify-write so concurrent callers (sync engine, background
+  // refresh) never lose each other's changes.
+  async function updateWatchlist(
+    fn: (list: Product[]) => Promise<Product[]> | Product[],
+  ): Promise<void> {
+    await enqueue(KEYS.WATCHLIST, async () => {
+      const list = await getWatchlist();
+      const next = await fn(list);
+      await saveWatchlist(next);
+    });
+  }
+
   async function addToWatchlist(product: Product): Promise<void> {
     await enqueue(KEYS.WATCHLIST, async () => {
       const list = await getWatchlist();
@@ -97,6 +109,7 @@ export function createWatchlistStorage(ctx: StorageContext) {
   return {
     getWatchlist,
     saveWatchlist,
+    updateWatchlist,
     addToWatchlist,
     removeFromWatchlist,
     updateProductDetails,

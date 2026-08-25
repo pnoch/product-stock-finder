@@ -102,3 +102,63 @@ describe("getInsight", () => {
     expect(result).toBeNull();
   });
 });
+
+describe("getInsight single-flight", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    clearInsightsForTests();
+    mockedGetCached.mockResolvedValue(snapshot);
+    mockedGetHistory.mockResolvedValue(history);
+    mockedInvokeLLM.mockResolvedValue({
+      id: "x",
+      created: 1,
+      model: "m",
+      choices: [
+        {
+          index: 0,
+          message: { role: "assistant", content: "Single-flight result." },
+          finish_reason: "stop",
+        },
+      ],
+    });
+  });
+
+  it("deduplicates concurrent LLM calls for the same product", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    mockedInvokeLLM.mockImplementation(async () => {
+      await gate;
+      return {
+        id: "x",
+        created: 1,
+        model: "m",
+        choices: [
+          {
+            index: 0,
+            message: { role: "assistant", content: "Deduped." },
+            finish_reason: "stop",
+          },
+        ],
+      };
+    });
+    const aP = getInsight("mikrotik-crs804-4ddq-hrm");
+    const bP = getInsight("mikrotik-crs804-4ddq-hrm");
+    release();
+    const [a, b] = await Promise.all([aP, bP]);
+    expect(a).not.toBeNull();
+    expect(b).not.toBeNull();
+    expect(mockedInvokeLLM).toHaveBeenCalledTimes(1);
+  });
+
+  it("serves a stale cached insight when the LLM fails", async () => {
+    // First call succeeds and caches
+    const first = await getInsight("mikrotik-crs804-4ddq-hrm");
+    expect(first).not.toBeNull();
+    expect(first!.insight).toContain("Single-flight result.");
+    // Second call: LLM fails but stale cache should be returned
+    mockedInvokeLLM.mockRejectedValue(new Error("llm down"));
+    const second = await getInsight("mikrotik-crs804-4ddq-hrm");
+    expect(second).not.toBeNull();
+    expect(second!.insight).toContain("Single-flight result.");
+  });
+});

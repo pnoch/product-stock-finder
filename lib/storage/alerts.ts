@@ -14,6 +14,17 @@ export function createAlertsStorage(ctx: StorageContext) {
     await adapter.setItem(KEYS.ALERTS, JSON.stringify(alerts));
   }
 
+  // Enqueued read-modify-write so concurrent callers never lose changes.
+  async function updateAlerts(
+    fn: (alerts: PriceAlert[]) => Promise<PriceAlert[]> | PriceAlert[],
+  ): Promise<void> {
+    await enqueue(KEYS.ALERTS, async () => {
+      const alerts = await getAlerts();
+      const next = await fn(alerts);
+      await saveAlerts(next);
+    });
+  }
+
   async function addAlert(alert: PriceAlert): Promise<void> {
     await enqueue(KEYS.ALERTS, async () => {
       const alerts = await getAlerts();
@@ -133,6 +144,7 @@ export function createAlertsStorage(ctx: StorageContext) {
   return {
     getAlerts,
     saveAlerts,
+    updateAlerts,
     addAlert,
     removeAlert,
     toggleAlert,

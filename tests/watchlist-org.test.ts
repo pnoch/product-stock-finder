@@ -406,3 +406,18 @@ describe("groupWatchlist", () => {
     expect(sections.map((s) => s.key)).toEqual(["region-Asia-Pacific", "region-Europe"]);
   });
 });
+
+describe("groupWatchlist with orphaned tag ids", () => {
+  it("treats products holding only orphaned tag ids as untagged", () => {
+    const orphaned = makeProduct({ id: "x", tags: ["deleted-tag"] });
+    const sections = groupWatchlist([orphaned], "tag", defs);
+    expect(sections.map((s) => s.key)).toEqual(["untagged"]);
+    expect(sections[0]!.products.map((p) => p.id)).toEqual(["x"]);
+  });
+
+  it("keeps live tags working alongside orphaned ones", () => {
+    const mixed = makeProduct({ id: "y", tags: ["t1", "deleted-tag"] });
+    const sections = groupWatchlist([mixed], "tag", defs);
+    expect(sections.map((s) => s.key)).toEqual(["tag-t1"]);
+  });
+});

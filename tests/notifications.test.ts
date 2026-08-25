@@ -322,6 +322,67 @@ describe("evaluateNotifications", () => {
     const events = await pullPendingEvents("dev-1");
     expect(events).toEqual([]);
   });
+
+  it("does not re-create an event after it was fully delivered", async () => {
+    const now = Date.now();
+    await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
+      price: 480,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://example.com",
+      fetchedAt: now,
+    });
+    await upsertDeviceConfig("dev-1", {
+      ...baseConfig,
+      alerts: [
+        {
+          id: "a1",
+          productId: "mikrotik-crs804-4ddq-hrm",
+          targetPrice: 500,
+          currency: "USD",
+        },
+      ],
+    });
+    await evaluateNotifications(now);
+    const first = await pullPendingEvents("dev-1");
+    expect(first).toHaveLength(1);
+
+    vi.mocked(sendPushForDevice).mockClear();
+    // Next warmer tick, 5 minutes later — condition persists but was delivered
+    await evaluateNotifications(now + 5 * 60_000);
+    expect(sendPushForDevice).not.toHaveBeenCalled();
+    const second = await pullPendingEvents("dev-1");
+    expect(second).toEqual([]);
+  });
+
+  it("allows a new event for the same condition once the cooldown expires", async () => {
+    const now = Date.now();
+    await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
+      price: 480,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://example.com",
+      fetchedAt: now,
+    });
+    await upsertDeviceConfig("dev-1", {
+      ...baseConfig,
+      alerts: [
+        {
+          id: "a1",
+          productId: "mikrotik-crs804-4ddq-hrm",
+          targetPrice: 500,
+          currency: "USD",
+        },
+      ],
+    });
+    await evaluateNotifications(now);
+    expect(await pullPendingEvents("dev-1")).toHaveLength(1);
+
+    // 25 hours later the same persisting condition may notify again
+    await evaluateNotifications(now + 25 * 60 * 60_000);
+    expect(vi.mocked(sendPushForDevice)).toHaveBeenCalledTimes(2);
+    expect(await pullPendingEvents("dev-1")).toHaveLength(1);
+  });
 });
 
 describe("pullPendingEvents", () => {

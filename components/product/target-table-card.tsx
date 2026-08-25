@@ -1,12 +1,12 @@
 import { Text, TouchableOpacity, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import {
-  formatPrice,
-  convertPrice,
-  hasExchangeRate,
-} from "@/lib/currency";
+import { formatPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
-import { scopedAlertFor, productWideAlert } from "@/lib/alert-scope";
+import {
+  scopedAlertFor,
+  productWideAlert,
+  alertDeltaPct,
+} from "@/lib/alert-scope";
 import type { DistributorListing, PriceAlert } from "@/lib/types";
 
 export function TargetTableCard({
@@ -47,18 +47,7 @@ export function TargetTableCard({
 
       {rows.map(({ listing, alert }) => {
         const dist = getDistributorById(listing.distributorId);
-        const hasFx =
-          hasExchangeRate(listing.currency) &&
-          hasExchangeRate(alert!.currency);
-        const deltaPct =
-          alert && hasFx
-            ? Math.round(
-                ((convertPrice(listing.price, listing.currency, alert.currency) -
-                  alert.targetPrice) /
-                  alert.targetPrice) *
-                  100,
-              )
-            : null;
+        const deltaPct = alertDeltaPct(listing, alert);
         const met = deltaPct !== null && deltaPct <= 0;
         return (
           <View

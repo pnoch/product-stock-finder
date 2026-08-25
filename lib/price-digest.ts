@@ -10,6 +10,9 @@ export interface DigestProductState {
 
 export interface DigestSnapshot {
   lastDigestAt: string;
+  // Currency the snapshot's bestPrice values were converted to; price deltas
+  // are only comparable against snapshots in the same unit.
+  displayCurrency?: string;
   products: DigestProductState[];
 }
 
@@ -23,6 +26,8 @@ export interface DigestSummary {
 
 export interface DigestResult {
   summary: DigestSummary;
+  // Currency all summary/priceChange amounts are denominated in.
+  displayCurrency?: string;
   valueDelta: { from: number; to: number; percent: number } | null;
   newProducts: { productId: string; name: string }[];
   removedProducts: { productId: string; name: string }[];
@@ -98,13 +103,23 @@ export function computeDigest(
   const prevMap = new Map(
     (previous?.products ?? []).map((p) => [p.productId, p] as const),
   );
+  // Legacy snapshots predate currency stamping; only trust the guard when the
+  // snapshot explicitly declares a different unit.
+  const currencyChanged =
+    previous?.displayCurrency != null &&
+    previous.displayCurrency !== displayCurrency;
 
   const priceChanges: DigestResult["priceChanges"] = [];
   const stockChanges: DigestResult["stockChanges"] = [];
 
   for (const state of current) {
     const prev = prevMap.get(state.productId);
-    if (prev && prev.bestPrice != null && state.bestPrice != null) {
+    if (
+      !currencyChanged &&
+      prev &&
+      prev.bestPrice != null &&
+      state.bestPrice != null
+    ) {
       const from = prev.bestPrice;
       const to = state.bestPrice;
       if (from !== to) {
@@ -148,7 +163,10 @@ export function computeDigest(
   const summary = buildSummary(current);
   const prevSummary = buildSummary(previous?.products ?? []);
   const valueDelta =
-    previous && prevSummary.totalValue > 0 && summary.totalValue > 0
+    previous &&
+    !currencyChanged &&
+    prevSummary.totalValue > 0 &&
+    summary.totalValue > 0
       ? {
           from: prevSummary.totalValue,
           to: summary.totalValue,
@@ -172,6 +190,7 @@ export function computeDigest(
 
   return {
     summary,
+    displayCurrency,
     valueDelta,
     newProducts,
     removedProducts,
@@ -186,15 +205,16 @@ export function formatDigestNotification(result: DigestResult): {
   body: string;
 } {
   const { summary, valueDelta } = result;
+  const currency = result.displayCurrency ?? "USD";
   const lines: string[] = [];
 
   if (valueDelta) {
     const sign = valueDelta.percent >= 0 ? "+" : "";
     lines.push(
-      `Watchlist value ${formatPrice(valueDelta.from, "USD")} → ${formatPrice(valueDelta.to, "USD")} (${sign}${valueDelta.percent.toFixed(1)}%)`,
+      `Watchlist value ${formatPrice(valueDelta.from, currency)} → ${formatPrice(valueDelta.to, currency)} (${sign}${valueDelta.percent.toFixed(1)}%)`,
     );
   } else {
-    lines.push(`Watchlist: ${formatPrice(summary.totalValue, "USD")}`);
+    lines.push(`Watchlist: ${formatPrice(summary.totalValue, currency)}`);
   }
   lines.push(
     `${summary.inStock} in stock · ${summary.backOrder} back-order · ${summary.outOfStock} out of stock`,
@@ -203,7 +223,7 @@ export function formatDigestNotification(result: DigestResult): {
   for (const c of result.priceChanges.slice(0, 3)) {
     const sign = c.percent > 0 ? "+" : "";
     lines.push(
-      `${c.name}: ${sign}${c.percent.toFixed(0)}% (${formatPrice(c.from, "USD")} → ${formatPrice(c.to, "USD")})`,
+      `${c.name}: ${sign}${c.percent.toFixed(0)}% (${formatPrice(c.from, currency)} → ${formatPrice(c.to, currency)})`,
     );
   }
   for (const s of result.stockChanges.slice(0, 2)) {
@@ -270,6 +290,7 @@ export async function maybeSendDigest(
     const displayCurrency = settings.displayCurrency;
     return {
       lastDigestAt: now,
+      displayCurrency,
       products: watchlist.map((p) => productState(p, displayCurrency)),
     };
   } catch {

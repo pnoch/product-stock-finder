@@ -42,7 +42,7 @@ import { EditProductSheet } from "@/components/product/edit-product-sheet";
 import { captureAndShareImage } from "@/lib/share-image";
 import { ProductShareCard } from "@/components/share/product-share-card";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
-import { findBestDeal } from "@/lib/best-deal";
+import { findBestDeal, findBestInStockListing } from "@/lib/best-deal";
 import { fetchPriceInsight } from "@/lib/server-insights";
 import { fetchProductImage } from "@/lib/server-images";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -288,13 +288,10 @@ export default function ProductDetailScreen() {
       ? sortedListings
       : filterListingsByRegion(sortedListings, regionFilter);
 
-  const bestInStockListing = (() => {
-    const inStock = visibleListings.filter((l) => l.stockStatus === "in_stock");
-    if (inStock.length === 0) return null;
-    return inStock.reduce((best, l) =>
-      l.price < best.price ? l : best,
-    );
-  })();
+  const bestInStockListing = useMemo(
+    () => findBestInStockListing(visibleListings, displayCurrency),
+    [visibleListings, displayCurrency],
+  );
 
   const bestDeal = useMemo(
     () => findBestDeal(visibleListings, shippingRegion, displayCurrency),
@@ -651,6 +648,7 @@ export default function ProductDetailScreen() {
           onSetBestAlert={handleSetBestAlert}
           onToggleStockWatch={handleToggleStockWatch}
           onOpenChart={setChartListing}
+          onRemind={setReminderListing}
         />
       </ScrollView>
 

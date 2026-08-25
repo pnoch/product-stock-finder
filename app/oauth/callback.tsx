@@ -3,7 +3,7 @@ import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
 import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -11,6 +11,10 @@ const debugLog = (...args: unknown[]) => {
   if (!__DEV__) return;
   console.log(...args);
 };
+
+// OAuth codes are single-use; remember the ones this session already exchanged
+// so remounts/refreshes of the callback route don't replay them.
+const processedCodes = new Set<string>();
 
 export default function OAuthCallback() {
   const router = useRouter();
@@ -25,8 +29,21 @@ export default function OAuthCallback() {
     "processing",
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    return () => {
+      if (redirectTimer.current) clearTimeout(redirectTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const scheduleRedirect = () => {
+      redirectTimer.current = setTimeout(() => {
+        router.replace("/(tabs)");
+      }, 1000);
+    };
+
     const handleCallback = async () => {
       debugLog("[OAuth] Callback handler triggered");
       try {
@@ -63,9 +80,7 @@ export default function OAuthCallback() {
           debugLog(
             "[OAuth] Web authentication successful, redirecting to home...",
           );
-          setTimeout(() => {
-            router.replace("/(tabs)");
-          }, 1000);
+          scheduleRedirect();
           return;
         }
 
@@ -150,9 +165,7 @@ export default function OAuthCallback() {
           await Auth.setSessionToken(sessionToken);
           setStatus("success");
           debugLog("[OAuth] Redirecting to home...");
-          setTimeout(() => {
-            router.replace("/(tabs)");
-          }, 1000);
+          scheduleRedirect();
           return;
         }
 
@@ -166,6 +179,22 @@ export default function OAuthCallback() {
           setErrorMessage("Missing code or state parameter");
           return;
         }
+
+        if (processedCodes.has(code)) {
+          // Replay of an already-exchanged code (remount/refresh): succeed if
+          // the first attempt stored a token, otherwise surface the reuse.
+          const existing = await Auth.getSessionToken();
+          debugLog("[OAuth] Code already processed", { hasToken: !!existing });
+          if (existing) {
+            setStatus("success");
+            scheduleRedirect();
+          } else {
+            setStatus("error");
+            setErrorMessage("This sign-in link has already been used");
+          }
+          return;
+        }
+        processedCodes.add(code);
 
         // Exchange code for session token
         debugLog("[OAuth] Exchanging code for session token...");
@@ -200,9 +229,7 @@ export default function OAuthCallback() {
           debugLog("[OAuth] Authentication successful, redirecting to home...");
 
           // Redirect to home after a short delay
-          setTimeout(() => {
-            router.replace("/(tabs)");
-          }, 1000);
+          scheduleRedirect();
         } else {
           console.error("[OAuth] No session token in result");
           setStatus("error");

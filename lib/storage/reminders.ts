@@ -16,6 +16,19 @@ export function createRemindersStorage(ctx: StorageContext) {
     await adapter.setItem(KEYS.REMINDERS, JSON.stringify(reminders));
   }
 
+  // Enqueued read-modify-write so concurrent callers never lose changes.
+  async function updateReminders(
+    fn: (
+      reminders: BackOrderReminder[],
+    ) => Promise<BackOrderReminder[]> | BackOrderReminder[],
+  ): Promise<void> {
+    await enqueue(KEYS.REMINDERS, async () => {
+      const reminders = await getBackOrderReminders();
+      const next = await fn(reminders);
+      await saveBackOrderReminders(next);
+    });
+  }
+
   async function addBackOrderReminder(
     reminder: BackOrderReminder,
   ): Promise<void> {
@@ -54,6 +67,18 @@ export function createRemindersStorage(ctx: StorageContext) {
 
   async function saveStockWatches(watches: BackOrderReminder[]): Promise<void> {
     await adapter.setItem(KEYS.STOCK_WATCHES, JSON.stringify(watches));
+  }
+
+  async function updateStockWatches(
+    fn: (
+      watches: BackOrderReminder[],
+    ) => Promise<BackOrderReminder[]> | BackOrderReminder[],
+  ): Promise<void> {
+    await enqueue(KEYS.STOCK_WATCHES, async () => {
+      const watches = await getStockWatches();
+      const next = await fn(watches);
+      await saveStockWatches(next);
+    });
   }
 
   async function addStockWatch(watch: BackOrderReminder): Promise<void> {
@@ -105,10 +130,12 @@ export function createRemindersStorage(ctx: StorageContext) {
   return {
     getBackOrderReminders,
     saveBackOrderReminders,
+    updateReminders,
     addBackOrderReminder,
     removeBackOrderReminder,
     getStockWatches,
     saveStockWatches,
+    updateStockWatches,
     addStockWatch,
     removeStockWatch,
     updateStockWatchStatus,

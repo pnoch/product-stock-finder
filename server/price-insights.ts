@@ -16,6 +16,10 @@ const memoryInsights = new Map<
   { insight: string; generatedAt: number }
 >();
 
+// Single-flight: concurrent getInsight calls for the same product share one
+// LLM invocation so a burst of requests doesn't amplify cost.
+const inFlightInsights = new Map<string, Promise<PriceInsight | null>>();
+
 export interface PriceInsight {
   insight: string;
   generatedAt: number;
@@ -28,10 +32,26 @@ export async function getInsight(
   if (cached && Date.now() - cached.generatedAt < INSIGHT_TTL_MS) {
     return cached;
   }
+  const existing = inFlightInsights.get(productId);
+  if (existing) return existing;
+  const run = generateFreshInsight(productId, cached).finally(() => {
+    inFlightInsights.delete(productId);
+  });
+  inFlightInsights.set(productId, run);
+  return run;
+}
+
+async function generateFreshInsight(
+  productId: string,
+  stale: PriceInsight | null,
+): Promise<PriceInsight | null> {
   const context = await buildInsightContext(productId);
   if (!context) return null;
   const text = await generateInsight(context);
-  if (!text) return null;
+  if (!text) {
+    // LLM failed: serve stale cache if available rather than null
+    return stale;
+  }
   const result: PriceInsight = { insight: text, generatedAt: Date.now() };
   await writeCached(productId, result);
   return result;

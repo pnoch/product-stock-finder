@@ -26,6 +26,7 @@ interface DistributorListingCardProps {
   stockWatches: Record<string, boolean>;
   onToggleStockWatch: (listing: DistributorListing) => void;
   onOpenChart: (listing: DistributorListing) => void;
+  onRemind?: (listing: DistributorListing) => void;
 }
 
 export function DistributorListingCard({
@@ -33,6 +34,7 @@ export function DistributorListingCard({
   stockWatches,
   onToggleStockWatch,
   onOpenChart,
+  onRemind,
 }: DistributorListingCardProps) {
   const colors = useColors();
   const distributor = getDistributorById(listing.distributorId);
@@ -211,52 +213,88 @@ export function DistributorListingCard({
       })()}
       {/* Watch for Restock button on back-order cards */}
       {listing.stockStatus === "back_order" && (
-        <TouchableOpacity
-          onPress={() => onToggleStockWatch(listing)}
-          style={{
-            marginTop: 10,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 6,
-            backgroundColor: stockWatches[listing.distributorId]
-              ? colors.warning + "22"
-              : colors.surface,
-            borderRadius: 12,
-            paddingVertical: 9,
-            borderWidth: 1,
-            borderColor: stockWatches[listing.distributorId]
-              ? colors.warning + "88"
-              : colors.border,
-          }}
-        >
-          <IconSymbol
-            name={
-              stockWatches[listing.distributorId]
-                ? "eye.fill"
-                : "eye.slash.fill"
-            }
-            size={15}
-            color={
-              stockWatches[listing.distributorId]
-                ? colors.warning
-                : colors.muted
-            }
-          />
-          <Text
+        <View style={{ gap: 8, marginTop: 10 }}>
+          <TouchableOpacity
+            onPress={() => onToggleStockWatch(listing)}
             style={{
-              color: stockWatches[listing.distributorId]
-                ? colors.warning
-                : colors.muted,
-              fontSize: 13,
-              fontWeight: "600",
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              backgroundColor: stockWatches[listing.distributorId]
+                ? colors.warning + "22"
+                : colors.surface,
+              borderRadius: 12,
+              paddingVertical: 9,
+              borderWidth: 1,
+              borderColor: stockWatches[listing.distributorId]
+                ? colors.warning + "88"
+                : colors.border,
             }}
           >
-            {stockWatches[listing.distributorId]
-              ? "Watching for Restock"
-              : "Watch for Restock"}
-          </Text>
-        </TouchableOpacity>
+            <IconSymbol
+              name={
+                stockWatches[listing.distributorId]
+                  ? "eye.fill"
+                  : "eye.slash.fill"
+              }
+              size={15}
+              color={
+                stockWatches[listing.distributorId]
+                  ? colors.warning
+                  : colors.muted
+              }
+            />
+            <Text
+              style={{
+                color: stockWatches[listing.distributorId]
+                  ? colors.warning
+                  : colors.muted,
+                fontSize: 13,
+                fontWeight: "600",
+              }}
+            >
+              {stockWatches[listing.distributorId]
+                ? "Watching for Restock"
+                : "Watch for Restock"}
+            </Text>
+          </TouchableOpacity>
+          {onRemind && (
+            <TouchableOpacity
+              onPress={() => {
+                if (Platform.OS !== "web")
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onRemind(listing);
+              }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                backgroundColor: colors.surface,
+                borderRadius: 12,
+                paddingVertical: 9,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <IconSymbol
+                name="calendar"
+                size={15}
+                color={colors.primary}
+              />
+              <Text
+                style={{
+                  color: colors.primary,
+                  fontSize: 13,
+                  fontWeight: "600",
+                }}
+              >
+                Remind Me
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       )}
     </View>
   );

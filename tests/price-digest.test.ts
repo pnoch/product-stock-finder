@@ -543,3 +543,98 @@ describe("digest schedule", () => {
     expect(send).toHaveBeenCalled();
   });
 });
+
+describe("digest currency handling", () => {
+  it("skips price deltas when snapshot currency differs from display currency", () => {
+    const previous: DigestSnapshot = {
+      lastDigestAt: LAST,
+      displayCurrency: "USD",
+      products: [
+        { productId: "p1", name: "CRS804", bestPrice: 100, stockStatus: "in_stock" },
+      ],
+    };
+    const watchlist = [
+      makeProduct("p1", "CRS804", [{ price: 95, currency: "USD", stockStatus: "in_stock" }]),
+    ];
+    const result = computeDigest(
+      previous,
+      watchlist,
+      makeSettings({ displayCurrency: "EUR" }),
+      [],
+    );
+    expect(result.priceChanges).toHaveLength(0);
+    expect(result.valueDelta).toBeNull();
+  });
+
+  it("still reports stock changes across a currency switch", () => {
+    const previous: DigestSnapshot = {
+      lastDigestAt: LAST,
+      displayCurrency: "USD",
+      products: [
+        { productId: "p1", name: "CRS804", bestPrice: 100, stockStatus: "back_order" },
+      ],
+    };
+    const watchlist = [
+      makeProduct("p1", "CRS804", [{ price: 95, currency: "USD", stockStatus: "in_stock" }]),
+    ];
+    const result = computeDigest(
+      previous,
+      watchlist,
+      makeSettings({ displayCurrency: "EUR" }),
+      [],
+    );
+    expect(result.stockChanges).toHaveLength(1);
+  });
+
+  it("compares normally when snapshot currency matches", () => {
+    const previous: DigestSnapshot = {
+      lastDigestAt: LAST,
+      displayCurrency: "EUR",
+      products: [
+        { productId: "p1", name: "CRS804", bestPrice: 100, stockStatus: "in_stock" },
+      ],
+    };
+    const watchlist = [
+      makeProduct("p1", "CRS804", [{ price: 95, currency: "USD", stockStatus: "in_stock" }]),
+    ];
+    const result = computeDigest(
+      previous,
+      watchlist,
+      makeSettings({ displayCurrency: "EUR" }),
+      [],
+    );
+    expect(result.priceChanges).toHaveLength(1);
+  });
+
+  it("formats amounts with the digest currency, not hardcoded USD", () => {
+    const previous: DigestSnapshot = {
+      lastDigestAt: LAST,
+      displayCurrency: "EUR",
+      products: [],
+    };
+    const watchlist = [
+      makeProduct("p1", "A", [{ price: 92, currency: "EUR", stockStatus: "in_stock" }]),
+    ];
+    const { body } = formatDigestNotification(
+      computeDigest(previous, watchlist, makeSettings({ displayCurrency: "EUR" }), []),
+    );
+    expect(body).toContain("€");
+    expect(body).not.toContain("$");
+  });
+
+  it("records the display currency in the new snapshot", async () => {
+    const send = vi.fn(async () => {});
+    const watchlist = [
+      makeProduct("p1", "A", [{ price: 92, currency: "EUR", stockStatus: "in_stock" }]),
+    ];
+    const snapshot = await maybeSendDigest(
+      null,
+      watchlist,
+      makeSettings({ displayCurrency: "EUR" }),
+      [],
+      send,
+      NOW,
+    );
+    expect(snapshot?.displayCurrency).toBe("EUR");
+  });
+});

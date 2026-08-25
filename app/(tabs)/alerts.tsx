@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import { useCallback, useState } from "react";
 import type { PriceAlert } from "@/lib/types";
-import { updateAlert } from "@/lib/storage";
 import { PriceAlertModal } from "@/components/product/price-alert-modal";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -450,7 +449,7 @@ export default function AlertsScreen() {
             showAlert("Invalid Price", "Please enter a valid target price.");
             return;
           }
-          await updateAlert(editingAlert.id, {
+          await handleUpdateAlert(editingAlert.id, {
             targetPrice: price,
             currency: editCurrency,
             direction: editDirection,

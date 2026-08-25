@@ -30,6 +30,13 @@ export const BLOCKED_MARKERS = [
   "Access Denied",
   "cf-browser-verification",
   "Checking your browser",
+  // Cloudflare interstitial / Turnstile
+  "Just a moment",
+  "Attention Required",
+  "challenge-platform",
+  // PerimeterX / DataDome
+  "px-captcha",
+  "captcha-delivery.com",
 ];
 
 export function classifyFetchStatus(
@@ -68,20 +75,35 @@ export function createStorageBreakerStore(
     }
   }
 
+  // Concurrent fetches of different distributors share one persisted list;
+  // serialize read-modify-write so parallel sets cannot lose each other.
+  let queue: Promise<unknown> = Promise.resolve();
+  function serialize<T>(fn: () => Promise<T>): Promise<T> {
+    const next = queue.then(fn, fn);
+    queue = next.catch(() => {});
+    return next;
+  }
+
   return {
-    async get(distributorId) {
-      const list = await readList();
-      return list.find((e) => e.distributorId === distributorId) ?? null;
-    },
-    async set(entry) {
-      try {
+    get(distributorId) {
+      return serialize(async () => {
         const list = await readList();
-        const next = list.filter((e) => e.distributorId !== entry.distributorId);
-        next.push(entry);
-        await adapter.setItem(DISTRIBUTOR_BREAKER_KEY, JSON.stringify(next));
-      } catch {
-        // Ignore persistence errors
-      }
+        return list.find((e) => e.distributorId === distributorId) ?? null;
+      });
+    },
+    set(entry) {
+      return serialize(async () => {
+        try {
+          const list = await readList();
+          const next = list.filter(
+            (e) => e.distributorId !== entry.distributorId,
+          );
+          next.push(entry);
+          await adapter.setItem(DISTRIBUTOR_BREAKER_KEY, JSON.stringify(next));
+        } catch {
+          // Ignore persistence errors
+        }
+      });
     },
   };
 }
@@ -97,7 +119,10 @@ export interface ResilientFetchOptions {
   failureCooldownMs?: number;
   failureThreshold?: number;
   maxCooldownMs?: number;
+  timeoutMs?: number;
 }
+
+const DEFAULT_TIMEOUT_MS = 15_000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -106,18 +131,27 @@ function sleep(ms: number): Promise<void> {
 async function fetchPlain(
   url: string,
   rateLimitMs: number,
+  timeoutMs: number,
 ): Promise<{ html: string; status: number }> {
   await sleep(rateLimitMs);
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": getRandomUserAgent(),
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
-      "Accept-Encoding": "gzip, deflate",
-    },
-  });
-  const html = await response.text();
-  return { html, status: response.status };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": getRandomUserAgent(),
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate",
+      },
+      signal: controller.signal,
+    });
+    const html = await response.text();
+    return { html, status: response.status };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export class BrowserUnavailableError extends Error {
@@ -195,6 +229,7 @@ async function attemptMethod(
       const { html, status: httpStatus } = await fetchPlain(
         opts.url,
         opts.parser.rateLimitMs,
+        opts.timeoutMs ?? DEFAULT_TIMEOUT_MS,
       );
       const status = classifyFetchStatus(html, httpStatus);
       if (status === "ok") return { html, status: "ok", method };
@@ -216,7 +251,23 @@ async function attemptMethod(
   return last;
 }
 
+// One network attempt per distributor at a time: concurrent callers of the
+// same parser would otherwise stampede rate limits and the breaker store.
+const inFlight = new Map<string, Promise<FetchOutcome>>();
+
 export async function resilientFetch(
+  opts: ResilientFetchOptions,
+): Promise<FetchOutcome> {
+  const existing = inFlight.get(opts.parser.id);
+  if (existing) return { status: "skipped", method: "none" };
+  const run = runResilientFetch(opts).finally(() => {
+    inFlight.delete(opts.parser.id);
+  });
+  inFlight.set(opts.parser.id, run);
+  return run;
+}
+
+async function runResilientFetch(
   opts: ResilientFetchOptions,
 ): Promise<FetchOutcome> {
   const now = opts.now ?? Date.now;
@@ -263,8 +314,9 @@ export async function resilientFetch(
       if (method === "plain") continue;
       break;
     }
-    if (method === "browser") continue;
-    break;
+    // Any hard error falls through to the next method (plain errors escalate
+    // to the browser; browser errors have nothing left to try).
+    continue;
   }
 
   if (blockedOutcome) lastOutcome = blockedOutcome;

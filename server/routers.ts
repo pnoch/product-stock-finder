@@ -59,8 +59,11 @@ export const appRouter = router({
           console.warn("[Sync] Database not available; returning empty pull");
           return { lastSyncedAt: Date.now(), items: [] };
         }
+        // Capture the cursor before the SELECT so writes committed during
+        // the query are not missed on the next pull.
+        const lastSyncedAt = Date.now();
         const items = await listChangedItems(ctx.user.id, input.since);
-        return { lastSyncedAt: Date.now(), items };
+        return { lastSyncedAt, items };
       }),
     push: protectedProcedure
       .input(z.object({ items: z.array(syncItemSchema) }))
@@ -105,21 +108,23 @@ export const appRouter = router({
     uploadHistory: publicProcedure
       .input(
         z.object({
-          distributorId: z.string().min(1),
-          modelNumber: z.string().min(1),
-          points: z.array(
-            z.object({
-              date: z.string(),
-              price: z.number(),
-              currency: z.string(),
-              stockStatus: z.enum([
-                "in_stock",
-                "back_order",
-                "out_of_stock",
-                "unknown",
-              ]),
-            }),
-          ),
+          distributorId: z.string().min(1).max(64),
+          modelNumber: z.string().min(1).max(128),
+          points: z
+            .array(
+              z.object({
+                date: z.string().refine((v) => !Number.isNaN(Date.parse(v))),
+                price: z.number().finite().positive(),
+                currency: z.string().min(1).max(8),
+                stockStatus: z.enum([
+                  "in_stock",
+                  "back_order",
+                  "out_of_stock",
+                  "unknown",
+                ]),
+              }),
+            )
+            .max(200),
         }),
       )
       .mutation(async ({ input }) => {

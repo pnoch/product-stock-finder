@@ -18,3 +18,21 @@ export async function fetchWithBrowser(
 ): Promise<never> {
   throw new BrowserUnavailableError("browser escalation unavailable on web");
 }
+
+export async function teardownBrowserSession(
+  page: { close(): Promise<void> } | undefined,
+  context: { close(): Promise<void> } | undefined,
+  release: () => void,
+): Promise<void> {
+  try {
+    if (page) await page.close();
+  } catch {
+    // no-op on web
+  }
+  try {
+    if (context) await context.close();
+  } catch {
+    // no-op on web
+  }
+  release();
+}

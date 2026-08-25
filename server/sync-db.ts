@@ -11,6 +11,21 @@ import type { SyncItem } from "../lib/types";
 const TOMBSTONE_PURGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
+ * LWW admission decision. Ordering must compare like clocks: the incoming
+ * item's `updatedAt` is a client-clock value, so it is judged against the
+ * stored client-clock stamp when one exists. Rows written before client
+ * stamping (null) fall back to the server-stamped comparison.
+ */
+export function shouldAcceptSyncWrite(
+  existingClientUpdatedAtMs: number | null,
+  existingServerUpdatedAtMs: number,
+  incomingUpdatedAt: number,
+): boolean {
+  const baseline = existingClientUpdatedAtMs ?? existingServerUpdatedAtMs;
+  return incomingUpdatedAt > baseline;
+}
+
+/**
  * Returns all rows for the user whose updatedAtMs OR deletedAtMs is newer than
  * `since` (epoch ms). `since === null` means first sync (return everything).
  * Tombstoned rows carry `data: null` so the client only needs the deletion.
@@ -108,8 +123,10 @@ export async function listChangedItems(
 }
 
 /**
- * Last-write-wins upsert. The stored row's updatedAtMs is stamped with the
- * server clock (not the client's), so LWW ordering is server-authoritative.
+ * Last-write-wins upsert. Each row keeps two clocks: `clientUpdatedAtMs` (the
+ * incoming item's own timestamp, used for LWW ordering via
+ * shouldAcceptSyncWrite) and `updatedAtMs` (server-stamped, used for pull
+ * cursors so server time stays monotonic across devices).
  * Returns { accepted, updatedAt }: accepted is false when the incoming item
  * is not newer than the existing row; updatedAt is the server-stamped value
  * on acceptance (or the existing row's timestamp on rejection).
@@ -125,7 +142,10 @@ export async function upsertSyncItem(
   switch (item.collection) {
     case "watchlist": {
       const existing = await db
-        .select({ updatedAtMs: watchlistItems.updatedAtMs })
+        .select({
+          updatedAtMs: watchlistItems.updatedAtMs,
+          clientUpdatedAtMs: watchlistItems.clientUpdatedAtMs,
+        })
         .from(watchlistItems)
         .where(
           and(
@@ -134,7 +154,14 @@ export async function upsertSyncItem(
           ),
         )
         .limit(1);
-      if (existing.length > 0 && existing[0]!.updatedAtMs >= item.updatedAt) {
+      if (
+        existing.length > 0 &&
+        !shouldAcceptSyncWrite(
+          existing[0]!.clientUpdatedAtMs,
+          existing[0]!.updatedAtMs,
+          item.updatedAt,
+        )
+      ) {
         return { accepted: false, updatedAt: existing[0]!.updatedAtMs };
       }
       await db
@@ -144,12 +171,14 @@ export async function upsertSyncItem(
           productId: item.id,
           data: item.data,
           updatedAtMs: stampedAt,
+          clientUpdatedAtMs: item.updatedAt,
           deletedAtMs: item.deletedAt,
         })
         .onDuplicateKeyUpdate({
           set: {
             data: item.data,
             updatedAtMs: stampedAt,
+            clientUpdatedAtMs: item.updatedAt,
             deletedAtMs: item.deletedAt,
           },
         });
@@ -157,13 +186,23 @@ export async function upsertSyncItem(
     }
     case "alerts": {
       const existing = await db
-        .select({ updatedAtMs: priceAlerts.updatedAtMs })
+        .select({
+          updatedAtMs: priceAlerts.updatedAtMs,
+          clientUpdatedAtMs: priceAlerts.clientUpdatedAtMs,
+        })
         .from(priceAlerts)
         .where(
           and(eq(priceAlerts.userId, userId), eq(priceAlerts.alertId, item.id)),
         )
         .limit(1);
-      if (existing.length > 0 && existing[0]!.updatedAtMs >= item.updatedAt) {
+      if (
+        existing.length > 0 &&
+        !shouldAcceptSyncWrite(
+          existing[0]!.clientUpdatedAtMs,
+          existing[0]!.updatedAtMs,
+          item.updatedAt,
+        )
+      ) {
         return { accepted: false, updatedAt: existing[0]!.updatedAtMs };
       }
       await db
@@ -173,12 +212,14 @@ export async function upsertSyncItem(
           alertId: item.id,
           data: item.data,
           updatedAtMs: stampedAt,
+          clientUpdatedAtMs: item.updatedAt,
           deletedAtMs: item.deletedAt,
         })
         .onDuplicateKeyUpdate({
           set: {
             data: item.data,
             updatedAtMs: stampedAt,
+            clientUpdatedAtMs: item.updatedAt,
             deletedAtMs: item.deletedAt,
           },
         });
@@ -186,7 +227,10 @@ export async function upsertSyncItem(
     }
     case "reminders": {
       const existing = await db
-        .select({ updatedAtMs: backOrderReminders.updatedAtMs })
+        .select({
+          updatedAtMs: backOrderReminders.updatedAtMs,
+          clientUpdatedAtMs: backOrderReminders.clientUpdatedAtMs,
+        })
         .from(backOrderReminders)
         .where(
           and(
@@ -195,7 +239,14 @@ export async function upsertSyncItem(
           ),
         )
         .limit(1);
-      if (existing.length > 0 && existing[0]!.updatedAtMs >= item.updatedAt) {
+      if (
+        existing.length > 0 &&
+        !shouldAcceptSyncWrite(
+          existing[0]!.clientUpdatedAtMs,
+          existing[0]!.updatedAtMs,
+          item.updatedAt,
+        )
+      ) {
         return { accepted: false, updatedAt: existing[0]!.updatedAtMs };
       }
       await db
@@ -205,12 +256,14 @@ export async function upsertSyncItem(
           reminderId: item.id,
           data: item.data,
           updatedAtMs: stampedAt,
+          clientUpdatedAtMs: item.updatedAt,
           deletedAtMs: item.deletedAt,
         })
         .onDuplicateKeyUpdate({
           set: {
             data: item.data,
             updatedAtMs: stampedAt,
+            clientUpdatedAtMs: item.updatedAt,
             deletedAtMs: item.deletedAt,
           },
         });
@@ -218,11 +271,21 @@ export async function upsertSyncItem(
     }
     case "settings": {
       const existing = await db
-        .select({ updatedAtMs: appSettings.updatedAtMs })
+        .select({
+          updatedAtMs: appSettings.updatedAtMs,
+          clientUpdatedAtMs: appSettings.clientUpdatedAtMs,
+        })
         .from(appSettings)
         .where(eq(appSettings.userId, userId))
         .limit(1);
-      if (existing.length > 0 && existing[0]!.updatedAtMs >= item.updatedAt) {
+      if (
+        existing.length > 0 &&
+        !shouldAcceptSyncWrite(
+          existing[0]!.clientUpdatedAtMs,
+          existing[0]!.updatedAtMs,
+          item.updatedAt,
+        )
+      ) {
         return { accepted: false, updatedAt: existing[0]!.updatedAtMs };
       }
       await db
@@ -231,12 +294,14 @@ export async function upsertSyncItem(
           userId,
           data: item.data,
           updatedAtMs: stampedAt,
+          clientUpdatedAtMs: item.updatedAt,
           deletedAtMs: item.deletedAt,
         })
         .onDuplicateKeyUpdate({
           set: {
             data: item.data,
             updatedAtMs: stampedAt,
+            clientUpdatedAtMs: item.updatedAt,
             deletedAtMs: item.deletedAt,
           },
         });

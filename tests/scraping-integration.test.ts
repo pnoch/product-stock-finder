@@ -56,6 +56,28 @@ describe("Scraping Integration", () => {
       expect(inferStockStatus("Sold Out")).toBe("out_of_stock");
       expect(inferStockStatus("Available")).toBe("in_stock");
     });
+
+    it("inferStockStatus should not treat unavailable text as in stock", () => {
+      expect(inferStockStatus("Currently unavailable")).toBe("out_of_stock");
+      expect(inferStockStatus("Temporarily Unavailable")).toBe("out_of_stock");
+      expect(inferStockStatus("Not available")).toBe("out_of_stock");
+    });
+
+    it("inferStockStatus should prefer back-order over weak in-stock signals", () => {
+      expect(inferStockStatus("Backorder available")).toBe("back_order");
+      expect(inferStockStatus("Pre-order available")).toBe("back_order");
+    });
+
+    it("parsePriceFromText should handle comma-decimal formats", () => {
+      expect(parsePriceFromText("€ 1.234,56")).toBe(1234.56);
+      expect(parsePriceFromText("1 234,56 Kč")).toBe(1234.56);
+      expect(parsePriceFromText("1.234,56 €")).toBe(1234.56);
+    });
+
+    it("parsePriceFromText should handle space-grouped amounts", () => {
+      expect(parsePriceFromText("R 12 345.67")).toBe(12345.67);
+      expect(parsePriceFromText("12 345,67 Kč")).toBe(12345.67);
+    });
   });
 
   describe("Full Scrape Cycle", () => {

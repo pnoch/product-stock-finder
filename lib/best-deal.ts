@@ -53,3 +53,27 @@ export function findBestDeal(
 
   return best;
 }
+
+export function findBestInStockListing(
+  listings: DistributorListing[],
+  targetCurrency: string,
+): DistributorListing | null {
+  let best: DistributorListing | null = null;
+  let bestPrice = Infinity;
+
+  for (const listing of listings) {
+    if (listing.stockStatus !== "in_stock" || listing.price <= 0) continue;
+    const converted = convertPrice(
+      listing.price,
+      listing.currency,
+      targetCurrency,
+    );
+    if (!Number.isFinite(converted)) continue;
+    if (converted < bestPrice) {
+      bestPrice = converted;
+      best = listing;
+    }
+  }
+
+  return best;
+}

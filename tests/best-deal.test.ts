@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findBestDeal } from "@/lib/best-deal";
+import { findBestDeal, findBestInStockListing } from "@/lib/best-deal";
 import type { DistributorListing } from "@/lib/types";
 
 function makeListing(
@@ -122,5 +122,34 @@ describe("findBestDeal", () => {
     ];
     const deal = findBestDeal(listings, "Asia-Pacific", "USD");
     expect(deal!.tax).toBe(0);
+  });
+});
+
+describe("findBestInStockListing", () => {
+  it("compares prices across currencies, not raw numbers", () => {
+    const listings = [
+      // Raw minimum is GBP 449 (~$568 at static rates); true best is USD 499.
+      makeListing({ distributorId: "balticnetworks-lv", price: 499, currency: "USD" }),
+      makeListing({ distributorId: "linitx-uk", price: 449, currency: "GBP" }),
+      makeListing({ distributorId: "server2u-my", price: 2600, currency: "MYR" }),
+    ];
+    const best = findBestInStockListing(listings, "USD");
+    expect(best?.distributorId).toBe("balticnetworks-lv");
+  });
+
+  it("skips non-in-stock and non-positive-price listings", () => {
+    const listings = [
+      makeListing({ distributorId: "a", price: 1, stockStatus: "out_of_stock" }),
+      makeListing({ distributorId: "b", price: 0, stockStatus: "in_stock" }),
+      makeListing({ distributorId: "c", price: 50, currency: "USD" }),
+    ];
+    expect(findBestInStockListing(listings, "USD")?.distributorId).toBe("c");
+  });
+
+  it("returns null when nothing is in stock", () => {
+    expect(
+      findBestInStockListing([makeListing({ stockStatus: "back_order" })], "USD"),
+    ).toBeNull();
+    expect(findBestInStockListing([], "USD")).toBeNull();
   });
 });

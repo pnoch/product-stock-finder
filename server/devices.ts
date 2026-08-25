@@ -190,18 +190,22 @@ export async function signOutDevice(
   userId: number,
   deviceId: string,
 ): Promise<boolean> {
-  const unbound = await unbindDevice(userId, deviceId);
-  if (!unbound) return false;
   const db = await getDb();
   if (!db) {
+    // Revoke first so a crash between steps leaves the device unusable
+    // rather than unbound-but-still-authenticated.
     memoryRevokedDevices.add(`${userId}:${deviceId}`);
     memoryLabels.delete(deviceId);
-    return true;
+    return unbindDevice(userId, deviceId);
   }
+  // Revoke before unbinding: if the process dies between these steps the
+  // device stays revoked (safe) instead of unbound-but-token-valid (unsafe).
   await db
     .insert(revokedDevices)
     .values({ deviceId, userId, revokedAt: Date.now() })
     .onDuplicateKeyUpdate({ set: { revokedAt: Date.now() } });
+  const unbound = await unbindDevice(userId, deviceId);
+  if (!unbound) return false;
   await db.delete(deviceLabels).where(eq(deviceLabels.deviceId, deviceId));
   return true;
 }

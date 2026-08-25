@@ -104,6 +104,24 @@ describe("createStorageBreakerStore", () => {
     expect(await store2.get("d1")).toEqual(entry);
   });
 
+  it("serializes concurrent writes so no entry is lost", async () => {
+    const store = createStorageBreakerStore(makeAdapter());
+    await Promise.all(
+      ["d1", "d2", "d3", "d4", "d5"].map((distributorId) =>
+        store.set({
+          distributorId,
+          status: "blocked" as const,
+          consecutiveFailures: 1,
+          lastAttemptAt: 0,
+          cooldownUntil: 100,
+        }),
+      ),
+    );
+    for (const distributorId of ["d1", "d2", "d3", "d4", "d5"]) {
+      expect(await store.get(distributorId)).not.toBeNull();
+    }
+  });
+
   it("keeps multiple distributors independent", async () => {
     const store = createStorageBreakerStore(makeAdapter());
     await store.set({
@@ -367,5 +385,120 @@ describe("resilientFetch", () => {
     expect(outcome.status).toBe("ok");
     expect(outcome.method).toBe("plain");
     expect(browserMock.fetchWithBrowser).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("resilientFetch escalation and timeouts", () => {
+  beforeEach(() => {
+    browserMock.fetchWithBrowser.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("escalates to browser when plain fetch fails hard", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("ECONNRESET");
+      }),
+    );
+    browserMock.fetchWithBrowser.mockResolvedValue("<html>price</html>");
+    const state = createMemoryBreakerStore();
+    const outcome = await resilientFetch({
+      parser: makeParser(),
+      url: "https://example.com/search?q=CRS804",
+      state,
+      retryBaseMs: 1,
+    });
+    expect(outcome.status).toBe("ok");
+    expect(outcome.method).toBe("browser");
+    expect(browserMock.fetchWithBrowser).toHaveBeenCalledTimes(1);
+  });
+
+  it("aborts a hung plain fetch after timeoutMs and escalates", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_url: string, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () =>
+              reject(new Error("The operation was aborted")),
+            );
+          }),
+      ),
+    );
+    browserMock.fetchWithBrowser.mockResolvedValue("<html>price</html>");
+    const state = createMemoryBreakerStore();
+    const outcome = await resilientFetch({
+      parser: makeParser(),
+      url: "https://example.com/search?q=CRS804",
+      state,
+      timeoutMs: 25,
+      retryBaseMs: 1,
+    });
+    expect(outcome.status).toBe("ok");
+    expect(outcome.method).toBe("browser");
+  });
+
+  it("does not fire the timeout for fast responses", async () => {
+    const fetchMock = vi.fn(
+      async () => new Response("<html>price</html>", { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const state = createMemoryBreakerStore();
+    const outcome = await resilientFetch({
+      parser: makeParser(),
+      url: "https://example.com/search?q=CRS804",
+      state,
+      timeoutMs: 5000,
+    });
+    expect(outcome.status).toBe("ok");
+    expect(outcome.method).toBe("plain");
+  });
+
+  it("returns skipped for a concurrent duplicate fetch of the same distributor", async () => {
+    let releaseFetch!: () => void;
+    const gate = new Promise<void>((resolve) => (releaseFetch = resolve));
+    let fetchCalls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        fetchCalls += 1;
+        await gate;
+        return new Response("<html>price</html>", { status: 200 });
+      }),
+    );
+    const state = createMemoryBreakerStore();
+    const opts = {
+      parser: makeParser(),
+      url: "https://example.com/search?q=CRS804",
+      state,
+    };
+    const firstP = resilientFetch(opts);
+    const secondP = resilientFetch(opts);
+    releaseFetch();
+    const [first, second] = await Promise.all([firstP, secondP]);
+    expect(first.status).toBe("ok");
+    expect(second.status).toBe("skipped");
+    expect(fetchCalls).toBe(1);
+    // Sequential follow-up must not be blocked by the released guard
+    const third = await resilientFetch(opts);
+    expect(third.status).toBe("ok");
+  });
+});
+
+describe("classifyFetchStatus anti-bot markers", () => {
+  it("classifies modern challenge pages as blocked", () => {
+    expect(classifyFetchStatus("<title>Just a moment...</title>")).toBe("blocked");
+    expect(classifyFetchStatus("Attention Required! | Cloudflare")).toBe("blocked");
+    expect(classifyFetchStatus('script src="/cdn-cgi/challenge-platform/"')).toBe("blocked");
+    expect(classifyFetchStatus('<div id="px-captcha"></div>')).toBe("blocked");
+    expect(classifyFetchStatus("script src=https://captcha-delivery.com/x.js")).toBe("blocked");
+  });
+
+  it("does not flag ordinary content mentioning security words", () => {
+    expect(classifyFetchStatus("<p>We block captcha abuse.</p>", 200)).toBe("ok");
   });
 });

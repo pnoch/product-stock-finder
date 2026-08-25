@@ -14,17 +14,41 @@ vi.mock("../lib/scrapers/resilient", () => ({
   })),
 }));
 
+vi.mock("../server/notifications", () => ({
+  evaluateNotifications: vi.fn(async () => {}),
+}));
+
+vi.mock("../server/price-history", () => ({
+  recordHistoryPoint: vi.fn(),
+  getHistory: vi.fn(),
+  mergeHistory: vi.fn(),
+  purgeOldHistory: vi.fn(),
+  clearHistoryForTests: vi.fn(),
+}));
+
+vi.mock("../server/product-images", () => ({
+  getProductImage: vi.fn(),
+  listProductsMissingImage: vi.fn(async () => []),
+}));
+
+vi.mock("../server/catalog-warmer", () => ({
+  buildCatalogPairs: vi.fn(() => []),
+  pickPairsToWarm: vi.fn(() => []),
+}));
+
 vi.mock("../server/price-cache", () => ({
   getCachedPrice: vi.fn(),
   setCachedPrice: vi.fn(),
   listNearExpiry: vi.fn(),
   clearPriceCacheForTests: vi.fn(),
+  getAllFetchedAt: vi.fn(async () => ({})),
 }));
 
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { resilientFetch } from "../lib/scrapers/resilient";
 import { listNearExpiry, setCachedPrice } from "../server/price-cache";
-import { refreshNearExpiry, startWarmer } from "../server/prices";
+import { refreshNearExpiry, startWarmer, runWarmerTick } from "../server/prices";
+import { evaluateNotifications } from "../server/notifications";
 import type { ScrapeResult } from "../lib/scrapers/types";
 
 const mockedGetParser = vi.mocked(getParserByDistributorId);
@@ -88,5 +112,22 @@ describe("warmer", () => {
     const stop = startWarmer({ intervalMs: 10 });
     expect(typeof stop).toBe("function");
     stop();
+  });
+});
+
+describe("runWarmerTick reentrancy", () => {
+  it("skips a concurrent tick while one is already running", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    vi.mocked(evaluateNotifications).mockImplementation(async () => {
+      await gate;
+    });
+    mockedListNearExpiry.mockResolvedValue([]);
+
+    const firstP = runWarmerTick();
+    const secondP = runWarmerTick();
+    release();
+    await Promise.all([firstP, secondP]);
+    expect(vi.mocked(evaluateNotifications)).toHaveBeenCalledTimes(1);
   });
 });

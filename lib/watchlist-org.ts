@@ -203,7 +203,10 @@ export function groupWatchlist(
         products: list.filter((p) => (p.tags ?? []).includes(tag.id)),
       }),
     );
-    const untagged = list.filter((p) => (p.tags ?? []).length === 0);
+    // Orphaned tag ids must be ignored, not treated as a live tag.
+    const untagged = list.filter(
+      (p) => !(p.tags ?? []).some((id) => tagDefinitions[id]),
+    );
     if (untagged.length > 0)
       sections.push({ key: "untagged", title: "Untagged", products: untagged });
     return sections.filter((s) => s.products.length > 0);

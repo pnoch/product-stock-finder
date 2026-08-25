@@ -44,6 +44,12 @@ vi.mock("../lib/storage", () => ({
   removeBackOrderReminder: vi.fn(async () => {}),
   getPendingHealthEvents: vi.fn(async () => []),
   clearPendingHealthEvents: vi.fn(async () => {}),
+  getSettings: vi.fn(async () => ({
+    notificationsEnabled: true,
+    priceAlerts: true,
+    stockAlerts: true,
+    healthAlerts: true,
+  })),
 }));
 
 vi.mock("../lib/notifications", () => ({

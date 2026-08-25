@@ -584,3 +584,26 @@ describe("devices (database backend)", () => {
     mockedGetDb.mockResolvedValue(null);
   });
 });
+
+describe("signOutDevice ordering (memory backend)", () => {
+  beforeEach(() => {
+    clearNotificationsForTests();
+    clearPushTokensForTests();
+    clearDevicesForTests();
+    vi.clearAllMocks();
+    mockedGetDb.mockResolvedValue(null);
+  });
+
+  it("revokes the device and removes config, token, and label", async () => {
+    await upsertDeviceConfig("dev-x", baseConfig, 7);
+    await upsertPushToken("dev-x", "ExponentPushToken[xyz]", "ios", 7);
+    // Rename to set a label
+    await renameDevice(7, "dev-x", "My Phone");
+    const ok = await signOutDevice(7, "dev-x");
+    expect(ok).toBe(true);
+    expect(await isDeviceRevoked(7, "dev-x")).toBe(true);
+    // Config and token must be gone
+    const devices = await listDevicesForUser(7);
+    expect(devices.find((d) => d.deviceId === "dev-x")).toBeUndefined();
+  });
+});

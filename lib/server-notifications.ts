@@ -21,17 +21,17 @@ export async function uploadNotificationConfig(
 ): Promise<boolean> {
   try {
     const client = createTRPCClient();
-    await Promise.race([
+    const result = await Promise.race([
       client.notifications.uploadConfig.mutate({
         deviceId,
         ...config,
         healthEvents,
-      }),
+      }).then(() => true as const),
       new Promise<null>((resolve) =>
         setTimeout(() => resolve(null), TIMEOUT_MS),
       ),
     ]);
-    return true;
+    return result === true;
   } catch {
     return false;
   }
@@ -82,6 +82,7 @@ async function runSyncServerNotifications(): Promise<void> {
   try {
     const { getDeviceId } = await import("./device-id");
     const {
+      getSettings,
       getAlerts,
       getStockWatches,
       getBackOrderReminders,
@@ -92,26 +93,50 @@ async function runSyncServerNotifications(): Promise<void> {
     const { scheduleServerEventNotification } = await import("./notifications");
     const deviceId = await getDeviceId();
 
+    const { getPendingHealthEvents, clearPendingHealthEvents } =
+      await import("./storage");
+    const pendingHealthEvents = await getPendingHealthEvents();
+    const settings = await getSettings();
+
+    // Master switch off: retract the server-side config so evaluation stops,
+    // drop the health buffer (intentional suppression, not loss), and skip
+    // pulling/displaying events entirely.
+    if (!settings.notificationsEnabled) {
+      await uploadNotificationConfig(deviceId, {
+        alerts: [],
+        stockWatches: [],
+        dateReminders: [],
+      });
+      if (pendingHealthEvents.length > 0) {
+        await clearPendingHealthEvents();
+      }
+      return;
+    }
+
     const alerts = await getAlerts();
-    const activeAlerts = alerts
-      .filter((a) => a.isActive && !a.triggeredAt)
-      .map((a) => ({
-        id: a.id,
-        productId: a.productId,
-        targetPrice: a.targetPrice,
-        currency: a.currency,
-        distributorId: a.distributorId,
-        direction: a.direction,
-        snoozedUntil: a.snoozedUntil,
-      }));
+    const activeAlerts = settings.priceAlerts
+      ? alerts
+          .filter((a) => a.isActive && !a.triggeredAt)
+          .map((a) => ({
+            id: a.id,
+            productId: a.productId,
+            targetPrice: a.targetPrice,
+            currency: a.currency,
+            distributorId: a.distributorId,
+            direction: a.direction,
+            snoozedUntil: a.snoozedUntil,
+          }))
+      : [];
     const activeAlertIds = new Set(activeAlerts.map((a) => a.id));
 
-    const stockWatches = (await getStockWatches()).map((w) => ({
-      id: w.id,
-      productId: w.productId,
-      distributorId: w.distributorId,
-      lastKnownStatus: w.lastKnownStatus,
-    }));
+    const stockWatches = settings.stockAlerts
+      ? (await getStockWatches()).map((w) => ({
+          id: w.id,
+          productId: w.productId,
+          distributorId: w.distributorId,
+          lastKnownStatus: w.lastKnownStatus,
+        }))
+      : [];
 
     const dateReminders = (await getBackOrderReminders())
       .filter((r) => r.reminderType === "date")
@@ -122,14 +147,10 @@ async function runSyncServerNotifications(): Promise<void> {
         reminderDate: r.reminderDate,
       }));
 
-    const { getPendingHealthEvents, clearPendingHealthEvents } =
-      await import("./storage");
-    const pendingHealthEvents = await getPendingHealthEvents();
-
-    await uploadNotificationConfig(
+    const uploadOk = await uploadNotificationConfig(
       deviceId,
       { alerts: activeAlerts, stockWatches, dateReminders },
-      pendingHealthEvents.length > 0
+      settings.healthAlerts && pendingHealthEvents.length > 0
         ? pendingHealthEvents.map((e) => ({
             id: `health-${e.distributorId}-${e.status}-${e.createdAt}`,
             distributorId: e.distributorId,
@@ -142,7 +163,10 @@ async function runSyncServerNotifications(): Promise<void> {
         : undefined,
     );
 
-    if (pendingHealthEvents.length > 0) {
+    if (
+      pendingHealthEvents.length > 0 &&
+      (uploadOk || !settings.healthAlerts)
+    ) {
       await clearPendingHealthEvents();
     }
 

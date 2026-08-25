@@ -46,6 +46,8 @@ export const watchlistItems = mysqlTable(
     productId: varchar("productId", { length: 191 }).notNull(),
     data: json("data"),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
+    /** Client-clock timestamp of the last accepted write (LWW ordering). */
+    clientUpdatedAtMs: bigint("clientUpdatedAtMs", { mode: "number" }),
     deletedAtMs: bigint("deletedAtMs", { mode: "number" }),
   },
   (table) => [primaryKey({ columns: [table.userId, table.productId] })],
@@ -60,6 +62,8 @@ export const priceAlerts = mysqlTable(
     alertId: varchar("alertId", { length: 191 }).notNull(),
     data: json("data"),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
+    /** Client-clock timestamp of the last accepted write (LWW ordering). */
+    clientUpdatedAtMs: bigint("clientUpdatedAtMs", { mode: "number" }),
     deletedAtMs: bigint("deletedAtMs", { mode: "number" }),
   },
   (table) => [primaryKey({ columns: [table.userId, table.alertId] })],
@@ -74,6 +78,8 @@ export const backOrderReminders = mysqlTable(
     reminderId: varchar("reminderId", { length: 191 }).notNull(),
     data: json("data"),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
+    /** Client-clock timestamp of the last accepted write (LWW ordering). */
+    clientUpdatedAtMs: bigint("clientUpdatedAtMs", { mode: "number" }),
     deletedAtMs: bigint("deletedAtMs", { mode: "number" }),
   },
   (table) => [primaryKey({ columns: [table.userId, table.reminderId] })],
@@ -86,6 +92,8 @@ export const appSettings = mysqlTable("app_settings", {
     .primaryKey(),
   data: json("data"),
   updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
+  /** Client-clock timestamp of the last accepted write (LWW ordering). */
+  clientUpdatedAtMs: bigint("clientUpdatedAtMs", { mode: "number" }),
   deletedAtMs: bigint("deletedAtMs", { mode: "number" }),
 });
 
@@ -174,17 +182,27 @@ export type DeviceNotificationConfigRow =
 export type InsertDeviceNotificationConfigRow =
   typeof deviceNotificationConfigs.$inferInsert;
 
-export const notificationEvents = mysqlTable("notification_events", {
-  id: varchar("id", { length: 128 }).notNull().primaryKey(),
-  userId: int("userId").references(() => users.id),
-  deviceId: varchar("deviceId", { length: 128 }),
-  type: varchar("type", { length: 16 }).notNull(),
-  dedupKey: varchar("dedupKey", { length: 255 }).notNull(),
-  title: text("title").notNull(),
-  body: text("body").notNull(),
-  payload: json("payload"),
-  createdAt: bigint("createdAt", { mode: "number" }).notNull(),
-});
+export const notificationEvents = mysqlTable(
+  "notification_events",
+  {
+    id: varchar("id", { length: 128 }).notNull().primaryKey(),
+    userId: int("userId").references(() => users.id),
+    deviceId: varchar("deviceId", { length: 128 }),
+    type: varchar("type", { length: 16 }).notNull(),
+    dedupKey: varchar("dedupKey", { length: 255 }).notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    payload: json("payload"),
+    createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("notif_events_user_dedup").on(table.userId, table.dedupKey),
+    uniqueIndex("notif_events_device_dedup").on(
+      table.deviceId,
+      table.dedupKey,
+    ),
+  ],
+);
 
 export type NotificationEventRow = typeof notificationEvents.$inferSelect;
 export type InsertNotificationEventRow = typeof notificationEvents.$inferInsert;

@@ -15,12 +15,15 @@ export function getRandomUserAgent(): string {
 
 export function inferStockStatus(text: string): StockStatus {
   const lower = text.toLowerCase();
+  // Negative markers must win over substring matches like "available" in
+  // "unavailable" or weak signals like "Backorder available".
   if (
-    lower.includes("in stock") ||
-    lower.includes("available") ||
-    lower.includes("add to cart")
+    lower.includes("out of stock") ||
+    lower.includes("unavailable") ||
+    lower.includes("not available") ||
+    lower.includes("sold out")
   ) {
-    return "in_stock";
+    return "out_of_stock";
   }
   if (
     lower.includes("back order") ||
@@ -31,11 +34,11 @@ export function inferStockStatus(text: string): StockStatus {
     return "back_order";
   }
   if (
-    lower.includes("out of stock") ||
-    lower.includes("unavailable") ||
-    lower.includes("sold out")
+    lower.includes("in stock") ||
+    lower.includes("available") ||
+    lower.includes("add to cart")
   ) {
-    return "out_of_stock";
+    return "in_stock";
   }
   return "unknown";
 }
@@ -60,10 +63,22 @@ export async function fetchWithRateLimit(
 }
 
 export function parsePriceFromText(text: string): number | null {
-  const match = text.match(/\d[\d,]*\.?\d*/);
+  // Capture digit runs including space/NBSP grouping and both separator
+  // styles so "€ 1.234,56" / "R 12 345.67" survive intact.
+  const match = text.match(/\d(?:[\d,. \u00a0\u202f]*\d)?/);
   if (!match) return null;
-  const cleaned = match[0].replace(/,/g, "");
-  const num = parseFloat(cleaned);
+  const raw = match[0].replace(/[\s\u00a0\u202f]/g, "");
+  const lastDot = raw.lastIndexOf(".");
+  const lastComma = raw.lastIndexOf(",");
+  let normalized: string;
+  if (lastComma > lastDot && !/^\d{1,3}(,\d{3})+$/.test(raw)) {
+    // Comma is the decimal separator (e.g. "1.234,56", "12,5"); the
+    // groups-of-three exception keeps US thousands like "12,345" intact.
+    normalized = raw.replace(/\./g, "").replace(/,/g, ".");
+  } else {
+    normalized = raw.replace(/,/g, "");
+  }
+  const num = parseFloat(normalized);
   return isNaN(num) || num === 0 ? null : num;
 }
 

@@ -261,70 +261,63 @@ async function applyLocalItem(
   switch (collection) {
     case "watchlist": {
       const incoming = data as Product;
-      const list = await storage.getWatchlist();
-      const existing = list.find((p) => p.id === incoming.id);
-      if (existing) {
-        const merged: Product = {
-          ...incoming,
-          listings: incoming.listings.map((l) => {
-            const local = existing.listings.find(
-              (el) => el.distributorId === l.distributorId,
-            );
-            return local
-              ? {
-                  ...l,
-                  priceHistory: mergePriceHistory(
-                    local.priceHistory,
-                    l.priceHistory ?? [],
-                    PRICE_HISTORY_DAYS,
-                  ),
-                }
-              : l;
-          }),
-        };
-        await storage.saveWatchlist(
-          list.map((p) => (p.id === incoming.id ? merged : p)),
-        );
-      } else {
-        await storage.saveWatchlist([
-          ...list,
-          { ...incoming, isWatched: true },
-        ]);
-      }
+      await storage.updateWatchlist((list) => {
+        const existing = list.find((p) => p.id === incoming.id);
+        if (!existing) {
+          return [...list, { ...incoming, isWatched: true }];
+        }
+        return list.map((p) => {
+          if (p.id !== incoming.id) return p;
+          return {
+            ...incoming,
+            listings: incoming.listings.map((l) => {
+              const local = existing.listings.find(
+                (el) => el.distributorId === l.distributorId,
+              );
+              return local
+                ? {
+                    ...l,
+                    priceHistory: mergePriceHistory(
+                      local.priceHistory,
+                      l.priceHistory ?? [],
+                      PRICE_HISTORY_DAYS,
+                    ),
+                  }
+                : l;
+            }),
+          };
+        });
+      });
       break;
     }
     case "alerts": {
       const incoming = data as PriceAlert;
-      const alerts = await storage.getAlerts();
-      const existing = alerts.find((a) => a.id === incoming.id);
-      if (existing) {
-        await storage.saveAlerts(
-          alerts.map((a) => (a.id === incoming.id ? incoming : a)),
-        );
-      } else {
-        await storage.saveAlerts([...alerts, incoming]);
-      }
+      await storage.updateAlerts((alerts) => {
+        const existing = alerts.find((a) => a.id === incoming.id);
+        if (existing) {
+          return alerts.map((a) => (a.id === incoming.id ? incoming : a));
+        }
+        return [...alerts, incoming];
+      });
       break;
     }
     case "reminders": {
       const incoming = data as BackOrderReminder;
       const targetWatches = incoming.reminderType === "back_in_stock";
-      const reminders = await storage.getBackOrderReminders();
-      const watches = await storage.getStockWatches();
       if (targetWatches) {
-        const existing = watches.find((w) => w.id === incoming.id);
-        await storage.saveStockWatches(
-          existing
+        await storage.updateStockWatches((watches) => {
+          const existing = watches.find((w) => w.id === incoming.id);
+          return existing
             ? watches.map((w) => (w.id === incoming.id ? incoming : w))
-            : [...watches, incoming],
-        );
+            : [...watches, incoming];
+        });
       } else {
-        const existing = reminders.find((r) => r.id === incoming.id);
-        await storage.saveBackOrderReminders(
-          existing
+        await storage.updateReminders((reminders) => {
+          const existing = reminders.find((r) => r.id === incoming.id);
+          return existing
             ? reminders.map((r) => (r.id === incoming.id ? incoming : r))
-            : [...reminders, incoming],
-        );
+            : [...reminders, incoming];
+        });
       }
       break;
     }
@@ -342,22 +335,24 @@ async function removeLocalItem(
 ): Promise<void> {
   switch (collection) {
     case "watchlist": {
-      const list = await storage.getWatchlist();
-      await storage.saveWatchlist(list.filter((p) => p.id !== id));
+      await storage.updateWatchlist((list) =>
+        list.filter((p) => p.id !== id),
+      );
       break;
     }
     case "alerts": {
-      const alerts = await storage.getAlerts();
-      await storage.saveAlerts(alerts.filter((a) => a.id !== id));
+      await storage.updateAlerts((alerts) =>
+        alerts.filter((a) => a.id !== id),
+      );
       break;
     }
     case "reminders": {
-      const reminders = await storage.getBackOrderReminders();
-      const watches = await storage.getStockWatches();
-      await storage.saveBackOrderReminders(
+      await storage.updateReminders((reminders) =>
         reminders.filter((r) => r.id !== id),
       );
-      await storage.saveStockWatches(watches.filter((w) => w.id !== id));
+      await storage.updateStockWatches((watches) =>
+        watches.filter((w) => w.id !== id),
+      );
       break;
     }
     case "settings":

@@ -31,6 +31,7 @@ interface DistributorListingSectionProps {
   onSetBestAlert: (listing: DistributorListing) => void;
   onToggleStockWatch: (listing: DistributorListing) => void;
   onOpenChart: (listing: DistributorListing) => void;
+  onRemind?: (listing: DistributorListing) => void;
 }
 
 export function DistributorListingSection({
@@ -49,6 +50,7 @@ export function DistributorListingSection({
   onSetBestAlert,
   onToggleStockWatch,
   onOpenChart,
+  onRemind,
 }: DistributorListingSectionProps) {
   const colors = useColors();
 
@@ -281,6 +283,7 @@ export function DistributorListingSection({
               stockWatches={stockWatches}
               onToggleStockWatch={onToggleStockWatch}
               onOpenChart={onOpenChart}
+              onRemind={onRemind}
             />
           ))}
         </>

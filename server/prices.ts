@@ -111,7 +111,11 @@ export async function warmProductImages(count: number): Promise<number> {
   return toGenerate.length;
 }
 
+let warmerTickInFlight = false;
+
 export async function runWarmerTick(): Promise<void> {
+  if (warmerTickInFlight) return;
+  warmerTickInFlight = true;
   try {
     await refreshNearExpiry(Date.now());
     await warmCatalogRotation(CATALOG_WARM_PER_TICK);
@@ -120,6 +124,8 @@ export async function runWarmerTick(): Promise<void> {
     await purgeOldHistory(Date.now());
   } catch (error) {
     console.warn("[Prices] Warmer tick failed:", error);
+  } finally {
+    warmerTickInFlight = false;
   }
 }
 

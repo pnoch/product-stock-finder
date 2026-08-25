@@ -3,7 +3,9 @@ import {
   listingsForAlert,
   scopedAlertFor,
   productWideAlert,
+  alertDeltaPct,
 } from "../lib/alert-scope";
+import { convertPrice } from "../lib/currency";
 import type { PriceAlert } from "../lib/types";
 
 const listings = [
@@ -69,5 +71,29 @@ describe("productWideAlert", () => {
       alert({ id: "w2", distributorId: "d1" }),
     ];
     expect(productWideAlert(alerts, "p1")?.id).toBe("w1");
+  });
+});
+
+describe("alertDeltaPct", () => {
+  it("returns null instead of throwing when there is no alert", () => {
+    expect(alertDeltaPct({ price: 449, currency: "GBP" }, null)).toBeNull();
+  });
+
+  it("computes the converted percentage vs target", () => {
+    const a = alert({ id: "x1", targetPrice: 500, currency: "USD" });
+    // 449 GBP converts to well above 500 USD at static rates
+    const pct = alertDeltaPct({ price: 449, currency: "GBP" }, a);
+    expect(pct).not.toBeNull();
+    expect(pct).toBeGreaterThan(0);
+    expect(pct).toBe(
+      Math.round(
+        ((convertPrice(449, "GBP", "USD") - 500) / 500) * 100,
+      ),
+    );
+  });
+
+  it("returns negative pct when price is below target", () => {
+    const a = alert({ id: "x2", targetPrice: 600, currency: "USD" });
+    expect(alertDeltaPct({ price: 100, currency: "USD" }, a)).toBeLessThan(0);
   });
 });

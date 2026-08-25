@@ -2,35 +2,14 @@ import { useMemo } from "react";
 import { Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
-import { formatPrice, convertPrice } from "@/lib/currency";
+import { formatPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
+import { cheapestByRegion } from "@/lib/compare-utils";
 
 export function CheapestRegionCard({ listings }: { listings: DistributorListing[] }) {
   const colors = useColors();
 
-  const regionBest = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        listing: DistributorListing;
-        usd: number;
-        distributor: ReturnType<typeof getDistributorById>;
-      }
-    >();
-    for (const l of listings) {
-      const dist = getDistributorById(l.distributorId);
-      if (!dist) continue;
-      const region = dist.region ?? "Other";
-      const usd = convertPrice(l.price, l.currency, "USD");
-      const existing = map.get(region);
-      if (!existing || usd < existing.usd) {
-        map.set(region, { listing: l, usd, distributor: dist });
-      }
-    }
-    return Array.from(map.entries())
-      .map(([region, data]) => ({ region, ...data }))
-      .sort((a, b) => a.usd - b.usd);
-  }, [listings]);
+  const regionBest = useMemo(() => cheapestByRegion(listings), [listings]);
 
   if (regionBest.length === 0) return null;
 
@@ -58,6 +37,7 @@ export function CheapestRegionCard({ listings }: { listings: DistributorListing[
       </Text>
       {regionBest.map((item, i) => {
         const isCheapest = i === 0;
+        const distributor = getDistributorById(item.listing.distributorId);
         return (
           <View
             key={item.region}
@@ -98,10 +78,10 @@ export function CheapestRegionCard({ listings }: { listings: DistributorListing[
                   fontSize: 13,
                 }}
               >
-                {item.distributor?.countryFlag} {item.region}
+                {distributor?.countryFlag} {item.region}
               </Text>
               <Text style={{ color: colors.muted, fontSize: 11, marginTop: 1 }}>
-                {item.distributor?.name ?? item.listing.distributorId}
+                {distributor?.name ?? item.listing.distributorId}
               </Text>
             </View>
             <View style={{ alignItems: "flex-end" }}>

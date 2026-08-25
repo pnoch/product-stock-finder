@@ -128,3 +128,85 @@ describe("prices router", () => {
     );
   });
 });
+
+describe("prices.uploadHistory validation", () => {
+  const validPoint = {
+    date: "2026-08-01T00:00:00.000Z",
+    price: 90,
+    currency: "MYR",
+    stockStatus: "in_stock" as const,
+  };
+
+  beforeEach(() => vi.clearAllMocks());
+
+  it("rejects an unparseable date", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    await expect(
+      caller.prices.uploadHistory({
+        distributorId: "server2u-my",
+        modelNumber: "CRS804",
+        points: [{ ...validPoint, date: "not-a-date" }],
+      }),
+    ).rejects.toThrow();
+    expect(mockedMergeHistory).not.toHaveBeenCalled();
+  });
+
+  it("rejects a non-finite price", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    await expect(
+      caller.prices.uploadHistory({
+        distributorId: "server2u-my",
+        modelNumber: "CRS804",
+        points: [{ ...validPoint, price: Infinity }],
+      }),
+    ).rejects.toThrow();
+    expect(mockedMergeHistory).not.toHaveBeenCalled();
+  });
+
+  it("rejects a zero or negative price", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    await expect(
+      caller.prices.uploadHistory({
+        distributorId: "server2u-my",
+        modelNumber: "CRS804",
+        points: [{ ...validPoint, price: 0 }],
+      }),
+    ).rejects.toThrow();
+    expect(mockedMergeHistory).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized identifiers", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    await expect(
+      caller.prices.uploadHistory({
+        distributorId: "d".repeat(65),
+        modelNumber: "CRS804",
+        points: [validPoint],
+      }),
+    ).rejects.toThrow();
+    await expect(
+      caller.prices.uploadHistory({
+        distributorId: "server2u-my",
+        modelNumber: "m".repeat(129),
+        points: [validPoint],
+      }),
+    ).rejects.toThrow();
+    expect(mockedMergeHistory).not.toHaveBeenCalled();
+  });
+
+  it("caps the number of points per upload", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const points = Array.from({ length: 201 }, (_, i) => ({
+      ...validPoint,
+      date: `2026-01-${String((i % 28) + 1).padStart(2, "0")}T00:00:00.000Z`,
+    }));
+    await expect(
+      caller.prices.uploadHistory({
+        distributorId: "server2u-my",
+        modelNumber: "CRS804",
+        points,
+      }),
+    ).rejects.toThrow();
+    expect(mockedMergeHistory).not.toHaveBeenCalled();
+  });
+});

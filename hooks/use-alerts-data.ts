@@ -87,14 +87,17 @@ export function useAlertsData() {
 
   const handleSnoozeAlert = useCallback(
     (alertId: string) => {
+      const apply = async (days: number) => {
+        await snoozeAlert(alertId, days);
+        await loadData();
+      };
       showAlert("Snooze Alert", "Pause notifications for this alert.", [
-        { text: "1 day", onPress: () => void snoozeAlert(alertId, 1) },
-        { text: "7 days", onPress: () => void snoozeAlert(alertId, 7) },
-        { text: "30 days", onPress: () => void snoozeAlert(alertId, 30) },
-        { text: "Wake now", onPress: () => void snoozeAlert(alertId, 0) },
+        { text: "1 day", onPress: () => void apply(1) },
+        { text: "7 days", onPress: () => void apply(7) },
+        { text: "30 days", onPress: () => void apply(30) },
+        { text: "Wake now", onPress: () => void apply(0) },
         { text: "Cancel", style: "cancel" as const },
       ]);
-      void loadData();
     },
     [loadData],
   );
@@ -177,6 +180,7 @@ export function useAlertsData() {
       rescheduleTarget.productName,
       rescheduleTarget.distributorName,
       rescheduleDate,
+      rescheduleTarget.productId,
     );
     await addBackOrderReminder({
       ...rescheduleTarget,

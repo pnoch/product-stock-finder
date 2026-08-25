@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   deviceNotificationConfigs,
   notificationEvents,
@@ -75,7 +75,10 @@ async function processHealthEvents(
     };
 
     if (db) {
-      await db.insert(notificationEvents).values(dbEvent);
+      await db
+        .insert(notificationEvents)
+        .values(dbEvent)
+        .onDuplicateKeyUpdate({ set: { id: sql`id` } });
     } else {
       memoryEvents.set(event.id, dbEvent as MemoryEvent);
     }
