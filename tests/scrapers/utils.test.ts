@@ -1,0 +1,96 @@
+import { describe, expect, it } from "vitest";
+import * as cheerio from "cheerio";
+import {
+  matchesModel,
+  productRowContext,
+  modelMismatch,
+} from "../../lib/scrapers/utils";
+
+describe("matchesModel", () => {
+  it("matches the spec-table positives", () => {
+    expect(
+      matchesModel("MikroTik CRS804-4DDQ-hRM RouterOS7", "CRS804-4DDQ-hRM"),
+    ).toBe(true);
+    expect(matchesModel("hEX-S (RouterOS L4)", "hEX S")).toBe(true);
+    expect(matchesModel("crs326 24g 2s plus switch", "CRS326-24G-2S+")).toBe(
+      true,
+    );
+  });
+
+  it("rejects prefix/suffix SKU extensions", () => {
+    expect(matchesModel("RB5009UG+S+IN", "RB5009")).toBe(false);
+    expect(matchesModel("hEX", "hEX S")).toBe(false);
+  });
+
+  it("rejects embedded occurrences", () => {
+    expect(matchesModel("xRB5009y", "RB5009")).toBe(false);
+    expect(matchesModel("4032CRS804 kit", "CRS804")).toBe(false);
+  });
+
+  it("is case-insensitive and separator-flexible", () => {
+    expect(
+      matchesModel("MIKROTIK CRS804-4DDQ-HRM", "CrS804-4DdQ-hRm"),
+    ).toBe(true);
+    expect(matchesModel("RB5009UG+S+IN", "rb5009ug s in")).toBe(true);
+  });
+
+  it("accepts when only a later candidate sits on boundaries", () => {
+    expect(matchesModel("xRB5009 y RB5009 z", "RB5009")).toBe(true);
+  });
+
+  it("returns false for empty or unusable inputs", () => {
+    expect(matchesModel("", "RB5009")).toBe(false);
+    expect(matchesModel("some text", "")).toBe(false);
+    expect(matchesModel("some text", "   ")).toBe(false);
+  });
+});
+
+describe("productRowContext", () => {
+  const ROW_HTML = `<html><body><table>
+    <tr class="product">
+      <td><a href="/p/crs804">MikroTik CRS804</a></td>
+      <td><span class="price">$480.00</span></td>
+    </tr>
+  </table></body></html>`;
+
+  it("climbs to the row container and extracts text + href", () => {
+    const $ = cheerio.load(ROW_HTML);
+    const ctx = productRowContext($, $(".price").first());
+    expect(ctx.text).toContain("MikroTik CRS804");
+    expect(ctx.href).toBe("/p/crs804");
+  });
+
+  it("falls back to the element itself when no container matches", () => {
+    const $ = cheerio.load(`<div><span class="price">$5.00</span></div>`);
+    const ctx = productRowContext($, $(".price").first());
+    expect(ctx.text).toContain("$5.00");
+    expect(ctx.href).toBe("");
+  });
+});
+
+describe("modelMismatch", () => {
+  const ROW_HTML = `<html><body><table>
+    <tr class="product">
+      <td><a href="/p/crs804">MikroTik CRS804</a></td>
+      <td><span class="price">$480.00</span></td>
+    </tr>
+  </table></body></html>`;
+  const $ = cheerio.load(ROW_HTML);
+
+  it("is false when no model is provided", () => {
+    expect(modelMismatch($, $(".price").first(), undefined)).toBe(false);
+  });
+
+  it("is true when the row names a different product", () => {
+    expect(modelMismatch($, $(".price").first(), "CRS326-24G-2S+")).toBe(true);
+  });
+
+  it("is false when the row names the requested product", () => {
+    expect(modelMismatch($, $(".price").first(), "CRS804")).toBe(false);
+  });
+
+  it("accepts (false) when the context is empty", () => {
+    const bare = cheerio.load(`<span>   </span>`);
+    expect(modelMismatch(bare, bare("span").first(), "CRS804")).toBe(false);
+  });
+});

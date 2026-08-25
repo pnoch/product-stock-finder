@@ -1,5 +1,7 @@
 import { StockStatus } from "../types";
 import { DistributorParser } from "./types";
+import type { Cheerio, CheerioAPI } from "cheerio";
+import type { Element } from "domhandler";
 
 export const USER_AGENTS = [
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
@@ -95,4 +97,54 @@ export async function fetchWithParser(
     }
   }
   return fetchWithRateLimit(url, parser.rateLimitMs);
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function matchesModel(text: string, model: string): boolean {
+  const needle = model.trim();
+  if (!needle || !text) return false;
+  let pattern = "";
+  for (const ch of needle) {
+    pattern += /[a-z0-9]/i.test(ch) ? escapeRegExp(ch) : "[^a-z0-9]*?";
+  }
+  let re: RegExp;
+  try {
+    re = new RegExp(pattern, "gi");
+  } catch {
+    return false;
+  }
+  for (const match of text.matchAll(re)) {
+    const start = match.index;
+    const end = start + match[0].length;
+    const before = start > 0 ? text[start - 1]! : "";
+    const after = end < text.length ? text[end]! : "";
+    if (!/[a-z0-9]/i.test(before) && !/[a-z0-9]/i.test(after)) return true;
+  }
+  return false;
+}
+
+export function productRowContext(
+  $: CheerioAPI,
+  $el: Cheerio<Element>,
+): { text: string; href: string } {
+  const row = $el
+    .closest("tr, article, .product, .product-item, .item, .product-card, li")
+    .first();
+  const container = row.length ? row : $el;
+  const href = container.find("a[href]").first().attr("href") ?? "";
+  return { text: container.text(), href };
+}
+
+export function modelMismatch(
+  $: CheerioAPI,
+  $el: Cheerio<Element>,
+  model?: string,
+): boolean {
+  if (!model) return false;
+  const { text, href } = productRowContext($, $el);
+  if (!text.trim() && !href) return false;
+  return !(matchesModel(text, model) || matchesModel(href, model));
 }
