@@ -872,3 +872,24 @@
 - [x] Add digestDayOfWeek setting
 - [x] Weekly digests fire on the chosen weekday
 - [x] Add Price Digest frequency + day pickers to Settings (fixes missing enable UI)
+
+## Phase 106: Audit Hardening (v6.6)
+
+- [x] Sync LWW clientUpdatedAtMs columns (migration 0014)
+- [x] Notification event dedup indexes + orphan cleanup (migration 0015)
+- [x] OAuth callback single-use code replay guard
+- [x] Scraper/browser resilience fixes
+
+## Phase 107: Auth-Gated Notification Endpoints (v6.7)
+
+- [x] uploadConfig / pull / registerPushToken require sign-in (protectedProcedure)
+- [x] Server derives deviceId from context (session claim → x-device-id header)
+- [x] assertDeviceAccess ownership guard (unbound adopts, foreign rejects)
+- [x] Web notification poll gates on auth state; desktop sends x-device-id header
+
+## Phase 108: Parser Model Verification (v6.8)
+
+- [x] matchesModel boundary-aware matcher + productRowContext/modelMismatch helpers
+- [x] parsePrice(html, model?) contract; all 25 parsers verify priced row vs requested model
+- [x] Mismatch = miss: no cache/history write, existing health error path
+- [x] Cross-parser guard tests over full registry
