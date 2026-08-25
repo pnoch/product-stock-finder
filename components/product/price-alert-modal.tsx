@@ -26,6 +26,7 @@ interface PriceAlertModalProps {
   onSelectDistributor?: (id: string | null) => void;
   direction?: "drop" | "rise";
   onDirectionChange?: (direction: "drop" | "rise") => void;
+  editingAlertId?: string;
 }
 
 export function PriceAlertModal({
@@ -43,6 +44,7 @@ export function PriceAlertModal({
   onSelectDistributor,
   direction,
   onDirectionChange,
+  editingAlertId,
 }: PriceAlertModalProps) {
   const colors = useColors();
 
@@ -71,7 +73,7 @@ export function PriceAlertModal({
               marginBottom: 6,
             }}
           >
-            Set Price Alert
+            {editingAlertId ? "Edit Alert" : "Set Price Alert"}
           </Text>
           <Text
             style={{ color: colors.muted, fontSize: 14, marginBottom: 20 }}
@@ -323,7 +325,7 @@ export function PriceAlertModal({
               }}
             >
               <Text style={{ color: "#fff", fontWeight: "600" }}>
-                Set Alert
+                {editingAlertId ? "Save Changes" : "Set Alert"}
               </Text>
             </TouchableOpacity>
           </View>

@@ -6,6 +6,10 @@ import {
   RefreshControl,
   Platform,
 } from "react-native";
+import { useCallback, useState } from "react";
+import type { PriceAlert } from "@/lib/types";
+import { updateAlert } from "@/lib/storage";
+import { PriceAlertModal } from "@/components/product/price-alert-modal";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 
@@ -15,6 +19,7 @@ import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAlertsData } from "@/hooks/use-alerts-data";
+import { showAlert } from "@/lib/alert";
 
 import { TabSwitcher } from "@/components/alerts/tab-switcher";
 import { AlertCard } from "@/components/alerts/alert-card";
@@ -32,13 +37,34 @@ export default function AlertsScreen() {
     refreshing, onRefresh,
     setUnreadNotifications,
     handleToggle, handleDeleteAlert, handleDeleteReminder,
-    handleSnoozeAlert,
+    handleSnoozeAlert, handleUpdateAlert,
     handleRemoveStockWatch, handleReschedule, handleRearmAlert,
     getProductName, triggeredAlerts, totalSaved, tabCount,
     rescheduleTarget, setRescheduleTarget,
     rescheduleDate, setRescheduleDate,
     showReschedulePicker, setShowReschedulePicker,
   } = useAlertsData();
+
+  const [editingAlert, setEditingAlert] = useState<PriceAlert | null>(null);
+  const [editPrice, setEditPrice] = useState("");
+  const [editCurrency, setEditCurrency] = useState("USD");
+  const [editDirection, setEditDirection] = useState<"drop" | "rise">("drop");
+  const [editDistributorId, setEditDistributorId] = useState<string | null>(
+    null,
+  );
+
+  const handleEditAlert = useCallback(
+    (alertId: string) => {
+      const alert = alerts.find((a) => a.id === alertId);
+      if (!alert) return;
+      setEditingAlert(alert);
+      setEditPrice(String(alert.targetPrice));
+      setEditCurrency(alert.currency);
+      setEditDirection(alert.direction ?? "drop");
+      setEditDistributorId(alert.distributorId ?? null);
+    },
+    [alerts],
+  );
 
   return (
     <ScreenContainer>
@@ -255,6 +281,7 @@ export default function AlertsScreen() {
               onToggle={handleToggle}
               onDelete={handleDeleteAlert}
               onSnooze={handleSnoozeAlert}
+              onEdit={handleEditAlert}
             />
           )}
         />
@@ -410,6 +437,40 @@ export default function AlertsScreen() {
           setRescheduleTarget(null);
           setShowReschedulePicker(false);
         }}
+      />
+
+      <PriceAlertModal
+        visible={!!editingAlert}
+        editingAlertId={editingAlert?.id}
+        onClose={() => setEditingAlert(null)}
+        onSetAlert={async () => {
+          if (!editingAlert) return;
+          const price = parseFloat(editPrice);
+          if (isNaN(price) || price <= 0) {
+            showAlert("Invalid Price", "Please enter a valid target price.");
+            return;
+          }
+          await updateAlert(editingAlert.id, {
+            targetPrice: price,
+            currency: editCurrency,
+            direction: editDirection,
+            distributorId: editDistributorId,
+          });
+          setEditingAlert(null);
+          showAlert("Alert Updated", "Your changes have been saved.");
+        }}
+        alertPrice={editPrice}
+        setAlertPrice={setEditPrice}
+        alertCurrency={editCurrency}
+        setAlertCurrency={setEditCurrency}
+        productName={
+          editingAlert ? getProductName(editingAlert.productId) : ""
+        }
+        direction={editDirection}
+        onDirectionChange={setEditDirection}
+        distributors={[]}
+        selectedDistributorId={editDistributorId}
+        onSelectDistributor={setEditDistributorId}
       />
     </ScreenContainer>
   );

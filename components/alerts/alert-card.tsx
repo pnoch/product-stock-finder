@@ -11,6 +11,7 @@ type AlertCardProps = {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onSnooze?: (id: string) => void;
+  onEdit?: (id: string) => void;
 };
 
 export function AlertCard({
@@ -19,6 +20,7 @@ export function AlertCard({
   onToggle,
   onDelete,
   onSnooze,
+  onEdit,
 }: AlertCardProps) {
   const colors = useColors();
   const snoozed =
@@ -126,6 +128,14 @@ export function AlertCard({
               }}
               thumbColor={alert.isActive ? colors.primary : colors.muted}
             />
+          )}
+          {onEdit && (
+            <TouchableOpacity
+              onPress={() => onEdit(alert.id)}
+              style={{ padding: 4 }}
+            >
+              <IconSymbol name="pencil" size={16} color={colors.primary} />
+            </TouchableOpacity>
           )}
           {onSnooze && !alert.triggeredAt && (
             <TouchableOpacity

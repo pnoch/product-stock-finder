@@ -7,6 +7,7 @@ import {
   getAlerts,
   removeAlert,
   snoozeAlert,
+  updateAlert,
   toggleAlert,
   getWatchlist,
   getBackOrderReminders,
@@ -94,6 +95,22 @@ export function useAlertsData() {
         { text: "Cancel", style: "cancel" as const },
       ]);
       void loadData();
+    },
+    [loadData],
+  );
+
+  const handleUpdateAlert = useCallback(
+    async (
+      alertId: string,
+      patch: {
+        targetPrice: number;
+        currency: string;
+        direction: "drop" | "rise";
+        distributorId: string | null;
+      },
+    ) => {
+      await updateAlert(alertId, patch);
+      await loadData();
     },
     [loadData],
   );
@@ -226,6 +243,7 @@ export function useAlertsData() {
     handleToggle,
     handleDeleteAlert,
     handleSnoozeAlert,
+    handleUpdateAlert,
     handleDeleteReminder,
     handleRemoveStockWatch,
     handleReschedule,

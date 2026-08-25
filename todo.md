@@ -842,3 +842,9 @@
 - [x] Carry productId in all product notification payloads
 - [x] Route notification taps to product/stats/health screens
 - [x] Server-pulled events preserve productId through local re-scheduling
+
+## Phase 101: Alert Editing (v6.1)
+
+- [x] Add updateAlert storage method (patch semantics, auto re-arm)
+- [x] Edit-mode copy in PriceAlertModal
+- [x] Pencil entry on alert cards opens prefilled modal on alerts tab

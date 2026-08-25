@@ -61,6 +61,36 @@ export function createAlertsStorage(ctx: StorageContext) {
     });
   }
 
+  async function updateAlert(
+    alertId: string,
+    patch: {
+      targetPrice?: number;
+      currency?: string;
+      direction?: "drop" | "rise";
+      distributorId?: string | null;
+    },
+  ): Promise<void> {
+    await enqueue(KEYS.ALERTS, async () => {
+      const alerts = await getAlerts();
+      const updated = alerts.map((a) => {
+        if (a.id !== alertId) return a;
+        const next: PriceAlert = { ...a };
+        if (patch.targetPrice !== undefined)
+          next.targetPrice = patch.targetPrice;
+        if (patch.currency !== undefined) next.currency = patch.currency;
+        if (patch.direction !== undefined) next.direction = patch.direction;
+        if (patch.distributorId !== undefined)
+          next.distributorId = patch.distributorId ?? undefined;
+        // Field changes re-arm the alert and clear stale trigger info
+        next.triggeredAt = undefined;
+        next.triggeredPrice = undefined;
+        return next;
+      });
+      await saveAlerts(updated);
+      notify("alerts", alertId);
+    });
+  }
+
   async function rearmAlert(alertId: string): Promise<void> {
     await enqueue(KEYS.ALERTS, async () => {
       const alerts = await getAlerts();
@@ -107,6 +137,7 @@ export function createAlertsStorage(ctx: StorageContext) {
     removeAlert,
     toggleAlert,
     snoozeAlert,
+    updateAlert,
     rearmAlert,
     deactivateAlert,
   };
