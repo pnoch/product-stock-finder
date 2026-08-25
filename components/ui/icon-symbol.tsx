@@ -42,6 +42,7 @@ const MAPPING = {
   "arrow.up": "arrow-upward",
   "arrow.down": "arrow-downward",
   "moon.zzz.fill": "bedtime",
+  "newspaper.fill": "article",
   "checkmark.circle.fill": "check-circle",
   "xmark.circle.fill": "cancel",
   "exclamationmark.triangle.fill": "warning",
