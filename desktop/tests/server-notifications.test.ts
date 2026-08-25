@@ -74,7 +74,7 @@ describe("syncDesktopNotifications", () => {
     await syncDesktopNotifications();
     expect(state.uploaded).toHaveLength(1);
     const input = state.uploaded[0] as Record<string, unknown>;
-    expect(input.deviceId).toBeTruthy();
+    expect(input.deviceId).toBeUndefined();
     const alerts = input.alerts as Array<{ id: string }>;
     expect(alerts.map((a) => a.id)).toContain("a1");
     expect(state.notifications).toEqual([
@@ -185,9 +185,10 @@ describe("syncDesktopNotifications", () => {
   });
 
   it("persists a stable device id in localStorage", async () => {
-    await syncDesktopNotifications();
-    await syncDesktopNotifications();
-    const ids = state.uploaded.map((u) => (u as { deviceId: string }).deviceId);
-    expect(ids[0]).toBe(ids[1]);
+    const { getDesktopDeviceId } = await import("../src/lib/device-id");
+    const first = await getDesktopDeviceId();
+    const second = await getDesktopDeviceId();
+    expect(first).toBeTruthy();
+    expect(first).toBe(second);
   });
 });

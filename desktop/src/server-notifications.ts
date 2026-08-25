@@ -1,7 +1,6 @@
 import { storage } from "./storage";
 import { createTRPCClient } from "./lib/trpc";
 
-const DEVICE_ID_KEY = "device_id";
 const TIMEOUT_MS = 4000;
 
 interface PushConfig {
@@ -37,33 +36,11 @@ interface PushEvent {
   triggeredPrice?: number;
 }
 
-function generateId(): string {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return crypto.randomUUID();
-  }
-  return `dev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-async function getDesktopDeviceId(): Promise<string> {
-  let id = await localStorage.getItem(DEVICE_ID_KEY);
-  if (!id) {
-    id = generateId();
-    await localStorage.setItem(DEVICE_ID_KEY, id);
-  }
-  return id;
-}
-
-async function uploadConfig(
-  deviceId: string,
-  config: PushConfig,
-): Promise<boolean> {
+async function uploadConfig(config: PushConfig): Promise<boolean> {
   try {
     const client = createTRPCClient();
     await Promise.race([
-      client.notifications.uploadConfig.mutate({ deviceId, ...config }),
+      client.notifications.uploadConfig.mutate({ ...config }),
       new Promise<null>((resolve) =>
         setTimeout(() => resolve(null), TIMEOUT_MS),
       ),
@@ -74,11 +51,11 @@ async function uploadConfig(
   }
 }
 
-async function pullEvents(deviceId: string): Promise<PushEvent[]> {
+async function pullEvents(): Promise<PushEvent[]> {
   try {
     const client = createTRPCClient();
     const result = await Promise.race([
-      client.notifications.pull.query({ deviceId }),
+      client.notifications.pull.query({}),
       new Promise<null>((resolve) =>
         setTimeout(() => resolve(null), TIMEOUT_MS),
       ),
@@ -103,7 +80,6 @@ async function reconcileEvent(event: PushEvent): Promise<void> {
 
 export async function syncDesktopNotifications(): Promise<void> {
   try {
-    const deviceId = await getDesktopDeviceId();
     const alerts = await storage.getAlerts();
     const activeAlerts = alerts
       .filter((a) => a.isActive && !a.triggeredAt)
@@ -130,13 +106,13 @@ export async function syncDesktopNotifications(): Promise<void> {
         reminderDate: r.reminderDate,
       }));
 
-    await uploadConfig(deviceId, {
+    await uploadConfig({
       alerts: activeAlerts,
       stockWatches,
       dateReminders,
     });
 
-    const events = await pullEvents(deviceId);
+    const events = await pullEvents();
     const { sendDesktopNotification } = await import("./notifications");
     for (const event of events) {
       try {

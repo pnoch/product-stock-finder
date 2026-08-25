@@ -1,6 +1,6 @@
 import { StockStatus } from "../types";
 import { DistributorParser } from "./types";
-import type { Cheerio, CheerioAPI } from "cheerio";
+import type { Cheerio } from "cheerio";
 import type { Element } from "domhandler";
 
 export const USER_AGENTS = [
@@ -127,7 +127,6 @@ export function matchesModel(text: string, model: string): boolean {
 }
 
 export function productRowContext(
-  $: CheerioAPI,
   $el: Cheerio<Element>,
 ): { text: string; href: string } {
   const row = $el
@@ -139,12 +138,11 @@ export function productRowContext(
 }
 
 export function modelMismatch(
-  $: CheerioAPI,
   $el: Cheerio<Element>,
   model?: string,
 ): boolean {
   if (!model) return false;
-  const { text, href } = productRowContext($, $el);
+  const { text, href } = productRowContext($el);
   if (!text.trim() && !href) return false;
   return !(matchesModel(text, model) || matchesModel(href, model));
 }

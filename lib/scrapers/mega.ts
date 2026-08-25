@@ -18,7 +18,7 @@ function parseHtml(
   const $price = $(".product-price, .price, [data-price], [itemprop='price']").first();
   const price = parsePriceFromText($price.text());
   if (!price) return null;
-  if (modelMismatch($, $price, model)) return null;
+  if (modelMismatch($price, model)) return null;
 
   const stockText = $(".stock-status, .availability, .stock, .product-stock")
     .first()

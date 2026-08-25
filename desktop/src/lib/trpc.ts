@@ -4,6 +4,7 @@ import superjson from "superjson";
 import type { AppRouter } from "../../../server/routers";
 import { getSessionToken } from "../hooks/use-auth";
 import { getApiBaseUrl } from "./api-base";
+import { getDesktopDeviceId } from "./device-id";
 
 export const trpc = createTRPCReact<AppRouter>();
 
@@ -15,7 +16,11 @@ export function createTRPCClient() {
         transformer: superjson,
         async headers() {
           const token = getSessionToken();
-          return token ? { Authorization: `Bearer ${token}` } : {};
+          const deviceId = await getDesktopDeviceId();
+          return {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            "x-device-id": deviceId,
+          };
         },
       }),
     ],

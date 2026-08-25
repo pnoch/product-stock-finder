@@ -55,14 +55,14 @@ describe("productRowContext", () => {
 
   it("climbs to the row container and extracts text + href", () => {
     const $ = cheerio.load(ROW_HTML);
-    const ctx = productRowContext($, $(".price").first());
+    const ctx = productRowContext($(".price").first());
     expect(ctx.text).toContain("MikroTik CRS804");
     expect(ctx.href).toBe("/p/crs804");
   });
 
   it("falls back to the element itself when no container matches", () => {
     const $ = cheerio.load(`<div><span class="price">$5.00</span></div>`);
-    const ctx = productRowContext($, $(".price").first());
+    const ctx = productRowContext($(".price").first());
     expect(ctx.text).toContain("$5.00");
     expect(ctx.href).toBe("");
   });
@@ -78,19 +78,19 @@ describe("modelMismatch", () => {
   const $ = cheerio.load(ROW_HTML);
 
   it("is false when no model is provided", () => {
-    expect(modelMismatch($, $(".price").first(), undefined)).toBe(false);
+    expect(modelMismatch($(".price").first(), undefined)).toBe(false);
   });
 
   it("is true when the row names a different product", () => {
-    expect(modelMismatch($, $(".price").first(), "CRS326-24G-2S+")).toBe(true);
+    expect(modelMismatch($(".price").first(), "CRS326-24G-2S+")).toBe(true);
   });
 
   it("is false when the row names the requested product", () => {
-    expect(modelMismatch($, $(".price").first(), "CRS804")).toBe(false);
+    expect(modelMismatch($(".price").first(), "CRS804")).toBe(false);
   });
 
   it("accepts (false) when the context is empty", () => {
     const bare = cheerio.load(`<span>   </span>`);
-    expect(modelMismatch(bare, bare("span").first(), "CRS804")).toBe(false);
+    expect(modelMismatch(bare("span").first(), "CRS804")).toBe(false);
   });
 });
