@@ -41,6 +41,36 @@ export function createWatchlistStorage(ctx: StorageContext) {
     });
   }
 
+  async function updateProductDetails(
+    productId: string,
+    fields: {
+      name?: string;
+      modelNumber?: string;
+      brand?: string;
+      category?: string;
+      description?: string;
+    },
+  ): Promise<void> {
+    await enqueue(KEYS.WATCHLIST, async () => {
+      const list = await getWatchlist();
+      const updated = list.map((p) => {
+        if (p.id !== productId) return p;
+        const next: Product = { ...p };
+        if (fields.name?.trim()) next.name = fields.name.trim();
+        if (fields.modelNumber?.trim())
+          next.modelNumber = fields.modelNumber.trim();
+        if (fields.brand !== undefined) next.brand = fields.brand.trim();
+        if (fields.category !== undefined)
+          next.category = fields.category.trim();
+        if (fields.description !== undefined)
+          next.description = fields.description.trim();
+        return next;
+      });
+      await saveWatchlist(updated);
+      notify("watchlist", productId);
+    });
+  }
+
   async function updateProductListings(
     productId: string,
     listings: DistributorListing[],
@@ -69,6 +99,7 @@ export function createWatchlistStorage(ctx: StorageContext) {
     saveWatchlist,
     addToWatchlist,
     removeFromWatchlist,
+    updateProductDetails,
     updateProductListings,
     refreshWatchlistPrices,
   };

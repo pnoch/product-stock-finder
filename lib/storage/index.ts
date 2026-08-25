@@ -26,6 +26,7 @@ export function createStorage(
     saveWatchlist,
     addToWatchlist,
     removeFromWatchlist,
+    updateProductDetails,
     updateProductListings,
     refreshWatchlistPrices,
   } = watchlist;
@@ -81,6 +82,7 @@ export const {
   saveWatchlist,
   addToWatchlist,
   removeFromWatchlist,
+  updateProductDetails,
   updateProductListings,
   refreshWatchlistPrices,
   getAlerts,

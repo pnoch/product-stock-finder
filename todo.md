@@ -848,3 +848,9 @@
 - [x] Add updateAlert storage method (patch semantics, auto re-arm)
 - [x] Edit-mode copy in PriceAlertModal
 - [x] Pencil entry on alert cards opens prefilled modal on alerts tab
+
+## Phase 102: Product Editing (v6.2)
+
+- [x] Add updateProductDetails storage method
+- [x] Add editable product details sheet
+- [x] Pencil entry on ProductInfoCard

@@ -22,6 +22,7 @@ import {
   getWatchlist,
   addAlert,
   getAlerts,
+  updateProductDetails,
   getStockWatches,
   addStockWatch,
   removeStockWatch,
@@ -37,6 +38,7 @@ import { getDistributorById } from "@/lib/distributors";
 import { buildShareText, buildShareRows } from "@/lib/price-share";
 import { computePriceVsAverage } from "@/lib/price-average";
 import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
+import { EditProductSheet } from "@/components/product/edit-product-sheet";
 import { captureAndShareImage } from "@/lib/share-image";
 import { ProductShareCard } from "@/components/share/product-share-card";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
@@ -82,6 +84,7 @@ export default function ProductDetailScreen() {
     "drop",
   );
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
+  const [editSheetVisible, setEditSheetVisible] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [shippingRegion, setShippingRegion] = useState("Asia-Pacific");
   const [regionFilter, setRegionFilter] = useState<string>("all");
@@ -598,9 +601,16 @@ export default function ProductDetailScreen() {
           }
           displayCurrency={displayCurrency}
           productImage={productImage}
+          onEditDetails={() => setEditSheetVisible(true)}
         />
 
         <NotesCard productId={id} />
+
+        <EditProductSheet
+          visible={editSheetVisible}
+          onClose={() => setEditSheetVisible(false)}
+          product={product}
+        />
 
         {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} />}
 

@@ -1,5 +1,6 @@
 import {
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
@@ -24,6 +25,7 @@ interface ProductInfoCardProps {
   lastUpdatedAt?: string;
   displayCurrency: string;
   productImage: string | null;
+  onEditDetails?: () => void;
 }
 
 export function ProductInfoCard({
@@ -33,6 +35,7 @@ export function ProductInfoCard({
   lastUpdatedAt,
   displayCurrency,
   productImage,
+  onEditDetails,
 }: ProductInfoCardProps) {
   const colors = useColors();
 
@@ -74,9 +77,20 @@ export function ProductInfoCard({
             {product.brand}
           </Text>
         </View>
-        <Text style={{ color: colors.muted, fontSize: 13 }}>
-          {product.category}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Text style={{ color: colors.muted, fontSize: 13 }}>
+            {product.category}
+          </Text>
+          {onEditDetails && (
+            <TouchableOpacity
+              onPress={onEditDetails}
+              hitSlop={8}
+              style={{ padding: 2 }}
+            >
+              <IconSymbol name="pencil" size={14} color={colors.muted} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
       <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
         {product.description}
