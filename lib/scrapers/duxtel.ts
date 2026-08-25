@@ -4,17 +4,21 @@ import {
   fetchWithRateLimit,
   parsePriceFromText,
   inferStockStatus,
+  modelMismatch,
 } from "./utils";
 import { getTaxRate } from "../tax";
 
-function parseHtml(html: string, url: string): ScrapeResult | null {
+function parseHtml(
+  html: string,
+  url: string,
+  model?: string,
+): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(".product-price, .price, [data-product-price]")
-    .first()
-    .text();
-  const price = parsePriceFromText(priceText);
+  const $price = $(".product-price, .price, [data-product-price]").first();
+  const price = parsePriceFromText($price.text());
   if (!price) return null;
+  if (modelMismatch($, $price, model)) return null;
 
   const stockText = $(".stock-status, .availability, .product-stock")
     .first()
@@ -35,7 +39,8 @@ export const duxtelParser: DistributorParser = {
   baseUrl: "https://store.duxtel.com",
   buildSearchUrl: (model) =>
     `https://store.duxtel.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://store.duxtel.com"),
+  parsePrice: (html, model) =>
+    parseHtml(html, "https://store.duxtel.com", model),
   rateLimitMs: 3000,
 };
 
@@ -45,7 +50,7 @@ export async function scrapeDuxtel(
   try {
     const url = duxtelParser.buildSearchUrl(model);
     const html = await fetchWithRateLimit(url, duxtelParser.rateLimitMs);
-    return parseHtml(html, url);
+    return parseHtml(html, url, model);
   } catch {
     return null;
   }

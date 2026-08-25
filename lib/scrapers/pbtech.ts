@@ -1,16 +1,24 @@
 import * as cheerio from "cheerio";
 import { DistributorParser, ScrapeResult } from "./types";
-import { fetchWithParser, parsePriceFromText, inferStockStatus } from "./utils";
+import {
+  fetchWithParser,
+  parsePriceFromText,
+  inferStockStatus,
+  modelMismatch,
+} from "./utils";
 import { getTaxRate } from "../tax";
 
-function parseHtml(html: string, url: string): ScrapeResult | null {
+function parseHtml(
+  html: string,
+  url: string,
+  model?: string,
+): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(".price, .product-price, [data-product-price]")
-    .first()
-    .text();
-  const price = parsePriceFromText(priceText);
+  const $price = $(".price, .product-price, [data-product-price]").first();
+  const price = parsePriceFromText($price.text());
   if (!price) return null;
+  if (modelMismatch($, $price, model)) return null;
 
   const stockText = $(".stock, .availability, .product-stock, .stock-status")
     .first()
@@ -31,7 +39,7 @@ export const pbtechParser: DistributorParser = {
   baseUrl: "https://pbtech.co.nz",
   buildSearchUrl: (model) =>
     `https://pbtech.co.nz/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://pbtech.co.nz"),
+  parsePrice: (html, model) => parseHtml(html, "https://pbtech.co.nz", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {
@@ -45,7 +53,7 @@ export async function scrapePbtech(
   try {
     const url = pbtechParser.buildSearchUrl(model);
     const html = await fetchWithParser(pbtechParser, url);
-    return parseHtml(html, url);
+    return parseHtml(html, url, model);
   } catch {
     return null;
   }

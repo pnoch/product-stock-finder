@@ -4,17 +4,21 @@ import {
   fetchWithRateLimit,
   parsePriceFromText,
   inferStockStatus,
+  modelMismatch,
 } from "./utils";
 import { getTaxRate } from "../tax";
 
-function parseHtml(html: string, url: string): ScrapeResult | null {
+function parseHtml(
+  html: string,
+  url: string,
+  model?: string,
+): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(".product-price, .price, [data-product-price]")
-    .first()
-    .text();
-  const price = parsePriceFromText(priceText);
+  const $price = $(".product-price, .price, [data-product-price]").first();
+  const price = parsePriceFromText($price.text());
   if (!price) return null;
+  if (modelMismatch($, $price, model)) return null;
 
   const stockText = $(".stock-status, .availability, .product-stock")
     .first()
@@ -35,7 +39,7 @@ export const gearupParser: DistributorParser = {
   baseUrl: "https://gearup.me",
   buildSearchUrl: (model) =>
     `https://gearup.me/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://gearup.me"),
+  parsePrice: (html, model) => parseHtml(html, "https://gearup.me", model),
   rateLimitMs: 3000,
 };
 
@@ -45,7 +49,7 @@ export async function scrapeGearup(
   try {
     const url = gearupParser.buildSearchUrl(model);
     const html = await fetchWithRateLimit(url, gearupParser.rateLimitMs);
-    return parseHtml(html, url);
+    return parseHtml(html, url, model);
   } catch {
     return null;
   }
