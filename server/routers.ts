@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -22,6 +23,7 @@ import { upsertPushToken } from "./push-notifications";
 import {
   listDevicesForUser,
   getDeviceBinding,
+  assertDeviceAccess,
   renameDevice,
   signOutDevice,
   cleanupStaleDevices,
@@ -168,10 +170,9 @@ export const appRouter = router({
   }),
 
   notifications: router({
-    uploadConfig: publicProcedure
+    uploadConfig: protectedProcedure
       .input(
         z.object({
-          deviceId: z.string().min(1).max(128),
           alerts: z.array(
             z.object({
               id: z.string().min(1),
@@ -215,42 +216,52 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input, ctx }) => {
+        if (!ctx.deviceId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Missing device id",
+          });
+        }
+        await assertDeviceAccess(ctx.user.id, ctx.deviceId);
         await upsertDeviceConfig(
-          input.deviceId,
+          ctx.deviceId,
           {
             alerts: input.alerts,
             stockWatches: input.stockWatches,
             dateReminders: input.dateReminders,
             healthEvents: input.healthEvents,
           },
-          ctx.user?.id ?? null,
+          ctx.user.id,
         );
         return { accepted: true } as const;
       }),
-    pull: publicProcedure
-      .input(z.object({ deviceId: z.string().min(1).max(128) }))
-      .query(async ({ input, ctx }) => {
-        const events = await pullPendingEvents(
-          input.deviceId,
-          ctx.user?.id ?? undefined,
-        );
-        return { events };
-      }),
-    registerPushToken: publicProcedure
+    pull: protectedProcedure.input(z.object({})).query(async ({ ctx }) => {
+      if (!ctx.deviceId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Missing device id",
+        });
+      }
+      await assertDeviceAccess(ctx.user.id, ctx.deviceId);
+      const events = await pullPendingEvents(ctx.deviceId, ctx.user.id);
+      return { events };
+    }),
+    registerPushToken: protectedProcedure
       .input(
         z.object({
-          deviceId: z.string().min(1).max(128),
           token: z.string().min(1).max(2048),
           platform: z.enum(["ios", "android", "web"]),
         }),
       )
       .mutation(async ({ input, ctx }) => {
-        await upsertPushToken(
-          input.deviceId,
-          input.token,
-          input.platform,
-          ctx.user?.id ?? null,
-        );
+        if (!ctx.deviceId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Missing device id",
+          });
+        }
+        await assertDeviceAccess(ctx.user.id, ctx.deviceId);
+        await upsertPushToken(ctx.deviceId, input.token, input.platform, ctx.user.id);
         return { accepted: true } as const;
       }),
   }),

@@ -77,14 +77,13 @@ describe("uploadNotificationConfig", () => {
   it("uploads the config and returns true", async () => {
     const mutate = vi.fn().mockResolvedValue({ accepted: true });
     mockClient({ uploadConfig: mutate });
-    const ok = await uploadNotificationConfig("dev-1", {
+    const ok = await uploadNotificationConfig({
       alerts: [],
       stockWatches: [],
       dateReminders: [],
     });
     expect(ok).toBe(true);
     expect(mutate).toHaveBeenCalledWith({
-      deviceId: "dev-1",
       alerts: [],
       stockWatches: [],
       dateReminders: [],
@@ -95,7 +94,7 @@ describe("uploadNotificationConfig", () => {
     mockClient({
       uploadConfig: vi.fn().mockRejectedValue(new Error("network")),
     });
-    const ok = await uploadNotificationConfig("dev-1", {
+    const ok = await uploadNotificationConfig({
       alerts: [],
       stockWatches: [],
       dateReminders: [],
@@ -111,14 +110,14 @@ describe("pullNotificationEvents", () => {
   it("returns events from the server", async () => {
     const query = vi.fn().mockResolvedValue({ events: [{ id: "e1" }] });
     mockClient({ pull: query });
-    const events = await pullNotificationEvents("dev-1");
+    const events = await pullNotificationEvents();
     expect(events).toEqual([{ id: "e1" }]);
-    expect(query).toHaveBeenCalledWith({ deviceId: "dev-1" });
+    expect(query).toHaveBeenCalledWith({});
   });
 
   it("returns an empty array when the query rejects", async () => {
     mockClient({ pull: vi.fn().mockRejectedValue(new Error("network")) });
-    const events = await pullNotificationEvents("dev-1");
+    const events = await pullNotificationEvents();
     expect(events).toEqual([]);
   });
 
@@ -133,7 +132,7 @@ describe("pullNotificationEvents", () => {
             ),
         ),
     });
-    const events = await pullNotificationEvents("dev-1");
+    const events = await pullNotificationEvents();
     expect(events).toEqual([]);
   });
 });
@@ -179,7 +178,6 @@ describe("uploadNotificationConfig with healthEvents", () => {
     const mutate = vi.fn().mockResolvedValue({ accepted: true });
     mockClient({ uploadConfig: mutate });
     const ok = await uploadNotificationConfig(
-      "dev-1",
       {
         alerts: [],
         stockWatches: [],
@@ -199,7 +197,6 @@ describe("uploadNotificationConfig with healthEvents", () => {
     );
     expect(ok).toBe(true);
     expect(mutate).toHaveBeenCalledWith({
-      deviceId: "dev-1",
       alerts: [],
       stockWatches: [],
       dateReminders: [],
@@ -225,7 +222,7 @@ describe("uploadNotificationConfig timeout semantics", () => {
       mockClient({
         uploadConfig: () => new Promise(() => {}),
       });
-      const promise = uploadNotificationConfig("dev-1", {
+      const promise = uploadNotificationConfig({
         alerts: [],
         stockWatches: [],
         dateReminders: [],

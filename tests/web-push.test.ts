@@ -117,7 +117,6 @@ describe("web push client", () => {
     expect(result).toBe(true);
     expect(state.mutateCalls).toHaveLength(1);
     expect(state.mutateCalls[0]!.platform).toBe("web");
-    expect(state.mutateCalls[0]!.deviceId).toBe("web-dev-1");
     expect(JSON.parse(state.mutateCalls[0]!.token)).toEqual(state.subscription);
   });
 

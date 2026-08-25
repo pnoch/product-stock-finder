@@ -7,7 +7,6 @@ import type {
 const TIMEOUT_MS = 4000;
 
 export async function uploadNotificationConfig(
-  deviceId: string,
   config: NotificationConfig,
   healthEvents?: Array<{
     id: string;
@@ -23,7 +22,6 @@ export async function uploadNotificationConfig(
     const client = createTRPCClient();
     const result = await Promise.race([
       client.notifications.uploadConfig.mutate({
-        deviceId,
         ...config,
         healthEvents,
       }).then(() => true as const),
@@ -51,13 +49,11 @@ export async function uploadHealthEventToServer(event: {
   await savePendingHealthEvents(pending);
 }
 
-export async function pullNotificationEvents(
-  deviceId: string,
-): Promise<NotificationEvent[]> {
+export async function pullNotificationEvents(): Promise<NotificationEvent[]> {
   try {
     const client = createTRPCClient();
     const result = await Promise.race([
-      client.notifications.pull.query({ deviceId }),
+      client.notifications.pull.query({}),
       new Promise<null>((resolve) =>
         setTimeout(() => resolve(null), TIMEOUT_MS),
       ),
@@ -80,7 +76,6 @@ export function syncServerNotifications(): Promise<void> {
 
 async function runSyncServerNotifications(): Promise<void> {
   try {
-    const { getDeviceId } = await import("./device-id");
     const {
       getSettings,
       getAlerts,
@@ -91,7 +86,6 @@ async function runSyncServerNotifications(): Promise<void> {
       recordNotificationEvent,
     } = await import("./storage");
     const { scheduleServerEventNotification } = await import("./notifications");
-    const deviceId = await getDeviceId();
 
     const { getPendingHealthEvents, clearPendingHealthEvents } =
       await import("./storage");
@@ -102,7 +96,7 @@ async function runSyncServerNotifications(): Promise<void> {
     // drop the health buffer (intentional suppression, not loss), and skip
     // pulling/displaying events entirely.
     if (!settings.notificationsEnabled) {
-      await uploadNotificationConfig(deviceId, {
+      await uploadNotificationConfig({
         alerts: [],
         stockWatches: [],
         dateReminders: [],
@@ -148,7 +142,6 @@ async function runSyncServerNotifications(): Promise<void> {
       }));
 
     const uploadOk = await uploadNotificationConfig(
-      deviceId,
       { alerts: activeAlerts, stockWatches, dateReminders },
       settings.healthAlerts && pendingHealthEvents.length > 0
         ? pendingHealthEvents.map((e) => ({
@@ -171,7 +164,7 @@ async function runSyncServerNotifications(): Promise<void> {
     }
 
     const displayedIds = new Set(await getDisplayedEventIds());
-    const events = await pullNotificationEvents(deviceId);
+    const events = await pullNotificationEvents();
     for (const event of events) {
       await recordNotificationEvent(event);
       const staleFired =

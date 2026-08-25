@@ -36,10 +36,6 @@ vi.mock("expo-notifications", () => ({
   getExpoPushTokenAsync: vi.fn(async () => ({ data: state.token })),
 }));
 
-vi.mock("../lib/device-id", () => ({
-  getDeviceId: vi.fn(async () => "dev-1"),
-}));
-
 vi.mock("../lib/trpc", () => ({
   createTRPCClient: vi.fn(() => ({
     notifications: {
@@ -66,7 +62,6 @@ describe("registerPushToken", () => {
     await registerPushToken();
     expect(state.mutateCalls).toHaveLength(1);
     expect(state.mutateCalls[0]).toEqual({
-      deviceId: "dev-1",
       token: "ExponentPushToken[mobile]",
       platform: "ios",
     });

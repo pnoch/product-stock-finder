@@ -1,5 +1,4 @@
 import { Platform } from "react-native";
-import { getDeviceId } from "./device-id";
 import { createTRPCClient } from "./trpc";
 
 const SW_PATH = "/sw.js";
@@ -52,10 +51,8 @@ export async function subscribeWebPush(): Promise<boolean> {
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(applicationServerKey),
     });
-    const deviceId = await getDeviceId();
     const client = createTRPCClient();
     await client.notifications.registerPushToken.mutate({
-      deviceId,
       token: JSON.stringify(subscription),
       platform: "web",
     });
