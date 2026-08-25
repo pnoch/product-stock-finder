@@ -20,6 +20,7 @@ vi.mock("expo-server-sdk", () => ({
 import {
   listDevicesForUser,
   getDeviceBinding,
+  assertDeviceAccess,
   unbindDevice,
   renameDevice,
   unrevokeDevice,
@@ -605,5 +606,35 @@ describe("signOutDevice ordering (memory backend)", () => {
     // Config and token must be gone
     const devices = await listDevicesForUser(7);
     expect(devices.find((d) => d.deviceId === "dev-x")).toBeUndefined();
+  });
+});
+
+describe("assertDeviceAccess", () => {
+  beforeEach(() => {
+    clearDevicesForTests();
+    clearNotificationsForTests();
+    clearPushTokensForTests();
+    mockedGetDb.mockResolvedValue(null);
+  });
+
+  it("allows an unbound device (first-touch adopt)", async () => {
+    await expect(assertDeviceAccess(7, "dev-new")).resolves.toBeUndefined();
+  });
+
+  it("allows the owning user", async () => {
+    await upsertDeviceConfig("dev-1", baseConfig, 7);
+    await expect(assertDeviceAccess(7, "dev-1")).resolves.toBeUndefined();
+  });
+
+  it("allows a device bound via a push token", async () => {
+    await upsertPushToken("dev-2", "ExponentPushToken[abc]", "ios", 7);
+    await expect(assertDeviceAccess(7, "dev-2")).resolves.toBeUndefined();
+  });
+
+  it("rejects a device bound to another user", async () => {
+    await upsertDeviceConfig("dev-1", baseConfig, 7);
+    await expect(assertDeviceAccess(8, "dev-1")).rejects.toThrow(
+      "Notification device belongs to another account",
+    );
   });
 });

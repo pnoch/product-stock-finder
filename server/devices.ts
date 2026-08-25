@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { and, eq, isNull, or } from "drizzle-orm";
 import {
   deviceLabels,
@@ -110,6 +111,18 @@ export async function getDeviceBinding(
     .from(devicePushTokens)
     .where(eq(devicePushTokens.deviceId, deviceId));
   return { userId: tokenRows[0]?.userId ?? null };
+}
+
+export async function assertDeviceAccess(
+  userId: number,
+  deviceId: string,
+): Promise<void> {
+  const { userId: boundTo } = await getDeviceBinding(deviceId);
+  if (boundTo === null || boundTo === userId) return;
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message: "Notification device belongs to another account",
+  });
 }
 
 export async function unbindDevice(
