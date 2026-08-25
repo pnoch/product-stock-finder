@@ -74,13 +74,27 @@ function stopPushDedupListener(): void {
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let focusListener: (() => void) | null = null;
 
+async function isAuthenticatedClient(): Promise<boolean> {
+  try {
+    const { getUserInfo } = await import("./_core/auth");
+    return Boolean(await getUserInfo());
+  } catch {
+    return false;
+  }
+}
+
+async function pollTick(): Promise<void> {
+  if (!(await isAuthenticatedClient())) return;
+  void syncServerNotifications();
+}
+
 function startPolling(): void {
   if (pollTimer) return;
   pollTimer = setInterval(() => {
-    void syncServerNotifications();
+    void pollTick();
   }, POLL_INTERVAL_MS);
   focusListener = () => {
-    void syncServerNotifications();
+    void pollTick();
   };
   window.addEventListener("focus", focusListener);
 }

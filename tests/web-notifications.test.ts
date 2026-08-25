@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   syncCalls: 0,
   webNotificationsEnabled: false,
   recordedEventIds: [] as string[],
+  authenticated: true,
 }));
 
 vi.mock("react-native", () => ({
@@ -41,6 +42,21 @@ vi.mock("../lib/server-notifications", () => ({
   syncServerNotifications: vi.fn(async () => {
     state.syncCalls += 1;
   }),
+}));
+
+vi.mock("../lib/_core/auth", () => ({
+  getUserInfo: vi.fn(async () =>
+    state.authenticated
+      ? ({
+          id: 1,
+          openId: "open-1",
+          name: null,
+          email: null,
+          loginMethod: null,
+          lastSignedIn: new Date(),
+        } as const)
+      : null,
+  ),
 }));
 
 vi.mock("../lib/web-push", () => ({
@@ -81,6 +97,7 @@ describe("web notifications", () => {
     state.displayed = [];
     state.syncCalls = 0;
     state.webNotificationsEnabled = false;
+    state.authenticated = true;
     window.isSecureContext = true;
     MockNotification.permission = state.permission;
     MockNotification.requestPermission.mockClear();
@@ -232,6 +249,34 @@ describe("web notifications", () => {
       );
     }
     expect(state.recordedEventIds).toContain("evt-9");
+    cleanup();
+  });
+
+  it("poll skips syncServerNotifications when signed out", async () => {
+    state.authenticated = false;
+    state.webNotificationsEnabled = true;
+    state.permission = "granted";
+    MockNotification.permission = "granted";
+    vi.useFakeTimers();
+    const cleanup = setupWebNotifications();
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(state.syncCalls).toBe(0);
+    cleanup();
+  });
+
+  it("poll resumes when the user signs in mid-session", async () => {
+    state.authenticated = false;
+    state.webNotificationsEnabled = true;
+    state.permission = "granted";
+    MockNotification.permission = "granted";
+    vi.useFakeTimers();
+    const cleanup = setupWebNotifications();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(state.syncCalls).toBe(0);
+    state.authenticated = true;
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(state.syncCalls).toBe(1);
     cleanup();
   });
 });
