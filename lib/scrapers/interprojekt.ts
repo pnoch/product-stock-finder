@@ -4,15 +4,21 @@ import {
   fetchWithRateLimit,
   parsePriceFromText,
   inferStockStatus,
+  modelMismatch,
 } from "./utils";
 import { getTaxRate } from "../tax";
 
-function parseHtml(html: string, url: string): ScrapeResult | null {
+function parseHtml(
+  html: string,
+  url: string,
+  model?: string,
+): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(".price").first().text();
-  const price = parsePriceFromText(priceText);
+  const $price = $(".price").first();
+  const price = parsePriceFromText($price.text());
   if (!price) return null;
+  if (modelMismatch($, $price, model)) return null;
 
   const stockText = $(".stock_status, .stock-status").first().text();
   const stockStatus = inferStockStatus(stockText);
@@ -31,7 +37,7 @@ export const interprojektParser: DistributorParser = {
   baseUrl: "https://interprojekt.pl",
   buildSearchUrl: (model) =>
     `https://interprojekt.pl/en/catalogsearch/result/?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://interprojekt.pl"),
+  parsePrice: (html, model) => parseHtml(html, "https://interprojekt.pl", model),
   rateLimitMs: 3000,
 };
 
@@ -41,7 +47,7 @@ export async function scrapeInterprojekt(
   try {
     const url = interprojektParser.buildSearchUrl(model);
     const html = await fetchWithRateLimit(url, interprojektParser.rateLimitMs);
-    return parseHtml(html, url);
+    return parseHtml(html, url, model);
   } catch {
     return null;
   }

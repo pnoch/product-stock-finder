@@ -4,19 +4,21 @@ import {
   fetchWithRateLimit,
   parsePriceFromText,
   inferStockStatus,
+  modelMismatch,
 } from "./utils";
 import { getTaxRate } from "../tax";
 
-function parseHtml(html: string, url: string): ScrapeResult | null {
+function parseHtml(
+  html: string,
+  url: string,
+  model?: string,
+): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(
-    ".price__current, [data-price-container], .productitem__price",
-  )
-    .first()
-    .text();
-  const price = parsePriceFromText(priceText);
+  const $price = $(".price__current, [data-price-container], .productitem__price").first();
+  const price = parsePriceFromText($price.text());
   if (!price) return null;
+  if (modelMismatch($, $price, model)) return null;
 
   const stockText = $(".productitem__stock, .stock, .availability")
     .first()
@@ -37,7 +39,7 @@ export const balticnetworksParser: DistributorParser = {
   baseUrl: "https://balticnetworks.com",
   buildSearchUrl: (model) =>
     `https://balticnetworks.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://balticnetworks.com"),
+  parsePrice: (html, model) => parseHtml(html, "https://balticnetworks.com", model),
   rateLimitMs: 3000,
 };
 
@@ -50,7 +52,7 @@ export async function scrapeBalticNetworks(
       url,
       balticnetworksParser.rateLimitMs,
     );
-    return parseHtml(html, url);
+    return parseHtml(html, url, model);
   } catch {
     return null;
   }

@@ -4,19 +4,21 @@ import {
   fetchWithRateLimit,
   parsePriceFromText,
   inferStockStatus,
+  modelMismatch,
 } from "./utils";
 import { getTaxRate } from "../tax";
 
-function parseHtml(html: string, url: string): ScrapeResult | null {
+function parseHtml(
+  html: string,
+  url: string,
+  model?: string,
+): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(
-    "[data-product-price-without-tax], .price--withoutTax.price-primary, .price-section--withoutTax, .price",
-  )
-    .first()
-    .text();
-  const price = parsePriceFromText(priceText);
+  const $price = $("[data-product-price-without-tax], .price--withoutTax.price-primary, .price-section--withoutTax, .price").first();
+  const price = parsePriceFromText($price.text());
   if (!price) return null;
+  if (modelMismatch($, $price, model)) return null;
 
   const stockText = $(
     ".card-section--availability, .button--disabled, .stock-status",
@@ -39,7 +41,7 @@ export const flytecParser: DistributorParser = {
   baseUrl: "https://flytechelectronics.com",
   buildSearchUrl: (model) =>
     `https://flytechelectronics.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://flytechelectronics.com"),
+  parsePrice: (html, model) => parseHtml(html, "https://flytechelectronics.com", model),
   rateLimitMs: 3000,
 };
 
@@ -49,7 +51,7 @@ export async function scrapeFlytec(
   try {
     const url = flytecParser.buildSearchUrl(model);
     const html = await fetchWithRateLimit(url, flytecParser.rateLimitMs);
-    return parseHtml(html, url);
+    return parseHtml(html, url, model);
   } catch {
     return null;
   }

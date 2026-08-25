@@ -1,16 +1,24 @@
 import * as cheerio from "cheerio";
 import { DistributorParser, ScrapeResult } from "./types";
-import { fetchWithParser, parsePriceFromText, inferStockStatus } from "./utils";
+import {
+  fetchWithParser,
+  parsePriceFromText,
+  inferStockStatus,
+  modelMismatch,
+} from "./utils";
 import { getTaxRate } from "../tax";
 
-function parseHtml(html: string, url: string): ScrapeResult | null {
+function parseHtml(
+  html: string,
+  url: string,
+  model?: string,
+): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const priceText = $(".product-link, .nobr, td a[href*='/products/'], .price")
-    .first()
-    .text();
-  const price = parsePriceFromText(priceText);
+  const $price = $(".product-link, .nobr, td a[href*='/products/'], .price").first();
+  const price = parsePriceFromText($price.text());
   if (!price) return null;
+  if (modelMismatch($, $price, model)) return null;
 
   const stockText = $(
     ".stock, .availability, .stock-status, td:contains('In Stock')",
@@ -33,7 +41,7 @@ export const winncomParser: DistributorParser = {
   baseUrl: "https://winncom.com",
   buildSearchUrl: (model) =>
     `https://winncom.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html) => parseHtml(html, "https://winncom.com"),
+  parsePrice: (html, model) => parseHtml(html, "https://winncom.com", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {
@@ -47,7 +55,7 @@ export async function scrapeWinncom(
   try {
     const url = winncomParser.buildSearchUrl(model);
     const html = await fetchWithParser(winncomParser, url);
-    return parseHtml(html, url);
+    return parseHtml(html, url, model);
   } catch {
     return null;
   }
