@@ -155,7 +155,9 @@ async function runSyncServerNotifications(): Promise<void> {
         event.alertId &&
         !activeAlertIds.has(event.alertId);
       if (!staleFired && !displayedIds.has(event.id)) {
-        await scheduleServerEventNotification(event.title, event.body);
+        await scheduleServerEventNotification(event.title, event.body, {
+          productId: event.productId,
+        });
         await recordDisplayedEventId(event.id);
       }
       await reconcileEvent(event);

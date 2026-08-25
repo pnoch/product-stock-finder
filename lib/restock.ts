@@ -53,6 +53,7 @@ async function runCheckRestocks(): Promise<void> {
             distrib?.name ?? watch.distributorName,
             currentListing.price,
             currentListing.currency,
+            watch.productId,
           );
         } catch {
           // Notification failure must not prevent watch removal

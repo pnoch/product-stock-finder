@@ -133,7 +133,7 @@ export default function CompareScreen() {
       isActive: true,
     };
     await addAlert(alert);
-    await schedulePriceAlert(productName || "Product", targetUSD, "USD");
+    await schedulePriceAlert(productName || "Product", targetUSD, "USD", id);
     showAlert(
       "Alert Set!",
       `You'll be notified when any distributor drops below $${targetUSD.toFixed(2)} (5% below current best of $${bestUSD.toFixed(2)} at ${dist?.name ?? bestListing.distributorId}).`,

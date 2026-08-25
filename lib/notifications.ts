@@ -62,6 +62,7 @@ export async function scheduleStockAlert(
   distributorName: string,
   price: number,
   currency: string,
+  productId?: string,
 ): Promise<string | null> {
   if (Platform.OS === "web") return null;
   try {
@@ -69,7 +70,7 @@ export async function scheduleStockAlert(
       content: {
         title: "🟢 Back In Stock!",
         body: `${productName} is now available at ${distributorName} for ${currency} ${price.toFixed(2)}`,
-        data: { type: "stock_alert", productName, distributorName },
+        data: { type: "stock_alert", productName, distributorName, productId },
         sound: "default",
       },
       trigger: null, // immediate
@@ -175,6 +176,7 @@ export async function schedulePriceAlert(
   productName: string,
   targetPrice: number,
   currency: string,
+  productId?: string,
 ): Promise<string | null> {
   if (Platform.OS === "web") return null;
   try {
@@ -182,7 +184,7 @@ export async function schedulePriceAlert(
       content: {
         title: "💰 Price Alert Set",
         body: `You'll be notified when ${productName} drops below ${currency} ${targetPrice.toFixed(2)}`,
-        data: { type: "price_alert", productName, targetPrice, currency },
+        data: { type: "price_alert", productName, targetPrice, currency, productId },
         sound: "default",
       },
       trigger: null, // immediate confirmation notification
@@ -219,6 +221,7 @@ export async function scheduleBackOrderReminder(
   productName: string,
   distributorName: string,
   reminderDate: Date,
+  productId?: string,
 ): Promise<string | null> {
   if (Platform.OS === "web") return null;
   try {
@@ -228,7 +231,7 @@ export async function scheduleBackOrderReminder(
       content: {
         title: "📦 Back-Order Reminder",
         body: `Check ${distributorName} for ${productName} — your reminder date is here!`,
-        data: { type: "back_order_reminder", productName, distributorName },
+        data: { type: "back_order_reminder", productName, distributorName, productId },
         sound: "default",
       },
       trigger: {
@@ -267,6 +270,7 @@ export async function sendPriceDigestNotification(
       content: {
         title,
         body,
+        data: { type: "digest" },
         sound: "default",
       },
       trigger: null, // immediate
@@ -280,6 +284,7 @@ export async function sendPriceDigestNotification(
 export async function scheduleServerEventNotification(
   title: string,
   body: string,
+  data?: Record<string, unknown>,
 ): Promise<void> {
   if (Platform.OS === "web") {
     try {
@@ -294,7 +299,12 @@ export async function scheduleServerEventNotification(
   if (!granted) return;
   try {
     await Notifications.scheduleNotificationAsync({
-      content: { title, body, sound: "default" },
+      content: {
+        title,
+        body,
+        data: { type: "server_event", ...(data ?? {}) },
+        sound: "default",
+      },
       trigger: null, // immediate
     });
   } catch {

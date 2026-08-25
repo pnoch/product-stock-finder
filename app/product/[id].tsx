@@ -157,6 +157,7 @@ export default function ProductDetailScreen() {
                 distrib?.name ?? watch.distributorName,
                 currentListing.price,
                 currentListing.currency,
+                id,
               );
             }
             await removeStockWatch(watch.id);
@@ -247,7 +248,12 @@ export default function ProductDetailScreen() {
     };
     await addAlert(newAlert);
     await requestNotificationPermissions();
-    await schedulePriceAlert(product?.name ?? "Product", price, alertCurrency);
+    await schedulePriceAlert(
+      product?.name ?? "Product",
+      price,
+      alertCurrency,
+      id,
+    );
     if (Platform.OS !== "web")
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setAlertModalVisible(false);
@@ -418,6 +424,7 @@ export default function ProductDetailScreen() {
       distributor?.name ?? "a distributor",
       targetListing?.price ?? 0,
       targetListing?.currency ?? "USD",
+      id,
     );
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showAlert(
@@ -444,6 +451,7 @@ export default function ProductDetailScreen() {
       product.name,
       distributorName,
       reminderDate,
+      id,
     );
     await addBackOrderReminder({
       id: existing?.id ?? `reminder-${Date.now()}`,
@@ -486,6 +494,7 @@ export default function ProductDetailScreen() {
         product.name,
         suggestedPrice,
         listing.currency,
+        id,
       );
       if (Platform.OS !== "web")
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

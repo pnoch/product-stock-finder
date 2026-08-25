@@ -1,6 +1,7 @@
 import "@/global.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
+import * as Notifications from "expo-notifications";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -91,6 +92,35 @@ export default function RootLayout() {
   // Request notification permissions and set up Android channel on first load
   useEffect(() => {
     if (Platform.OS === "web") return;
+    // Route notification taps to their target screens
+    const handledResponses = new Set<string>();
+    const handleNotificationResponse = (
+      response: Notifications.NotificationResponse,
+    ) => {
+      const id = response.notification.request.identifier;
+      if (handledResponses.has(id)) return;
+      handledResponses.add(id);
+      const data = response.notification.request.content.data as {
+        productId?: string;
+        type?: string;
+      };
+      if (data.productId) {
+        router.push(`/product/${data.productId}`);
+      } else if (data.type === "digest") {
+        router.push("/stats");
+      } else if (data.type?.startsWith("health")) {
+        router.push("/health");
+      }
+    };
+    const responseSubscription =
+      Notifications.addNotificationResponseReceivedListener(
+        handleNotificationResponse,
+      );
+    void Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        if (response) handleNotificationResponse(response);
+      })
+      .catch(() => {});
     // Record eventIds from push notifications for dedup (registered first so
     // pushes arriving during channel setup are captured too)
     const stopPushTracking = setupPushEventTracking();
@@ -112,6 +142,7 @@ export default function RootLayout() {
       void syncServerNotifications();
     });
     return () => {
+      responseSubscription.remove();
       stopPushTracking();
     };
   }, []);

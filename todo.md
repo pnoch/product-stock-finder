@@ -836,3 +836,9 @@
 - [x] Skip snoozed alerts in client + server evaluation
 - [x] Fix direction passthrough in notification config upload
 - [x] Add snooze button, choice sheet, and snoozed badge on alert cards
+
+## Phase 100: Notification Deep Links (v6.0)
+
+- [x] Carry productId in all product notification payloads
+- [x] Route notification taps to product/stats/health screens
+- [x] Server-pulled events preserve productId through local re-scheduling
