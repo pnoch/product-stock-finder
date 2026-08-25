@@ -141,6 +141,7 @@ export interface AppSettings {
   lastScrapeTime?: string;
   shippingRegion?: string;
   digestFrequency?: "off" | "daily" | "weekly";
+  basketAlertThreshold?: number | null;
   webNotificationsEnabled?: boolean;
   tagDefinitions?: Record<string, TagDefinition>;
   watchlistSort?: WatchlistSort;

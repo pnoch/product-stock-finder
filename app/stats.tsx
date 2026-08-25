@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Platform,
   ScrollView,
@@ -12,7 +12,8 @@ import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { getSettings, getWatchlist, getPriceDigestSnapshot } from "@/lib/storage";
+import { getSettings, getWatchlist, getPriceDigestSnapshot, saveSettings } from "@/lib/storage";
+import { BasketAlertSheet } from "@/components/stats/basket-alert-sheet";
 import type { Product, AppSettings } from "@/lib/types";
 import {
   computeBasketValue,
@@ -51,6 +52,8 @@ export default function StatsScreen() {
   );
   const [digestFrequency, setDigestFrequency] = useState<string>("off");
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [basketThreshold, setBasketThreshold] = useState<number | null>(null);
+  const [basketSheetVisible, setBasketSheetVisible] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -63,6 +66,7 @@ export default function StatsScreen() {
       setSettings(loadedSettings);
       setDisplayCurrency(loadedSettings.displayCurrency);
       setDigestFrequency(loadedSettings.digestFrequency ?? "off");
+      setBasketThreshold(loadedSettings.basketAlertThreshold ?? null);
       setDigestSnapshot(snapshot);
       setLoaded(true);
     })();
@@ -72,6 +76,15 @@ export default function StatsScreen() {
     if (!digestSnapshot || !settings || digestFrequency === "off") return null;
     return computeDigest(digestSnapshot, watchlist, settings, []);
   }, [digestSnapshot, watchlist, settings, digestFrequency]);
+
+  const handleSaveBasketAlert = useCallback(
+    async (threshold: number | null) => {
+      setBasketThreshold(threshold);
+      const s = await getSettings();
+      await saveSettings({ ...s, basketAlertThreshold: threshold });
+    },
+    [],
+  );
 
   const insights = useMemo(
     () => computeProductInsights(watchlist, displayCurrency),
@@ -222,7 +235,12 @@ export default function StatsScreen() {
             days={30}
             now={Date.now()}
           />
-          <BasketValueCard basket={basket} displayCurrency={displayCurrency} />
+          <BasketValueCard
+            basket={basket}
+            displayCurrency={displayCurrency}
+            alertThreshold={basketThreshold}
+            onOpenAlert={() => setBasketSheetVisible(true)}
+          />
           <StockHealthCard health={stockHealth} />
           <DataFreshnessCard freshness={freshness} />
         </ScrollView>
@@ -253,6 +271,13 @@ export default function StatsScreen() {
           }
         />
       </View>
+
+      <BasketAlertSheet
+        visible={basketSheetVisible}
+        onClose={() => setBasketSheetVisible(false)}
+        currentThreshold={basketThreshold}
+        onSave={handleSaveBasketAlert}
+      />
     </ScreenContainer>
   );
 }

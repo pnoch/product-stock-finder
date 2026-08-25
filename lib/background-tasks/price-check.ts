@@ -7,8 +7,9 @@ import {
   updateProductListings,
   getPriceDigestSnapshot,
   savePriceDigestSnapshot,
+  saveSettings,
 } from "../storage";
-import { convertPrice, formatPrice } from "../currency";
+import { convertPrice, formatPrice, getBestPrice } from "../currency";
 import { requestNotificationPermissions } from "../notifications";
 import { checkRestocks } from "../restock";
 import { maybeSendDigest } from "../price-digest";
@@ -70,6 +71,31 @@ export async function runPriceCheckCore(opts?: {
     await getAlerts(),
   );
   if (nextDigest) await savePriceDigestSnapshot(nextDigest);
+
+  // Basket value alert (fires once per set threshold, then auto-disables)
+  if (settings.notificationsEnabled && settings.basketAlertThreshold) {
+    const fresh = await getWatchlist();
+    const total = fresh.reduce(
+      (sum, p) => sum + (getBestPrice(p.listings ?? [], "USD")?.price ?? 0),
+      0,
+    );
+    const threshold = settings.basketAlertThreshold;
+    if (total > 0 && total <= threshold) {
+      const granted = await requestNotificationPermissions();
+      if (granted) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: "🧺 Basket Alert",
+            body: `Watchlist value ${formatPrice(total, "USD")} dropped below your ${formatPrice(threshold, "USD")} threshold.`,
+            data: { type: "digest" },
+            sound: true,
+          },
+          trigger: null,
+        });
+      }
+      await saveSettings({ ...settings, basketAlertThreshold: null });
+    }
+  }
 
   // Now check price alerts against fresh prices
   if (!settings.notificationsEnabled || !settings.priceAlerts) return;

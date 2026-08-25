@@ -860,3 +860,9 @@
 - [x] Add onboarding flag module with injectable storage + tests
 - [x] Add 3-slide intro pager (Welcome / Add Anything / Alerts)
 - [x] Gate first launch in root layout
+
+## Phase 104: Basket Alert (v6.4)
+
+- [x] Add basketAlertThreshold setting (synced)
+- [x] Evaluate in background price check; fires once then auto-disables
+- [x] Bell + threshold sheet on Stats basket card
