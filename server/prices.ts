@@ -38,7 +38,7 @@ async function refreshPrice(
     const url = parser.buildSearchUrl(modelNumber);
     const outcome = await resilientFetch({ parser, url, state: breakerStore });
     if (outcome.status !== "ok" || !outcome.html) return null;
-    const result = parser.parsePrice(outcome.html);
+    const result = parser.parsePrice(outcome.html, modelNumber);
     if (!result) return null;
     const snapshot: PriceSnapshot = { ...result, fetchedAt: Date.now() };
     await setCachedPrice(distributorId, modelNumber, snapshot);
