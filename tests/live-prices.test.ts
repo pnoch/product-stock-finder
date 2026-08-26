@@ -16,6 +16,7 @@ import type {
 
 vi.mock("../constants/oauth", () => ({
   getApiBaseUrl: vi.fn(),
+  isServerConfigured: vi.fn(() => true),
 }));
 
 vi.mock("../lib/server-prices", () => ({

@@ -23,6 +23,10 @@ vi.mock("../lib/server-prices", () => ({
 import { getWatchlist, updateProductListings } from "../lib/storage";
 import { fetchServerPrice } from "../lib/server-prices";
 
+vi.mock("../constants/oauth", () => ({
+  isServerConfigured: vi.fn(() => true),
+}));
+
 const listing: DistributorListing = {
   distributorId: "dist-1",
   productId: "p1",
