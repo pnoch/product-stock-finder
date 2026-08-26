@@ -10,12 +10,18 @@ import type {
 export { PRICE_HISTORY_DAYS };
 export const PRICE_STALE_TIME_MS = 60_000;
 
-export type ConnectionStatus = "connected" | "signed-out" | "offline";
+export type ConnectionStatus =
+  | "connected"
+  | "signed-out"
+  | "offline"
+  | "local";
 
 export function deriveConnectionStatus(args: {
   reachable: boolean;
   isAuthenticated: boolean;
+  configured: boolean;
 }): ConnectionStatus {
+  if (!args.configured) return "local";
   if (!args.reachable) return "offline";
   return args.isAuthenticated ? "connected" : "signed-out";
 }

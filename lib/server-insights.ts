@@ -1,3 +1,4 @@
+import { isServerConfigured } from "@/constants/oauth";
 import { createTRPCClient } from "./trpc";
 
 const TIMEOUT_MS = 4000;
@@ -10,6 +11,7 @@ export interface PriceInsight {
 export async function fetchPriceInsight(
   productId: string,
 ): Promise<PriceInsight | null> {
+  if (!isServerConfigured()) return null;
   try {
     const client = createTRPCClient();
     const result = await Promise.race([

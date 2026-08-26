@@ -69,23 +69,32 @@ function serverResult(
 describe("deriveConnectionStatus", () => {
   it("is connected when reachable and authenticated", () => {
     expect(
-      deriveConnectionStatus({ reachable: true, isAuthenticated: true }),
+      deriveConnectionStatus({ reachable: true, isAuthenticated: true, configured: true }),
     ).toBe("connected");
   });
 
   it("is signed-out when reachable but not authenticated", () => {
     expect(
-      deriveConnectionStatus({ reachable: true, isAuthenticated: false }),
+      deriveConnectionStatus({ reachable: true, isAuthenticated: false, configured: true }),
     ).toBe("signed-out");
   });
 
   it("is offline when not reachable regardless of auth", () => {
     expect(
-      deriveConnectionStatus({ reachable: false, isAuthenticated: true }),
+      deriveConnectionStatus({ reachable: false, isAuthenticated: true, configured: true }),
     ).toBe("offline");
     expect(
-      deriveConnectionStatus({ reachable: false, isAuthenticated: false }),
+      deriveConnectionStatus({ reachable: false, isAuthenticated: false, configured: true }),
     ).toBe("offline");
+  });
+
+  it("is local when no server is configured", () => {
+    expect(
+      deriveConnectionStatus({ reachable: false, isAuthenticated: false, configured: false }),
+    ).toBe("local");
+    expect(
+      deriveConnectionStatus({ reachable: true, isAuthenticated: true, configured: false }),
+    ).toBe("local");
   });
 });
 

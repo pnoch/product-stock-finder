@@ -1,3 +1,4 @@
+import { isServerConfigured } from "@/constants/oauth";
 import { createTRPCClient } from "./trpc";
 
 export interface ProductImage {
@@ -8,6 +9,7 @@ export async function fetchProductImage(
   productId: string,
   opts?: { timeoutMs?: number },
 ): Promise<ProductImage | null> {
+  if (!isServerConfigured()) return null;
   try {
     const client = createTRPCClient();
     const timeoutMs = opts?.timeoutMs ?? 4000;

@@ -2,6 +2,7 @@ import { useCallback, useEffect } from "react";
 import { AppState, Platform } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { isServerConfigured } from "@/constants/oauth";
 import { checkHealth } from "@/lib/health";
 import { deriveConnectionStatus } from "@/lib/live-prices";
 
@@ -31,7 +32,11 @@ export function useConnection() {
   }, [refetch]);
 
   const reachable = query.data ?? false;
-  const status = deriveConnectionStatus({ reachable, isAuthenticated });
+  const status = deriveConnectionStatus({
+    reachable,
+    isAuthenticated,
+    configured: isServerConfigured(),
+  });
 
   return {
     status,

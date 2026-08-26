@@ -3,9 +3,10 @@ import { ScrollView, Text, View, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
-import { startOAuthLogin } from "@/constants/oauth";
+import { isServerConfigured, startOAuthLogin } from "@/constants/oauth";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
+import { useServerConfig } from "@/hooks/use-server-config";
 import {
   getSettings,
   saveSettings,
@@ -33,6 +34,7 @@ import { SectionHeader } from "@/components/settings/section-header";
 
 export default function SettingsScreen() {
   const colors = useColors();
+  const { configured } = useServerConfig();
   const [settings, setSettings] = useState<AppSettings>({
     theme: "auto",
     displayCurrency: "USD",
@@ -73,7 +75,12 @@ export default function SettingsScreen() {
     ? formatSyncStatus(syncMeta, isAuthenticated, now)
     : isAuthenticated
       ? { label: "Not synced yet", tone: "muted" as const }
-      : { label: "Sign in to sync across devices", tone: "muted" as const };
+      : configured
+        ? { label: "Sign in to sync across devices", tone: "muted" as const }
+        : {
+            label: "Local-only mode — prices are fetched on this device",
+            tone: "muted" as const,
+          };
 
   const handleSyncNow = useCallback(async () => {
     if (Platform.OS !== "web")
@@ -199,22 +206,39 @@ export default function SettingsScreen() {
 
         <ConnectionSection />
 
-        <AccountSection
-          isAuthenticated={isAuthenticated}
-          user={user}
-          syncMeta={syncMeta}
-          syncing={syncing}
-          onSyncNow={handleSyncNow}
-          onSignOut={logout}
-          onSignIn={handleSignIn}
-          syncStatus={syncStatus}
-        />
+        {configured ? (
+          <>
+            <AccountSection
+              isAuthenticated={isAuthenticated}
+              user={user}
+              syncMeta={syncMeta}
+              syncing={syncing}
+              onSyncNow={handleSyncNow}
+              onSignOut={logout}
+              onSignIn={handleSignIn}
+              syncStatus={syncStatus}
+            />
 
-        <DeviceManagementSection
-          user={user}
-          isAuthenticated={isAuthenticated}
-          colors={colors}
-        />
+            <DeviceManagementSection
+              user={user}
+              isAuthenticated={isAuthenticated}
+              colors={colors}
+            />
+          </>
+        ) : (
+          <Text
+            style={{
+              color: colors.muted,
+              fontSize: 13,
+              marginHorizontal: 16,
+              marginTop: 8,
+              lineHeight: 18,
+            }}
+          >
+            Local-only mode — prices are fetched directly from distributors on
+            this device. Sign-in and cross-device sync are unavailable.
+          </Text>
+        )}
 
         <DataSection />
 

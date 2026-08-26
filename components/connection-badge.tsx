@@ -4,11 +4,12 @@ import type { ConnectionStatus } from "@/lib/live-prices";
 
 const CONFIG: Record<
   ConnectionStatus,
-  { label: string; color: "success" | "warning" | "error" }
+  { label: string; color: "success" | "warning" | "error" | "muted" }
 > = {
   connected: { label: "Connected", color: "success" },
   "signed-out": { label: "Signed out", color: "warning" },
   offline: { label: "Offline", color: "error" },
+  local: { label: "Local mode", color: "muted" },
 };
 
 export function ConnectionBadge({
