@@ -103,12 +103,36 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+const COMMERCE_SUFFIXES = new Set([
+  "rm",
+  "in",
+  "us",
+  "eu",
+  "uk",
+  "au",
+  "nz",
+  "za",
+  "my",
+  "ca",
+  "ch",
+  "sg",
+  "jp",
+]);
+
 export function matchesModel(text: string, model: string): boolean {
   const needle = model.trim();
   if (!needle || !text) return false;
   let pattern = "";
-  for (const ch of needle) {
-    pattern += /[a-z0-9]/i.test(ch) ? escapeRegExp(ch) : "[^a-z0-9]*?";
+  for (let i = 0; i < needle.length; i++) {
+    const ch = needle[i]!;
+    if (/[a-z0-9]/i.test(ch)) {
+      pattern += escapeRegExp(ch);
+    } else {
+      // A trailing separator in the model is required in the text — otherwise
+      // the lazy class matches empty and "…2S+XTX" masquerades as "…2S".
+      const isLast = i === needle.length - 1;
+      pattern += isLast ? "[^a-z0-9]+?" : "[^a-z0-9]*?";
+    }
   }
   let re: RegExp;
   try {
@@ -116,12 +140,24 @@ export function matchesModel(text: string, model: string): boolean {
   } catch {
     return false;
   }
+  const lastChar = needle[needle.length - 1]!;
   for (const match of text.matchAll(re)) {
     const start = match.index;
     const end = start + match[0].length;
     const before = start > 0 ? text[start - 1]! : "";
     const after = end < text.length ? text[end]! : "";
     if (!/[a-z0-9]/i.test(before) && !/[a-z0-9]/i.test(after)) return true;
+    // Tolerate known SKU suffixes (e.g. "+RM", "-IN") only when the model
+    // itself ends with a separator; mid-token extensions stay rejected.
+    if (
+      !/[a-z0-9]/i.test(before) &&
+      !/[a-z0-9]/i.test(lastChar) &&
+      /[a-z0-9]/i.test(after)
+    ) {
+      const tail = text.slice(end).match(/^[a-z0-9]+/i)?.[0] ?? "";
+      if (/^[a-z]{2,3}$/i.test(tail) && COMMERCE_SUFFIXES.has(tail.toLowerCase()))
+        return true;
+    }
   }
   return false;
 }
@@ -142,7 +178,17 @@ export function modelMismatch(
   model?: string,
 ): boolean {
   if (!model) return false;
-  const { text, href } = productRowContext($el);
-  if (!text.trim() && !href) return false;
-  return !(matchesModel(text, model) || matchesModel(href, model));
+  let node: Cheerio<Element> | null = $el;
+  let sawContent = false;
+  for (let depth = 0; depth < 4 && node && node.length > 0; depth++) {
+    const text = node.text();
+    const href = node.find("a[href]").first().attr("href") ?? "";
+    if (text.trim() || href) {
+      sawContent = true;
+      if (matchesModel(text, model) || matchesModel(href, model)) return false;
+    }
+    const parent: Cheerio<Element> = node.parent();
+    node = parent.length > 0 ? parent : null;
+  }
+  return sawContent;
 }

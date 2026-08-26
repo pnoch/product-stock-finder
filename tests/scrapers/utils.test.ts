@@ -12,7 +12,7 @@ describe("matchesModel", () => {
       matchesModel("MikroTik CRS804-4DDQ-hRM RouterOS7", "CRS804-4DDQ-hRM"),
     ).toBe(true);
     expect(matchesModel("hEX-S (RouterOS L4)", "hEX S")).toBe(true);
-    expect(matchesModel("crs326 24g 2s plus switch", "CRS326-24G-2S+")).toBe(
+    expect(matchesModel("crs326 24g 2s+ rack switch", "CRS326-24G-2S+")).toBe(
       true,
     );
   });
@@ -36,6 +36,18 @@ describe("matchesModel", () => {
 
   it("accepts when only a later candidate sits on boundaries", () => {
     expect(matchesModel("xRB5009 y RB5009 z", "RB5009")).toBe(true);
+  });
+
+  it("accepts known commerce suffixes after a separator", () => {
+    expect(
+      matchesModel("MikroTik CRS326-24G-2S+RM switch", "CRS326-24G-2S+"),
+    ).toBe(true);
+    expect(matchesModel("CRS326-24G-2S+IN", "CRS326-24G-2S+")).toBe(true);
+  });
+
+  it("still rejects unknown extensions and mid-token runs", () => {
+    expect(matchesModel("CRS326-24G-2S+XTX", "CRS326-24G-2S+")).toBe(false);
+    expect(matchesModel("RB5009UG+S+IN", "RB5009")).toBe(false);
   });
 
   it("returns false for empty or unusable inputs", () => {
@@ -92,5 +104,18 @@ describe("modelMismatch", () => {
   it("accepts (false) when the context is empty", () => {
     const bare = cheerio.load(`<span>   </span>`);
     expect(modelMismatch(bare("span").first(), "CRS804")).toBe(false);
+  });
+
+  it("finds the model one ancestor above the priced element", () => {
+    const $ = cheerio.load(`<div class="productitem">
+      <div class="info"><a href="/p/crs326">MikroTik CRS326-24G-2S+RM</a>
+        <div class="price">$199.00</div></div></div>`);
+    expect(modelMismatch($(".price").first(), "CRS326-24G-2S+")).toBe(false);
+  });
+
+  it("does not reach page-level headers five levels up", () => {
+    const $ = cheerio.load(`<body><header>Search results for CRS326-24G-2S+</header>
+      <div><div><div><div><span class="price">$5.00</span></div></div></div></div></body>`);
+    expect(modelMismatch($("span.price").first(), "CRS326-24G-2S+")).toBe(true);
   });
 });
