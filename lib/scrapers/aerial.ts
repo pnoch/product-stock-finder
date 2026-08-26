@@ -43,7 +43,7 @@ export const aerialParser: DistributorParser = {
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {
-    waitForSelector: ".ac-price, .product-price",
+    waitForSelector: ".feat-pricerow",
   },
 };
 

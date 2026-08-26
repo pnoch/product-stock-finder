@@ -70,4 +70,21 @@ describe("model verification", () => {
   it("ignores verification when no model is passed", () => {
     expect(geticParser.parsePrice(MISMATCH_HTML)?.price).toBe(480);
   });
+
+  it("parses a real getic product card (attribute-carried title)", () => {
+    const CARD = `<html><body><div class="shop-product-card" data-cy="product-card">
+      <div class="product-card-image"><a href="/product/cloud-router-switch-326-24g-2srm" aria-label="MikroTik CRS326-24G-2S+RM"><img alt="MikroTik CRS326-24G-2S+RM"></a></div>
+      <div class="product-card-prices"><span class="product-price-value">179.81</span><span class="product-price-currency">€</span></div>
+      <div class="stock-amount"></div></div></body></html>`;
+    const r = geticParser.parsePrice(CARD, "CRS326-24G-2S+");
+    expect(r?.price).toBe(179.81);
+    expect(r?.currency).toBe("EUR");
+  });
+
+  it("rejects a real getic card for a different product", () => {
+    const CARD = `<html><body><div class="shop-product-card" data-cy="product-card">
+      <a href="/product/other-switch" aria-label="Other Switch X1"><img alt="Other Switch X1"></a>
+      <span class="product-price-value">99.00</span></div></body></html>`;
+    expect(geticParser.parsePrice(CARD, "CRS326-24G-2S+")).toBeNull();
+  });
 });
