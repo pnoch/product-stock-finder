@@ -86,7 +86,7 @@ describe("fx client", () => {
       "fx_rates",
       JSON.stringify({
         rates: { EUR: 0.9 },
-        fetchedAt: Date.now() - FX_TTL_MS - 1000,
+        fetchedAt: Date.now() - FX_TTL_MS - 10 * 60 * 1000 - 1000,
       }),
     );
     const query = mockQuery({ rates: { EUR: 0.8 }, fetchedAt: Date.now() });

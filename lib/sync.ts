@@ -474,7 +474,9 @@ export function setupSync(
   };
 
   opts.storage.setOnChange((collection, itemId) => {
-    markDirty(opts.storage, collection, itemId).then(() => schedule());
+    markDirty(opts.storage, collection, itemId)
+      .catch((e) => console.warn("[Sync] markDirty failed", e))
+      .then(() => schedule());
   });
   return { syncNow: runNow, schedule };
 }
