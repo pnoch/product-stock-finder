@@ -19,11 +19,11 @@ export function useWatchlist() {
   }, [refresh]);
 
   useEffect(() => {
-    const unlisten = onListingUpdated(() => {
+    const unlistenPromise = onListingUpdated(() => {
       refresh();
-    });
+    }).catch(() => () => {});
     return () => {
-      unlisten.then((fn) => fn());
+      unlistenPromise.then((fn) => fn());
     };
   }, [refresh]);
 

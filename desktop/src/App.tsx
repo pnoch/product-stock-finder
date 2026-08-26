@@ -109,7 +109,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const unlisten = onPricesChecked(async () => {
+    const unlistenPromise = onPricesChecked(async () => {
       try {
         const settings = await storage.getSettings();
         const frequency = settings.digestFrequency ?? "off";
@@ -129,9 +129,9 @@ export default function App() {
       } catch {
         // digest failures are non-fatal
       }
-    });
+    }).catch(() => () => {});
     return () => {
-      unlisten.then((fn) => fn());
+      unlistenPromise.then((fn) => fn());
     };
   }, []);
 
