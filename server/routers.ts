@@ -68,7 +68,7 @@ export const appRouter = router({
         return { lastSyncedAt, items };
       }),
     push: protectedProcedure
-      .input(z.object({ items: z.array(syncItemSchema) }))
+      .input(z.object({ items: z.array(syncItemSchema).max(500) }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) {
@@ -107,7 +107,7 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return getPrice(input.distributorId, input.modelNumber);
       }),
-    uploadHistory: publicProcedure
+    uploadHistory: protectedProcedure
       .input(
         z.object({
           distributorId: z.string().min(1).max(64),
@@ -129,7 +129,10 @@ export const appRouter = router({
             .max(200),
         }),
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // History is global per distributor/model; writes are protected to
+        // prevent anonymous pollution. No per-user ownership check needed.
+        void ctx.user.id;
         await mergeHistory(
           input.distributorId,
           input.modelNumber,
@@ -271,10 +274,15 @@ export const appRouter = router({
       const devices = await listDevicesForUser(ctx.user.id);
       return { devices };
     }),
-    current: publicProcedure
+    current: protectedProcedure
       .input(z.object({ deviceId: z.string().min(1).max(128) }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
         const { userId } = await getDeviceBinding(input.deviceId);
+        // Only reveal binding to its owner; enumeration without auth is denied
+        // by protectedProcedure, and cross-user checks avoid leaking existence.
+        if (userId !== null && userId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
         return { deviceId: input.deviceId, userId };
       }),
     rename: protectedProcedure

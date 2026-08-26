@@ -39,6 +39,27 @@ function createPublicContext(): TrpcContext {
   };
 }
 
+function createAuthedContext(userId = 7): TrpcContext {
+  return {
+    user: {
+      id: userId,
+      openId: `open-${userId}`,
+      name: null,
+      email: null,
+      loginMethod: null,
+      role: "user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    } as TrpcContext["user"],
+    req: { protocol: "https", hostname: "localhost", headers: {} } as TrpcContext["req"],
+    res: {
+      clearCookie: (_name: string, _options: Record<string, unknown>) => {},
+    } as TrpcContext["res"],
+    deviceId: "test-device",
+  };
+}
+
 const snapshot: PriceSnapshot = {
   price: 88.5,
   currency: "MYR",
@@ -101,7 +122,7 @@ describe("prices router", () => {
 
   it("uploadHistory merges uploaded points and returns the accepted count", async () => {
     mockedMergeHistory.mockResolvedValue(undefined);
-    const caller = appRouter.createCaller(createPublicContext());
+    const caller = appRouter.createCaller(createAuthedContext());
     const points: {
       date: string;
       price: number;
@@ -140,7 +161,7 @@ describe("prices.uploadHistory validation", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("rejects an unparseable date", async () => {
-    const caller = appRouter.createCaller(createPublicContext());
+    const caller = appRouter.createCaller(createAuthedContext());
     await expect(
       caller.prices.uploadHistory({
         distributorId: "server2u-my",
@@ -152,7 +173,7 @@ describe("prices.uploadHistory validation", () => {
   });
 
   it("rejects a non-finite price", async () => {
-    const caller = appRouter.createCaller(createPublicContext());
+    const caller = appRouter.createCaller(createAuthedContext());
     await expect(
       caller.prices.uploadHistory({
         distributorId: "server2u-my",
@@ -164,7 +185,7 @@ describe("prices.uploadHistory validation", () => {
   });
 
   it("rejects a zero or negative price", async () => {
-    const caller = appRouter.createCaller(createPublicContext());
+    const caller = appRouter.createCaller(createAuthedContext());
     await expect(
       caller.prices.uploadHistory({
         distributorId: "server2u-my",
@@ -176,7 +197,7 @@ describe("prices.uploadHistory validation", () => {
   });
 
   it("rejects oversized identifiers", async () => {
-    const caller = appRouter.createCaller(createPublicContext());
+    const caller = appRouter.createCaller(createAuthedContext());
     await expect(
       caller.prices.uploadHistory({
         distributorId: "d".repeat(65),
@@ -195,7 +216,7 @@ describe("prices.uploadHistory validation", () => {
   });
 
   it("caps the number of points per upload", async () => {
-    const caller = appRouter.createCaller(createPublicContext());
+    const caller = appRouter.createCaller(createAuthedContext());
     const points = Array.from({ length: 201 }, (_, i) => ({
       ...validPoint,
       date: `2026-01-${String((i % 28) + 1).padStart(2, "0")}T00:00:00.000Z`,

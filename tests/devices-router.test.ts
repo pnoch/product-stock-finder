@@ -85,16 +85,31 @@ describe("devices router", () => {
     expect(mockedList).not.toHaveBeenCalled();
   });
 
-  it("returns the current device binding anonymously", async () => {
+  it("returns the current device binding for the owner", async () => {
     mockedBinding.mockResolvedValue({ userId: 7 });
-    const caller = appRouter.createCaller(createPublicContext());
+    const caller = appRouter.createCaller(createAuthedContext(7));
     const result = await caller.devices.current({ deviceId: "dev-1" });
     expect(result).toEqual({ deviceId: "dev-1", userId: 7 });
     expect(mockedBinding).toHaveBeenCalledWith("dev-1");
   });
 
-  it("rejects an oversized deviceId for current", async () => {
+  it("throws FORBIDDEN when querying another user's device", async () => {
+    mockedBinding.mockResolvedValue({ userId: 99 });
+    const caller = appRouter.createCaller(createAuthedContext(7));
+    await expect(caller.devices.current({ deviceId: "dev-1" })).rejects.toThrow(
+      /FORBIDDEN|Access denied/,
+    );
+    expect(mockedBinding).toHaveBeenCalledWith("dev-1");
+  });
+
+  it("throws UNAUTHORIZED for current without a user", async () => {
     const caller = appRouter.createCaller(createPublicContext());
+    await expect(caller.devices.current({ deviceId: "dev-1" })).rejects.toThrow();
+    expect(mockedBinding).not.toHaveBeenCalled();
+  });
+
+  it("rejects an oversized deviceId for current", async () => {
+    const caller = appRouter.createCaller(createAuthedContext(7));
     await expect(
       caller.devices.current({ deviceId: "x".repeat(129) }),
     ).rejects.toThrow();

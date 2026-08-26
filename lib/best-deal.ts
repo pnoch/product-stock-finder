@@ -51,6 +51,24 @@ export function findBestDeal(
     }
   }
 
+  // Fallback: no shipping cost for the requested region — return cheapest
+  // in-stock price + tax without shipping rather than "no deal".
+  if (!best) {
+    const fallback = findBestInStockListing(listings, displayCurrency);
+    if (fallback) {
+      const price = convertPrice(fallback.price, fallback.currency, displayCurrency);
+      const tax = price * (fallback.taxRate ?? 0);
+      return {
+        distributorId: fallback.distributorId,
+        price,
+        tax,
+        shipping: 0,
+        total: price + tax,
+        currency: displayCurrency,
+      };
+    }
+  }
+
   return best;
 }
 
