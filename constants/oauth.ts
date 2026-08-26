@@ -55,6 +55,15 @@ export function getApiBaseUrl(): string {
   return "";
 }
 
+/**
+ * True when a companion API server is configured. Native builds without
+ * EXPO_PUBLIC_API_BASE_URL and static web deploys return "" from
+ * getApiBaseUrl(), meaning the app runs in local-only mode.
+ */
+export function isServerConfigured(): boolean {
+  return getApiBaseUrl() !== "";
+}
+
 export const SESSION_TOKEN_KEY = "app_session_token";
 export const USER_INFO_KEY = "manus-runtime-user-info";
 
