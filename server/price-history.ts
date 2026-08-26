@@ -71,11 +71,12 @@ export async function mergeHistory(
     return;
   }
   for (const p of points) {
+    const priceStr = p.price.toFixed(2);
     const values = {
       distributorId,
       modelNumber,
       date: dayOf(p.date),
-      price: p.price,
+      price: priceStr,
       currency: p.currency,
       stockStatus: p.stockStatus,
       fetchedAt: Date.parse(p.date),
@@ -85,7 +86,7 @@ export async function mergeHistory(
       .values(values)
       .onDuplicateKeyUpdate({
         set: {
-          price: p.price,
+          price: priceStr,
           currency: p.currency,
           stockStatus: p.stockStatus,
           fetchedAt: Date.parse(p.date),
@@ -117,7 +118,7 @@ export function clearHistoryForTests(): void {
 function rowToPoint(row: PriceHistoryRow): PricePoint {
   return {
     date: new Date(row.fetchedAt).toISOString(),
-    price: row.price,
+    price: typeof row.price === "string" ? parseFloat(row.price) : row.price,
     currency: row.currency,
     stockStatus: row.stockStatus as StockStatus,
   };

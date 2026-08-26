@@ -40,10 +40,12 @@ export async function setCachedPrice(
     memoryCache.set(cacheKey(distributorId, modelNumber), snapshot);
     return;
   }
+  // Drizzle decimal columns expect string values to preserve precision
+  const priceStr = snapshot.price.toFixed(2);
   const values = {
     distributorId,
     modelNumber,
-    price: snapshot.price,
+    price: priceStr,
     currency: snapshot.currency,
     stockStatus: snapshot.stockStatus,
     expectedDate: snapshot.expectedDate ?? null,
@@ -56,7 +58,7 @@ export async function setCachedPrice(
     .values(values)
     .onDuplicateKeyUpdate({
       set: {
-        price: snapshot.price,
+        price: priceStr,
         currency: snapshot.currency,
         stockStatus: snapshot.stockStatus,
         expectedDate: snapshot.expectedDate ?? null,
@@ -125,7 +127,7 @@ export function clearPriceCacheForTests(): void {
 
 function rowToSnapshot(row: PriceCacheRow): PriceSnapshot {
   return {
-    price: row.price,
+    price: typeof row.price === "string" ? parseFloat(row.price) : row.price,
     currency: row.currency,
     stockStatus: row.stockStatus as StockStatus,
     expectedDate: row.expectedDate ?? undefined,

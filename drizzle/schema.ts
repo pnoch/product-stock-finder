@@ -1,5 +1,6 @@
 import {
   bigint,
+  decimal,
   double,
   index,
   int,
@@ -124,7 +125,7 @@ export const priceCache = mysqlTable(
   {
     distributorId: varchar("distributorId", { length: 64 }).notNull(),
     modelNumber: varchar("modelNumber", { length: 128 }).notNull(),
-    price: double("price").notNull(),
+    price: decimal("price", { precision: 10, scale: 2 }).notNull(),
     currency: varchar("currency", { length: 8 }).notNull(),
     stockStatus: varchar("stockStatus", { length: 16 }).notNull(),
     expectedDate: varchar("expectedDate", { length: 64 }),
@@ -146,7 +147,7 @@ export const priceHistory = mysqlTable(
     distributorId: varchar("distributorId", { length: 64 }).notNull(),
     modelNumber: varchar("modelNumber", { length: 128 }).notNull(),
     date: varchar("date", { length: 10 }).notNull(),
-    price: double("price").notNull(),
+    price: decimal("price", { precision: 10, scale: 2 }).notNull(),
     currency: varchar("currency", { length: 8 }).notNull(),
     stockStatus: varchar("stockStatus", { length: 16 }).notNull(),
     fetchedAt: bigint("fetchedAt", { mode: "number" }).notNull(),
