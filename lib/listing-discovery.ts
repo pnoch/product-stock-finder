@@ -1,4 +1,4 @@
-import { fetchServerPrice } from "./server-prices";
+import { resolvePrice } from "./price-source";
 import { getAllParserIds } from "./scrapers/registry";
 import type { DistributorListing } from "./types";
 
@@ -12,7 +12,7 @@ export function customProductSlug(modelNumber: string): string {
   return `custom-${slug || "product"}`;
 }
 
-type FetchPrice = typeof fetchServerPrice;
+type FetchPrice = typeof resolvePrice;
 
 export interface DiscoverOptions {
   parserIds?: string[];
@@ -31,7 +31,7 @@ export async function discoverListings(
   const {
     parserIds = getAllParserIds(),
     productId = customProductSlug(modelNumber),
-    fetchPrice = fetchServerPrice,
+    fetchPrice = resolvePrice,
     now = Date.now(),
     onProgress,
   } = opts;

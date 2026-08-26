@@ -8,13 +8,13 @@ import {
   customProductSlug,
   discoverListings,
 } from "../lib/listing-discovery";
-import type { ServerPriceResult } from "../lib/types";
+import type { ResolvedPrice } from "../lib/price-source";
 
 const NOW = 1_750_000_000_000;
 
 function snapshotResult(
   overrides: Record<string, unknown> = {},
-): ServerPriceResult {
+): ResolvedPrice {
   return {
     snapshot: {
       price: 100,
@@ -25,7 +25,8 @@ function snapshotResult(
       ...overrides,
     },
     history: [],
-  } as ServerPriceResult;
+    source: "device",
+  } as ResolvedPrice;
 }
 
 describe("customProductSlug", () => {
@@ -39,10 +40,11 @@ describe("customProductSlug", () => {
 
 describe("discoverListings", () => {
   it("maps snapshots to listings and skips misses", async () => {
-    const fetchPrice = vi.fn(async (distributorId: string) =>
-      distributorId === "hit-a" || distributorId === "hit-b"
-        ? snapshotResult({ price: distributorId === "hit-a" ? 90 : 110 })
-        : null,
+    const fetchPrice = vi.fn(
+      async (distributorId: string, _modelNumber: string) =>
+        distributorId === "hit-a" || distributorId === "hit-b"
+          ? snapshotResult({ price: distributorId === "hit-a" ? 90 : 110 })
+          : null,
     );
     const listings = await discoverListings("MODEL", {
       parserIds: ["miss-1", "hit-a", "miss-2", "hit-b"],
@@ -61,7 +63,7 @@ describe("discoverListings", () => {
 
   it("reports progress with done/total", async () => {
     const onProgress = vi.fn();
-    const fetchPrice = vi.fn(async () => null);
+    const fetchPrice = vi.fn(async (_d: string, _m: string) => null);
     await discoverListings("MODEL", {
       parserIds: ["a", "b", "c"],
       fetchPrice,
@@ -73,7 +75,7 @@ describe("discoverListings", () => {
   });
 
   it("swallows fetch errors per distributor", async () => {
-    const fetchPrice = vi.fn(async (d: string) => {
+    const fetchPrice = vi.fn(async (d: string, _m: string) => {
       if (d === "boom") throw new Error("network");
       return snapshotResult();
     });

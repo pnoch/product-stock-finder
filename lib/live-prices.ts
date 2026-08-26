@@ -1,6 +1,6 @@
 import { PRICE_HISTORY_DAYS } from "@/shared/const";
 import { appendPricePoint, mergePriceHistory } from "@/lib/price-history";
-import { fetchServerPrice } from "@/lib/server-prices";
+import { resolvePrice } from "@/lib/price-source";
 import type {
   DistributorListing,
   PricePoint,
@@ -70,7 +70,7 @@ export function deriveListingQueries(
 ) {
   return listings.map((listing) => ({
     queryKey: ["price", listing.distributorId, modelNumber] as const,
-    queryFn: () => fetchServerPrice(listing.distributorId, modelNumber),
+    queryFn: () => resolvePrice(listing.distributorId, modelNumber),
     staleTime: PRICE_STALE_TIME_MS,
     retry: 1,
   }));
