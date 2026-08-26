@@ -166,7 +166,9 @@ export function productRowContext(
   $el: Cheerio<Element>,
 ): { text: string; href: string } {
   const row = $el
-    .closest("tr, article, .product, .product-item, .item, .product-card, li")
+    .closest(
+      "tr, article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .item, .product-card, li",
+    )
     .first();
   const container = row.length ? row : $el;
   const href = container.find("a[href]").first().attr("href") ?? "";
@@ -181,8 +183,7 @@ export function modelMismatch(
   let node: Cheerio<Element> | null = $el;
   let sawContent = false;
   for (let depth = 0; depth < 4 && node && node.length > 0; depth++) {
-    const text = node.text();
-    const href = node.find("a[href]").first().attr("href") ?? "";
+    const { text, href } = productRowContext(node);
     if (text.trim() || href) {
       sawContent = true;
       if (matchesModel(text, model) || matchesModel(href, model)) return false;

@@ -118,4 +118,15 @@ describe("modelMismatch", () => {
       <div><div><div><div><span class="price">$5.00</span></div></div></div></div></body>`);
     expect(modelMismatch($("span.price").first(), "CRS326-24G-2S+")).toBe(true);
   });
+
+  it("accepts a Magento product-item-details row via closest()", () => {
+    const $ = cheerio.load(`<li class="product-item">
+      <div class="product details product-item-details">
+        RTB-CRS326-24G-2S+IN Mikrotik CRS326-24G-2S+IN
+        <span class="price">€162.11</span> Add to Cart
+      </div></li>`);
+    expect(modelMismatch($("span.price").first(), "CRS326-24G-2S+")).toBe(
+      false,
+    );
+  });
 });
