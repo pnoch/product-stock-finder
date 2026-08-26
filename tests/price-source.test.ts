@@ -100,4 +100,22 @@ describe("scrapePriceOnDevice", () => {
     const r = await scrapePriceOnDevice("linitx-uk", "CRS804-4DDQ-hRM");
     expect(r?.source).toBe("device");
   });
+
+  it("caps concurrent device scrapes", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const { resilientFetch } = await import("../lib/scrapers/resilient");
+    vi.mocked(resilientFetch).mockImplementation(async (_opts: unknown) => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, 20));
+      inFlight -= 1;
+      return { status: "ok", html: "<html>x</html>" } as never;
+    });
+    state.scrapeResult = { price: 1, currency: "USD", stockStatus: "in_stock" };
+    await Promise.all(
+      Array.from({ length: 9 }, () => scrapePriceOnDevice("linitx-uk", "M")),
+    );
+    expect(peak).toBeLessThanOrEqual(3);
+  });
 });
