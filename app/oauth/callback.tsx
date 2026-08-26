@@ -14,7 +14,7 @@ const debugLog = (...args: unknown[]) => {
 
 // OAuth codes are single-use; remember the ones this session already exchanged
 // so remounts/refreshes of the callback route don't replay them.
-const processedCodes = new Set<string>();
+const processedCodes = new Map<string, Promise<void>>();
 
 export default function OAuthCallback() {
   const router = useRouter();
@@ -180,9 +180,11 @@ export default function OAuthCallback() {
           return;
         }
 
-        if (processedCodes.has(code)) {
-          // Replay of an already-exchanged code (remount/refresh): succeed if
-          // the first attempt stored a token, otherwise surface the reuse.
+        const inflight = processedCodes.get(code);
+        if (inflight) {
+          // Replay of an already-seen code (remount/refresh): wait for the
+          // first exchange to settle, then succeed iff it stored a token.
+          await inflight.catch(() => {});
           const existing = await Auth.getSessionToken();
           debugLog("[OAuth] Code already processed", { hasToken: !!existing });
           if (existing) {
@@ -194,22 +196,26 @@ export default function OAuthCallback() {
           }
           return;
         }
-        processedCodes.add(code);
 
-        // Exchange code for session token
+        // Exchange code for session token. Successful exchanges stay in the
+        // map so later remounts take the friendly replay path; failed ones are
+        // forgotten so the same link can be retried.
         debugLog("[OAuth] Exchanging code for session token...");
-        const result = await Api.exchangeOAuthCode(code, state);
-        debugLog("[OAuth] Exchange result:", {
-          hasSessionToken: !!result.sessionToken,
-          hasUser: !!result.user,
-        });
+        const exchange = (async () => {
+          const result = await Api.exchangeOAuthCode(code, state);
+          debugLog("[OAuth] Exchange result:", {
+            hasSessionToken: !!result.sessionToken,
+            hasUser: !!result.user,
+          });
 
-        if (result.sessionToken) {
+          if (!result.sessionToken) {
+            console.error("[OAuth] No session token in result");
+            throw new Error("No session token received");
+          }
+
           debugLog("[OAuth] Session token received, storing...");
-          // Store session token
           await Auth.setSessionToken(result.sessionToken);
 
-          // Store user info if available
           if (result.user) {
             const userInfo: Auth.User = {
               id: result.user.id,
@@ -224,17 +230,21 @@ export default function OAuthCallback() {
           } else {
             debugLog("[OAuth] No user data in result");
           }
+        })();
+        processedCodes.set(code, exchange);
 
-          setStatus("success");
-          debugLog("[OAuth] Authentication successful, redirecting to home...");
-
-          // Redirect to home after a short delay
-          scheduleRedirect();
-        } else {
-          console.error("[OAuth] No session token in result");
-          setStatus("error");
-          setErrorMessage("No session token received");
+        try {
+          await exchange;
+        } catch (error) {
+          processedCodes.delete(code);
+          throw error;
         }
+
+        setStatus("success");
+        debugLog("[OAuth] Authentication successful, redirecting to home...");
+
+        // Redirect to home after a short delay
+        scheduleRedirect();
       } catch (error) {
         console.error("[OAuth] Callback error:", error);
         setStatus("error");
