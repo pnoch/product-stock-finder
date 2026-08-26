@@ -1,5 +1,9 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
+vi.mock("@/constants/oauth", () => ({
+  isServerConfigured: vi.fn(() => true),
+}));
+
 vi.mock("../lib/trpc", () => ({
   createTRPCClient: vi.fn(),
 }));

@@ -52,7 +52,8 @@ Consumers:
 - `deriveListingQueries` (`lib/live-prices.ts`) queryFn switches to
   `resolvePrice`; `applyServerPrice` consumes `.snapshot` unchanged.
 - `discoverListings` default `fetchPrice` becomes `resolvePrice`.
-- `checkPriceDropsNow` uses `resolvePrice`.
+- `checkPriceDropsNow` needs no change — it delegates to `refreshListing`,
+  which already implements the hybrid pattern manually.
 - `refreshListing` keeps its own flow entirely — it needs raw fetch status
   (`blocked` vs `error`) for health classification and already implements the
   hybrid pattern manually.
