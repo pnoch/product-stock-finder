@@ -56,6 +56,7 @@ import {
   registerDeviceRevokedHandler,
   resetDeviceRevoked,
 } from "@/lib/device-revoked";
+import { isServerConfigured } from "@/constants/oauth";
 import { cleanupStaleDevices } from "@/lib/devices";
 import {
   setupSync,
@@ -141,10 +142,12 @@ export default function RootLayout() {
       registerHealthProbeTask();
       // Run a foreground check immediately on app launch
       checkPriceDropsNow();
-      // Register for Expo push delivery (best-effort)
-      void registerPushToken();
-      // Pull any server-queued notification events
-      void syncServerNotifications();
+      if (isServerConfigured()) {
+        // Register for Expo push delivery (best-effort)
+        void registerPushToken();
+        // Pull any server-queued notification events
+        void syncServerNotifications();
+      }
     });
     return () => {
       responseSubscription.remove();
@@ -250,6 +253,7 @@ export default function RootLayout() {
   const syncRef = useRef<SyncSetup | null>(null);
 
   useEffect(() => {
+    if (!isServerConfigured()) return;
     const setup = setupSync({
       storage: defaultStorage,
       isSignedIn: () => isAuthenticatedRef.current,
@@ -283,7 +287,7 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && isServerConfigured()) {
       resetDeviceRevoked();
       syncRef.current?.syncNow();
       void backfillLocalHistory();
@@ -300,6 +304,7 @@ export default function RootLayout() {
   }, [refresh]);
 
   useEffect(() => {
+    if (!isServerConfigured()) return;
     void loadFxRates();
     void maybeRefreshFxRates();
   }, []);
