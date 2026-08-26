@@ -27,31 +27,43 @@ export async function runPriceCheckCore(opts?: {
   if (watchlist.length === 0) return;
 
   const healthCollector = createHealthCollector();
+  const startTime = Date.now();
+  const TIME_BUDGET_MS = 25_000; // leave headroom for Android 30s limit
 
   // Scrape fresh prices for all products in parallel batches
   const CONCURRENCY = 3;
   for (let i = 0; i < watchlist.length; i += CONCURRENCY) {
+    if (Date.now() - startTime > TIME_BUDGET_MS) {
+      console.warn(
+        `[PriceCheck] Time budget exceeded after ${i}/${watchlist.length} products, deferring remainder`,
+      );
+      break;
+    }
     const batch = watchlist.slice(i, i + CONCURRENCY);
     await Promise.all(
       batch.map(async (product, batchIdx) => {
-        onProgress?.(i + batchIdx + 1, watchlist.length);
-        if (!product.listings?.length) return;
+        try {
+          onProgress?.(i + batchIdx + 1, watchlist.length);
+          if (!product.listings?.length) return;
 
-        const updatedListings: DistributorListing[] = [];
+          const updatedListings: DistributorListing[] = [];
 
-        for (const listing of product.listings) {
-          const updated = await refreshListing(
-            product,
-            listing,
-            healthCollector,
-          );
-          updatedListings.push(updated);
+          for (const listing of product.listings) {
+            const updated = await refreshListing(
+              product,
+              listing,
+              healthCollector,
+            );
+            updatedListings.push(updated);
 
-          // 2-second delay between scrapes
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+            // 2-second delay between scrapes
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+          }
+
+          await updateProductListings(product.id, updatedListings);
+        } catch (e) {
+          console.warn(`[PriceCheck] Skipping ${product.id}:`, e);
         }
-
-        await updateProductListings(product.id, updatedListings);
       }),
     );
   }

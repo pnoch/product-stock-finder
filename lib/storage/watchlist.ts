@@ -99,11 +99,13 @@ export function createWatchlistStorage(ctx: StorageContext) {
   }
 
   async function refreshWatchlistPrices(): Promise<void> {
-    const list = await getWatchlist();
-    const now = new Date().toISOString();
-    const updated = list.map((p) => ({ ...p, lastRefreshed: now }));
-    await saveWatchlist(updated);
-    for (const p of updated) notify("watchlist", p.id);
+    await enqueue(KEYS.WATCHLIST, async () => {
+      const list = await getWatchlist();
+      const now = new Date().toISOString();
+      const updated = list.map((p) => ({ ...p, lastRefreshed: now }));
+      await saveWatchlist(updated);
+      for (const p of updated) notify("watchlist", p.id);
+    });
   }
 
   return {

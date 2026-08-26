@@ -1,6 +1,7 @@
 import {
   bigint,
   double,
+  index,
   int,
   json,
   mysqlEnum,
@@ -42,7 +43,7 @@ export const watchlistItems = mysqlTable(
   {
     userId: int("userId")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     productId: varchar("productId", { length: 191 }).notNull(),
     data: json("data"),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
@@ -50,7 +51,11 @@ export const watchlistItems = mysqlTable(
     clientUpdatedAtMs: bigint("clientUpdatedAtMs", { mode: "number" }),
     deletedAtMs: bigint("deletedAtMs", { mode: "number" }),
   },
-  (table) => [primaryKey({ columns: [table.userId, table.productId] })],
+  (table) => [
+    primaryKey({ columns: [table.userId, table.productId] }),
+    index("idx_watchlist_user_updated").on(table.userId, table.updatedAtMs),
+    index("idx_watchlist_user_deleted").on(table.userId, table.deletedAtMs),
+  ],
 );
 
 export const priceAlerts = mysqlTable(
@@ -58,7 +63,7 @@ export const priceAlerts = mysqlTable(
   {
     userId: int("userId")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     alertId: varchar("alertId", { length: 191 }).notNull(),
     data: json("data"),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
@@ -66,7 +71,11 @@ export const priceAlerts = mysqlTable(
     clientUpdatedAtMs: bigint("clientUpdatedAtMs", { mode: "number" }),
     deletedAtMs: bigint("deletedAtMs", { mode: "number" }),
   },
-  (table) => [primaryKey({ columns: [table.userId, table.alertId] })],
+  (table) => [
+    primaryKey({ columns: [table.userId, table.alertId] }),
+    index("idx_alerts_user_updated").on(table.userId, table.updatedAtMs),
+    index("idx_alerts_user_deleted").on(table.userId, table.deletedAtMs),
+  ],
 );
 
 export const backOrderReminders = mysqlTable(
@@ -74,7 +83,7 @@ export const backOrderReminders = mysqlTable(
   {
     userId: int("userId")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     reminderId: varchar("reminderId", { length: 191 }).notNull(),
     data: json("data"),
     updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
@@ -82,13 +91,17 @@ export const backOrderReminders = mysqlTable(
     clientUpdatedAtMs: bigint("clientUpdatedAtMs", { mode: "number" }),
     deletedAtMs: bigint("deletedAtMs", { mode: "number" }),
   },
-  (table) => [primaryKey({ columns: [table.userId, table.reminderId] })],
+  (table) => [
+    primaryKey({ columns: [table.userId, table.reminderId] }),
+    index("idx_reminders_user_updated").on(table.userId, table.updatedAtMs),
+    index("idx_reminders_user_deleted").on(table.userId, table.deletedAtMs),
+  ],
 );
 
 export const appSettings = mysqlTable("app_settings", {
   userId: int("userId")
     .notNull()
-    .references(() => users.id)
+    .references(() => users.id, { onDelete: "cascade" })
     .primaryKey(),
   data: json("data"),
   updatedAtMs: bigint("updatedAtMs", { mode: "number" }).notNull(),
@@ -169,7 +182,7 @@ export const deviceNotificationConfigs = mysqlTable(
   "device_notification_configs",
   {
     deviceId: varchar("deviceId", { length: 128 }).notNull().primaryKey(),
-    userId: int("userId").references(() => users.id),
+    userId: int("userId").references(() => users.id, { onDelete: "cascade" }),
     alerts: json("alerts"),
     stockWatches: json("stockWatches"),
     dateReminders: json("dateReminders"),
@@ -186,7 +199,7 @@ export const notificationEvents = mysqlTable(
   "notification_events",
   {
     id: varchar("id", { length: 128 }).notNull().primaryKey(),
-    userId: int("userId").references(() => users.id),
+    userId: int("userId").references(() => users.id, { onDelete: "cascade" }),
     deviceId: varchar("deviceId", { length: 128 }),
     type: varchar("type", { length: 16 }).notNull(),
     dedupKey: varchar("dedupKey", { length: 255 }).notNull(),
@@ -201,6 +214,8 @@ export const notificationEvents = mysqlTable(
       table.deviceId,
       table.dedupKey,
     ),
+    index("idx_notif_events_created").on(table.createdAt),
+    index("idx_notif_events_device").on(table.deviceId),
   ],
 );
 
@@ -211,7 +226,9 @@ export const notificationEventDeliveries = mysqlTable(
   "notification_event_deliveries",
   {
     deviceId: varchar("deviceId", { length: 128 }).notNull(),
-    eventId: varchar("eventId", { length: 128 }).notNull(),
+    eventId: varchar("eventId", { length: 128 })
+      .notNull()
+      .references(() => notificationEvents.id, { onDelete: "cascade" }),
     deliveredAt: bigint("deliveredAt", { mode: "number" }).notNull(),
   },
   (table) => [primaryKey({ columns: [table.deviceId, table.eventId] })],
@@ -224,7 +241,7 @@ export type InsertNotificationEventDeliveryRow =
 
 export const devicePushTokens = mysqlTable("device_push_tokens", {
   deviceId: varchar("deviceId", { length: 128 }).notNull().primaryKey(),
-  userId: int("userId").references(() => users.id),
+  userId: int("userId").references(() => users.id, { onDelete: "cascade" }),
   token: text("token").notNull(),
   platform: varchar("platform", { length: 16 }).notNull(),
   updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),

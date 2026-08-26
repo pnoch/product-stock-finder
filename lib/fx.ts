@@ -58,9 +58,11 @@ export async function maybeRefreshFxRates(
   storage: Storage = defaultStorage,
 ): Promise<void> {
   const stored = await storage.getFxRates();
+  // ±5m jitter to avoid thundering herd on fleet launch
+  const jitter = (Math.random() - 0.5) * 10 * 60 * 1000;
   const fresh =
     stored !== null &&
     stored.fetchedAt > 0 &&
-    Date.now() - stored.fetchedAt < FX_TTL_MS;
+    Date.now() - stored.fetchedAt < FX_TTL_MS + jitter;
   if (!fresh) await refreshFxRates(storage);
 }

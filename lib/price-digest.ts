@@ -69,7 +69,10 @@ function productState(
     ? "in_stock"
     : backOrder
       ? "back_order"
-      : "out_of_stock";
+      : product.listings.length === 0 ||
+          product.listings.some((l) => l.stockStatus === "unknown")
+        ? "unknown"
+        : "out_of_stock";
   return {
     productId: product.id,
     name: product.name,
