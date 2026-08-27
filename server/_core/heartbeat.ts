@@ -80,18 +80,23 @@ const callForge = async <T>(
     headers["x-manus-user-session"] = userSession;
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
   let response: Response;
   try {
     response = await fetch(endpoint, {
       method: "POST",
       headers,
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
   } catch (error) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Heartbeat ${rpc} network error: ${String(error)}`,
     });
+  } finally {
+    clearTimeout(timeout);
   }
 
   if (!response.ok) {
