@@ -83,11 +83,15 @@ export function createNotificationsStorage(ctx: StorageContext) {
   async function savePendingHealthEvents(
     events: PendingHealthEvent[],
   ): Promise<void> {
-    await adapter.setItem(KEYS.PENDING_HEALTH_EVENTS, JSON.stringify(events));
+    await enqueue(KEYS.PENDING_HEALTH_EVENTS, async () => {
+      await adapter.setItem(KEYS.PENDING_HEALTH_EVENTS, JSON.stringify(events));
+    });
   }
 
   async function clearPendingHealthEvents(): Promise<void> {
-    await adapter.removeItem(KEYS.PENDING_HEALTH_EVENTS);
+    await enqueue(KEYS.PENDING_HEALTH_EVENTS, async () => {
+      await adapter.removeItem(KEYS.PENDING_HEALTH_EVENTS);
+    });
   }
 
   return {
