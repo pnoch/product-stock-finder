@@ -34,7 +34,7 @@ export async function refreshListing(
         listing.distributorId,
         product.modelNumber,
         listing.priceHistory,
-      );
+      ).catch(() => {});
     }
     return {
       ...listing,
