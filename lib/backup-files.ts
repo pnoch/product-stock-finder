@@ -17,7 +17,10 @@ export async function exportBackupFile(json: string): Promise<boolean> {
       const anchor = document.createElement("a");
       anchor.href = url;
       anchor.download = backupFileName();
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
       anchor.click();
+      anchor.remove();
       URL.revokeObjectURL(url);
       return true;
     }
