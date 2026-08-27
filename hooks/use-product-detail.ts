@@ -1,0 +1,37 @@
+import { useEffect, useMemo, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
+import { getWatchlist } from "@/lib/storage";
+import { getBestPrice } from "@/lib/currency";
+import { findBestDeal } from "@/lib/best-deal";
+import { filterByRange, type TimeRange } from "@/lib/compare-utils";
+import type { Product, DistributorListing } from "@/lib/types";
+
+export function useProductDetail() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const list = await getWatchlist();
+      const found = list.find((p) => p.id === id) ?? null;
+      if (!cancelled) {
+        setProduct(found);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
+
+  const listings = product?.listings ?? [];
+  const bestDeal = useMemo(() => findBestDeal(listings, "USD"), [listings]);
+  const priceTrends = useMemo(() => {
+    return listings.map((l) => ({
+      id: l.distributorId,
+      history: l.priceHistory ?? [],
+    }));
+  }, [listings]);
+
+  return { id, product, listings, bestDeal, priceTrends, loading };
+}
