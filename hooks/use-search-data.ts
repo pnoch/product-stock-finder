@@ -12,10 +12,12 @@ export function useSearchData() {
   const [tagMatchMode, setTagMatchMode] = useState<"any" | "all">("any");
 
   const loadData = useCallback(() => {
-    getWatchlist().then((wl) => {
-      setWatchlist(wl);
-      setTrackedIds(new Set(wl.map((p) => p.id)));
-    });
+    getWatchlist()
+      .then((wl) => {
+        setWatchlist(wl);
+        setTrackedIds(new Set(wl.map((p) => p.id)));
+      })
+      .catch(() => {});
     getTagDefinitions()
       .then((defs) => {
         setTagDefinitions(defs);
