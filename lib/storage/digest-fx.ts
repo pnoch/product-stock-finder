@@ -2,7 +2,7 @@ import type { DigestSnapshot } from "../price-digest";
 import type { StorageContext } from "./context";
 
 export function createDigestFxStorage(ctx: StorageContext) {
-  const { adapter, KEYS } = ctx;
+  const { adapter, KEYS, enqueue } = ctx;
 
   // ─── Price Digest Snapshot ──────────────────────────────────────────────────
 
@@ -18,7 +18,9 @@ export function createDigestFxStorage(ctx: StorageContext) {
   async function savePriceDigestSnapshot(
     snapshot: DigestSnapshot,
   ): Promise<void> {
-    await adapter.setItem(KEYS.DIGEST_SNAPSHOT, JSON.stringify(snapshot));
+    await enqueue(KEYS.DIGEST_SNAPSHOT, async () => {
+      await adapter.setItem(KEYS.DIGEST_SNAPSHOT, JSON.stringify(snapshot));
+    });
   }
 
   // ─── FX Rates ───────────────────────────────────────────────────────────────
@@ -57,7 +59,9 @@ export function createDigestFxStorage(ctx: StorageContext) {
     rates: Record<string, number>;
     fetchedAt: number;
   }): Promise<void> {
-    await adapter.setItem(KEYS.FX_RATES, JSON.stringify(payload));
+    await enqueue(KEYS.FX_RATES, async () => {
+      await adapter.setItem(KEYS.FX_RATES, JSON.stringify(payload));
+    });
   }
 
   return {
