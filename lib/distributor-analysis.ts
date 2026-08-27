@@ -1,6 +1,6 @@
 import type { Product } from "./types";
 import { DISTRIBUTORS } from "./distributors";
-import { convertPrice } from "./currency";
+import { convertPrice, hasExchangeRate } from "./currency";
 
 export interface DistributorAnalysis {
   distributorId: string;
@@ -24,7 +24,9 @@ export function analyzeDistributors(
         (l) =>
           l.distributorId === distributor.id &&
           l.stockStatus !== "out_of_stock" &&
-          l.price > 0,
+          l.price > 0 &&
+          hasExchangeRate(l.currency) &&
+          hasExchangeRate(displayCurrency),
       );
       if (listings.length === 0) continue;
       // Use the cheapest in-stock listing for deterministic totals
