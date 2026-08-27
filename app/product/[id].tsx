@@ -210,7 +210,7 @@ export default function ProductDetailScreen() {
       } else {
         const distributor = getDistributorById(listing.distributorId);
         const watchEntry = {
-          id: `watch-${Date.now()}-${listing.distributorId}`,
+          id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 6)}-${listing.distributorId}`,
           productId: id,
           productName: product?.name ?? "Product",
           distributorId: listing.distributorId,
@@ -240,7 +240,7 @@ export default function ProductDetailScreen() {
       return;
     }
     const newAlert: PriceAlert = {
-      id: `alert-${Date.now()}`,
+      id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       productId: id,
       targetPrice: price,
       currency: alertCurrency,
@@ -416,14 +416,16 @@ export default function ProductDetailScreen() {
       (l) => l.stockStatus === "in_stock",
     );
     const targetListing = inStockListing ?? sortedListings[0];
-    const distributor = targetListing
-      ? getDistributorById(targetListing.distributorId)
-      : null;
+    if (!targetListing) {
+      showAlert("No Listings", "Add a distributor listing before testing notifications.");
+      return;
+    }
+    const distributor = getDistributorById(targetListing.distributorId);
     await scheduleStockAlert(
       product?.name ?? "Product",
       distributor?.name ?? "a distributor",
-      targetListing?.price ?? 0,
-      targetListing?.currency ?? "USD",
+      targetListing.price,
+      targetListing.currency,
       id,
     );
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -454,7 +456,7 @@ export default function ProductDetailScreen() {
       id,
     );
     await addBackOrderReminder({
-      id: existing?.id ?? `reminder-${Date.now()}`,
+      id: existing?.id ?? `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       productId: product.id,
       productName: product.name,
       distributorId: reminderListing.distributorId,
@@ -480,7 +482,7 @@ export default function ProductDetailScreen() {
       const suggestedPrice =
         Math.round(listing.price * 0.95 * 100) / 100;
       const newAlert: PriceAlert = {
-        id: `alert-${Date.now()}`,
+        id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         productId: id,
         targetPrice: suggestedPrice,
         currency: listing.currency,

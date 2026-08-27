@@ -1,7 +1,9 @@
+import { isServerConfigured } from "@/constants/oauth";
 import { getWatchlist } from "./storage";
 import { uploadServerHistory } from "./server-prices";
 
 export async function backfillLocalHistory(): Promise<number> {
+  if (!isServerConfigured()) return 0;
   try {
     const watchlist = await getWatchlist();
     let uploaded = 0;

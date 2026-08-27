@@ -22,6 +22,10 @@ vi.mock("../lib/server-prices", () => ({
   ),
 }));
 
+vi.mock("@/constants/oauth", () => ({
+  isServerConfigured: vi.fn(() => true),
+}));
+
 import { backfillLocalHistory } from "../lib/history-sync";
 
 function makeProduct(modelNumber: string, historyLength: number): Product {
