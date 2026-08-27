@@ -14,6 +14,7 @@ import {
 import { getPrice } from "./prices";
 import { getFxRates } from "./fx";
 import { mergeHistory } from "./price-history";
+import { checkRateLimit } from "./rate-limit";
 import { getInsight } from "./price-insights";
 import { getProductImage } from "./product-images";
 import { parseProductText } from "./product-parse";
@@ -104,7 +105,8 @@ export const appRouter = router({
           modelNumber: z.string().min(1),
         }),
       )
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "prices.get", 60, 60_000);
         return getPrice(input.distributorId, input.modelNumber);
       }),
     uploadHistory: protectedProcedure
@@ -143,7 +145,8 @@ export const appRouter = router({
   }),
 
   fx: router({
-    get: publicProcedure.query(async () => {
+    get: publicProcedure.query(async ({ ctx }) => {
+      checkRateLimit(ctx, "fx.get", 60, 60_000);
       return getFxRates();
     }),
   }),
@@ -151,7 +154,8 @@ export const appRouter = router({
   insights: router({
     get: publicProcedure
       .input(z.object({ productId: z.string().min(1) }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "insights.get", 30, 60_000);
         return getInsight(input.productId);
       }),
   }),
@@ -159,7 +163,8 @@ export const appRouter = router({
   images: router({
     get: publicProcedure
       .input(z.object({ productId: z.string().min(1) }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "images.get", 30, 60_000);
         return getProductImage(input.productId);
       }),
   }),
@@ -167,7 +172,8 @@ export const appRouter = router({
   products: router({
     parse: publicProcedure
       .input(z.object({ raw: z.string().min(1).max(2000) }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "products.parse", 10, 60_000);
         return { product: await parseProductText(input.raw) };
       }),
   }),
