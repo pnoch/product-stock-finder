@@ -170,13 +170,16 @@ export async function pullPendingEvents(
       ),
     );
   if (rows.length > 0) {
-    await db.insert(notificationEventDeliveries).values(
-      rows.map((r) => ({
-        deviceId,
-        eventId: r.id,
-        deliveredAt: Date.now(),
-      })),
-    );
+    await db
+      .insert(notificationEventDeliveries)
+      .values(
+        rows.map((r) => ({
+          deviceId,
+          eventId: r.id,
+          deliveredAt: Date.now(),
+        })),
+      )
+      .onDuplicateKeyUpdate({ set: { deliveredAt: sql`deliveredAt` } });
   }
   return rows.map(rowToEvent);
 }
