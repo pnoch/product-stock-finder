@@ -129,6 +129,7 @@ app.config.ts         Expo config (branding, plugins, intent filters)
 ### `_core/` directories — hands off
 
 Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-level. Do not edit unless explicitly extending infrastructure. The app's own code lives in `lib/`, `app/`, `components/`, `hooks/`.
+`lib/price-source.ts` is the sole foreground price entry point — do not add new direct `fetchServerPrice` call sites.
 
 ## Domain Model (lib/types.ts)
 

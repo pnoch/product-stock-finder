@@ -68,6 +68,7 @@ export type Storage = ReturnType<typeof createStorage>;
 
 export const defaultStorage = createStorage(AsyncStorage);
 
+// ─── Watchlist ───────────────────────────────────────────────────────────
 export const {
   getWatchlist,
   saveWatchlist,
@@ -77,6 +78,9 @@ export const {
   updateProductDetails,
   updateProductListings,
   refreshWatchlistPrices,
+} = defaultStorage;
+// ─── Alerts ──────────────────────────────────────────────────────────────
+export const {
   getAlerts,
   saveAlerts,
   updateAlerts,
@@ -87,16 +91,9 @@ export const {
   updateAlert,
   rearmAlert,
   deactivateAlert,
-  getSettings,
-  saveSettings,
-  getTagDefinitions,
-  saveTagDefinitions,
-  setProductTags,
-  addTagsToProducts,
-  createTag,
-  renameTag,
-  setTagColor,
-  deleteTag,
+} = defaultStorage;
+// ─── Reminders ───────────────────────────────────────────────────────────
+export const {
   getBackOrderReminders,
   saveBackOrderReminders,
   updateReminders,
@@ -108,6 +105,19 @@ export const {
   addStockWatch,
   removeStockWatch,
   updateStockWatchStatus,
+} = defaultStorage;
+// ─── Settings / Meta ─────────────────────────────────────────────────────
+export const {
+  getSettings,
+  saveSettings,
+  getTagDefinitions,
+  saveTagDefinitions,
+  setProductTags,
+  addTagsToProducts,
+  createTag,
+  renameTag,
+  setTagColor,
+  deleteTag,
   getPriceDigestSnapshot,
   savePriceDigestSnapshot,
   getFxRates,

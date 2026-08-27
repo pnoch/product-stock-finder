@@ -9,6 +9,7 @@ import "react-native-reanimated";
 import { AppState, Platform, View } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
+import { AppErrorBoundary } from "@/components/app-error-boundary";
 import { showAlert } from "@/lib/alert";
 import {
   requestNotificationPermissions,
@@ -96,6 +97,11 @@ export default function RootLayout() {
   // Initialize Manus runtime for cookie injection from parent container
   useEffect(() => {
     initManusRuntime();
+    const handler = (e: PromiseRejectionEvent) => console.error(e.reason);
+    if (typeof window !== "undefined") {
+      window.addEventListener("unhandledrejection", handler);
+      return () => window.removeEventListener("unhandledrejection", handler);
+    }
   }, []);
 
   // Request notification permissions and set up Android channel on first load
@@ -370,6 +376,7 @@ export default function RootLayout() {
   );
 
   const shouldOverrideSafeArea = Platform.OS === "web";
+  const wrapped = <AppErrorBoundary>{content}</AppErrorBoundary>;
 
   if (shouldOverrideSafeArea) {
     return (
@@ -377,7 +384,7 @@ export default function RootLayout() {
         <SafeAreaProvider initialMetrics={providerInitialMetrics}>
           <SafeAreaFrameContext.Provider value={frame}>
             <SafeAreaInsetsContext.Provider value={insets}>
-              {content}
+              {wrapped}
             </SafeAreaInsetsContext.Provider>
           </SafeAreaFrameContext.Provider>
         </SafeAreaProvider>
@@ -388,7 +395,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <SafeAreaProvider initialMetrics={providerInitialMetrics}>
-        {content}
+        {wrapped}
       </SafeAreaProvider>
     </ThemeProvider>
   );
