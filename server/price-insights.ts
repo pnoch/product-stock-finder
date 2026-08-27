@@ -97,23 +97,28 @@ async function buildInsightContext(
   const product = PRODUCT_CATALOG.find((p) => p.id === productId);
   if (!product) return null;
 
-  const listings: DistributorListing[] = [];
-  for (const distributorId of getAllParserIds()) {
-    const history = await getHistory(distributorId, product.modelNumber);
-    const snapshot = await getCachedPrice(distributorId, product.modelNumber);
-    if (!history.length && !snapshot) continue;
-    const latest = history[history.length - 1];
-    listings.push({
-      distributorId,
-      productId,
-      price: snapshot?.price ?? latest?.price ?? 0,
-      currency: snapshot?.currency ?? latest?.currency ?? "USD",
-      stockStatus: snapshot?.stockStatus ?? latest?.stockStatus ?? "unknown",
-      url: snapshot?.url ?? "",
-      lastChecked: new Date(snapshot?.fetchedAt ?? Date.now()).toISOString(),
-      priceHistory: history,
-    });
-  }
+  const listings: DistributorListing[] = (
+    await Promise.all(
+      getAllParserIds().map(async (distributorId) => {
+        const [history, snapshot] = await Promise.all([
+          getHistory(distributorId, product.modelNumber),
+          getCachedPrice(distributorId, product.modelNumber),
+        ]);
+        if (!history.length && !snapshot) return null;
+        const latest = history[history.length - 1];
+        return {
+          distributorId,
+          productId,
+          price: snapshot?.price ?? latest?.price ?? 0,
+          currency: snapshot?.currency ?? latest?.currency ?? "USD",
+          stockStatus: snapshot?.stockStatus ?? latest?.stockStatus ?? "unknown",
+          url: snapshot?.url ?? "",
+          lastChecked: new Date(snapshot?.fetchedAt ?? Date.now()).toISOString(),
+          priceHistory: history,
+        } as DistributorListing;
+      }),
+    )
+  ).filter((l): l is DistributorListing => l !== null);
   if (listings.length === 0) return null;
 
   return {
