@@ -29,8 +29,10 @@ function parseRates(body: unknown): Record<string, number> | null {
 }
 
 async function refreshFromProvider(): Promise<FxCache | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
   try {
-    const response = await fetch(providerUrl());
+    const response = await fetch(providerUrl(), { signal: controller.signal });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const body: unknown = await response.json();
     const rates = parseRates(body);
@@ -42,6 +44,8 @@ async function refreshFromProvider(): Promise<FxCache | null> {
   } catch (error) {
     console.warn("[Fx] Failed to fetch rates:", error);
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

@@ -45,12 +45,16 @@ export function BulkImportModal({
     setImporting(true);
     try {
       for (const item of newProducts) {
-        await addToWatchlist({
-          ...item,
-          addedAt: new Date().toISOString(),
-          isWatched: true,
-          listings: [],
-        });
+        try {
+          await addToWatchlist({
+            ...item,
+            addedAt: new Date().toISOString(),
+            isWatched: true,
+            listings: [],
+          });
+        } catch (e) {
+          console.warn("[BulkImport] Skipping", item.modelNumber, e);
+        }
       }
       const unmatchedNote =
         preview.unmatched.length > 0
