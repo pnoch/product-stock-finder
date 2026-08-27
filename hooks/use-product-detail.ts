@@ -25,7 +25,7 @@ export function useProductDetail() {
   }, [id]);
 
   const listings = product?.listings ?? [];
-  const bestDeal = useMemo(() => findBestDeal(listings, "USD"), [listings]);
+  const bestDeal = useMemo(() => findBestDeal(listings, "Asia-Pacific", "USD"), [listings]);
   const priceTrends = useMemo(() => {
     return listings.map((l) => ({
       id: l.distributorId,
