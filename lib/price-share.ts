@@ -70,19 +70,32 @@ export function buildShareRows(
     };
   }
 
+  const convertedCandidates = listings
+    .map((l) => ({
+      listing: l,
+      converted: convert(l.price, l.currency, displayCurrency),
+    }))
+    .filter((e) => e.converted !== null)
+    .sort((a, b) => a.converted! - b.converted!);
+  if (convertedCandidates.length > 0) {
+    const cheapest = convertedCandidates[0].listing;
+    const converted = convertedCandidates[0].converted!;
+    return {
+      rows: [],
+      bestUrl: cheapest.url ?? "",
+      allOutOfStock: true,
+      fallbackPrice: formatPrice(converted, displayCurrency),
+    };
+  }
   const cheapest = [...listings].sort((a, b) => a.price - b.price)[0];
   if (!cheapest) {
     return { rows: [], bestUrl: "", allOutOfStock: false, fallbackPrice: null };
   }
-  const converted = convert(cheapest.price, cheapest.currency, displayCurrency);
   return {
     rows: [],
     bestUrl: cheapest.url ?? "",
     allOutOfStock: true,
-    fallbackPrice:
-      converted !== null
-        ? formatPrice(converted, displayCurrency)
-        : formatPrice(cheapest.price, cheapest.currency),
+    fallbackPrice: formatPrice(cheapest.price, cheapest.currency),
   };
 }
 
