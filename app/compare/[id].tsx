@@ -62,15 +62,15 @@ export default function CompareScreen() {
   const { width: windowWidth } = useWindowDimensions();
   const chartWidth = windowWidth - 32;
 
-  const selectionInitialized = useRef(false);
+  const selectionInitialized = useRef<string | null>(null);
   useEffect(() => {
-    if (!loaded || selectionInitialized.current) return;
-    selectionInitialized.current = true;
+    if (!loaded || selectionInitialized.current === id) return;
+    selectionInitialized.current = id as string;
     const withHistory = listings.filter(
       (l) => l.priceHistory && l.priceHistory.length >= 2,
     );
     setSelected(new Set(withHistory.slice(0, 3).map((l) => l.distributorId)));
-  }, [loaded, listings]);
+  }, [loaded, listings, id]);
 
   const toggleSelect = useCallback((distributorId: string) => {
     if (Platform.OS !== "web")
@@ -107,13 +107,16 @@ export default function CompareScreen() {
       );
       return;
     }
-    const bestUSD = Math.min(
-      ...inStock.map((l) => convertPrice(l.price, l.currency, "USD")),
-    );
+    let bestUSD = Infinity;
+    let bestListing = inStock[0]!;
+    for (const l of inStock) {
+      const usd = convertPrice(l.price, l.currency, "USD");
+      if (usd < bestUSD) {
+        bestUSD = usd;
+        bestListing = l;
+      }
+    }
     const targetUSD = parseFloat((bestUSD * 0.95).toFixed(2));
-    const bestListing = inStock.find(
-      (l) => convertPrice(l.price, l.currency, "USD") === bestUSD,
-    )!;
     const dist = getDistributorById(bestListing.distributorId);
     const granted = await requestNotificationPermissions();
     if (!granted) {
@@ -124,7 +127,7 @@ export default function CompareScreen() {
       return;
     }
     const alert: PriceAlert = {
-      id: `cross-${id}-${Date.now()}`,
+      id: `cross-${id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       productId: id as string,
       distributorId: bestListing.distributorId,
       targetPrice: targetUSD,
