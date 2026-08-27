@@ -295,7 +295,7 @@ export default function WatchlistScreen() {
         setCheckProgress({ current, total });
       });
       await reload();
-      void refreshAll();
+      await refreshAll();
       await loadData();
     } finally {
       setChecking(false);
