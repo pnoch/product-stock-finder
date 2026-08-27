@@ -16,10 +16,14 @@ export async function captureAndShareImage(
         format: "png",
         result: "data-uri",
       });
+      if (!dataUrl) return false;
       const anchor = document.createElement("a");
       anchor.href = String(dataUrl);
       anchor.download = `${fileName}.png`;
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
       anchor.click();
+      anchor.remove();
       return true;
     }
     const uri = await capture(viewRef.current, {
