@@ -51,7 +51,7 @@ export function ChartCard({
             fontSize: 15,
           }}
         >
-          Price History (USD)
+          Price History
         </Text>
         <View style={{ flexDirection: "row", gap: 4 }}>
           {TIME_RANGES.map((r) => {

@@ -9,10 +9,17 @@ export function appendPricePoint(
   const day = point.date.slice(0, 10);
   const existingIdx = history.findIndex((p) => p.date.slice(0, 10) === day);
 
-  const result =
-    existingIdx >= 0
-      ? history.map((p, i) => (i === existingIdx ? point : p))
-      : [...history, point];
+  let result: PricePoint[];
+  if (existingIdx >= 0) {
+    const existing = history[existingIdx];
+    // Keep the newer point for the same day (full timestamp, not just day)
+    result =
+      point.date > existing.date
+        ? history.map((p, i) => (i === existingIdx ? point : p))
+        : history;
+  } else {
+    result = [...history, point];
+  }
 
   const cutoff = new Date(now);
   cutoff.setUTCDate(cutoff.getUTCDate() - maxDays);
