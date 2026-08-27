@@ -3,6 +3,23 @@ import { DistributorListing } from "@/lib/types";
 const d = (daysAgo: number) =>
   new Date(Date.now() - 86400000 * daysAgo).toISOString();
 
+export function freshenSampleListings(
+  listings: DistributorListing[],
+): DistributorListing[] {
+  const now = Date.now();
+  return listings.map((listing) => {
+    const delta = now - Date.parse(listing.lastChecked);
+    return {
+      ...listing,
+      lastChecked: new Date(now).toISOString(),
+      priceHistory: listing.priceHistory.map((p) => ({
+        ...p,
+        date: new Date(Date.parse(p.date) + delta).toISOString(),
+      })),
+    };
+  });
+}
+
 export const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
   "mikrotik-crs804-4ddq-hrm": [
     {

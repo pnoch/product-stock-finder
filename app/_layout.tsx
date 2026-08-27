@@ -36,7 +36,10 @@ import {
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import { registerWebPushServiceWorker } from "@/lib/web-push";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
-import { SAMPLE_LISTINGS } from "@/lib/sample-data";
+import {
+  SAMPLE_LISTINGS,
+  freshenSampleListings,
+} from "@/lib/sample-data";
 import { DistributorListing } from "@/lib/types";
 import {
   SafeAreaFrameContext,
@@ -177,7 +180,7 @@ export default function RootLayout() {
         if (!existing.listings || existing.listings.length === 0) {
           await updateProductListings(
             "mikrotik-crs804-4ddq-hrm",
-            CRS804_SEED_LISTINGS,
+            freshenSampleListings(CRS804_SEED_LISTINGS),
           );
         }
         return;
@@ -191,7 +194,7 @@ export default function RootLayout() {
         ...crs804,
         isWatched: true,
         addedAt: new Date().toISOString(),
-        listings: CRS804_SEED_LISTINGS,
+        listings: freshenSampleListings(CRS804_SEED_LISTINGS),
       });
     }
     seedCRS804().then(seedCRS326);
@@ -202,7 +205,7 @@ export default function RootLayout() {
         if (!existing.listings || existing.listings.length === 0) {
           await updateProductListings(
             "mikrotik-crs326-24s",
-            CRS326_SEED_LISTINGS,
+            freshenSampleListings(CRS326_SEED_LISTINGS),
           );
         }
         return;
@@ -215,7 +218,7 @@ export default function RootLayout() {
         ...crs326,
         isWatched: true,
         addedAt: new Date().toISOString(),
-        listings: CRS326_SEED_LISTINGS,
+        listings: freshenSampleListings(CRS326_SEED_LISTINGS),
       });
     }
   }, []);
