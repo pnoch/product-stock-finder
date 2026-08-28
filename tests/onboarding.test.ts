@@ -1,33 +1,40 @@
-import { describe, expect, it } from "vitest";
-import {
-  hasSeenOnboarding,
-  setOnboardingSeen,
-  type KeyValueStore,
-} from "../lib/onboarding";
+import { describe, expect, it, vi } from "vitest";
+import { hasSeenOnboarding, setOnboardingSeen } from "../lib/onboarding";
 
-function memoryStore(initial: Record<string, string> = {}): KeyValueStore & {
-  data: Map<string, string>;
-} {
-  const data = new Map(Object.entries(initial));
+function mockStore(initial: string | null = null) {
+  const store: Record<string, string | null> = { has_seen_onboarding: initial };
   return {
-    data,
-    async getItem(key) {
-      return data.get(key) ?? null;
-    },
-    async setItem(key, value) {
-      data.set(key, value);
-    },
+    getItem: vi.fn(async (key: string) => store[key] ?? null),
+    setItem: vi.fn(async (key: string, value: string) => {
+      store[key] = value;
+    }),
   };
 }
 
-describe("onboarding", () => {
-  it("defaults to not seen", async () => {
-    expect(await hasSeenOnboarding(memoryStore())).toBe(false);
+describe("hasSeenOnboarding", () => {
+  it("returns false when never set", async () => {
+    expect(await hasSeenOnboarding(mockStore())).toBe(false);
   });
 
-  it("persists completion", async () => {
-    const store = memoryStore();
+  it("returns true when set", async () => {
+    expect(await hasSeenOnboarding(mockStore("true"))).toBe(true);
+  });
+
+  it("returns false on store error", async () => {
+    const bad = { getItem: vi.fn(async () => { throw new Error("fail"); }), setItem: vi.fn() };
+    expect(await hasSeenOnboarding(bad)).toBe(false);
+  });
+});
+
+describe("setOnboardingSeen", () => {
+  it("stores 'true'", async () => {
+    const store = mockStore();
     await setOnboardingSeen(store);
-    expect(await hasSeenOnboarding(store)).toBe(true);
+    expect(store.setItem).toHaveBeenCalledWith("has_seen_onboarding", "true");
+  });
+
+  it("swallows store errors", async () => {
+    const bad = { getItem: vi.fn(), setItem: vi.fn(async () => { throw new Error("fail"); }) };
+    await expect(setOnboardingSeen(bad)).resolves.toBeUndefined();
   });
 });

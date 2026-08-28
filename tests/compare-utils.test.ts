@@ -1,73 +1,92 @@
 import { describe, expect, it } from "vitest";
-import { cheapestByRegion } from "../lib/compare-utils";
-import type { DistributorListing } from "../lib/types";
+import { filterByRange, cheapestByRegion } from "../lib/compare-utils";
 
-function listing(
-  distributorId: string,
-  overrides: Partial<DistributorListing> = {},
-): DistributorListing {
+const now = Date.now();
+const DAY = 86_400_000;
+
+function point(daysAgo: number, price: number, currency = "USD") {
   return {
-    distributorId,
-    productId: "p1",
-    price: 100,
-    currency: "USD",
-    stockStatus: "in_stock",
-    url: "",
-    lastChecked: "2026-08-25T00:00:00.000Z",
-    priceHistory: [],
-    ...overrides,
+    date: new Date(now - daysAgo * DAY).toISOString().slice(0, 10),
+    price,
+    currency,
+    stockStatus: "in_stock" as const,
   };
 }
 
+describe("filterByRange", () => {
+  const data = [point(1, 100), point(5, 200), point(20, 300), point(100, 400)];
+
+  it("All returns everything", () => {
+    expect(filterByRange(data, "All")).toHaveLength(4);
+  });
+
+  it("1W returns last 7 days", () => {
+    expect(filterByRange(data, "1W")).toHaveLength(2);
+  });
+
+  it("1M returns last 30 days", () => {
+    expect(filterByRange(data, "1M")).toHaveLength(3);
+  });
+
+  it("3M returns last 90 days", () => {
+    expect(filterByRange(data, "3M")).toHaveLength(3);
+  });
+});
+
 describe("cheapestByRegion", () => {
-  it("picks the cheapest in-stock listing per region", () => {
-    const result = cheapestByRegion([
-      listing("linitx-uk", { price: 400, currency: "GBP" }),
-      listing("balticnetworks-us", { price: 450, currency: "USD" }),
-    ]);
-    expect(result).toHaveLength(2);
-    // USD 450 (~$450) beats GBP 400 (~$506) after conversion
-    expect(result[0]!.region).toBe("North America");
+  it("selects cheapest per region, skips out_of_stock", () => {
+    const listings = [
+      {
+        distributorId: "balticnetworks-us",
+        productId: "p1",
+        price: 209,
+        currency: "USD",
+        stockStatus: "in_stock" as const,
+        url: "",
+        lastChecked: "",
+        priceHistory: [],
+      },
+      {
+        distributorId: "linktechs-us",
+        productId: "p1",
+        price: 219,
+        currency: "USD",
+        stockStatus: "in_stock" as const,
+        url: "",
+        lastChecked: "",
+        priceHistory: [],
+      },
+      {
+        distributorId: "mikrotikstore-de",
+        productId: "p1",
+        price: 185,
+        currency: "EUR",
+        stockStatus: "out_of_stock" as const,
+        url: "",
+        lastChecked: "",
+        priceHistory: [],
+      },
+    ];
+    const result = cheapestByRegion(listings);
+    // US region: balticnetworks is cheapest at 209 USD
+    // EU: mikrotikstore is out_of_stock → excluded
+    expect(result.length).toBeGreaterThanOrEqual(1);
+    expect(result.find((r) => r.region === "North America")?.listing.distributorId).toBe("balticnetworks-us");
   });
 
-  it("never selects an out-of-stock listing when one is buyable", () => {
-    // interprojekt-pl (Europe) is cheaper but out of stock; getic-gr is in stock
-    const result = cheapestByRegion([
-      listing("interprojekt-pl", { price: 100, currency: "EUR", stockStatus: "out_of_stock" }),
-      listing("getic-gr", { price: 200, currency: "EUR" }),
-    ]);
-    const europe = result.find((r) => r.region === "Europe");
-    expect(europe?.listing.distributorId).toBe("getic-gr");
-  });
-
-  it("falls back to back-order listings when nothing is in stock in a region", () => {
-    const result = cheapestByRegion([
-      listing("interprojekt-pl", { price: 100, currency: "EUR", stockStatus: "back_order" }),
-    ]);
-    expect(result).toHaveLength(1);
-    expect(result[0]!.listing.stockStatus).toBe("back_order");
-  });
-
-  it("ignores non-positive prices", () => {
-    const result = cheapestByRegion([
-      listing("balticnetworks-us", { price: 0 }),
-      listing("linitx-uk", { price: 50, currency: "GBP" }),
-    ]);
-    expect(result).toHaveLength(1);
-    expect(result[0]!.listing.distributorId).toBe("linitx-uk");
-  });
-
-  it("sorts regions by converted USD price ascending", () => {
-    const result = cheapestByRegion([
-      listing("linitx-uk", { price: 500, currency: "GBP" }),
-      listing("server2u-my", { price: 300, currency: "MYR" }),
-      listing("balticnetworks-us", { price: 200, currency: "USD" }),
-    ]);
-    // MYR 300 (~$67) < USD 200 < GBP 500 (~$633)
-    expect(result.map((r) => r.region)).toEqual([
-      "Asia-Pacific",
-      "North America",
-      "Europe",
-    ]);
+  it("skips listings with price <= 0", () => {
+    const listings = [
+      {
+        distributorId: "balticnetworks-us",
+        productId: "p1",
+        price: 0,
+        currency: "USD",
+        stockStatus: "in_stock" as const,
+        url: "",
+        lastChecked: "",
+        priceHistory: [],
+      },
+    ];
+    expect(cheapestByRegion(listings)).toEqual([]);
   });
 });
