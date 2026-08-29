@@ -7,6 +7,7 @@ import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import {
   formatPrice,
+  convertPrice,
   getBestPrice,
 } from "@/lib/currency";
 import {
@@ -195,8 +196,21 @@ export function ProductInfoCard({
       {/* Currency Converter Widget — shows best in-stock price in user's preferred currency */}
       {(() => {
         if (displayCurrency === "USD") return null;
-        const best = getBestPrice(visibleListings, displayCurrency);
-        if (!best) return null;
+        const available = visibleListings.filter(
+          (l) => l.stockStatus !== "out_of_stock" && l.price > 0,
+        );
+        if (!available.length) return null;
+        const bestListing = available.reduce((best, curr) =>
+          convertPrice(curr.price, curr.currency, displayCurrency) <
+          convertPrice(best.price, best.currency, displayCurrency)
+            ? curr
+            : best,
+        );
+        const convertedPrice = convertPrice(
+          bestListing.price,
+          bestListing.currency,
+          displayCurrency,
+        );
         return (
           <View
             style={{
@@ -235,17 +249,22 @@ export function ProductInfoCard({
                 {displayCurrency}
               </Text>
             </View>
-            <Text
-              style={{
-                color: colors.foreground,
-                fontWeight: "700",
-                fontSize: 14,
-                flex: 1,
-                textAlign: "right",
-              }}
-            >
-              {formatPrice(best.price, displayCurrency)}
-            </Text>
+            <View style={{ flex: 1, alignItems: "flex-end" }}>
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontWeight: "700",
+                  fontSize: 14,
+                }}
+              >
+                {formatPrice(convertedPrice, displayCurrency)}
+              </Text>
+              {bestListing.currency !== displayCurrency && (
+                <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
+                  1 {bestListing.currency} = {convertPrice(1, bestListing.currency, displayCurrency).toFixed(4)} {displayCurrency}
+                </Text>
+              )}
+            </View>
           </View>
         );
       })()}

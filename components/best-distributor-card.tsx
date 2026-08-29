@@ -13,10 +13,12 @@ function BestDistributorCard({
   listing,
   onSetAlert,
   product: prod,
+  displayCurrency = "USD",
 }: {
   listing: DistributorListing;
   onSetAlert: () => void;
   product: { name: string } | null;
+  displayCurrency?: string;
 }) {
   const colors = useColors();
   const distributor = getDistributorById(listing.distributorId);
@@ -199,6 +201,11 @@ function BestDistributorCard({
           {listing.currency !== "USD" && (
             <Text style={{ color: colors.muted, fontSize: 12 }}>
               ≈ {formatPrice(usdPrice, "USD")}
+            </Text>
+          )}
+          {displayCurrency !== listing.currency && (
+            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
+              1 {listing.currency} = {convertPrice(1, listing.currency, displayCurrency).toFixed(4)} {displayCurrency}
             </Text>
           )}
         </View>

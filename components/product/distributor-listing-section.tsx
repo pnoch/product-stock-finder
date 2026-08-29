@@ -27,6 +27,7 @@ interface DistributorListingSectionProps {
   bestDeal: BestDeal | null;
   stockWatches: Record<string, boolean>;
   id: string;
+  displayCurrency: string;
   onSetRegionFilter: (region: string) => void;
   onSetBestAlert: (listing: DistributorListing) => void;
   onToggleStockWatch: (listing: DistributorListing) => void;
@@ -46,6 +47,7 @@ export function DistributorListingSection({
   bestDeal,
   stockWatches,
   id,
+  displayCurrency,
   onSetRegionFilter,
   onSetBestAlert,
   onToggleStockWatch,
@@ -119,6 +121,7 @@ export function DistributorListingSection({
               listing={bestInStockListing}
               product={product}
               onSetAlert={() => onSetBestAlert(bestInStockListing)}
+              displayCurrency={displayCurrency}
             />
           )}
           {insight && (
