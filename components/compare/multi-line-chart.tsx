@@ -288,7 +288,7 @@ export function MultiLineChart({
                     fontSize={9}
                     fill={colors.foreground}
                   >
-                    {`${row.label}  $${row.point!.usd.toFixed(2)}`}
+                    {`${row.label}  ${row.point ? `$${row.point.usd.toFixed(2)}` : "—"}`}
                   </SvgText>
                 </Fragment>
               ))}

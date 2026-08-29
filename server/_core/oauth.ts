@@ -3,6 +3,27 @@ import type { Express, Request, Response } from "express";
 import { sdk } from "./sdk";
 import { getSessionCookieOptions } from "./cookies";
 
+const authBuckets = new Map<string, number[]>();
+const AUTH_RATE_LIMIT = 10;
+const AUTH_RATE_WINDOW = 60_000;
+
+function checkAuthRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const windowStart = now - AUTH_RATE_WINDOW;
+  const timestamps = authBuckets.get(ip) ?? [];
+  const recent = timestamps.filter((t) => t > windowStart);
+  if (recent.length >= AUTH_RATE_LIMIT) return false;
+  recent.push(now);
+  authBuckets.set(ip, recent);
+  return true;
+}
+
+function getClientIp(req: Request): string {
+  const xf = req.headers["x-forwarded-for"];
+  const forwarded = typeof xf === "string" ? xf.split(",")[0]?.trim() : undefined;
+  return forwarded ?? req.ip ?? "unknown";
+}
+
 function buildUserResponse(user: { id?: number | null; openId?: string | null; name?: string | null; email?: string | null; loginMethod?: string | null; lastSignedIn?: Date | null }) {
   return {
     id: user?.id ?? null,
@@ -17,6 +38,11 @@ function buildUserResponse(user: { id?: number | null; openId?: string | null; n
 export function registerOAuthRoutes(app: Express) {
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
+      const ip = getClientIp(req);
+      if (!checkAuthRateLimit(ip)) {
+        res.status(429).json({ error: "Too many requests. Try again shortly." });
+        return;
+      }
       const { email, password, name } = req.body;
       if (!email || !password) {
         res.status(400).json({ error: "email and password are required" });
@@ -42,6 +68,11 @@ export function registerOAuthRoutes(app: Express) {
 
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
+      const ip = getClientIp(req);
+      if (!checkAuthRateLimit(ip)) {
+        res.status(429).json({ error: "Too many requests. Try again shortly." });
+        return;
+      }
       const { email, password } = req.body;
       if (!email || !password) {
         res.status(400).json({ error: "email and password are required" });

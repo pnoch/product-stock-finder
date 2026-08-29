@@ -12,8 +12,8 @@ export function AlertSection({ productId }: { productId: string }) {
   const onAdd = async () => {
     const targetPrice = parseFloat(price);
     if (!Number.isFinite(targetPrice) || targetPrice <= 0) { showAlert("Invalid price", "Enter a positive number."); return; }
-    const alert = { id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, targetPrice, currency, isActive: true, createdAt: new Date().toISOString() } as const;
-    await addAlert(alert as never);
+    const alert = { id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, targetPrice, currency, isActive: true, createdAt: new Date().toISOString(), direction: "drop" as const };
+    await addAlert(alert);
     await schedulePriceAlert(productId, targetPrice, currency).catch(() => {});
     showAlert("Alert Set", `You'll be notified at ${targetPrice} ${currency}.`);
     setPrice("");

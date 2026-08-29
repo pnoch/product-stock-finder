@@ -346,7 +346,6 @@ export default function SettingsScreen() {
         <ScraperStatusSection
           products={products}
           onReenableDistributor={handleReenableDistributor}
-          colors={colors}
         />
 
         <AboutSection />

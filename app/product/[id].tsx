@@ -25,7 +25,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { schedulePriceAlert, scheduleBackOrderReminder, scheduleStockAlert, cancelNotification, requestNotificationPermissions } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
 import { ProductInfoCard, ActionButtons, DistributorListingSection, PriceAlertModal, NotesCard, TargetTableCard, ReminderDatePickerModal, PriceChartModal } from "./_components";
-import { DistributorListing } from "@/lib/types";
+import { PriceAlert, DistributorListing } from "@/lib/types";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
 import { suggestAlertPrices } from "@/lib/alert-suggestions";
 import { SAMPLE_LISTINGS } from "@/lib/sample-data";
@@ -41,7 +41,7 @@ export default function ProductDetailScreen() {
   const [alertCurrency, setAlertCurrency] = useState("USD");
   const [alertDistributorId, setAlertDistributorId] = useState<string | null>(null);
   const [alertDirection, setAlertDirection] = useState<"drop" | "rise">("drop");
-  const [alerts, setAlerts] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [shippingRegion, setShippingRegion] = useState("Asia-Pacific");
   const [regionFilter, setRegionFilter] = useState<string>("all");

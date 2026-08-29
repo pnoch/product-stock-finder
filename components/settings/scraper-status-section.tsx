@@ -34,11 +34,9 @@ function getDistributorHealth(
 export function ScraperStatusSection({
   products,
   onReenableDistributor,
-  colors: colorsProp,
 }: {
   products: Product[];
   onReenableDistributor: (distributorId: string) => void;
-  colors: ReturnType<typeof useColors>;
 }) {
   const colors = useColors();
   const router = useRouter();

@@ -29,8 +29,9 @@ export function NotesCard({ productId }: { productId: string }) {
   };
 
   const handleSave = async () => {
-    await saveProductNote(productId, draft);
-    setNote(draft.trim());
+    const trimmed = draft.trim();
+    await saveProductNote(productId, trimmed);
+    setNote(trimmed);
     setEditing(false);
     if (Platform.OS !== "web")
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

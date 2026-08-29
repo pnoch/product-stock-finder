@@ -182,13 +182,13 @@ export function PriceHistoryChart({
                 width={44}
                 height={14}
                 rx={4}
-                fill={colors.error + "33"}
+                fill={colors.success + "33"}
               />
               <SvgText
                 x={minCoord.x}
                 y={minCoord.y - 5}
                 fontSize={9}
-                fill={colors.error}
+                fill={colors.success}
                 textAnchor="middle"
                 fontWeight="700"
               >
@@ -200,13 +200,13 @@ export function PriceHistoryChart({
                 width={48}
                 height={14}
                 rx={4}
-                fill={colors.success + "33"}
+                fill={colors.error + "33"}
               />
               <SvgText
                 x={maxCoord.x}
                 y={maxCoord.y + 14}
                 fontSize={9}
-                fill={colors.success}
+                fill={colors.error}
                 textAnchor="middle"
                 fontWeight="700"
               >

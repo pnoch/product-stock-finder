@@ -307,6 +307,8 @@ export async function upsertSyncItem(
         });
       return { accepted: true, updatedAt: stampedAt };
     }
+    default:
+      return { accepted: false, updatedAt: stampedAt };
   }
 }
 

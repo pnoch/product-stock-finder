@@ -240,7 +240,8 @@ export function ProductInfoCard({
                 color: colors.foreground,
                 fontWeight: "700",
                 fontSize: 14,
-                marginLeft: "auto",
+                flex: 1,
+                textAlign: "right",
               }}
             >
               {formatPrice(best.price, displayCurrency)}

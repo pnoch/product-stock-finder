@@ -11,7 +11,7 @@ export function ReminderSection({ productId, distributorId }: { productId: strin
   const onSet = async () => {
     const d = date ?? new Date(Date.now() + 7 * 86400000);
     const notifId = await scheduleBackOrderReminder(productId, distributorId, d).catch(() => null);
-    await addBackOrderReminder({ id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, distributorId, reminderDate: d.toISOString(), notificationId: notifId ?? undefined, createdAt: new Date().toISOString() } as never);
+    await addBackOrderReminder({ id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, productName: "", distributorId, distributorName: "", reminderDate: d.toISOString(), notificationId: notifId ?? undefined, createdAt: new Date().toISOString() });
     showAlert("Reminder Set", `You'll be reminded on ${d.toLocaleDateString()}.`);
   };
   return (
