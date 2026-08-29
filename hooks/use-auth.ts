@@ -1,5 +1,6 @@
 import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
+import { getApiBaseUrl } from "@/constants/oauth";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
 
@@ -99,6 +100,74 @@ export function useAuth(options?: UseAuthOptions) {
     }
   }, []);
 
+  const login = useCallback(async (email: string, password: string) => {
+    try {
+      const baseUrl = getApiBaseUrl();
+      const res = await fetch(`${baseUrl}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Login failed");
+      }
+      const data = await res.json();
+      if (data.sessionToken && Platform.OS !== "web") {
+        await Auth.setSessionToken(data.sessionToken);
+      }
+      if (data.user) {
+        const userInfo: Auth.User = {
+          id: data.user.id,
+          openId: data.user.openId,
+          name: data.user.name,
+          email: data.user.email,
+          loginMethod: "email",
+          lastSignedIn: new Date(),
+        };
+        await Auth.setUserInfo(userInfo);
+        setUser(userInfo);
+      }
+    } catch (err) {
+      throw err instanceof Error ? err : new Error("Login failed");
+    }
+  }, []);
+
+  const register = useCallback(async (email: string, password: string, name?: string) => {
+    try {
+      const baseUrl = getApiBaseUrl();
+      const res = await fetch(`${baseUrl}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, name }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Registration failed");
+      }
+      const data = await res.json();
+      if (data.sessionToken && Platform.OS !== "web") {
+        await Auth.setSessionToken(data.sessionToken);
+      }
+      if (data.user) {
+        const userInfo: Auth.User = {
+          id: data.user.id,
+          openId: data.user.openId,
+          name: data.user.name,
+          email: data.user.email,
+          loginMethod: "email",
+          lastSignedIn: new Date(),
+        };
+        await Auth.setUserInfo(userInfo);
+        setUser(userInfo);
+      }
+    } catch (err) {
+      throw err instanceof Error ? err : new Error("Registration failed");
+    }
+  }, []);
+
   const isAuthenticated = useMemo(() => Boolean(user), [user]);
 
   useEffect(() => {
@@ -150,5 +219,7 @@ export function useAuth(options?: UseAuthOptions) {
     isAuthenticated,
     refresh: fetchUser,
     logout,
+    login,
+    register,
   };
 }
