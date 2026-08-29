@@ -1,5 +1,6 @@
 import { createTRPCClient } from "./trpc";
 import { defaultStorage, type Storage } from "./storage";
+import { appendFxHistory } from "./fx-history";
 import { setExchangeRates } from "./currency";
 import type { FxRatesResult } from "./types";
 
@@ -47,6 +48,9 @@ export function refreshFxRates(
         fetchedAt: result.fetchedAt,
       });
       setExchangeRates(result.rates);
+      const existingHistory = await storage.getFxHistory();
+      const updatedHistory = appendFxHistory(existingHistory, result.rates, result.fetchedAt);
+      await storage.saveFxHistory(updatedHistory);
     } finally {
       refreshInFlight = null;
     }
