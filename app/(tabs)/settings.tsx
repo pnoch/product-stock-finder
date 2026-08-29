@@ -3,7 +3,7 @@ import { ScrollView, Text, View, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
-import { isServerConfigured, startOAuthLogin } from "@/constants/oauth";
+import { isServerConfigured } from "@/constants/oauth";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
 import { useServerConfig } from "@/hooks/use-server-config";
@@ -28,6 +28,7 @@ import { DataSection } from "@/components/settings/data-section";
 import { NotificationsSection } from "@/components/settings/notifications-section";
 import { ScraperStatusSection } from "@/components/settings/scraper-status-section";
 import { AboutSection } from "@/components/settings/about-section";
+import { LoginModal } from "@/components/settings/login-modal";
 import { PillPicker } from "@/components/settings/pill-picker";
 import { RadioPicker } from "@/components/settings/radio-picker";
 import { SectionHeader } from "@/components/settings/section-header";
@@ -48,10 +49,11 @@ export default function SettingsScreen() {
     null,
   );
   const [products, setProducts] = useState<Product[]>([]);
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, login, register } = useAuth();
   const [syncMeta, setSyncMeta] = useState<SyncMeta | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [syncing, setSyncing] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -99,7 +101,7 @@ export default function SettingsScreen() {
   const handleSignIn = useCallback(() => {
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    startOAuthLogin();
+    setShowLoginModal(true);
   }, []);
 
   useEffect(() => {
@@ -349,6 +351,13 @@ export default function SettingsScreen() {
 
         <AboutSection />
       </ScrollView>
+
+      <LoginModal
+        visible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLogin={login}
+        onRegister={register}
+      />
     </ScreenContainer>
   );
 }
