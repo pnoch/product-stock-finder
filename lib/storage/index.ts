@@ -7,6 +7,7 @@ import { createAlertsStorage } from "./alerts";
 import { createRemindersStorage } from "./reminders";
 import { createSettingsStorage } from "./settings";
 import { createDigestFxStorage } from "./digest-fx";
+import { createFxHistoryStorage } from "./fx-history";
 import { createSyncMetaStorage } from "./sync-meta";
 import { createNotificationsStorage } from "./notifications";
 
@@ -36,6 +37,7 @@ export function createStorage(
       STORAGE_KEYS.DISPLAYED_EVENT_IDS,
       STORAGE_KEYS.NOTIFICATION_HISTORY,
       STORAGE_KEYS.FX_RATES,
+      STORAGE_KEYS.FX_RATE_HISTORY,
       STORAGE_KEYS.PENDING_HEALTH_EVENTS,
       "recently_viewed",
       "distributor_watches",
@@ -53,6 +55,7 @@ export function createStorage(
     ...createRemindersStorage(ctx),
     ...createSettingsStorage(ctx, watchlist),
     ...createDigestFxStorage(ctx),
+    ...createFxHistoryStorage(ctx),
     ...createSyncMetaStorage(ctx),
     ...createNotificationsStorage(ctx),
     setOnChange: ctx.setOnChange,
@@ -122,6 +125,8 @@ export const {
   savePriceDigestSnapshot,
   getFxRates,
   saveFxRates,
+  getFxHistory,
+  saveFxHistory,
   getSyncMeta,
   saveSyncMeta,
   setItemSyncMeta,

@@ -13,6 +13,7 @@ export const STORAGE_KEYS = {
   NOTIFICATION_HISTORY: "notification_history",
   FX_RATES: "fx_rates",
   PENDING_HEALTH_EVENTS: "pending_health_events",
+  FX_RATE_HISTORY: "fx_rate_history",
 };
 
 export interface StorageContext {
