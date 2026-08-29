@@ -211,8 +211,8 @@ export function DistributorListingCard({
           </Text>
         );
       })()}
-      {/* Watch for Restock button on back-order cards */}
-      {listing.stockStatus === "back_order" && (
+      {/* Watch for Restock button on back-order or out-of-stock cards */}
+      {(listing.stockStatus === "back_order" || listing.stockStatus === "out_of_stock") && (
         <View style={{ gap: 8, marginTop: 10 }}>
           <TouchableOpacity
             onPress={() => onToggleStockWatch(listing)}

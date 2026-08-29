@@ -19,6 +19,7 @@ import { formatPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAlertsData } from "@/hooks/use-alerts-data";
 import { showAlert } from "@/lib/alert";
+import { getDistributorById } from "@/lib/distributors";
 
 import { TabSwitcher } from "@/components/alerts/tab-switcher";
 import { AlertCard } from "@/components/alerts/alert-card";
@@ -33,6 +34,7 @@ export default function AlertsScreen() {
   const {
     activeTab, setActiveTab,
     alerts, reminders, stockWatches,
+    products,
     refreshing, onRefresh,
     setUnreadNotifications,
     handleToggle, handleDeleteAlert, handleDeleteReminder,
@@ -64,6 +66,19 @@ export default function AlertsScreen() {
     },
     [alerts],
   );
+
+  const editDistributors = editingAlert
+    ? products
+        .find((p) => p.id === editingAlert.productId)
+        ?.listings.map((l) => {
+          const d = getDistributorById(l.distributorId);
+          return {
+            id: l.distributorId,
+            name: d?.name ?? l.distributorId,
+            countryFlag: d?.countryFlag ?? "",
+          };
+        }) ?? []
+    : [];
 
   return (
     <ScreenContainer>
@@ -406,10 +421,8 @@ export default function AlertsScreen() {
             <ReminderCard
               reminder={item}
               onReschedule={(r) => {
-                const nextWeek = new Date();
-                nextWeek.setDate(nextWeek.getDate() + 7);
-                setRescheduleDate(nextWeek);
-                setShowReschedulePicker(false);
+                setRescheduleDate(new Date(r.reminderDate));
+                setShowReschedulePicker(true);
                 setRescheduleTarget(r);
               }}
               onDelete={handleDeleteReminder}
@@ -467,7 +480,7 @@ export default function AlertsScreen() {
         }
         direction={editDirection}
         onDirectionChange={setEditDirection}
-        distributors={[]}
+        distributors={editDistributors}
         selectedDistributorId={editDistributorId}
         onSelectDistributor={setEditDistributorId}
       />

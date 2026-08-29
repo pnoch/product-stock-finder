@@ -54,13 +54,23 @@ export default function ProductDetailScreen() {
   const chartWidth = Dimensions.get("window").width - 48;
   const chartHeight = 200;
 
-  const loadData = useCallback(async () => {
-    void getAlerts().then(setAlerts);
-    void fetchPriceInsight(id).then((res) => { if (res) setInsight(res.insight); });
-    void fetchProductImage(id).then((res) => { if (res) setProductImage(res.imageUrl); });
+  const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
+    const [alertsData, insightData, imageData] = await Promise.all([
+      getAlerts(),
+      fetchPriceInsight(id).catch(() => null),
+      fetchProductImage(id).catch(() => null),
+    ]);
+    if (signal?.cancelled) return;
+    setAlerts(alertsData);
+    if (insightData) setInsight(insightData.insight);
+    if (imageData) setProductImage(imageData.imageUrl);
   }, [id]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    const signal = { cancelled: false };
+    loadData(signal);
+    return () => { signal.cancelled = true; };
+  }, [loadData]);
 
   const bestDeal = useMemo(() => findBestDeal(listings, shippingRegion, displayCurrency), [listings, shippingRegion, displayCurrency]);
   const sortedListings = [...listings].sort((a, b) => {
