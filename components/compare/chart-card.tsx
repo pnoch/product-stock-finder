@@ -11,6 +11,7 @@ export function ChartCard({
   onRangeChange,
   chartSeries,
   chartWidth,
+  displayCurrency = "USD",
 }: {
   timeRange: TimeRange;
   onRangeChange: (range: TimeRange) => void;
@@ -21,6 +22,7 @@ export function ChartCard({
     currency: string;
   }>;
   chartWidth: number;
+  displayCurrency?: string;
 }) {
   const colors = useColors();
 
@@ -51,7 +53,7 @@ export function ChartCard({
             fontSize: 15,
           }}
         >
-          Price History
+          Price History ({displayCurrency})
         </Text>
         <View style={{ flexDirection: "row", gap: 4 }}>
           {TIME_RANGES.map((r) => {
@@ -93,6 +95,7 @@ export function ChartCard({
           series={chartSeries}
           width={chartWidth}
           height={220}
+          displayCurrency={displayCurrency}
         />
       ) : (
         <View

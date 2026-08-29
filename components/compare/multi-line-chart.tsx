@@ -10,13 +10,14 @@ import Svg, {
 
 import { useColors } from "@/hooks/use-colors";
 import { PricePoint } from "@/lib/types";
-import { convertPrice } from "@/lib/currency";
+import { convertPrice, CURRENCY_SYMBOLS } from "@/lib/currency";
 import { nearestByX } from "@/lib/price-chart";
 
 export function MultiLineChart({
   series,
   width,
   height,
+  displayCurrency = "USD",
 }: {
   series: {
     label: string;
@@ -26,6 +27,7 @@ export function MultiLineChart({
   }[];
   width: number;
   height: number;
+  displayCurrency?: string;
 }) {
   const colors = useColors();
   const [scrubX, setScrubX] = useState<number | null>(null);
@@ -44,17 +46,17 @@ export function MultiLineChart({
     const usableW = width - padL - padR;
     const usableH = height - padT - padB;
 
-    const allPricesUSD: number[] = [];
+    const allPrices: number[] = [];
     for (const s of series) {
       for (const p of s.data) {
-        allPricesUSD.push(convertPrice(p.price, p.currency, "USD"));
+        allPrices.push(convertPrice(p.price, p.currency, displayCurrency));
       }
     }
-    if (allPricesUSD.length === 0)
+    if (allPrices.length === 0)
       return { allCoords: [], globalMin: 0, globalMax: 0 };
 
-    const globalMin = Math.min(...allPricesUSD);
-    const globalMax = Math.max(...allPricesUSD);
+    const globalMin = Math.min(...allPrices);
+    const globalMax = Math.max(...allPrices);
     const range = globalMax - globalMin || 1;
 
     const allDates: number[] = [];
@@ -70,11 +72,11 @@ export function MultiLineChart({
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
       );
       const coords = sorted.map((p) => {
-        const usd = convertPrice(p.price, p.currency, "USD");
+        const converted = convertPrice(p.price, p.currency, displayCurrency);
         const x =
           padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
-        const y = padT + (1 - (usd - globalMin) / range) * usableH;
-        return { x, y, price: p.price, usd, date: p.date };
+        const y = padT + (1 - (converted - globalMin) / range) * usableH;
+        return { x, y, price: p.price, converted, date: p.date };
       });
       return {
         ...s,
@@ -84,7 +86,7 @@ export function MultiLineChart({
     });
 
     return { allCoords, globalMin, globalMax };
-  }, [series, width, height]);
+  }, [series, width, height, displayCurrency]);
 
   const padL = 56,
     padT = 24,
@@ -94,6 +96,7 @@ export function MultiLineChart({
   const midY = padT + usableH / 2;
   const minY = padT + usableH;
   const maxY = padT;
+  const currencySymbol = CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency;
 
   if (allCoords.length === 0) {
     return (
@@ -148,7 +151,7 @@ export function MultiLineChart({
         fill={colors.muted}
         textAnchor="end"
       >
-        ${globalMax.toFixed(0)}
+        {currencySymbol}{globalMax.toFixed(0)}
       </SvgText>
       <SvgText
         x={padL - 6}
@@ -157,7 +160,7 @@ export function MultiLineChart({
         fill={colors.muted}
         textAnchor="end"
       >
-        ${midP.toFixed(0)}
+        {currencySymbol}{midP.toFixed(0)}
       </SvgText>
       <SvgText
         x={padL - 6}
@@ -166,7 +169,7 @@ export function MultiLineChart({
         fill={colors.muted}
         textAnchor="end"
       >
-        ${globalMin.toFixed(0)}
+        {currencySymbol}{globalMin.toFixed(0)}
       </SvgText>
       {allCoords.map((s) => (
         <Fragment key={s.label}>
@@ -288,7 +291,7 @@ export function MultiLineChart({
                     fontSize={9}
                     fill={colors.foreground}
                   >
-                    {`${row.label}  ${row.point ? `$${row.point.usd.toFixed(2)}` : "—"}`}
+                    {`${row.label}  ${row.point ? `${currencySymbol}${row.point.converted.toFixed(2)}` : "—"}`}
                   </SvgText>
                 </Fragment>
               ))}

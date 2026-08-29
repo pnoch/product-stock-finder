@@ -27,13 +27,13 @@ import { CrossAlertCTA } from "@/components/compare/cross-alert-cta";
 import { DistributorSelector } from "@/components/compare/distributor-selector";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveProduct } from "@/hooks/use-live-prices";
-import { addAlert } from "@/lib/storage";
+import { addAlert, getSettings } from "@/lib/storage";
 import {
   schedulePriceAlert,
   requestNotificationPermissions,
 } from "@/lib/notifications";
 import { PriceAlert } from "@/lib/types";
-import { convertPrice } from "@/lib/currency";
+import { convertPrice, CURRENCY_SYMBOLS } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
@@ -52,6 +52,7 @@ export default function CompareScreen() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [timeRange, setTimeRange] = useState<TimeRange>("3M");
   const [sortBy, setSortBy] = useState<SortBy>("trend");
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
   const { product, listings, loaded, isRefreshingAny, refresh } =
     useLiveProduct(id);
   const productName =
@@ -61,6 +62,12 @@ export default function CompareScreen() {
   const notFound = loaded && !product && listings.length === 0;
   const { width: windowWidth } = useWindowDimensions();
   const chartWidth = windowWidth - 32;
+
+  useEffect(() => {
+    getSettings().then((s) => {
+      if (s?.displayCurrency) setDisplayCurrency(s.displayCurrency);
+    });
+  }, []);
 
   const selectionInitialized = useRef<string | null>(null);
   useEffect(() => {
@@ -107,16 +114,16 @@ export default function CompareScreen() {
       );
       return;
     }
-    let bestUSD = Infinity;
+    let bestPrice = Infinity;
     let bestListing = inStock[0]!;
     for (const l of inStock) {
-      const usd = convertPrice(l.price, l.currency, "USD");
-      if (usd < bestUSD) {
-        bestUSD = usd;
+      const converted = convertPrice(l.price, l.currency, displayCurrency);
+      if (converted < bestPrice) {
+        bestPrice = converted;
         bestListing = l;
       }
     }
-    const targetUSD = parseFloat((bestUSD * 0.95).toFixed(2));
+    const targetPrice = parseFloat((bestPrice * 0.95).toFixed(2));
     const dist = getDistributorById(bestListing.distributorId);
     const granted = await requestNotificationPermissions();
     if (!granted) {
@@ -130,18 +137,19 @@ export default function CompareScreen() {
       id: `cross-${id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       productId: id as string,
       distributorId: bestListing.distributorId,
-      targetPrice: targetUSD,
-      currency: "USD",
+      targetPrice,
+      currency: displayCurrency,
       createdAt: new Date().toISOString(),
       isActive: true,
     };
     await addAlert(alert);
-    await schedulePriceAlert(productName || "Product", targetUSD, "USD", id);
+    await schedulePriceAlert(productName || "Product", targetPrice, displayCurrency, id);
+    const sym = CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency;
     showAlert(
       "Alert Set!",
-      `You'll be notified when any distributor drops below $${targetUSD.toFixed(2)} (5% below current best of $${bestUSD.toFixed(2)} at ${dist?.name ?? bestListing.distributorId}).`,
+      `You'll be notified when any distributor drops below ${sym}${targetPrice.toFixed(2)} (5% below current best of ${sym}${bestPrice.toFixed(2)} at ${dist?.name ?? bestListing.distributorId}).`,
     );
-  }, [listings, id, productName]);
+  }, [listings, id, productName, displayCurrency]);
 
   const priceTrends = useMemo(() => {
     const map = new Map<string, { pct: number; dir: "up" | "down" | "flat" }>();
@@ -169,8 +177,8 @@ export default function CompareScreen() {
     if (sortBy === "price")
       return ls.sort(
         (a, b) =>
-          convertPrice(a.price, a.currency, "USD") -
-          convertPrice(b.price, b.currency, "USD"),
+          convertPrice(a.price, a.currency, displayCurrency) -
+          convertPrice(b.price, b.currency, displayCurrency),
       );
     if (sortBy === "name")
       return ls.sort((a, b) =>
@@ -264,6 +272,7 @@ export default function CompareScreen() {
             onRangeChange={setRange}
             chartSeries={chartSeries}
             chartWidth={chartWidth}
+            displayCurrency={displayCurrency}
           />
 
           {/* Cheapest Region summary */}
