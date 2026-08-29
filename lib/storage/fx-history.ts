@@ -5,8 +5,6 @@ export interface FxHistory {
   timestamps: number[];
 }
 
-const MAX_POINTS = 90;
-
 export function createFxHistoryStorage(ctx: StorageContext) {
   const { adapter, KEYS, enqueue } = ctx;
 
