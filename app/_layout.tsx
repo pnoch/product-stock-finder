@@ -51,10 +51,6 @@ import {
 import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 
 import { trpc, createTRPCClient } from "@/lib/trpc";
-import {
-  initManusRuntime,
-  subscribeSafeAreaInsets,
-} from "@/lib/_core/manus-runtime";
 import { useAuth } from "@/hooks/use-auth";
 import {
   registerDeviceRevokedHandler,
@@ -94,9 +90,8 @@ export default function RootLayout() {
   const [insets, setInsets] = useState<EdgeInsets>(initialInsets);
   const [frame, setFrame] = useState<Rect>(initialFrame);
 
-  // Initialize Manus runtime for cookie injection from parent container
+  // Initialize unhandled rejection handler
   useEffect(() => {
-    initManusRuntime();
     const handler = (e: PromiseRejectionEvent) => console.error(e.reason);
     if (typeof window !== "undefined") {
       window.addEventListener("unhandledrejection", handler);
@@ -233,12 +228,6 @@ export default function RootLayout() {
     setInsets(metrics.insets);
     setFrame(metrics.frame);
   }, []);
-
-  useEffect(() => {
-    if (Platform.OS !== "web") return;
-    const unsubscribe = subscribeSafeAreaInsets(handleSafeAreaUpdate);
-    return () => unsubscribe();
-  }, [handleSafeAreaUpdate]);
 
   // Create clients once and reuse them
   const [queryClient] = useState(

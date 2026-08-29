@@ -22,7 +22,7 @@ Guidance for AI coding agents working in this repository. Read this before touch
 | Notifications      | expo-notifications (local + server-scheduled events), expo-background-task for price-drop polling, server push (expo + push tokens)    |
 | Charts             | react-native-svg (hand-rolled SVG polylines — no chart library)                                                                         |
 | Scraping           | `lib/scrapers/` — typed parsers per distributor, `resilientFetch` (retry/backoff, plain→browser escalation, circuit breaker, blocked detection) |
-| Backend            | Express + tRPC v11 + Drizzle (MySQL) + Manus OAuth. See `server/README.md`. Routers: sync, prices, fx, insights, images, notifications, devices |
+| Backend            | Express + tRPC v11 + Drizzle (MySQL) + email/password auth. See `server/README.md`. Routers: sync, prices, fx, insights, images, notifications, devices |
 | Package manager    | pnpm (via corepack; `packageManager: pnpm@9.12.0`). Node linker hoisted (`.npmrc`).                                                     |
 
 ## Commands
@@ -57,7 +57,7 @@ app/                    Expo Router routes (file-based)
   product/[id].tsx      Product detail (largest screen — ~1187 lines)
   compare/[id].tsx      Multi-distributor price history comparison chart
   search.tsx            Add-product search
-  oauth/callback.tsx    Manus OAuth callback (backend auth flow)
+  oauth/callback.tsx    Auth callback redirect
   dev/theme-lab.tsx     Theme dev playground
 components/             Reusable UI (PriceSparkline, ScreenContainer, HapticTab, IconSymbol,
                         notification-center, connection-badge, TagFilterRow)
@@ -93,7 +93,7 @@ lib/                   App logic
   health.ts            Distributor health probe (classifyResult → classifyFetchStatus)
   theme-provider.tsx   NativeWind + Appearance theme provider
   trpc.ts              tRPC React client setup
-  _core/               Framework-level (manus-runtime, auth, api, theme) — avoid editing
+  _core/               Framework-level (auth, api, theme) — avoid editing
 hooks/                 use-auth, use-colors, use-color-scheme, use-alert-badge, use-live-prices,
                        use-connection
 constants/             const.ts, oauth.ts, theme.ts (re-exports)

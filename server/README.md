@@ -1,6 +1,6 @@
 # Backend Guide
 
-The Product Stock Finder backend: Express + tRPC v11 + Drizzle (MySQL) + Manus OAuth.
+The Product Stock Finder backend: Express + tRPC v11 + Drizzle (MySQL) + email/password auth.
 
 ## Overview
 

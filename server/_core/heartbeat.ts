@@ -74,11 +74,6 @@ const callForge = async <T>(
     "content-type": "application/json",
     "connect-protocol-version": "1",
   };
-  // userSession is the decoded `app_session_id` cookie value (NOT the raw
-  // Cookie header). Empty string falls back to the project owner identity.
-  if (userSession) {
-    headers["x-manus-user-session"] = userSession;
-  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
@@ -203,7 +198,7 @@ export async function deleteHeartbeatJob(
  *
  * `actorUserId` in the response echoes whose cron list you got back. End-users
  * cannot list other users' crons via this SDK; cross-user inspection is
- * owner-only via the sandbox CLI (`manus-heartbeat list --user-id <uid>`).
+ * owner-only via the sandbox CLI.
  */
 export async function listHeartbeatJobs(
   userSession: string,
