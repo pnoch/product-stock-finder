@@ -1,11 +1,10 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { COOKIE_NAME } from "../shared/const";
-import { encodeOAuthState } from "../shared/oauth-state";
 
 vi.mock("../server/_core/sdk", () => ({
   sdk: {
-    exchangeCodeForToken: vi.fn(),
-    getUserInfo: vi.fn(),
+    register: vi.fn(),
+    login: vi.fn(),
     createSessionToken: vi.fn(),
   },
 }));
@@ -17,6 +16,7 @@ vi.mock("../server/db", () => ({
     name: "U",
     email: null,
     loginMethod: null,
+    passwordHash: null,
     role: "user",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -25,30 +25,17 @@ vi.mock("../server/db", () => ({
   upsertUser: vi.fn(async () => {}),
 }));
 
-vi.mock("../server/devices", () => ({
-  unrevokeDevice: vi.fn(async () => {}),
-}));
-
 import { registerOAuthRoutes } from "../server/_core/oauth";
 import { sdk } from "../server/_core/sdk";
 import { getUserByOpenId, upsertUser } from "../server/db";
-import { unrevokeDevice } from "../server/devices";
 
-const mockedExchange = vi.mocked(sdk.exchangeCodeForToken);
-const mockedGetUserInfo = vi.mocked(sdk.getUserInfo);
+const mockedRegister = vi.mocked(sdk.register);
+const mockedLogin = vi.mocked(sdk.login);
 const mockedCreateToken = vi.mocked(sdk.createSessionToken);
 const mockedGetUser = vi.mocked(getUserByOpenId);
 const mockedUpsert = vi.mocked(upsertUser);
-const mockedUnrevoke = vi.mocked(unrevokeDevice);
 
 let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-
-const WEB_CALLBACK = "/api/oauth/callback";
-const MOBILE_EXCHANGE = "/api/oauth/mobile";
-const FRONTEND_URL =
-  process.env.EXPO_WEB_PREVIEW_URL ||
-  process.env.EXPO_PACKAGER_PROXY_URL ||
-  "http://localhost:8081";
 
 type Handler = (req: any, res: any) => Promise<void>;
 
@@ -76,12 +63,13 @@ function setupRoutes() {
   return (method: "GET" | "POST", path: string) => handler(method, path);
 }
 
-function makeReq(query: Record<string, string>, headers: Record<string, string> = {}) {
+function makeReq(body: Record<string, unknown> = {}, headers: Record<string, string> = {}) {
   return {
     protocol: "https",
     hostname: "localhost",
-    query,
+    body,
     headers,
+    query: {},
   } as any;
 }
 
@@ -97,273 +85,157 @@ function makeRes() {
   return res;
 }
 
-describe("registerOAuthRoutes web callback (GET /api/oauth/callback)", () => {
+describe("POST /api/auth/register", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    mockedGetUser.mockResolvedValue({
-      id: 1,
-      openId: "open-1",
-      name: "U",
-      email: null,
-      loginMethod: null,
-      role: "user",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      lastSignedIn: new Date(),
-    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("un-revokes the device and binds deviceId into the issued session token", async () => {
-    const getHandler = setupRoutes();
-    const state = encodeOAuthState("http://localhost:8081/oauth/callback", "dev-1");
-
-    mockedExchange.mockResolvedValue({ accessToken: "at" } as any);
-    mockedGetUserInfo.mockResolvedValue({ openId: "open-1", name: "U" } as any);
-    mockedCreateToken.mockResolvedValue("sess-token");
-
-    const res = makeRes();
-    await getHandler("GET", WEB_CALLBACK)(makeReq({ code: "code", state }), res);
-
-    expect(mockedUnrevoke).toHaveBeenCalledWith(1, "dev-1");
-    expect(mockedCreateToken).toHaveBeenCalledWith(
-      "open-1",
-      expect.objectContaining({ deviceId: "dev-1" }),
-    );
-    expect(res.redirect).toHaveBeenCalledWith(302, FRONTEND_URL);
-    expect(res.cookie).toHaveBeenCalledWith(
-      COOKIE_NAME,
-      "sess-token",
-      expect.objectContaining({ maxAge: expect.any(Number) }),
-    );
-    expect(mockedUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({ openId: "open-1" }),
-    );
-    expect(mockedGetUser).toHaveBeenCalledWith("open-1");
-    expect(res.status).not.toHaveBeenCalledWith(500);
-  });
-
-  it("does not un-revoke when the state has no deviceId (legacy plain-base64)", async () => {
-    const getHandler = setupRoutes();
-    const state = btoa("http://localhost:8081/oauth/callback");
-
-    mockedExchange.mockResolvedValue({ accessToken: "at" } as any);
-    mockedGetUserInfo.mockResolvedValue({ openId: "open-1", name: "U" } as any);
-    mockedCreateToken.mockResolvedValue("sess-token");
+  it("registers a new user and returns session token", async () => {
+    const postHandler = setupRoutes();
+    mockedRegister.mockResolvedValue({
+      user: { id: 1, email: "test@example.com", name: "Test", openId: "open-1" },
+      sessionToken: "sess-token",
+    });
 
     const res = makeRes();
-    await getHandler("GET", WEB_CALLBACK)(makeReq({ code: "code", state }), res);
-
-    expect(mockedUnrevoke).not.toHaveBeenCalled();
-    expect(mockedCreateToken).toHaveBeenCalledWith(
-      "open-1",
-      expect.objectContaining({ deviceId: undefined }),
-    );
-    expect(res.redirect).toHaveBeenCalledWith(302, FRONTEND_URL);
-    expect(res.status).not.toHaveBeenCalledWith(500);
-  });
-
-  it("rejects with 400 when code is missing", async () => {
-    const getHandler = setupRoutes();
-    const res = makeRes();
-    await getHandler("GET", WEB_CALLBACK)(makeReq({ state: "x" }), res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: "code and state are required" });
-    expect(mockedExchange).not.toHaveBeenCalled();
-    expect(mockedCreateToken).not.toHaveBeenCalled();
-    expect(mockedUnrevoke).not.toHaveBeenCalled();
-  });
-
-  it("rejects with 400 when state is missing", async () => {
-    const getHandler = setupRoutes();
-    const res = makeRes();
-    await getHandler("GET", WEB_CALLBACK)(makeReq({ code: "code" }), res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: "code and state are required" });
-    expect(mockedExchange).not.toHaveBeenCalled();
-    expect(mockedCreateToken).not.toHaveBeenCalled();
-    expect(mockedUnrevoke).not.toHaveBeenCalled();
-  });
-
-  it("still logs the user in when unrevokeDevice throws (failure isolation)", async () => {
-    const getHandler = setupRoutes();
-    const state = encodeOAuthState("http://localhost:8081/oauth/callback", "dev-1");
-
-    mockedExchange.mockResolvedValue({ accessToken: "at" } as any);
-    mockedGetUserInfo.mockResolvedValue({ openId: "open-1", name: "U" } as any);
-    mockedCreateToken.mockResolvedValue("sess-token");
-    mockedUnrevoke.mockRejectedValue(new Error("db down"));
-
-    const res = makeRes();
-    await getHandler("GET", WEB_CALLBACK)(makeReq({ code: "code", state }), res);
-
-    expect(mockedUnrevoke).toHaveBeenCalledWith(1, "dev-1");
-    expect(mockedCreateToken).toHaveBeenCalledWith(
-      "open-1",
-      expect.objectContaining({ deviceId: "dev-1" }),
-    );
-    expect(res.redirect).toHaveBeenCalledWith(302, FRONTEND_URL);
-    expect(res.cookie).toHaveBeenCalledWith(
-      COOKIE_NAME,
-      "sess-token",
-      expect.objectContaining({ maxAge: expect.any(Number) }),
-    );
-    expect(res.status).not.toHaveBeenCalledWith(500);
-  });
-
-  it("responds 500 when the exchange fails", async () => {
-    const getHandler = setupRoutes();
-    const state = encodeOAuthState("http://localhost:8081/oauth/callback", "dev-1");
-
-    mockedExchange.mockRejectedValue(new Error("boom"));
-
-    const res = makeRes();
-    await getHandler("GET", WEB_CALLBACK)(makeReq({ code: "code", state }), res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "OAuth callback failed" });
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "[OAuth] Callback failed",
-      expect.any(Error),
-    );
-    expect(mockedCreateToken).not.toHaveBeenCalled();
-    expect(res.redirect).not.toHaveBeenCalled();
-  });
-
-  it("skips un-revoke when no numeric user id resolves", async () => {
-    mockedExchange.mockResolvedValue({ accessToken: "at" } as any);
-    mockedGetUserInfo.mockResolvedValue({ openId: "open-1", name: "U" } as any);
-    mockedGetUser.mockResolvedValue(undefined);
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const getHandler = setupRoutes();
-    const res = makeRes();
-    await getHandler("GET", WEB_CALLBACK)(
-      makeReq({
-        code: "c",
-        state: encodeOAuthState("http://localhost:8081/oauth/callback", "dev-1"),
-      }),
+    await postHandler("POST", "/api/auth/register")(
+      makeReq({ email: "test@example.com", password: "password123" }),
       res,
     );
-    expect(mockedUnrevoke).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledWith(
-      "[OAuth] Skipping un-revoke: no numeric user id",
+
+    expect(mockedRegister).toHaveBeenCalledWith({ email: "test@example.com", password: "password123", name: undefined });
+    expect(res.cookie).toHaveBeenCalledWith(COOKIE_NAME, "sess-token", expect.objectContaining({ maxAge: expect.any(Number) }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user: expect.objectContaining({ openId: "open-1" }),
+        sessionToken: "sess-token",
+      }),
     );
-    expect(mockedCreateToken).toHaveBeenCalledWith(
-      "open-1",
-      expect.objectContaining({ deviceId: "dev-1" }),
+    expect(res.status).not.toHaveBeenCalledWith(400);
+  });
+
+  it("rejects with 400 when email is missing", async () => {
+    const postHandler = setupRoutes();
+    const res = makeRes();
+    await postHandler("POST", "/api/auth/register")(
+      makeReq({ password: "password123" }),
+      res,
     );
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "email and password are required" });
+    expect(mockedRegister).not.toHaveBeenCalled();
+  });
+
+  it("rejects with 400 when password is too short", async () => {
+    const postHandler = setupRoutes();
+    const res = makeRes();
+    await postHandler("POST", "/api/auth/register")(
+      makeReq({ email: "test@example.com", password: "123" }),
+      res,
+    );
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "password must be at least 6 characters" });
+    expect(mockedRegister).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when registration fails (duplicate email)", async () => {
+    const postHandler = setupRoutes();
+    mockedRegister.mockRejectedValue(new Error("Email already registered"));
+
+    const res = makeRes();
+    await postHandler("POST", "/api/auth/register")(
+      makeReq({ email: "test@example.com", password: "password123" }),
+      res,
+    );
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "Email already registered" });
   });
 });
 
-describe("registerOAuthRoutes mobile exchange (GET /api/oauth/mobile)", () => {
+describe("POST /api/auth/login", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    mockedGetUser.mockResolvedValue({
-      id: 1,
-      openId: "open-1",
-      name: "U",
-      email: null,
-      loginMethod: null,
-      role: "user",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      lastSignedIn: new Date(),
-    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("un-revokes the device, binds deviceId, and returns the session token", async () => {
-    const getHandler = setupRoutes();
-    const state = encodeOAuthState("http://localhost:8081/oauth/callback", "dev-1");
-
-    mockedExchange.mockResolvedValue({ accessToken: "at" } as any);
-    mockedGetUserInfo.mockResolvedValue({ openId: "open-1", name: "U" } as any);
-    mockedCreateToken.mockResolvedValue("sess-token");
+  it("logs in and returns session token", async () => {
+    const postHandler = setupRoutes();
+    mockedLogin.mockResolvedValue({
+      user: { id: 1, email: "test@example.com", name: "Test", openId: "open-1" },
+      sessionToken: "sess-token",
+    });
 
     const res = makeRes();
-    await getHandler("GET", MOBILE_EXCHANGE)(makeReq({ code: "code", state }), res);
-
-    expect(mockedUnrevoke).toHaveBeenCalledWith(1, "dev-1");
-    expect(mockedCreateToken).toHaveBeenCalledWith(
-      "open-1",
-      expect.objectContaining({ deviceId: "dev-1" }),
+    await postHandler("POST", "/api/auth/login")(
+      makeReq({ email: "test@example.com", password: "password123" }),
+      res,
     );
+
+    expect(mockedLogin).toHaveBeenCalledWith({ email: "test@example.com", password: "password123" });
+    expect(res.cookie).toHaveBeenCalledWith(COOKIE_NAME, "sess-token", expect.objectContaining({ maxAge: expect.any(Number) }));
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        app_session_id: "sess-token",
         user: expect.objectContaining({ openId: "open-1" }),
+        sessionToken: "sess-token",
       }),
     );
-    expect(mockedUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({ openId: "open-1" }),
-    );
-    expect(res.status).not.toHaveBeenCalledWith(500);
+    expect(res.status).not.toHaveBeenCalledWith(401);
   });
 
-  it("still returns the session token when unrevokeDevice throws", async () => {
-    const getHandler = setupRoutes();
-    const state = encodeOAuthState("http://localhost:8081/oauth/callback", "dev-1");
-
-    mockedExchange.mockResolvedValue({ accessToken: "at" } as any);
-    mockedGetUserInfo.mockResolvedValue({ openId: "open-1", name: "U" } as any);
-    mockedCreateToken.mockResolvedValue("sess-token");
-    mockedUnrevoke.mockRejectedValue(new Error("db down"));
-
+  it("rejects with 400 when email is missing", async () => {
+    const postHandler = setupRoutes();
     const res = makeRes();
-    await getHandler("GET", MOBILE_EXCHANGE)(makeReq({ code: "code", state }), res);
-
-    expect(mockedUnrevoke).toHaveBeenCalledWith(1, "dev-1");
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ app_session_id: "sess-token" }),
+    await postHandler("POST", "/api/auth/login")(
+      makeReq({ password: "password123" }),
+      res,
     );
-    expect(res.status).not.toHaveBeenCalledWith(500);
-  });
-
-  it("responds 500 when the exchange fails", async () => {
-    const getHandler = setupRoutes();
-    const state = encodeOAuthState("http://localhost:8081/oauth/callback", "dev-1");
-
-    mockedExchange.mockRejectedValue(new Error("boom"));
-
-    const res = makeRes();
-    await getHandler("GET", MOBILE_EXCHANGE)(makeReq({ code: "code", state }), res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "OAuth mobile exchange failed" });
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "[OAuth] Mobile exchange failed",
-      expect.any(Error),
-    );
-    expect(mockedCreateToken).not.toHaveBeenCalled();
-  });
-
-  it("rejects with 400 when code is missing", async () => {
-    const getHandler = setupRoutes();
-    const res = makeRes();
-    await getHandler("GET", MOBILE_EXCHANGE)(makeReq({ state: "x" }), res);
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: "code and state are required" });
-    expect(mockedExchange).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith({ error: "email and password are required" });
+    expect(mockedLogin).not.toHaveBeenCalled();
   });
 
-  it("rejects with 400 when state is missing", async () => {
+  it("returns 401 on invalid credentials", async () => {
+    const postHandler = setupRoutes();
+    mockedLogin.mockRejectedValue(new Error("Invalid email or password"));
+
+    const res = makeRes();
+    await postHandler("POST", "/api/auth/login")(
+      makeReq({ email: "test@example.com", password: "wrong" }),
+      res,
+    );
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: "Invalid email or password" });
+  });
+});
+
+describe("GET /api/oauth/callback (legacy redirect)", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("redirects to /", async () => {
     const getHandler = setupRoutes();
     const res = makeRes();
-    await getHandler("GET", MOBILE_EXCHANGE)(makeReq({ code: "code" }), res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: "code and state are required" });
-    expect(mockedExchange).not.toHaveBeenCalled();
+    await getHandler("GET", "/api/oauth/callback")(makeReq({}), res);
+    expect(res.redirect).toHaveBeenCalledWith(302, "/");
   });
 });
