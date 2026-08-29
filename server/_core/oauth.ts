@@ -1,60 +1,11 @@
-import { decodeOAuthState } from "../../shared/oauth-state.js";
 import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
 import type { Express, Request, Response } from "express";
-import { getUserByOpenId, upsertUser } from "../db";
-import { unrevokeDevice } from "../devices";
-import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
+import { getSessionCookieOptions } from "./cookies";
 
-function getQueryParam(req: Request, key: string): string | undefined {
-  const value = req.query[key];
-  return typeof value === "string" ? value : undefined;
-}
-
-async function syncUser(userInfo: {
-  openId?: string | null;
-  name?: string | null;
-  email?: string | null;
-  loginMethod?: string | null;
-  platform?: string | null;
-}) {
-  if (!userInfo.openId) {
-    throw new Error("openId missing from user info");
-  }
-
-  const lastSignedIn = new Date();
-  await upsertUser({
-    openId: userInfo.openId,
-    name: userInfo.name || null,
-    email: userInfo.email ?? null,
-    loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
-    lastSignedIn,
-  });
-  const saved = await getUserByOpenId(userInfo.openId);
-  return (
-    saved ?? {
-      openId: userInfo.openId,
-      name: userInfo.name,
-      email: userInfo.email,
-      loginMethod: userInfo.loginMethod ?? null,
-      lastSignedIn,
-    }
-  );
-}
-
-function buildUserResponse(
-  user:
-    | Awaited<ReturnType<typeof getUserByOpenId>>
-    | {
-        openId: string;
-        name?: string | null;
-        email?: string | null;
-        loginMethod?: string | null;
-        lastSignedIn?: Date | null;
-      },
-) {
+function buildUserResponse(user: { id?: number | null; openId?: string | null; name?: string | null; email?: string | null; loginMethod?: string | null; lastSignedIn?: Date | null }) {
   return {
-    id: (user as any)?.id ?? null,
+    id: user?.id ?? null,
     openId: user?.openId ?? null,
     name: user?.name ?? null,
     email: user?.email ?? null,
@@ -64,102 +15,49 @@ function buildUserResponse(
 }
 
 export function registerOAuthRoutes(app: Express) {
-  app.get("/api/oauth/callback", async (req: Request, res: Response) => {
-    const code = getQueryParam(req, "code");
-    const state = getQueryParam(req, "state");
-
-    if (!code || !state) {
-      res.status(400).json({ error: "code and state are required" });
-      return;
-    }
-
+  app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
-      const { deviceId } = decodeOAuthState(state);
-      const tokenResponse = await sdk.exchangeCodeForToken(code, state);
-      const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
-      const user = await syncUser(userInfo);
-      if (deviceId) {
-        const userId = (user as { id?: number | null }).id;
-        if (userId != null) {
-          try {
-            await unrevokeDevice(userId, deviceId);
-          } catch (error) {
-            console.error("[OAuth] Failed to un-revoke device:", error);
-          }
-        } else {
-          console.warn("[OAuth] Skipping un-revoke: no numeric user id");
-        }
+      const { email, password, name } = req.body;
+      if (!email || !password) {
+        res.status(400).json({ error: "email and password are required" });
+        return;
       }
-      const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
-        name: userInfo.name || "",
-        expiresInMs: ONE_YEAR_MS,
-        deviceId,
-      });
+      if (password.length < 6) {
+        res.status(400).json({ error: "password must be at least 6 characters" });
+        return;
+      }
 
+      const result = await sdk.register({ email, password, name });
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, {
+      res.cookie(COOKIE_NAME, result.sessionToken, {
         ...cookieOptions,
         maxAge: ONE_YEAR_MS,
       });
-
-      // Redirect to the frontend URL (Expo web on port 8081)
-      // Cookie is set with parent domain so it works across both 3000 and 8081 subdomains
-      const frontendUrl =
-        process.env.EXPO_WEB_PREVIEW_URL ||
-        process.env.EXPO_PACKAGER_PROXY_URL ||
-        "http://localhost:8081";
-      res.redirect(302, frontendUrl);
-    } catch (error) {
-      console.error("[OAuth] Callback failed", error);
-      res.status(500).json({ error: "OAuth callback failed" });
+      res.json({ user: buildUserResponse(result.user), sessionToken: result.sessionToken });
+    } catch (error: any) {
+      console.error("[Auth] Register failed:", error);
+      res.status(400).json({ error: error.message || "Registration failed" });
     }
   });
 
-  app.get("/api/oauth/mobile", async (req: Request, res: Response) => {
-    const code = getQueryParam(req, "code");
-    const state = getQueryParam(req, "state");
-
-    if (!code || !state) {
-      res.status(400).json({ error: "code and state are required" });
-      return;
-    }
-
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
-      const { deviceId } = decodeOAuthState(state);
-      const tokenResponse = await sdk.exchangeCodeForToken(code, state);
-      const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
-      const user = await syncUser(userInfo);
-      if (deviceId) {
-        const userId = (user as { id?: number | null }).id;
-        if (userId != null) {
-          try {
-            await unrevokeDevice(userId, deviceId);
-          } catch (error) {
-            console.error("[OAuth] Failed to un-revoke device:", error);
-          }
-        } else {
-          console.warn("[OAuth] Skipping un-revoke: no numeric user id");
-        }
+      const { email, password } = req.body;
+      if (!email || !password) {
+        res.status(400).json({ error: "email and password are required" });
+        return;
       }
-      const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
-        name: userInfo.name || "",
-        expiresInMs: ONE_YEAR_MS,
-        deviceId,
-      });
 
+      const result = await sdk.login({ email, password });
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, {
+      res.cookie(COOKIE_NAME, result.sessionToken, {
         ...cookieOptions,
         maxAge: ONE_YEAR_MS,
       });
-
-      res.json({
-        app_session_id: sessionToken,
-        user: buildUserResponse(user),
-      });
-    } catch (error) {
-      console.error("[OAuth] Mobile exchange failed", error);
-      res.status(500).json({ error: "OAuth mobile exchange failed" });
+      res.json({ user: buildUserResponse(result.user), sessionToken: result.sessionToken });
+    } catch (error: any) {
+      console.error("[Auth] Login failed:", error);
+      res.status(401).json({ error: error.message || "Login failed" });
     }
   });
 
@@ -169,7 +67,6 @@ export function registerOAuthRoutes(app: Express) {
     res.json({ success: true });
   });
 
-  // Get current authenticated user - works with both cookie (web) and Bearer token (mobile)
   app.get("/api/auth/me", async (req: Request, res: Response) => {
     try {
       const user = await sdk.authenticateRequest(req);
@@ -180,30 +77,7 @@ export function registerOAuthRoutes(app: Express) {
     }
   });
 
-  // Establish session cookie from Bearer token
-  // Used by iframe preview: frontend receives token via postMessage, then calls this endpoint
-  // to get a proper Set-Cookie response from the backend (3000-xxx domain)
-  app.post("/api/auth/session", async (req: Request, res: Response) => {
-    try {
-      // Authenticate using Bearer token from Authorization header
-      const user = await sdk.authenticateRequest(req);
-
-      // Get the token from the Authorization header to set as cookie
-      const authHeader = req.headers.authorization || req.headers.Authorization;
-      if (typeof authHeader !== "string" || !authHeader.startsWith("Bearer ")) {
-        res.status(400).json({ error: "Bearer token required" });
-        return;
-      }
-      const token = authHeader.slice("Bearer ".length).trim();
-
-      // Set cookie for this domain (3000-xxx)
-      const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-
-      res.json({ success: true, user: buildUserResponse(user) });
-    } catch (error) {
-      console.error("[Auth] /api/auth/session failed:", error);
-      res.status(401).json({ error: "Invalid token" });
-    }
+  app.get("/api/oauth/callback", (_req: Request, res: Response) => {
+    res.redirect(302, "/");
   });
 }
