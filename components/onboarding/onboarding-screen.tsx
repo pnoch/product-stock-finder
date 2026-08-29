@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import {
+  Dimensions,
   FlatList,
   Platform,
   Text,
@@ -76,12 +77,12 @@ export function OnboardingScreen({
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(e) =>
-          setIndex(Math.round(e.nativeEvent.contentOffset.x / 360))
+          setIndex(Math.round(e.nativeEvent.contentOffset.x / Dimensions.get("window").width))
         }
         renderItem={({ item }) => (
           <View
             style={{
-              width: 360,
+              width: Dimensions.get("window").width,
               alignItems: "center",
               justifyContent: "center",
               paddingHorizontal: 40,

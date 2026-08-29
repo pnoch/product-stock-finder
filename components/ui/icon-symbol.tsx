@@ -26,6 +26,7 @@ const MAPPING = {
   "crown.fill": "workspace-premium",
   "list.bullet": "format-list-bulleted",
   "bell.fill": "notifications",
+  "bell": "notifications",
   "bell.badge.fill": "notification-important",
   "gearshape.fill": "settings",
   magnifyingglass: "search",

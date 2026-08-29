@@ -72,6 +72,7 @@ export function getBestPrice(
     price: convertPrice(l.price, l.currency, displayCurrency),
     currency: displayCurrency,
   }));
+  if (!converted.length) return null;
   return converted.reduce((best, curr) =>
     curr.price < best.price ? curr : best,
   );

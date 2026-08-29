@@ -67,7 +67,8 @@ export function composeLiveListings(
   seeds: DistributorListing[],
   results: (ServerPriceResult | null)[],
 ): DistributorListing[] {
-  return seeds.map((seed, i) => applyServerPrice(seed, results[i] ?? null));
+  const resultMap = new Map(results.map((r, i) => [seeds[i]?.distributorId, r]));
+  return seeds.map((seed) => applyServerPrice(seed, resultMap.get(seed.distributorId) ?? null));
 }
 
 export function deriveListingQueries(

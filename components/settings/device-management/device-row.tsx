@@ -29,7 +29,7 @@ export function DeviceRow({
         alignItems: "center",
         paddingVertical: 12,
         paddingHorizontal: 16,
-        borderBottomWidth: isLast ? 1 : 0,
+        borderBottomWidth: isLast ? 0 : 1,
         borderBottomColor: colors.border,
       }}
     >
