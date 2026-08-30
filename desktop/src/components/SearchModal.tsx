@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Search, Check, Plus } from "lucide-react";
-import { PRODUCT_CATALOG } from "../../../lib/catalog";
+import { searchCatalog, PRODUCT_CATALOG } from "../../../lib/catalog";
 import { storage } from "../storage";
 import { Modal } from "./Modal";
 import { ProductImage } from "./ProductImage";
@@ -26,15 +26,7 @@ export function SearchModal({
     }
   }, [open]);
 
-  const results =
-    query.length > 0
-      ? PRODUCT_CATALOG.filter(
-          (p) =>
-            p.name.toLowerCase().includes(query.toLowerCase()) ||
-            p.modelNumber.toLowerCase().includes(query.toLowerCase()) ||
-            p.brand.toLowerCase().includes(query.toLowerCase()),
-        )
-      : PRODUCT_CATALOG;
+  const results = searchCatalog(query);
 
   const handleAdd = async (product: (typeof PRODUCT_CATALOG)[number]) => {
     await storage.addToWatchlist({
