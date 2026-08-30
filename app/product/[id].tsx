@@ -10,8 +10,8 @@ import { ReminderSection } from "@/components/product/reminder-section";
 import { useProductDetail } from "@/hooks/use-product-detail";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveProduct } from "@/hooks/use-live-prices";
-import { getWatchlist, getAlerts, getStockWatches, getSettings, addStockWatch, removeStockWatch, addBackOrderReminder, getBackOrderReminders } from "@/lib/storage";
-import { formatPrice } from "@/lib/currency";
+import { getAlerts, getSettings, getStockWatches, addAlert, addStockWatch, removeStockWatch } from "@/lib/storage";
+import { formatPrice, CURRENCY_SYMBOLS } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { buildShareText, buildShareRows } from "@/lib/price-share";
 import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
@@ -55,13 +55,21 @@ export default function ProductDetailScreen() {
   const chartHeight = 200;
 
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
-    const [alertsData, insightData, imageData] = await Promise.all([
+    const [alertsData, settingsData, stockWatchesData, insightData, imageData] = await Promise.all([
       getAlerts(),
+      getSettings(),
+      getStockWatches(),
       fetchPriceInsight(id).catch(() => null),
       fetchProductImage(id).catch(() => null),
     ]);
     if (signal?.cancelled) return;
     setAlerts(alertsData);
+    if (settingsData?.displayCurrency) setDisplayCurrency(settingsData.displayCurrency);
+    const watchMap: Record<string, boolean> = {};
+    for (const w of stockWatchesData) {
+      if (w.productId === id) watchMap[w.distributorId] = true;
+    }
+    setStockWatches(watchMap);
     if (insightData) setInsight(insightData.insight);
     if (imageData) setProductImage(imageData.imageUrl);
   }, [id]);
@@ -81,6 +89,60 @@ export default function ProductDetailScreen() {
   const priceVsAvg = useMemo(() => computePriceVsAverage(listings, displayCurrency), [listings, displayCurrency]);
   const shareRows = useMemo(() => buildShareRows(sortedListings, displayCurrency), [sortedListings, displayCurrency]);
   const shareCardRef = useRef<any>(null);
+
+  const handleSetBestAlert = useCallback(async (listing: DistributorListing) => {
+    const granted = await requestNotificationPermissions();
+    if (!granted) {
+      showAlert("Permission Denied", "Please enable notifications in your device settings to receive price alerts.");
+      return;
+    }
+    const sym = CURRENCY_SYMBOLS[listing.currency] ?? listing.currency;
+    const notifId = await schedulePriceAlert(product?.name ?? "Product", listing.price, listing.currency, id);
+    const alert: PriceAlert = {
+      id: `alert-${id}-${listing.distributorId}-${Date.now()}`,
+      productId: id as string,
+      distributorId: listing.distributorId,
+      targetPrice: listing.price,
+      currency: listing.currency,
+      createdAt: new Date().toISOString(),
+      isActive: true,
+    };
+    await addAlert(alert);
+    setAlerts((prev) => [...prev, alert]);
+    showAlert("Alert Set!", `You'll be notified when ${product?.name} drops below ${sym}${listing.price.toFixed(2)} at ${getDistributorById(listing.distributorId)?.name ?? listing.distributorId}.`);
+  }, [id, product]);
+
+  const handleToggleStockWatch = useCallback(async (listing: DistributorListing) => {
+    const isWatched = stockWatches[listing.distributorId];
+    if (isWatched) {
+      const watches = await getStockWatches();
+      const watch = watches.find((w) => w.productId === id && w.distributorId === listing.distributorId);
+      if (watch) await removeStockWatch(watch.id);
+      setStockWatches((prev) => ({ ...prev, [listing.distributorId]: false }));
+    } else {
+      const granted = await requestNotificationPermissions();
+      if (!granted) {
+        showAlert("Permission Denied", "Please enable notifications to watch for restocks.");
+        return;
+      }
+      const distributor = getDistributorById(listing.distributorId);
+      const notifId = await scheduleStockAlert(product?.name ?? "Product", distributor?.name ?? listing.distributorId, listing.price, listing.currency, id);
+      await addStockWatch({
+        id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        productId: id as string,
+        productName: product?.name ?? "",
+        distributorId: listing.distributorId,
+        distributorName: distributor?.name ?? "",
+        reminderDate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        reminderType: "back_in_stock",
+        lastKnownStatus: listing.stockStatus,
+        notificationId: notifId ?? undefined,
+      });
+      setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
+      showAlert("Watching!", `You'll be notified when ${product?.name} is back in stock at ${distributor?.name ?? listing.distributorId}.`);
+    }
+  }, [id, product, stockWatches]);
 
   if (!loaded) {
     return (
@@ -109,7 +171,7 @@ export default function ProductDetailScreen() {
         <DetailHeader product={product} bestDeal={bestDeal} />
         <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={displayCurrency} productImage={productImage} onEditDetails={() => {}} />
         {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} />}
-        <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={null} product={product} insight={insight} regionFilter={regionFilter} regions={regions} shippingRegion={shippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={displayCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={() => {}} onToggleStockWatch={() => {}} onOpenChart={setChartListing} onRemind={setReminderListing} />
+        <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={null} product={product} insight={insight} regionFilter={regionFilter} regions={regions} shippingRegion={shippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={displayCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={setChartListing} onRemind={setReminderListing} />
         <AlertSection productId={product.id} />
         <ReminderSection productId={product.id} distributorId={visibleListings[0]?.distributorId ?? ""} productName={product.name} distributorName={visibleListings[0] ? getDistributorById(visibleListings[0].distributorId)?.name ?? "" : ""} />
       </ScrollView>
