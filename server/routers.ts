@@ -17,6 +17,7 @@ import { mergeHistory } from "./price-history";
 import { checkRateLimit } from "./rate-limit";
 import { getInsight } from "./price-insights";
 import { getProductImage } from "./product-images";
+import { discoveryRouter } from "./routers/discovery";
 import { parseProductText } from "./product-parse";
 import type { SyncStampedItem } from "../lib/types";
 import { upsertDeviceConfig, pullPendingEvents } from "./notifications";
@@ -274,6 +275,8 @@ export const appRouter = router({
         return { accepted: true } as const;
       }),
   }),
+
+  discovery: discoveryRouter,
 
   devices: router({
     list: protectedProcedure.query(async ({ ctx }) => {
