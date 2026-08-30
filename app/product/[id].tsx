@@ -178,3 +178,5 @@ export default function ProductDetailScreen() {
     </ScreenContainer>
   );
 }
+
+export { RouteErrorBoundary as ErrorBoundary } from "@/components/route-error-boundary";

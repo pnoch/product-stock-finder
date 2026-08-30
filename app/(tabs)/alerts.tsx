@@ -487,3 +487,5 @@ export default function AlertsScreen() {
     </ScreenContainer>
   );
 }
+
+export { RouteErrorBoundary as ErrorBoundary } from "@/components/route-error-boundary";
