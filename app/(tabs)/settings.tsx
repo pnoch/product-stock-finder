@@ -3,7 +3,6 @@ import { ScrollView, Text, View, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
-import { isServerConfigured } from "@/constants/oauth";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
 import { useServerConfig } from "@/hooks/use-server-config";

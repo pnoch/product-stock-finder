@@ -15,12 +15,12 @@ export function ChartCard({
 }: {
   timeRange: TimeRange;
   onRangeChange: (range: TimeRange) => void;
-  chartSeries: Array<{
+  chartSeries: {
     label: string;
     color: string;
     data: PricePoint[];
     currency: string;
-  }>;
+  }[];
   chartWidth: number;
   displayCurrency?: string;
 }) {

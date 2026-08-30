@@ -1,69 +1,46 @@
 import { Stack, useLocalSearchParams, router } from "expo-router";
-import { ScrollView, Text, View, ActivityIndicator, TouchableOpacity, Share, Platform, Dimensions, Image } from "react-native";
-import { useCallback, useEffect, useState, useMemo, useRef } from "react";
-import * as Haptics from "expo-haptics";
+import { ScrollView, Text, View, ActivityIndicator, TouchableOpacity } from "react-native";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { DetailHeader } from "@/components/product/detail-header";
-import { DistributorRow } from "@/components/product/distributor-row";
 import { AlertSection } from "@/components/product/alert-section";
 import { ReminderSection } from "@/components/product/reminder-section";
-import { useProductDetail } from "@/hooks/use-product-detail";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveProduct } from "@/hooks/use-live-prices";
-import { getAlerts, getSettings, getStockWatches, addAlert, addStockWatch, removeStockWatch } from "@/lib/storage";
-import { formatPrice, CURRENCY_SYMBOLS } from "@/lib/currency";
+import { getSettings, getStockWatches, addAlert, addStockWatch, removeStockWatch } from "@/lib/storage";
+import { CURRENCY_SYMBOLS } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
-import { buildShareText, buildShareRows } from "@/lib/price-share";
 import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
 import { computePriceVsAverage } from "@/lib/price-average";
-import { captureAndShareImage } from "@/lib/share-image";
-import { ProductShareCard } from "@/components/share/product-share-card";
 import { findBestDeal } from "@/lib/best-deal";
 import { fetchPriceInsight } from "@/lib/server-insights";
 import { fetchProductImage } from "@/lib/server-images";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { schedulePriceAlert, scheduleBackOrderReminder, scheduleStockAlert, cancelNotification, requestNotificationPermissions } from "@/lib/notifications";
+import { schedulePriceAlert, scheduleStockAlert, requestNotificationPermissions } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
-import { ProductInfoCard, ActionButtons, DistributorListingSection, PriceAlertModal, NotesCard, TargetTableCard, ReminderDatePickerModal, PriceChartModal } from "./_components";
+import { ProductInfoCard, DistributorListingSection } from "./_components";
 import { PriceAlert, DistributorListing } from "@/lib/types";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
-import { suggestAlertPrices } from "@/lib/alert-suggestions";
-import { SAMPLE_LISTINGS } from "@/lib/sample-data";
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
-  const { product, listings, loaded, isRefreshingAny, lastUpdatedAt, refresh } = useLiveProduct(id);
+  const { product, listings, loaded, lastUpdatedAt } = useLiveProduct(id);
   const [insight, setInsight] = useState<string | null>(null);
   const [productImage, setProductImage] = useState<string | null>(null);
-  const [alertModalVisible, setAlertModalVisible] = useState(false);
-  const [alertPrice, setAlertPrice] = useState("");
-  const [alertCurrency, setAlertCurrency] = useState("USD");
-  const [alertDistributorId, setAlertDistributorId] = useState<string | null>(null);
-  const [alertDirection, setAlertDirection] = useState<"drop" | "rise">("drop");
-  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
-  const [shippingRegion, setShippingRegion] = useState("Asia-Pacific");
+  const [shippingRegion] = useState("Asia-Pacific");
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
-  const [reminderListing, setReminderListing] = useState<DistributorListing | null>(null);
-  const [reminderDate, setReminderDate] = useState<Date>(() => { const d = new Date(); d.setDate(d.getDate() + 7); return d; });
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
-  const [chartListing, setChartListing] = useState<DistributorListing | null>(null);
-  const chartWidth = Dimensions.get("window").width - 48;
-  const chartHeight = 200;
 
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
-    const [alertsData, settingsData, stockWatchesData, insightData, imageData] = await Promise.all([
-      getAlerts(),
+    const [settingsData, stockWatchesData, insightData, imageData] = await Promise.all([
       getSettings(),
       getStockWatches(),
       fetchPriceInsight(id).catch(() => null),
       fetchProductImage(id).catch(() => null),
     ]);
     if (signal?.cancelled) return;
-    setAlerts(alertsData);
     if (settingsData?.displayCurrency) setDisplayCurrency(settingsData.displayCurrency);
     const watchMap: Record<string, boolean> = {};
     for (const w of stockWatchesData) {
@@ -87,8 +64,6 @@ export default function ProductDetailScreen() {
   });
   const visibleListings = regionFilter === "all" ? sortedListings : filterListingsByRegion(sortedListings, regionFilter);
   const priceVsAvg = useMemo(() => computePriceVsAverage(listings, displayCurrency), [listings, displayCurrency]);
-  const shareRows = useMemo(() => buildShareRows(sortedListings, displayCurrency), [sortedListings, displayCurrency]);
-  const shareCardRef = useRef<any>(null);
 
   const handleSetBestAlert = useCallback(async (listing: DistributorListing) => {
     const granted = await requestNotificationPermissions();
@@ -97,7 +72,7 @@ export default function ProductDetailScreen() {
       return;
     }
     const sym = CURRENCY_SYMBOLS[listing.currency] ?? listing.currency;
-    const notifId = await schedulePriceAlert(product?.name ?? "Product", listing.price, listing.currency, id);
+    await schedulePriceAlert(product?.name ?? "Product", listing.price, listing.currency, id);
     const alert: PriceAlert = {
       id: `alert-${id}-${listing.distributorId}-${Date.now()}`,
       productId: id as string,
@@ -108,7 +83,6 @@ export default function ProductDetailScreen() {
       isActive: true,
     };
     await addAlert(alert);
-    setAlerts((prev) => [...prev, alert]);
     showAlert("Alert Set!", `You'll be notified when ${product?.name} drops below ${sym}${listing.price.toFixed(2)} at ${getDistributorById(listing.distributorId)?.name ?? listing.distributorId}.`);
   }, [id, product]);
 
@@ -126,7 +100,7 @@ export default function ProductDetailScreen() {
         return;
       }
       const distributor = getDistributorById(listing.distributorId);
-      const notifId = await scheduleStockAlert(product?.name ?? "Product", distributor?.name ?? listing.distributorId, listing.price, listing.currency, id);
+      await scheduleStockAlert(product?.name ?? "Product", distributor?.name ?? listing.distributorId, listing.price, listing.currency, id);
       await addStockWatch({
         id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         productId: id as string,
@@ -137,7 +111,7 @@ export default function ProductDetailScreen() {
         createdAt: new Date().toISOString(),
         reminderType: "back_in_stock",
         lastKnownStatus: listing.stockStatus,
-        notificationId: notifId ?? undefined,
+        notificationId: undefined,
       });
       setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
       showAlert("Watching!", `You'll be notified when ${product?.name} is back in stock at ${distributor?.name ?? listing.distributorId}.`);
@@ -171,7 +145,7 @@ export default function ProductDetailScreen() {
         <DetailHeader product={product} bestDeal={bestDeal} />
         <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={displayCurrency} productImage={productImage} onEditDetails={() => {}} />
         {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} />}
-        <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={null} product={product} insight={insight} regionFilter={regionFilter} regions={regions} shippingRegion={shippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={displayCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={setChartListing} onRemind={setReminderListing} />
+        <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={null} product={product} insight={insight} regionFilter={regionFilter} regions={regions} shippingRegion={shippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={displayCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={() => {}} onRemind={() => {}} />
         <AlertSection productId={product.id} />
         <ReminderSection productId={product.id} distributorId={visibleListings[0]?.distributorId ?? ""} productName={product.name} distributorName={visibleListings[0] ? getDistributorById(visibleListings[0].distributorId)?.name ?? "" : ""} />
       </ScrollView>

@@ -8,7 +8,7 @@ import { useColors } from "@/hooks/use-colors";
 export function AlertSection({ productId }: { productId: string }) {
   const colors = useColors();
   const [price, setPrice] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency] = useState("USD");
   const onAdd = async () => {
     const targetPrice = parseFloat(price);
     if (!Number.isFinite(targetPrice) || targetPrice <= 0) { showAlert("Invalid price", "Enter a positive number."); return; }

@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { AppState, Platform, View } from "react-native";
@@ -30,10 +30,7 @@ import {
   checkPriceDropsNow,
 } from "@/lib/background-price-check";
 import { setupWebNotifications } from "@/lib/web-notifications";
-import {
-  hasSeenOnboarding,
-  setOnboardingSeen,
-} from "@/lib/onboarding";
+import { hasSeenOnboarding } from "@/lib/onboarding";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import { registerWebPushServiceWorker } from "@/lib/web-push";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
@@ -48,7 +45,7 @@ import {
   SafeAreaProvider,
   initialWindowMetrics,
 } from "react-native-safe-area-context";
-import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
+import type { EdgeInsets, Rect } from "react-native-safe-area-context";
 
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
@@ -87,8 +84,8 @@ export default function RootLayout() {
   const initialInsets = initialWindowMetrics?.insets ?? DEFAULT_WEB_INSETS;
   const initialFrame = initialWindowMetrics?.frame ?? DEFAULT_WEB_FRAME;
 
-  const [insets, setInsets] = useState<EdgeInsets>(initialInsets);
-  const [frame, setFrame] = useState<Rect>(initialFrame);
+  const [insets] = useState<EdgeInsets>(initialInsets);
+  const [frame] = useState<Rect>(initialFrame);
 
   // Initialize unhandled rejection handler
   useEffect(() => {
@@ -318,11 +315,6 @@ export default function RootLayout() {
         listings: freshenSampleListings(CRS326_SEED_LISTINGS),
       });
     }
-  }, []);
-
-  const handleSafeAreaUpdate = useCallback((metrics: Metrics) => {
-    setInsets(metrics.insets);
-    setFrame(metrics.frame);
   }, []);
 
   // Create clients once and reuse them

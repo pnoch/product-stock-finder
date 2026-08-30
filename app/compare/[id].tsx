@@ -198,7 +198,7 @@ export default function CompareScreen() {
         tb?.dir === "down" ? tb.pct : tb?.dir === "up" ? -tb.pct : 0;
       return scoreB - scoreA;
     });
-  }, [listings, sortBy, priceTrends]);
+  }, [listings, sortBy, priceTrends, displayCurrency]);
 
   const chartSeries = useMemo(() => {
     const selectedListings = listings.filter(

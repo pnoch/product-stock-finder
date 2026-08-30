@@ -1,4 +1,4 @@
-import { Text, View, TouchableOpacity, TextInput } from "react-native";
+import { View, TouchableOpacity, TextInput } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 

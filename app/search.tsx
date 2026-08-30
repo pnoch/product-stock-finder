@@ -152,7 +152,7 @@ export default function SearchScreen() {
         setAdding(null);
       }
     },
-    [router, trackedIds, adding, pendingTags],
+    [router, trackedIds, adding, pendingTags, loadData],
   );
 
   return (

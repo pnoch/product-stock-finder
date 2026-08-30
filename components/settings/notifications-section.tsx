@@ -5,7 +5,6 @@ import {
   Switch,
   Platform,
 } from "react-native";
-import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SettingRow } from "@/components/settings/setting-row";

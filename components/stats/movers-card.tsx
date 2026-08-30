@@ -1,6 +1,5 @@
-import { Text, View, TouchableOpacity } from "react-native";
+import { Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@/lib/currency";
 import type {
@@ -9,7 +8,7 @@ import type {
   PriceMove,
 } from "@/lib/watchlist-stats";
 
-const WINDOWS: Array<{ label: string; value: MoversWindow }> = [
+const WINDOWS: { label: string; value: MoversWindow }[] = [
   { label: "7D", value: 7 },
   { label: "30D", value: 30 },
   { label: "All", value: null },

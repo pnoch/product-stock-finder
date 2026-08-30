@@ -10,7 +10,6 @@ import {
 } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { BestDistributorCard } from "@/components/best-distributor-card";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import type { Product } from "@/lib/types";
 import type { BestDeal } from "@/lib/best-deal";
 import { DistributorListingCard } from "./distributor-listing-card";

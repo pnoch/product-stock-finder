@@ -7,7 +7,6 @@ import {
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SectionHeader } from "@/components/settings/section-header";
 import { getDistributorById } from "@/lib/distributors";
 import { getAllParserIds } from "@/lib/scrapers/registry";

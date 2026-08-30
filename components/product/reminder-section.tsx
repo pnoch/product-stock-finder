@@ -7,7 +7,7 @@ import { useColors } from "@/hooks/use-colors";
 
 export function ReminderSection({ productId, distributorId, productName, distributorName }: { productId: string; distributorId: string; productName?: string; distributorName?: string }) {
   const colors = useColors();
-  const [date, setDate] = useState<Date | null>(null);
+  const [date] = useState<Date | null>(null);
   const onSet = async () => {
     const d = date ?? new Date(Date.now() + 7 * 86400000);
     const notifId = await scheduleBackOrderReminder(productId, distributorId, d).catch(() => null);
