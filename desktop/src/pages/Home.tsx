@@ -13,6 +13,7 @@ import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
 import { TrendingSection } from "../components/TrendingSection";
+import { ProductImage } from "../components/ProductImage";
 
 function StatCard({
   icon,
@@ -137,11 +138,14 @@ export function Home() {
                 role="button"
                 aria-label={`View ${product.name} details`}
               >
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{product.name}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {product.brand} · {product.modelNumber}
-                  </p>
+                <div className="flex items-center flex-1 min-w-0">
+                  <ProductImage productId={product.id} size={36} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{product.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {product.brand} · {product.modelNumber}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-4 ml-4">
                   {best ? (

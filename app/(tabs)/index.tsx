@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   ScrollView,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Platform,
+  Image,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -20,6 +21,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ConnectionBadge } from "@/components/connection-badge";
 import { TrendingSection } from "@/components/home/trending-section";
 import { useConnection } from "@/hooks/use-connection";
+import { fetchProductImage } from "@/lib/server-images";
 
 
 
@@ -50,6 +52,7 @@ export default function HomeScreen() {
   const [alertCount, setAlertCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [images, setImages] = useState<Map<string, string>>(new Map());
 
   const loadData = useCallback(async () => {
     const list = await getWatchlist();
@@ -99,6 +102,25 @@ export default function HomeScreen() {
         new Date(a.listing.lastChecked).getTime(),
     )
     .slice(0, 5);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      const seen = new Set<string>();
+      for (const { product } of recentActivity) {
+        if (seen.has(product.id)) continue;
+        seen.add(product.id);
+        const res = await fetchProductImage(product.id);
+        if (active && res) {
+          setImages((prev) => new Map([...prev, [product.id, res.imageUrl]]));
+        }
+      }
+    };
+    load();
+    return () => {
+      active = false;
+    };
+  }, [recentActivity]);
 
   return (
     <ScreenContainer>
@@ -237,6 +259,17 @@ export default function HomeScreen() {
                     alignItems: "flex-start",
                   }}
                 >
+                  {images.get(product.id) && (
+                    <Image
+                      source={{ uri: images.get(product.id)! }}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 8,
+                        marginRight: 12,
+                      }}
+                    />
+                  )}
                   <View style={{ flex: 1, marginRight: 8 }}>
                     <Text
                       style={{
