@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from "react";
-import { Search, Check, Plus } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Search, Check, Plus, Wand2, Loader2 } from "lucide-react";
 import { searchCatalog, PRODUCT_CATALOG } from "../../../lib/catalog";
 import { storage } from "../storage";
 import { Modal } from "./Modal";
 import { ProductImage } from "./ProductImage";
+import { discoverProduct } from "../../../lib/llm-discovery";
 
 export function SearchModal({
   open,
@@ -14,6 +15,7 @@ export function SearchModal({
 }) {
   const [query, setQuery] = useState("");
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
+  const [discovering, setDiscovering] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -37,6 +39,27 @@ export function SearchModal({
     });
     setTrackedIds((prev) => new Set([...prev, product.id]));
   };
+
+  const handleDiscover = useCallback(async () => {
+    if (!query.trim() || discovering) return;
+    setDiscovering(true);
+    try {
+      const result = await discoverProduct(query);
+      if (result) {
+        storage.addToWatchlist({
+          ...result.product,
+          addedAt: new Date().toISOString(),
+          isWatched: true,
+          listings: [],
+        });
+        onClose();
+      } else {
+        alert("Discovery Failed: Could not find product information. Try a more specific search.");
+      }
+    } finally {
+      setDiscovering(false);
+    }
+  }, [query, discovering, onClose]);
 
   return (
     <Modal open={open} onClose={onClose} title="Search Products">
@@ -83,9 +106,28 @@ export function SearchModal({
           );
         })}
         {results.length === 0 && (
-          <p className="text-center text-gray-500 dark:text-gray-400 py-8 text-sm">
-            No products found.
-          </p>
+          <div className="text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              No products found.
+            </p>
+            {query.trim().length > 0 && !discovering && (
+              <button
+                onClick={handleDiscover}
+                className="mt-4 flex items-center justify-center gap-2 w-full px-4 py-3 rounded-lg border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 font-medium text-sm hover:bg-brand-500/20"
+              >
+                <Wand2 className="w-5 h-5" />
+                Discover with AI
+              </button>
+            )}
+            {discovering && (
+              <div className="mt-4 flex flex-col items-center gap-2">
+                <Loader2 className="w-6 h-6 text-brand-500 animate-spin" />
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  Discovering product...
+                </p>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </Modal>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Text,
   View,
@@ -27,6 +28,7 @@ import { SearchEmptyState } from "@/components/search/search-empty-state";
 import { CatalogProductCard } from "@/components/search/catalog-product-card";
 import { addToWatchlist } from "@/lib/storage";
 import { Product } from "@/lib/types";
+import { discoverProduct } from "@/lib/llm-discovery";
 import { useSearchData } from "@/hooks/use-search-data";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TagFilterRow } from "@/components/tag-filter-row";
@@ -37,6 +39,7 @@ export default function SearchScreen() {
   const colors = useColors();
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
+  const [discovering, setDiscovering] = useState(false);
   const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
   const [pickerItem, setPickerItem] = useState<Product | null>(null);
   const [postAddProduct, setPostAddProduct] = useState<Product | null>(null);
@@ -67,6 +70,25 @@ export default function SearchScreen() {
     await clearRecentSearches();
     setRecentSearches([]);
   }, []);
+
+  const handleDiscover = useCallback(async () => {
+    if (!query.trim() || discovering) return;
+    setDiscovering(true);
+    try {
+      const result = await discoverProduct(query);
+      if (result) {
+        loadData();
+        router.push(`/product/${result.product.id}`);
+      } else {
+        showAlert(
+          "Discovery Failed",
+          "Could not find product information. Try a more specific search.",
+        );
+      }
+    } finally {
+      setDiscovering(false);
+    }
+  }, [query, discovering, loadData, router]);
 
   const results =
     query.trim().length > 0 ? searchCatalog(query) : PRODUCT_CATALOG;
@@ -239,7 +261,49 @@ export default function SearchScreen() {
           </Text>
         }
         ListEmptyComponent={
-          <SearchEmptyState query={query} selectedTagIds={selectedTagIds} />
+          <View>
+            <SearchEmptyState query={query} selectedTagIds={selectedTagIds} />
+            {query.trim().length > 0 && !discovering && (
+              <TouchableOpacity
+                onPress={handleDiscover}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  padding: 16,
+                  marginTop: 16,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: colors.primary + "44",
+                  backgroundColor: colors.primary + "11",
+                }}
+              >
+                <IconSymbol
+                  name="wand.and.stars"
+                  size={20}
+                  color={colors.primary}
+                />
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontWeight: "600",
+                    fontSize: 14,
+                  }}
+                >
+                  Discover with AI
+                </Text>
+              </TouchableOpacity>
+            )}
+            {discovering && (
+              <View style={{ alignItems: "center", padding: 24 }}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={{ color: colors.muted, marginTop: 8 }}>
+                  Discovering product...
+                </Text>
+              </View>
+            )}
+          </View>
         }
         renderItem={({ item }) => (
           <CatalogProductCard
