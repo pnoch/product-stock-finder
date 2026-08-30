@@ -1,11 +1,12 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, Image } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { TrendingProduct } from "@/lib/types";
 import { fetchTrending } from "@/lib/trending";
 import { useColors } from "@/hooks/use-colors";
 import { addToWatchlist, getWatchlist } from "@/lib/storage";
 import { useRouter } from "expo-router";
+import { fetchProductImage } from "@/lib/server-images";
 
 export function TrendingSection() {
   const colors = useColors();
@@ -19,12 +20,35 @@ export function TrendingSection() {
   const [watchlistIds, setWatchlistIds] = React.useState<Set<string>>(
     new Set(),
   );
+  const [imageUrls, setImageUrls] = React.useState<Map<string, string>>(
+    new Map(),
+  );
 
   React.useEffect(() => {
     getWatchlist().then((w) =>
       setWatchlistIds(new Set(w.map((p) => p.id))),
     );
   }, []);
+
+  React.useEffect(() => {
+    if (!products) return;
+    let active = true;
+    const load = async () => {
+      const entries = await Promise.all(
+        products.slice(0, 3).map(async (p) => {
+          const res = await fetchProductImage(p.id);
+          return [p.id, res?.imageUrl ?? ""] as const;
+        }),
+      );
+      if (active) {
+        setImageUrls(new Map(entries.filter(([, url]) => url)));
+      }
+    };
+    load();
+    return () => {
+      active = false;
+    };
+  }, [products]);
 
   const handleAdd = async (product: TrendingProduct) => {
     await addToWatchlist({
@@ -80,6 +104,17 @@ export function TrendingSection() {
               alignItems: "flex-start",
             }}
           >
+            {imageUrls.has(product.id) && (
+              <Image
+                source={{ uri: imageUrls.get(product.id)! }}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 8,
+                  marginRight: 12,
+                }}
+              />
+            )}
             <View style={{ flex: 1 }}>
               <Text
                 style={{

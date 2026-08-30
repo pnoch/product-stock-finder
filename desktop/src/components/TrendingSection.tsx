@@ -4,6 +4,7 @@ import { Flame, Plus, Check } from "lucide-react";
 import { fetchTrending } from "../../../lib/trending";
 import type { TrendingProduct } from "../../../lib/types";
 import { storage } from "../storage";
+import { ProductImage } from "./ProductImage";
 
 function currencySymbol(c: string) {
   if (c === "USD") return "$";
@@ -59,6 +60,8 @@ export function TrendingSection() {
             key={product.id}
             className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 transition-colors"
           >
+            <div className="flex items-center flex-1 min-w-0">
+            <ProductImage productId={product.id} size={40} />
             <Link to={`/product/${product.id}`} className="flex-1 min-w-0" aria-label={`View ${product.name} details`}>
               <p className="font-medium truncate">{product.name}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -70,6 +73,7 @@ export function TrendingSection() {
                 {product.reason}
               </p>
             </Link>
+            </div>
             <button
               onClick={() => handleAdd(product)}
               disabled={addedIds.has(product.id)}
