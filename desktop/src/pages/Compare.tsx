@@ -39,11 +39,16 @@ export function Compare() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState("all");
   const [sortBy, setSortBy] = useState<"name" | "price">("name");
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
 
   useEffect(() => {
     if (!id) return;
-    storage.getWatchlist().then((list) => {
+    Promise.all([
+      storage.getWatchlist(),
+      storage.getSettings(),
+    ]).then(([list, settings]) => {
       setProduct(list.find((p) => p.id === id) ?? null);
+      if (settings?.displayCurrency) setDisplayCurrency(settings.displayCurrency);
       setLoading(false);
     });
   }, [id]);
@@ -81,7 +86,7 @@ export function Compare() {
           dateMap.set(point.date, { date: point.date });
         }
         const row = dateMap.get(point.date)!;
-        row[distName] = convertPrice(point.price, point.currency, "USD");
+        row[distName] = convertPrice(point.price, point.currency, displayCurrency);
       });
     });
 
@@ -98,7 +103,7 @@ export function Compare() {
     );
 
     return { data, distributors, colors: CHART_COLORS };
-  }, [product, cutoffDate]);
+  }, [product, cutoffDate, displayCurrency]);
 
   const sortedListings = useMemo(() => {
     if (!product) return [];
@@ -109,12 +114,12 @@ export function Compare() {
     if (sortBy === "price") {
       return listings.sort(
         (a, b) =>
-          convertPrice(a.price, a.currency, "USD") -
-          convertPrice(b.price, b.currency, "USD"),
+          convertPrice(a.price, a.currency, displayCurrency) -
+          convertPrice(b.price, b.currency, displayCurrency),
       );
     }
     return listings.sort((a, b) => a.distName.localeCompare(b.distName));
-  }, [product, sortBy]);
+  }, [product, sortBy, displayCurrency]);
 
   const cheapest = useMemo(() => {
     if (!sortedListings.length) return null;
@@ -123,11 +128,11 @@ export function Compare() {
     );
     if (!inStock.length) return null;
     return inStock.reduce((best, curr) => {
-      const currConv = convertPrice(curr.price, curr.currency, "USD");
-      const bestConv = convertPrice(best.price, best.currency, "USD");
+      const currConv = convertPrice(curr.price, curr.currency, displayCurrency);
+      const bestConv = convertPrice(best.price, best.currency, displayCurrency);
       return currConv < bestConv ? curr : best;
     });
-  }, [sortedListings]);
+  }, [sortedListings, displayCurrency]);
 
   const getTrend = (priceHistory: { price: number; date: string }[]) => {
     if (priceHistory.length < 2) return "flat";
