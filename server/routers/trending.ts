@@ -66,3 +66,31 @@ Return ONLY valid JSON array, no markdown.`;
 }
 
 export const trendingRouter = {};
+
+const TRENDING_CACHE_URL = process.env.EXPO_PUBLIC_API_BASE_URL
+  ? `${process.env.EXPO_PUBLIC_API_BASE_URL}/api/trending`
+  : "http://localhost:3001/api/trending";
+
+export async function getTrending(): Promise<
+  Array<{
+    id: string;
+    name: string;
+    brand: string;
+    category: string;
+    estimatedPrice: number;
+    currency: string;
+    reason: string;
+    source: string;
+    fetchedAt: string;
+    expiresAt: string;
+  }>
+> {
+  try {
+    const res = await fetch(TRENDING_CACHE_URL);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
