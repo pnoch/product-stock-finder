@@ -12,6 +12,7 @@ import { formatPrice, getBestPrice } from "../../../lib/currency";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
+import { TrendingSection } from "../components/TrendingSection";
 
 function StatCard({
   icon,
@@ -111,6 +112,8 @@ export function Home() {
           value={alerts.length - activeAlerts}
         />
       </div>
+
+      <TrendingSection />
 
       <div>
         <h2 className="text-lg font-semibold mb-3">Recent Activity</h2>
