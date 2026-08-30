@@ -17,7 +17,7 @@ export function ReminderSection({ productId, distributorId, productName, distrib
   return (
     <View style={{ padding: 16 }}>
       <Text style={{ color: colors.foreground, fontWeight: "600", marginBottom: 8 }}>Back-order Reminder</Text>
-      <TouchableOpacity onPress={onSet} style={{ backgroundColor: colors.primary, borderRadius: 8, padding: 10, alignItems: "center" }}><Text style={{ color: "#fff", fontWeight: "600" }}>Remind Me</Text></TouchableOpacity>
+      <TouchableOpacity onPress={onSet} style={{ backgroundColor: colors.primary, borderRadius: 8, padding: 10, alignItems: "center" }} accessibilityLabel="Remind me" accessibilityRole="button"><Text style={{ color: "#fff", fontWeight: "600" }}>Remind Me</Text></TouchableOpacity>
     </View>
   );
 }

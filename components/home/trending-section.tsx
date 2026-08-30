@@ -70,6 +70,8 @@ export function TrendingSection() {
             borderWidth: 1,
             borderColor: colors.border,
           }}
+          accessibilityLabel={`View ${product.name}`}
+          accessibilityRole="button"
         >
           <View
             style={{
@@ -128,6 +130,8 @@ export function TrendingSection() {
                 paddingVertical: 6,
                 marginLeft: 8,
               }}
+              accessibilityLabel={watchlistIds.has(product.id) ? "Already in watchlist" : "Add to watchlist"}
+              accessibilityRole="button"
             >
               <Text
                 style={{

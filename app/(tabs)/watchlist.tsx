@@ -558,7 +558,7 @@ export default function WatchlistScreen() {
           >
             Removed {undoProduct.name}
           </Text>
-          <TouchableOpacity onPress={handleUndo}>
+          <TouchableOpacity onPress={handleUndo} accessibilityLabel="Undo remove" accessibilityRole="button">
             <Text
               style={{
                 color: colors.primary,

@@ -113,7 +113,7 @@ export function EditProductSheet({
             >
               Edit Product ✏️
             </Text>
-            <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
+            <TouchableOpacity onPress={onClose} style={{ padding: 4 }} accessibilityLabel="Close" accessibilityRole="button">
               <IconSymbol
                 name="xmark.circle.fill"
                 size={24}
@@ -184,6 +184,8 @@ export function EditProductSheet({
                 gap: 8,
                 marginBottom: 12,
               }}
+              accessibilityLabel="Save changes"
+              accessibilityRole="button"
             >
               <IconSymbol name="checkmark.circle.fill" size={18} color="#fff" />
               <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>

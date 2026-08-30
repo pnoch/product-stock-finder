@@ -42,6 +42,7 @@ export function RestockWatches() {
         <button
           onClick={() => navigate("/alerts")}
           className="text-blue-600 dark:text-brand-400 mr-3"
+          aria-label="Go back to alerts"
         >
           ‹ Back
         </button>
@@ -83,6 +84,7 @@ export function RestockWatches() {
                 <button
                   onClick={() => handleRemove(watch.id)}
                   className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                  aria-label={`Remove ${watch.productName} from restock watches`}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

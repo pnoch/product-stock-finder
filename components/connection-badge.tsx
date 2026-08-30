@@ -37,6 +37,8 @@ export function ConnectionBadge({
         borderWidth: 1,
         borderColor: colors.border,
       }}
+      accessibilityLabel={onPress ? `Connection status: ${c.label}` : undefined}
+      accessibilityRole={onPress ? "button" : undefined}
     >
       <View
         style={{

@@ -157,7 +157,7 @@ export function NotificationCenter({
               {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
             </Text>
             {unreadCount > 0 && (
-              <TouchableOpacity onPress={handleMarkAll} style={{ padding: 4 }}>
+              <TouchableOpacity onPress={handleMarkAll} style={{ padding: 4 }} accessibilityLabel="Mark all as read" accessibilityRole="button">
                 <Text
                   style={{
                     color: colors.primary,
@@ -201,6 +201,8 @@ export function NotificationCenter({
             padding: 14,
             marginBottom: 10,
           }}
+          accessibilityLabel={`${item.title}. ${item.body}`}
+          accessibilityRole="button"
         >
           <IconSymbol
             name={

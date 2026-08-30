@@ -81,6 +81,8 @@ export function RescheduleModal({
               justifyContent: "space-between",
               marginBottom: 20,
             }}
+            accessibilityLabel="Select date"
+            accessibilityRole="button"
           >
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
@@ -127,6 +129,8 @@ export function RescheduleModal({
                 borderWidth: 1,
                 borderColor: colors.border,
               }}
+              accessibilityLabel="Cancel"
+              accessibilityRole="button"
             >
               <Text style={{ color: colors.foreground, fontWeight: "600" }}>
                 Cancel
@@ -141,6 +145,8 @@ export function RescheduleModal({
                 paddingVertical: 14,
                 alignItems: "center",
               }}
+              accessibilityLabel="Reschedule reminder"
+              accessibilityRole="button"
             >
               <Text style={{ color: "#fff", fontWeight: "600" }}>
                 Reschedule

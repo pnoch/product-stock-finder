@@ -78,6 +78,7 @@ export function Alerts() {
         <button
           onClick={() => navigate("/restock-watches")}
           className="px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+          aria-label="View restock watches"
         >
           Restock Watches
         </button>
@@ -92,6 +93,7 @@ export function Alerts() {
               ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
               : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
           }`}
+          aria-label="Show price alerts"
         >
           <Bell className="w-4 h-4 inline-block mr-1.5" />
           Alerts
@@ -103,6 +105,7 @@ export function Alerts() {
               ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
               : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
           }`}
+          aria-label="Show reminders and stock watches"
         >
           <Clock className="w-4 h-4 inline-block mr-1.5" />
           Reminders
@@ -213,6 +216,7 @@ function AlertRow({
         <button
           onClick={() => onRearm(alert.id)}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded-lg transition-colors"
+          aria-label="Rearm price alert"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           Rearm
@@ -222,6 +226,7 @@ function AlertRow({
           onClick={() => onToggle(alert.id)}
           className="text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg p-1.5 transition-colors"
           title={alert.isActive ? "Deactivate alert" : "Activate alert"}
+          aria-label={alert.isActive ? "Deactivate alert" : "Activate alert"}
         >
           {alert.isActive ? (
             <ToggleRight className="w-5 h-5" />
@@ -235,6 +240,7 @@ function AlertRow({
         onClick={() => onDelete(alert.id)}
         className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
         title="Delete alert"
+        aria-label="Delete price alert"
       >
         <Trash2 className="w-4 h-4" />
       </button>
@@ -289,6 +295,7 @@ function RemindersTab({
                   onClick={() => onDeleteReminder(r.id)}
                   className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                   title="Delete reminder"
+                  aria-label="Delete reminder"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -330,6 +337,7 @@ function RemindersTab({
                   onClick={() => onDeleteWatch(w.id)}
                   className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                   title="Delete stock watch"
+                  aria-label="Delete stock watch"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

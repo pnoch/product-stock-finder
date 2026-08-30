@@ -43,12 +43,16 @@ export class RouteErrorBoundary extends React.Component<
             borderRadius: 8,
             padding: 10,
           }}
+          accessibilityLabel="Try Again"
+          accessibilityRole="button"
         >
           <Text style={{ color: "#fff" }}>Try Again</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => router.back()}
           style={{ marginTop: 8 }}
+          accessibilityLabel="Go Back"
+          accessibilityRole="button"
         >
           <Text>Go Back</Text>
         </TouchableOpacity>

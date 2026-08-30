@@ -57,6 +57,8 @@ export function WatchlistHeader({
               alignItems: "center",
               gap: 6,
             }}
+            accessibilityLabel="Delete selected"
+            accessibilityRole="button"
           >
             <IconSymbol name="trash.fill" size={16} color="#fff" />
             <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
@@ -74,6 +76,8 @@ export function WatchlistHeader({
               alignItems: "center",
               gap: 6,
             }}
+            accessibilityLabel="Tag selected"
+            accessibilityRole="button"
           >
             <IconSymbol name="tag.fill" size={16} color="#fff" />
             <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
@@ -92,6 +96,8 @@ export function WatchlistHeader({
               borderWidth: 1,
               borderColor: colors.border,
             }}
+            accessibilityLabel="Exit selection mode"
+            accessibilityRole="button"
           >
             <IconSymbol name="xmark" size={18} color={colors.foreground} />
           </TouchableOpacity>
@@ -127,6 +133,8 @@ export function WatchlistHeader({
             borderWidth: 1,
             borderColor: colors.border,
           }}
+          accessibilityLabel="Analysis"
+          accessibilityRole="button"
         >
           <IconSymbol
             name="chart.bar.xaxis"
@@ -157,6 +165,8 @@ export function WatchlistHeader({
             borderWidth: 1,
             borderColor: colors.border,
           }}
+          accessibilityLabel="Refresh all prices"
+          accessibilityRole="button"
         >
           {isRefreshingAny ? (
             <ActivityIndicator size="small" color={colors.primary} />
@@ -186,6 +196,8 @@ export function WatchlistHeader({
           }}
           onPress={onCheckNow}
           disabled={checking || watchlistLength === 0}
+          accessibilityLabel="Check now"
+          accessibilityRole="button"
         >
           {checking ? (
             <ActivityIndicator size="small" color="#fff" />
@@ -212,6 +224,8 @@ export function WatchlistHeader({
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onAdd();
           }}
+          accessibilityLabel="Add product"
+          accessibilityRole="button"
         >
           <IconSymbol name="plus" size={22} color="#fff" />
         </TouchableOpacity>

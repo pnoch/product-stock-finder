@@ -70,6 +70,8 @@ export function PriceChartModal({
             <TouchableOpacity
               onPress={onClose}
               style={{ padding: 4 }}
+              accessibilityLabel="Close chart"
+              accessibilityRole="button"
             >
               <IconSymbol
                 name="xmark.circle.fill"

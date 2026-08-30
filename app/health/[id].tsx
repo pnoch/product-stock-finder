@@ -51,6 +51,8 @@ export default function HealthDetailScreen() {
       <ScreenContainer>
         <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
           <TouchableOpacity
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
             onPress={() => router.back()}
             style={{ marginRight: 12 }}
           >
@@ -75,6 +77,8 @@ export default function HealthDetailScreen() {
     <ScreenContainer>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
         <TouchableOpacity
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
           onPress={() => router.back()}
           style={{ marginRight: 12 }}
         >

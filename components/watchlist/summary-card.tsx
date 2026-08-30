@@ -98,6 +98,9 @@ export function SummaryCard({
                   ? col.color + "22"
                   : "transparent",
             }}
+            accessibilityLabel={`Filter by ${col.label}`}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: statusFilter === col.key }}
           >
             <Text
               style={{ color: col.color, fontSize: 16, fontWeight: "600" }}
@@ -140,6 +143,8 @@ export function SummaryCard({
           borderTopWidth: 1,
           borderTopColor: colors.border,
         }}
+        accessibilityLabel="View statistics"
+        accessibilityRole="button"
       >
         <Text
           style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}

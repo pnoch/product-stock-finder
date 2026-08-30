@@ -102,6 +102,8 @@ export function TargetTableCard({
                   justifyContent: "center",
                   backgroundColor: colors.primary + "22",
                 }}
+                accessibilityLabel={`Set target for ${dist?.name ?? listing.distributorId}`}
+                accessibilityRole="button"
               >
                 <Text
                   style={{

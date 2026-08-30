@@ -87,6 +87,8 @@ export function ProductInfoCard({
               onPress={onEditDetails}
               hitSlop={8}
               style={{ padding: 2 }}
+              accessibilityLabel="Edit product details"
+              accessibilityRole="button"
             >
               <IconSymbol name="pencil" size={14} color={colors.muted} />
             </TouchableOpacity>

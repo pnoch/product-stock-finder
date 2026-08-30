@@ -70,6 +70,7 @@ export function Home() {
           <Link
             to="/search"
             className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+            aria-label="Add products to your watchlist"
           >
             <Plus className="w-4 h-4" /> Add Products
           </Link>
@@ -85,6 +86,7 @@ export function Home() {
         <Link
           to="/search"
           className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+          aria-label="Add a new product"
         >
           <Plus className="w-4 h-4" /> Add Product
         </Link>
@@ -132,6 +134,8 @@ export function Home() {
                 key={product.id}
                 to={`/product/${product.id}`}
                 className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 transition-colors"
+                role="button"
+                aria-label={`View ${product.name} details`}
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{product.name}</p>

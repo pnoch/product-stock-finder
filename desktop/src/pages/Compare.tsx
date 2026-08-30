@@ -212,6 +212,7 @@ export function Compare() {
                   ? "bg-brand-600 text-white"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
               }`}
+              aria-label="Sort by name"
             >
               Name
             </button>
@@ -222,6 +223,7 @@ export function Compare() {
                   ? "bg-brand-600 text-white"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
               }`}
+              aria-label="Sort by price"
             >
               Price
             </button>

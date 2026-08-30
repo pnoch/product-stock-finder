@@ -158,7 +158,7 @@ export default function ProductDetailScreen() {
       <ScreenContainer>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ color: colors.foreground, fontSize: 16 }}>Product not found</Text>
-          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}><Text style={{ color: colors.primary }}>Go back</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button" style={{ marginTop: 16 }}><Text style={{ color: colors.primary }}>Go back</Text></TouchableOpacity>
         </View>
       </ScreenContainer>
     );

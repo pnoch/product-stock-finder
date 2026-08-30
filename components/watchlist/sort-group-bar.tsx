@@ -55,6 +55,8 @@ export function SortGroupBar({
             borderWidth: 1,
             borderColor: colors.border,
           }}
+          accessibilityLabel={`Sort: ${SORT_OPTIONS.find((o) => o.key === sortMode)?.label}`}
+          accessibilityRole="button"
         >
           <Text
             style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }}
@@ -81,6 +83,9 @@ export function SortGroupBar({
                 borderWidth: 1,
                 borderColor: active ? colors.primary : colors.border,
               }}
+              accessibilityLabel={`Group by ${opt.label}`}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: active }}
             >
               <Text
                 style={{
@@ -125,6 +130,9 @@ export function SortGroupBar({
                     ? colors.primary + "18"
                     : "transparent",
                 }}
+                accessibilityLabel={`Sort by ${opt.label}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: active }}
               >
                 <Text
                   style={{

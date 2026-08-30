@@ -148,6 +148,9 @@ export function TagPickerSheet({
                     alignItems: "center",
                     paddingVertical: 10,
                   }}
+                  accessibilityLabel={`${active ? "Deselect" : "Select"} tag ${tag.name}`}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: active }}
                 >
                   <View
                     style={{
@@ -216,6 +219,8 @@ export function TagPickerSheet({
                 alignItems: "center",
                 opacity: newTagName.trim() ? 1 : 0.5,
               }}
+              accessibilityLabel="Create tag"
+              accessibilityRole="button"
             >
               <Text style={{ color: "#fff", fontWeight: "600" }}>
                 Create tag
@@ -228,6 +233,8 @@ export function TagPickerSheet({
               onClose();
             }}
             style={{ marginTop: 16, alignItems: "center", paddingVertical: 10 }}
+            accessibilityLabel="Done"
+            accessibilityRole="button"
           >
             <Text style={{ color: colors.muted, fontWeight: "600" }}>Done</Text>
           </TouchableOpacity>

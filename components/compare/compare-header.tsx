@@ -30,7 +30,7 @@ export function CompareHeader({
         gap: 12,
       }}
     >
-      <TouchableOpacity onPress={onBack} style={{ padding: 4 }}>
+      <TouchableOpacity onPress={onBack} style={{ padding: 4 }} accessibilityLabel="Go back" accessibilityRole="button">
         <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
       </TouchableOpacity>
       <View style={{ flex: 1 }}>
@@ -65,6 +65,8 @@ export function CompareHeader({
         }}
         disabled={isRefreshing}
         style={{ padding: 4 }}
+        accessibilityLabel="Refresh prices"
+        accessibilityRole="button"
       >
         {isRefreshing ? (
           <ActivityIndicator size="small" color={colors.primary} />

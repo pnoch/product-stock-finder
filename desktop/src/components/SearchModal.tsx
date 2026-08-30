@@ -71,6 +71,7 @@ export function SearchModal({
           onChange={(e) => setQuery(e.target.value)}
           className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           placeholder="Search by name, model, or brand..."
+          aria-label="Search products by name, model, or brand"
         />
       </div>
       <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -98,6 +99,7 @@ export function SearchModal({
                 <button
                   onClick={() => handleAdd(product)}
                   className="flex items-center gap-1 px-3 py-1 rounded-lg bg-brand-600 text-white text-xs font-medium hover:bg-brand-700"
+                  aria-label={`Add ${product.name} to watchlist`}
                 >
                   <Plus className="w-3 h-3" /> Add
                 </button>
@@ -114,6 +116,7 @@ export function SearchModal({
               <button
                 onClick={handleDiscover}
                 className="mt-4 flex items-center justify-center gap-2 w-full px-4 py-3 rounded-lg border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 font-medium text-sm hover:bg-brand-500/20"
+                aria-label="Discover product with AI"
               >
                 <Wand2 className="w-5 h-5" />
                 Discover with AI

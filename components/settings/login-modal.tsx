@@ -204,6 +204,8 @@ export function LoginModal({
                 marginBottom: 12,
                 opacity: loading ? 0.7 : 1,
               }}
+              accessibilityLabel={mode === "login" ? "Sign in" : "Create account"}
+              accessibilityRole="button"
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -220,7 +222,7 @@ export function LoginModal({
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={switchMode} style={{ alignItems: "center" }}>
+            <TouchableOpacity onPress={switchMode} style={{ alignItems: "center" }} accessibilityLabel={mode === "login" ? "Switch to sign up" : "Switch to sign in"} accessibilityRole="button">
               <Text style={{ color: colors.primary, fontSize: 14 }}>
                 {mode === "login"
                   ? "Don't have an account? Sign up"
@@ -228,7 +230,7 @@ export function LoginModal({
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={onClose} style={{ alignItems: "center", marginTop: 16 }}>
+            <TouchableOpacity onPress={onClose} style={{ alignItems: "center", marginTop: 16 }} accessibilityLabel="Cancel" accessibilityRole="button">
               <Text style={{ color: colors.muted, fontSize: 14 }}>Cancel</Text>
             </TouchableOpacity>
           </View>

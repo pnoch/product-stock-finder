@@ -102,6 +102,9 @@ export function PriceAlertModal({
                   borderColor:
                     alertCurrency === c ? colors.primary : colors.border,
                 }}
+                accessibilityLabel={`Select ${c} currency`}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: alertCurrency === c }}
               >
                 <Text
                   style={{
@@ -139,6 +142,8 @@ export function PriceAlertModal({
                     borderColor: colors.primary,
                     backgroundColor: colors.primary + "22",
                   }}
+                  accessibilityLabel={`Set price to ${suggestion.label}`}
+                  accessibilityRole="button"
                 >
                   <Text
                     style={{
@@ -187,6 +192,9 @@ export function PriceAlertModal({
                       alignItems: "center",
                       backgroundColor: active ? colors.primary : "transparent",
                     }}
+                    accessibilityLabel={opt.label}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
                   >
                     <Text
                       style={{
@@ -231,6 +239,9 @@ export function PriceAlertModal({
                       ? colors.primary + "22"
                       : "transparent",
                 }}
+                accessibilityLabel="All distributors"
+                accessibilityRole="radio"
+                accessibilityState={{ selected: selectedDistributorId == null }}
               >
                 <Text
                   style={{
@@ -265,6 +276,9 @@ export function PriceAlertModal({
                         ? colors.primary + "22"
                         : "transparent",
                     }}
+                    accessibilityLabel={`Select ${d.name}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
                   >
                     <Text
                       style={{
@@ -309,6 +323,8 @@ export function PriceAlertModal({
                 borderWidth: 1,
                 borderColor: colors.border,
               }}
+              accessibilityLabel="Cancel"
+              accessibilityRole="button"
             >
               <Text style={{ color: colors.foreground, fontWeight: "600" }}>
                 Cancel
@@ -323,6 +339,8 @@ export function PriceAlertModal({
                 paddingVertical: 14,
                 alignItems: "center",
               }}
+              accessibilityLabel={editingAlertId ? "Save changes" : "Set alert"}
+              accessibilityRole="button"
             >
               <Text style={{ color: "#fff", fontWeight: "600" }}>
                 {editingAlertId ? "Save Changes" : "Set Alert"}

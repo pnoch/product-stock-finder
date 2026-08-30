@@ -61,6 +61,7 @@ export function Health() {
         <button
           onClick={() => navigate("/settings")}
           className="text-blue-600 mr-3"
+          aria-label="Go back to settings"
         >
           ‹ Back
         </button>
@@ -77,6 +78,7 @@ export function Health() {
                 ? "bg-blue-600 text-white border-blue-600"
                 : "bg-white text-gray-800 border-gray-300"
             }`}
+            aria-label={`Filter by ${f === "all" ? "all statuses" : f}`}
           >
             {f === "all" ? `All (${health.length})` : `${f} (${counts[f]})`}
           </button>
@@ -87,6 +89,7 @@ export function Health() {
         onClick={runTest}
         disabled={testing}
         className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold mb-4 disabled:opacity-50"
+        aria-label="Test all distributors"
       >
         {testing ? "Testing..." : "Test All Distributors"}
       </button>

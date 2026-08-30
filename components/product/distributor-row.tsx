@@ -22,7 +22,7 @@ export const DistributorRow = React.memo(function DistributorRow({
         <Text style={{ color: colors.primary, fontWeight: "700" }}>{formatPrice(listing.price, listing.currency)}</Text>
       </View>
       <StockBadge status={listing.stockStatus} />
-      <TouchableOpacity onPress={() => onWatchToggle(product.id, listing.distributorId)}>
+      <TouchableOpacity onPress={() => onWatchToggle(product.id, listing.distributorId)} accessibilityLabel="Toggle watch" accessibilityRole="button">
         <Text style={{ color: colors.primary }}>Watch</Text>
       </TouchableOpacity>
     </View>

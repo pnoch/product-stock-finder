@@ -107,6 +107,8 @@ export function DropCalendarCard({
                 setSelectedKey((prev) => (prev === key ? null : key));
               }}
               style={cellStyle(ts)}
+              accessibilityLabel={`Price drops on ${new Date(ts).toLocaleDateString()}`}
+              accessibilityRole="button"
             >
               <Text style={{ color: colors.foreground, fontSize: 11 }}>
                 {new Date(ts).getUTCDate()}

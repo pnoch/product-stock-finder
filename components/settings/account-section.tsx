@@ -78,6 +78,8 @@ export function AccountSection({
                   borderRadius: 12,
                   backgroundColor: colors.primary + "22",
                 }}
+                accessibilityLabel="Sign in"
+                accessibilityRole="button"
               >
                 <Text
                   style={{
@@ -115,6 +117,8 @@ export function AccountSection({
                     borderRadius: 12,
                     backgroundColor: colors.primary + "22",
                   }}
+                  accessibilityLabel="Sync now"
+                  accessibilityRole="button"
                 >
                   {syncing ? (
                     <ActivityIndicator size="small" color={colors.primary} />
@@ -138,6 +142,8 @@ export function AccountSection({
                     borderRadius: 12,
                     backgroundColor: colors.error + "22",
                   }}
+                  accessibilityLabel="Sign out"
+                  accessibilityRole="button"
                 >
                   <Text
                     style={{

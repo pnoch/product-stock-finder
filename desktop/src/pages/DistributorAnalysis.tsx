@@ -37,6 +37,7 @@ export function DistributorAnalysis() {
         <button
           onClick={() => navigate("/watchlist")}
           className="text-blue-600 dark:text-brand-400 mr-3"
+          aria-label="Go back to watchlist"
         >
           ‹ Back
         </button>

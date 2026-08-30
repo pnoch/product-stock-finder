@@ -35,6 +35,9 @@ export function RegionFilterRow({
             borderWidth: 1,
             borderColor: colors.border,
           }}
+          accessibilityLabel={`Filter by ${region === "all" ? "all regions" : region}`}
+          accessibilityRole="radio"
+          accessibilityState={{ selected: regionFilter === region }}
         >
           <Text
             style={{

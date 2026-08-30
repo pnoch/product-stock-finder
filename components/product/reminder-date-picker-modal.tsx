@@ -93,6 +93,8 @@ export function ReminderDatePickerModal({
               justifyContent: "space-between",
               marginBottom: 20,
             }}
+            accessibilityLabel="Select date"
+            accessibilityRole="button"
           >
             <View
               style={{
@@ -151,6 +153,8 @@ export function ReminderDatePickerModal({
                 borderWidth: 1,
                 borderColor: colors.border,
               }}
+              accessibilityLabel="Cancel"
+              accessibilityRole="button"
             >
               <Text
                 style={{ color: colors.foreground, fontWeight: "600" }}
@@ -167,6 +171,8 @@ export function ReminderDatePickerModal({
                 paddingVertical: 14,
                 alignItems: "center",
               }}
+              accessibilityLabel="Set reminder"
+              accessibilityRole="button"
             >
               <Text style={{ color: "#fff", fontWeight: "600" }}>
                 Set Reminder

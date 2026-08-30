@@ -39,6 +39,8 @@ export function CrossAlertCTA({
         alignItems: "center",
         gap: 10,
       }}
+      accessibilityLabel="Set cross-distributor alert"
+      accessibilityRole="button"
     >
       <IconSymbol name="bell.fill" size={18} color={colors.primary} />
       <View style={{ flex: 1 }}>

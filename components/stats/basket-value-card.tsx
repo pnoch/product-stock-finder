@@ -40,7 +40,7 @@ export function BasketValueCard({
           Basket Value (best in-stock prices)
         </Text>
         {onOpenAlert && (
-          <TouchableOpacity onPress={onOpenAlert} hitSlop={8}>
+          <TouchableOpacity onPress={onOpenAlert} hitSlop={8} accessibilityLabel={alertThreshold ? "Edit basket alert" : "Set basket alert"} accessibilityRole="button">
             <IconSymbol
               name={alertThreshold ? "bell.fill" : "bell"}
               size={15}

@@ -105,6 +105,9 @@ export function MoversCard({
                 backgroundColor:
                   days === w.value ? colors.primary : "transparent",
               }}
+              accessibilityLabel={`Show ${w.label} movers`}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: days === w.value }}
             >
               <Text
                 style={{

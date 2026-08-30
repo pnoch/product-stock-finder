@@ -133,6 +133,7 @@ export function Settings() {
             <button
               onClick={logout}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+              aria-label="Sign out"
             >
               Sign out
             </button>
@@ -148,6 +149,7 @@ export function Settings() {
             <button
               onClick={handleSignIn}
               className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+              aria-label="Sign in"
             >
               Sign in
             </button>
@@ -158,6 +160,7 @@ export function Settings() {
       <button
         onClick={() => navigate("/health")}
         className="flex items-center gap-2 w-full bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:border-brand-500 transition-colors"
+        aria-label="View distributor health"
       >
         <Activity className="w-5 h-5 text-brand-600 dark:text-brand-400" />
         <span className="text-left">
@@ -189,6 +192,7 @@ export function Settings() {
                   ? "bg-brand-600 text-white"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
+              aria-label={`Set theme to ${t}`}
             >
               {t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
@@ -206,6 +210,7 @@ export function Settings() {
           value={settings.displayCurrency}
           onChange={(e) => update({ displayCurrency: e.target.value })}
           className="w-full max-w-xs px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          aria-label="Display currency"
         >
           {currencies.map((currency) => (
             <option key={currency} value={currency}>
@@ -225,6 +230,7 @@ export function Settings() {
           value={settings.shippingRegion ?? "Asia-Pacific"}
           onChange={(e) => update({ shippingRegion: e.target.value })}
           className="w-full max-w-xs px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          aria-label="Shipping region"
         >
           {[
             "Asia-Pacific",
@@ -256,6 +262,7 @@ export function Settings() {
                   ? "bg-brand-600 text-white"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
+              aria-label={`Set check interval to ${interval}`}
             >
               {interval.charAt(0).toUpperCase() + interval.slice(1)}
             </button>
@@ -279,6 +286,7 @@ export function Settings() {
                 update({ notificationsEnabled: e.target.checked })
               }
               className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
+              aria-label="Enable notifications"
             />
           </label>
           <label className="flex items-center justify-between">
@@ -288,6 +296,7 @@ export function Settings() {
               checked={settings.stockAlerts}
               onChange={(e) => update({ stockAlerts: e.target.checked })}
               className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
+              aria-label="Enable stock alerts"
             />
           </label>
           <label className="flex items-center justify-between">
@@ -297,6 +306,7 @@ export function Settings() {
               checked={settings.priceAlerts}
               onChange={(e) => update({ priceAlerts: e.target.checked })}
               className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
+              aria-label="Enable price alerts"
             />
           </label>
         </div>
@@ -315,6 +325,7 @@ export function Settings() {
                   ? "bg-brand-600 text-white"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
+              aria-label={`Set digest frequency to ${freq}`}
             >
               {freq.charAt(0).toUpperCase() + freq.slice(1)}
             </button>
@@ -329,12 +340,14 @@ export function Settings() {
           <button
             onClick={handleExport}
             className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+            aria-label="Export watchlist"
           >
             <Download className="w-4 h-4" /> Export Watchlist
           </button>
           <button
             onClick={handleImport}
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+            aria-label="Import watchlist"
           >
             <Upload className="w-4 h-4" /> Import Watchlist
           </button>
@@ -353,6 +366,7 @@ export function Settings() {
           <button
             onClick={() => setClearConfirm(true)}
             className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+            aria-label="Clear all data"
           >
             <Trash2 className="w-4 h-4" /> Clear All Data
           </button>
@@ -364,12 +378,14 @@ export function Settings() {
             <button
               onClick={handleClearAllData}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+              aria-label="Confirm clear all data"
             >
               Yes, clear all
             </button>
             <button
               onClick={() => setClearConfirm(false)}
               className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+              aria-label="Cancel clear all data"
             >
               Cancel
             </button>

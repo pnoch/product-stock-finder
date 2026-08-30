@@ -69,6 +69,8 @@ export function EmptyState({
             marginTop: 20,
           }}
           onPress={onClearFilters}
+          accessibilityLabel="Clear filters"
+          accessibilityRole="button"
         >
           <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
             Clear Filters
@@ -88,6 +90,8 @@ export function EmptyState({
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onAddProduct();
           }}
+          accessibilityLabel="Add product"
+          accessibilityRole="button"
         >
           <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
             Add Product

@@ -107,7 +107,7 @@ export function BulkImportModal({
             >
               Import List 📋
             </Text>
-            <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
+            <TouchableOpacity onPress={onClose} style={{ padding: 4 }} accessibilityLabel="Close" accessibilityRole="button">
               <IconSymbol name="xmark.circle.fill" size={24} color={colors.muted} />
             </TouchableOpacity>
           </View>
@@ -179,6 +179,8 @@ export function BulkImportModal({
               justifyContent: "center",
               gap: 8,
             }}
+            accessibilityLabel={`Import ${newProducts.length} products`}
+            accessibilityRole="button"
           >
             {importing ? (
               <ActivityIndicator size="small" color="#fff" />

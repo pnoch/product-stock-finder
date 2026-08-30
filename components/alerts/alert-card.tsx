@@ -127,12 +127,16 @@ export function AlertCard({
                 true: colors.primary + "88",
               }}
               thumbColor={alert.isActive ? colors.primary : colors.muted}
+              accessibilityLabel={`Toggle alert for ${productName}`}
+              accessibilityRole="switch"
             />
           )}
           {onEdit && (
             <TouchableOpacity
               onPress={() => onEdit(alert.id)}
               style={{ padding: 4 }}
+              accessibilityLabel={`Edit alert for ${productName}`}
+              accessibilityRole="button"
             >
               <IconSymbol name="pencil" size={16} color={colors.primary} />
             </TouchableOpacity>
@@ -141,6 +145,8 @@ export function AlertCard({
             <TouchableOpacity
               onPress={() => onSnooze(alert.id)}
               style={{ padding: 4 }}
+              accessibilityLabel={`Snooze alert for ${productName}`}
+              accessibilityRole="button"
             >
               <IconSymbol
                 name="moon.zzz.fill"
@@ -152,6 +158,8 @@ export function AlertCard({
           <TouchableOpacity
             onPress={() => onDelete(alert.id)}
             style={{ padding: 4 }}
+            accessibilityLabel={`Delete alert for ${productName}`}
+            accessibilityRole="button"
           >
             <IconSymbol
               name="trash.fill"

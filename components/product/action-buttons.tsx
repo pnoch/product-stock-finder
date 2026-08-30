@@ -58,6 +58,8 @@ export function ActionButtons({
             justifyContent: "center",
             gap: 6,
           }}
+          accessibilityLabel="Set price alert"
+          accessibilityRole="button"
         >
           <IconSymbol name="bell.fill" size={16} color="#fff" />
           <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
@@ -88,6 +90,8 @@ export function ActionButtons({
             flexDirection: "row",
             gap: 6,
           }}
+          accessibilityLabel="Refresh prices"
+          accessibilityRole="button"
         >
           {isRefreshingAny ? (
             <ActivityIndicator size="small" color={colors.foreground} />
@@ -127,6 +131,8 @@ export function ActionButtons({
               justifyContent: "center",
               gap: 6,
             }}
+            accessibilityLabel="Share product"
+            accessibilityRole="button"
           >
             <IconSymbol
               name="square.and.arrow.up"
@@ -157,6 +163,8 @@ export function ActionButtons({
               justifyContent: "center",
               gap: 6,
             }}
+            accessibilityLabel="Test stock alert"
+            accessibilityRole="button"
           >
             <IconSymbol
               name="bell.badge.fill"
@@ -187,6 +195,8 @@ export function ActionButtons({
               justifyContent: "center",
               gap: 6,
             }}
+            accessibilityLabel="Copy link"
+            accessibilityRole="button"
           >
             <IconSymbol
               name="doc.on.doc"
@@ -223,6 +233,8 @@ export function ActionButtons({
             borderColor: colors.primary + "44",
             marginBottom: 16,
           }}
+          accessibilityLabel="Compare distributors"
+          accessibilityRole="button"
         >
           <IconSymbol
             name="arrow.left.arrow.right"

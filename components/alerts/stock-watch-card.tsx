@@ -114,6 +114,8 @@ export function StockWatchCard({ watch, onDelete }: StockWatchCardProps) {
           <TouchableOpacity
             onPress={() => onDelete(watch)}
             style={{ padding: 4 }}
+            accessibilityLabel={`Delete stock watch for ${watch.productName}`}
+            accessibilityRole="button"
           >
             <IconSymbol
               name="trash.fill"

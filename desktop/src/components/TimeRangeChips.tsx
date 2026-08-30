@@ -23,6 +23,7 @@ export function TimeRangeChips({
               ? "bg-brand-600 text-white"
               : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
           }`}
+          aria-label={`Select time range: ${r.label}`}
         >
           {r.label}
         </button>

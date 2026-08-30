@@ -70,6 +70,9 @@ export function ChartCard({
                     ? colors.primary
                     : colors.border + "44",
                 }}
+                accessibilityLabel={`Select ${r} time range`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: active }}
               >
                 <Text
                   style={{

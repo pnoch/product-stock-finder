@@ -90,6 +90,8 @@ export function CatalogProductCard({
             borderWidth: 1,
             borderColor: colors.border,
           }}
+          accessibilityLabel="Add tags"
+          accessibilityRole="button"
         >
           <IconSymbol name="tag.fill" size={20} color={colors.muted} />
         </TouchableOpacity>
@@ -105,6 +107,8 @@ export function CatalogProductCard({
           alignItems: "center",
           justifyContent: "center",
         }}
+        accessibilityLabel={isTracked ? "Already in watchlist" : "Add to watchlist"}
+        accessibilityRole="button"
       >
         {isAdding ? (
           <ActivityIndicator size="small" color="#fff" />

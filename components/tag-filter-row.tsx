@@ -60,6 +60,9 @@ export function TagFilterRow({
                 borderWidth: 1,
                 borderColor: colors.border,
               }}
+              accessibilityLabel={`${active ? "Deselect" : "Select"} tag ${tag.name}`}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: active }}
             >
               <View
                 style={{
@@ -104,6 +107,9 @@ export function TagFilterRow({
                   paddingVertical: 5,
                   backgroundColor: active ? colors.primary : colors.surface,
                 }}
+                accessibilityLabel={`${mode === "any" ? "Any" : "All"} match mode`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: active }}
               >
                 <Text
                   style={{
@@ -120,14 +126,14 @@ export function TagFilterRow({
         </View>
       )}
       {hasSelection && (
-        <TouchableOpacity onPress={onClearAll} style={{ padding: 4 }}>
+        <TouchableOpacity onPress={onClearAll} style={{ padding: 4 }} accessibilityLabel="Clear tag filter" accessibilityRole="button">
           <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600" }}>
             Clear
           </Text>
         </TouchableOpacity>
       )}
       {onManage && (
-        <TouchableOpacity onPress={onManage} style={{ padding: 4 }}>
+        <TouchableOpacity onPress={onManage} style={{ padding: 4 }} accessibilityLabel="Manage tags" accessibilityRole="button">
           <IconSymbol name="slider.horizontal.3" size={18} color={colors.muted} />
         </TouchableOpacity>
       )}

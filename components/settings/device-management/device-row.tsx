@@ -97,6 +97,8 @@ export function DeviceRow({
             borderRadius: 12,
             backgroundColor: colors.primary + "22",
           }}
+          accessibilityLabel="Rename device"
+          accessibilityRole="button"
         >
           <Text
             style={{
@@ -117,6 +119,8 @@ export function DeviceRow({
               borderRadius: 12,
               backgroundColor: colors.error + "22",
             }}
+            accessibilityLabel="Sign out device"
+            accessibilityRole="button"
           >
             <Text
               style={{

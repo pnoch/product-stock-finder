@@ -38,7 +38,7 @@ export function RecentSearches({
           color={colors.muted}
         />
         <Text style={{ color: colors.muted, fontSize: 12 }}>Recent</Text>
-        <TouchableOpacity onPress={onClear} hitSlop={8}>
+        <TouchableOpacity onPress={onClear} hitSlop={8} accessibilityLabel="Clear recent searches" accessibilityRole="button">
           <Text
             style={{
               color: colors.muted,
@@ -63,6 +63,8 @@ export function RecentSearches({
               borderWidth: 1,
               borderColor: colors.border,
             }}
+            accessibilityLabel={`Search for ${s}`}
+            accessibilityRole="button"
           >
             <Text
               style={{ color: colors.foreground, fontSize: 12 }}

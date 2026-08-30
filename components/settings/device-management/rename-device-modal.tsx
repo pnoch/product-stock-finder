@@ -100,6 +100,8 @@ export function RenameDeviceModal({
                 borderWidth: 1,
                 borderColor: colors.border,
               }}
+              accessibilityLabel="Cancel"
+              accessibilityRole="button"
             >
               <Text
                 style={{
@@ -121,6 +123,8 @@ export function RenameDeviceModal({
                 alignItems: "center",
                 opacity: saving || !label.trim() ? 0.5 : 1,
               }}
+              accessibilityLabel="Save device name"
+              accessibilityRole="button"
             >
               {saving ? (
                 <ActivityIndicator size="small" color="#fff" />

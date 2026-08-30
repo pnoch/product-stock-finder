@@ -66,6 +66,8 @@ export function OnboardingScreen({
           zIndex: 1,
           padding: 8,
         }}
+        accessibilityLabel="Skip onboarding"
+        accessibilityRole="button"
       >
         <Text style={{ color: colors.muted, fontSize: 14 }}>Skip</Text>
       </TouchableOpacity>
@@ -147,6 +149,8 @@ export function OnboardingScreen({
           backgroundColor: colors.primary,
           alignItems: "center",
         }}
+        accessibilityLabel={index === SLIDES.length - 1 ? "Get Started" : "Next"}
+        accessibilityRole="button"
       >
         <Text style={{ color: "#fff", fontWeight: "600", fontSize: 16 }}>
           {index === SLIDES.length - 1 ? "Get Started" : "Next"}

@@ -47,6 +47,8 @@ export function ConnectionSection() {
               connection.refetch();
             }}
             style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+            accessibilityLabel="Check connection now"
+            accessibilityRole="button"
           >
             {connection.isRefreshing ? (
               <ActivityIndicator size="small" color={colors.primary} />

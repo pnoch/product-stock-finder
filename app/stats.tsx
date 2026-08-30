@@ -156,6 +156,8 @@ export default function StatsScreen() {
         }}
       >
         <TouchableOpacity
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
           onPress={() => {
             if (Platform.OS !== "web")
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -175,7 +177,7 @@ export default function StatsScreen() {
         >
           Statistics
         </Text>
-        <TouchableOpacity onPress={handleShare} style={{ padding: 4 }}>
+        <TouchableOpacity accessibilityLabel="Share statistics" accessibilityRole="button" onPress={handleShare} style={{ padding: 4 }}>
           <IconSymbol
             name="square.and.arrow.up"
             size={22}

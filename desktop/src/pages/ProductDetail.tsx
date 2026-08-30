@@ -204,6 +204,7 @@ export function ProductDetail() {
         <button
           onClick={() => navigate(-1)}
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-4"
+          aria-label="Go back"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
@@ -222,6 +223,7 @@ export function ProductDetail() {
       <button
         onClick={() => navigate(-1)}
         className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        aria-label="Go back"
       >
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
@@ -275,6 +277,7 @@ export function ProductDetail() {
             target="_blank"
             rel="noopener noreferrer"
             className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+            aria-label={`Buy ${product.name} at ${bestDistributor.name}`}
           >
             Buy Now <ExternalLink className="w-3.5 h-3.5" />
           </a>
@@ -297,24 +300,28 @@ export function ProductDetail() {
         <button
           onClick={() => setAlertOpen(true)}
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          aria-label="Set price alert"
         >
           <Bell className="w-4 h-4" /> Set Alert
         </button>
         <button
           onClick={handleRemindMe}
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          aria-label="Set a reminder"
         >
           <Clock className="w-4 h-4" /> Remind Me
         </button>
         <button
           onClick={handleWatchRestock}
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          aria-label="Watch for restock"
         >
           <Star className="w-4 h-4" /> Watch for Restock
         </button>
         <Link
           to={`/compare/${product.id}`}
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          aria-label="Compare prices across distributors"
         >
           <BarChart3 className="w-4 h-4" /> Compare
         </Link>
@@ -377,6 +384,7 @@ export function ProductDetail() {
                   ? "bg-brand-600 text-white"
                   : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
               }`}
+              aria-label={region === "all" ? "Filter by all regions" : `Filter by ${region} region`}
             >
               {region === "all" ? "All" : region}
             </button>
@@ -499,6 +507,7 @@ export function ProductDetail() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm hover:underline"
+                        aria-label={`Visit ${dist?.name ?? listing.distributorId}`}
                       >
                         Visit <ExternalLink className="w-3.5 h-3.5" />
                       </a>
@@ -556,6 +565,7 @@ export function ProductDetail() {
                 min="0"
                 step="0.01"
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                aria-label="Target price"
               />
             </div>
             <div>
@@ -564,6 +574,7 @@ export function ProductDetail() {
                 value={alertCurrency}
                 onChange={(e) => setAlertCurrency(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                aria-label="Alert currency"
               >
                 {Object.keys(EXCHANGE_RATES).map((c) => (
                   <option key={c} value={c}>
@@ -579,6 +590,7 @@ export function ProductDetail() {
                   setAlertPrice("");
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                aria-label="Cancel"
               >
                 Cancel
               </button>
@@ -586,6 +598,7 @@ export function ProductDetail() {
                 onClick={handleSaveAlert}
                 disabled={!alertPrice || parseFloat(alertPrice) <= 0}
                 className="px-4 py-2 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
+                aria-label="Save price alert"
               >
                 Save Alert
               </button>

@@ -132,6 +132,8 @@ export default function HomeScreen() {
               }
             />
             <TouchableOpacity
+              accessibilityLabel="Add product"
+              accessibilityRole="button"
               style={{
                 backgroundColor: colors.primary,
                 borderRadius: 20,
@@ -192,6 +194,8 @@ export default function HomeScreen() {
                 Tap + to add a product to your watchlist
               </Text>
               <TouchableOpacity
+                accessibilityLabel="Add product"
+                accessibilityRole="button"
                 style={{
                   backgroundColor: colors.primary,
                   borderRadius: 20,
@@ -214,6 +218,8 @@ export default function HomeScreen() {
             recentActivity.map(({ product, listing }, idx) => (
               <TouchableOpacity
                 key={`${product.id}-${listing.distributorId}-${idx}`}
+                accessibilityLabel={`${product.name}, ${formatPrice(listing.price, listing.currency)}`}
+                accessibilityRole="button"
                 style={{
                   backgroundColor: colors.surface,
                   borderRadius: 16,
@@ -300,6 +306,8 @@ export default function HomeScreen() {
               return (
                 <TouchableOpacity
                   key={product.id}
+                  accessibilityLabel={`${product.name}, ${bestPrice ? formatPrice(bestPrice.price, bestPrice.currency) : "no price"}`}
+                  accessibilityRole="button"
                   style={{
                     backgroundColor: colors.surface,
                     borderRadius: 16,
@@ -355,6 +363,8 @@ export default function HomeScreen() {
             {watchlist.length > 3 && (
               <TouchableOpacity
                 onPress={() => router.push("/watchlist")}
+                accessibilityLabel={`View all ${watchlist.length} products`}
+                accessibilityRole="button"
                 style={{ alignItems: "center", paddingVertical: 8 }}
               >
                 <Text style={{ color: colors.primary, fontWeight: "600" }}>

@@ -53,6 +53,8 @@ export function CurrentDeviceRow({
               borderRadius: 12,
               backgroundColor: colors.primary + "22",
             }}
+            accessibilityLabel="Bind to my account"
+            accessibilityRole="button"
           >
             <Text
               style={{

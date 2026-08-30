@@ -37,6 +37,8 @@ export function AboutSection() {
               "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
             )
           }
+          accessibilityLabel="Open privacy policy"
+          accessibilityRole="link"
         >
           <SettingRow
             icon="eye.fill"
@@ -54,6 +56,8 @@ export function AboutSection() {
           onPress={() =>
             Linking.openURL("mailto:support@productstockfinder.app")
           }
+          accessibilityLabel="Contact support"
+          accessibilityRole="link"
         >
           <SettingRow
             icon="paperplane.fill"

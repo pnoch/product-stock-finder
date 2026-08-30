@@ -181,6 +181,8 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
                     <TouchableOpacity
                       onPress={() => void handleRename(tag)}
                       style={{ padding: 8 }}
+                      accessibilityLabel="Confirm rename"
+                      accessibilityRole="button"
                     >
                       <IconSymbol
                         name="checkmark"
@@ -191,6 +193,8 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
                     <TouchableOpacity
                       onPress={() => setEditingId(null)}
                       style={{ padding: 8 }}
+                      accessibilityLabel="Cancel rename"
+                      accessibilityRole="button"
                     >
                       <IconSymbol name="xmark" size={18} color={colors.muted} />
                     </TouchableOpacity>
@@ -221,6 +225,8 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
                         setEditName(tag.name);
                       }}
                       style={{ padding: 8 }}
+                      accessibilityLabel={`Rename tag ${tag.name}`}
+                      accessibilityRole="button"
                     >
                       <IconSymbol
                         name="pencil"
@@ -231,6 +237,8 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
                     <TouchableOpacity
                       onPress={() => handleDelete(tag)}
                       style={{ padding: 8 }}
+                      accessibilityLabel={`Delete tag ${tag.name}`}
+                      accessibilityRole="button"
                     >
                       <IconSymbol
                         name="trash.fill"
@@ -263,6 +271,9 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
                             ? colors.foreground
                             : "transparent",
                       }}
+                      accessibilityLabel={`Set color to ${color}`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: tag.color === color }}
                     />
                   ))}
                 </View>
@@ -272,6 +283,8 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
           <TouchableOpacity
             onPress={onClose}
             style={{ alignItems: "center", paddingVertical: 10 }}
+            accessibilityLabel="Done"
+            accessibilityRole="button"
           >
             <Text style={{ color: colors.muted, fontWeight: "600" }}>Done</Text>
           </TouchableOpacity>

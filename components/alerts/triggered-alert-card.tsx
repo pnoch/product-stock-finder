@@ -124,6 +124,8 @@ export function TriggeredAlertCard({
               alignItems: "center",
               gap: 4,
             }}
+            accessibilityLabel={`Watch again for ${productName}`}
+            accessibilityRole="button"
           >
             <IconSymbol
               name="arrow.clockwise"
@@ -143,6 +145,8 @@ export function TriggeredAlertCard({
           <TouchableOpacity
             onPress={() => onDelete(alert.id)}
             style={{ padding: 4 }}
+            accessibilityLabel={`Delete triggered alert for ${productName}`}
+            accessibilityRole="button"
           >
             <IconSymbol name="trash.fill" size={15} color={colors.muted} />
           </TouchableOpacity>

@@ -60,6 +60,9 @@ export function TabSwitcher({ active, counts, onChange }: TabSwitcherProps) {
             backgroundColor:
               active === tab ? colors.primary : "transparent",
           }}
+          accessibilityLabel={`${TAB_LABELS[tab]} tab${active === tab ? ', selected' : ''}`}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: active === tab }}
         >
           <IconSymbol
             name={TAB_ICONS[tab]}

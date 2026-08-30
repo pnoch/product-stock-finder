@@ -59,6 +59,9 @@ export function RadioPicker({
               gap: 10,
               paddingVertical: 8,
             }}
+            accessibilityLabel={`Select ${opt.label}`}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: value === opt.value }}
           >
             <View
               style={{

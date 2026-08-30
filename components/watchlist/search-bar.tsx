@@ -43,6 +43,8 @@ export function SearchBar({
         <TouchableOpacity
           onPress={() => onQueryChange("")}
           style={{ padding: 4 }}
+          accessibilityLabel="Clear search"
+          accessibilityRole="button"
         >
           <IconSymbol
             name="xmark.circle.fill"

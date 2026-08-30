@@ -59,7 +59,7 @@ export function NotesCard({ productId }: { productId: string }) {
       >
         <Text style={{ color: colors.muted, fontSize: 13 }}>My Note</Text>
         {!editing && (
-          <TouchableOpacity onPress={startEditing} hitSlop={8}>
+          <TouchableOpacity onPress={startEditing} hitSlop={8} accessibilityLabel="Edit note" accessibilityRole="button">
             <IconSymbol name="pencil" size={16} color={colors.primary} />
           </TouchableOpacity>
         )}
@@ -99,6 +99,8 @@ export function NotesCard({ productId }: { productId: string }) {
                 borderWidth: 1,
                 borderColor: colors.border,
               }}
+              accessibilityLabel="Cancel editing"
+              accessibilityRole="button"
             >
               <Text style={{ color: colors.muted, fontWeight: "600" }}>
                 Cancel
@@ -113,13 +115,15 @@ export function NotesCard({ productId }: { productId: string }) {
                 alignItems: "center",
                 backgroundColor: colors.primary,
               }}
+              accessibilityLabel="Save note"
+              accessibilityRole="button"
             >
               <Text style={{ color: "#fff", fontWeight: "600" }}>Save</Text>
             </TouchableOpacity>
           </View>
         </>
       ) : (
-        <TouchableOpacity onPress={startEditing}>
+        <TouchableOpacity onPress={startEditing} accessibilityLabel="Edit note" accessibilityRole="button">
           {note ? (
             <Text
               style={{ color: colors.foreground, fontSize: 14, lineHeight: 20 }}

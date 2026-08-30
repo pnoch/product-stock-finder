@@ -202,7 +202,7 @@ export function ManualAddSheet({
             >
               Add Custom Product ✨
             </Text>
-            <TouchableOpacity onPress={handleClose} style={{ padding: 4 }}>
+            <TouchableOpacity onPress={handleClose} style={{ padding: 4 }} accessibilityLabel="Close" accessibilityRole="button">
               <IconSymbol
                 name="xmark.circle.fill"
                 size={24}
@@ -249,6 +249,8 @@ export function ManualAddSheet({
                   justifyContent: "center",
                   gap: 8,
                 }}
+                accessibilityLabel="Clean up with AI"
+                accessibilityRole="button"
               >
                 {parsing ? (
                   <ActivityIndicator size="small" color="#fff" />
@@ -348,6 +350,8 @@ export function ManualAddSheet({
                   gap: 8,
                   marginBottom: 12,
                 }}
+                accessibilityLabel="Add and search distributors"
+                accessibilityRole="button"
               >
                 {adding ? (
                   <ActivityIndicator size="small" color="#fff" />
@@ -370,6 +374,8 @@ export function ManualAddSheet({
                 onPress={() => setDraft(null)}
                 disabled={parsing || adding}
                 style={{ alignItems: "center", paddingVertical: 6 }}
+                accessibilityLabel="Back to paste"
+                accessibilityRole="button"
               >
                 <Text style={{ color: colors.muted, fontSize: 13 }}>
                   Back to paste

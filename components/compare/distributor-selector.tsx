@@ -70,6 +70,9 @@ export function DistributorSelector({
                 backgroundColor:
                   sortBy === s ? colors.primary : colors.border + "44",
               }}
+              accessibilityLabel={`Sort by ${s}`}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: sortBy === s }}
             >
               <Text
                 style={{
@@ -114,6 +117,9 @@ export function DistributorSelector({
               borderColor: isSelected ? chipColor : colors.border,
               opacity: !hasHistory && !isSelected ? 0.5 : 1,
             }}
+            accessibilityLabel={`${isSelected ? "Deselect" : "Select"} ${distributor?.name ?? l.distributorId}`}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: isSelected }}
           >
             <View
               style={{

@@ -59,6 +59,8 @@ export function NotificationsSection({
               thumbColor={
                 settings.notificationsEnabled ? colors.primary : colors.muted
               }
+              accessibilityLabel="Enable notifications"
+              accessibilityRole="switch"
             />
           }
         />
@@ -97,6 +99,8 @@ export function NotificationsSection({
                       ? colors.primary
                       : colors.muted
                   }
+                  accessibilityLabel="Enable web notifications"
+                  accessibilityRole="switch"
                 />
               }
             />
@@ -129,6 +133,8 @@ export function NotificationsSection({
               thumbColor={
                 settings.stockAlerts ? colors.primary : colors.muted
               }
+              accessibilityLabel="Enable stock alerts"
+              accessibilityRole="switch"
             />
           }
         />
@@ -147,6 +153,8 @@ export function NotificationsSection({
               thumbColor={
                 settings.priceAlerts ? colors.primary : colors.muted
               }
+              accessibilityLabel="Enable price alerts"
+              accessibilityRole="switch"
             />
           }
         />
@@ -165,6 +173,8 @@ export function NotificationsSection({
               thumbColor={
                 settings.healthAlerts ? colors.primary : colors.muted
               }
+              accessibilityLabel="Enable health alerts"
+              accessibilityRole="switch"
             />
           }
         />
@@ -215,6 +225,8 @@ export function NotificationsSection({
             paddingVertical: 14,
             paddingHorizontal: 16,
           }}
+          accessibilityLabel="Send test notification"
+          accessibilityRole="button"
         >
           <View
             style={{

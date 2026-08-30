@@ -152,6 +152,8 @@ export function ScraperStatusSection({
                     borderRadius: 12,
                     backgroundColor: colors.primary + "22",
                   }}
+                  accessibilityLabel={`Re-enable ${distributor.name}`}
+                  accessibilityRole="button"
                 >
                   <Text
                     style={{
@@ -202,6 +204,8 @@ export function ScraperStatusSection({
           backgroundColor: colors.primary + "22",
           alignItems: "center",
         }}
+        accessibilityLabel="View health dashboard"
+        accessibilityRole="button"
       >
         <Text
           style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}

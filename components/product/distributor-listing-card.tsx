@@ -134,6 +134,8 @@ export function DistributorListingCard({
                   onOpenChart(listing);
                 }}
                 activeOpacity={0.7}
+                accessibilityLabel="Open price chart"
+                accessibilityRole="button"
               >
                 <PriceSparkline
                   data={listing.priceHistory}
@@ -160,6 +162,8 @@ export function DistributorListingCard({
               alignItems: "center",
               gap: 4,
             }}
+            accessibilityLabel="Visit distributor website"
+            accessibilityRole="button"
           >
             <Text
               style={{
@@ -231,6 +235,9 @@ export function DistributorListingCard({
                 ? colors.warning + "88"
                 : colors.border,
             }}
+            accessibilityLabel={stockWatches[listing.distributorId] ? "Stop watching for restock" : "Watch for restock"}
+            accessibilityRole="button"
+            accessibilityState={{ checked: stockWatches[listing.distributorId] }}
           >
             <IconSymbol
               name={
@@ -277,6 +284,8 @@ export function DistributorListingCard({
                 borderWidth: 1,
                 borderColor: colors.border,
               }}
+              accessibilityLabel="Set reminder"
+              accessibilityRole="button"
             >
               <IconSymbol
                 name="calendar"

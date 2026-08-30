@@ -139,6 +139,9 @@ export function BulkTagSheet({
                     alignItems: "center",
                     paddingVertical: 10,
                   }}
+                  accessibilityLabel={`${active ? "Deselect" : "Select"} tag ${tag.name}`}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: active }}
                 >
                   <View
                     style={{
@@ -209,6 +212,8 @@ export function BulkTagSheet({
                 borderColor: colors.border,
                 opacity: newTagName.trim() ? 1 : 0.5,
               }}
+              accessibilityLabel="Create tag"
+              accessibilityRole="button"
             >
               <Text style={{ color: colors.foreground, fontWeight: "600" }}>
                 Create tag
@@ -225,6 +230,8 @@ export function BulkTagSheet({
                 alignItems: "center",
                 opacity: selected.length === 0 ? 0.5 : 1,
               }}
+              accessibilityLabel={`Add ${selected.length > 0 ? `${selected.length} tag${selected.length !== 1 ? "s" : ""} ` : ""}to selected`}
+              accessibilityRole="button"
             >
               <Text style={{ color: "#fff", fontWeight: "600" }}>
                 Add {selected.length > 0 ? `${selected.length} tag${selected.length !== 1 ? "s" : ""} ` : ""}to selected
@@ -234,6 +241,8 @@ export function BulkTagSheet({
           <TouchableOpacity
             onPress={onClose}
             style={{ marginTop: 16, alignItems: "center", paddingVertical: 10 }}
+            accessibilityLabel="Cancel"
+            accessibilityRole="button"
           >
             <Text style={{ color: colors.muted, fontWeight: "600" }}>Cancel</Text>
           </TouchableOpacity>

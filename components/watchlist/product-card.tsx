@@ -66,6 +66,8 @@ export function ProductCard({
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={350}
+      accessibilityLabel={product.name}
+      accessibilityRole="button"
     >
       <View
         style={{
@@ -302,6 +304,8 @@ export function ProductCard({
             onTagPress();
           }}
           style={{ padding: 4, marginRight: 4 }}
+          accessibilityLabel="Edit tags"
+          accessibilityRole="button"
         >
           <IconSymbol
             name="tag.fill"
@@ -315,6 +319,8 @@ export function ProductCard({
             onDelete();
           }}
           style={{ padding: 4 }}
+          accessibilityLabel="Delete product"
+          accessibilityRole="button"
         >
           <IconSymbol name="trash.fill" size={16} color={colors.error} />
         </TouchableOpacity>

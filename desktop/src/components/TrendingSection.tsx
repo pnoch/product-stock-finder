@@ -59,7 +59,7 @@ export function TrendingSection() {
             key={product.id}
             className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 transition-colors"
           >
-            <Link to={`/product/${product.id}`} className="flex-1 min-w-0">
+            <Link to={`/product/${product.id}`} className="flex-1 min-w-0" aria-label={`View ${product.name} details`}>
               <p className="font-medium truncate">{product.name}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {product.category} · {product.brand} ·{" "}
@@ -73,6 +73,7 @@ export function TrendingSection() {
             <button
               onClick={() => handleAdd(product)}
               disabled={addedIds.has(product.id)}
+              aria-label={addedIds.has(product.id) ? `${product.name} is in watchlist` : `Add ${product.name} to watchlist`}
               className={`ml-4 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 addedIds.has(product.id)
                   ? "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-default"

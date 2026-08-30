@@ -224,6 +224,8 @@ function BestDistributorCard({
             alignItems: "center",
             gap: 5,
           }}
+          accessibilityLabel="Buy now from distributor"
+          accessibilityRole="button"
         >
           <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>
             Buy Now
@@ -254,6 +256,8 @@ function BestDistributorCard({
               borderWidth: 1,
               borderColor: colors.primary + "44",
             }}
+            accessibilityLabel={`Set alert at ${formatPrice(suggestedPrice, listing.currency)}`}
+            accessibilityRole="button"
           >
             <IconSymbol name="bell.fill" size={14} color={colors.primary} />
             <Text

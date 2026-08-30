@@ -168,7 +168,7 @@ export default function SearchScreen() {
           gap: 12,
         }}
       >
-        <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
+        <TouchableOpacity onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button" style={{ padding: 4 }}>
           <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
         </TouchableOpacity>
         <Text
@@ -182,6 +182,8 @@ export default function SearchScreen() {
           Add Product
         </Text>
         <TouchableOpacity
+          accessibilityLabel="Add product manually"
+          accessibilityRole="button"
           onPress={() => {
             if (Platform.OS !== "web")
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -192,6 +194,8 @@ export default function SearchScreen() {
           <IconSymbol name="wand.and.stars" size={22} color={colors.primary} />
         </TouchableOpacity>
         <TouchableOpacity
+          accessibilityLabel="Bulk import products"
+          accessibilityRole="button"
           onPress={() => {
             if (Platform.OS !== "web")
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -265,6 +269,8 @@ export default function SearchScreen() {
             <SearchEmptyState query={query} selectedTagIds={selectedTagIds} />
             {query.trim().length > 0 && !discovering && (
               <TouchableOpacity
+                accessibilityLabel="Discover with AI"
+                accessibilityRole="button"
                 onPress={handleDiscover}
                 style={{
                   flexDirection: "row",

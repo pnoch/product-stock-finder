@@ -43,7 +43,7 @@ export function CatalogSearchBar({
         onSubmitEditing={() => onSearchSubmit?.(query.trim())}
       />
       {query.length > 0 && (
-        <TouchableOpacity onPress={() => onQueryChange("")}>
+        <TouchableOpacity onPress={() => onQueryChange("")} accessibilityLabel="Clear search" accessibilityRole="button">
           <IconSymbol
             name="xmark.circle.fill"
             size={18}

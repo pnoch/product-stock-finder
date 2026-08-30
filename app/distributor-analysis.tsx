@@ -47,6 +47,8 @@ export default function DistributorAnalysisScreen() {
     <ScreenContainer>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
         <TouchableOpacity
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
           onPress={() => router.back()}
           style={{ marginRight: 12 }}
         >

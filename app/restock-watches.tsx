@@ -59,6 +59,8 @@ export default function RestockWatchesScreen() {
     <ScreenContainer>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
         <TouchableOpacity
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
           onPress={() => router.back()}
           style={{ marginRight: 12 }}
         >
@@ -128,6 +130,8 @@ export default function RestockWatchesScreen() {
                     </Text>
                   </View>
                   <TouchableOpacity
+                    accessibilityLabel={`Remove ${watch.productName} restock watch`}
+                    accessibilityRole="button"
                     onPress={() => handleRemove(watch.id)}
                     style={{ padding: 8 }}
                   >

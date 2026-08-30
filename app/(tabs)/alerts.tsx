@@ -101,6 +101,8 @@ export default function AlertsScreen() {
             Alerts & Reminders
           </Text>
           <TouchableOpacity
+            accessibilityLabel="Restock Watches"
+            accessibilityRole="button"
             onPress={() => {
               if (Platform.OS !== "web")
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

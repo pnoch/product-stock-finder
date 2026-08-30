@@ -118,12 +118,16 @@ export function ReminderCard({
               onReschedule(reminder);
             }}
             style={{ padding: 4 }}
+            accessibilityLabel={`Reschedule reminder for ${reminder.productName}`}
+            accessibilityRole="button"
           >
             <IconSymbol name="pencil" size={16} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => onDelete(reminder)}
             style={{ padding: 4 }}
+            accessibilityLabel={`Delete reminder for ${reminder.productName}`}
+            accessibilityRole="button"
           >
             <IconSymbol
               name="trash.fill"

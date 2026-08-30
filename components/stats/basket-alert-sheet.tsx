@@ -99,6 +99,8 @@ export function BasketAlertSheet({
                   borderWidth: 1,
                   borderColor: colors.border,
                 }}
+                accessibilityLabel="Disable basket alert"
+                accessibilityRole="button"
               >
                 <Text style={{ color: colors.muted, fontWeight: "600" }}>
                   Disable
@@ -119,6 +121,8 @@ export function BasketAlertSheet({
                 alignItems: "center",
                 backgroundColor: valid ? colors.primary : colors.border,
               }}
+              accessibilityLabel="Enable basket alert"
+              accessibilityRole="button"
             >
               <Text style={{ color: "#fff", fontWeight: "600" }}>Enable</Text>
             </TouchableOpacity>

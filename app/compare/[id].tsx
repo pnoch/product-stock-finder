@@ -250,6 +250,8 @@ export default function CompareScreen() {
           </Text>
           <TouchableOpacity
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
             style={{ marginTop: 16 }}
           >
             <Text style={{ color: colors.primary, fontWeight: "600" }}>

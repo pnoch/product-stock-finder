@@ -79,7 +79,7 @@ export function DeviceManagementSection({
             <Text style={{ color: colors.muted, fontSize: 12 }}>
               Couldn&apos;t load devices
             </Text>
-            <TouchableOpacity onPress={loadDevices}>
+            <TouchableOpacity onPress={loadDevices} accessibilityLabel="Retry loading devices" accessibilityRole="button">
               <Text
                 style={{
                   color: colors.primary,

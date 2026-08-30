@@ -22,7 +22,7 @@ export function AlertSection({ productId }: { productId: string }) {
     <View style={{ padding: 16 }}>
       <Text style={{ color: colors.foreground, fontWeight: "600", marginBottom: 8 }}>Price Alert</Text>
       <TextInput value={price} onChangeText={setPrice} keyboardType="numeric" placeholder="Target price" style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 8, color: colors.foreground }} />
-      <TouchableOpacity onPress={onAdd} style={{ backgroundColor: colors.primary, borderRadius: 8, padding: 10, marginTop: 8, alignItems: "center" }}><Text style={{ color: "#fff", fontWeight: "600" }}>Add Alert</Text></TouchableOpacity>
+      <TouchableOpacity onPress={onAdd} style={{ backgroundColor: colors.primary, borderRadius: 8, padding: 10, marginTop: 8, alignItems: "center" }} accessibilityLabel="Add price alert" accessibilityRole="button"><Text style={{ color: "#fff", fontWeight: "600" }}>Add Alert</Text></TouchableOpacity>
     </View>
   );
 }

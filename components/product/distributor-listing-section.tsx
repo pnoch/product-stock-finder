@@ -106,6 +106,8 @@ export function DistributorListingSection({
               borderRadius: 16,
               backgroundColor: colors.primary,
             }}
+            accessibilityLabel="Show all regions"
+            accessibilityRole="button"
           >
             <Text
               style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}
@@ -193,6 +195,9 @@ export function DistributorListingSection({
                   borderWidth: 1,
                   borderColor: colors.border,
                 }}
+                accessibilityLabel={`Filter by ${region === "all" ? "all regions" : region}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: regionFilter === region }}
               >
                 <Text
                   style={{

@@ -180,6 +180,8 @@ export function DataSection() {
                 borderRadius: 12,
                 backgroundColor: colors.primary + "22",
               }}
+              accessibilityLabel="Export backup"
+              accessibilityRole="button"
             >
               <Text
                 style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}
@@ -203,6 +205,8 @@ export function DataSection() {
                 borderRadius: 12,
                 backgroundColor: colors.primary + "22",
               }}
+              accessibilityLabel="Import backup"
+              accessibilityRole="button"
             >
               <Text
                 style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}

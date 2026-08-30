@@ -67,6 +67,9 @@ export function PillPicker({
               backgroundColor:
                 value === opt ? colors.primary : colors.border,
             }}
+            accessibilityLabel={`Select ${opt}`}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: value === opt }}
           >
             <Text
               style={{
