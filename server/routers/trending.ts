@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { router, publicProcedure } from "../_core/trpc";
+import { getDb } from "../db";
+import { trendingProducts } from "../../drizzle/schema";
+import { gte } from "drizzle-orm";
 
 const RSS_FEEDS = [
   { name: "r/buildapcsales", url: "https://www.reddit.com/r/buildapcsales/.rss" },
@@ -65,7 +69,84 @@ ${itemText}
 Return ONLY valid JSON array, no markdown.`;
 }
 
-export const trendingRouter = {};
+export const trendingRouter = router({
+  get: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    const now = new Date();
+    const rows = await db
+      .select()
+      .from(trendingProducts)
+      .where(gte(trendingProducts.expiresAt, now));
+    return rows.slice(0, 10);
+  }),
+
+  refresh: publicProcedure.mutation(async () => {
+    const items = await fetchRssFeeds();
+    if (items.length === 0) return { count: 0 };
+
+    const prompt = buildTrendingPrompt(items, []);
+    const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+      }),
+    });
+
+    if (!aiRes.ok) return { count: 0 };
+
+    const aiData = await aiRes.json();
+    const content = aiData.choices?.[0]?.message?.content ?? "[]";
+
+    let products: Array<{
+      name: string;
+      brand: string;
+      category: string;
+      estimatedPrice: number;
+      reason: string;
+      source: string;
+    }>;
+
+    try {
+      products = JSON.parse(content);
+    } catch {
+      return { count: 0 };
+    }
+
+    if (!Array.isArray(products)) return { count: 0 };
+
+    const db = await getDb();
+    if (!db) return { count: 0 };
+
+    const nowMs = Date.now();
+    const expiresAt = new Date(nowMs + 6 * 60 * 60 * 1000);
+    const rows = products.slice(0, 10).map((p) => ({
+      id: crypto.randomUUID(),
+      name: p.name,
+      brand: p.brand,
+      category: p.category,
+      estimatedPrice: String(p.estimatedPrice),
+      currency: "USD",
+      reason: p.reason,
+      source: p.source,
+      fetchedAt: new Date(nowMs),
+      expiresAt,
+    }));
+
+    await db.delete(trendingProducts);
+    if (rows.length > 0) {
+      await db.insert(trendingProducts).values(rows);
+    }
+
+    return { count: rows.length };
+  }),
+});
 
 const TRENDING_CACHE_URL = process.env.EXPO_PUBLIC_API_BASE_URL
   ? `${process.env.EXPO_PUBLIC_API_BASE_URL}/api/trending`

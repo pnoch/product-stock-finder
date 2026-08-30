@@ -279,3 +279,19 @@ export const revokedDevices = mysqlTable(
 
 export type RevokedDeviceRow = typeof revokedDevices.$inferSelect;
 export type InsertRevokedDeviceRow = typeof revokedDevices.$inferInsert;
+
+export const trendingProducts = mysqlTable("trendingProducts", {
+  id: varchar("id", { length: 36 }).notNull().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  brand: varchar("brand", { length: 100 }),
+  category: varchar("category", { length: 100 }),
+  estimatedPrice: decimal("estimatedPrice", { precision: 10, scale: 2 }),
+  currency: varchar("currency", { length: 3 }).default("USD"),
+  reason: text("reason"),
+  source: varchar("source", { length: 255 }),
+  fetchedAt: timestamp("fetchedAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+});
+
+export type TrendingProductRow = typeof trendingProducts.$inferSelect;
+export type InsertTrendingProductRow = typeof trendingProducts.$inferInsert;
