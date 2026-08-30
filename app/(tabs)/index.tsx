@@ -18,6 +18,7 @@ import { formatPrice, getBestPrice } from "@/lib/currency";
 import { StockBadge } from "@/components/stock-badge";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ConnectionBadge } from "@/components/connection-badge";
+import { TrendingSection } from "@/components/home/trending-section";
 import { useConnection } from "@/hooks/use-connection";
 
 
@@ -280,6 +281,9 @@ export default function HomeScreen() {
             ))
           )}
         </View>
+
+        {/* Trending */}
+        <TrendingSection />
 
         {/* Quick Access */}
         {watchlist.length > 0 && (
