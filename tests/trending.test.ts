@@ -29,18 +29,20 @@ describe("fetchTrending", () => {
     expect(result).toEqual(mockData);
   });
 
-  it("returns empty array on fetch error", async () => {
+  it("returns fallback trending on fetch error", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network")));
     const result = await fetchTrending();
-    expect(result).toEqual([]);
+    expect(result.length).toBeGreaterThan(0);
+    expect(result[0].id).toBe("nvidia-dgx-spark");
   });
 
-  it("returns empty array on non-ok response", async () => {
+  it("returns fallback trending on non-ok response", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({ ok: false, status: 500 }),
     );
     const result = await fetchTrending();
-    expect(result).toEqual([]);
+    expect(result.length).toBeGreaterThan(0);
+    expect(result[0].id).toBe("nvidia-dgx-spark");
   });
 });
