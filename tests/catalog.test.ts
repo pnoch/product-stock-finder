@@ -26,4 +26,16 @@ describe("searchCatalog", () => {
   it("handles empty query (returns all via includes(''))", () => {
     expect(searchCatalog("").length).toBe(PRODUCT_CATALOG.length);
   });
+
+  it("fuzzy matches with minor typos", () => {
+    const results = searchCatalog("crs80");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some((p) => p.modelNumber.includes("CRS804"))).toBe(true);
+  });
+
+  it("fuzzy matches partial prefixes", () => {
+    const results = searchCatalog("mikro");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some((p) => p.brand === "MikroTik")).toBe(true);
+  });
 });

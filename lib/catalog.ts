@@ -1,3 +1,4 @@
+import Fuse from "fuse.js";
 import { Product } from "./types";
 
 export const PRODUCT_CATALOG: Omit<
@@ -148,13 +149,21 @@ export const PRODUCT_CATALOG: Omit<
   },
 ];
 
+const fuse = new Fuse(PRODUCT_CATALOG, {
+  keys: [
+    { name: "modelNumber", weight: 0.4 },
+    { name: "name", weight: 0.3 },
+    { name: "brand", weight: 0.15 },
+    { name: "category", weight: 0.1 },
+    { name: "description", weight: 0.05 },
+  ],
+  threshold: 0.4,
+  includeScore: true,
+  minMatchCharLength: 2,
+  ignoreLocation: true,
+});
+
 export function searchCatalog(query: string): typeof PRODUCT_CATALOG {
-  const q = query.toLowerCase();
-  return PRODUCT_CATALOG.filter(
-    (p) =>
-      p.name.toLowerCase().includes(q) ||
-      p.modelNumber.toLowerCase().includes(q) ||
-      p.brand.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q),
-  );
+  if (!query.trim()) return PRODUCT_CATALOG;
+  return fuse.search(query).map((result) => result.item);
 }
