@@ -1,5 +1,6 @@
 import Fuse from "fuse.js";
 import { Product } from "./types";
+import { getDiscoveredProducts } from "./storage";
 
 export const PRODUCT_CATALOG: Omit<
   Product,
@@ -166,4 +167,28 @@ const fuse = new Fuse(PRODUCT_CATALOG, {
 export function searchCatalog(query: string): typeof PRODUCT_CATALOG {
   if (!query.trim()) return PRODUCT_CATALOG;
   return fuse.search(query).map((result) => result.item);
+}
+
+export async function getAllCatalog() {
+  const discovered = await getDiscoveredProducts();
+  return [...PRODUCT_CATALOG, ...discovered];
+}
+
+export async function searchCatalogAsync(query: string) {
+  const catalog = await getAllCatalog();
+  const fuseInstance = new Fuse(catalog, {
+    keys: [
+      { name: "modelNumber", weight: 0.4 },
+      { name: "name", weight: 0.3 },
+      { name: "brand", weight: 0.15 },
+      { name: "category", weight: 0.1 },
+      { name: "description", weight: 0.05 },
+    ],
+    threshold: 0.4,
+    includeScore: true,
+    minMatchCharLength: 2,
+    ignoreLocation: true,
+  });
+  if (!query.trim()) return catalog;
+  return fuseInstance.search(query).map((result) => result.item);
 }

@@ -1,4 +1,5 @@
 import { Distributor } from "./types";
+import { getDiscoveredDistributors } from "./storage";
 
 export const DISTRIBUTORS: Distributor[] = [
   {
@@ -449,4 +450,9 @@ export const DISTRIBUTORS: Distributor[] = [
 
 export function getDistributorById(id: string): Distributor | undefined {
   return DISTRIBUTORS.find((d) => d.id === id);
+}
+
+export async function getAllDistributors() {
+  const discovered = await getDiscoveredDistributors();
+  return [...DISTRIBUTORS, ...discovered];
 }
