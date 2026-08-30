@@ -14,6 +14,8 @@ export const STORAGE_KEYS = {
   FX_RATES: "fx_rates",
   PENDING_HEALTH_EVENTS: "pending_health_events",
   FX_RATE_HISTORY: "fx_rate_history",
+  DISCOVERED_PRODUCTS: "discovered_products",
+  DISCOVERED_DISTRIBUTORS: "discovered_distributors",
 };
 
 export interface StorageContext {

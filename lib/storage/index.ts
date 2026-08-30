@@ -10,6 +10,7 @@ import { createDigestFxStorage } from "./digest-fx";
 import { createFxHistoryStorage } from "./fx-history";
 import { createSyncMetaStorage } from "./sync-meta";
 import { createNotificationsStorage } from "./notifications";
+import { createDiscoveryStorage } from "./discovery";
 
 export { DISTRIBUTOR_BREAKER_KEY };
 export type { StorageAdapter };
@@ -39,6 +40,8 @@ export function createStorage(
       STORAGE_KEYS.FX_RATES,
       STORAGE_KEYS.FX_RATE_HISTORY,
       STORAGE_KEYS.PENDING_HEALTH_EVENTS,
+      STORAGE_KEYS.DISCOVERED_PRODUCTS,
+      STORAGE_KEYS.DISCOVERED_DISTRIBUTORS,
       "recently_viewed",
       "distributor_watches",
       "triggered_alert_history",
@@ -58,6 +61,7 @@ export function createStorage(
     ...createFxHistoryStorage(ctx),
     ...createSyncMetaStorage(ctx),
     ...createNotificationsStorage(ctx),
+    ...createDiscoveryStorage(ctx),
     setOnChange: ctx.setOnChange,
     setChangeSuppressed: ctx.setChangeSuppressed,
     clearAllData,
@@ -145,4 +149,13 @@ export const {
   setOnChange,
   setChangeSuppressed,
   clearAllData,
+} = defaultStorage;
+// ─── Discovery ─────────────────────────────────────────────────────────
+export const {
+  getDiscoveredProducts,
+  saveDiscoveredProducts,
+  addDiscoveredProduct,
+  getDiscoveredDistributors,
+  saveDiscoveredDistributors,
+  addDiscoveredDistributor,
 } = defaultStorage;
