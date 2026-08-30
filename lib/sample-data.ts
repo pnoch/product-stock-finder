@@ -657,4 +657,175 @@ export const SAMPLE_LISTINGS: Record<string, DistributorListing[]> = {
       ],
     },
   ],
+
+  // ─── RTX 4090 ──────────────────────────────────────────────────────────────
+  "nvidia-rtx-4090": [
+    {
+      distributorId: "newegg-us",
+      productId: "nvidia-rtx-4090",
+      price: 1999,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://www.newegg.com/geforce-rtx-4090",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: d(90), price: 2199, currency: "USD", stockStatus: "out_of_stock" },
+        { date: d(75), price: 2149, currency: "USD", stockStatus: "out_of_stock" },
+        { date: d(60), price: 2099, currency: "USD", stockStatus: "in_stock" },
+        { date: d(45), price: 2079, currency: "USD", stockStatus: "in_stock" },
+        { date: d(30), price: 2049, currency: "USD", stockStatus: "in_stock" },
+        { date: d(21), price: 2029, currency: "USD", stockStatus: "in_stock" },
+        { date: d(14), price: 2019, currency: "USD", stockStatus: "in_stock" },
+        { date: d(7), price: 2009, currency: "USD", stockStatus: "in_stock" },
+        { date: d(3), price: 2005, currency: "USD", stockStatus: "in_stock" },
+        { date: d(0), price: 1999, currency: "USD", stockStatus: "in_stock" },
+      ],
+    },
+    {
+      distributorId: "bhphoto-us",
+      productId: "nvidia-rtx-4090",
+      price: 1999,
+      currency: "USD",
+      stockStatus: "back_order",
+      url: "https://www.bhphotovideo.com/c/product/rtx-4090",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: d(90), price: 2199, currency: "USD", stockStatus: "out_of_stock" },
+        { date: d(60), price: 2149, currency: "USD", stockStatus: "out_of_stock" },
+        { date: d(30), price: 2099, currency: "USD", stockStatus: "back_order" },
+        { date: d(14), price: 2049, currency: "USD", stockStatus: "back_order" },
+        { date: d(0), price: 1999, currency: "USD", stockStatus: "back_order" },
+      ],
+    },
+  ],
+
+  // ─── MacBook Pro M4 Max ────────────────────────────────────────────────────
+  "apple-macbook-pro-m4-max": [
+    {
+      distributorId: "apple-us",
+      productId: "apple-macbook-pro-m4-max",
+      price: 3499,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://www.apple.com/shop/buy-mac/macbook-pro",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: d(90), price: 3499, currency: "USD", stockStatus: "in_stock" },
+        { date: d(60), price: 3499, currency: "USD", stockStatus: "back_order" },
+        { date: d(45), price: 3499, currency: "USD", stockStatus: "back_order" },
+        { date: d(30), price: 3499, currency: "USD", stockStatus: "in_stock" },
+        { date: d(14), price: 3499, currency: "USD", stockStatus: "in_stock" },
+        { date: d(0), price: 3499, currency: "USD", stockStatus: "in_stock" },
+      ],
+    },
+    {
+      distributorId: "bhphoto-us",
+      productId: "apple-macbook-pro-m4-max",
+      price: 3499,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://www.bhphotovideo.com/c/product/macbook-pro-m4-max",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: d(60), price: 3499, currency: "USD", stockStatus: "out_of_stock" },
+        { date: d(30), price: 3499, currency: "USD", stockStatus: "back_order" },
+        { date: d(14), price: 3499, currency: "USD", stockStatus: "in_stock" },
+        { date: d(0), price: 3499, currency: "USD", stockStatus: "in_stock" },
+      ],
+    },
+  ],
+
+  // ─── Raspberry Pi 5 ────────────────────────────────────────────────────────
+  "raspberry-pi-5-8gb": [
+    {
+      distributorId: "pimoroni-uk",
+      productId: "raspberry-pi-5-8gb",
+      price: 80,
+      currency: "GBP",
+      stockStatus: "in_stock",
+      url: "https://shop.pimoroni.com/products/raspberry-pi-5",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: d(90), price: 95, currency: "GBP", stockStatus: "out_of_stock" },
+        { date: d(75), price: 90, currency: "GBP", stockStatus: "out_of_stock" },
+        { date: d(60), price: 88, currency: "GBP", stockStatus: "in_stock" },
+        { date: d(45), price: 85, currency: "GBP", stockStatus: "in_stock" },
+        { date: d(30), price: 83, currency: "GBP", stockStatus: "in_stock" },
+        { date: d(14), price: 81, currency: "GBP", stockStatus: "in_stock" },
+        { date: d(0), price: 80, currency: "GBP", stockStatus: "in_stock" },
+      ],
+    },
+    {
+      distributorId: "allasch-uk",
+      productId: "raspberry-pi-5-8gb",
+      price: 82,
+      currency: "GBP",
+      stockStatus: "in_stock",
+      url: "https://www.alliedelec.com/raspberry-pi-5",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: d(60), price: 92, currency: "GBP", stockStatus: "in_stock" },
+        { date: d(30), price: 86, currency: "GBP", stockStatus: "in_stock" },
+        { date: d(14), price: 83, currency: "GBP", stockStatus: "in_stock" },
+        { date: d(0), price: 82, currency: "GBP", stockStatus: "in_stock" },
+      ],
+    },
+  ],
+
+  // ─── AirPods Max 2 ─────────────────────────────────────────────────────────
+  "apple-airpods-max-2": [
+    {
+      distributorId: "apple-us",
+      productId: "apple-airpods-max-2",
+      price: 549,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://www.apple.com/shop/buy-airpods/airpods-max",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: d(90), price: 549, currency: "USD", stockStatus: "out_of_stock" },
+        { date: d(60), price: 549, currency: "USD", stockStatus: "back_order" },
+        { date: d(30), price: 549, currency: "USD", stockStatus: "in_stock" },
+        { date: d(14), price: 549, currency: "USD", stockStatus: "in_stock" },
+        { date: d(0), price: 549, currency: "USD", stockStatus: "in_stock" },
+      ],
+    },
+    {
+      distributorId: "bhphoto-us",
+      productId: "apple-airpods-max-2",
+      price: 549,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://www.bhphotovideo.com/c/product/airpods-max-2",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: d(60), price: 549, currency: "USD", stockStatus: "out_of_stock" },
+        { date: d(30), price: 549, currency: "USD", stockStatus: "back_order" },
+        { date: d(14), price: 549, currency: "USD", stockStatus: "in_stock" },
+        { date: d(0), price: 549, currency: "USD", stockStatus: "in_stock" },
+      ],
+    },
+  ],
+
+  // ─── Steam Deck OLED ───────────────────────────────────────────────────────
+  "valve-steam-deck-oled": [
+    {
+      distributorId: "valve-us",
+      productId: "valve-steam-deck-oled",
+      price: 649,
+      currency: "USD",
+      stockStatus: "back_order",
+      url: "https://store.steampowered.com/steamdeck",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [
+        { date: d(90), price: 649, currency: "USD", stockStatus: "out_of_stock" },
+        { date: d(75), price: 649, currency: "USD", stockStatus: "out_of_stock" },
+        { date: d(60), price: 649, currency: "USD", stockStatus: "back_order" },
+        { date: d(45), price: 649, currency: "USD", stockStatus: "back_order" },
+        { date: d(30), price: 649, currency: "USD", stockStatus: "back_order" },
+        { date: d(14), price: 649, currency: "USD", stockStatus: "back_order" },
+        { date: d(0), price: 649, currency: "USD", stockStatus: "back_order" },
+      ],
+    },
+  ],
 };

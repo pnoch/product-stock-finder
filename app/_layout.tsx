@@ -198,7 +198,103 @@ export default function RootLayout() {
         listings: freshenSampleListings(CRS804_SEED_LISTINGS),
       });
     }
-    seedCRS804().then(seedCRS326);
+    seedCRS804()
+      .then(seedCRS326)
+      .then(seedRTX4090)
+      .then(seedMacBookPro)
+      .then(seedRaspberryPi5)
+      .then(seedAirPodsMax)
+      .then(seedSteamDeck);
+
+    async function seedRTX4090() {
+      const watchlist = await getWatchlist();
+      const existing = watchlist.find((p) => p.id === "nvidia-rtx-4090");
+      if (existing) return;
+      const product = PRODUCT_CATALOG.find((p) => p.id === "nvidia-rtx-4090");
+      if (!product) return;
+      await addToWatchlist({
+        ...product,
+        isWatched: true,
+        addedAt: new Date().toISOString(),
+        listings: freshenSampleListings(
+          SAMPLE_LISTINGS["nvidia-rtx-4090"] ?? [],
+        ),
+      });
+    }
+    async function seedMacBookPro() {
+      const watchlist = await getWatchlist();
+      const existing = watchlist.find(
+        (p) => p.id === "apple-macbook-pro-m4-max",
+      );
+      if (existing) return;
+      const product = PRODUCT_CATALOG.find(
+        (p) => p.id === "apple-macbook-pro-m4-max",
+      );
+      if (!product) return;
+      await addToWatchlist({
+        ...product,
+        isWatched: true,
+        addedAt: new Date().toISOString(),
+        listings: freshenSampleListings(
+          SAMPLE_LISTINGS["apple-macbook-pro-m4-max"] ?? [],
+        ),
+      });
+    }
+    async function seedRaspberryPi5() {
+      const watchlist = await getWatchlist();
+      const existing = watchlist.find((p) => p.id === "raspberry-pi-5-8gb");
+      if (existing) return;
+      const product = PRODUCT_CATALOG.find(
+        (p) => p.id === "raspberry-pi-5-8gb",
+      );
+      if (!product) return;
+      await addToWatchlist({
+        ...product,
+        isWatched: true,
+        addedAt: new Date().toISOString(),
+        listings: freshenSampleListings(
+          SAMPLE_LISTINGS["raspberry-pi-5-8gb"] ?? [],
+        ),
+      });
+    }
+    async function seedAirPodsMax() {
+      const watchlist = await getWatchlist();
+      const existing = watchlist.find(
+        (p) => p.id === "apple-airpods-max-2",
+      );
+      if (existing) return;
+      const product = PRODUCT_CATALOG.find(
+        (p) => p.id === "apple-airpods-max-2",
+      );
+      if (!product) return;
+      await addToWatchlist({
+        ...product,
+        isWatched: true,
+        addedAt: new Date().toISOString(),
+        listings: freshenSampleListings(
+          SAMPLE_LISTINGS["apple-airpods-max-2"] ?? [],
+        ),
+      });
+    }
+    async function seedSteamDeck() {
+      const watchlist = await getWatchlist();
+      const existing = watchlist.find(
+        (p) => p.id === "valve-steam-deck-oled",
+      );
+      if (existing) return;
+      const product = PRODUCT_CATALOG.find(
+        (p) => p.id === "valve-steam-deck-oled",
+      );
+      if (!product) return;
+      await addToWatchlist({
+        ...product,
+        isWatched: true,
+        addedAt: new Date().toISOString(),
+        listings: freshenSampleListings(
+          SAMPLE_LISTINGS["valve-steam-deck-oled"] ?? [],
+        ),
+      });
+    }
     async function seedCRS326() {
       const watchlist = await getWatchlist();
       const existing = watchlist.find((p) => p.id === "mikrotik-crs326-24s");
