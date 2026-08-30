@@ -174,3 +174,16 @@ export interface SyncMeta {
     Record<string, { updatedAt: number; deleted: boolean }>
   >;
 }
+
+export interface TrendingProduct {
+  id: string;
+  name: string;
+  brand: string;
+  category: string;
+  estimatedPrice: number;
+  currency: string;
+  reason: string;
+  source: string;
+  fetchedAt: string;
+  expiresAt: string;
+}
