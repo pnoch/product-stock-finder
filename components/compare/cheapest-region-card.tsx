@@ -20,7 +20,24 @@ export function CheapestRegionCard({ listings }: { listings: DistributorListing[
 
   const regionBest = useMemo(() => cheapestByRegion(listings), [listings]);
 
-  if (regionBest.length === 0) return null;
+    if (regionBest.length === 0) {
+    return (
+      <View
+        style={{
+          marginHorizontal: 16,
+          backgroundColor: colors.surface,
+          borderRadius: 16,
+          padding: 16,
+          borderWidth: 1,
+          borderColor: colors.border,
+          marginBottom: 16,
+        }}
+      >
+        <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15, marginBottom: 8 }}>Cheapest by Region</Text>
+        <Text style={{ color: colors.muted, fontSize: 13, textAlign: "center", paddingVertical: 12 }}>No in-stock regions</Text>
+      </View>
+    );
+  }
 
   return (
     <View

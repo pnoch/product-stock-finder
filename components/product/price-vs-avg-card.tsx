@@ -9,7 +9,7 @@ const VERDICT_COPY: Record<PriceVsAverage["verdict"], string> = {
   above: "Above average",
 };
 
-export function PriceVsAvgCard({ data }: { data: PriceVsAverage }) {
+export function PriceVsAvgCard({ data, displayCurrency = "USD" }: { data: PriceVsAverage; displayCurrency?: string }) {
   const colors = useColors();
   const color =
     data.verdict === "below"
@@ -46,7 +46,7 @@ export function PriceVsAvgCard({ data }: { data: PriceVsAverage }) {
       </Text>
       <View style={{ flex: 1 }}>
         <Text style={{ color: colors.muted, fontSize: 12 }}>
-          vs 30-day average · avg {formatPrice(data.average, "USD")}
+          vs 30-day average · avg {formatPrice(data.average, displayCurrency)}
         </Text>
         <Text style={{ color: colors.foreground, fontSize: 13, marginTop: 2 }}>
           {VERDICT_COPY[data.verdict]}

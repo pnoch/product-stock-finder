@@ -11,6 +11,7 @@ import { Alerts } from "./pages/Alerts";
 import { Search } from "./pages/Search";
 import { Settings } from "./pages/Settings";
 import { Health } from "./pages/Health";
+import { HealthDetail } from "./pages/HealthDetail";
 import { RestockWatches } from "./pages/RestockWatches";
 import { DistributorAnalysis } from "./pages/DistributorAnalysis";
 import { Stats } from "./pages/Stats";
@@ -187,6 +188,7 @@ export default function App() {
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/stats" element={<Stats />} />
                     <Route path="/health" element={<Health />} />
+                    <Route path="/health/:id" element={<HealthDetail />} />
                     <Route path="/restock-watches" element={<RestockWatches />} />
                     <Route
                       path="/distributor-analysis"

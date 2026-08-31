@@ -8,11 +8,11 @@ import { useToast } from "@/components/ui/toast";
 import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@/lib/currency";
 
-export function AlertSection({ productId }: { productId: string }) {
+export function AlertSection({ productId, displayCurrency = "USD" }: { productId: string; displayCurrency?: string }) {
   const colors = useColors();
   const { showToast } = useToast();
   const [price, setPrice] = useState("");
-  const [currency] = useState("USD");
+  const currency = displayCurrency;
   const onAdd = async () => {
     Keyboard.dismiss();
     const targetPrice = parseFloat(price);

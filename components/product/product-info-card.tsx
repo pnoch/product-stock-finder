@@ -66,9 +66,9 @@ export function ProductInfoCard({
   );
 
   const bestPriceDisplay = useMemo(() => {
-    const best = getBestPrice(visibleListings, "USD");
-    return best ? formatPrice(best.price, "USD") : "N/A";
-  }, [visibleListings]);
+    const best = getBestPrice(visibleListings, displayCurrency);
+    return best ? formatPrice(best.price, displayCurrency) : "N/A";
+  }, [visibleListings, displayCurrency]);
 
   const lastRefreshedData = useMemo(() => {
     const d = lastUpdatedAt ? new Date(lastUpdatedAt) : null;

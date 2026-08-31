@@ -44,6 +44,11 @@ export default function ProductDetailScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const stickyOpacity = scrollY.interpolate({ inputRange: [80, 140], outputRange: [0, 1], extrapolate: "clamp" });
   const shareScale = useRef(new Animated.Value(1)).current;
+  const [isStickyVisible, setIsStickyVisible] = useState(false);
+  useEffect(() => {
+    const subId = scrollY.addListener(({ value }) => setIsStickyVisible(value > 110));
+    return () => scrollY.removeListener(subId);
+  }, [scrollY]);
 
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!id) return;
@@ -254,7 +259,7 @@ export default function ProductDetailScreen() {
         }}
       />
       <Animated.View
-        pointerEvents="none"
+        pointerEvents={isStickyVisible ? "auto" : "none"}
         style={{
           position: "absolute",
           top: 0,
@@ -286,9 +291,9 @@ export default function ProductDetailScreen() {
       >
         <DetailHeader product={product} bestDeal={bestDeal} />
         <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={displayCurrency} productImage={productImage} onEditDetails={() => {}} />
-        {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} />}
+        {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} displayCurrency={displayCurrency} />}
         <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={shippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={displayCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={() => router.push(`/compare/${id}`)} onRemind={() => {}} />
-        <AlertSection productId={product.id} />
+        <AlertSection productId={product.id} displayCurrency={displayCurrency} />
         <ReminderSection productId={product.id} distributorId={visibleListings[0]?.distributorId} productName={product.name} distributorName={visibleListings[0] ? getDistributorById(visibleListings[0].distributorId)?.name ?? "" : ""} />
       </Animated.ScrollView>
     </ScreenContainer>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
 import {
   Bell,
@@ -7,10 +7,11 @@ import {
   RotateCcw,
   ToggleLeft,
   ToggleRight,
+  Pause,
 } from "lucide-react";
 import { useAlerts } from "../hooks/use-storage";
 import { storage } from "../storage";
-import { formatPrice } from "../../../lib/currency";
+import { formatPrice, convertPrice } from "../../../lib/currency";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
@@ -56,6 +57,11 @@ export function Alerts() {
 
   const handleRearm = async (id: string) => {
     await storage.rearmAlert(id);
+    refreshAlerts();
+  };
+
+  const handleSnoozeAlert = async (id: string, days: number) => {
+    await storage.snoozeAlert(id, days);
     refreshAlerts();
   };
 
@@ -118,6 +124,7 @@ export function Alerts() {
           onToggle={handleToggle}
           onDelete={handleDeleteAlert}
           onRearm={handleRearm}
+          onSnooze={handleSnoozeAlert}
         />
       ) : (
         <RemindersTab
@@ -136,14 +143,29 @@ function AlertsTab({
   onToggle,
   onDelete,
   onRearm,
+  onSnooze,
 }: {
   alerts: ReturnType<typeof useAlerts>["alerts"];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onRearm: (id: string) => void;
+  onSnooze: (id: string, days: number) => void;
 }) {
   const navigate = useNavigate();
-  if (alerts.length === 0) {
+  const triggeredAlerts = useMemo(() => alerts.filter((a) => a.triggeredAt), [alerts]);
+  const totalSaved = useMemo(() => {
+    return triggeredAlerts.reduce((sum, a) => {
+      if (a.triggeredPrice != null) {
+        const saved = Math.max(0, a.targetPrice - a.triggeredPrice);
+        const usd = convertPrice(saved, a.currency, "USD");
+        if (usd === null) return sum;
+        return sum + usd;
+      }
+      return sum;
+    }, 0);
+  }, [triggeredAlerts]);
+
+  if (alerts.length === 0 && triggeredAlerts.length === 0) {
     return (
       <div className="text-center">
         <EmptyState
@@ -164,7 +186,7 @@ function AlertsTab({
 
   return (
     <div className="space-y-3">
-      {alerts.map((alert, idx) => (
+      {alerts.filter((a) => !a.triggeredAt).map((alert, idx) => (
         <div
           key={alert.id}
           className="animate-fadeIn"
@@ -175,9 +197,48 @@ function AlertsTab({
             onToggle={onToggle}
             onDelete={onDelete}
             onRearm={onRearm}
+            onSnooze={onSnooze}
           />
         </div>
       ))}
+
+      {triggeredAlerts.length > 0 && (
+        <div className="pt-4 mt-2 border-t border-gray-200 dark:border-gray-700 space-y-3">
+          {totalSaved > 0 && (
+            <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+              <span className="text-2xl">🎉</span>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                  Total Saved: {formatPrice(totalSaved, "USD")}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Across {triggeredAlerts.filter((a) => a.triggeredPrice != null).length} triggered alert
+                  {triggeredAlerts.filter((a) => a.triggeredPrice != null).length !== 1 ? "s" : ""}
+                </p>
+              </div>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <RotateCcw className="w-4 h-4 text-emerald-600" />
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Price Drop History ({triggeredAlerts.length})</h3>
+          </div>
+          {triggeredAlerts.map((alert, idx) => (
+            <div
+              key={alert.id}
+              className="animate-fadeIn"
+              style={{ animationDelay: `${idx * 60}ms` } as React.CSSProperties}
+            >
+              <AlertRow
+                alert={alert}
+                onToggle={onToggle}
+                onDelete={onDelete}
+                onRearm={onRearm}
+                onSnooze={onSnooze}
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -187,19 +248,25 @@ function AlertRow({
   onToggle,
   onDelete,
   onRearm,
+  onSnooze,
 }: {
   alert: ReturnType<typeof useAlerts>["alerts"][number];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onRearm: (id: string) => void;
+  onSnooze: (id: string, days: number) => void;
 }) {
   const isTriggered = !alert.isActive && alert.triggeredAt;
+  const isSnoozed = !!alert.snoozedUntil && new Date(alert.snoozedUntil).getTime() > Date.now();
+  const [showSnooze, setShowSnooze] = useState(false);
   return (
     <div
       className={`flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border transition-colors hover:shadow-sm ${
         isTriggered
           ? "border-emerald-200 dark:border-emerald-800"
-          : "border-gray-200 dark:border-gray-700"
+          : isSnoozed
+            ? "border-amber-200 dark:border-amber-800"
+            : "border-gray-200 dark:border-gray-700"
       }`}
     >
       <div className="flex items-center justify-center w-9 h-9 rounded-full bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 shrink-0">
@@ -210,6 +277,7 @@ function AlertRow({
           {alert.distributorId
             ? `Alert for ${alert.distributorId}`
             : `Alert — target ${formatPrice(alert.targetPrice, alert.currency)}`}
+          {isSnoozed && <span className="ml-2 text-xs font-semibold text-amber-600 dark:text-amber-400">Snoozed until {new Date(alert.snoozedUntil!).toLocaleDateString()}</span>}
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {isTriggered ? (
@@ -225,6 +293,7 @@ function AlertRow({
             <>
               Target: {formatPrice(alert.targetPrice, alert.currency)} · Created{" "}
               {new Date(alert.createdAt).toLocaleDateString()}
+              {alert.direction ? ` · ${alert.direction}` : ""}
             </>
           )}
         </p>
@@ -240,18 +309,38 @@ function AlertRow({
           Rearm
         </button>
       ) : (
-        <button
-          onClick={() => onToggle(alert.id)}
-          className="text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg p-1.5 transition-colors"
-          title={alert.isActive ? "Deactivate alert" : "Activate alert"}
-          aria-label={alert.isActive ? "Deactivate alert" : "Activate alert"}
-        >
-          {alert.isActive ? (
-            <ToggleRight className="w-5 h-5" />
-          ) : (
-            <ToggleLeft className="w-5 h-5" />
-          )}
-        </button>
+        <>
+          <div className="relative">
+            <button
+              onClick={() => setShowSnooze((v) => !v)}
+              className={`p-1.5 rounded-lg transition-colors ${isSnoozed ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20" : "text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"}`}
+              title={isSnoozed ? "Snoozed — click to change" : "Snooze alert"}
+              aria-label="Snooze alert"
+            >
+              <Pause className="w-4 h-4" />
+            </button>
+            {showSnooze && (
+              <div className="absolute right-0 top-9 z-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-1 flex flex-col gap-1 min-w-[140px]">
+                <button onClick={() => { onSnooze(alert.id, 1); setShowSnooze(false); }} className="px-3 py-1.5 text-xs font-medium text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded">1 day</button>
+                <button onClick={() => { onSnooze(alert.id, 7); setShowSnooze(false); }} className="px-3 py-1.5 text-xs font-medium text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded">7 days</button>
+                <button onClick={() => { onSnooze(alert.id, 30); setShowSnooze(false); }} className="px-3 py-1.5 text-xs font-medium text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded">30 days</button>
+                {isSnoozed && <button onClick={() => { onSnooze(alert.id, 0); setShowSnooze(false); }} className="px-3 py-1.5 text-xs font-medium text-left text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded">Wake now</button>}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => onToggle(alert.id)}
+            className="text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg p-1.5 transition-colors"
+            title={alert.isActive ? "Deactivate alert" : "Activate alert"}
+            aria-label={alert.isActive ? "Deactivate alert" : "Activate alert"}
+          >
+            {alert.isActive ? (
+              <ToggleRight className="w-5 h-5" />
+            ) : (
+              <ToggleLeft className="w-5 h-5" />
+            )}
+          </button>
+        </>
       )}
 
       <button

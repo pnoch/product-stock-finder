@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { getDistributorById } from "../../../lib/distributors";
+import { computeHealthStats, createHealthService, type HealthStats } from "../../../lib/scrapers/health";
+import { formatLastRefreshed } from "../../../lib/last-refreshed";
 
 type HealthStatus = "working" | "blocked" | "error";
 
@@ -15,19 +17,58 @@ interface DistributorHealth {
 
 type Filter = "all" | "working" | "blocked" | "error";
 
+function HealthSparkline({ data, color }: { data: number[]; color: string }) {
+  if (data.length < 2) return null;
+  const w = 60;
+  const h = 24;
+  const pad = 2;
+  const usableW = w - pad * 2;
+  const usableH = h - pad * 2;
+  const points = data
+    .map((v, i) => {
+      const x = pad + (i / (data.length - 1)) * usableW;
+      const y = pad + (1 - v) * usableH;
+      return `${x},${y}`;
+    })
+    .join(" ");
+  return (
+    <svg width={w} height={h} className="shrink-0">
+      <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+const localAdapter = {
+  getItem: async (k: string) => localStorage.getItem(k),
+  setItem: async (k: string, v: string) => localStorage.setItem(k, v),
+  removeItem: async (k: string) => localStorage.removeItem(k),
+  multiRemove: async (keys: string[]) => keys.forEach((k) => localStorage.removeItem(k)),
+};
+
 export function Health() {
   const navigate = useNavigate();
   const [health, setHealth] = useState<DistributorHealth[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [testing, setTesting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [stats, setStats] = useState<Record<string, HealthStats>>({});
 
   const runTest = useCallback(async () => {
     setTesting(true);
+    setProgress(0);
     try {
       const results = await invoke<DistributorHealth[]>(
         "check_distributor_health",
       );
       setHealth(results);
+      setProgress(100);
+      try {
+        const svc = createHealthService(localAdapter as unknown as import("../../../lib/storage/adapter").StorageAdapter);
+        const history = await svc.getHealthHistory();
+        setStats(computeHealthStats(history));
+      } catch {
+        // stats are best-effort
+      }
     } catch (error) {
       console.error("Health check failed:", error);
     } finally {
@@ -37,6 +78,17 @@ export function Health() {
 
   useEffect(() => {
     runTest();
+    (async () => {
+      try {
+        const svc = createHealthService(localAdapter as unknown as import("../../../lib/storage/adapter").StorageAdapter);
+        const history = await svc.getHealthHistory();
+        setStats(computeHealthStats(history));
+        const existing = await svc.getDistributorHealth();
+        if (existing.length > 0) setHealth(existing as DistributorHealth[]);
+      } catch {
+        // ignore
+      }
+    })();
   }, [runTest]);
 
   const counts = {
@@ -55,6 +107,8 @@ export function Health() {
     error: "#EF4444",
   };
 
+  const overallWorkingPct = health.length > 0 ? Math.round((counts.working / health.length) * 100) : 0;
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="flex items-center mb-4">
@@ -66,6 +120,18 @@ export function Health() {
           ‹ Back
         </button>
         <h1 className="text-2xl font-bold">Distributor Health</h1>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Overall Uptime</p>
+          <p className="text-2xl font-bold mt-1">{overallWorkingPct}% <span className="text-sm font-medium text-gray-500">{counts.working}/{health.length} working</span></p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{counts.blocked} blocked · {counts.error} error</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-gray-400">Last check</p>
+          <p className="text-sm font-medium">{health[0]?.lastChecked ? formatLastRefreshed(health[0].lastChecked) : "Never"}</p>
+        </div>
       </div>
 
       <div className="flex gap-2 mb-4">
@@ -94,19 +160,31 @@ export function Health() {
         {testing ? "Testing..." : "Test All Distributors"}
       </button>
 
+      {testing && (
+        <div className="mb-4">
+          <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+            <div className="h-1.5 bg-blue-600 transition-all duration-300" style={{ width: `${progress || 45}%` }} />
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{progress ? `${progress}%` : "Running checks..."}</p>
+        </div>
+      )}
+
       <div>
         {filtered.map((h) => {
           const distributor = getDistributorById(h.distributorId);
+          const s = stats[h.distributorId];
           return (
-            <div
+            <button
               key={h.distributorId}
-              className="flex items-center py-3 border-b border-gray-200"
+              onClick={() => navigate(`/health/${h.distributorId}`)}
+              className="w-full flex items-center py-3 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-left transition-colors"
+              aria-label={`View ${distributor?.name ?? h.distributorId} details`}
             >
               <span
-                className="w-2.5 h-2.5 rounded-full mr-3"
+                className="w-2.5 h-2.5 rounded-full mr-3 shrink-0"
                 style={{ backgroundColor: statusColors[h.status] }}
               />
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">
                   {distributor
                     ? `${distributor.countryFlag} ${distributor.name}`
@@ -117,12 +195,25 @@ export function Health() {
                   {h.responseTimeMs ? ` · ${h.responseTimeMs}ms` : ""}
                 </p>
               </div>
-              <span className="text-xs text-gray-400">
-                {h.lastChecked
-                  ? new Date(h.lastChecked).toLocaleTimeString()
-                  : "Never"}
-              </span>
-            </div>
+              <div className="flex flex-col items-end gap-1 ml-3 shrink-0">
+                <span className="text-xs text-gray-400">
+                  {h.lastChecked
+                    ? formatLastRefreshed(h.lastChecked)
+                    : "Never"}
+                </span>
+                {s ? (
+                  <>
+                    <span className="text-xs font-bold" style={{ color: statusColors[h.status] }}>
+                      {s.uptimePct}% {s.trend === "up" ? "▲" : s.trend === "down" ? "▼" : "–"}
+                    </span>
+                    <HealthSparkline data={s.sparkline} color={statusColors[h.status]} />
+                  </>
+                ) : (
+                  <span className="text-xs text-gray-400">–</span>
+                )}
+              </div>
+              <span className="ml-2 text-gray-300 dark:text-gray-600">›</span>
+            </button>
           );
         })}
         {filtered.length === 0 && (

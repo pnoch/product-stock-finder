@@ -1,14 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router";
 import { storage } from "../storage";
-import { formatPrice, convertPrice } from "../../../lib/currency";
+import { formatPrice, convertPrice, CURRENCY_SYMBOLS } from "../../../lib/currency";
 import { DISTRIBUTORS } from "../../../lib/distributors";
+import { getDistributorById } from "../../../lib/distributors";
 import type { Product } from "../../../lib/types";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
-import { MultiLineChart } from "../components/MultiLineChart";
 import { TimeRangeChips } from "../components/TimeRangeChips";
+import { filterByRange, type TimeRange } from "../../../lib/compare-utils";
 import {
   GitCompareArrows,
   TrendingDown,
@@ -27,10 +28,120 @@ const CHART_COLORS = [
   "#84CC16",
 ];
 
-function daysAgo(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+function toTimeRange(k: string): TimeRange {
+  switch (k) {
+    case "1w":
+      return "1W";
+    case "1m":
+      return "1M";
+    case "3m":
+      return "3M";
+    default:
+      return "All";
+  }
+}
+
+function SeriesChart({
+  series,
+  displayCurrency,
+}: {
+  series: { label: string; color: string; data: { price: number; currency: string; date: string }[] }[];
+  displayCurrency: string;
+}) {
+  const width = 640;
+  const height = 280;
+  const padL = 56;
+  const padR = 16;
+  const padT = 16;
+  const padB = 32;
+  const usableW = width - padL - padR;
+  const usableH = height - padT - padB;
+
+  const allPrices: number[] = [];
+  for (const s of series) {
+    for (const p of s.data) {
+      const c = convertPrice(p.price, p.currency, displayCurrency);
+      if (c !== null && Number.isFinite(c)) allPrices.push(c);
+    }
+  }
+  if (allPrices.length === 0) return <div className="text-center text-sm text-gray-400 py-8">No data</div>;
+  const globalMin = Math.min(...allPrices);
+  const globalMax = Math.max(...allPrices);
+  const range = globalMax - globalMin || 1;
+  const allDates: number[] = [];
+  for (const s of series) for (const p of s.data) allDates.push(new Date(p.date).getTime());
+  const minDate = Math.min(...allDates);
+  const maxDate = Math.max(...allDates);
+  const dateRange = maxDate - minDate || 1;
+  const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency;
+
+  return (
+    <div className="w-full overflow-x-auto">
+      <svg width={width} height={height} className="mx-auto block">
+        {[0, 0.5, 1].map((t) => {
+          const y = padT + (1 - t) * usableH;
+          const val = globalMin + t * range;
+          return (
+            <g key={t}>
+              <line x1={padL} y1={y} x2={width - padR} y2={y} stroke="#e5e7eb" strokeDasharray="4,4" strokeWidth={0.5} />
+              <text x={padL - 6} y={y + 3} fontSize={9} fill="#6b7280" textAnchor="end">
+                {symbol}
+                {val.toFixed(0)}
+              </text>
+            </g>
+          );
+        })}
+        {series.map((s) => {
+          const sorted = [...s.data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          const coords = sorted
+            .map((p) => {
+              const conv = convertPrice(p.price, p.currency, displayCurrency);
+              if (conv === null || !Number.isFinite(conv)) return null;
+              const x = padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
+              const y = padT + (1 - (conv - globalMin) / range) * usableH;
+              return { x, y };
+            })
+            .filter((c): c is { x: number; y: number } => c !== null);
+          if (coords.length < 2) return null;
+          const points = coords.map((c) => `${c.x},${c.y}`).join(" ");
+          return (
+            <g key={s.label}>
+              <polyline points={points} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+              {coords.map((c, i) => (
+                <circle key={i} cx={c.x} cy={c.y} r={2.5} fill={s.color} />
+              ))}
+            </g>
+          );
+        })}
+        {(() => {
+          if (series[0]?.data.length === 0) return null;
+          const first = series[0]?.data ?? [];
+          if (first.length === 0) return null;
+          const sorted = [...first].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          const idxs = [0, Math.floor((sorted.length - 1) / 2), sorted.length - 1];
+          return idxs.map((idx) => {
+            const p = sorted[idx];
+            if (!p) return null;
+            const x = padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
+            const label = new Date(p.date).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+            return (
+              <text key={idx} x={x} y={height - 8} fontSize={9} fill="#6b7280" textAnchor="middle">
+                {label}
+              </text>
+            );
+          });
+        })()}
+      </svg>
+      <div className="flex flex-wrap gap-3 mt-2 justify-center">
+        {series.map((s) => (
+          <span key={s.label} className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+            {s.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function Compare() {
@@ -53,57 +164,24 @@ export function Compare() {
     });
   }, [id]);
 
-  const rangeDays = useMemo(() => {
-    switch (timeRange) {
-      case "1w":
-        return 7;
-      case "1m":
-        return 30;
-      case "3m":
-        return 90;
-      default:
-        return Infinity;
-    }
-  }, [timeRange]);
+  const timeRangeTyped = useMemo(() => toTimeRange(timeRange), [timeRange]);
 
-  const cutoffDate = useMemo(() => {
-    if (rangeDays === Infinity) return "";
-    return daysAgo(rangeDays);
-  }, [rangeDays]);
-
-  const chartData = useMemo(() => {
-    if (!product) return { data: [], distributors: [], colors: [] };
-
-    const dateMap = new Map<string, Record<string, number | string>>();
-
-    product.listings.forEach((listing) => {
-      const dist = DISTRIBUTORS.find((d) => d.id === listing.distributorId);
-      const distName = dist?.name ?? listing.distributorId;
-
-      listing.priceHistory.forEach((point) => {
-        if (cutoffDate && point.date < cutoffDate) return;
-        if (!dateMap.has(point.date)) {
-          dateMap.set(point.date, { date: point.date });
-        }
-        const row = dateMap.get(point.date)!;
-        row[distName] = convertPrice(point.price, point.currency, displayCurrency);
+  const chartSeries = useMemo(() => {
+    if (!product) return [];
+    const range = timeRangeTyped;
+    return product.listings
+      .filter((l) => l.priceHistory && l.priceHistory.length >= 2)
+      .map((l) => {
+        const distributor = getDistributorById(l.distributorId);
+        const filtered = filterByRange(l.priceHistory, range);
+        const colorIdx = product.listings.findIndex((x) => x.distributorId === l.distributorId);
+        return {
+          label: distributor?.name ?? l.distributorId,
+          color: CHART_COLORS[colorIdx % CHART_COLORS.length],
+          data: (filtered.length >= 2 ? filtered : l.priceHistory) as { price: number; currency: string; date: string }[],
+        };
       });
-    });
-
-    const dates = Array.from(dateMap.keys()).sort();
-    const data = dates.map((d) => dateMap.get(d)!);
-
-    const distributors = Array.from(
-      new Set(
-        product.listings.map((l) => {
-          const dist = DISTRIBUTORS.find((d) => d.id === l.distributorId);
-          return dist?.name ?? l.distributorId;
-        }),
-      ),
-    );
-
-    return { data, distributors, colors: CHART_COLORS };
-  }, [product, cutoffDate, displayCurrency]);
+  }, [product, timeRangeTyped]);
 
   const sortedListings = useMemo(() => {
     if (!product) return [];
@@ -186,16 +264,21 @@ export function Compare() {
         </div>
       )}
 
-      {chartData.distributors.length > 0 && chartData.data.length > 0 ? (
+      {chartSeries.length > 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
           <h2 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">
-            Price History
+            Price History ({displayCurrency})
           </h2>
-          <MultiLineChart
-            data={chartData.data}
-            distributors={chartData.distributors}
-            colors={chartData.colors}
-          />
+          {chartSeries.length >= 2 ? (
+            <SeriesChart series={chartSeries} displayCurrency={displayCurrency} />
+          ) : (
+            <div className="text-center py-6">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Select at least 2 distributors with price history to compare</p>
+              <div className="mt-4">
+                <SeriesChart series={chartSeries} displayCurrency={displayCurrency} />
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-8 flex flex-col items-center justify-center text-center">

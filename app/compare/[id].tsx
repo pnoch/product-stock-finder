@@ -64,7 +64,7 @@ export default function CompareScreen() {
     (id ?? "");
   const notFound = loaded && !product && listings.length === 0;
   const { width: windowWidth } = useWindowDimensions();
-  const chartWidth = windowWidth - 32;
+  const chartWidth = windowWidth - 64;
 
   useEffect(() => {
     getSettings().then((s) => {
@@ -315,7 +315,7 @@ export default function CompareScreen() {
           {/* Cheapest Region summary */}
           <CheapestRegionCard listings={listings} />
 
-          <CrossAlertCTA listings={listings} onPress={handleCrossAlert} />
+          <CrossAlertCTA listings={listings} displayCurrency={displayCurrency} onPress={handleCrossAlert} />
 
           <CurrentPricesTable listings={listings} selected={selected} />
 

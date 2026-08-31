@@ -2,29 +2,31 @@ import { useMemo } from "react";
 import { Text, View, TouchableOpacity } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
-import { convertPrice } from "@/lib/currency";
+import { convertPrice, formatPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export function CrossAlertCTA({
   listings,
+  displayCurrency = "USD",
   onPress,
 }: {
   listings: DistributorListing[];
+  displayCurrency?: string;
   onPress: () => void;
 }) {
   const colors = useColors();
 
-  const bestUSD = useMemo(() => {
+  const best = useMemo(() => {
     const inStock = listings.filter((l) => l.stockStatus === "in_stock");
     if (inStock.length === 0) return null;
     const vals = inStock
-      .map((l) => convertPrice(l.price, l.currency, "USD"))
+      .map((l) => convertPrice(l.price, l.currency, displayCurrency))
       .filter((v): v is number => v !== null);
     if (vals.length === 0) return null;
     return Math.min(...vals);
-  }, [listings]);
+  }, [listings, displayCurrency]);
 
-  if (bestUSD === null) return null;
+  if (best === null) return null;
 
   return (
     <TouchableOpacity activeOpacity={0.85}
@@ -62,8 +64,7 @@ export function CrossAlertCTA({
             marginTop: 1,
           }}
         >
-          ${(bestUSD * 0.95).toFixed(2)} (5% below current best of $
-          {bestUSD.toFixed(2)})
+          {formatPrice(best * 0.95, displayCurrency)} (5% below current best of {formatPrice(best, displayCurrency)})
         </Text>
       </View>
       <IconSymbol name="chevron.right" size={16} color={colors.primary} />

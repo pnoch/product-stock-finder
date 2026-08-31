@@ -20,7 +20,24 @@ const stockLabel: Record<string, string> = {
 export function CurrentPricesTable({ listings, selected }: Props) {
   const colors = useColors();
 
-  if (selected.size === 0) return null;
+  if (selected.size === 0) {
+    return (
+      <View
+        style={{
+          marginHorizontal: 16,
+          backgroundColor: colors.surface,
+          borderRadius: 16,
+          padding: 16,
+          borderWidth: 1,
+          borderColor: colors.border,
+          marginBottom: 16,
+        }}
+      >
+        <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15, marginBottom: 8 }}>Current Prices</Text>
+        <Text style={{ color: colors.muted, fontSize: 13, textAlign: "center", paddingVertical: 12 }}>No distributors selected</Text>
+      </View>
+    );
+  }
 
   const selectedListings = listings.filter((l) =>
     selected.has(l.distributorId),

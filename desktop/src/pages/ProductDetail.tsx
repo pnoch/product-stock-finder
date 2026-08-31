@@ -153,14 +153,41 @@ export function ProductDetail() {
     [visibleListings, shippingRegion, displayCurrency],
   );
 
+  const [alertError, setAlertError] = useState<string | null>(null);
+
+  const checkNotificationPermission = async (): Promise<boolean> => {
+    try {
+      if (typeof window !== "undefined" && "Notification" in window) {
+        if (Notification.permission === "granted") return true;
+        if (Notification.permission === "denied") return false;
+        const result = await Notification.requestPermission();
+        return result === "granted";
+      }
+    } catch {
+      // fall through to granted for Tauri
+    }
+    return true;
+  };
+
   const handleSaveAlert = async () => {
     if (!product || !alertPrice) return;
     const price = parseFloat(alertPrice);
     if (isNaN(price) || price <= 0) return;
 
+    const granted = await checkNotificationPermission();
+    if (!granted) {
+      setAlertError("Please enable notifications in your system settings to receive price alerts.");
+      return;
+    }
+    setAlertError(null);
+    const distributorId = bestListing?.distributorId ?? visibleListings[0]?.distributorId;
+    const direction: "drop" | "rise" = "drop";
+
     await storage.addAlert({
       id: `alert-${Date.now()}`,
       productId: product.id,
+      direction,
+      distributorId,
       targetPrice: price,
       currency: alertCurrency,
       isActive: true,
@@ -172,6 +199,7 @@ export function ProductDetail() {
       setAlertOpen(false);
       setAlertSaved(false);
       setAlertPrice("");
+      setAlertError(null);
     }, 1200);
   };
 
@@ -560,6 +588,7 @@ export function ProductDetail() {
           setAlertOpen(false);
           setAlertSaved(false);
           setAlertPrice("");
+          setAlertError(null);
         }}
         title="Set Price Alert"
       >
@@ -579,6 +608,11 @@ export function ProductDetail() {
               <span className="font-medium">{product.name}</span> drops below
               your target price.
             </p>
+            {alertError && (
+              <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+                {alertError}
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium mb-1">
                 Target Price
