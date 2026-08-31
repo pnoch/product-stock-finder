@@ -64,9 +64,9 @@ export default function StatsScreen() {
       ]);
       setWatchlist(wl);
       setSettings(loadedSettings);
-      setDisplayCurrency(loadedSettings.displayCurrency);
-      setDigestFrequency(loadedSettings.digestFrequency ?? "off");
-      setBasketThreshold(loadedSettings.basketAlertThreshold ?? null);
+      setDisplayCurrency(loadedSettings?.displayCurrency ?? "USD");
+      setDigestFrequency(loadedSettings?.digestFrequency ?? "off");
+      setBasketThreshold(loadedSettings?.basketAlertThreshold ?? null);
       setDigestSnapshot(snapshot);
       setLoaded(true);
     })();

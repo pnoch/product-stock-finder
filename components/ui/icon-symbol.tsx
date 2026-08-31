@@ -82,6 +82,7 @@ const MAPPING = {
   "square.and.pencil": "edit-note",
   "slider.horizontal.3": "tune",
   "wand.and.stars": "auto-fix-high",
+  sparkles: "auto-awesome",
 } as IconMapping;
 
 /**

@@ -119,7 +119,7 @@ export default function CompareScreen() {
     let bestListing = inStock[0]!;
     for (const l of inStock) {
       const converted = convertPrice(l.price, l.currency, displayCurrency);
-      if (converted === null) continue;
+      if (converted == null || !isFinite(converted)) continue;
       if (converted < bestPrice) {
         bestPrice = converted;
         bestListing = l;

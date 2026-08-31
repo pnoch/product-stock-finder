@@ -29,13 +29,15 @@ export default function ProductDetailScreen() {
   const [insight, setInsight] = useState<string | null>(null);
   const [productImage, setProductImage] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
-  const [shippingRegion] = useState("Asia-Pacific");
+  const [shippingRegion, setShippingRegion] = useState("Asia-Pacific");
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
 
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!id) return;
+    setInsight(null);
+    setProductImage(null);
     const [settingsData, stockWatchesData, insightData, imageData] = await Promise.all([
       getSettings(),
       getStockWatches(),
@@ -44,6 +46,7 @@ export default function ProductDetailScreen() {
     ]);
     if (signal?.cancelled) return;
     if (settingsData?.displayCurrency) setDisplayCurrency(settingsData.displayCurrency);
+    if (settingsData?.shippingRegion) setShippingRegion(settingsData.shippingRegion);
     const watchMap: Record<string, boolean> = {};
     for (const w of stockWatchesData) {
       if (w.productId === id) watchMap[w.distributorId] = true;
@@ -54,6 +57,8 @@ export default function ProductDetailScreen() {
   }, [id]);
 
   useEffect(() => {
+    setInsight(null);
+    setProductImage(null);
     const signal = { cancelled: false };
     loadData(signal);
     return () => { signal.cancelled = true; };
