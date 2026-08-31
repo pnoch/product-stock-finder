@@ -37,6 +37,7 @@ export function StockWatchCard({ watch, onDelete }: StockWatchCardProps) {
               fontSize: 14,
             }}
             numberOfLines={2}
+            ellipsizeMode="tail"
           >
             {watch.productName}
           </Text>
@@ -49,7 +50,7 @@ export function StockWatchCard({ watch, onDelete }: StockWatchCardProps) {
             }}
           >
             <IconSymbol name="globe" size={13} color={colors.muted} />
-            <Text style={{ color: colors.muted, fontSize: 13 }}>
+            <Text style={{ color: colors.muted, fontSize: 13, flexShrink: 1 }} numberOfLines={1} ellipsizeMode="tail">
               {watch.distributorName}
             </Text>
           </View>

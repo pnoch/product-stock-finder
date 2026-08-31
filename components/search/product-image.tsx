@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Image, View, Text, Animated } from "react-native";
+import { View, Text, Animated } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { fetchProductImage } from "@/lib/server-images";

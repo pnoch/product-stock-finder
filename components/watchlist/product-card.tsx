@@ -3,7 +3,6 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Image,
   Pressable,
   Animated,
   Platform,
@@ -142,7 +141,7 @@ export const ProductCard = memo(function ProductCard({
     return () => {
       active = false;
     };
-  }, [product.id]);
+  }, [product.id, imageOpacity]);
 
   useEffect(() => {
     sparklineOpacity.setValue(0.55);
@@ -250,10 +249,10 @@ export const ProductCard = memo(function ProductCard({
           >
             {product.name}
           </Text>
-          <Text style={{ color: colors.foreground, fontSize: 12, marginTop: 3 }} numberOfLines={1} ellipsizeMode="tail">
+          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 3 }} numberOfLines={1} ellipsizeMode="tail">
             {product.modelNumber}
           </Text>
-          <Text style={{ color: colors.foreground, fontSize: 12, marginTop: 1 }} numberOfLines={1} ellipsizeMode="tail">
+          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }} numberOfLines={1} ellipsizeMode="tail">
             {product.brand} · {product.category}
           </Text>
         </View>
@@ -315,7 +314,7 @@ export const ProductCard = memo(function ProductCard({
                     marginRight: 5,
                   }}
                 />
-                <Text style={{ color: colors.foreground, fontSize: 11 }} numberOfLines={1} ellipsizeMode="tail">
+                <Text style={{ color: colors.muted, fontSize: 11 }} numberOfLines={1} ellipsizeMode="tail">
                   {tag.name}
                 </Text>
               </View>

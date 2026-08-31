@@ -58,7 +58,7 @@ export function ReminderCard({
             }}
           >
             <IconSymbol name="globe" size={13} color={colors.muted} />
-            <Text style={{ color: colors.muted, fontSize: 13 }}>
+            <Text style={{ color: colors.muted, fontSize: 13, flexShrink: 1 }} numberOfLines={1} ellipsizeMode="tail">
               {reminder.distributorName}
             </Text>
           </View>
