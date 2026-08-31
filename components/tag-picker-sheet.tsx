@@ -6,7 +6,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
@@ -56,6 +58,7 @@ export function TagPickerSheet({
   if (!product) return null;
 
   const toggleTag = async (tagId: string) => {
+    if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const cur = selectedRef.current;
     const next = cur.includes(tagId)
       ? cur.filter((id) => id !== tagId)
@@ -69,6 +72,7 @@ export function TagPickerSheet({
   const handleCreate = async () => {
     const name = newTagName.trim();
     if (!name) return;
+    if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       const current = await getTagDefinitions();
       const tag = await createTag(name, nextTagColor(current));
@@ -229,6 +233,7 @@ export function TagPickerSheet({
           </View>
           <TouchableOpacity
             onPress={() => {
+              if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               if (onApply) onApply(selectedRef.current);
               onClose();
             }}

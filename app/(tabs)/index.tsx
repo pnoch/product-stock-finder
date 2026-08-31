@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ScrollView,
   Text,
@@ -7,6 +7,7 @@ import {
   RefreshControl,
   Platform,
   Image,
+  Animated,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -57,6 +58,32 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [images, setImages] = useState<Map<string, string>>(new Map());
+  const statAnim0 = useRef(new Animated.Value(0)).current;
+  const statAnim1 = useRef(new Animated.Value(0)).current;
+  const statAnim2 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.stagger(90, [
+      Animated.spring(statAnim0, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 80,
+        friction: 9,
+      }),
+      Animated.spring(statAnim1, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 80,
+        friction: 9,
+      }),
+      Animated.spring(statAnim2, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 80,
+        friction: 9,
+      }),
+    ]).start();
+  }, [statAnim0, statAnim1, statAnim2]);
 
   const loadData = useCallback(async () => {
     const list = await getWatchlist();
@@ -75,6 +102,9 @@ export default function HomeScreen() {
   );
 
   const onRefresh = useCallback(async () => {
+    if (Platform.OS !== "web") {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     setRefreshing(true);
     try {
       await loadData();
@@ -187,24 +217,87 @@ export default function HomeScreen() {
 
         {/* Summary Cards */}
         <View className="flex-row px-4 mt-3 mb-4">
-          <SummaryCard
-            label="Tracked"
-            value={watchlist.length}
-            color={colors.primary}
-            icon="list.bullet"
-          />
-          <SummaryCard
-            label="In Stock"
-            value={inStockCount}
-            color={colors.success}
-            icon="checkmark.circle.fill"
-          />
-          <SummaryCard
-            label="Alerts"
-            value={alertCount}
-            color={colors.warning}
-            icon="bell.fill"
-          />
+          <Animated.View
+            style={{
+              flex: 1,
+              opacity: statAnim0,
+              transform: [
+                {
+                  translateY: statAnim0.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [14, 0],
+                  }),
+                },
+                {
+                  scale: statAnim0.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.96, 1],
+                  }),
+                },
+              ],
+            }}
+          >
+            <SummaryCard
+              label="Tracked"
+              value={watchlist.length}
+              color={colors.primary}
+              icon="list.bullet"
+            />
+          </Animated.View>
+          <Animated.View
+            style={{
+              flex: 1,
+              opacity: statAnim1,
+              transform: [
+                {
+                  translateY: statAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [14, 0],
+                  }),
+                },
+                {
+                  scale: statAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.96, 1],
+                  }),
+                },
+              ],
+            }}
+          >
+            <SummaryCard
+              label="In Stock"
+              value={inStockCount}
+              color={colors.success}
+              icon="checkmark.circle.fill"
+            />
+          </Animated.View>
+          <Animated.View
+            style={{
+              flex: 1,
+              opacity: statAnim2,
+              transform: [
+                {
+                  translateY: statAnim2.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [14, 0],
+                  }),
+                },
+                {
+                  scale: statAnim2.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.96, 1],
+                  }),
+                },
+              ],
+            }}
+          >
+            <SummaryCard
+              label="Alerts"
+              value={alertCount}
+              color={colors.warning}
+              icon="bell.fill"
+            />
+          </Animated.View>
         </View>
 
         {/* Recent Activity */}
@@ -214,25 +307,57 @@ export default function HomeScreen() {
           </Text>
           {recentActivity.length === 0 ? (
             <View className="bg-surface rounded-2xl p-8 items-center border border-border">
-              <IconSymbol
-                name="magnifyingglass"
-                size={40}
-                color={colors.muted}
-              />
-              <Text className="text-foreground font-semibold mt-3 text-base">
+              <View
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 36,
+                  backgroundColor: colors.primary + "14",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: 1,
+                  borderColor: colors.primary + "22",
+                }}
+              >
+                <IconSymbol
+                  name="magnifyingglass"
+                  size={36}
+                  color={colors.primary}
+                />
+              </View>
+              <Text className="text-foreground font-semibold mt-4 text-base">
                 No products tracked yet
               </Text>
-              <Text className="text-muted text-sm text-center mt-1">
-                Tap + to add a product to your watchlist
+              <Text className="text-muted text-sm text-center mt-1 px-2">
+                Tap + to add a product to your watchlist and track prices across 25 distributors
               </Text>
+              <View
+                style={{
+                  backgroundColor: colors.background,
+                  borderRadius: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  marginTop: 14,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <IconSymbol name="lightbulb.fill" size={16} color={colors.warning} />
+                <Text style={{ color: colors.muted, fontSize: 12, flex: 1 }}>
+                  Try: RTX 4090, Pi 5, CRS326, or U7 Pro Max
+                </Text>
+              </View>
               <TouchableOpacity
                 accessibilityLabel="Add product"
                 accessibilityRole="button"
                 style={{
                   backgroundColor: colors.primary,
                   borderRadius: 20,
-                  paddingHorizontal: 20,
-                  paddingVertical: 10,
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
                   marginTop: 16,
                 }}
                 onPress={() => {

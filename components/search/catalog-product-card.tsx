@@ -1,4 +1,5 @@
-import { Text, View, TouchableOpacity, ActivityIndicator } from "react-native";
+import { Text, View, TouchableOpacity, ActivityIndicator, Platform } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ProductImage } from "@/components/search/product-image";
@@ -82,7 +83,10 @@ export function CatalogProductCard({
       </View>
       {!isTracked && (
         <TouchableOpacity
-          onPress={() => onTagPress(product)}
+          onPress={() => {
+            if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onTagPress(product);
+          }}
           style={{
             marginRight: 8,
             padding: 6,
@@ -90,6 +94,7 @@ export function CatalogProductCard({
             borderWidth: 1,
             borderColor: colors.border,
           }}
+          hitSlop={8}
           accessibilityLabel="Add tags"
           accessibilityRole="button"
         >
@@ -107,6 +112,7 @@ export function CatalogProductCard({
           alignItems: "center",
           justifyContent: "center",
         }}
+        hitSlop={8}
         accessibilityLabel={isTracked ? "Already in watchlist" : "Add to watchlist"}
         accessibilityRole="button"
       >

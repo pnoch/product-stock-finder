@@ -21,13 +21,18 @@ function StatCard({
   icon,
   label,
   value,
+  delay = 0,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number | string;
+  delay?: number;
 }) {
   return (
-    <div className="flex items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+    <div
+      className="flex items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-200 dark:hover:border-brand-700 hover:shadow-sm transition-all duration-200 animate-fadeIn cursor-pointer"
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400">
         {icon}
       </div>
@@ -108,21 +113,25 @@ export function Home() {
           icon={<Package className="w-5 h-5" />}
           label="Total Tracked"
           value={products.length}
+          delay={0}
         />
         <StatCard
           icon={<TrendingUp className="w-5 h-5" />}
           label="In Stock"
           value={inStockCount}
+          delay={80}
         />
         <StatCard
           icon={<Bell className="w-5 h-5" />}
           label="Alerts Active"
           value={activeAlerts}
+          delay={160}
         />
         <StatCard
           icon={<Clock className="w-5 h-5" />}
           label="Reminders"
           value={reminderCount}
+          delay={240}
         />
       </div>
 
@@ -131,7 +140,7 @@ export function Home() {
       <div>
         <h2 className="text-lg font-semibold mb-3">Recent Activity</h2>
         <div className="space-y-2">
-          {recentProducts.map((product) => {
+          {recentProducts.map((product, idx) => {
             const best = getBestPrice(product.listings, "USD");
             const listing = product.listings.find(
               (l) =>
@@ -144,7 +153,8 @@ export function Home() {
               <Link
                 key={product.id}
                 to={`/product/${product.id}`}
-                className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 transition-colors"
+                className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 hover:shadow-sm transition-all duration-200 cursor-pointer animate-fadeIn"
+                style={{ animationDelay: `${150 + idx * 60}ms` } as React.CSSProperties}
                 role="button"
                 aria-label={`View ${product.name} details`}
               >

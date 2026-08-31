@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import {
   Text,
   TouchableOpacity,
   View,
+  Animated,
+  Image,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
@@ -40,6 +42,18 @@ export function ProductInfoCard({
   onEditDetails,
 }: ProductInfoCardProps) {
   const colors = useColors();
+  const imageOpacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (productImage) {
+      Animated.timing(imageOpacity, {
+        toValue: 1,
+        duration: 420,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      imageOpacity.setValue(0);
+    }
+  }, [productImage, imageOpacity]);
 
   const primary22 = useMemo(() => colors.primary + "22", [colors.primary]);
 
@@ -108,8 +122,29 @@ export function ProductInfoCard({
         borderWidth: 1,
         borderColor: colors.border,
         marginBottom: 16,
+        overflow: "hidden",
       }}
     >
+      {productImage ? (
+        <Animated.View
+          style={{
+            opacity: imageOpacity,
+            marginHorizontal: -16,
+            marginTop: -16,
+            marginBottom: 14,
+          }}
+        >
+          <Image
+            source={{ uri: productImage }}
+            style={{
+              width: "100%",
+              height: 190,
+              backgroundColor: colors.border,
+            }}
+            resizeMode="cover"
+          />
+        </Animated.View>
+      ) : null}
       <View
         style={{
           flexDirection: "row",

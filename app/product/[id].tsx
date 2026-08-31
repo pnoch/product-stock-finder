@@ -29,6 +29,7 @@ export default function ProductDetailScreen() {
   if (!id) return null;
   const { product, listings, loaded, lastUpdatedAt } = useLiveProduct(id);
   const [insight, setInsight] = useState<string | null>(null);
+  const [insightLoading, setInsightLoading] = useState(true);
   const [productImage, setProductImage] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [shippingRegion, setShippingRegion] = useState("Asia-Pacific");
@@ -39,6 +40,7 @@ export default function ProductDetailScreen() {
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!id) return;
     setInsight(null);
+    setInsightLoading(true);
     setProductImage(null);
     const [settingsData, stockWatchesData, insightData, imageData] = await Promise.all([
       getSettings(),
@@ -55,11 +57,13 @@ export default function ProductDetailScreen() {
     }
     setStockWatches(watchMap);
     if (insightData) setInsight(insightData.insight);
+    setInsightLoading(false);
     if (imageData) setProductImage(imageData.imageUrl);
   }, [id]);
 
   useEffect(() => {
     setInsight(null);
+    setInsightLoading(true);
     setProductImage(null);
     const signal = { cancelled: false };
     loadData(signal);
@@ -164,7 +168,7 @@ export default function ProductDetailScreen() {
         <DetailHeader product={product} bestDeal={bestDeal} />
         <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={displayCurrency} productImage={productImage} onEditDetails={() => {}} />
         {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} />}
-        <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} regionFilter={regionFilter} regions={regions} shippingRegion={shippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={displayCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={() => router.push(`/compare/${id}`)} onRemind={() => {}} />
+        <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={shippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={displayCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={() => router.push(`/compare/${id}`)} onRemind={() => {}} />
         <AlertSection productId={product.id} />
         <ReminderSection productId={product.id} distributorId={visibleListings[0]?.distributorId} productName={product.name} distributorName={visibleListings[0] ? getDistributorById(visibleListings[0].distributorId)?.name ?? "" : ""} />
       </ScrollView>

@@ -1,5 +1,14 @@
-import { memo, useState, useEffect, useMemo, useCallback } from "react";
-import { Text, View, TouchableOpacity, Image } from "react-native";
+import { memo, useState, useEffect, useMemo, useCallback, useRef } from "react";
+import {
+  Text,
+  View,
+  TouchableOpacity,
+  Image,
+  Pressable,
+  Animated,
+  Platform,
+} from "react-native";
+import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { Product, TagDefinition } from "@/lib/types";
 import { formatPrice, convertPrice, getBestPrice } from "@/lib/currency";
@@ -72,6 +81,9 @@ export const ProductCard = memo(function ProductCard({
   const handleTagPress = useCallback(
     (e: { stopPropagation: () => void }) => {
       e.stopPropagation();
+      if (Platform.OS !== "web") {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
       onTagPress();
     },
     [onTagPress],
@@ -79,12 +91,17 @@ export const ProductCard = memo(function ProductCard({
   const handleDeletePress = useCallback(
     (e: { stopPropagation: () => void }) => {
       e.stopPropagation();
+      if (Platform.OS !== "web") {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
       onDelete();
     },
     [onDelete],
   );
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const pressScale = useRef(new Animated.Value(1)).current;
+  const sparklineOpacity = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     let active = true;
     fetchProductImage(product.id).then((res) => {
@@ -95,22 +112,53 @@ export const ProductCard = memo(function ProductCard({
     };
   }, [product.id]);
 
+  useEffect(() => {
+    sparklineOpacity.setValue(0.55);
+    Animated.timing(sparklineOpacity, {
+      toValue: 1,
+      duration: 420,
+      useNativeDriver: true,
+    }).start();
+  }, [product.listings, sparklineOpacity]);
+
+  const handlePressIn = useCallback(() => {
+    Animated.spring(pressScale, {
+      toValue: 0.98,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 0,
+    }).start();
+  }, [pressScale]);
+  const handlePressOut = useCallback(() => {
+    Animated.spring(pressScale, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 22,
+      bounciness: 4,
+    }).start();
+  }, [pressScale]);
+
   return (
-    <TouchableOpacity
-      style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 12,
-        borderWidth: selectionMode ? 2 : 1,
-        borderColor: selected ? colors.primary : colors.border,
-      }}
+    <Pressable
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={350}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       accessibilityLabel={product.name}
       accessibilityRole="button"
     >
+      <Animated.View
+        style={{
+          backgroundColor: colors.surface,
+          borderRadius: 16,
+          padding: 16,
+          marginBottom: 12,
+          borderWidth: selectionMode ? 2 : 1,
+          borderColor: selected ? colors.primary : colors.border,
+          transform: [{ scale: pressScale }],
+        }}
+      >
       <View
         style={{
           flexDirection: "row",
@@ -168,15 +216,16 @@ export const ProductCard = memo(function ProductCard({
             </Text>
           )}
           {priceChange && (
-            <Text
+            <Animated.Text
               style={{
                 color: priceChange.isDown ? colors.success : colors.error,
                 fontSize: 11,
                 fontWeight: "600",
+                opacity: sparklineOpacity,
               }}
             >
               {priceChange.isDown ? "▼" : "▲"} {Math.abs(priceChange.pct).toFixed(1)}%
-            </Text>
+            </Animated.Text>
           )}
         </View>
       </View>
@@ -321,6 +370,7 @@ export const ProductCard = memo(function ProductCard({
         })()}
         <TouchableOpacity
           onPress={handleTagPress}
+          hitSlop={8}
           style={{ padding: 4, marginRight: 4 }}
           accessibilityLabel="Edit tags"
           accessibilityRole="button"
@@ -333,6 +383,7 @@ export const ProductCard = memo(function ProductCard({
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handleDeletePress}
+          hitSlop={8}
           style={{ padding: 4 }}
           accessibilityLabel="Delete product"
           accessibilityRole="button"
@@ -340,7 +391,8 @@ export const ProductCard = memo(function ProductCard({
           <IconSymbol name="trash.fill" size={16} color={colors.error} />
         </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+      </Animated.View>
+    </Pressable>
   );
 });
 ProductCard.displayName = "ProductCard";

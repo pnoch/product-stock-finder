@@ -33,16 +33,35 @@ export function EmptyState({
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        paddingTop: 80,
+        paddingTop: 60,
+        paddingHorizontal: 20,
       }}
     >
-      <IconSymbol name="list.bullet" size={48} color={colors.muted} />
+      <View
+        style={{
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          backgroundColor: colors.primary + "14",
+          alignItems: "center",
+          justifyContent: "center",
+          borderWidth: 1,
+          borderColor: colors.primary + "22",
+        }}
+      >
+        <IconSymbol
+          name={hasFilters ? "line.3.horizontal.decrease.circle" : "list.bullet"}
+          size={36}
+          color={hasFilters ? colors.muted : colors.primary}
+        />
+      </View>
       <Text
         style={{
           color: colors.foreground,
           fontWeight: "600",
           fontSize: 18,
           marginTop: 16,
+          textAlign: "center",
         }}
       >
         {hasFilters ? "No products match your filters" : "No products yet"}
@@ -53,12 +72,34 @@ export function EmptyState({
           fontSize: 14,
           textAlign: "center",
           marginTop: 8,
+          lineHeight: 20,
         }}
       >
         {hasFilters
-          ? "Try clearing your filters or adding products"
-          : "Add products to track their availability and prices globally"}
+          ? "Try adjusting your filters or search — or add a new product to track."
+          : "Add products to track their availability and prices globally across 25 distributors."}
       </Text>
+      {!hasFilters && (
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: 12,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            marginTop: 14,
+            borderWidth: 1,
+            borderColor: colors.border,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <IconSymbol name="lightbulb.fill" size={16} color={colors.warning} />
+          <Text style={{ color: colors.muted, fontSize: 12, flex: 1 }}>
+            Tip: Search for MikroTik CRS, Ubiquiti U7, RTX 4090, Pi 5, etc.
+          </Text>
+        </View>
+      )}
       {hasFilters ? (
         <TouchableOpacity
           style={{
@@ -94,7 +135,7 @@ export function EmptyState({
           accessibilityRole="button"
         >
           <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
-            Add Product
+            Browse Products
           </Text>
         </TouchableOpacity>
       )}

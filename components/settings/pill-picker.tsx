@@ -1,4 +1,5 @@
-import { Text, View, TouchableOpacity } from "react-native";
+import { Text, View, TouchableOpacity, Platform } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
@@ -59,7 +60,10 @@ export function PillPicker({
         {options.map((opt) => (
           <TouchableOpacity
             key={opt}
-            onPress={() => onSelect(opt)}
+            onPress={() => {
+              if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onSelect(opt);
+            }}
             style={{
               paddingHorizontal: 14,
               paddingVertical: 6,

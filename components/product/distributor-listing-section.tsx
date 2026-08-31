@@ -1,7 +1,9 @@
+import { useEffect, useRef } from "react";
 import {
   Text,
   View,
   TouchableOpacity,
+  Animated,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
@@ -20,6 +22,7 @@ interface DistributorListingSectionProps {
   bestInStockListing: DistributorListing | null;
   product: Product;
   insight: string | null;
+  insightLoading?: boolean;
   regionFilter: string;
   regions: string[];
   shippingRegion: string;
@@ -34,12 +37,43 @@ interface DistributorListingSectionProps {
   onRemind?: (listing: DistributorListing) => void;
 }
 
+function InsightSkeleton() {
+  const colors = useColors();
+  const shimmer = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmer, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(shimmer, { toValue: 0, duration: 800, useNativeDriver: true }),
+      ]),
+    ).start();
+  }, [shimmer]);
+  const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
+  return (
+    <Animated.View
+      style={{
+        opacity,
+        backgroundColor: colors.surface,
+        borderRadius: 16,
+        padding: 16,
+        marginTop: 12,
+      }}
+    >
+      <View style={{ height: 10, width: 72, borderRadius: 6, backgroundColor: colors.border }} />
+      <View style={{ height: 12, borderRadius: 6, backgroundColor: colors.border, marginTop: 10, width: "94%" }} />
+      <View style={{ height: 12, borderRadius: 6, backgroundColor: colors.border, marginTop: 8, width: "78%" }} />
+      <View style={{ height: 12, borderRadius: 6, backgroundColor: colors.border, marginTop: 8, width: "62%" }} />
+    </Animated.View>
+  );
+}
+
 export function DistributorListingSection({
   sortedListings,
   visibleListings,
   bestInStockListing,
   product,
   insight,
+  insightLoading,
   regionFilter,
   regions,
   shippingRegion,
@@ -125,7 +159,9 @@ export function DistributorListingSection({
               displayCurrency={displayCurrency}
             />
           )}
-          {insight && (
+          {insightLoading ? (
+            <InsightSkeleton />
+          ) : insight ? (
             <View
               style={{
                 backgroundColor: colors.surface,
@@ -156,7 +192,7 @@ export function DistributorListingSection({
                 {insight}
               </Text>
             </View>
-          )}
+          ) : null}
           {bestInStockListing && (
             <Text
               style={{

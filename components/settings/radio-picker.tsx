@@ -1,4 +1,5 @@
-import { Text, View, TouchableOpacity } from "react-native";
+import { Text, View, TouchableOpacity, Platform } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
@@ -52,7 +53,10 @@ export function RadioPicker({
         {options.map((opt) => (
           <TouchableOpacity
             key={opt.value}
-            onPress={() => onSelect(opt.value)}
+            onPress={() => {
+              if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onSelect(opt.value);
+            }}
             style={{
               flexDirection: "row",
               alignItems: "center",
