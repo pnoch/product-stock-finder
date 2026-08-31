@@ -54,21 +54,21 @@ describe("fx client", () => {
       JSON.stringify({ rates: { EUR: 0.9 }, fetchedAt: Date.now() }),
     );
     await loadFxRates();
-    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(90);
+    expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(90);
   });
 
   it("refreshFxRates fetches, persists, and applies live rates", async () => {
     mockQuery({ rates: { EUR: 0.88 }, fetchedAt: 2000 });
     await refreshFxRates();
     expect(JSON.parse(store.get("fx_rates")!).rates.EUR).toBe(0.88);
-    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(88);
+    expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(88);
   });
 
   it("refreshFxRates is a no-op when the fetch fails", async () => {
     mockQuery(new Error("network down"));
     await refreshFxRates();
     expect(store.has("fx_rates")).toBe(false);
-    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(92);
+    expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(92);
   });
 
   it("maybeRefreshFxRates skips when stored rates are fresh", async () => {
@@ -114,7 +114,7 @@ describe("fx client", () => {
     mockQuery({ rates: null, fetchedAt: Date.now() });
     await refreshFxRates();
     expect(store.has("fx_rates")).toBe(false);
-    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(92);
+    expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(92);
   });
 
   it("refreshFxRates keeps last-known rates when the server has no live rates", async () => {
@@ -126,7 +126,7 @@ describe("fx client", () => {
     mockQuery({ rates: { EUR: 0.92 }, fetchedAt: null });
     await refreshFxRates();
     expect(JSON.parse(store.get("fx_rates")!).rates.EUR).toBe(0.9);
-    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(90);
+    expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(90);
   });
 
   it("dedupes concurrent refreshFxRates calls into a single fetch", async () => {
@@ -135,6 +135,6 @@ describe("fx client", () => {
     await a;
     await b;
     expect(query).toHaveBeenCalledTimes(1);
-    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(88);
+    expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(88);
   });
 });

@@ -140,7 +140,7 @@ export function ProductCard({
               "USD",
             );
             const currentUsd = bestPrice.price;
-            if (oldestUsd <= 0) return null;
+            if (oldestUsd === null || oldestUsd <= 0) return null;
             const pct = ((currentUsd - oldestUsd) / oldestUsd) * 100;
             if (Math.abs(pct) < 0.5) return null;
             const isDown = pct < 0;

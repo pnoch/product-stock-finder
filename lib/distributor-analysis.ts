@@ -30,18 +30,20 @@ export function analyzeDistributors(
       );
       if (listings.length === 0) continue;
       // Use the cheapest in-stock listing for deterministic totals
-      const cheapest = listings.reduce((best, l) =>
-        convertPrice(l.price, l.currency, displayCurrency) <
-        convertPrice(best.price, best.currency, displayCurrency)
-          ? l
-          : best,
-      );
+      const cheapest = listings.reduce((best, l) => {
+        const cPrice = convertPrice(l.price, l.currency, displayCurrency);
+        const bPrice = convertPrice(best.price, best.currency, displayCurrency);
+        if (cPrice === null) return best;
+        if (bPrice === null) return l;
+        return cPrice < bPrice ? l : best;
+      });
       coverage++;
       const price = convertPrice(
         cheapest.price,
         cheapest.currency,
         displayCurrency,
       );
+      if (price === null) continue;
       totalCost += price + price * (cheapest.taxRate ?? 0);
     }
 

@@ -23,6 +23,7 @@ export function alertDeltaPct(
     listing.currency,
     alert.currency,
   );
+  if (converted === null) return null;
   return Math.round(((converted - alert.targetPrice) / alert.targetPrice) * 100);
 }
 

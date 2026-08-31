@@ -80,6 +80,7 @@ export function priceDropPercent(product: Product): number | null {
   let max = 0;
   for (const point of history) {
     const usd = convertPrice(point.price, point.currency, "USD");
+    if (usd === null) continue;
     if (usd > max) max = usd;
   }
   if (max <= 0) return null;

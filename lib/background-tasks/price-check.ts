@@ -143,8 +143,10 @@ export async function runPriceCheckCore(opts?: {
     // Find the best (cheapest) in-stock price converted to alert currency
     const bestPrice = inStockListings.reduce((best, l) => {
       const converted = convertPrice(l.price, l.currency, alert.currency);
+      if (converted === null) return best;
       return converted < best ? converted : best;
     }, Infinity);
+    if (!Number.isFinite(bestPrice)) continue;
 
     const isRise = alert.direction === "rise";
     const triggered = isRise

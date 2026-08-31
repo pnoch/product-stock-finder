@@ -87,7 +87,7 @@ describe("alertDeltaPct", () => {
     expect(pct).toBeGreaterThan(0);
     expect(pct).toBe(
       Math.round(
-        ((convertPrice(449, "GBP", "USD") - 500) / 500) * 100,
+        ((convertPrice(449, "GBP", "USD")! - 500) / 500) * 100,
       ),
     );
   });

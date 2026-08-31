@@ -30,12 +30,14 @@ export function findBestDeal(
       listing.currency,
       displayCurrency,
     );
+    if (price === null) continue;
     // Shipping is denominated in the distributor's native currency
     const shipping = convertPrice(
       shippingCost,
       distributor.currency,
       displayCurrency,
     );
+    if (shipping === null) continue;
     const tax = price * (listing.taxRate ?? 0);
     const total = price + tax + shipping;
 
@@ -57,6 +59,7 @@ export function findBestDeal(
     const fallback = findBestInStockListing(listings, displayCurrency);
     if (fallback) {
       const price = convertPrice(fallback.price, fallback.currency, displayCurrency);
+      if (price === null) return best;
       const tax = price * (fallback.taxRate ?? 0);
       return {
         distributorId: fallback.distributorId,
@@ -86,7 +89,7 @@ export function findBestInStockListing(
       listing.currency,
       targetCurrency,
     );
-    if (!Number.isFinite(converted)) continue;
+    if (converted === null || !Number.isFinite(converted)) continue;
     if (converted < bestPrice) {
       bestPrice = converted;
       best = listing;

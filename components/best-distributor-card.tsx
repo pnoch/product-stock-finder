@@ -49,10 +49,13 @@ function BestDistributorCard({
     const hist = listing.priceHistory;
     if (!hist || hist.length < 2) return false;
     // Convert all prices to USD for fair comparison
-    const historicalMin = Math.min(
-      ...hist.map((p) => convertPrice(p.price, p.currency, "USD")),
-    );
+    const historicalPrices = hist
+      .map((p) => convertPrice(p.price, p.currency, "USD"))
+      .filter((v): v is number => v !== null);
+    if (historicalPrices.length === 0) return false;
+    const historicalMin = Math.min(...historicalPrices);
     const currentUsd = convertPrice(listing.price, listing.currency, "USD");
+    if (currentUsd === null) return false;
     return currentUsd <= historicalMin;
   })();
 
@@ -198,16 +201,20 @@ function BestDistributorCard({
           >
             {formatPrice(listing.price, listing.currency)}
           </Text>
-          {listing.currency !== "USD" && (
+          {listing.currency !== "USD" && usdPrice !== null && (
             <Text style={{ color: colors.muted, fontSize: 12 }}>
               ≈ {formatPrice(usdPrice, "USD")}
             </Text>
           )}
-          {displayCurrency !== listing.currency && (
-            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
-              1 {listing.currency} = {convertPrice(1, listing.currency, displayCurrency).toFixed(4)} {displayCurrency}
-            </Text>
-          )}
+          {displayCurrency !== listing.currency &&
+            (() => {
+              const rate = convertPrice(1, listing.currency, displayCurrency);
+              return rate !== null ? (
+                <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
+                  1 {listing.currency} = {rate.toFixed(4)} {displayCurrency}
+                </Text>
+              ) : null;
+            })()}
         </View>
         <TouchableOpacity
           onPress={() => {

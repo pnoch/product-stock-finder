@@ -102,7 +102,7 @@ export function DistributorListingCard({
           >
             {formatPrice(listing.price, listing.currency)}
           </Text>
-          {listing.currency !== "USD" && (
+          {listing.currency !== "USD" && usdPrice !== null && (
             <Text style={{ color: colors.muted, fontSize: 12 }}>
               ≈ {formatPrice(usdPrice, "USD")}
             </Text>

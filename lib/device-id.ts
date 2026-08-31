@@ -5,10 +5,10 @@ const DEVICE_ID_KEY = "device_id";
 let pending: Promise<string> | null = null;
 
 export async function getDeviceId(): Promise<string> {
-  const existing = await AsyncStorage.getItem(DEVICE_ID_KEY);
-  if (existing) return existing;
   if (pending) return pending;
   pending = (async () => {
+    const existing = await AsyncStorage.getItem(DEVICE_ID_KEY);
+    if (existing) return existing;
     const id = generateId();
     await AsyncStorage.setItem(DEVICE_ID_KEY, id);
     return id;

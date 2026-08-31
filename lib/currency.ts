@@ -43,10 +43,11 @@ export function convertPrice(
   amount: number,
   fromCurrency: string,
   toCurrency: string,
-): number {
+): number | null {
   const rates = effectiveRates();
-  const fromRate = rates[fromCurrency] ?? 1;
-  const toRate = rates[toCurrency] ?? 1;
+  if (!(fromCurrency in rates) || !(toCurrency in rates)) return null;
+  const fromRate = rates[fromCurrency];
+  const toRate = rates[toCurrency];
   return (amount / fromRate) * toRate;
 }
 
@@ -68,10 +69,12 @@ export function getBestPrice(
     (l) => l.stockStatus !== "out_of_stock" && l.price > 0,
   );
   if (!available.length) return null;
-  const converted = available.map((l) => ({
-    price: convertPrice(l.price, l.currency, displayCurrency),
-    currency: displayCurrency,
-  }));
+  const converted = available
+    .map((l) => {
+      const price = convertPrice(l.price, l.currency, displayCurrency);
+      return price === null ? null : { price, currency: displayCurrency };
+    })
+    .filter((v): v is { price: number; currency: string } => v !== null);
   if (!converted.length) return null;
   return converted.reduce((best, curr) =>
     curr.price < best.price ? curr : best,

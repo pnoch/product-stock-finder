@@ -119,6 +119,7 @@ export default function CompareScreen() {
     let bestListing = inStock[0]!;
     for (const l of inStock) {
       const converted = convertPrice(l.price, l.currency, displayCurrency);
+      if (converted === null) continue;
       if (converted < bestPrice) {
         bestPrice = converted;
         bestListing = l;
@@ -177,11 +178,14 @@ export default function CompareScreen() {
   const sortedListings = useMemo(() => {
     const ls = [...listings];
     if (sortBy === "price")
-      return ls.sort(
-        (a, b) =>
-          convertPrice(a.price, a.currency, displayCurrency) -
-          convertPrice(b.price, b.currency, displayCurrency),
-      );
+      return ls.sort((a, b) => {
+        const pa = convertPrice(a.price, a.currency, displayCurrency);
+        const pb = convertPrice(b.price, b.currency, displayCurrency);
+        if (pa === null && pb === null) return 0;
+        if (pa === null) return 1;
+        if (pb === null) return -1;
+        return pa - pb;
+      });
     if (sortBy === "name")
       return ls.sort((a, b) =>
         (

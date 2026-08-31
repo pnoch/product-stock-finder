@@ -59,6 +59,7 @@ export async function buildEvents(
         snapshot.currency,
         alert.currency,
       );
+      if (converted === null) continue;
       if (bestPrice === null || converted < bestPrice) {
         bestPrice = converted;
         bestDistributor = distributorId;

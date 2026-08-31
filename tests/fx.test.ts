@@ -34,7 +34,7 @@ describe("fx service", () => {
     expect(result.rates.EUR).toBe(0.88);
     expect(result.rates.GBP).toBe(0.77);
     expect(result.rates.USD).toBe(1);
-    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(88);
+    expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(88);
   });
 
   it("returns a fresh cache without refetching", async () => {

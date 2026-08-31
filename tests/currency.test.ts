@@ -13,22 +13,22 @@ describe("convertPrice", () => {
 
   it("converts from USD to a target currency", () => {
     // 100 USD * 0.92 = 92 EUR
-    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(92);
+    expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(92);
   });
 
   it("converts from a source currency to USD", () => {
     // 100 MYR / 4.47 = ~22.37 USD
-    expect(convertPrice(100, "MYR", "USD")).toBeCloseTo(100 / 4.47);
+    expect(convertPrice(100, "MYR", "USD")!).toBeCloseTo(100 / 4.47);
   });
 
   it("round-trips through USD", () => {
-    const usd = convertPrice(250, "GBP", "USD");
-    expect(convertPrice(usd, "USD", "GBP")).toBeCloseTo(250);
+    const usd = convertPrice(250, "GBP", "USD")!;
+    expect(convertPrice(usd, "USD", "GBP")!).toBeCloseTo(250);
   });
 
-  it("treats unknown currencies as USD (rate 1)", () => {
-    expect(convertPrice(100, "XYZ", "USD")).toBe(100);
-    expect(convertPrice(100, "USD", "XYZ")).toBe(100);
+  it("returns null for unknown currencies", () => {
+    expect(convertPrice(100, "XYZ", "USD")).toBeNull();
+    expect(convertPrice(100, "USD", "XYZ")).toBeNull();
   });
 });
 
@@ -58,7 +58,7 @@ describe("getBestPrice", () => {
     expect(best).not.toBeNull();
     expect(best!.currency).toBe("USD");
     // 90 EUR -> ~97.8 USD, which is cheaper than 100 USD
-    expect(best!.price).toBeCloseTo(convertPrice(90, "EUR", "USD"));
+    expect(best!.price).toBeCloseTo(convertPrice(90, "EUR", "USD")!);
   });
 
   it("excludes out-of-stock listings", () => {
@@ -83,17 +83,17 @@ describe("live rates", () => {
 
   it("uses live rates when set", () => {
     setExchangeRates({ EUR: 0.9 });
-    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(90);
+    expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(90);
   });
 
   it("falls back to static rates for codes missing from the live set", () => {
     setExchangeRates({ EUR: 0.9 });
-    expect(convertPrice(100, "EUR", "GBP")).toBeCloseTo((100 / 0.9) * 0.79);
+    expect(convertPrice(100, "EUR", "GBP")!).toBeCloseTo((100 / 0.9) * 0.79);
   });
 
   it("restores static rates when cleared with null", () => {
     setExchangeRates({ EUR: 0.9 });
     setExchangeRates(null);
-    expect(convertPrice(100, "USD", "EUR")).toBeCloseTo(92);
+    expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(92);
   });
 });

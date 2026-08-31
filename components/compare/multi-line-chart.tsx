@@ -49,7 +49,8 @@ export function MultiLineChart({
     const allPrices: number[] = [];
     for (const s of series) {
       for (const p of s.data) {
-        allPrices.push(convertPrice(p.price, p.currency, displayCurrency));
+        const c = convertPrice(p.price, p.currency, displayCurrency);
+        if (c !== null) allPrices.push(c);
       }
     }
     if (allPrices.length === 0)
@@ -71,13 +72,16 @@ export function MultiLineChart({
       const sorted = [...s.data].sort(
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
       );
-      const coords = sorted.map((p) => {
-        const converted = convertPrice(p.price, p.currency, displayCurrency);
-        const x =
-          padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
-        const y = padT + (1 - (converted - globalMin) / range) * usableH;
-        return { x, y, price: p.price, converted, date: p.date };
-      });
+      const coords = sorted
+        .map((p) => {
+          const converted = convertPrice(p.price, p.currency, displayCurrency);
+          if (converted === null) return null;
+          const x =
+            padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
+          const y = padT + (1 - (converted - globalMin) / range) * usableH;
+          return { x, y, price: p.price, converted, date: p.date };
+        })
+        .filter((c): c is NonNullable<typeof c> => c !== null);
       return {
         ...s,
         coords,

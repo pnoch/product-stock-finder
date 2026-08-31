@@ -202,17 +202,19 @@ export function ProductInfoCard({
           (l) => l.stockStatus !== "out_of_stock" && l.price > 0,
         );
         if (!available.length) return null;
-        const bestListing = available.reduce((best, curr) =>
-          convertPrice(curr.price, curr.currency, displayCurrency) <
-          convertPrice(best.price, best.currency, displayCurrency)
-            ? curr
-            : best,
-        );
+        const bestListing = available.reduce((best, curr) => {
+          const cPrice = convertPrice(curr.price, curr.currency, displayCurrency);
+          const bPrice = convertPrice(best.price, best.currency, displayCurrency);
+          if (cPrice === null) return best;
+          if (bPrice === null) return curr;
+          return cPrice < bPrice ? curr : best;
+        });
         const convertedPrice = convertPrice(
           bestListing.price,
           bestListing.currency,
           displayCurrency,
         );
+        if (convertedPrice === null) return null;
         return (
           <View
             style={{
@@ -261,11 +263,15 @@ export function ProductInfoCard({
               >
                 {formatPrice(convertedPrice, displayCurrency)}
               </Text>
-              {bestListing.currency !== displayCurrency && (
-                <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
-                  1 {bestListing.currency} = {convertPrice(1, bestListing.currency, displayCurrency).toFixed(4)} {displayCurrency}
-                </Text>
-              )}
+              {bestListing.currency !== displayCurrency &&
+                (() => {
+                  const rate = convertPrice(1, bestListing.currency, displayCurrency);
+                  return rate !== null ? (
+                    <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
+                      1 {bestListing.currency} = {rate.toFixed(4)} {displayCurrency}
+                    </Text>
+                  ) : null;
+                })()}
             </View>
           </View>
         );

@@ -101,7 +101,7 @@ export function CurrentPricesTable({ listings, selected }: Props) {
               >
                 {formatPrice(l.price, l.currency)}
               </Text>
-              {l.currency !== "USD" && (
+              {l.currency !== "USD" && usd !== null && (
                 <Text style={{ color: colors.muted, fontSize: 11 }}>
                   ≈ ${usd.toFixed(2)}
                 </Text>

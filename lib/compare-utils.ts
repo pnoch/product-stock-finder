@@ -47,7 +47,7 @@ export function cheapestByRegion(
     if (!dist) continue;
     const region = dist.region ?? "Other";
     const usd = convertPrice(l.price, l.currency, "USD");
-    if (!Number.isFinite(usd)) continue;
+    if (usd === null || !Number.isFinite(usd)) continue;
     const existing = map.get(region);
     if (!existing || usd < existing.usd) {
       map.set(region, { listing: l, usd });

@@ -210,6 +210,7 @@ export function useAlertsData() {
         a.currency,
         "USD",
       );
+      if (savedUsd === null) return sum;
       return sum + savedUsd;
     }
     return sum;

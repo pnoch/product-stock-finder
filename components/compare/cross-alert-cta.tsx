@@ -17,9 +17,11 @@ export function CrossAlertCTA({
   const bestUSD = useMemo(() => {
     const inStock = listings.filter((l) => l.stockStatus === "in_stock");
     if (inStock.length === 0) return null;
-    return Math.min(
-      ...inStock.map((l) => convertPrice(l.price, l.currency, "USD")),
-    );
+    const vals = inStock
+      .map((l) => convertPrice(l.price, l.currency, "USD"))
+      .filter((v): v is number => v !== null);
+    if (vals.length === 0) return null;
+    return Math.min(...vals);
   }, [listings]);
 
   if (bestUSD === null) return null;
