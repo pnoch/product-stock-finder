@@ -83,6 +83,11 @@ const MAPPING = {
   "slider.horizontal.3": "tune",
   "wand.and.stars": "auto-fix-high",
   sparkles: "auto-awesome",
+  "chart.bar.fill": "bar-chart",
+  "envelope.fill": "mail",
+  "exclamationmark.circle.fill": "error",
+  "lightbulb.fill": "lightbulb",
+  "line.3.horizontal.decrease.circle": "filter-list",
 } as IconMapping;
 
 /**

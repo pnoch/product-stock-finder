@@ -23,7 +23,7 @@ export function ConnectionBadge({
   const c = CONFIG[status];
   const color = colors[c.color];
   return (
-    <TouchableOpacity
+    <TouchableOpacity activeOpacity={0.7}
       onPress={onPress}
       disabled={!onPress}
       style={{

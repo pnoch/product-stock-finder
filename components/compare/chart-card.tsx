@@ -59,7 +59,7 @@ export function ChartCard({
           {TIME_RANGES.map((r) => {
             const active = r === timeRange;
             return (
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.85}
                 key={r}
                 onPress={() => onRangeChange(r)}
                 style={{

@@ -38,7 +38,7 @@ export function RecentSearches({
           color={colors.muted}
         />
         <Text style={{ color: colors.muted, fontSize: 12 }}>Recent</Text>
-        <TouchableOpacity onPress={onClear} hitSlop={8} accessibilityLabel="Clear recent searches" accessibilityRole="button">
+        <TouchableOpacity activeOpacity={0.7} onPress={onClear} hitSlop={8} accessibilityLabel="Clear recent searches" accessibilityRole="button">
           <Text
             style={{
               color: colors.muted,
@@ -52,7 +52,7 @@ export function RecentSearches({
       </View>
       <View style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         {searches.map((s) => (
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             key={s}
             onPress={() => onSelect(s)}
             style={{

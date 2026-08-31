@@ -47,7 +47,7 @@ export function TagFilterRow({
         {tags.map((tag) => {
           const active = selectedTagIds.includes(tag.id);
           return (
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               key={tag.id}
               onPress={() => onToggleTag(tag.id)}
               style={{
@@ -99,7 +99,7 @@ export function TagFilterRow({
           {(["any", "all"] as const).map((mode) => {
             const active = tagMatchMode === mode;
             return (
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.85}
                 key={mode}
                 onPress={() => onChangeMode(mode)}
                 style={{
@@ -126,14 +126,14 @@ export function TagFilterRow({
         </View>
       )}
       {hasSelection && (
-        <TouchableOpacity onPress={onClearAll} style={{ padding: 4 }} accessibilityLabel="Clear tag filter" accessibilityRole="button">
+        <TouchableOpacity activeOpacity={0.7} onPress={onClearAll} style={{ padding: 4 }} accessibilityLabel="Clear tag filter" accessibilityRole="button">
           <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600" }}>
             Clear
           </Text>
         </TouchableOpacity>
       )}
       {onManage && (
-        <TouchableOpacity onPress={onManage} style={{ padding: 4 }} accessibilityLabel="Manage tags" accessibilityRole="button">
+        <TouchableOpacity activeOpacity={0.7} onPress={onManage} style={{ padding: 4 }} accessibilityLabel="Manage tags" accessibilityRole="button">
           <IconSymbol name="slider.horizontal.3" size={18} color={colors.muted} />
         </TouchableOpacity>
       )}

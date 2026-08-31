@@ -67,7 +67,7 @@ export function PriceChartModal({
             >
               Price History 📈
             </Text>
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
               onPress={onClose}
               style={{ padding: 4 }}
               accessibilityLabel="Close chart"

@@ -58,7 +58,7 @@ export function PillPicker({
         }}
       >
         {options.map((opt) => (
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.85}
             key={opt}
             onPress={() => {
               if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

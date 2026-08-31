@@ -107,7 +107,7 @@ export default function HealthScreen() {
   return (
     <ScreenContainer>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           accessibilityLabel="Go back"
           accessibilityRole="button"
           onPress={() => router.back()}
@@ -130,7 +130,7 @@ export default function HealthScreen() {
         }}
       >
         {(["all", "working", "blocked", "error"] as const).map((f) => (
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.85}
             key={f}
             accessibilityLabel={`Filter by ${f}`}
             accessibilityRole="button"
@@ -158,7 +158,7 @@ export default function HealthScreen() {
         ))}
       </View>
 
-      <TouchableOpacity
+      <TouchableOpacity activeOpacity={0.85}
         accessibilityLabel="Test All Distributors"
         accessibilityRole="button"
         onPress={runTest}
@@ -212,7 +212,7 @@ export default function HealthScreen() {
           const distributor = getDistributorById(h.distributorId);
           if (!distributor) return null;
           return (
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
               key={h.distributorId}
               accessibilityLabel={`${distributor.name}, ${h.status}`}
               accessibilityRole="button"

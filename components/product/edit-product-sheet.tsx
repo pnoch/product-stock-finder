@@ -113,7 +113,7 @@ export function EditProductSheet({
             >
               Edit Product ✏️
             </Text>
-            <TouchableOpacity onPress={onClose} style={{ padding: 4 }} accessibilityLabel="Close" accessibilityRole="button">
+            <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={{ padding: 4 }} accessibilityLabel="Close" accessibilityRole="button">
               <IconSymbol
                 name="xmark.circle.fill"
                 size={24}
@@ -171,7 +171,7 @@ export function EditProductSheet({
                 textAlignVertical: "top",
               }}
             />
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={handleSave}
               disabled={!canSave}
               style={{
@@ -183,6 +183,7 @@ export function EditProductSheet({
                 justifyContent: "center",
                 gap: 8,
                 marginBottom: 12,
+                opacity: canSave ? 1 : 0.5,
               }}
               accessibilityLabel="Save changes"
               accessibilityRole="button"

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, View, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -35,6 +36,7 @@ import { SectionHeader } from "@/components/settings/section-header";
 
 export default function SettingsScreen() {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const { configured } = useServerConfig();
   const [settings, setSettings] = useState<AppSettings>({
     theme: "auto",
@@ -209,7 +211,7 @@ export default function SettingsScreen() {
 
   return (
     <ScreenContainer>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}>
         <View className="px-5 pt-4 pb-2">
           <Text className="text-2xl font-bold text-foreground">Settings</Text>
         </View>

@@ -8,6 +8,7 @@ import {
   Platform,
   TouchableOpacity,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { showAlert } from "@/lib/alert";
@@ -59,6 +60,7 @@ import { SkeletonList } from "@/components/ui/skeleton";
 export default function WatchlistScreen() {
   const router = useRouter();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const {
     products: watchlist,
     loaded,
@@ -270,11 +272,23 @@ export default function WatchlistScreen() {
 
   const handleSwipeDelete = useCallback(
     async (product: Product) => {
-      if (Platform.OS !== "web")
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      await removeFromWatchlist(product.id);
-      await reload();
-      showUndoBar(product);
+      const doDelete = async () => {
+        if (Platform.OS !== "web")
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        await removeFromWatchlist(product.id);
+        await reload();
+        showUndoBar(product);
+      };
+      if (Platform.OS === "web") {
+        if (typeof window !== "undefined" && window.confirm(`Remove "${product.name}" from your watchlist?`)) {
+          void doDelete();
+        }
+        return;
+      }
+      Alert.alert("Remove Product", `Remove "${product.name}" from your watchlist?`, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Remove", style: "destructive", onPress: doDelete },
+      ]);
     },
     [reload, showUndoBar],
   );
@@ -445,7 +459,7 @@ export default function WatchlistScreen() {
         onManage={() => setManageVisible(true)}
       />
 
-      <SectionList
+      <SectionList showsVerticalScrollIndicator={true}
         sections={sections.map((s) => ({ ...s, data: s.products }))}
         keyExtractor={(item) => item.id}
         initialNumToRender={10}
@@ -510,7 +524,13 @@ export default function WatchlistScreen() {
                 />
               )}
               <Text
-                style={{ color: colors.foreground, fontWeight: "700", fontSize: 14 }}
+                style={{
+                  color: colors.muted,
+                  fontWeight: "600",
+                  fontSize: 12,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.8,
+                }}
               >
                 {section.title}
               </Text>
@@ -584,7 +604,7 @@ export default function WatchlistScreen() {
             position: "absolute",
             left: 16,
             right: 16,
-            bottom: 16,
+            bottom: 16 + insets.bottom,
             backgroundColor: colors.foreground,
             borderRadius: 14,
             paddingHorizontal: 16,
@@ -605,7 +625,7 @@ export default function WatchlistScreen() {
           >
             Removed {undoProduct.name}
           </Text>
-          <TouchableOpacity onPress={handleUndo} accessibilityLabel="Undo remove" accessibilityRole="button">
+          <TouchableOpacity activeOpacity={0.7} onPress={handleUndo} accessibilityLabel="Undo remove" accessibilityRole="button">
             <Text
               style={{
                 color: colors.primary,

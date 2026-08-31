@@ -51,7 +51,7 @@ export function RadioPicker({
       </View>
       <View style={{ paddingLeft: 48, gap: 8 }}>
         {options.map((opt) => (
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             key={opt.value}
             onPress={() => {
               if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

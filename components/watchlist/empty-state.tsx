@@ -101,7 +101,7 @@ export function EmptyState({
         </View>
       )}
       {hasFilters ? (
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           style={{
             backgroundColor: colors.primary,
             borderRadius: 20,
@@ -118,7 +118,7 @@ export function EmptyState({
           </Text>
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           style={{
             backgroundColor: colors.primary,
             borderRadius: 20,

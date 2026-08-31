@@ -42,7 +42,7 @@ export function TabSwitcher({ active, counts, onChange }: TabSwitcherProps) {
       }}
     >
       {TABS.map((tab) => (
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           key={tab}
           onPress={() => {
             if (Platform.OS !== "web")

@@ -103,7 +103,7 @@ export const MoversCard = memo(function MoversCard({
         <Text style={{ color: colors.muted, fontSize: 13 }}>Biggest Movers</Text>
         <View style={{ flexDirection: "row", gap: 4 }}>
           {WINDOWS.map((w) => (
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               key={w.label}
               onPress={() => handleDaysChange(w.value)}
               style={{

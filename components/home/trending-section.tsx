@@ -69,7 +69,7 @@ const TrendingProductRow = memo(function TrendingProductRow({
     [onAdd, product],
   );
   return (
-    <TouchableOpacity
+    <TouchableOpacity activeOpacity={0.7}
       onPress={handlePress}
       style={{
         backgroundColor: colors.surface,
@@ -138,7 +138,7 @@ const TrendingProductRow = memo(function TrendingProductRow({
             {product.reason}
           </Text>
         </View>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           onPress={handleAddPress}
           disabled={isInWatchlist}
           style={{

@@ -58,7 +58,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
               placeholder="sk-..."
               placeholderTextColor={colors.muted}
             />
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={() => setShowApiKey(!showApiKey)}
               style={{ marginLeft: 8, padding: 8 }}
             >
@@ -112,7 +112,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
               placeholder="ollama_..."
               placeholderTextColor={colors.muted}
             />
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={() => setShowApiKey(!showApiKey)}
               style={{ marginLeft: 8, padding: 8 }}
             >

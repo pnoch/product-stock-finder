@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { Stack, useLocalSearchParams, router } from "expo-router";
 import { ScrollView, Text, View, TouchableOpacity } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { DetailHeader } from "@/components/product/detail-header";
@@ -26,6 +27,7 @@ import { useToast } from "@/components/ui/toast";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export default function ProductDetailScreen() {
+  const insets = useSafeAreaInsets();
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const colors = useColors();
@@ -149,7 +151,7 @@ export default function ProductDetailScreen() {
   if (!loaded) {
     return (
       <ScreenContainer>
-        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}>
           <SkeletonDetailHeader />
           <View style={{ marginTop: 16 }}>
             <SkeletonCard />
@@ -182,7 +184,7 @@ export default function ProductDetailScreen() {
           <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
             We couldn&apos;t find this product. It may have been removed or the link is invalid.
           </Text>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.85}
             onPress={() => refresh()}
             accessibilityLabel="Try again"
             accessibilityRole="button"
@@ -190,7 +192,7 @@ export default function ProductDetailScreen() {
           >
             <Text style={{ color: "#fff", fontWeight: "600" }}>Try Again</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button" style={{ marginTop: 12, padding: 8 }}>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button" style={{ marginTop: 12, padding: 8 }}>
             <Text style={{ color: colors.primary, fontWeight: "600" }}>Go back</Text>
           </TouchableOpacity>
         </View>

@@ -205,7 +205,7 @@ export function ManualAddSheet({
             >
               Add Custom Product ✨
             </Text>
-            <TouchableOpacity onPress={handleClose} style={{ padding: 4 }} accessibilityLabel="Close" accessibilityRole="button">
+            <TouchableOpacity activeOpacity={0.7} onPress={handleClose} style={{ padding: 4 }} accessibilityLabel="Close" accessibilityRole="button">
               <IconSymbol
                 name="xmark.circle.fill"
                 size={24}
@@ -237,7 +237,7 @@ export function ManualAddSheet({
                   textAlignVertical: "top",
                 }}
               />
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.85}
                 onPress={handleParse}
                 disabled={parsing || raw.trim().length === 0}
                 style={{
@@ -245,6 +245,7 @@ export function ManualAddSheet({
                     raw.trim().length > 0 && !parsing
                       ? colors.primary
                       : colors.border,
+                  opacity: parsing || raw.trim().length === 0 ? 0.5 : 1,
                   borderRadius: 14,
                   paddingVertical: 14,
                   alignItems: "center",
@@ -339,12 +340,13 @@ export function ManualAddSheet({
                   {progress}
                 </Text>
               )}
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.85}
                 onPress={handleAdd}
                 disabled={!canAdd || adding}
                 style={{
                   backgroundColor:
                     canAdd && !adding ? colors.primary : colors.border,
+                  opacity: !canAdd || adding ? 0.5 : 1,
                   borderRadius: 14,
                   paddingVertical: 14,
                   alignItems: "center",
@@ -373,10 +375,10 @@ export function ManualAddSheet({
                   </>
                 )}
               </TouchableOpacity>
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.7}
                 onPress={() => setDraft(null)}
                 disabled={parsing || adding}
-                style={{ alignItems: "center", paddingVertical: 6 }}
+                style={{ alignItems: "center", paddingVertical: 6, opacity: parsing || adding ? 0.5 : 1 }}
                 accessibilityLabel="Back to paste"
                 accessibilityRole="button"
               >

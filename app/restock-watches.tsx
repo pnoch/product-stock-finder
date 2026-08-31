@@ -59,7 +59,7 @@ export default function RestockWatchesScreen() {
   return (
     <ScreenContainer>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           accessibilityLabel="Go back"
           accessibilityRole="button"
           onPress={() => router.back()}
@@ -102,7 +102,7 @@ export default function RestockWatchesScreen() {
               <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
                 Open a product and tap &quot;Watch for Restock&quot; to get notified when it&apos;s back in stock.
               </Text>
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.85}
                 onPress={() => router.push("/search")}
                 accessibilityLabel="Browse products"
                 accessibilityRole="button"
@@ -150,7 +150,7 @@ export default function RestockWatchesScreen() {
                         "Unknown"}
                     </Text>
                   </View>
-                  <TouchableOpacity
+                  <TouchableOpacity activeOpacity={0.7}
                     accessibilityLabel={`Remove ${watch.productName} restock watch`}
                     accessibilityRole="button"
                     onPress={() => handleRemove(watch.id)}

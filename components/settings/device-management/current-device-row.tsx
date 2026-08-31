@@ -45,7 +45,7 @@ export function CurrentDeviceRow({
         bindingAction ? (
           <ActivityIndicator size="small" color={colors.primary} />
         ) : binding && binding.userId !== userId ? (
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.85}
             onPress={onBind}
             style={{
               paddingHorizontal: 12,

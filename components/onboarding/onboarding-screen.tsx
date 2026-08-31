@@ -57,7 +57,7 @@ export function OnboardingScreen({
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <TouchableOpacity
+      <TouchableOpacity activeOpacity={0.7}
         onPress={() => void finish()}
         style={{
           position: "absolute",
@@ -139,7 +139,7 @@ export function OnboardingScreen({
         ))}
       </View>
 
-      <TouchableOpacity
+      <TouchableOpacity activeOpacity={0.85}
         onPress={goNext}
         style={{
           marginHorizontal: 32,

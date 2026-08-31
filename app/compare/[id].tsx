@@ -233,7 +233,7 @@ export default function CompareScreen() {
   return (
     <ScreenContainer>
       {!loaded ? (
-        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 40 }}>
           <SkeletonChart />
           <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
             <SkeletonList count={3} />
@@ -275,7 +275,7 @@ export default function CompareScreen() {
           <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
             We couldn&apos;t find this product — check the link or browse your watchlist.
           </Text>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.85}
             onPress={() => refresh()}
             accessibilityLabel="Try again"
             accessibilityRole="button"
@@ -283,7 +283,7 @@ export default function CompareScreen() {
           >
             <Text style={{ color: "#fff", fontWeight: "600" }}>Try Again</Text>
           </TouchableOpacity>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={() => router.back()}
             accessibilityLabel="Go back"
             accessibilityRole="button"
@@ -295,7 +295,7 @@ export default function CompareScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 40 }}>
           {/* Header */}
           <CompareHeader
             productName={productName}

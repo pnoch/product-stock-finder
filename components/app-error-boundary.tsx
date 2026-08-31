@@ -23,8 +23,8 @@ export class AppErrorBoundary extends React.Component<{ children: React.ReactNod
             {this.state.message}
           </Text>
         ) : null}
-        <TouchableOpacity onPress={() => this.setState({ hasError: false, message: "" })} style={{ marginTop: 20, backgroundColor: "#0F52BA", borderRadius: 20, paddingHorizontal: 24, paddingVertical: 12 }} accessibilityLabel="Try Again" accessibilityRole="button"><Text style={{ color: "#fff", fontWeight: "600" }}>Try Again</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => router.replace("/(tabs)")} style={{ marginTop: 10, borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 20, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: "#fff" }} accessibilityLabel="Go Home" accessibilityRole="button"><Text style={{ color: "#0F52BA", fontWeight: "600" }}>Go Home</Text></TouchableOpacity>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => this.setState({ hasError: false, message: "" })} style={{ marginTop: 20, backgroundColor: "#0F52BA", borderRadius: 20, paddingHorizontal: 24, paddingVertical: 12 }} accessibilityLabel="Try Again" accessibilityRole="button"><Text style={{ color: "#fff", fontWeight: "600" }}>Try Again</Text></TouchableOpacity>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => router.replace("/(tabs)")} style={{ marginTop: 10, borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 20, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: "#fff" }} accessibilityLabel="Go Home" accessibilityRole="button"><Text style={{ color: "#0F52BA", fontWeight: "600" }}>Go Home</Text></TouchableOpacity>
       </View>
     );
   }

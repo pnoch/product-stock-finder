@@ -39,7 +39,7 @@ export function ConnectionSection() {
           }}
         >
           <ConnectionBadge status={connection.status} />
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             disabled={connection.isRefreshing}
             onPress={() => {
               if (Platform.OS !== "web")

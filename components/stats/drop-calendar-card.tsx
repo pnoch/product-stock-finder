@@ -118,7 +118,7 @@ export const DropCalendarCard = memo(function DropCalendarCard({
               style={{ width: 34, height: 34, marginBottom: 4 }}
             />
           ) : (
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
               key={ts}
               onPress={() => handleSelect(ts)}
               style={cellStyle(ts)}

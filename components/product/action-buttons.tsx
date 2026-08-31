@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Platform,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -30,6 +31,7 @@ export function ActionButtons({
   onCompare,
 }: ActionButtonsProps) {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
 
   return (
     <>
@@ -42,7 +44,7 @@ export function ActionButtons({
           marginBottom: 20,
         }}
       >
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           onPress={() => {
             if (Platform.OS !== "web")
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -66,9 +68,10 @@ export function ActionButtons({
             Set Price Alert
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           disabled={isRefreshingAny}
           onPress={async () => {
+            if (isRefreshingAny) return;
             if (Platform.OS !== "web")
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             const ok = await onRefresh();
@@ -89,6 +92,7 @@ export function ActionButtons({
             borderColor: colors.border,
             flexDirection: "row",
             gap: 6,
+            opacity: isRefreshingAny ? 0.5 : 1,
           }}
           accessibilityLabel="Refresh prices"
           accessibilityRole="button"
@@ -115,9 +119,9 @@ export function ActionButtons({
       </View>
 
       {/* Secondary Action Buttons + Compare */}
-      <View style={{ paddingHorizontal: 16 }}>
+      <View style={{ paddingHorizontal: 16, paddingBottom: Math.max(insets.bottom, 12) }}>
         <View style={{ flexDirection: "row", marginBottom: 16, gap: 10 }}>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={onShare}
             style={{
               flex: 1,
@@ -149,7 +153,7 @@ export function ActionButtons({
               Share
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={onTestStockNotification}
             style={{
               flex: 1,
@@ -181,7 +185,7 @@ export function ActionButtons({
               Test Stock Alert
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={onCopyLink}
             style={{
               backgroundColor: colors.surface,
@@ -215,7 +219,7 @@ export function ActionButtons({
           </TouchableOpacity>
         </View>
         {/* Compare button */}
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           onPress={() => {
             if (Platform.OS !== "web")
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

@@ -368,7 +368,7 @@ export const ProductCard = memo(function ProductCard({
             </Text>
           );
         })()}
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           onPress={handleTagPress}
           hitSlop={8}
           style={{ padding: 4, marginRight: 4 }}
@@ -381,7 +381,7 @@ export const ProductCard = memo(function ProductCard({
             color={(product.tags?.length ?? 0) > 0 ? colors.primary : colors.muted}
           />
         </TouchableOpacity>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           onPress={handleDeletePress}
           hitSlop={8}
           style={{ padding: 4 }}

@@ -108,11 +108,14 @@ export function CurrentPricesTable({ listings, selected }: Props) {
               )}
               <View
                 style={{
-                  backgroundColor: isPositive
-                    ? colors.success + "22"
-                    : isUnknown
-                      ? colors.muted + "22"
-                      : colors.warning + "22",
+                  backgroundColor:
+                    l.stockStatus === "in_stock"
+                      ? colors.success + "22"
+                      : l.stockStatus === "back_order"
+                        ? colors.warning + "22"
+                        : l.stockStatus === "out_of_stock"
+                          ? colors.error + "22"
+                          : colors.muted + "22",
                   borderRadius: 8,
                   paddingHorizontal: 7,
                   paddingVertical: 2,
@@ -121,11 +124,14 @@ export function CurrentPricesTable({ listings, selected }: Props) {
               >
                 <Text
                   style={{
-                    color: isPositive
-                      ? colors.success
-                      : isUnknown
-                        ? colors.muted
-                        : colors.warning,
+                    color:
+                      l.stockStatus === "in_stock"
+                        ? colors.success
+                        : l.stockStatus === "back_order"
+                          ? colors.warning
+                          : l.stockStatus === "out_of_stock"
+                            ? colors.error
+                            : colors.muted,
                     fontSize: 10,
                     fontWeight: "600",
                   }}

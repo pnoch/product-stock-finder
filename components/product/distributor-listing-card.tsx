@@ -94,7 +94,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
           <Text
             style={{
               color: colors.foreground,
-              fontWeight: "600",
+              fontWeight: "700",
               fontSize: 15,
             }}
           >
@@ -170,7 +170,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
                 />
               </TouchableOpacity>
             )}
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.85}
             onPress={handleVisit}
             style={{
               backgroundColor: colors.primary + "22",
@@ -234,7 +234,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
       {/* Watch for Restock button on back-order or out-of-stock cards */}
       {(listing.stockStatus === "back_order" || listing.stockStatus === "out_of_stock") && (
         <View style={{ gap: 8, marginTop: 10 }}>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={handleToggleWatch}
             style={{
               flexDirection: "row",
@@ -269,7 +269,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
             </Text>
           </TouchableOpacity>
           {onRemind && (
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={handleRemind}
               style={{
                 flexDirection: "row",

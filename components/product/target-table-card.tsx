@@ -92,7 +92,7 @@ export function TargetTableCard({
                 {deltaPct}%
               </Text>
             ) : (
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.85}
                 onPress={() => onSetTarget(listing.distributorId)}
                 style={{
                   width: 26,

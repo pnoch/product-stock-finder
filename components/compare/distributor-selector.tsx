@@ -67,7 +67,7 @@ export const DistributorSelector = memo(function DistributorSelector({
         </Text>
         <View style={{ flexDirection: "row", gap: 4 }}>
           {(["trend", "price", "name"] as SortBy[]).map((s) => (
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               key={s}
               onPress={() => handleSort(s)}
               style={{
@@ -108,7 +108,7 @@ export const DistributorSelector = memo(function DistributorSelector({
           : colors.border;
         const trend = priceTrends.get(l.distributorId);
         return (
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             key={l.distributorId}
             onPress={() => handleToggle(l.distributorId)}
             disabled={!hasHistory && !isSelected}
@@ -194,7 +194,11 @@ export const DistributorSelector = memo(function DistributorSelector({
                   backgroundColor:
                     l.stockStatus === "in_stock"
                       ? colors.success + "22"
-                      : colors.warning + "22",
+                      : l.stockStatus === "back_order"
+                        ? colors.warning + "22"
+                        : l.stockStatus === "out_of_stock"
+                          ? colors.error + "22"
+                          : colors.muted + "22",
                   borderRadius: 8,
                   paddingHorizontal: 7,
                   paddingVertical: 2,
@@ -206,7 +210,11 @@ export const DistributorSelector = memo(function DistributorSelector({
                     color:
                       l.stockStatus === "in_stock"
                         ? colors.success
-                        : colors.warning,
+                        : l.stockStatus === "back_order"
+                          ? colors.warning
+                          : l.stockStatus === "out_of_stock"
+                            ? colors.error
+                            : colors.muted,
                     fontSize: 10,
                     fontWeight: "600",
                   }}

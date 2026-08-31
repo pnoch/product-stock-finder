@@ -179,7 +179,7 @@ export default function SearchScreen() {
           gap: 12,
         }}
       >
-        <TouchableOpacity onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button" style={{ padding: 4 }}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button" style={{ padding: 4 }}>
           <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
         </TouchableOpacity>
         <Text
@@ -192,7 +192,7 @@ export default function SearchScreen() {
         >
           Add Product
         </Text>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           accessibilityLabel="Add product manually"
           accessibilityRole="button"
           onPress={() => {
@@ -204,7 +204,7 @@ export default function SearchScreen() {
         >
           <IconSymbol name="wand.and.stars" size={22} color={colors.primary} />
         </TouchableOpacity>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           accessibilityLabel="Bulk import products"
           accessibilityRole="button"
           onPress={() => {
@@ -255,7 +255,7 @@ export default function SearchScreen() {
       )}
 
       {/* Results */}
-      <FlatList
+      <FlatList showsVerticalScrollIndicator={true}
         data={tagFilteredResults}
         keyExtractor={(item) => item.id}
         initialNumToRender={20}
@@ -284,7 +284,7 @@ export default function SearchScreen() {
           <View>
             <SearchEmptyState query={query} selectedTagIds={selectedTagIds} />
             {query.trim().length > 0 && !discovering && (
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.85}
                 accessibilityLabel="Discover with AI"
                 accessibilityRole="button"
                 onPress={handleDiscover}

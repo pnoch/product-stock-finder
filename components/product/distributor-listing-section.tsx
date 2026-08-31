@@ -95,7 +95,7 @@ export function DistributorListingSection({
         style={{
           color: colors.foreground,
           fontWeight: "700",
-          fontSize: 16,
+          fontSize: 15,
           marginBottom: 12,
         }}
       >
@@ -130,7 +130,7 @@ export function DistributorListingSection({
           <Text style={{ color: colors.muted, fontSize: 14 }}>
             No distributors in {regionFilter}.
           </Text>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.85}
             onPress={() => onSetRegionFilter("all")}
             style={{
               marginTop: 12,
@@ -216,7 +216,7 @@ export function DistributorListingSection({
             }}
           >
             {["all", ...regions].map((region) => (
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.85}
                 key={region}
                 onPress={() => onSetRegionFilter(region)}
                 style={{

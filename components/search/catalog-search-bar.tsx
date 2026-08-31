@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { View, TouchableOpacity, TextInput, Keyboard } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -14,6 +15,7 @@ export function CatalogSearchBar({
   onSearchSubmit,
 }: CatalogSearchBarProps) {
   const colors = useColors();
+  const [focused, setFocused] = useState(false);
 
   return (
     <View
@@ -25,7 +27,7 @@ export function CatalogSearchBar({
         backgroundColor: colors.surface,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: focused ? colors.primary : colors.border,
         paddingHorizontal: 12,
         paddingVertical: 10,
         gap: 8,
@@ -40,13 +42,15 @@ export function CatalogSearchBar({
         style={{ flex: 1, color: colors.foreground, fontSize: 15 }}
         autoFocus
         returnKeyType="search"
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         onSubmitEditing={() => {
           Keyboard.dismiss();
           onSearchSubmit?.(query.trim());
         }}
       />
       {query.length > 0 && (
-        <TouchableOpacity onPress={() => onQueryChange("")} accessibilityLabel="Clear search" accessibilityRole="button">
+        <TouchableOpacity activeOpacity={0.7} onPress={() => onQueryChange("")} accessibilityLabel="Clear search" accessibilityRole="button">
           <IconSymbol
             name="xmark.circle.fill"
             size={18}

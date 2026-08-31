@@ -144,7 +144,7 @@ export function TagPickerSheet({
             {tags.map((tag) => {
               const active = selected.includes(tag.id);
               return (
-                <TouchableOpacity
+                <TouchableOpacity activeOpacity={0.7}
                   key={tag.id}
                   onPress={() => void toggleTag(tag.id)}
                   style={{
@@ -212,7 +212,7 @@ export function TagPickerSheet({
                 {error}
               </Text>
             )}
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={() => void handleCreate()}
               disabled={!newTagName.trim()}
               style={{
@@ -231,7 +231,7 @@ export function TagPickerSheet({
               </Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={() => {
               if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               if (onApply) onApply(selectedRef.current);

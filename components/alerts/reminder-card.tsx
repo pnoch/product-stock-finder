@@ -111,7 +111,7 @@ export function ReminderCard({
               </Text>
             </View>
           )}
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={() => {
               if (Platform.OS !== "web")
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -123,7 +123,7 @@ export function ReminderCard({
           >
             <IconSymbol name="pencil" size={16} color={colors.primary} />
           </TouchableOpacity>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={() => onDelete(reminder)}
             style={{ padding: 4 }}
             accessibilityLabel={`Delete reminder for ${reminder.productName}`}

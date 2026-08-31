@@ -164,7 +164,7 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer>
-      <ScrollView
+      <ScrollView showsVerticalScrollIndicator={true}
         contentContainerStyle={{ paddingBottom: 24 }}
         refreshControl={
           <RefreshControl
@@ -193,7 +193,7 @@ export default function HomeScreen() {
                   : undefined
               }
             />
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               accessibilityLabel="Add product"
               accessibilityRole="button"
               style={{
@@ -350,7 +350,7 @@ export default function HomeScreen() {
                   Try: RTX 4090, Pi 5, CRS326, or U7 Pro Max
                 </Text>
               </View>
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.85}
                 accessibilityLabel="Add product"
                 accessibilityRole="button"
                 style={{
@@ -373,7 +373,7 @@ export default function HomeScreen() {
             </View>
           ) : (
             recentActivity.map(({ product, listing }, idx) => (
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.7}
                 key={`${product.id}-${listing.distributorId}-${idx}`}
                 accessibilityLabel={`${product.name}, ${formatPrice(listing.price, listing.currency)}`}
                 accessibilityRole="button"
@@ -472,7 +472,7 @@ export default function HomeScreen() {
               );
               const bestStatus = getBestStatus(product);
               return (
-                <TouchableOpacity
+                <TouchableOpacity activeOpacity={0.7}
                   key={product.id}
                   accessibilityLabel={`${product.name}, ${bestPrice ? formatPrice(bestPrice.price, bestPrice.currency) : "no price"}`}
                   accessibilityRole="button"
@@ -529,7 +529,7 @@ export default function HomeScreen() {
               );
             })}
             {watchlist.length > 3 && (
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.7}
                 onPress={() => router.push("/watchlist")}
                 accessibilityLabel={`View all ${watchlist.length} products`}
                 accessibilityRole="button"

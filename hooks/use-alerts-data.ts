@@ -77,10 +77,19 @@ export function useAlertsData() {
 
   const handleDeleteAlert = useCallback(
     async (alertId: string) => {
-      if (Platform.OS !== "web")
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await removeAlert(alertId);
-      await loadData();
+      showAlert("Delete Alert", "Remove this price alert? This cannot be undone.", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            if (Platform.OS !== "web")
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            await removeAlert(alertId);
+            await loadData();
+          },
+        },
+      ]);
     },
     [loadData],
   );

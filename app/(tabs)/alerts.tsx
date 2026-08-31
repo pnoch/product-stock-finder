@@ -100,7 +100,7 @@ export default function AlertsScreen() {
           >
             Alerts & Reminders
           </Text>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.85}
             accessibilityLabel="Restock Watches"
             accessibilityRole="button"
             onPress={() => {
@@ -131,7 +131,7 @@ export default function AlertsScreen() {
 
       {/* Alerts Tab */}
       {activeTab === "alerts" && (
-        <FlatList
+        <FlatList showsVerticalScrollIndicator={true}
           data={alerts}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{
@@ -307,7 +307,7 @@ export default function AlertsScreen() {
 
       {/* Reminders Tab */}
       {activeTab === "reminders" && (
-        <FlatList
+        <FlatList showsVerticalScrollIndicator={true}
           data={reminders}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{

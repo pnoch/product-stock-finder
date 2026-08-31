@@ -31,7 +31,7 @@ export function AboutSection() {
             </Text>
           }
         />
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           onPress={() =>
             Linking.openURL(
               "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
@@ -52,7 +52,7 @@ export function AboutSection() {
             }
           />
         </TouchableOpacity>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           onPress={() =>
             Linking.openURL("mailto:support@productstockfinder.app")
           }

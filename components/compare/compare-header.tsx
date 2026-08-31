@@ -30,7 +30,7 @@ export function CompareHeader({
         gap: 12,
       }}
     >
-      <TouchableOpacity onPress={onBack} style={{ padding: 4 }} accessibilityLabel="Go back" accessibilityRole="button">
+      <TouchableOpacity activeOpacity={0.7} onPress={onBack} style={{ padding: 4 }} accessibilityLabel="Go back" accessibilityRole="button">
         <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
       </TouchableOpacity>
       <View style={{ flex: 1 }}>
@@ -51,7 +51,7 @@ export function CompareHeader({
           {productName}
         </Text>
       </View>
-      <TouchableOpacity
+      <TouchableOpacity activeOpacity={0.7}
         onPress={async () => {
           if (Platform.OS !== "web")
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

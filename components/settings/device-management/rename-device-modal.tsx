@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Text,
   View,
@@ -27,6 +28,7 @@ export function RenameDeviceModal({
   onClose,
 }: RenameDeviceModalProps) {
   const colors = useColors();
+  const [focused, setFocused] = useState(false);
 
   return (
     <Modal
@@ -76,11 +78,13 @@ export function RenameDeviceModal({
             placeholderTextColor={colors.muted}
             maxLength={64}
             autoFocus
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             style={{
               backgroundColor: colors.surface,
               borderRadius: 14,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: focused ? colors.primary : colors.border,
               paddingHorizontal: 16,
               paddingVertical: 12,
               color: colors.foreground,
@@ -89,7 +93,7 @@ export function RenameDeviceModal({
             }}
           />
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
               onPress={onClose}
               style={{
                 flex: 1,
@@ -112,7 +116,7 @@ export function RenameDeviceModal({
                 Cancel
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={onSave}
               disabled={saving || !label.trim()}
               style={{

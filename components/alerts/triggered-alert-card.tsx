@@ -116,7 +116,7 @@ export const TriggeredAlertCard = memo(function TriggeredAlertCard({
           </View>
         </View>
         <View style={{ alignItems: "flex-end", gap: 8 }}>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.85}
             onPress={handleRearm}
             style={{
               backgroundColor: colors.primary + "18",
@@ -145,7 +145,7 @@ export const TriggeredAlertCard = memo(function TriggeredAlertCard({
               Watch Again
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={handleDelete}
             style={{ padding: 4 }}
             accessibilityLabel={`Delete triggered alert for ${productName}`}

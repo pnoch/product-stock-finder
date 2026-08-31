@@ -7,6 +7,7 @@ import {
   Platform,
   Keyboard,
 } from "react-native";
+import { useState } from "react";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { EXCHANGE_RATES, formatPrice } from "@/lib/currency";
@@ -48,6 +49,7 @@ export function PriceAlertModal({
   editingAlertId,
 }: PriceAlertModalProps) {
   const colors = useColors();
+  const [priceFocused, setPriceFocused] = useState(false);
 
   return (
     <Modal visible={visible} transparent animationType="slide">
@@ -90,7 +92,7 @@ export function PriceAlertModal({
             }}
           >
             {Object.keys(EXCHANGE_RATES).map((c) => (
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.85}
                 key={c}
                 onPress={() => setAlertCurrency(c)}
                 style={{
@@ -128,7 +130,7 @@ export function PriceAlertModal({
               }}
             >
               {suggestions.map((suggestion) => (
-                <TouchableOpacity
+                <TouchableOpacity activeOpacity={0.85}
                   key={suggestion.key}
                   onPress={() => {
                     if (Platform.OS !== "web")
@@ -179,7 +181,7 @@ export function PriceAlertModal({
               ).map((opt) => {
                 const active = (direction ?? "drop") === opt.key;
                 return (
-                  <TouchableOpacity
+                  <TouchableOpacity activeOpacity={0.85}
                     key={opt.key}
                     onPress={() => {
                       if (Platform.OS !== "web")
@@ -220,7 +222,7 @@ export function PriceAlertModal({
                 marginBottom: 16,
               }}
             >
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.85}
                 onPress={() => {
                   if (Platform.OS !== "web")
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -260,7 +262,7 @@ export function PriceAlertModal({
               {distributors.map((d) => {
                 const selected = selectedDistributorId === d.id;
                 return (
-                  <TouchableOpacity
+                  <TouchableOpacity activeOpacity={0.85}
                     key={d.id}
                     onPress={() => {
                       if (Platform.OS !== "web")
@@ -302,6 +304,8 @@ export function PriceAlertModal({
             placeholderTextColor={colors.muted}
             keyboardType="decimal-pad"
             returnKeyType="done"
+            onFocus={() => setPriceFocused(true)}
+            onBlur={() => setPriceFocused(false)}
             onSubmitEditing={() => {
               Keyboard.dismiss();
               onSetAlert();
@@ -310,7 +314,7 @@ export function PriceAlertModal({
               backgroundColor: colors.surface,
               borderRadius: 14,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: priceFocused ? colors.primary : colors.border,
               padding: 14,
               color: colors.foreground,
               fontSize: 18,
@@ -318,7 +322,7 @@ export function PriceAlertModal({
             }}
           />
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={onClose}
               style={{
                 flex: 1,
@@ -336,7 +340,7 @@ export function PriceAlertModal({
                 Cancel
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={onSetAlert}
               style={{
                 flex: 1,

@@ -157,7 +157,7 @@ export function NotificationCenter({
               {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
             </Text>
             {unreadCount > 0 && (
-              <TouchableOpacity onPress={handleMarkAll} style={{ padding: 4 }} accessibilityLabel="Mark all as read" accessibilityRole="button">
+              <TouchableOpacity activeOpacity={0.7} onPress={handleMarkAll} style={{ padding: 4 }} accessibilityLabel="Mark all as read" accessibilityRole="button">
                 <Text
                   style={{
                     color: colors.primary,
@@ -201,7 +201,7 @@ export function NotificationCenter({
         )
       }
       renderItem={({ item }) => (
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           onPress={() => handleOpen(item)}
           style={{
             flexDirection: "row",

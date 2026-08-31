@@ -89,7 +89,7 @@ export function DeviceRow({
           gap: 8,
         }}
       >
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           onPress={() => onRename(device)}
           style={{
             paddingHorizontal: 12,
@@ -111,7 +111,7 @@ export function DeviceRow({
           </Text>
         </TouchableOpacity>
         {!isCurrent && (
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={() => onSignOut(device)}
             style={{
               paddingHorizontal: 12,

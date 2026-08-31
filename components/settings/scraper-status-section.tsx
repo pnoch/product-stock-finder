@@ -142,7 +142,7 @@ export function ScraperStatusSection({
                 </Text>
               </View>
               {health.label !== "OK" ? (
-                <TouchableOpacity
+                <TouchableOpacity activeOpacity={0.85}
                   onPress={() => {
                     if (Platform.OS !== "web")
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -197,7 +197,7 @@ export function ScraperStatusSection({
         )}
       </View>
 
-      <TouchableOpacity
+      <TouchableOpacity activeOpacity={0.85}
         onPress={() => router.push("/health")}
         style={{
           marginHorizontal: 16,

@@ -131,7 +131,7 @@ export function BulkTagSheet({
             {tags.map((tag) => {
               const active = selected.includes(tag.id);
               return (
-                <TouchableOpacity
+                <TouchableOpacity activeOpacity={0.7}
                   key={tag.id}
                   onPress={() => toggleTag(tag.id)}
                   style={{
@@ -199,7 +199,7 @@ export function BulkTagSheet({
                 {error}
               </Text>
             )}
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
               onPress={() => void handleCreate()}
               disabled={!newTagName.trim()}
               style={{
@@ -219,7 +219,7 @@ export function BulkTagSheet({
                 Create tag
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={() => void handleApply()}
               disabled={selected.length === 0}
               style={{
@@ -238,7 +238,7 @@ export function BulkTagSheet({
               </Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={onClose}
             style={{ marginTop: 16, alignItems: "center", paddingVertical: 10 }}
             accessibilityLabel="Cancel"

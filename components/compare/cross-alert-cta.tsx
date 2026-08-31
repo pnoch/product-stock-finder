@@ -27,7 +27,7 @@ export function CrossAlertCTA({
   if (bestUSD === null) return null;
 
   return (
-    <TouchableOpacity
+    <TouchableOpacity activeOpacity={0.85}
       onPress={onPress}
       style={{
         marginHorizontal: 16,

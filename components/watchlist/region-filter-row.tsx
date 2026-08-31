@@ -23,7 +23,7 @@ export function RegionFilterRow({
       }}
     >
       {["all", ...regions].map((region) => (
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           key={region}
           onPress={() => onRegionChange(region)}
           style={{

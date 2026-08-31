@@ -82,7 +82,7 @@ export function CatalogProductCard({
         </View>
       </View>
       {!isTracked && (
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           onPress={() => {
             if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onTagPress(product);
@@ -101,11 +101,12 @@ export function CatalogProductCard({
           <IconSymbol name="tag.fill" size={20} color={colors.muted} />
         </TouchableOpacity>
       )}
-      <TouchableOpacity
+      <TouchableOpacity activeOpacity={0.85}
         onPress={() => onAdd(product)}
         disabled={isAdding || isTracked}
         style={{
           backgroundColor: isTracked ? colors.success : colors.primary,
+          opacity: isAdding || isTracked ? 0.5 : 1,
           borderRadius: 20,
           width: 36,
           height: 36,

@@ -139,7 +139,7 @@ export const AlertCard = memo(function AlertCard({
             />
           )}
           {onEdit && (
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
               onPress={handleEdit}
               style={{ padding: 4 }}
               accessibilityLabel={`Edit alert for ${productName}`}
@@ -149,7 +149,7 @@ export const AlertCard = memo(function AlertCard({
             </TouchableOpacity>
           )}
           {onSnooze && !alert.triggeredAt && (
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
               onPress={handleSnooze}
               style={{ padding: 4 }}
               accessibilityLabel={`Snooze alert for ${productName}`}
@@ -162,7 +162,7 @@ export const AlertCard = memo(function AlertCard({
               />
             </TouchableOpacity>
           )}
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={handleDelete}
             style={{ padding: 4 }}
             accessibilityLabel={`Delete alert for ${productName}`}

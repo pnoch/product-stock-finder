@@ -68,7 +68,7 @@ export function RescheduleModal({
             </Text>{" "}
             · {target?.productName}
           </Text>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.85}
             onPress={() => onShowPicker(true)}
             style={{
               backgroundColor: colors.surface,
@@ -118,7 +118,7 @@ export function RescheduleModal({
             />
           )}
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={onCancel}
               style={{
                 flex: 1,
@@ -136,7 +136,7 @@ export function RescheduleModal({
                 Cancel
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={onConfirm}
               style={{
                 flex: 1,

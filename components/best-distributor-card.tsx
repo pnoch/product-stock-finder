@@ -231,7 +231,7 @@ function BestDistributorCard({
               ) : null;
             })()}
         </View>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           onPress={() => {
             if (Platform.OS !== "web")
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -264,7 +264,7 @@ function BestDistributorCard({
       {(() => {
         const suggestedPrice = Math.round(listing.price * 0.95 * 100) / 100;
         return (
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.85}
             onPress={onSetAlert}
             style={{
               marginTop: 10,

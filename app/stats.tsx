@@ -155,7 +155,7 @@ export default function StatsScreen() {
           gap: 12,
         }}
       >
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           accessibilityLabel="Go back"
           accessibilityRole="button"
           onPress={() => {
@@ -177,7 +177,7 @@ export default function StatsScreen() {
         >
           Statistics
         </Text>
-        <TouchableOpacity accessibilityLabel="Share statistics" accessibilityRole="button" onPress={handleShare} style={{ padding: 4 }}>
+        <TouchableOpacity activeOpacity={0.7} accessibilityLabel="Share statistics" accessibilityRole="button" onPress={handleShare} style={{ padding: 4 }}>
           <IconSymbol
             name="square.and.arrow.up"
             size={22}

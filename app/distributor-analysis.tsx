@@ -47,7 +47,7 @@ export default function DistributorAnalysisScreen() {
   return (
     <ScreenContainer>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           accessibilityLabel="Go back"
           accessibilityRole="button"
           onPress={() => router.back()}
@@ -86,7 +86,7 @@ export default function DistributorAnalysisScreen() {
           <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
             Add a few products to your watchlist to compare coverage and average prices across distributors.
           </Text>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.85}
             onPress={() => router.push("/search")}
             accessibilityLabel="Browse products"
             accessibilityRole="button"
@@ -94,7 +94,7 @@ export default function DistributorAnalysisScreen() {
           >
             <Text style={{ color: "#fff", fontWeight: "600" }}>Browse Products</Text>
           </TouchableOpacity>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={() => loadData()}
             accessibilityLabel="Try again"
             accessibilityRole="button"

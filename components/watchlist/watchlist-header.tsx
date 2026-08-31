@@ -46,7 +46,7 @@ export function WatchlistHeader({
           <Text className="text-muted text-sm">Tap products to select</Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.85}
             onPress={onBulkDelete}
             style={{
               backgroundColor: colors.error,
@@ -65,7 +65,7 @@ export function WatchlistHeader({
               Delete
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.85}
             onPress={onBulkTag}
             style={{
               backgroundColor: colors.primary,
@@ -84,7 +84,7 @@ export function WatchlistHeader({
               Tag
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={onExitSelection}
             style={{
               backgroundColor: colors.surface,
@@ -116,7 +116,7 @@ export function WatchlistHeader({
         </Text>
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           onPress={() => {
             if (Platform.OS !== "web")
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -147,7 +147,7 @@ export function WatchlistHeader({
             Analysis
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           onPress={() => {
             if (Platform.OS !== "web")
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -183,7 +183,7 @@ export function WatchlistHeader({
             Refresh all
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           style={{
             backgroundColor: checking ? colors.muted : colors.primary,
             borderRadius: 20,
@@ -210,7 +210,7 @@ export function WatchlistHeader({
               : "Check Now"}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.85}
           style={{
             backgroundColor: colors.primary,
             borderRadius: 20,

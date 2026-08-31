@@ -38,7 +38,7 @@ export function SortGroupBar({
           flexWrap: "wrap",
         }}
       >
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           onPress={() => {
             if (Platform.OS !== "web")
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -68,7 +68,7 @@ export function SortGroupBar({
         {GROUP_OPTIONS.map((opt) => {
           const active = groupMode === opt.key;
           return (
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               key={opt.key}
               onPress={() => {
                 if (Platform.OS !== "web")
@@ -116,7 +116,7 @@ export function SortGroupBar({
           {SORT_OPTIONS.map((opt) => {
             const active = sortMode === opt.key;
             return (
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.85}
                 key={opt.key}
                 onPress={() => {
                   if (Platform.OS !== "web")

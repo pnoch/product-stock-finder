@@ -24,6 +24,7 @@ export function LoginModal({
 }) {
   const colors = useColors();
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -126,6 +127,8 @@ export function LoginModal({
                 placeholder="Name (optional)"
                 placeholderTextColor={colors.muted}
                 autoCapitalize="words"
+                onFocus={() => setFocusedField("name")}
+                onBlur={() => setFocusedField(null)}
                 style={{
                   backgroundColor: colors.background,
                   borderRadius: 12,
@@ -134,7 +137,7 @@ export function LoginModal({
                   fontSize: 16,
                   color: colors.foreground,
                   borderWidth: 1,
-                  borderColor: colors.border,
+                  borderColor: focusedField === "name" ? colors.primary : colors.border,
                   marginBottom: 12,
                 }}
               />
@@ -148,6 +151,8 @@ export function LoginModal({
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
+              onFocus={() => setFocusedField("email")}
+              onBlur={() => setFocusedField(null)}
               style={{
                 backgroundColor: colors.background,
                 borderRadius: 12,
@@ -156,7 +161,7 @@ export function LoginModal({
                 fontSize: 16,
                 color: colors.foreground,
                 borderWidth: 1,
-                borderColor: colors.border,
+                borderColor: focusedField === "email" ? colors.primary : colors.border,
                 marginBottom: 12,
               }}
             />
@@ -168,6 +173,8 @@ export function LoginModal({
               placeholderTextColor={colors.muted}
               secureTextEntry
               autoCapitalize="none"
+              onFocus={() => setFocusedField("password")}
+              onBlur={() => setFocusedField(null)}
               style={{
                 backgroundColor: colors.background,
                 borderRadius: 12,
@@ -176,7 +183,7 @@ export function LoginModal({
                 fontSize: 16,
                 color: colors.foreground,
                 borderWidth: 1,
-                borderColor: colors.border,
+                borderColor: focusedField === "password" ? colors.primary : colors.border,
                 marginBottom: 16,
               }}
             />
@@ -193,7 +200,7 @@ export function LoginModal({
               </Text>
             )}
 
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={handleSubmit}
               disabled={loading}
               style={{
@@ -202,7 +209,7 @@ export function LoginModal({
                 paddingVertical: 14,
                 alignItems: "center",
                 marginBottom: 12,
-                opacity: loading ? 0.7 : 1,
+                opacity: loading ? 0.5 : 1,
               }}
               accessibilityLabel={mode === "login" ? "Sign in" : "Create account"}
               accessibilityRole="button"
@@ -222,7 +229,7 @@ export function LoginModal({
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={switchMode} style={{ alignItems: "center" }} accessibilityLabel={mode === "login" ? "Switch to sign up" : "Switch to sign in"} accessibilityRole="button">
+            <TouchableOpacity activeOpacity={0.7} onPress={switchMode} style={{ alignItems: "center" }} accessibilityLabel={mode === "login" ? "Switch to sign up" : "Switch to sign in"} accessibilityRole="button">
               <Text style={{ color: colors.primary, fontSize: 14 }}>
                 {mode === "login"
                   ? "Don't have an account? Sign up"
@@ -230,7 +237,7 @@ export function LoginModal({
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={onClose} style={{ alignItems: "center", marginTop: 16 }} accessibilityLabel="Cancel" accessibilityRole="button">
+            <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={{ alignItems: "center", marginTop: 16 }} accessibilityLabel="Cancel" accessibilityRole="button">
               <Text style={{ color: colors.muted, fontSize: 14 }}>Cancel</Text>
             </TouchableOpacity>
           </View>

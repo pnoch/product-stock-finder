@@ -45,7 +45,7 @@ export function SummaryCard({
           justifyContent: "space-between",
         }}
       >
-        <Text style={{ color: colors.muted, fontSize: 13 }}>
+        <Text style={{ color: colors.muted, fontSize: 12 }}>
           Total Value
         </Text>
         <Text
@@ -81,7 +81,7 @@ export function SummaryCard({
             },
           ] as const
         ).map((col) => (
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             key={col.key}
             onPress={() => {
               if (Platform.OS !== "web")
@@ -127,7 +127,7 @@ export function SummaryCard({
           </Text>
         </View>
       </View>
-      <TouchableOpacity
+      <TouchableOpacity activeOpacity={0.7}
         onPress={() => {
           if (Platform.OS !== "web")
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

@@ -171,7 +171,7 @@ export function DataSection() {
           label="Export Backup"
           description="Save watchlist, alerts and settings to a file"
           right={
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={handleExport}
               disabled={busy}
               style={{
@@ -179,6 +179,7 @@ export function DataSection() {
                 paddingVertical: 6,
                 borderRadius: 12,
                 backgroundColor: colors.primary + "22",
+                opacity: busy ? 0.5 : 1,
               }}
               accessibilityLabel="Export backup"
               accessibilityRole="button"
@@ -196,7 +197,7 @@ export function DataSection() {
           label="Import Backup"
           description="Restore from a backup file (merges by id)"
           right={
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={handleImport}
               disabled={busy}
               style={{
@@ -204,6 +205,7 @@ export function DataSection() {
                 paddingVertical: 6,
                 borderRadius: 12,
                 backgroundColor: colors.primary + "22",
+                opacity: busy ? 0.5 : 1,
               }}
               accessibilityLabel="Import backup"
               accessibilityRole="button"

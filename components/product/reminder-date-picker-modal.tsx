@@ -80,7 +80,7 @@ export function ReminderDatePickerModal({
             </Text>{" "}
             for {productName}.
           </Text>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={() => setShowDatePicker(true)}
             style={{
               backgroundColor: colors.surface,
@@ -142,7 +142,7 @@ export function ReminderDatePickerModal({
             />
           )}
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={onClose}
               style={{
                 flex: 1,
@@ -162,7 +162,7 @@ export function ReminderDatePickerModal({
                 Cancel
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={onSetReminder}
               style={{
                 flex: 1,

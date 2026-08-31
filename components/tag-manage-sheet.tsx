@@ -178,7 +178,7 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
                         fontSize: 15,
                       }}
                     />
-                    <TouchableOpacity
+                    <TouchableOpacity activeOpacity={0.7}
                       onPress={() => void handleRename(tag)}
                       style={{ padding: 8 }}
                       accessibilityLabel="Confirm rename"
@@ -190,7 +190,7 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
                         color={colors.success}
                       />
                     </TouchableOpacity>
-                    <TouchableOpacity
+                    <TouchableOpacity activeOpacity={0.7}
                       onPress={() => setEditingId(null)}
                       style={{ padding: 8 }}
                       accessibilityLabel="Cancel rename"
@@ -219,7 +219,7 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
                     >
                       {tag.name}
                     </Text>
-                    <TouchableOpacity
+                    <TouchableOpacity activeOpacity={0.7}
                       onPress={() => {
                         setEditingId(tag.id);
                         setEditName(tag.name);
@@ -234,7 +234,7 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
                         color={colors.muted}
                       />
                     </TouchableOpacity>
-                    <TouchableOpacity
+                    <TouchableOpacity activeOpacity={0.7}
                       onPress={() => handleDelete(tag)}
                       style={{ padding: 8 }}
                       accessibilityLabel={`Delete tag ${tag.name}`}
@@ -257,7 +257,7 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
                   }}
                 >
                   {TAG_PALETTE.map((color) => (
-                    <TouchableOpacity
+                    <TouchableOpacity activeOpacity={0.7}
                       key={color}
                       onPress={() => void handleRecolor(tag, color)}
                       style={{
@@ -280,7 +280,7 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
               </View>
             ))}
           </ScrollView>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={onClose}
             style={{ alignItems: "center", paddingVertical: 10 }}
             accessibilityLabel="Done"

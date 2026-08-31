@@ -70,7 +70,7 @@ export class RouteErrorBoundary extends React.Component<
             {this.state.message}
           </Text>
         ) : null}
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           onPress={() => this.setState({ hasError: false, message: "" })}
           style={{
             marginTop: 20,
@@ -84,7 +84,7 @@ export class RouteErrorBoundary extends React.Component<
         >
           <Text style={{ color: "#fff", fontWeight: "600" }}>Try Again</Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           onPress={() => router.back()}
           style={{
             marginTop: 10,

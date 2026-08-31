@@ -176,7 +176,7 @@ export function ProductInfoCard({
             {product.category}
           </Text>
           {onEditDetails && (
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
               onPress={onEditDetails}
               hitSlop={8}
               style={{ padding: 2 }}
@@ -202,7 +202,7 @@ export function ProductInfoCard({
         }}
       >
         <View>
-          <Text style={{ color: colors.muted, fontSize: 11 }}>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>
             Distributors
           </Text>
           <Text
@@ -216,7 +216,7 @@ export function ProductInfoCard({
           </Text>
         </View>
         <View>
-          <Text style={{ color: colors.muted, fontSize: 11 }}>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>
             In Stock
           </Text>
           <Text
@@ -230,7 +230,7 @@ export function ProductInfoCard({
           </Text>
         </View>
         <View>
-          <Text style={{ color: colors.muted, fontSize: 11 }}>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>
             Best Price
           </Text>
           <Text

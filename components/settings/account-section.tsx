@@ -67,7 +67,7 @@ export function AccountSection({
             label="Sign in to sync"
             description="Sync your watchlist and alerts across devices"
             right={
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.85}
                 onPress={onSignIn}
                 style={{
                   paddingHorizontal: 12,
@@ -105,7 +105,7 @@ export function AccountSection({
           right={
             isAuthenticated ? (
               <View style={{ flexDirection: "row", gap: 8 }}>
-                <TouchableOpacity
+                <TouchableOpacity activeOpacity={0.85}
                   onPress={onSyncNow}
                   disabled={syncing}
                   style={{
@@ -131,7 +131,7 @@ export function AccountSection({
                     </Text>
                   )}
                 </TouchableOpacity>
-                <TouchableOpacity
+                <TouchableOpacity activeOpacity={0.7}
                   onPress={onSignOut}
                   style={{
                     paddingHorizontal: 12,

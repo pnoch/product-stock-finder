@@ -104,7 +104,11 @@ export function CheapestRegionCard({ listings }: { listings: DistributorListing[
                   backgroundColor:
                     item.listing.stockStatus === "in_stock"
                       ? colors.success + "22"
-                      : colors.warning + "22",
+                      : item.listing.stockStatus === "back_order"
+                        ? colors.warning + "22"
+                        : item.listing.stockStatus === "out_of_stock"
+                          ? colors.error + "22"
+                          : colors.muted + "22",
                   borderRadius: 8,
                   paddingHorizontal: 6,
                   paddingVertical: 2,
@@ -116,7 +120,11 @@ export function CheapestRegionCard({ listings }: { listings: DistributorListing[
                     color:
                       item.listing.stockStatus === "in_stock"
                         ? colors.success
-                        : colors.warning,
+                        : item.listing.stockStatus === "back_order"
+                          ? colors.warning
+                          : item.listing.stockStatus === "out_of_stock"
+                            ? colors.error
+                            : colors.muted,
                     fontSize: 10,
                     fontWeight: "600",
                   }}

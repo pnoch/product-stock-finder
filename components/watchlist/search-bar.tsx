@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { View, TextInput, TouchableOpacity, Keyboard } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -10,6 +11,7 @@ export function SearchBar({
   onQueryChange: (query: string) => void;
 }) {
   const colors = useColors();
+  const [focused, setFocused] = useState(false);
 
   return (
     <View
@@ -23,7 +25,7 @@ export function SearchBar({
         borderRadius: 12,
         backgroundColor: colors.surface,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: focused ? colors.primary : colors.border,
       }}
     >
       <IconSymbol name="magnifyingglass" size={16} color={colors.muted} />
@@ -33,6 +35,8 @@ export function SearchBar({
         placeholder="Search watchlist..."
         placeholderTextColor={colors.muted}
         returnKeyType="search"
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         onSubmitEditing={() => Keyboard.dismiss()}
         style={{
           flex: 1,
@@ -42,7 +46,7 @@ export function SearchBar({
         }}
       />
       {query.length > 0 && (
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           onPress={() => onQueryChange("")}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={{ padding: 4 }}

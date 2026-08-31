@@ -95,7 +95,7 @@ export const BasketAlertSheet = memo(function BasketAlertSheet({
           />
           <View style={{ flexDirection: "row", gap: 10 }}>
             {currentThreshold != null && (
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.7}
                 onPress={handleDisable}
                 style={{
                   flex: 1,
@@ -113,7 +113,7 @@ export const BasketAlertSheet = memo(function BasketAlertSheet({
                 </Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.85}
               onPress={handleEnable}
               disabled={!valid}
               style={{
@@ -122,6 +122,7 @@ export const BasketAlertSheet = memo(function BasketAlertSheet({
                 borderRadius: 12,
                 alignItems: "center",
                 backgroundColor: valid ? colors.primary : colors.border,
+                opacity: valid ? 1 : 0.5,
               }}
               accessibilityLabel="Enable basket alert"
               accessibilityRole="button"

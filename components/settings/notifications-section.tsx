@@ -216,7 +216,7 @@ export function NotificationsSection({
           )}
         </View>
         {/* Test Notification — useful for verifying permissions on device */}
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           onPress={onTestNotification}
           style={{
             flexDirection: "row",
