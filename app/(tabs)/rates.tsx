@@ -6,6 +6,7 @@ import { FxRateGrid } from "@/components/rates/fx-rate-grid";
 import { EXCHANGE_RATES } from "@/lib/currency";
 import { getFxHistory } from "@/lib/storage";
 import { getFxChange } from "@/lib/fx-history";
+import { formatLastRefreshed } from "@/lib/last-refreshed";
 import type { FxHistory } from "@/lib/storage/fx-history";
 
 export default function RatesScreen() {
@@ -72,7 +73,7 @@ export default function RatesScreen() {
           style={{ color: colors.muted, fontSize: 13, marginBottom: 16 }}
         >
           {lastUpdated
-            ? `Last updated ${formatTimeAgo(lastUpdated)}`
+            ? `Last updated ${formatLastRefreshed(new Date(lastUpdated).toISOString())}`
             : "No data yet — rates update hourly"}
         </Text>
         <FxRateGrid
@@ -85,12 +86,4 @@ export default function RatesScreen() {
   );
 }
 
-function formatTimeAgo(ts: number): string {
-  const diff = Date.now() - ts;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
+

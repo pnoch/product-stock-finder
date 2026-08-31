@@ -50,6 +50,7 @@ import type { EdgeInsets, Rect } from "react-native-safe-area-context";
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { ToastProvider } from "@/components/ui/toast";
 import { useAuth } from "@/hooks/use-auth";
+import { Colors } from "@/lib/_core/theme";
 import {
   registerDeviceRevokedHandler,
   resetDeviceRevoked,
@@ -425,7 +426,7 @@ export default function RootLayout() {
   if (onboardingState === "checking") {
     return (
       <ThemeProvider>
-        <View style={{ flex: 1, backgroundColor: "#F8FAFC" }} />
+        <View style={{ flex: 1, backgroundColor: Colors.light.background }} />
       </ThemeProvider>
     );
   }

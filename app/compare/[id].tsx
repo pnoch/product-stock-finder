@@ -32,7 +32,7 @@ import {
   requestNotificationPermissions,
 } from "@/lib/notifications";
 import { PriceAlert } from "@/lib/types";
-import { convertPrice, CURRENCY_SYMBOLS } from "@/lib/currency";
+import { convertPrice, formatPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
@@ -152,8 +152,8 @@ export default function CompareScreen() {
     };
     await addAlert(alert);
     await schedulePriceAlert(productName || "Product", targetPrice, displayCurrency, id);
-    const sym = CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency;
-    showToast(`Alert created — watching below ${sym}${targetPrice.toFixed(2)}`, "success");
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    showToast(`Alert created — watching below ${formatPrice(targetPrice, displayCurrency)}`, "success");
   }, [listings, id, productName, displayCurrency, showToast]);
 
   const priceTrends = useMemo(() => {

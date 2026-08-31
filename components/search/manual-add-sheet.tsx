@@ -145,6 +145,7 @@ export function ManualAddSheet({
           setProgress(`Searching distributors ${done}/${total}…`),
       });
       await updateProductListings(id, listings);
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showAlert(
         "Product Added",
         listings.length > 0
@@ -154,6 +155,9 @@ export function ManualAddSheet({
       reset();
       onAdded?.();
       onClose();
+    } catch {
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showAlert("Couldn't add product", "We couldn't add this product. Please try again.");
     } finally {
       setAdding(false);
       setProgress(null);

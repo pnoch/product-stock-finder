@@ -16,7 +16,7 @@ import {
   DistributorAnalysis,
 } from "@/lib/distributor-analysis";
 import { formatPrice } from "@/lib/currency";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SkeletonList } from "@/components/ui/skeleton";
 
 export default function DistributorAnalysisScreen() {
@@ -65,44 +65,15 @@ export default function DistributorAnalysisScreen() {
       {loading ? (
         <SkeletonList count={4} />
       ) : analysis.length === 0 ? (
-        <View style={{ alignItems: "center", paddingHorizontal: 32, marginTop: 48 }}>
-          <View
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: 36,
-              backgroundColor: colors.primary + "14",
-              alignItems: "center",
-              justifyContent: "center",
-              borderWidth: 1,
-              borderColor: colors.primary + "22",
-            }}
-          >
-            <IconSymbol name="chart.bar.fill" size={30} color={colors.primary} />
-          </View>
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16, marginTop: 16, textAlign: "center" }}>
-            No distributor data yet
-          </Text>
-          <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
-            Add a few products to your watchlist to compare coverage and average prices across distributors.
-          </Text>
-          <TouchableOpacity activeOpacity={0.85}
-            onPress={() => router.push("/search")}
-            accessibilityLabel="Browse products"
-            accessibilityRole="button"
-            style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 24, paddingVertical: 12, marginTop: 20 }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "600" }}>Browse Products</Text>
-          </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.7}
-            onPress={() => loadData()}
-            accessibilityLabel="Try again"
-            accessibilityRole="button"
-            style={{ marginTop: 12, padding: 8 }}
-          >
-            <Text style={{ color: colors.primary, fontWeight: "600" }}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyStateView
+          icon="chart.bar.fill"
+          title="No distributor data yet"
+          subtitle="Add a few products to your watchlist to compare coverage and average prices across distributors."
+          ctaLabel="Browse Products"
+          onCtaPress={() => router.push("/search")}
+          secondaryLabel="Try Again"
+          onSecondaryPress={() => loadData()}
+        />
       ) : (
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}

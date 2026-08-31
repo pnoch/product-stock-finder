@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Text, View, TextInput, TouchableOpacity, Keyboard } from "react-native";
+import { Text, View, TextInput, TouchableOpacity, Keyboard, Platform } from "react-native";
+import * as Haptics from "expo-haptics";
 import { addAlert } from "@/lib/storage";
 import { schedulePriceAlert } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
 import { useToast } from "@/components/ui/toast";
 import { useColors } from "@/hooks/use-colors";
+import { formatPrice } from "@/lib/currency";
 
 export function AlertSection({ productId }: { productId: string }) {
   const colors = useColors();
@@ -19,9 +21,11 @@ export function AlertSection({ productId }: { productId: string }) {
       const alert = { id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, targetPrice, currency, isActive: true, createdAt: new Date().toISOString(), direction: "drop" as const };
       await addAlert(alert);
       await schedulePriceAlert(productId, targetPrice, currency).catch(() => {});
-      showToast(`Alert created — watching for ${targetPrice} ${currency}`, "success");
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast(`Alert created — watching for ${formatPrice(targetPrice, currency)}`, "success");
       setPrice("");
     } catch {
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showAlert("Couldn't create alert", "We couldn't save your price alert. Please try again.");
     }
   };

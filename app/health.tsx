@@ -20,6 +20,8 @@ import {
   HealthStatus,
 } from "@/lib/scrapers/health";
 import { getDistributorById } from "@/lib/distributors";
+import { formatLastRefreshed } from "@/lib/last-refreshed";
+import { EmptyStateView } from "@/components/ui/empty-state-view";
 
 const healthService = createHealthService(AsyncStorage);
 
@@ -56,6 +58,7 @@ export default function HealthScreen() {
   const [filter, setFilter] = useState<"all" | "working" | "blocked" | "error">(
     "all",
   );
+  const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stats, setStats] = useState<Record<string, HealthStats>>({});
@@ -67,10 +70,14 @@ export default function HealthScreen() {
   };
 
   const loadHealth = useCallback(async () => {
-    const data = await healthService.getDistributorHealth();
-    setHealth(data);
-    const history = await healthService.getHealthHistory();
-    setStats(computeHealthStats(history));
+    try {
+      const data = await healthService.getDistributorHealth();
+      setHealth(data);
+      const history = await healthService.getHealthHistory();
+      setStats(computeHealthStats(history));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -173,7 +180,7 @@ export default function HealthScreen() {
         }}
       >
         {testing ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator size="small" color="#fff" />
         ) : (
           <Text style={{ color: "#fff", fontWeight: "700" }}>
             Test All Distributors
@@ -205,10 +212,16 @@ export default function HealthScreen() {
         </View>
       )}
 
-      <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
-      >
-        {filtered.map((h) => {
+      {loading ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 60 }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ color: colors.muted, fontSize: 14, marginTop: 12 }}>Loading distributor health...</Text>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+        >
+          {filtered.map((h) => {
           const distributor = getDistributorById(h.distributorId);
           if (!distributor) return null;
           return (
@@ -251,9 +264,7 @@ export default function HealthScreen() {
               </View>
               <View style={{ alignItems: "flex-end", marginLeft: 8 }}>
                 <Text style={{ color: colors.muted, fontSize: 11 }}>
-                  {h.lastChecked
-                    ? new Date(h.lastChecked).toLocaleTimeString()
-                    : "Never"}
+                  {formatLastRefreshed(h.lastChecked)}
                 </Text>
                 {stats[h.distributorId] ? (
                   <>
@@ -286,21 +297,25 @@ export default function HealthScreen() {
             </TouchableOpacity>
           );
         })}
-        {health.length === 0 ? (
-          <Text
-            style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}
-          >
-            No distributor health data. Tap &quot;Test All Distributors&quot; to
-            run a check.
-          </Text>
-        ) : filtered.length === 0 ? (
-          <Text
-            style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}
-          >
-            No distributors match the selected filter.
-          </Text>
-        ) : null}
-      </ScrollView>
+          {health.length === 0 ? (
+            <EmptyStateView
+              icon="heart.slash"
+              title="No distributor health data"
+              subtitle='Tap "Test All Distributors" to run a check.'
+              ctaLabel="Test All Distributors"
+              onCtaPress={() => runTest()}
+            />
+          ) : filtered.length === 0 ? (
+            <EmptyStateView
+              icon="line.3.horizontal.decrease.circle"
+              title="No matches"
+              subtitle="No distributors match the selected filter."
+              ctaLabel="Show All"
+              onCtaPress={() => setFilter("all")}
+            />
+          ) : null}
+        </ScrollView>
+      )}
     </ScreenContainer>
   );
 }

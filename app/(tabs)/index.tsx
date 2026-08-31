@@ -17,6 +17,7 @@ import { useColors } from "@/hooks/use-colors";
 import { getWatchlist, getAlerts, getSettings } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { formatPrice, getBestPrice } from "@/lib/currency";
+import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { StockBadge } from "@/components/stock-badge";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ConnectionBadge } from "@/components/connection-badge";
@@ -448,7 +449,7 @@ export default function HomeScreen() {
                     {formatPrice(listing.price, listing.currency)}
                   </Text>
                   <Text style={{ color: colors.muted, fontSize: 11 }}>
-                    {new Date(listing.lastChecked).toLocaleDateString()}
+                    {formatLastRefreshed(listing.lastChecked)}
                   </Text>
                 </View>
               </TouchableOpacity>

@@ -143,7 +143,7 @@ export function Compare() {
     return "flat";
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner size="large" label="Loading prices..." />;
   if (!product)
     return (
       <EmptyState

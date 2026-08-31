@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   ScrollView,
   Share,
@@ -12,6 +13,7 @@ import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { getSettings, getWatchlist, getPriceDigestSnapshot, saveSettings } from "@/lib/storage";
 import { BasketAlertSheet } from "@/components/stats/basket-alert-sheet";
 import type { Product, AppSettings } from "@/lib/types";
@@ -186,40 +188,19 @@ export default function StatsScreen() {
         </TouchableOpacity>
       </View>
 
-      {loaded && watchlist.length === 0 ? (
-        <View
-          style={{
-            alignItems: "center",
-            paddingTop: 80,
-            paddingHorizontal: 32,
-          }}
-        >
-          <IconSymbol
-            name="chart.bar.xaxis"
-            size={40}
-            color={colors.muted}
-          />
-          <Text
-            style={{
-              color: colors.foreground,
-              fontWeight: "600",
-              fontSize: 16,
-              marginTop: 12,
-            }}
-          >
-            No statistics yet
-          </Text>
-          <Text
-            style={{
-              color: colors.muted,
-              fontSize: 14,
-              textAlign: "center",
-              marginTop: 6,
-            }}
-          >
-            Add products to your watchlist to see price trends and stock health.
-          </Text>
+      {!loaded ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 60 }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ color: colors.muted, fontSize: 14, marginTop: 12 }}>Loading statistics...</Text>
         </View>
+      ) : watchlist.length === 0 ? (
+        <EmptyStateView
+          icon="chart.bar.xaxis"
+          title="No statistics yet"
+          subtitle="Add products to your watchlist to see price trends and stock health."
+          ctaLabel="Browse Products"
+          onCtaPress={() => router.push("/search")}
+        />
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
           {digest && (

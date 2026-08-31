@@ -40,8 +40,6 @@ export function BulkImportModal({
 
   const handleImport = async () => {
     if (!canImport) return;
-    if (Platform.OS !== "web")
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setImporting(true);
     try {
       for (const item of newProducts) {
@@ -56,6 +54,8 @@ export function BulkImportModal({
           console.warn("[BulkImport] Skipping", item.modelNumber, e);
         }
       }
+      if (Platform.OS !== "web")
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const unmatchedNote =
         preview.unmatched.length > 0
           ? `\n${preview.unmatched.length} not found in catalog.`
@@ -67,6 +67,10 @@ export function BulkImportModal({
       setText("");
       onImported?.();
       onClose();
+    } catch {
+      if (Platform.OS !== "web")
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showAlert("Import Failed", "We couldn't import those products. Please try again.");
     } finally {
       setImporting(false);
     }

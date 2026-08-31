@@ -121,12 +121,16 @@ export default function SettingsScreen() {
 
   const updateSetting = useCallback(
     async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
-      if (Platform.OS !== "web")
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const current = await getSettings();
       const updated = { ...current, [key]: value };
       setSettings(updated);
-      await saveSettings(updated);
+      try {
+        await saveSettings(updated);
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        throw new Error("Failed to save setting");
+      }
       if (key === "checkInterval") {
         void syncBackgroundTasks();
       }

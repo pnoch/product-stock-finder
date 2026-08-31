@@ -12,6 +12,7 @@ import {
 import { useWatchlist, useSettings } from "../hooks/use-storage";
 import { storage } from "../storage";
 import { formatPrice, getBestPrice } from "../../../lib/currency";
+import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { getApiBaseUrl } from "../lib/api-base";
 import { computeWatchlistSummary } from "../../../lib/watchlist-summary";
 import { getAllRegions, productHasRegion } from "../../../lib/region-filter";
@@ -59,16 +60,7 @@ function getDominantStatus(product: Product): StockStatus {
   return "unknown";
 }
 
-function formatTimeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
+
 
 const VIEWPORT_HEIGHT = 520;
 
@@ -196,7 +188,7 @@ export function Watchlist() {
     }
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner size="large" label="Loading watchlist..." />;
 
   if (products.length === 0) {
     return (
@@ -417,7 +409,7 @@ export function Watchlist() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                    {formatTimeAgo(refreshed)}
+                    {formatLastRefreshed(refreshed)}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button

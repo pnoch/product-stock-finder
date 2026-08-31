@@ -11,7 +11,7 @@ import { ReminderSection } from "@/components/product/reminder-section";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveProduct } from "@/hooks/use-live-prices";
 import { getSettings, getStockWatches, addAlert, addStockWatch, removeStockWatch } from "@/lib/storage";
-import { CURRENCY_SYMBOLS } from "@/lib/currency";
+import { formatPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
 import { computePriceVsAverage } from "@/lib/price-average";
@@ -97,58 +97,77 @@ export default function ProductDetailScreen() {
     if (!id) return;
     const granted = await requestNotificationPermissions();
     if (!granted) {
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showAlert("Permission Denied", "Please enable notifications in your device settings to receive price alerts.");
       return;
     }
-    const sym = CURRENCY_SYMBOLS[listing.currency] ?? listing.currency;
-    await schedulePriceAlert(product?.name ?? "Product", listing.price, listing.currency, id);
-    const alert: PriceAlert = {
-      id: `alert-${id}-${listing.distributorId}-${Date.now()}`,
-      productId: id,
-      distributorId: listing.distributorId,
-      targetPrice: listing.price,
-      currency: listing.currency,
-      createdAt: new Date().toISOString(),
-      isActive: true,
-    };
-    await addAlert(alert);
-    showToast(`Alert created — you'll be notified below ${sym}${listing.price.toFixed(2)}`, "success");
+    try {
+      await schedulePriceAlert(product?.name ?? "Product", listing.price, listing.currency, id);
+      const alert: PriceAlert = {
+        id: `alert-${id}-${listing.distributorId}-${Date.now()}`,
+        productId: id,
+        distributorId: listing.distributorId,
+        targetPrice: listing.price,
+        currency: listing.currency,
+        createdAt: new Date().toISOString(),
+        isActive: true,
+      };
+      await addAlert(alert);
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast(`Alert created — you'll be notified below ${formatPrice(listing.price, listing.currency)}`, "success");
+    } catch {
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showAlert("Couldn't create alert", "We couldn't save your price alert. Please try again.");
+    }
   }, [id, product, showToast]);
 
   const handleToggleStockWatch = useCallback(async (listing: DistributorListing) => {
     if (!id) return;
     const isWatched = stockWatches[listing.distributorId];
     if (isWatched) {
-      const watches = await getStockWatches();
-      const watch = watches.find((w) => w.productId === id && w.distributorId === listing.distributorId);
-      if (watch) {
-        if (watch.notificationId) await cancelNotification(watch.notificationId);
-        await removeStockWatch(watch.id);
+      try {
+        const watches = await getStockWatches();
+        const watch = watches.find((w) => w.productId === id && w.distributorId === listing.distributorId);
+        if (watch) {
+          if (watch.notificationId) await cancelNotification(watch.notificationId);
+          await removeStockWatch(watch.id);
+        }
+        setStockWatches((prev) => ({ ...prev, [listing.distributorId]: false }));
+        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        showToast("Removed from restock watches", "info");
+      } catch {
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        showAlert("Couldn't remove watch", "We couldn't remove that restock watch. Please try again.");
       }
-      setStockWatches((prev) => ({ ...prev, [listing.distributorId]: false }));
-      showToast("Removed from restock watches", "info");
     } else {
       const granted = await requestNotificationPermissions();
       if (!granted) {
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showAlert("Permission Denied", "Please enable notifications to watch for restocks.");
         return;
       }
-      const distributor = getDistributorById(listing.distributorId);
-      const notificationId = await scheduleStockAlert(product?.name ?? "Product", distributor?.name ?? listing.distributorId, listing.price, listing.currency, id);
-      await addStockWatch({
-        id: `${id}-${listing.distributorId}`,
-        productId: id,
-        productName: product?.name ?? "",
-        distributorId: listing.distributorId,
-        distributorName: distributor?.name ?? "",
-        reminderDate: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        reminderType: "back_in_stock",
-        lastKnownStatus: listing.stockStatus,
-        notificationId: notificationId ?? undefined,
-      });
-      setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
-      showToast(`Reminder set — you'll be notified when back in stock`, "success");
+      try {
+        const distributor = getDistributorById(listing.distributorId);
+        const notificationId = await scheduleStockAlert(product?.name ?? "Product", distributor?.name ?? listing.distributorId, listing.price, listing.currency, id);
+        await addStockWatch({
+          id: `${id}-${listing.distributorId}`,
+          productId: id,
+          productName: product?.name ?? "",
+          distributorId: listing.distributorId,
+          distributorName: distributor?.name ?? "",
+          reminderDate: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          reminderType: "back_in_stock",
+          lastKnownStatus: listing.stockStatus,
+          notificationId: notificationId ?? undefined,
+        });
+        setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showToast(`Reminder set — you'll be notified when back in stock`, "success");
+      } catch {
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        showAlert("Couldn't set watch", "We couldn't save that restock watch. Please try again.");
+      }
     }
   }, [id, product, stockWatches, showToast]);
 

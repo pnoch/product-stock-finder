@@ -14,7 +14,7 @@ import { useColors } from "@/hooks/use-colors";
 import { getStockWatches, removeStockWatch } from "@/lib/storage";
 import { getDistributorById } from "@/lib/distributors";
 import type { BackOrderReminder } from "@/lib/types";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SkeletonList } from "@/components/ui/skeleton";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -81,36 +81,14 @@ export default function RestockWatchesScreen() {
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
         >
           {watches.length === 0 ? (
-            <View style={{ alignItems: "center", paddingHorizontal: 16, marginTop: 40 }}>
-              <View
-                style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: 36,
-                  backgroundColor: colors.warning + "18",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: 1,
-                  borderColor: colors.warning + "33",
-                }}
-              >
-                <IconSymbol name="eye.fill" size={30} color={colors.warning} />
-              </View>
-              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16, marginTop: 16, textAlign: "center" }}>
-                No restock watches
-              </Text>
-              <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
-                Open a product and tap &quot;Watch for Restock&quot; to get notified when it&apos;s back in stock.
-              </Text>
-              <TouchableOpacity activeOpacity={0.85}
-                onPress={() => router.push("/search")}
-                accessibilityLabel="Browse products"
-                accessibilityRole="button"
-                style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 24, paddingVertical: 12, marginTop: 20 }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "600" }}>Browse Products</Text>
-              </TouchableOpacity>
-            </View>
+            <EmptyStateView
+              icon="eye.fill"
+              iconColor={colors.warning}
+              title="No restock watches"
+              subtitle='Open a product and tap "Watch for Restock" to get notified when it&apos;s back in stock.'
+              ctaLabel="Browse Products"
+              onCtaPress={() => router.push("/search")}
+            />
           ) : (
             watches.map((watch) => {
               const distrib = getDistributorById(watch.distributorId);

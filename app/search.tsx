@@ -83,14 +83,19 @@ export default function SearchScreen() {
       const result = await discoverProduct(query);
       if (result) {
         loadData();
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showToast(`Added ${result.product.name} to watchlist`, "success");
         router.push(`/product/${result.product.id}`);
       } else {
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showAlert(
           "Discovery Failed",
           "We couldn't find that product. Try a more specific model number or brand name.",
         );
       }
+    } catch {
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showAlert("Discovery Failed", "We couldn't find that product. Try again.");
     } finally {
       setDiscovering(false);
     }
@@ -132,8 +137,6 @@ export default function SearchScreen() {
       }
       setAdding(item.id);
       Keyboard.dismiss();
-      if (Platform.OS !== "web")
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const pending = pendingTags[item.id] ?? [];
       const product: Product = {
         ...item,
@@ -144,6 +147,7 @@ export default function SearchScreen() {
       };
       try {
         await addToWatchlist(product);
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         loadData();
         setPendingTags((prev) => {
           const next = { ...prev };
@@ -158,6 +162,7 @@ export default function SearchScreen() {
         }
       } catch (e) {
         console.error("[Search] addToWatchlist failed", e);
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showAlert("Couldn't add product", "We couldn't add this product to your watchlist. Please check your connection and try again.");
       } finally {
         setAdding(null);
