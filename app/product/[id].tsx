@@ -166,7 +166,7 @@ export default function ProductDetailScreen() {
         {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} />}
         <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} regionFilter={regionFilter} regions={regions} shippingRegion={shippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={displayCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={() => router.push(`/compare/${id}`)} onRemind={() => {}} />
         <AlertSection productId={product.id} />
-        <ReminderSection productId={product.id} distributorId={visibleListings[0]?.distributorId ?? ""} productName={product.name} distributorName={visibleListings[0] ? getDistributorById(visibleListings[0].distributorId)?.name ?? "" : ""} />
+        <ReminderSection productId={product.id} distributorId={visibleListings[0]?.distributorId} productName={product.name} distributorName={visibleListings[0] ? getDistributorById(visibleListings[0].distributorId)?.name ?? "" : ""} />
       </ScrollView>
     </ScreenContainer>
   );

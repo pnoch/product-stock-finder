@@ -4,8 +4,11 @@ import { scheduleBackOrderReminder } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
 import { useColors } from "@/hooks/use-colors";
 
-export function ReminderSection({ productId, distributorId, productName, distributorName }: { productId: string; distributorId: string; productName?: string; distributorName?: string }) {
+export function ReminderSection({ productId, distributorId, productName, distributorName }: { productId: string; distributorId?: string; productName?: string; distributorName?: string }) {
   const colors = useColors();
+  if (!distributorId) {
+    return <Text style={{ color: colors.muted }}>No listings available for reminders</Text>;
+  }
   const onSet = async () => {
     const d = new Date(Date.now() + 7 * 86400000);
     const notifId = await scheduleBackOrderReminder(productId, distributorId, d).catch(() => null);

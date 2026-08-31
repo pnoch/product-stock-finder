@@ -130,6 +130,11 @@ export async function listChangedItems(
  * Returns { accepted, updatedAt }: accepted is false when the incoming item
  * is not newer than the existing row; updatedAt is the server-stamped value
  * on acceptance (or the existing row's timestamp on rejection).
+ *
+ * Note: concurrent pushes for same item may race between the SELECT check and
+ * the INSERT … ON DUPLICATE KEY UPDATE — acceptable per last-write-wins
+ * semantics with millisecond granularity. Server timestamp from ON DUPLICATE
+ * KEY (stampedAt) ensures monotonic ordering for pull cursors.
  */
 export async function upsertSyncItem(
   userId: number,
