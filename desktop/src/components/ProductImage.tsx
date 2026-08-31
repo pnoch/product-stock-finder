@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getApiBaseUrl } from "../lib/api-base";
 
+const imageCache = new Map<string, string | null>();
+
 export function ProductImage({
   productId,
   size = 48,
@@ -11,6 +13,10 @@ export function ProductImage({
 }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   useEffect(() => {
+    if (imageCache.has(productId)) {
+      setImageUrl(imageCache.get(productId)!);
+      return;
+    }
     let active = true;
     const base = getApiBaseUrl();
     if (!base) return;
@@ -19,9 +25,13 @@ export function ProductImage({
       productId,
     })
       .then((res) => {
-        if (active && res && res.imageUrl) setImageUrl(res.imageUrl);
+        const url = res?.imageUrl ?? null;
+        imageCache.set(productId, url);
+        if (active && url) setImageUrl(url);
       })
-      .catch(() => {});
+      .catch(() => {
+        imageCache.set(productId, null);
+      });
     return () => {
       active = false;
     };

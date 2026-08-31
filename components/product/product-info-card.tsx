@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   Text,
   TouchableOpacity,
@@ -40,6 +41,63 @@ export function ProductInfoCard({
 }: ProductInfoCardProps) {
   const colors = useColors();
 
+  const primary22 = useMemo(() => colors.primary + "22", [colors.primary]);
+
+  const inStockCount = useMemo(
+    () => listings.filter((l) => l.stockStatus === "in_stock").length,
+    [listings],
+  );
+
+  const bestPriceDisplay = useMemo(() => {
+    const best = getBestPrice(visibleListings, "USD");
+    return best ? formatPrice(best.price, "USD") : "N/A";
+  }, [visibleListings]);
+
+  const lastRefreshedData = useMemo(() => {
+    const d = lastUpdatedAt ? new Date(lastUpdatedAt) : null;
+    const refreshTime =
+      lastUpdatedAt && d && !isNaN(d.getTime())
+        ? d.toISOString()
+        : product.lastRefreshed;
+    const refreshColor = getLastRefreshedColor(refreshTime);
+    const colorMap = {
+      green: colors.success,
+      yellow: colors.warning,
+      red: colors.error,
+      gray: colors.muted,
+    };
+    return { refreshTime, refreshColor, colorMap };
+  }, [
+    lastUpdatedAt,
+    product.lastRefreshed,
+    colors.success,
+    colors.warning,
+    colors.error,
+    colors.muted,
+  ]);
+
+  const currencyConverterData = useMemo(() => {
+    if (displayCurrency === "USD") return null;
+    const available = visibleListings.filter(
+      (l) => l.stockStatus !== "out_of_stock" && l.price > 0,
+    );
+    if (!available.length) return null;
+    const bestListing = available.reduce((best, curr) => {
+      const cPrice = convertPrice(curr.price, curr.currency, displayCurrency);
+      const bPrice = convertPrice(best.price, best.currency, displayCurrency);
+      if (cPrice === null) return best;
+      if (bPrice === null) return curr;
+      return cPrice < bPrice ? curr : best;
+    });
+    const convertedPrice = convertPrice(
+      bestListing.price,
+      bestListing.currency,
+      displayCurrency,
+    );
+    if (convertedPrice === null) return null;
+    return { bestListing, convertedPrice };
+  }, [displayCurrency, visibleListings]);
+
   return (
     <View
       style={{
@@ -62,7 +120,7 @@ export function ProductInfoCard({
       >
         <View
           style={{
-            backgroundColor: colors.primary + "22",
+            backgroundColor: primary22,
             borderRadius: 10,
             paddingHorizontal: 12,
             paddingVertical: 5,
@@ -133,7 +191,7 @@ export function ProductInfoCard({
               fontSize: 20,
             }}
           >
-            {listings.filter((l) => l.stockStatus === "in_stock").length}
+            {inStockCount}
           </Text>
         </View>
         <View>
@@ -147,137 +205,103 @@ export function ProductInfoCard({
               fontSize: 20,
             }}
           >
-            {(() => {
-              const best = getBestPrice(visibleListings, "USD");
-              return best ? formatPrice(best.price, "USD") : "N/A";
-            })()}
+            {bestPriceDisplay}
           </Text>
         </View>
       </View>
       {/* Last Refreshed Indicator */}
-      {(() => {
-        const d = lastUpdatedAt ? new Date(lastUpdatedAt) : null;
-        const refreshTime =
-          lastUpdatedAt && d && !isNaN(d.getTime())
-            ? d.toISOString()
-            : product.lastRefreshed;
-        const refreshColor = getLastRefreshedColor(refreshTime);
-        const colorMap = {
-          green: colors.success,
-          yellow: colors.warning,
-          red: colors.error,
-          gray: colors.muted,
-        };
-        return (
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          marginTop: 12,
+          paddingTop: 12,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+        }}
+      >
+        <IconSymbol
+          name="arrow.clockwise"
+          size={14}
+          color={lastRefreshedData.colorMap[lastRefreshedData.refreshColor]}
+        />
+        <Text
+          style={{
+            color: lastRefreshedData.colorMap[lastRefreshedData.refreshColor],
+            fontSize: 12,
+            fontWeight: "500",
+          }}
+        >
+          Last refreshed: {formatLastRefreshed(lastRefreshedData.refreshTime)}
+        </Text>
+      </View>
+      {/* Currency Converter Widget — shows best in-stock price in user's preferred currency */}
+      {currencyConverterData && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            marginTop: 10,
+            paddingTop: 10,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+          }}
+        >
+          <IconSymbol
+            name="arrow.left.arrow.right"
+            size={14}
+            color={colors.muted}
+          />
+          <Text style={{ color: colors.muted, fontSize: 12 }}>
+            Best in-stock price in
+          </Text>
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              marginTop: 12,
-              paddingTop: 12,
-              borderTopWidth: 1,
-              borderTopColor: colors.border,
+              backgroundColor: primary22,
+              borderRadius: 8,
+              paddingHorizontal: 7,
+              paddingVertical: 2,
             }}
           >
-            <IconSymbol
-              name="arrow.clockwise"
-              size={14}
-              color={colorMap[refreshColor]}
-            />
             <Text
               style={{
-                color: colorMap[refreshColor],
+                color: colors.primary,
                 fontSize: 12,
-                fontWeight: "500",
+                fontWeight: "700",
               }}
             >
-              Last refreshed: {formatLastRefreshed(refreshTime)}
+              {displayCurrency}
             </Text>
           </View>
-        );
-      })()}
-      {/* Currency Converter Widget — shows best in-stock price in user's preferred currency */}
-      {(() => {
-        if (displayCurrency === "USD") return null;
-        const available = visibleListings.filter(
-          (l) => l.stockStatus !== "out_of_stock" && l.price > 0,
-        );
-        if (!available.length) return null;
-        const bestListing = available.reduce((best, curr) => {
-          const cPrice = convertPrice(curr.price, curr.currency, displayCurrency);
-          const bPrice = convertPrice(best.price, best.currency, displayCurrency);
-          if (cPrice === null) return best;
-          if (bPrice === null) return curr;
-          return cPrice < bPrice ? curr : best;
-        });
-        const convertedPrice = convertPrice(
-          bestListing.price,
-          bestListing.currency,
-          displayCurrency,
-        );
-        if (convertedPrice === null) return null;
-        return (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              marginTop: 10,
-              paddingTop: 10,
-              borderTopWidth: 1,
-              borderTopColor: colors.border,
-            }}
-          >
-            <IconSymbol
-              name="arrow.left.arrow.right"
-              size={14}
-              color={colors.muted}
-            />
-            <Text style={{ color: colors.muted, fontSize: 12 }}>
-              Best in-stock price in
-            </Text>
-            <View
+          <View style={{ flex: 1, alignItems: "flex-end" }}>
+            <Text
               style={{
-                backgroundColor: colors.primary + "22",
-                borderRadius: 8,
-                paddingHorizontal: 7,
-                paddingVertical: 2,
+                color: colors.foreground,
+                fontWeight: "700",
+                fontSize: 14,
               }}
             >
-              <Text
-                style={{
-                  color: colors.primary,
-                  fontSize: 12,
-                  fontWeight: "700",
-                }}
-              >
-                {displayCurrency}
-              </Text>
-            </View>
-            <View style={{ flex: 1, alignItems: "flex-end" }}>
-              <Text
-                style={{
-                  color: colors.foreground,
-                  fontWeight: "700",
-                  fontSize: 14,
-                }}
-              >
-                {formatPrice(convertedPrice, displayCurrency)}
-              </Text>
-              {bestListing.currency !== displayCurrency &&
-                (() => {
-                  const rate = convertPrice(1, bestListing.currency, displayCurrency);
-                  return rate !== null ? (
-                    <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
-                      1 {bestListing.currency} = {rate.toFixed(4)} {displayCurrency}
-                    </Text>
-                  ) : null;
-                })()}
-            </View>
+              {formatPrice(currencyConverterData.convertedPrice, displayCurrency)}
+            </Text>
+            {currencyConverterData.bestListing.currency !== displayCurrency &&
+              (() => {
+                const rate = convertPrice(
+                  1,
+                  currencyConverterData.bestListing.currency,
+                  displayCurrency,
+                );
+                return rate !== null ? (
+                  <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
+                    1 {currencyConverterData.bestListing.currency} = {rate.toFixed(4)}{" "}
+                    {displayCurrency}
+                  </Text>
+                ) : null;
+              })()}
           </View>
-        );
-      })()}
+        </View>
+      )}
     </View>
   );
 }

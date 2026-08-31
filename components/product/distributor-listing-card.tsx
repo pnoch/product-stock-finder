@@ -1,3 +1,4 @@
+import { memo, useMemo, useCallback } from "react";
 import {
   Text,
   View,
@@ -29,7 +30,7 @@ interface DistributorListingCardProps {
   onRemind?: (listing: DistributorListing) => void;
 }
 
-export function DistributorListingCard({
+export const DistributorListingCard = memo(function DistributorListingCard({
   listing,
   stockWatches,
   onToggleStockWatch,
@@ -37,8 +38,38 @@ export function DistributorListingCard({
   onRemind,
 }: DistributorListingCardProps) {
   const colors = useColors();
-  const distributor = getDistributorById(listing.distributorId);
-  const usdPrice = convertPrice(listing.price, listing.currency, "USD");
+  const distributor = useMemo(
+    () => getDistributorById(listing.distributorId),
+    [listing.distributorId],
+  );
+  const usdPrice = useMemo(
+    () => convertPrice(listing.price, listing.currency, "USD"),
+    [listing.price, listing.currency],
+  );
+  const refreshColorKey = useMemo(
+    () => getLastRefreshedColor(listing.lastChecked),
+    [listing.lastChecked],
+  );
+  const isWatching = stockWatches[listing.distributorId];
+  const handleOpenChart = useCallback(() => {
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onOpenChart(listing);
+  }, [listing, onOpenChart]);
+  const handleVisit = useCallback(() => {
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    openListingUrl(listing.url);
+  }, [listing.url]);
+  const handleToggleWatch = useCallback(
+    () => onToggleStockWatch(listing),
+    [listing, onToggleStockWatch],
+  );
+  const handleRemind = useCallback(() => {
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onRemind?.(listing);
+  }, [listing, onRemind]);
 
   return (
     <View
@@ -126,13 +157,7 @@ export function DistributorListingCard({
           {listing.priceHistory &&
             listing.priceHistory.length >= 2 && (
               <TouchableOpacity
-                onPress={() => {
-                  if (Platform.OS !== "web")
-                    Haptics.impactAsync(
-                      Haptics.ImpactFeedbackStyle.Light,
-                    );
-                  onOpenChart(listing);
-                }}
+                onPress={handleOpenChart}
                 activeOpacity={0.7}
                 accessibilityLabel="Open price chart"
                 accessibilityRole="button"
@@ -146,13 +171,7 @@ export function DistributorListingCard({
               </TouchableOpacity>
             )}
           <TouchableOpacity
-            onPress={() => {
-              if (Platform.OS !== "web")
-                Haptics.impactAsync(
-                  Haptics.ImpactFeedbackStyle.Light,
-                );
-              openListingUrl(listing.url);
-            }}
+            onPress={handleVisit}
             style={{
               backgroundColor: colors.primary + "22",
               borderRadius: 20,
@@ -194,9 +213,6 @@ export function DistributorListingCard({
         </Text>
       )}
       {(() => {
-        const refreshColor = getLastRefreshedColor(
-          listing.lastChecked,
-        );
         const colorMap = {
           green: colors.success,
           yellow: colors.warning,
@@ -206,7 +222,7 @@ export function DistributorListingCard({
         return (
           <Text
             style={{
-              color: colorMap[refreshColor],
+              color: colorMap[refreshColorKey],
               fontSize: 11,
               marginTop: distributor?.paymentMethods ? 2 : 8,
             }}
@@ -219,60 +235,42 @@ export function DistributorListingCard({
       {(listing.stockStatus === "back_order" || listing.stockStatus === "out_of_stock") && (
         <View style={{ gap: 8, marginTop: 10 }}>
           <TouchableOpacity
-            onPress={() => onToggleStockWatch(listing)}
+            onPress={handleToggleWatch}
             style={{
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "center",
               gap: 6,
-              backgroundColor: stockWatches[listing.distributorId]
+              backgroundColor: isWatching
                 ? colors.warning + "22"
                 : colors.surface,
               borderRadius: 12,
               paddingVertical: 9,
               borderWidth: 1,
-              borderColor: stockWatches[listing.distributorId]
-                ? colors.warning + "88"
-                : colors.border,
+              borderColor: isWatching ? colors.warning + "88" : colors.border,
             }}
-            accessibilityLabel={stockWatches[listing.distributorId] ? "Stop watching for restock" : "Watch for restock"}
+            accessibilityLabel={isWatching ? "Stop watching for restock" : "Watch for restock"}
             accessibilityRole="button"
-            accessibilityState={{ checked: stockWatches[listing.distributorId] }}
+            accessibilityState={{ checked: isWatching }}
           >
             <IconSymbol
-              name={
-                stockWatches[listing.distributorId]
-                  ? "eye.fill"
-                  : "eye.slash.fill"
-              }
+              name={isWatching ? "eye.fill" : "eye.slash.fill"}
               size={15}
-              color={
-                stockWatches[listing.distributorId]
-                  ? colors.warning
-                  : colors.muted
-              }
+              color={isWatching ? colors.warning : colors.muted}
             />
             <Text
               style={{
-                color: stockWatches[listing.distributorId]
-                  ? colors.warning
-                  : colors.muted,
+                color: isWatching ? colors.warning : colors.muted,
                 fontSize: 13,
                 fontWeight: "600",
               }}
             >
-              {stockWatches[listing.distributorId]
-                ? "Watching for Restock"
-                : "Watch for Restock"}
+              {isWatching ? "Watching for Restock" : "Watch for Restock"}
             </Text>
           </TouchableOpacity>
           {onRemind && (
             <TouchableOpacity
-              onPress={() => {
-                if (Platform.OS !== "web")
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onRemind(listing);
-              }}
+              onPress={handleRemind}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -307,4 +305,5 @@ export function DistributorListingCard({
       )}
     </View>
   );
-}
+});
+DistributorListingCard.displayName = "DistributorListingCard";

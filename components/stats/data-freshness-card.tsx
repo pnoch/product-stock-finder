@@ -1,31 +1,39 @@
+import { memo, useMemo } from "react";
 import { Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import type { DataFreshnessResult } from "@/lib/watchlist-stats";
 
-export function DataFreshnessCard({
+export const DataFreshnessCard = memo(function DataFreshnessCard({
   freshness,
 }: {
   freshness: DataFreshnessResult;
 }) {
   const colors = useColors();
 
-  const oldestLabel = freshness.oldestCheck
-    ? new Date(freshness.oldestCheck).toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    : "—";
+  const oldestLabel = useMemo(
+    () =>
+      freshness.oldestCheck
+        ? new Date(freshness.oldestCheck).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
+        : "—",
+    [freshness.oldestCheck],
+  );
 
-  const rows = [
-    {
-      label: "Avg data points / listing",
-      value: `${freshness.avgHistoryPoints}`,
-    },
-    { label: "Stale (>7 days)", value: `${freshness.staleCount}` },
-    { label: "Never checked", value: `${freshness.neverCheckedCount}` },
-    { label: "Oldest check", value: oldestLabel },
-  ];
+  const rows = useMemo(
+    () => [
+      {
+        label: "Avg data points / listing",
+        value: `${freshness.avgHistoryPoints}`,
+      },
+      { label: "Stale (>7 days)", value: `${freshness.staleCount}` },
+      { label: "Never checked", value: `${freshness.neverCheckedCount}` },
+      { label: "Oldest check", value: oldestLabel },
+    ],
+    [freshness.avgHistoryPoints, freshness.neverCheckedCount, freshness.staleCount, oldestLabel],
+  );
 
   return (
     <View
@@ -61,4 +69,5 @@ export function DataFreshnessCard({
       ))}
     </View>
   );
-}
+});
+DataFreshnessCard.displayName = "DataFreshnessCard";

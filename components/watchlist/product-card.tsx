@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { memo, useState, useEffect, useMemo, useCallback } from "react";
 import { Text, View, TouchableOpacity, Image } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { Product, TagDefinition } from "@/lib/types";
@@ -13,7 +13,7 @@ import {
 import { getTagById } from "@/lib/tags";
 import { productStatus } from "@/lib/watchlist-org";
 
-export function ProductCard({
+export const ProductCard = memo(function ProductCard({
   product,
   onPress,
   onDelete,
@@ -35,11 +35,53 @@ export function ProductCard({
   insight?: { atAllTimeLow: boolean; dropStreak: number };
 }) {
   const colors = useColors();
-  const bestPrice = getBestPrice(product.listings ?? [], "USD");
-  const bestStatus = productStatus(product);
+  const bestPrice = useMemo(
+    () => getBestPrice(product.listings ?? [], "USD"),
+    [product.listings],
+  );
+  const bestStatus = useMemo(() => productStatus(product), [product]);
   const distributorCount = product.listings?.length ?? 0;
-  const validTags = (product.tags ?? []).filter((id) =>
-    getTagById(tagDefinitions, id),
+  const validTags = useMemo(
+    () => (product.tags ?? []).filter((id) => getTagById(tagDefinitions, id)),
+    [product.tags, tagDefinitions],
+  );
+  const priceChange = useMemo(() => {
+    if (!bestPrice) return null;
+    const allHistory = (product.listings ?? []).flatMap(
+      (l) => l.priceHistory ?? [],
+    );
+    if (allHistory.length < 2) return null;
+    const sorted = [...allHistory].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+    const oldestUsd = convertPrice(
+      sorted[0].price,
+      sorted[0].currency,
+      "USD",
+    );
+    const currentUsd = bestPrice.price;
+    if (oldestUsd === null || oldestUsd <= 0) return null;
+    const pct = ((currentUsd - oldestUsd) / oldestUsd) * 100;
+    if (Math.abs(pct) < 0.5) return null;
+    return { pct, isDown: pct < 0 };
+  }, [bestPrice, product.listings]);
+  const refreshColorKey = useMemo(
+    () => getLastRefreshedColor(product.lastRefreshed),
+    [product.lastRefreshed],
+  );
+  const handleTagPress = useCallback(
+    (e: { stopPropagation: () => void }) => {
+      e.stopPropagation();
+      onTagPress();
+    },
+    [onTagPress],
+  );
+  const handleDeletePress = useCallback(
+    (e: { stopPropagation: () => void }) => {
+      e.stopPropagation();
+      onDelete();
+    },
+    [onDelete],
   );
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -125,37 +167,17 @@ export function ProductCard({
               {formatPrice(bestPrice.price, bestPrice.currency)}
             </Text>
           )}
-          {(() => {
-            if (!bestPrice) return null;
-            const allHistory = (product.listings ?? []).flatMap(
-              (l) => l.priceHistory ?? [],
-            );
-            if (allHistory.length < 2) return null;
-            const sorted = [...allHistory].sort(
-              (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-            );
-            const oldestUsd = convertPrice(
-              sorted[0].price,
-              sorted[0].currency,
-              "USD",
-            );
-            const currentUsd = bestPrice.price;
-            if (oldestUsd === null || oldestUsd <= 0) return null;
-            const pct = ((currentUsd - oldestUsd) / oldestUsd) * 100;
-            if (Math.abs(pct) < 0.5) return null;
-            const isDown = pct < 0;
-            return (
-              <Text
-                style={{
-                  color: isDown ? colors.success : colors.error,
-                  fontSize: 11,
-                  fontWeight: "600",
-                }}
-              >
-                {isDown ? "▼" : "▲"} {Math.abs(pct).toFixed(1)}%
-              </Text>
-            );
-          })()}
+          {priceChange && (
+            <Text
+              style={{
+                color: priceChange.isDown ? colors.success : colors.error,
+                fontSize: 11,
+                fontWeight: "600",
+              }}
+            >
+              {priceChange.isDown ? "▼" : "▲"} {Math.abs(priceChange.pct).toFixed(1)}%
+            </Text>
+          )}
         </View>
       </View>
       {validTags.length > 0 && (
@@ -285,7 +307,6 @@ export function ProductCard({
           tracked
         </Text>
         {(() => {
-          const refreshColor = getLastRefreshedColor(product.lastRefreshed);
           const colorMap = {
             green: colors.success,
             yellow: colors.warning,
@@ -293,16 +314,13 @@ export function ProductCard({
             gray: colors.muted,
           };
           return (
-            <Text style={{ color: colorMap[refreshColor], fontSize: 11 }}>
+            <Text style={{ color: colorMap[refreshColorKey], fontSize: 11 }}>
               Updated {formatLastRefreshed(product.lastRefreshed)}
             </Text>
           );
         })()}
         <TouchableOpacity
-          onPress={(e) => {
-            e.stopPropagation();
-            onTagPress();
-          }}
+          onPress={handleTagPress}
           style={{ padding: 4, marginRight: 4 }}
           accessibilityLabel="Edit tags"
           accessibilityRole="button"
@@ -314,10 +332,7 @@ export function ProductCard({
           />
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
+          onPress={handleDeletePress}
           style={{ padding: 4 }}
           accessibilityLabel="Delete product"
           accessibilityRole="button"
@@ -327,4 +342,5 @@ export function ProductCard({
       </View>
     </TouchableOpacity>
   );
-}
+});
+ProductCard.displayName = "ProductCard";

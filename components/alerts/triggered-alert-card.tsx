@@ -1,3 +1,4 @@
+import { memo, useMemo, useCallback } from "react";
 import { Text, View, TouchableOpacity } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { PriceAlert } from "@/lib/types";
@@ -12,13 +13,20 @@ interface TriggeredAlertCardProps {
   onDelete: (id: string) => void;
 }
 
-export function TriggeredAlertCard({
+export const TriggeredAlertCard = memo(function TriggeredAlertCard({
   alert,
   productName,
   onRearm,
   onDelete,
 }: TriggeredAlertCardProps) {
   const colors = useColors();
+  const distributorLabel = useMemo(() => {
+    if (!alert.distributorId) return null;
+    const dist = getDistributorById(alert.distributorId);
+    return dist ? `${dist.countryFlag} ${dist.name}` : alert.distributorId;
+  }, [alert.distributorId]);
+  const handleRearm = useCallback(() => onRearm(alert.id), [onRearm, alert.id]);
+  const handleDelete = useCallback(() => onDelete(alert.id), [onDelete, alert.id]);
 
   return (
     <View
@@ -49,14 +57,9 @@ export function TriggeredAlertCard({
           >
             {productName}
           </Text>
-          {alert.distributorId && (
+          {distributorLabel && (
             <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
-              {(() => {
-                const dist = getDistributorById(alert.distributorId!);
-                return dist
-                  ? `${dist.countryFlag} ${dist.name}`
-                  : alert.distributorId;
-              })()}
+              {distributorLabel}
             </Text>
           )}
           <View
@@ -114,7 +117,7 @@ export function TriggeredAlertCard({
         </View>
         <View style={{ alignItems: "flex-end", gap: 8 }}>
           <TouchableOpacity
-            onPress={() => onRearm(alert.id)}
+            onPress={handleRearm}
             style={{
               backgroundColor: colors.primary + "18",
               borderRadius: 8,
@@ -143,7 +146,7 @@ export function TriggeredAlertCard({
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => onDelete(alert.id)}
+            onPress={handleDelete}
             style={{ padding: 4 }}
             accessibilityLabel={`Delete triggered alert for ${productName}`}
             accessibilityRole="button"
@@ -154,4 +157,5 @@ export function TriggeredAlertCard({
       </View>
     </View>
   );
-}
+});
+TriggeredAlertCard.displayName = "TriggeredAlertCard";

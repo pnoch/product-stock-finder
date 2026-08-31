@@ -1,3 +1,4 @@
+import { memo, useCallback } from "react";
 import { Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
@@ -17,7 +18,7 @@ interface DistributorSelectorProps {
 }
 
 // ─── Distributor Selector ──────────────────────────────────────────────────────
-export function DistributorSelector({
+export const DistributorSelector = memo(function DistributorSelector({
   sortedListings,
   selected,
   sortBy,
@@ -27,17 +28,23 @@ export function DistributorSelector({
 }: DistributorSelectorProps) {
   const colors = useColors();
 
-  const handleSort = (s: SortBy) => {
-    if (Platform.OS !== "web")
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onSortChange(s);
-  };
+  const handleSort = useCallback(
+    (s: SortBy) => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onSortChange(s);
+    },
+    [onSortChange],
+  );
 
-  const handleToggle = (distributorId: string) => {
-    if (Platform.OS !== "web")
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onToggle(distributorId);
-  };
+  const handleToggle = useCallback(
+    (distributorId: string) => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onToggle(distributorId);
+    },
+    [onToggle],
+  );
 
   return (
     <View style={{ paddingHorizontal: 16 }}>
@@ -217,6 +224,7 @@ export function DistributorSelector({
           </TouchableOpacity>
         );
       })}
-    </View>
+     </View>
   );
-}
+});
+DistributorSelector.displayName = "DistributorSelector";

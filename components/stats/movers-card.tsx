@@ -1,3 +1,4 @@
+import { memo, useCallback, useMemo } from "react";
 import { Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
@@ -14,7 +15,7 @@ const WINDOWS: { label: string; value: MoversWindow }[] = [
   { label: "All", value: null },
 ];
 
-function MoveRow({ move, color }: { move: PriceMove; color: string }) {
+const MoveRow = memo(function MoveRow({ move, color }: { move: PriceMove; color: string }) {
   const colors = useColors();
   return (
     <View
@@ -53,9 +54,10 @@ function MoveRow({ move, color }: { move: PriceMove; color: string }) {
       </View>
     </View>
   );
-}
+});
+MoveRow.displayName = "MoveRow";
 
-export function MoversCard({
+export const MoversCard = memo(function MoversCard({
   movers,
   days,
   onDaysChange,
@@ -65,7 +67,18 @@ export function MoversCard({
   onDaysChange: (days: MoversWindow) => void;
 }) {
   const colors = useColors();
-  const empty = movers.drops.length === 0 && movers.gainers.length === 0;
+  const empty = useMemo(
+    () => movers.drops.length === 0 && movers.gainers.length === 0,
+    [movers.drops.length, movers.gainers.length],
+  );
+  const handleDaysChange = useCallback(
+    (value: MoversWindow) => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onDaysChange(value);
+    },
+    [onDaysChange],
+  );
 
   return (
     <View
@@ -92,11 +105,7 @@ export function MoversCard({
           {WINDOWS.map((w) => (
             <TouchableOpacity
               key={w.label}
-              onPress={() => {
-                if (Platform.OS !== "web")
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onDaysChange(w.value);
-              }}
+              onPress={() => handleDaysChange(w.value)}
               style={{
                 paddingHorizontal: 10,
                 paddingVertical: 4,
@@ -169,4 +178,5 @@ export function MoversCard({
       )}
     </View>
   );
-}
+});
+MoversCard.displayName = "MoversCard";

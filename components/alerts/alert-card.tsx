@@ -1,3 +1,4 @@
+import { memo, useMemo, useCallback } from "react";
 import { Text, View, Switch, TouchableOpacity } from "react-native";
 import { PriceAlert } from "@/lib/types";
 import { formatPrice } from "@/lib/currency";
@@ -14,7 +15,7 @@ type AlertCardProps = {
   onEdit?: (id: string) => void;
 };
 
-export function AlertCard({
+export const AlertCard = memo(function AlertCard({
   alert,
   productName,
   onToggle,
@@ -23,8 +24,19 @@ export function AlertCard({
   onEdit,
 }: AlertCardProps) {
   const colors = useColors();
-  const snoozed =
-    !!alert.snoozedUntil && new Date(alert.snoozedUntil) > new Date();
+  const snoozed = useMemo(
+    () => !!alert.snoozedUntil && new Date(alert.snoozedUntil) > new Date(),
+    [alert.snoozedUntil],
+  );
+  const distributorLabel = useMemo(() => {
+    if (!alert.distributorId) return null;
+    const dist = getDistributorById(alert.distributorId);
+    return dist ? `${dist.countryFlag} ${dist.name}` : alert.distributorId;
+  }, [alert.distributorId]);
+  const handleToggle = useCallback(() => onToggle(alert.id), [onToggle, alert.id]);
+  const handleDelete = useCallback(() => onDelete(alert.id), [onDelete, alert.id]);
+  const handleSnooze = useCallback(() => onSnooze?.(alert.id), [onSnooze, alert.id]);
+  const handleEdit = useCallback(() => onEdit?.(alert.id), [onEdit, alert.id]);
 
   return (
     <View
@@ -58,14 +70,9 @@ export function AlertCard({
           >
             {productName}
           </Text>
-          {alert.distributorId && (
+          {distributorLabel && (
             <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
-              {(() => {
-                const dist = getDistributorById(alert.distributorId!);
-                return dist
-                  ? `${dist.countryFlag} ${dist.name}`
-                  : alert.distributorId;
-              })()}
+              {distributorLabel}
             </Text>
           )}
           {snoozed && (
@@ -121,7 +128,7 @@ export function AlertCard({
           {!alert.triggeredAt && (
             <Switch
               value={alert.isActive}
-              onValueChange={() => onToggle(alert.id)}
+              onValueChange={handleToggle}
               trackColor={{
                 false: colors.border,
                 true: colors.primary + "88",
@@ -133,7 +140,7 @@ export function AlertCard({
           )}
           {onEdit && (
             <TouchableOpacity
-              onPress={() => onEdit(alert.id)}
+              onPress={handleEdit}
               style={{ padding: 4 }}
               accessibilityLabel={`Edit alert for ${productName}`}
               accessibilityRole="button"
@@ -143,7 +150,7 @@ export function AlertCard({
           )}
           {onSnooze && !alert.triggeredAt && (
             <TouchableOpacity
-              onPress={() => onSnooze(alert.id)}
+              onPress={handleSnooze}
               style={{ padding: 4 }}
               accessibilityLabel={`Snooze alert for ${productName}`}
               accessibilityRole="button"
@@ -156,7 +163,7 @@ export function AlertCard({
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            onPress={() => onDelete(alert.id)}
+            onPress={handleDelete}
             style={{ padding: 4 }}
             accessibilityLabel={`Delete alert for ${productName}`}
             accessibilityRole="button"
@@ -171,4 +178,5 @@ export function AlertCard({
       </View>
     </View>
   );
-}
+});
+AlertCard.displayName = "AlertCard";

@@ -250,6 +250,11 @@ export default function SearchScreen() {
       <FlatList
         data={tagFilteredResults}
         keyExtractor={(item) => item.id}
+        initialNumToRender={20}
+        windowSize={7}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         ListHeaderComponent={
           <Text

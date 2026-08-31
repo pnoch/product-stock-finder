@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   RefreshCw,
@@ -75,6 +75,10 @@ function formatTimeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
+const ROW_HEIGHT = 65;
+const VIEWPORT_HEIGHT = 520;
+const OVERSCAN = 5;
+
 export function Watchlist() {
   const { products, loading, refresh } = useWatchlist();
   const { settings } = useSettings();
@@ -85,6 +89,23 @@ export function Watchlist() {
   const [refreshing, setRefreshing] = useState(false);
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(VIEWPORT_HEIGHT);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) setViewportHeight(entry.contentRect.height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const onScroll = useCallback(() => {
+    if (scrollRef.current) setScrollTop(scrollRef.current.scrollTop);
+  }, []);
 
   const displayCurrency = settings?.displayCurrency ?? "USD";
 

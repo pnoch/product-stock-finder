@@ -20,7 +20,7 @@ export function ProgressBar({
       <View
         className="h-full rounded-full"
         style={{
-          width: `${progress * 100}%`,
+          width: `${Math.min(1, Math.max(0, Number.isFinite(progress) ? progress : 0)) * 100}%`,
           backgroundColor: colors.primary,
         }}
       />

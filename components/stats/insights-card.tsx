@@ -1,10 +1,14 @@
+import { memo, useMemo } from "react";
 import { Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import type { ProductInsightsResult } from "@/lib/product-insights";
 
-export function InsightsCard({ result }: { result: ProductInsightsResult }) {
+export const InsightsCard = memo(function InsightsCard({ result }: { result: ProductInsightsResult }) {
   const colors = useColors();
-  const lows = result.products.filter((p) => p.atAllTimeLow).slice(0, 3);
+  const lows = useMemo(
+    () => result.products.filter((p) => p.atAllTimeLow).slice(0, 3),
+    [result.products],
+  );
 
   return (
     <View
@@ -75,4 +79,5 @@ export function InsightsCard({ result }: { result: ProductInsightsResult }) {
       )}
     </View>
   );
-}
+});
+InsightsCard.displayName = "InsightsCard";

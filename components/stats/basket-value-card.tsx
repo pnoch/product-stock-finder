@@ -1,10 +1,11 @@
+import { memo } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import type { BasketValueResult } from "@/lib/watchlist-stats";
 
-export function BasketValueCard({
+export const BasketValueCard = memo(function BasketValueCard({
   basket,
   displayCurrency,
   alertThreshold,
@@ -72,4 +73,5 @@ export function BasketValueCard({
       )}
     </View>
   );
-}
+});
+BasketValueCard.displayName = "BasketValueCard";

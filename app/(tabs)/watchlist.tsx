@@ -417,6 +417,11 @@ export default function WatchlistScreen() {
       <SectionList
         sections={sections.map((s) => ({ ...s, data: s.products }))}
         keyExtractor={(item) => item.id}
+        initialNumToRender={10}
+        windowSize={7}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews
         contentContainerStyle={{
           paddingHorizontal: 20,
           paddingBottom: 24,

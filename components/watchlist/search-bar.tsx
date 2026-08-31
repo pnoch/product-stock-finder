@@ -42,6 +42,7 @@ export function SearchBar({
       {query.length > 0 && (
         <TouchableOpacity
           onPress={() => onQueryChange("")}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={{ padding: 4 }}
           accessibilityLabel="Clear search"
           accessibilityRole="button"

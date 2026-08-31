@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState, useCallback, useMemo } from "react";
 import {
   Modal,
   Text,
@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 
-export function BasketAlertSheet({
+export const BasketAlertSheet = memo(function BasketAlertSheet({
   visible,
   onClose,
   currentThreshold,
@@ -26,8 +26,17 @@ export function BasketAlertSheet({
     if (visible) setValue(currentThreshold ? String(currentThreshold) : "");
   }, [visible, currentThreshold]);
 
-  const numeric = parseFloat(value);
-  const valid = !isNaN(numeric) && numeric > 0;
+  const numeric = useMemo(() => parseFloat(value), [value]);
+  const valid = useMemo(() => !isNaN(numeric) && numeric > 0, [numeric]);
+  const handleDisable = useCallback(() => {
+    onSave(null);
+    onClose();
+  }, [onSave, onClose]);
+  const handleEnable = useCallback(() => {
+    if (!valid) return;
+    onSave(numeric);
+    onClose();
+  }, [valid, numeric, onSave, onClose]);
 
   return (
     <Modal
@@ -87,10 +96,7 @@ export function BasketAlertSheet({
           <View style={{ flexDirection: "row", gap: 10 }}>
             {currentThreshold != null && (
               <TouchableOpacity
-                onPress={() => {
-                  onSave(null);
-                  onClose();
-                }}
+                onPress={handleDisable}
                 style={{
                   flex: 1,
                   paddingVertical: 12,
@@ -108,11 +114,7 @@ export function BasketAlertSheet({
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              onPress={() => {
-                if (!valid) return;
-                onSave(numeric);
-                onClose();
-              }}
+              onPress={handleEnable}
               disabled={!valid}
               style={{
                 flex: currentThreshold != null ? 1 : 2,
@@ -131,4 +133,5 @@ export function BasketAlertSheet({
       </View>
     </Modal>
   );
-}
+});
+BasketAlertSheet.displayName = "BasketAlertSheet";

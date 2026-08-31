@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState, useMemo, useCallback } from "react";
 import { Text, View, TouchableOpacity } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@/lib/currency";
@@ -20,7 +20,7 @@ function buildGridCells(days: number, now: number): (number | null)[] {
   return cells;
 }
 
-export function DropCalendarCard({
+export const DropCalendarCard = memo(function DropCalendarCard({
   result,
   days,
   now,
@@ -31,10 +31,18 @@ export function DropCalendarCard({
 }) {
   const colors = useColors();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const cells = buildGridCells(days, now);
-  const selected: DropDay | undefined = selectedKey
-    ? result.byDay.get(selectedKey)
-    : undefined;
+  const cells = useMemo(() => buildGridCells(days, now), [days, now]);
+  const selected: DropDay | undefined = useMemo(
+    () => (selectedKey ? result.byDay.get(selectedKey) : undefined),
+    [selectedKey, result.byDay],
+  );
+  const handleSelect = useCallback(
+    (ts: number) => {
+      const key = new Date(ts).toISOString().slice(0, 10);
+      setSelectedKey((prev) => (prev === key ? null : key));
+    },
+    [],
+  );
 
   const cellStyle = (ts: number) => {
     const key = new Date(ts).toISOString().slice(0, 10);
@@ -102,10 +110,7 @@ export function DropCalendarCard({
           ) : (
             <TouchableOpacity
               key={ts}
-              onPress={() => {
-                const key = new Date(ts).toISOString().slice(0, 10);
-                setSelectedKey((prev) => (prev === key ? null : key));
-              }}
+              onPress={() => handleSelect(ts)}
               style={cellStyle(ts)}
               accessibilityLabel={`Price drops on ${new Date(ts).toLocaleDateString()}`}
               accessibilityRole="button"
@@ -163,4 +168,5 @@ export function DropCalendarCard({
       )}
     </View>
   );
-}
+});
+DropCalendarCard.displayName = "DropCalendarCard";

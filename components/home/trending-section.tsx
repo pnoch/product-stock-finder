@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import React, { memo, useCallback, useMemo } from "react";
+import { View, Text, TouchableOpacity, Image, ActivityIndicator } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { TrendingProduct } from "@/lib/types";
 import { fetchTrending } from "@/lib/trending";
@@ -8,7 +8,128 @@ import { addToWatchlist, getWatchlist } from "@/lib/storage";
 import { useRouter } from "expo-router";
 import { fetchProductImage } from "@/lib/server-images";
 
-export function TrendingSection() {
+const TrendingProductRow = memo(function TrendingProductRow({
+  product,
+  imageUrl,
+  isInWatchlist,
+  onAdd,
+  onPress,
+}: {
+  product: TrendingProduct;
+  imageUrl?: string;
+  isInWatchlist: boolean;
+  onAdd: (p: TrendingProduct) => void;
+  onPress: (id: string) => void;
+}) {
+  const colors = useColors();
+  const handlePress = useCallback(() => onPress(product.id), [onPress, product.id]);
+  const handleAddPress = useCallback(
+    (e: unknown) => {
+      (e as { stopPropagation?: () => void })?.stopPropagation?.();
+      onAdd(product);
+    },
+    [onAdd, product],
+  );
+  return (
+    <TouchableOpacity
+      onPress={handlePress}
+      style={{
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
+      accessibilityLabel={`View ${product.name}`}
+      accessibilityRole="button"
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
+        {imageUrl && (
+          <Image
+            source={{ uri: imageUrl }}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 8,
+              marginRight: 12,
+            }}
+          />
+        )}
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              fontSize: 15,
+              fontWeight: "600",
+              color: colors.foreground,
+            }}
+          >
+            {product.name}
+          </Text>
+          <Text
+            style={{
+              fontSize: 12,
+              color: colors.muted,
+              marginTop: 2,
+            }}
+          >
+            {product.category} · {product.brand} ·{" "}
+            {product.currency === "USD"
+              ? "$"
+              : product.currency === "EUR"
+                ? "€"
+                : product.currency === "GBP"
+                  ? "£"
+                  : product.currency + " "}
+            {product.estimatedPrice.toLocaleString()}
+          </Text>
+          <Text
+            style={{
+              fontSize: 12,
+              color: colors.muted,
+              marginTop: 4,
+              fontStyle: "italic",
+            }}
+          >
+            {product.reason}
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={handleAddPress}
+          disabled={isInWatchlist}
+          style={{
+            backgroundColor: isInWatchlist ? colors.muted : colors.primary,
+            borderRadius: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            marginLeft: 8,
+          }}
+          accessibilityLabel={isInWatchlist ? "Already in watchlist" : "Add to watchlist"}
+          accessibilityRole="button"
+        >
+          <Text
+            style={{
+              color: "#fff",
+              fontSize: 12,
+              fontWeight: "600",
+            }}
+          >
+            {isInWatchlist ? "In Watchlist" : "Add"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+});
+TrendingProductRow.displayName = "TrendingProductRow";
+
+export const TrendingSection = memo(function TrendingSection() {
   const colors = useColors();
   const router = useRouter();
   const { data: products, isLoading } = useQuery({
@@ -50,7 +171,7 @@ export function TrendingSection() {
     };
   }, [products]);
 
-  const handleAdd = async (product: TrendingProduct) => {
+  const handleAdd = useCallback(async (product: TrendingProduct) => {
     await addToWatchlist({
       id: product.id,
       name: product.name,
@@ -63,9 +184,17 @@ export function TrendingSection() {
       listings: [],
     });
     setWatchlistIds((prev) => new Set([...prev, product.id]));
-  };
+  }, []);
 
-  if (isLoading || !products || products.length === 0) return null;
+  const handlePress = useCallback(
+    (id: string) => router.push(`/product/${id}`),
+    [router],
+  );
+
+  const visibleProducts = useMemo(() => products?.slice(0, 3) ?? [], [products]);
+
+  if (isLoading) return <ActivityIndicator style={{ marginVertical: 16 }} />;
+  if (!products || products.length === 0) return null;
 
   return (
     <View style={{ marginBottom: 16 }}>
@@ -82,108 +211,17 @@ export function TrendingSection() {
       <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 12 }}>
         Hard-to-find products from the community
       </Text>
-      {products.slice(0, 3).map((product) => (
-        <TouchableOpacity
+      {visibleProducts.map((product) => (
+        <TrendingProductRow
           key={product.id}
-          onPress={() => router.push(`/product/${product.id}`)}
-          style={{
-            backgroundColor: colors.surface,
-            borderRadius: 12,
-            padding: 14,
-            marginBottom: 8,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
-          accessibilityLabel={`View ${product.name}`}
-          accessibilityRole="button"
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-            }}
-          >
-            {imageUrls.has(product.id) && (
-              <Image
-                source={{ uri: imageUrls.get(product.id)! }}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 8,
-                  marginRight: 12,
-                }}
-              />
-            )}
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  fontSize: 15,
-                  fontWeight: "600",
-                  color: colors.foreground,
-                }}
-              >
-                {product.name}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.muted,
-                  marginTop: 2,
-                }}
-              >
-                {product.category} · {product.brand} ·{" "}
-                {product.currency === "USD"
-                  ? "$"
-                  : product.currency === "EUR"
-                    ? "€"
-                    : product.currency === "GBP"
-                      ? "£"
-                      : product.currency + " "}
-                {product.estimatedPrice.toLocaleString()}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.muted,
-                  marginTop: 4,
-                  fontStyle: "italic",
-                }}
-              >
-                {product.reason}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={(e: any) => {
-                e?.stopPropagation?.();
-                handleAdd(product);
-              }}
-              disabled={watchlistIds.has(product.id)}
-              style={{
-                backgroundColor: watchlistIds.has(product.id)
-                  ? colors.muted
-                  : colors.primary,
-                borderRadius: 8,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                marginLeft: 8,
-              }}
-              accessibilityLabel={watchlistIds.has(product.id) ? "Already in watchlist" : "Add to watchlist"}
-              accessibilityRole="button"
-            >
-              <Text
-                style={{
-                  color: "#fff",
-                  fontSize: 12,
-                  fontWeight: "600",
-                }}
-              >
-                {watchlistIds.has(product.id) ? "In Watchlist" : "Add"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
+          product={product}
+          imageUrl={imageUrls.get(product.id)}
+          isInWatchlist={watchlistIds.has(product.id)}
+          onAdd={handleAdd}
+          onPress={handlePress}
+        />
       ))}
     </View>
   );
-}
+});
+TrendingSection.displayName = "TrendingSection";

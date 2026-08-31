@@ -1,9 +1,10 @@
+import { memo, useMemo } from "react";
 import { Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@/lib/currency";
 import type { DigestResult } from "@/lib/price-digest";
 
-export function DigestCard({
+export const DigestCard = memo(function DigestCard({
   result,
   periodLabel,
 }: {
@@ -11,12 +12,21 @@ export function DigestCard({
   periodLabel: string;
 }) {
   const colors = useColors();
-  const empty =
-    result.priceChanges.length === 0 &&
-    result.stockChanges.length === 0 &&
-    result.alertTargetsHit.length === 0 &&
-    result.newProducts.length === 0 &&
-    result.removedProducts.length === 0;
+  const empty = useMemo(
+    () =>
+      result.priceChanges.length === 0 &&
+      result.stockChanges.length === 0 &&
+      result.alertTargetsHit.length === 0 &&
+      result.newProducts.length === 0 &&
+      result.removedProducts.length === 0,
+    [
+      result.priceChanges.length,
+      result.stockChanges.length,
+      result.alertTargetsHit.length,
+      result.newProducts.length,
+      result.removedProducts.length,
+    ],
+  );
 
   return (
     <View
@@ -168,4 +178,5 @@ export function DigestCard({
       )}
     </View>
   );
-}
+});
+DigestCard.displayName = "DigestCard";

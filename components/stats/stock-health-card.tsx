@@ -1,27 +1,31 @@
+import { memo, useMemo } from "react";
 import { Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import type { StockHealthResult } from "@/lib/watchlist-stats";
 
-export function StockHealthCard({ health }: { health: StockHealthResult }) {
+export const StockHealthCard = memo(function StockHealthCard({ health }: { health: StockHealthResult }) {
   const colors = useColors();
 
-  const rows = [
-    {
-      label: "Listings in stock",
-      value: `${health.inStockPct}%`,
-      color: colors.success,
-    },
-    {
-      label: "Fully out of stock",
-      value: `${health.fullyOutOfStock}`,
-      color: colors.error,
-    },
-    {
-      label: "Back-order everywhere",
-      value: `${health.backOrderOnly}`,
-      color: colors.warning,
-    },
-  ];
+  const rows = useMemo(
+    () => [
+      {
+        label: "Listings in stock",
+        value: `${health.inStockPct}%`,
+        color: colors.success,
+      },
+      {
+        label: "Fully out of stock",
+        value: `${health.fullyOutOfStock}`,
+        color: colors.error,
+      },
+      {
+        label: "Back-order everywhere",
+        value: `${health.backOrderOnly}`,
+        color: colors.warning,
+      },
+    ],
+    [health.inStockPct, health.fullyOutOfStock, health.backOrderOnly, colors.success, colors.error, colors.warning],
+  );
 
   return (
     <View
@@ -50,4 +54,5 @@ export function StockHealthCard({ health }: { health: StockHealthResult }) {
       </View>
     </View>
   );
-}
+});
+StockHealthCard.displayName = "StockHealthCard";

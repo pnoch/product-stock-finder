@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
@@ -23,6 +24,20 @@ function BestDistributorCard({
   const colors = useColors();
   const distributor = getDistributorById(listing.distributorId);
   const usdPrice = convertPrice(listing.price, listing.currency, "USD");
+
+  const derivedColors = useMemo(
+    () => ({
+      primary12: colors.primary + "12",
+      primary22: colors.primary + "22",
+      primary44: colors.primary + "44",
+      primary55: colors.primary + "55",
+      success18: colors.success + "18",
+      success22: colors.success + "22",
+      success44: colors.success + "44",
+      error22: colors.error + "22",
+    }),
+    [colors.primary, colors.success, colors.error],
+  );
 
   // Price-drop indicator: compare oldest vs current price in history
   const priceTrend = (() => {
@@ -62,12 +77,12 @@ function BestDistributorCard({
   return (
     <View
       style={{
-        backgroundColor: colors.primary + "12",
+        backgroundColor: derivedColors.primary12,
         borderRadius: 16,
         padding: 16,
         marginBottom: 10,
         borderWidth: 1.5,
-        borderColor: colors.primary + "55",
+        borderColor: derivedColors.primary55,
       }}
     >
       {/* Crown badge */}
@@ -103,8 +118,8 @@ function BestDistributorCard({
             style={{
               backgroundColor:
                 priceTrend.dir === "down"
-                  ? colors.success + "22"
-                  : colors.error + "22",
+                  ? derivedColors.success22
+                  : derivedColors.error22,
               borderRadius: 8,
               paddingHorizontal: 7,
               paddingVertical: 3,
@@ -132,14 +147,14 @@ function BestDistributorCard({
             flexDirection: "row",
             alignItems: "center",
             gap: 5,
-            backgroundColor: colors.success + "18",
+            backgroundColor: derivedColors.success18,
             borderRadius: 10,
             paddingHorizontal: 10,
             paddingVertical: 5,
             marginBottom: 10,
             alignSelf: "flex-start",
             borderWidth: 1,
-            borderColor: colors.success + "44",
+            borderColor: derivedColors.success44,
           }}
         >
           <Text style={{ fontSize: 14 }}>🎉</Text>
@@ -174,7 +189,7 @@ function BestDistributorCard({
         </View>
         <View
           style={{
-            backgroundColor: colors.success + "22",
+            backgroundColor: derivedColors.success22,
             borderRadius: 12,
             paddingHorizontal: 10,
             paddingVertical: 4,
@@ -257,11 +272,11 @@ function BestDistributorCard({
               alignItems: "center",
               justifyContent: "center",
               gap: 6,
-              backgroundColor: colors.primary + "12",
+              backgroundColor: derivedColors.primary12,
               borderRadius: 12,
               paddingVertical: 9,
               borderWidth: 1,
-              borderColor: colors.primary + "44",
+              borderColor: derivedColors.primary44,
             }}
             accessibilityLabel={`Set alert at ${formatPrice(suggestedPrice, listing.currency)}`}
             accessibilityRole="button"
