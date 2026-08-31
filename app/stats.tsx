@@ -220,7 +220,6 @@ export default function StatsScreen() {
           <DropCalendarCard
             result={dropCalendar}
             days={30}
-            now={Date.now()}
             displayCurrency={displayCurrency}
           />
           <BasketValueCard

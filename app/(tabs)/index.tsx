@@ -12,6 +12,8 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { getWatchlist, getAlerts, getSettings } from "@/lib/storage";
@@ -54,6 +56,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const colors = useColors();
   const connection = useConnection();
+  const queryClient = useQueryClient();
   const [watchlist, setWatchlist] = useState<Product[]>([]);
   const [alertCount, setAlertCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,11 +111,14 @@ export default function HomeScreen() {
     }
     setRefreshing(true);
     try {
-      await loadData();
+      await Promise.all([
+        loadData(),
+        queryClient.invalidateQueries({ queryKey: ["trending"] }),
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, [loadData]);
+  }, [loadData, queryClient]);
 
   const inStockCount = watchlist.reduce((count, p) => {
     const hasInStock = p.listings?.some((l) => l.stockStatus === "in_stock");

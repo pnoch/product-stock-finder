@@ -1,5 +1,6 @@
 import { memo, useState, useMemo, useCallback } from "react";
 import { Text, View, TouchableOpacity } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@/lib/currency";
 import type {
@@ -33,15 +34,21 @@ function buildGridCells(days: number, now: number): (number | null)[] {
 export const DropCalendarCard = memo(function DropCalendarCard({
   result,
   days,
-  now,
   displayCurrency,
+  now: nowProp,
 }: {
   result: DropCalendarResult;
   days: number;
-  now: number;
   displayCurrency: string;
+  now?: number;
 }) {
   const colors = useColors();
+  const [now, setNow] = useState(() => nowProp ?? Date.now());
+  useFocusEffect(
+    useCallback(() => {
+      setNow(nowProp ?? Date.now());
+    }, [nowProp]),
+  );
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const cells = useMemo(() => buildGridCells(days, now), [days, now]);
   const selected: DropDay | undefined = useMemo(
@@ -60,6 +67,7 @@ export const DropCalendarCard = memo(function DropCalendarCard({
     const key = toLocalDateKey(ts);
     const day = result.byDay.get(key);
     const isToday = key === toLocalDateKey(now);
+    const isSelected = key === selectedKey;
     const base = {
       width: 34,
       height: 34,
@@ -70,14 +78,28 @@ export const DropCalendarCard = memo(function DropCalendarCard({
       borderColor: colors.border,
       marginBottom: 4,
     };
-    if (!day) return { ...base, backgroundColor: "transparent" };
-    const intensity =
-      day.dropCount >= 3 ? colors.success : colors.success + "55";
-    return {
-      ...base,
-      backgroundColor: intensity,
-      borderColor: isToday ? colors.primary : colors.success,
-    };
+    let style: typeof base & { backgroundColor: string; borderColor: string; borderWidth: number };
+    if (!day) {
+      style = { ...base, backgroundColor: "transparent", borderColor: colors.border, borderWidth: 1 };
+    } else {
+      const intensity =
+        day.dropCount >= 3 ? colors.success : colors.success + "55";
+      style = {
+        ...base,
+        backgroundColor: intensity,
+        borderColor: isToday ? colors.primary : colors.success,
+        borderWidth: 1,
+      };
+    }
+    if (isSelected) {
+      return {
+        ...style,
+        backgroundColor: day ? colors.primary : colors.primary + "18",
+        borderColor: colors.primary,
+        borderWidth: 2,
+      };
+    }
+    return style;
   };
 
   return (

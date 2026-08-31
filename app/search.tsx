@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -101,8 +101,9 @@ export default function SearchScreen() {
     }
   }, [query, discovering, loadData, router, showToast]);
 
+  const deferredQuery = useDeferredValue(query);
   const results =
-    query.trim().length > 0 ? searchCatalog(query) : PRODUCT_CATALOG;
+    deferredQuery.trim().length > 0 ? searchCatalog(deferredQuery) : PRODUCT_CATALOG;
 
   const tagFilteredIds = useMemo(() => {
     const matching = filterWatchlist(watchlist, {

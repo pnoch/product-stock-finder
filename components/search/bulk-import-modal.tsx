@@ -118,7 +118,7 @@ export function BulkImportModal({
             </TouchableOpacity>
           </View>
           <Text style={{ color: colors.muted, fontSize: 14, marginBottom: 12 }}>
-            Paste model numbers — one per line, or separated by commas.
+            Paste model numbers (e.g. CRS326-24S) — one per line, or separated by commas.
           </Text>
           <TextInput
             value={text}

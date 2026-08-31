@@ -25,14 +25,19 @@ export default function DistributorAnalysisScreen() {
   const [analysis, setAnalysis] = useState<DistributorAnalysis[]>([]);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
       const watchlist = await getWatchlist();
       const settings = await getSettings();
       const currency = settings?.displayCurrency ?? "USD";
       setDisplayCurrency(currency);
       setAnalysis(analyzeDistributors(watchlist, currency));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
@@ -64,6 +69,16 @@ export default function DistributorAnalysisScreen() {
 
       {loading ? (
         <SkeletonList count={4} />
+      ) : error ? (
+        <EmptyStateView
+          icon="exclamationmark.triangle"
+          title="Failed to load analysis"
+          subtitle={error}
+          ctaLabel="Retry"
+          onCtaPress={() => loadData()}
+          secondaryLabel="Browse Products"
+          onSecondaryPress={() => router.push("/search")}
+        />
       ) : analysis.length === 0 ? (
         <EmptyStateView
           icon="chart.bar.fill"
@@ -78,7 +93,7 @@ export default function DistributorAnalysisScreen() {
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
         >
-          {analysis.map((a) => {
+          {analysis.map((a, idx) => {
             const distrib = getDistributorById(a.distributorId);
             return (
               <View
@@ -87,7 +102,7 @@ export default function DistributorAnalysisScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   paddingVertical: 12,
-                  borderBottomWidth: 1,
+                  borderBottomWidth: idx === analysis.length - 1 ? 0 : 1,
                   borderBottomColor: colors.border,
                 }}
               >

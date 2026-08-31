@@ -45,7 +45,7 @@ export const AlertCard = memo(function AlertCard({
         borderRadius: 16,
         padding: 16,
         marginBottom: 12,
-        opacity: snoozed ? 0.5 : 1,
+        opacity: snoozed ? 0.7 : 1,
         borderWidth: 1,
         borderColor: alert.triggeredAt
           ? colors.success + "44"

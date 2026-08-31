@@ -65,6 +65,7 @@ export const ProductCard = memo(function ProductCard({
     const sorted = [...allHistory].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
+    // Percentage is a ratio, so currency cancels out — converting oldest to displayCurrency yields the same pct as converting both.
     const oldestUsd = convertPrice(
       sorted[0].price,
       sorted[0].currency,
