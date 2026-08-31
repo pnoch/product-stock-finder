@@ -258,12 +258,13 @@ const inFlight = new Map<string, Promise<FetchOutcome>>();
 export async function resilientFetch(
   opts: ResilientFetchOptions,
 ): Promise<FetchOutcome> {
-  const existing = inFlight.get(opts.parser.id);
+  const inFlightKey = `${opts.parser.id}:${(opts as unknown as { url?: string; model?: string }).url ?? (opts as unknown as { model?: string }).model ?? ""}`;
+  const existing = inFlight.get(inFlightKey);
   if (existing) return { status: "skipped", method: "none" };
   const run = runResilientFetch(opts).finally(() => {
-    inFlight.delete(opts.parser.id);
+    inFlight.delete(inFlightKey);
   });
-  inFlight.set(opts.parser.id, run);
+  inFlight.set(inFlightKey, run);
   return run;
 }
 

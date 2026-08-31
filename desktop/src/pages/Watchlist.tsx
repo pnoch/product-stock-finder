@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
 import {
   RefreshCw,
@@ -31,12 +31,7 @@ const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
   { key: "out_of_stock", label: "Out of Stock" },
 ];
 
-const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "name", label: "Name" },
-  { key: "price", label: "Price" },
-  { key: "trend", label: "Trend" },
-  { key: "lastUpdated", label: "Last Updated" },
-];
+
 
 function getTrend(product: Product): "up" | "down" | "flat" {
   const listings = product.listings.filter((l) => l.priceHistory.length >= 2);
@@ -75,9 +70,7 @@ function formatTimeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
-const ROW_HEIGHT = 65;
 const VIEWPORT_HEIGHT = 520;
-const OVERSCAN = 5;
 
 export function Watchlist() {
   const { products, loading, refresh } = useWatchlist();
@@ -90,22 +83,6 @@ export function Watchlist() {
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [scrollTop, setScrollTop] = useState(0);
-  const [viewportHeight, setViewportHeight] = useState(VIEWPORT_HEIGHT);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) setViewportHeight(entry.contentRect.height);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const onScroll = useCallback(() => {
-    if (scrollRef.current) setScrollTop(scrollRef.current.scrollTop);
-  }, []);
 
   const displayCurrency = settings?.displayCurrency ?? "USD";
 
@@ -327,151 +304,138 @@ export function Watchlist() {
         ))}
       </div>
 
-      {(() => {
-        const useVirtual = sorted.length > 20;
-        const start = useVirtual
-          ? Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN)
-          : 0;
-        const end = useVirtual
-          ? Math.min(
-              sorted.length,
-              Math.ceil((scrollTop + viewportHeight) / ROW_HEIGHT) + OVERSCAN,
-            )
-          : sorted.length;
-        const visible = sorted.slice(start, end);
-        const topSpacer = start * ROW_HEIGHT;
-        const bottomSpacer = (sorted.length - end) * ROW_HEIGHT;
+      <div
+        ref={scrollRef}
+        style={{ maxHeight: VIEWPORT_HEIGHT, overflow: "auto" }}
+        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700"
+      >
+        <table className="w-full">
+          <thead className="sticky top-0 bg-white dark:bg-gray-800 z-10">
+            <tr className="border-b border-gray-200 dark:border-gray-700">
+              <th className="text-left">
+                <button
+                  onClick={() => handleSort("name")}
+                  className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
+                  aria-label="Sort by Name"
+                >
+                  Name
+                  <ArrowUpDown className="w-3 h-3" />
+                </button>
+              </th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-left">
+                Listings
+              </th>
+              <th className="text-left">
+                <button
+                  onClick={() => handleSort("price")}
+                  className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
+                  aria-label="Sort by Price"
+                >
+                  Price
+                  <ArrowUpDown className="w-3 h-3" />
+                </button>
+              </th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-left">
+                Stock
+              </th>
+              <th className="text-left">
+                <button
+                  onClick={() => handleSort("trend")}
+                  className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
+                  aria-label="Sort by Trend"
+                >
+                  Trend
+                  <ArrowUpDown className="w-3 h-3" />
+                </button>
+              </th>
+              <th className="text-left">
+                <button
+                  onClick={() => handleSort("lastUpdated")}
+                  className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
+                  aria-label="Sort by Last Updated"
+                >
+                  Last Updated
+                  <ArrowUpDown className="w-3 h-3" />
+                </button>
+              </th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((product) => {
+              const best = getBestPrice(product.listings, displayCurrency);
+              const trend = getTrend(product);
+              const refreshed = product.lastRefreshed ?? product.addedAt;
 
-        return (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  {SORT_OPTIONS.map((opt) => (
-                    <th key={opt.key} className="text-left">
-                      <button
-                        onClick={() => handleSort(opt.key)}
-                        className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
-                        aria-label={`Sort by ${opt.label}`}
-                      >
-                        {opt.label}
-                        <ArrowUpDown className="w-3 h-3" />
-                      </button>
-                    </th>
-                  ))}
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
-                    Actions
-                  </th>
+              return (
+                <tr
+                  key={product.id}
+                  onClick={() => navigate(`/product/${product.id}`)}
+                  className="border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors"
+                  role="button"
+                  aria-label={`View ${product.name} details`}
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center">
+                      <ProductImage productId={product.id} />
+                      <div>
+                        <p className="font-medium text-sm">{product.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {product.brand} · {product.modelNumber}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                    {product.listings.length}
+                  </td>
+                  <td className="px-4 py-3">
+                    {best ? (
+                      <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                        {formatPrice(best.price, best.currency)}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-gray-400">No price</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <StockBadge status={getDominantStatus(product)} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center gap-1 text-sm">
+                      {trend === "up" && <TrendingUp className="w-4 h-4 text-red-500" />}
+                      {trend === "down" && (
+                        <TrendingDown className="w-4 h-4 text-emerald-500" />
+                      )}
+                      {trend === "flat" && <Minus className="w-4 h-4 text-gray-400" />}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    {formatTimeAgo(refreshed)}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={(e) => handleRemove(e, product.id)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      aria-label={`Remove ${product.name} from watchlist`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-            </table>
-            <div
-              ref={scrollRef}
-              onScroll={onScroll}
-              style={{
-                maxHeight: VIEWPORT_HEIGHT,
-                overflowY: useVirtual || sorted.length > 8 ? "auto" : "visible",
-              }}
-            >
-              <table className="w-full">
-                <tbody>
-                  {useVirtual && topSpacer > 0 && (
-                    <tr aria-hidden>
-                      <td colSpan={7} style={{ height: topSpacer, padding: 0, border: 0 }} />
-                    </tr>
-                  )}
-                  {visible.map((product) => {
-                    const best = getBestPrice(product.listings, displayCurrency);
-                    const trend = getTrend(product);
-                    const refreshed = product.lastRefreshed ?? product.addedAt;
+              );
+            })}
+          </tbody>
+        </table>
 
-                    return (
-                      <tr
-                        key={product.id}
-                        onClick={() => navigate(`/product/${product.id}`)}
-                        className="border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors"
-                        role="button"
-                        aria-label={`View ${product.name} details`}
-                        style={
-                          useVirtual
-                            ? undefined
-                            : {
-                                contentVisibility: "auto",
-                                containIntrinsicSize: `0 ${ROW_HEIGHT}px`,
-                              }
-                        }
-                      >
-                        <td className="px-4 py-3">
-                          <div className="flex items-center">
-                            <ProductImage productId={product.id} />
-                            <div>
-                              <p className="font-medium text-sm">{product.name}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {product.brand} · {product.modelNumber}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                          {product.listings.length}
-                        </td>
-                        <td className="px-4 py-3">
-                          {best ? (
-                            <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                              {formatPrice(best.price, best.currency)}
-                            </span>
-                          ) : (
-                            <span className="text-sm text-gray-400">No price</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <StockBadge status={getDominantStatus(product)} />
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center gap-1 text-sm">
-                            {trend === "up" && (
-                              <TrendingUp className="w-4 h-4 text-red-500" />
-                            )}
-                            {trend === "down" && (
-                              <TrendingDown className="w-4 h-4 text-emerald-500" />
-                            )}
-                            {trend === "flat" && (
-                              <Minus className="w-4 h-4 text-gray-400" />
-                            )}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                          {formatTimeAgo(refreshed)}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={(e) => handleRemove(e, product.id)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                            aria-label={`Remove ${product.name} from watchlist`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {useVirtual && bottomSpacer > 0 && (
-                    <tr aria-hidden>
-                      <td colSpan={7} style={{ height: bottomSpacer, padding: 0, border: 0 }} />
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {sorted.length === 0 && (
-              <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                No products match this filter.
-              </div>
-            )}
+        {sorted.length === 0 && (
+          <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+            No products match this filter.
           </div>
-        );
-      })()}
+        )}
+      </div>
     </div>
   );
 }
