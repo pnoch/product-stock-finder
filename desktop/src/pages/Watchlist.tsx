@@ -327,104 +327,151 @@ export function Watchlist() {
         ))}
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200 dark:border-gray-700">
-              {SORT_OPTIONS.map((opt) => (
-                <th key={opt.key} className="text-left">
-                  <button
-                    onClick={() => handleSort(opt.key)}
-                    className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
-                    aria-label={`Sort by ${opt.label}`}
-                  >
-                    {opt.label}
-                    <ArrowUpDown className="w-3 h-3" />
-                  </button>
-                </th>
-              ))}
-              <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((product) => {
-              const best = getBestPrice(product.listings, displayCurrency);
-              const trend = getTrend(product);
-              const refreshed = product.lastRefreshed ?? product.addedAt;
+      {(() => {
+        const useVirtual = sorted.length > 20;
+        const start = useVirtual
+          ? Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN)
+          : 0;
+        const end = useVirtual
+          ? Math.min(
+              sorted.length,
+              Math.ceil((scrollTop + viewportHeight) / ROW_HEIGHT) + OVERSCAN,
+            )
+          : sorted.length;
+        const visible = sorted.slice(start, end);
+        const topSpacer = start * ROW_HEIGHT;
+        const bottomSpacer = (sorted.length - end) * ROW_HEIGHT;
 
-              return (
-                <tr
-                  key={product.id}
-                  onClick={() => navigate(`/product/${product.id}`)}
-                  className="border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors"
-                  role="button"
-                  aria-label={`View ${product.name} details`}
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center">
-                      <ProductImage productId={product.id} />
-                      <div>
-                        <p className="font-medium text-sm">{product.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {product.brand} · {product.modelNumber}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                    {product.listings.length}
-                  </td>
-                  <td className="px-4 py-3">
-                    {best ? (
-                      <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                        {formatPrice(best.price, best.currency)}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-gray-400">No price</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StockBadge status={getDominantStatus(product)} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1 text-sm">
-                      {trend === "up" && (
-                        <TrendingUp className="w-4 h-4 text-red-500" />
-                      )}
-                      {trend === "down" && (
-                        <TrendingDown className="w-4 h-4 text-emerald-500" />
-                      )}
-                      {trend === "flat" && (
-                        <Minus className="w-4 h-4 text-gray-400" />
-                      )}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                    {formatTimeAgo(refreshed)}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={(e) => handleRemove(e, product.id)}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                      aria-label={`Remove ${product.name} from watchlist`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
+        return (
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  {SORT_OPTIONS.map((opt) => (
+                    <th key={opt.key} className="text-left">
+                      <button
+                        onClick={() => handleSort(opt.key)}
+                        className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
+                        aria-label={`Sort by ${opt.label}`}
+                      >
+                        {opt.label}
+                        <ArrowUpDown className="w-3 h-3" />
+                      </button>
+                    </th>
+                  ))}
+                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
+                    Actions
+                  </th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              </thead>
+            </table>
+            <div
+              ref={scrollRef}
+              onScroll={onScroll}
+              style={{
+                maxHeight: VIEWPORT_HEIGHT,
+                overflowY: useVirtual || sorted.length > 8 ? "auto" : "visible",
+              }}
+            >
+              <table className="w-full">
+                <tbody>
+                  {useVirtual && topSpacer > 0 && (
+                    <tr aria-hidden>
+                      <td colSpan={7} style={{ height: topSpacer, padding: 0, border: 0 }} />
+                    </tr>
+                  )}
+                  {visible.map((product) => {
+                    const best = getBestPrice(product.listings, displayCurrency);
+                    const trend = getTrend(product);
+                    const refreshed = product.lastRefreshed ?? product.addedAt;
 
-        {sorted.length === 0 && (
-          <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-            No products match this filter.
+                    return (
+                      <tr
+                        key={product.id}
+                        onClick={() => navigate(`/product/${product.id}`)}
+                        className="border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors"
+                        role="button"
+                        aria-label={`View ${product.name} details`}
+                        style={
+                          useVirtual
+                            ? undefined
+                            : {
+                                contentVisibility: "auto",
+                                containIntrinsicSize: `0 ${ROW_HEIGHT}px`,
+                              }
+                        }
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center">
+                            <ProductImage productId={product.id} />
+                            <div>
+                              <p className="font-medium text-sm">{product.name}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {product.brand} · {product.modelNumber}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                          {product.listings.length}
+                        </td>
+                        <td className="px-4 py-3">
+                          {best ? (
+                            <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                              {formatPrice(best.price, best.currency)}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400">No price</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <StockBadge status={getDominantStatus(product)} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center gap-1 text-sm">
+                            {trend === "up" && (
+                              <TrendingUp className="w-4 h-4 text-red-500" />
+                            )}
+                            {trend === "down" && (
+                              <TrendingDown className="w-4 h-4 text-emerald-500" />
+                            )}
+                            {trend === "flat" && (
+                              <Minus className="w-4 h-4 text-gray-400" />
+                            )}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                          {formatTimeAgo(refreshed)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={(e) => handleRemove(e, product.id)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            aria-label={`Remove ${product.name} from watchlist`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {useVirtual && bottomSpacer > 0 && (
+                    <tr aria-hidden>
+                      <td colSpan={7} style={{ height: bottomSpacer, padding: 0, border: 0 }} />
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {sorted.length === 0 && (
+              <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                No products match this filter.
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
     </div>
   );
 }
