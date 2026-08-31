@@ -483,7 +483,8 @@ export default function WatchlistScreen() {
 
       <SectionList showsVerticalScrollIndicator={true}
         sections={sectionData}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item: Product) => item.id}
+        extraData={groupMode}
         initialNumToRender={8}
         windowSize={5}
         maxToRenderPerBatch={8}
@@ -526,6 +527,7 @@ export default function WatchlistScreen() {
           <SwipeableCard onDelete={() => handleSwipeDelete(item)}>
             <ProductCard
               product={item}
+              displayCurrency={displayCurrency}
               selectionMode={selectionMode}
               insight={
                 insightMap.has(item.id)

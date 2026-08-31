@@ -15,7 +15,7 @@ import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { getWatchlist, getAlerts, getSettings } from "@/lib/storage";
-import { Product } from "@/lib/types";
+import { Product, StockStatus } from "@/lib/types";
 import { formatPrice, getBestPrice } from "@/lib/currency";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { StockBadge } from "@/components/stock-badge";
@@ -40,7 +40,7 @@ function SummaryCard({
 }) {
   const colors = useColors();
   return (
-    <View className="flex-1 bg-surface rounded-2xl p-4 border border-border mx-1">
+    <View className="flex-1 bg-surface rounded-2xl p-4 border border-border">
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <IconSymbol name={icon as never} size={20} color={colors.muted} />
         <Text style={{ color, fontSize: 24, fontWeight: "700" }}>{value}</Text>
@@ -119,14 +119,21 @@ export default function HomeScreen() {
     return hasInStock ? count + 1 : count;
   }, 0);
 
+  const STOCK_ORDER: Record<StockStatus, number> = {
+    in_stock: 0,
+    back_order: 1,
+    out_of_stock: 2,
+    unknown: 3,
+  };
+
   // Derive best stock status across all listings for a product
-  function getBestStatus(product: Product): string {
+  function getBestStatus(product: Product): StockStatus {
     const listings = product.listings ?? [];
-    if (listings.some((l) => l.stockStatus === "in_stock")) return "in_stock";
-    if (listings.some((l) => l.stockStatus === "back_order"))
-      return "back_order";
-    if (listings.length > 0) return "out_of_stock";
-    return "unknown";
+    if (!listings.length) return "unknown";
+    const sorted = [...listings].sort(
+      (a, b) => STOCK_ORDER[a.stockStatus] - STOCK_ORDER[b.stockStatus],
+    );
+    return sorted[0]!.stockStatus;
   }
 
   const recentActivity = useMemo(() => {
@@ -151,10 +158,12 @@ export default function HomeScreen() {
       for (const { product } of recentActivity) {
         if (seen.has(product.id)) continue;
         seen.add(product.id);
-        const res = await fetchProductImage(product.id);
-        if (active && res) {
-          setImages((prev) => new Map([...prev, [product.id, res.imageUrl]]));
-        }
+        try {
+          const res = await fetchProductImage(product.id);
+          if (active && res) {
+            setImages((prev) => new Map([...prev, [product.id, res.imageUrl]]));
+          }
+        } catch {}
       }
     };
     load();
@@ -217,7 +226,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Summary Cards */}
-        <View className="flex-row px-4 mt-3 mb-4">
+        <View className="flex-row px-4 mt-3 mb-4" style={{ gap: 8 }}>
           <Animated.View
             style={{
               flex: 1,

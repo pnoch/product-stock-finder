@@ -284,6 +284,7 @@ export const TrendingSection = memo(function TrendingSection() {
     return (
       <View style={{ marginBottom: 16 }}>
         <Text
+          accessibilityRole="header"
           style={{
             fontSize: 18,
             fontWeight: "700",
@@ -307,6 +308,7 @@ export const TrendingSection = memo(function TrendingSection() {
   return (
     <View style={{ marginBottom: 16 }}>
       <Text
+        accessibilityRole="header"
         style={{
           fontSize: 18,
           fontWeight: "700",

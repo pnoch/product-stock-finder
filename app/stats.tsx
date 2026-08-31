@@ -14,9 +14,9 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
-import { getSettings, getWatchlist, getPriceDigestSnapshot, saveSettings } from "@/lib/storage";
+import { getAlerts, getSettings, getWatchlist, getPriceDigestSnapshot, saveSettings } from "@/lib/storage";
 import { BasketAlertSheet } from "@/components/stats/basket-alert-sheet";
-import type { Product, AppSettings } from "@/lib/types";
+import type { Product, AppSettings, PriceAlert } from "@/lib/types";
 import {
   computeBasketValue,
   computeDataFreshness,
@@ -56,13 +56,15 @@ export default function StatsScreen() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [basketThreshold, setBasketThreshold] = useState<number | null>(null);
   const [basketSheetVisible, setBasketSheetVisible] = useState(false);
+  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
 
   useEffect(() => {
     void (async () => {
-      const [wl, loadedSettings, snapshot] = await Promise.all([
+      const [wl, loadedSettings, snapshot, loadedAlerts] = await Promise.all([
         getWatchlist(),
         getSettings(),
         getPriceDigestSnapshot(),
+        getAlerts(),
       ]);
       setWatchlist(wl);
       setSettings(loadedSettings);
@@ -70,14 +72,15 @@ export default function StatsScreen() {
       setDigestFrequency(loadedSettings?.digestFrequency ?? "off");
       setBasketThreshold(loadedSettings?.basketAlertThreshold ?? null);
       setDigestSnapshot(snapshot);
+      setAlerts(loadedAlerts);
       setLoaded(true);
     })();
   }, []);
 
   const digest = useMemo(() => {
     if (!digestSnapshot || !settings || digestFrequency === "off") return null;
-    return computeDigest(digestSnapshot, watchlist, settings, []);
-  }, [digestSnapshot, watchlist, settings, digestFrequency]);
+    return computeDigest(digestSnapshot, watchlist, settings, alerts);
+  }, [digestSnapshot, watchlist, settings, alerts, digestFrequency]);
 
   const handleSaveBasketAlert = useCallback(
     async (threshold: number | null) => {
@@ -209,6 +212,7 @@ export default function StatsScreen() {
               periodLabel={
                 digestFrequency === "weekly" ? "this week" : "today"
               }
+              displayCurrency={displayCurrency}
             />
           )}
           <MoversCard movers={movers} days={days} onDaysChange={setDays} />
@@ -217,6 +221,7 @@ export default function StatsScreen() {
             result={dropCalendar}
             days={30}
             now={Date.now()}
+            displayCurrency={displayCurrency}
           />
           <BasketValueCard
             basket={basket}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   RefreshCw,
@@ -20,7 +20,10 @@ import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ProductImage } from "../components/ProductImage";
-import type { Product, StockStatus } from "../../../lib/types";
+import { TagFilterRow } from "../components/TagFilterRow";
+import { countTagMatches } from "../../../lib/watchlist-org";
+import { matchesTagFilterMode } from "../../../lib/tags";
+import type { Product, StockStatus, TagDefinition } from "../../../lib/types";
 
 type SortKey = "name" | "price" | "trend" | "lastUpdated";
 type FilterKey = "all" | "in_stock" | "back_order" | "out_of_stock";
@@ -74,10 +77,27 @@ export function Watchlist() {
   const [refreshing, setRefreshing] = useState(false);
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagMatchMode, setTagMatchMode] = useState<"any" | "all">("any");
   const regions = useMemo(() => getAllRegions(), []);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const displayCurrency = settings?.displayCurrency ?? "USD";
+
+  useEffect(() => {
+    storage.getSettings().then((s) => {
+      const defs = (s.tagDefinitions ?? {}) as Record<string, TagDefinition>;
+      setTagDefinitions(defs);
+      setSelectedTagIds((prev) => prev.filter((id) => id in defs));
+    });
+  }, [settings]);
+
+  const toggleTagFilter = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
+    );
+  };
 
   const filteredProducts = useMemo(
     () =>
@@ -100,8 +120,20 @@ export function Watchlist() {
         return dominant === filter;
       });
     }
+    if (selectedTagIds.length > 0) {
+      result = result.filter((p) => matchesTagFilterMode(p, selectedTagIds, tagMatchMode));
+    }
     return result;
-  }, [filteredProducts, filter]);
+  }, [filteredProducts, filter, selectedTagIds, tagMatchMode]);
+
+  const tagCounts = useMemo(
+    () =>
+      countTagMatches(filteredProducts.filter((p) => {
+        if (filter === "all") return true;
+        return getDominantStatus(p) === filter;
+      }), { region: "all", status: "all", query: "" }),
+    [filteredProducts, filter],
+  );
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -297,6 +329,16 @@ export function Watchlist() {
         ))}
       </div>
 
+      <TagFilterRow
+        tagDefinitions={tagDefinitions}
+        selectedTagIds={selectedTagIds}
+        tagMatchMode={tagMatchMode}
+        counts={tagCounts}
+        onToggleTag={toggleTagFilter}
+        onChangeMode={setTagMatchMode}
+        onClearAll={() => setSelectedTagIds([])}
+      />
+
       <div
         ref={scrollRef}
         style={{ maxHeight: VIEWPORT_HEIGHT, overflow: "auto" }}
@@ -377,7 +419,33 @@ export function Watchlist() {
                     <div className="flex items-center">
                       <ProductImage productId={product.id} />
                       <div>
-                        <p className="font-medium text-sm">{product.name}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-medium text-sm">{product.name}</p>
+                          {(product.tags ?? [])
+                            .filter((tagId) => tagDefinitions[tagId])
+                            .map((tagId) => {
+                              const def = tagDefinitions[tagId];
+                              return (
+                                <span
+                                  key={tagId}
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-white"
+                                  style={{ backgroundColor: def.color }}
+                                  title={def.name}
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
+                                  {def.name}
+                                </span>
+                              );
+                            })}
+                          {(product.tags ?? []).filter((id) => tagDefinitions[id]).length === 0 &&
+                            product.tags &&
+                            product.tags.length > 0 && (
+                              <span className="text-[10px] text-gray-400">
+                                · {product.tags.length} tag
+                                {product.tags.length !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                        </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {product.brand} · {product.modelNumber}
                         </p>

@@ -31,6 +31,7 @@ export const ProductCard = memo(function ProductCard({
   selected = false,
   onLongPress,
   insight,
+  displayCurrency,
 }: {
   product: Product;
   onPress: () => void;
@@ -41,11 +42,13 @@ export const ProductCard = memo(function ProductCard({
   selected?: boolean;
   onLongPress?: () => void;
   insight?: { atAllTimeLow: boolean; dropStreak: number };
+  displayCurrency?: string;
 }) {
   const colors = useColors();
+  const currency = displayCurrency ?? "USD";
   const bestPrice = useMemo(
-    () => getBestPrice(product.listings ?? [], "USD"),
-    [product.listings],
+    () => getBestPrice(product.listings ?? [], currency),
+    [product.listings, currency],
   );
   const bestStatus = useMemo(() => productStatus(product), [product]);
   const distributorCount = product.listings?.length ?? 0;
@@ -65,14 +68,14 @@ export const ProductCard = memo(function ProductCard({
     const oldestUsd = convertPrice(
       sorted[0].price,
       sorted[0].currency,
-      "USD",
+      currency,
     );
     const currentUsd = bestPrice.price;
     if (oldestUsd === null || oldestUsd <= 0) return null;
     const pct = ((currentUsd - oldestUsd) / oldestUsd) * 100;
     if (Math.abs(pct) < 0.5) return null;
     return { pct, isDown: pct < 0 };
-  }, [bestPrice, product.listings]);
+  }, [bestPrice, product.listings, currency]);
   const refreshColorKey = useMemo(
     () => getLastRefreshedColor(product.lastRefreshed),
     [product.lastRefreshed],

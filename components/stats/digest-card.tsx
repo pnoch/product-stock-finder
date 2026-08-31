@@ -7,9 +7,11 @@ import type { DigestResult } from "@/lib/price-digest";
 export const DigestCard = memo(function DigestCard({
   result,
   periodLabel,
+  displayCurrency,
 }: {
   result: DigestResult;
   periodLabel: string;
+  displayCurrency: string;
 }) {
   const colors = useColors();
   const empty = useMemo(
@@ -53,8 +55,8 @@ export const DigestCard = memo(function DigestCard({
           }}
         >
           <Text style={{ color: colors.muted, fontSize: 12, marginRight: 8 }}>
-            {formatPrice(result.valueDelta.from, "USD")} →{" "}
-            {formatPrice(result.valueDelta.to, "USD")}
+            {formatPrice(result.valueDelta.from, displayCurrency)} →{" "}
+            {formatPrice(result.valueDelta.to, displayCurrency)}
           </Text>
           <Text
             style={{
@@ -104,7 +106,7 @@ export const DigestCard = memo(function DigestCard({
                 {c.name}
               </Text>
               <Text style={{ color: colors.muted, fontSize: 12 }}>
-                {formatPrice(c.from, "USD")} → {formatPrice(c.to, "USD")}
+                {formatPrice(c.from, displayCurrency)} → {formatPrice(c.to, displayCurrency)}
               </Text>
               <Text
                 style={{

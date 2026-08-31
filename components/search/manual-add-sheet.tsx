@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -71,6 +71,13 @@ export function ManualAddSheet({
   const [adding, setAdding] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [aiFailed, setAiFailed] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setRaw(initialText ?? "");
+      setDraft(null);
+    }
+  }, [visible, initialText]);
 
   const reset = () => {
     setRaw(initialText ?? "");

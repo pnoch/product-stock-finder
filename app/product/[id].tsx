@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 import { Stack, useLocalSearchParams, router } from "expo-router";
 import { ScrollView, Text, View, TouchableOpacity, Platform, Animated, Share } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -33,8 +32,7 @@ export default function ProductDetailScreen() {
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const colors = useColors();
   const { showToast } = useToast();
-  if (!id) return null;
-  const { product, listings, loaded, lastUpdatedAt, refresh } = useLiveProduct(id);
+  const { product, listings, loaded, lastUpdatedAt, refresh } = useLiveProduct(id ?? "");
   const [insight, setInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(true);
   const [productImage, setProductImage] = useState<string | null>(null);

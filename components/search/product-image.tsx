@@ -1,8 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { View, Text, Animated } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { fetchProductImage } from "@/lib/server-images";
+
+const imageCache = new Map<string, string | null>();
 
 const PLACEHOLDER_SIZE = 48;
 
@@ -29,19 +31,28 @@ function ImagePlaceholder({ colors }: { colors: ReturnType<typeof useColors> }) 
 
 export function ProductImage({ productId, size = 48 }: { productId: string; size?: number }) {
   const colors = useColors();
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(() =>
+    imageCache.has(productId) ? (imageCache.get(productId) ?? null) : null,
+  );
   const [imageError, setImageError] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const opacity = useState(() => new Animated.Value(0))[0];
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     let active = true;
     setImageError(false);
     setLoaded(false);
     opacity.setValue(0);
+    if (imageCache.has(productId)) {
+      setImageUrl(imageCache.get(productId) ?? null);
+      return () => {
+        active = false;
+      };
+    }
     fetchProductImage(productId).then((res) => {
-      if (active && res) setImageUrl(res.imageUrl);
-      else if (active && !res) setImageUrl(null);
+      const url = res?.imageUrl ?? null;
+      imageCache.set(productId, url);
+      if (active) setImageUrl(url);
     });
     return () => {
       active = false;

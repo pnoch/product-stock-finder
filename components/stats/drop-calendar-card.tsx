@@ -34,10 +34,12 @@ export const DropCalendarCard = memo(function DropCalendarCard({
   result,
   days,
   now,
+  displayCurrency,
 }: {
   result: DropCalendarResult;
   days: number;
   now: number;
+  displayCurrency: string;
 }) {
   const colors = useColors();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -160,8 +162,8 @@ export const DropCalendarCard = memo(function DropCalendarCard({
                 {drop.name}
               </Text>
               <Text style={{ color: colors.muted, fontSize: 12 }}>
-                {formatPrice(drop.from, "USD")} →{" "}
-                {formatPrice(drop.to, "USD")}
+                {formatPrice(drop.from, displayCurrency)} →{" "}
+                {formatPrice(drop.to, displayCurrency)}
               </Text>
               <Text
                 style={{
