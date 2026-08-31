@@ -148,6 +148,9 @@ export default function SearchScreen() {
         } else {
           router.back();
         }
+      } catch (e) {
+        console.error("[Search] addToWatchlist failed", e);
+        showAlert("Failed to add", "Could not add product to watchlist. Please try again.");
       } finally {
         setAdding(null);
       }
@@ -319,7 +322,7 @@ export default function SearchScreen() {
             onAdd={(p) => handleAdd(p)}
             onTagPress={(p) => setPickerItem({
               ...p,
-              addedAt: "",
+              addedAt: new Date().toISOString(),
               isWatched: false,
               listings: [],
               tags: pendingTags[p.id] ?? [],

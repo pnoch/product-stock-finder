@@ -85,6 +85,7 @@ export default function SettingsScreen() {
           };
 
   const handleSyncNow = useCallback(async () => {
+    if (syncing || !getSyncSetup()) return;
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSyncing(true);
@@ -93,10 +94,12 @@ export default function SettingsScreen() {
       const meta = await getSyncMeta();
       setSyncMeta(meta);
       setNow(Date.now());
+    } catch (e) {
+      console.error("[Settings] syncNow failed", e);
     } finally {
       setSyncing(false);
     }
-  }, []);
+  }, [syncing]);
 
   const handleSignIn = useCallback(() => {
     if (Platform.OS !== "web")
@@ -105,8 +108,12 @@ export default function SettingsScreen() {
   }, []);
 
   useEffect(() => {
-    getSettings().then(setSettings);
-    getWatchlist().then(setProducts);
+    getSettings()
+      .then(setSettings)
+      .catch((e) => console.error("[Settings] getSettings failed", e));
+    getWatchlist()
+      .then(setProducts)
+      .catch((e) => console.error("[Settings] getWatchlist failed", e));
     void maybeRefreshFxRates();
   }, []);
 
@@ -114,14 +121,15 @@ export default function SettingsScreen() {
     async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
       if (Platform.OS !== "web")
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const updated = { ...settings, [key]: value };
+      const current = await getSettings();
+      const updated = { ...current, [key]: value };
       setSettings(updated);
       await saveSettings(updated);
       if (key === "checkInterval") {
         void syncBackgroundTasks();
       }
     },
-    [settings],
+    [],
   );
 
   const handleTestNotification = useCallback(async () => {

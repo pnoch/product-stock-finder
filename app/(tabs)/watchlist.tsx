@@ -90,6 +90,7 @@ export default function WatchlistScreen() {
   const [bulkTagVisible, setBulkTagVisible] = useState(false);
   const [undoProduct, setUndoProduct] = useState<Product | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const checkingRef = useRef(false);
   const regions = useMemo(() => getAllRegions(), []);
 
   const loadData = useCallback(async () => {
@@ -189,11 +190,19 @@ export default function WatchlistScreen() {
     const ids = Array.from(selectedIds);
     const count = ids.length;
     const doRemove = async () => {
-      if (Platform.OS !== "web")
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      for (const id of ids) await removeFromWatchlist(id);
-      await reload();
-      exitSelection();
+      try {
+        if (Platform.OS !== "web")
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        for (const id of ids) await removeFromWatchlist(id);
+        await reload();
+        exitSelection();
+      } catch (e) {
+        console.error("[Watchlist] bulk delete failed", e);
+        showAlert(
+          "Delete Failed",
+          "Could not remove some products. Please try again.",
+        );
+      }
     };
     if (Platform.OS === "web") {
       if (
@@ -285,7 +294,8 @@ export default function WatchlistScreen() {
   }, []);
 
   const handleCheckNow = useCallback(async () => {
-    if (checking || watchlist.length === 0) return;
+    if (checkingRef.current || watchlist.length === 0) return;
+    checkingRef.current = true;
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setChecking(true);
@@ -298,10 +308,11 @@ export default function WatchlistScreen() {
       await refreshAll();
       await loadData();
     } finally {
+      checkingRef.current = false;
       setChecking(false);
       setCheckProgress(null);
     }
-  }, [checking, watchlist.length, reload, refreshAll, loadData]);
+  }, [watchlist.length, reload, refreshAll, loadData]);
 
   const persistViewPrefs = useCallback(
     async (sort: WatchlistSort, group: WatchlistGroup) => {

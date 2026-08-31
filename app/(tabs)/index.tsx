@@ -97,11 +97,15 @@ export default function HomeScreen() {
   const recentActivity = useMemo(() => {
     return watchlist
       .flatMap((p) => (p.listings ?? []).map((l) => ({ product: p, listing: l })))
-      .sort(
-        (a, b) =>
-          new Date(b.listing.lastChecked).getTime() -
-          new Date(a.listing.lastChecked).getTime(),
-      )
+      .sort((a, b) => {
+        const aTime = isNaN(new Date(a.listing.lastChecked).getTime())
+          ? 0
+          : new Date(a.listing.lastChecked).getTime();
+        const bTime = isNaN(new Date(b.listing.lastChecked).getTime())
+          ? 0
+          : new Date(b.listing.lastChecked).getTime();
+        return bTime - aTime;
+      })
       .slice(0, 5);
   }, [watchlist]);
 

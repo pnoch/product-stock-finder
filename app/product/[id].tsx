@@ -70,6 +70,11 @@ export default function ProductDetailScreen() {
     return (order[a.stockStatus] ?? 3) - (order[b.stockStatus] ?? 3);
   });
   const visibleListings = regionFilter === "all" ? sortedListings : filterListingsByRegion(sortedListings, regionFilter);
+  const bestInStockListing = useMemo(() => {
+    const inStock = visibleListings.filter((l) => l.stockStatus === "in_stock");
+    if (inStock.length === 0) return null;
+    return inStock.reduce((best, l) => (l.price < best.price ? l : best));
+  }, [visibleListings]);
   const priceVsAvg = useMemo(() => computePriceVsAverage(listings, displayCurrency), [listings, displayCurrency]);
 
   const handleSetBestAlert = useCallback(async (listing: DistributorListing) => {
@@ -156,7 +161,7 @@ export default function ProductDetailScreen() {
         <DetailHeader product={product} bestDeal={bestDeal} />
         <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={displayCurrency} productImage={productImage} onEditDetails={() => {}} />
         {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} />}
-        <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={null} product={product} insight={insight} regionFilter={regionFilter} regions={regions} shippingRegion={shippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={displayCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={() => {}} onRemind={() => {}} />
+        <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} regionFilter={regionFilter} regions={regions} shippingRegion={shippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={displayCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={() => router.push(`/compare/${id}`)} onRemind={() => {}} />
         <AlertSection productId={product.id} />
         <ReminderSection productId={product.id} distributorId={visibleListings[0]?.distributorId ?? ""} productName={product.name} distributorName={visibleListings[0] ? getDistributorById(visibleListings[0].distributorId)?.name ?? "" : ""} />
       </ScrollView>

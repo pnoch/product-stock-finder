@@ -172,7 +172,9 @@ export default function AlertsScreen() {
             ) : null
           }
           ListFooterComponent={
-            triggeredAlerts.length > 0 ? (
+            alerts.length === 0 && triggeredAlerts.length === 0
+              ? null
+              : triggeredAlerts.length > 0 ? (
               <View style={{ marginTop: 24 }}>
                 {/* Savings Calculator Banner */}
                 {totalSaved > 0 && (
