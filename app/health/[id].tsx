@@ -21,7 +21,8 @@ const healthService = createHealthService(AsyncStorage);
 export default function HealthDetailScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const [samples, setSamples] = useState<HealthSample[]>([]);
   const [currentStatus, setCurrentStatus] = useState<HealthStatus | null>(null);
 

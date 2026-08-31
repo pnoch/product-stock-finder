@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import {
   ScrollView,
   Text,
@@ -94,14 +94,16 @@ export default function HomeScreen() {
     return "unknown";
   }
 
-  const recentActivity = watchlist
-    .flatMap((p) => (p.listings ?? []).map((l) => ({ product: p, listing: l })))
-    .sort(
-      (a, b) =>
-        new Date(b.listing.lastChecked).getTime() -
-        new Date(a.listing.lastChecked).getTime(),
-    )
-    .slice(0, 5);
+  const recentActivity = useMemo(() => {
+    return watchlist
+      .flatMap((p) => (p.listings ?? []).map((l) => ({ product: p, listing: l })))
+      .sort(
+        (a, b) =>
+          new Date(b.listing.lastChecked).getTime() -
+          new Date(a.listing.lastChecked).getTime(),
+      )
+      .slice(0, 5);
+  }, [watchlist]);
 
   useEffect(() => {
     let active = true;

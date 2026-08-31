@@ -22,9 +22,10 @@ import { PriceAlert, DistributorListing } from "@/lib/types";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
 
 export default function ProductDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const colors = useColors();
-  const { product, listings, loaded, lastUpdatedAt } = useLiveProduct(id);
+  const { product, listings, loaded, lastUpdatedAt } = useLiveProduct(id ?? "");
   const [insight, setInsight] = useState<string | null>(null);
   const [productImage, setProductImage] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
@@ -34,6 +35,7 @@ export default function ProductDetailScreen() {
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
 
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
+    if (!id) return;
     const [settingsData, stockWatchesData, insightData, imageData] = await Promise.all([
       getSettings(),
       getStockWatches(),
@@ -66,6 +68,7 @@ export default function ProductDetailScreen() {
   const priceVsAvg = useMemo(() => computePriceVsAverage(listings, displayCurrency), [listings, displayCurrency]);
 
   const handleSetBestAlert = useCallback(async (listing: DistributorListing) => {
+    if (!id) return;
     const granted = await requestNotificationPermissions();
     if (!granted) {
       showAlert("Permission Denied", "Please enable notifications in your device settings to receive price alerts.");
@@ -75,7 +78,7 @@ export default function ProductDetailScreen() {
     await schedulePriceAlert(product?.name ?? "Product", listing.price, listing.currency, id);
     const alert: PriceAlert = {
       id: `alert-${id}-${listing.distributorId}-${Date.now()}`,
-      productId: id as string,
+      productId: id,
       distributorId: listing.distributorId,
       targetPrice: listing.price,
       currency: listing.currency,
@@ -87,6 +90,7 @@ export default function ProductDetailScreen() {
   }, [id, product]);
 
   const handleToggleStockWatch = useCallback(async (listing: DistributorListing) => {
+    if (!id) return;
     const isWatched = stockWatches[listing.distributorId];
     if (isWatched) {
       const watches = await getStockWatches();
@@ -103,7 +107,7 @@ export default function ProductDetailScreen() {
       await scheduleStockAlert(product?.name ?? "Product", distributor?.name ?? listing.distributorId, listing.price, listing.currency, id);
       await addStockWatch({
         id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        productId: id as string,
+        productId: id,
         productName: product?.name ?? "",
         distributorId: listing.distributorId,
         distributorName: distributor?.name ?? "",
@@ -117,6 +121,8 @@ export default function ProductDetailScreen() {
       showAlert("Watching!", `You'll be notified when ${product?.name} is back in stock at ${distributor?.name ?? listing.distributorId}.`);
     }
   }, [id, product, stockWatches]);
+
+  if (!id) return null;
 
   if (!loaded) {
     return (

@@ -75,7 +75,10 @@ export function TrendingSection() {
             </Link>
             </div>
             <button
-              onClick={() => handleAdd(product)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAdd(product);
+              }}
               disabled={addedIds.has(product.id)}
               aria-label={addedIds.has(product.id) ? `${product.name} is in watchlist` : `Add ${product.name} to watchlist`}
               className={`ml-4 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${

@@ -201,7 +201,8 @@ export default function RootLayout() {
       .then(seedMacBookPro)
       .then(seedRaspberryPi5)
       .then(seedAirPodsMax)
-      .then(seedSteamDeck);
+      .then(seedSteamDeck)
+      .catch((err) => console.error("Seeding failed:", err));
 
     async function seedRTX4090() {
       const watchlist = await getWatchlist();

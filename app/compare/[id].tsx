@@ -46,7 +46,8 @@ import {
 
 // ─── Compare Screen ───────────────────────────────────────────────────────────
 export default function CompareScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const router = useRouter();
   const colors = useColors();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -54,11 +55,11 @@ export default function CompareScreen() {
   const [sortBy, setSortBy] = useState<SortBy>("trend");
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const { product, listings, loaded, isRefreshingAny, refresh } =
-    useLiveProduct(id);
+    useLiveProduct(id ?? "");
   const productName =
     product?.name ??
     PRODUCT_CATALOG.find((p) => p.id === id)?.name ??
-    (id as string);
+    (id ?? "");
   const notFound = loaded && !product && listings.length === 0;
   const { width: windowWidth } = useWindowDimensions();
   const chartWidth = windowWidth - 32;
@@ -71,8 +72,8 @@ export default function CompareScreen() {
 
   const selectionInitialized = useRef<string | null>(null);
   useEffect(() => {
-    if (!loaded || selectionInitialized.current === id) return;
-    selectionInitialized.current = id as string;
+    if (!loaded || !id || selectionInitialized.current === id) return;
+    selectionInitialized.current = id;
     const withHistory = listings.filter(
       (l) => l.priceHistory && l.priceHistory.length >= 2,
     );
@@ -133,9 +134,10 @@ export default function CompareScreen() {
       );
       return;
     }
+    if (!id) return;
     const alert: PriceAlert = {
       id: `cross-${id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      productId: id as string,
+      productId: id,
       distributorId: bestListing.distributorId,
       targetPrice,
       currency: displayCurrency,
@@ -219,6 +221,8 @@ export default function CompareScreen() {
       };
     });
   }, [listings, selected, timeRange]);
+
+  if (!id) return null;
 
   return (
     <ScreenContainer>

@@ -154,7 +154,10 @@ export function TrendingSection() {
               </Text>
             </View>
             <TouchableOpacity
-              onPress={() => handleAdd(product)}
+              onPress={(e: any) => {
+                e?.stopPropagation?.();
+                handleAdd(product);
+              }}
               disabled={watchlistIds.has(product.id)}
               style={{
                 backgroundColor: watchlistIds.has(product.id)
