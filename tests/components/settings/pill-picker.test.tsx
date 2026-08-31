@@ -12,6 +12,7 @@ vi.mock("react-native", () => ({
       {children}
     </button>
   ),
+  Platform: { OS: "ios", select: (obj: any) => obj.ios ?? obj.default },
 }));
 
 vi.mock("@/hooks/use-colors", () => ({
@@ -25,6 +26,11 @@ vi.mock("@/hooks/use-colors", () => ({
 
 vi.mock("@/components/ui/icon-symbol", () => ({
   IconSymbol: () => null,
+}));
+
+vi.mock("expo-haptics", () => ({
+  impactAsync: vi.fn(),
+  ImpactFeedbackStyle: { Light: "Light", Medium: "Medium" },
 }));
 
 afterEach(() => {
