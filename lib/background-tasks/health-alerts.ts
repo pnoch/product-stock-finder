@@ -23,7 +23,7 @@ export async function checkHealthAlerts(
       const name = distributor?.name ?? distributorId;
       if (detectHealthAlert(samples)) {
         const latest = samples[samples.length - 1];
-        await scheduleHealthAlert(name, latest.status, latest.reason);
+        await scheduleHealthAlert(distributorId, latest.status, latest.reason);
         const { uploadHealthEventToServer } = await import("../server-notifications");
         void uploadHealthEventToServer({
           distributorId,
@@ -39,7 +39,7 @@ export async function checkHealthAlerts(
       }
       if (detectHealthRecovery(samples)) {
         const prev = samples[samples.length - 2];
-        await scheduleHealthRecovery(name, prev.status);
+        await scheduleHealthRecovery(distributorId, prev.status);
         const { uploadHealthEventToServer } = await import("../server-notifications");
         void uploadHealthEventToServer({
           distributorId,

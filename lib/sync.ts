@@ -144,6 +144,8 @@ async function collectDirty(
   const dirty: SyncItem[] = [];
   const keyOf = (c: Collection, id: string) => `${c}:${id}`;
   const local = await collectLocalState(storage);
+  const pendingSetMeta: Array<{ collection: Collection; id: string }> = [];
+  const pendingClearMeta: Array<{ collection: Collection; id: string }> = [];
 
   for (const collection of COLLECTIONS) {
     if (collection === "settings") {
@@ -175,7 +177,7 @@ async function collectDirty(
           deletedAt: null,
         });
         if (entry?.deleted) {
-          await storage.setItemSyncMeta(collection, item.id, now);
+          pendingSetMeta.push({ collection, id: item.id });
         }
       }
     }
@@ -198,9 +200,16 @@ async function collectDirty(
           deletedAt: entry.updatedAt,
         });
       } else {
-        await storage.clearItemSyncMeta(collection, id);
+        pendingClearMeta.push({ collection, id });
       }
     }
+  }
+
+  for (const { collection, id } of pendingSetMeta) {
+    await storage.setItemSyncMeta(collection, id, now);
+  }
+  for (const { collection, id } of pendingClearMeta) {
+    await storage.clearItemSyncMeta(collection, id);
   }
 
   return dirty;

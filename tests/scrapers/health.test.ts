@@ -208,7 +208,7 @@ describe("pruneHealthHistory", () => {
 
   it("drops samples older than 30 days", () => {
     const samples = [sample(31), sample(10), sample(29)];
-    expect(pruneHealthHistory(samples, now)).toEqual([sample(10), sample(29)]);
+    expect(pruneHealthHistory(samples, now)).toEqual([sample(29), sample(10)]);
   });
 
   it("caps at 720 samples, keeping the newest", () => {

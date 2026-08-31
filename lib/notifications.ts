@@ -2,6 +2,7 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { HEALTH_ALERT_THRESHOLD, HealthStatus } from "./scrapers/health";
 import { recordDisplayedEventId, recordNotificationEvent } from "./storage";
+import { getDistributorById } from "./distributors";
 
 // ─── Notification Handler ─────────────────────────────────────────────────────
 // Must be called at module level (outside any component) so it's set before
@@ -83,13 +84,14 @@ export async function scheduleStockAlert(
 
 // ─── Schedule a distributor health alert ─────────────────────────────────────
 export async function scheduleHealthAlert(
-  distributorName: string,
+  distributorId: string,
   status: HealthStatus,
   reason?: string,
 ): Promise<string | null> {
+  const displayName = getDistributorById(distributorId)?.name ?? distributorId;
   const title =
     status === "blocked" ? "🟠 Distributor Blocked" : "🔴 Distributor Down";
-  const body = `${distributorName} has been ${status} for ${HEALTH_ALERT_THRESHOLD} consecutive probes${reason ? ` — ${reason}` : ""}`;
+  const body = `${displayName} has been ${status} for ${HEALTH_ALERT_THRESHOLD} consecutive probes${reason ? ` — ${reason}` : ""}`;
   let id: string | null = null;
   if (Platform.OS === "web") {
     try {
@@ -104,7 +106,7 @@ export async function scheduleHealthAlert(
         content: {
           title,
           body,
-          data: { type: "health_alert", distributorName, status },
+          data: { type: "health_alert", distributorName: displayName, status },
           sound: "default",
         },
         trigger: null, // immediate
@@ -113,13 +115,13 @@ export async function scheduleHealthAlert(
       return null;
     }
   }
-  const eventId = `health-${distributorName.toLowerCase()}-${status}-${Date.now()}`;
+  const eventId = `health-${distributorId.toLowerCase()}-${status}-${Date.now()}`;
   await recordNotificationEvent({
     id: eventId,
     type: "health",
     title,
     body,
-    distributorId: distributorName,
+    distributorId,
     healthStatus: status as "blocked" | "error",
     createdAt: Date.now(),
   });
@@ -129,11 +131,12 @@ export async function scheduleHealthAlert(
 
 // ─── Schedule a distributor recovery notification ────────────────────────────
 export async function scheduleHealthRecovery(
-  distributorName: string,
+  distributorId: string,
   status: HealthStatus,
 ): Promise<string | null> {
+  const displayName = getDistributorById(distributorId)?.name ?? distributorId;
   const title = "🟢 Distributor Recovered";
-  const body = `${distributorName} is back online after being ${status}`;
+  const body = `${displayName} is back online after being ${status}`;
   let id: string | null = null;
   if (Platform.OS === "web") {
     try {
@@ -148,7 +151,7 @@ export async function scheduleHealthRecovery(
         content: {
           title,
           body,
-          data: { type: "health_recovery", distributorName, status },
+          data: { type: "health_recovery", distributorName: displayName, status },
           sound: "default",
         },
         trigger: null, // immediate
@@ -157,13 +160,13 @@ export async function scheduleHealthRecovery(
       return null;
     }
   }
-  const recoveryEventId = `health-${distributorName.toLowerCase()}-${status}-${Date.now()}`;
+  const recoveryEventId = `health-${distributorId.toLowerCase()}-${status}-${Date.now()}`;
   await recordNotificationEvent({
     id: recoveryEventId,
     type: "health",
     title,
     body,
-    distributorId: distributorName,
+    distributorId,
     healthStatus: "recovered",
     createdAt: Date.now(),
   });

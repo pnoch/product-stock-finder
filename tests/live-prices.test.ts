@@ -109,6 +109,7 @@ describe("checkHealth", () => {
     await expect(checkHealth()).resolves.toBe(true);
     expect(mockFetch).toHaveBeenCalledWith(
       "https://api.example.com/api/health",
+      expect.objectContaining({ signal: expect.any(Object) }),
     );
   });
 

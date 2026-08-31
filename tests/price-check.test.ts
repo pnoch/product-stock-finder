@@ -434,7 +434,7 @@ describe("checkHealthAlerts", () => {
     };
     await checkHealthAlerts(mockHealthService(history));
     expect(scheduleHealthRecovery).toHaveBeenCalledTimes(1);
-    expect(scheduleHealthRecovery).toHaveBeenCalledWith("Winncom", "error");
+    expect(scheduleHealthRecovery).toHaveBeenCalledWith("winncom-us", "error");
   });
 
   it("does not fire recovery when notificationsEnabled is false", async () => {

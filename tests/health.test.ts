@@ -39,7 +39,14 @@ describe("checkHealth", () => {
   });
 
   it("times out after 3s (returns false)", async () => {
-    globalThis.fetch = vi.fn(() => new Promise(() => {}) as Promise<Response>);
+    globalThis.fetch = vi.fn(
+      (_input: RequestInfo | URL, opts?: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          (opts?.signal as AbortSignal | undefined)?.addEventListener("abort", () =>
+            reject(new DOMException("Aborted", "AbortError")),
+          );
+        }) as Promise<Response>,
+    );
     const start = Date.now();
     const result = await checkHealth();
     expect(result).toBe(false);
