@@ -9,6 +9,7 @@ const LLM_PROVIDERS = [
   { label: "Forge (Default)", value: "forge" as const },
   { label: "OpenAI", value: "openai" as const },
   { label: "Ollama Cloud", value: "ollama" as const },
+  { label: "Ollama Local", value: "ollama-local" as const },
 ];
 
 interface Props {
@@ -134,12 +135,60 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
         </View>
       )}
 
+      {provider === "ollama-local" && (
+        <View style={{ marginTop: 12 }}>
+          <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 6 }}>
+            Ollama URL
+          </Text>
+          <TextInput
+            style={{
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 8,
+              padding: 10,
+              color: colors.foreground,
+              fontSize: 14,
+            }}
+            value={settings.llmOllamaUrl ?? ""}
+            onChangeText={(v) => onUpdate("llmOllamaUrl", v)}
+            placeholder="http://localhost:11434"
+            placeholderTextColor={colors.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          <Text style={{ fontSize: 13, color: colors.muted, marginTop: 12, marginBottom: 6 }}>
+            Model (optional)
+          </Text>
+          <TextInput
+            style={{
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 8,
+              padding: 10,
+              color: colors.foreground,
+              fontSize: 14,
+            }}
+            value={settings.llmModel ?? ""}
+            onChangeText={(v) => onUpdate("llmModel", v)}
+            placeholder="llava"
+            placeholderTextColor={colors.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+      )}
+
       <Text style={{ fontSize: 12, color: colors.muted, marginTop: 12 }}>
         {provider === "forge"
           ? "Uses the built-in Forge API for image generation and insights."
           : provider === "openai"
             ? "Requires an OpenAI API key. Used for price insights, product discovery, and image generation."
-            : "Uses Ollama Cloud (free) for vision and AI. No API key needed."}
+            : provider === "ollama"
+              ? "Uses Ollama Cloud (free) for vision and AI. No API key needed."
+              : "Uses your local Ollama installation. Run 'ollama pull llava' to download a model."}
       </Text>
     </View>
   );

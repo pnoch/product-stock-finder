@@ -147,7 +147,7 @@ export interface AppSettings {
   tagDefinitions?: Record<string, TagDefinition>;
   watchlistSort?: WatchlistSort;
   watchlistGroup?: WatchlistGroup;
-  llmProvider?: "openai" | "ollama" | "forge";
+  llmProvider?: "openai" | "ollama" | "ollama-local" | "forge";
   llmApiKey?: string;
   llmModel?: string;
   llmOllamaUrl?: string;

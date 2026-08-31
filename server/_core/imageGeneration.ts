@@ -32,7 +32,7 @@ export async function generateImage(
   options: GenerateImageOptions,
 ): Promise<GenerateImageResponse> {
   const provider = ENV.imageProvider;
-  if (provider === "ollama") return generateWithOllama(options);
+  if (provider === "ollama" || provider === "ollama-local") return generateWithOllama(options, provider === "ollama-local");
   if (provider === "openai") return generateWithOpenAI(options);
   return generateWithForge(options);
 }
@@ -78,8 +78,11 @@ async function generateWithForge(
 
 async function generateWithOllama(
   options: GenerateImageOptions,
+  isLocal = false,
 ): Promise<GenerateImageResponse> {
-  const baseUrl = ENV.ollamaBaseUrl || "https://ollama.com";
+  const baseUrl = isLocal
+    ? (ENV.ollamaBaseUrl || "http://localhost:11434")
+    : (ENV.ollamaBaseUrl || "https://ollama.com");
   const model = options.model ?? "gemma4";
 
   const response = await fetch(`${baseUrl}/v1/images/generations`, {
@@ -171,8 +174,10 @@ export type ListImageModelsResponse = {
 export async function listImageModels(): Promise<ListImageModelsResponse> {
   const provider = ENV.imageProvider;
 
-  if (provider === "ollama") {
-    const baseUrl = ENV.ollamaBaseUrl || "https://ollama.com";
+  if (provider === "ollama" || provider === "ollama-local") {
+    const baseUrl = provider === "ollama-local"
+      ? (ENV.ollamaBaseUrl || "http://localhost:11434")
+      : (ENV.ollamaBaseUrl || "https://ollama.com");
     try {
       const res = await fetch(`${baseUrl}/api/tags`);
       if (!res.ok) return { models: [] };
