@@ -11,6 +11,8 @@ export interface WebPushEvent {
   body: string;
 }
 
+let vapidConfigured = false;
+
 export async function sendWebPush(
   deviceId: string,
   subscription: WebPushSubscription,
@@ -20,7 +22,10 @@ export async function sendWebPush(
   const publicKey = process.env.VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   if (!subject || !publicKey || !privateKey) return;
-  webPush.setVapidDetails(subject, publicKey, privateKey);
+  if (!vapidConfigured) {
+    webPush.setVapidDetails(subject, publicKey, privateKey);
+    vapidConfigured = true;
+  }
   try {
     await webPush.sendNotification(
       subscription,

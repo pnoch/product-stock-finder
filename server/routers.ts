@@ -36,7 +36,16 @@ import {
 const syncItemSchema = z.object({
   collection: z.enum(["watchlist", "alerts", "reminders", "settings"]),
   id: z.string().min(1).max(191),
-  data: z.unknown(),
+  data: z.unknown().refine(
+    (v) => {
+      try {
+        return JSON.stringify(v ?? null).length < 100_000;
+      } catch {
+        return false;
+      }
+    },
+    { message: "data too large" },
+  ),
   updatedAt: z.number(),
   deletedAt: z.number().nullable(),
 });

@@ -278,13 +278,18 @@ export async function maybeSendDigest(
       const lastTime = new Date(previous.lastDigestAt).getTime();
       const nowTime = new Date(now).getTime();
       if (!Number.isNaN(lastTime) && !Number.isNaN(nowTime)) {
-        const nextEligible = lastTime + intervalMs;
-        if (nowTime < nextEligible) return null;
-        if (
-          frequency === "weekly" &&
-          new Date(now).getDay() !== (settings.digestDayOfWeek ?? 0)
-        ) {
-          return null;
+        if (frequency === "weekly") {
+          const targetDay = settings.digestDayOfWeek ?? 0;
+          if (new Date(now).getDay() !== targetDay) return null;
+          const lastDay = new Date(lastTime);
+          lastDay.setHours(0, 0, 0, 0);
+          const nowDay = new Date(nowTime);
+          nowDay.setHours(0, 0, 0, 0);
+          const daysDiff = Math.floor((nowDay.getTime() - lastDay.getTime()) / 86400000);
+          if (daysDiff < 7) return null;
+        } else {
+          const nextEligible = lastTime + intervalMs;
+          if (nowTime < nextEligible) return null;
         }
       } else if (Number.isNaN(lastTime)) {
         // Invalid lastDigestAt — skip interval check but still respect weekly day gate

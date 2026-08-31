@@ -16,6 +16,15 @@ import {
 import { draftToEvent, rowToConfig } from "./mappers";
 import { buildEvents, dedupKeyFor } from "./build-events";
 
+function isDuplicateKeyError(error: unknown): boolean {
+  const err = error as { code?: string; errno?: number; message?: string };
+  return (
+    err?.code === "ER_DUP_ENTRY" ||
+    err?.errno === 1062 ||
+    /Duplicate entry/i.test(err?.message ?? "")
+  );
+}
+
 // Once an event has been delivered everywhere its dedup key would otherwise
 // be released, and a persisting condition (price still below target, past-due
 // reminder) would re-fire on every warmer tick. Keep the key blocked for a
@@ -95,8 +104,10 @@ async function evaluateAnonMemory(
   );
   const drafts = await buildEvents(config, now);
   const added: NotificationEvent[] = [];
+  const seen = new Set<string>();
   for (const draft of drafts) {
-    if (blocked.has(draft.dedupKey)) continue;
+    if (blocked.has(draft.dedupKey) || seen.has(draft.dedupKey)) continue;
+    seen.add(draft.dedupKey);
     const event = { ...draftToEvent(draft), userId: null, deviceId };
     memoryEvents.set(event.id, event);
     added.push(event);
@@ -123,8 +134,10 @@ async function evaluateUserMemory(
   );
   const drafts = await buildEvents(config, now);
   const added: NotificationEvent[] = [];
+  const seen = new Set<string>();
   for (const draft of drafts) {
-    if (blocked.has(draft.dedupKey)) continue;
+    if (blocked.has(draft.dedupKey) || seen.has(draft.dedupKey)) continue;
+    seen.add(draft.dedupKey);
     const event = { ...draftToEvent(draft), userId, deviceId: null };
     memoryEvents.set(event.id, event);
     added.push(event);
@@ -189,14 +202,18 @@ async function evaluateConfigDb(
       .map((e) => e.dedupKey),
   );
   const drafts = await buildEvents(config, now);
-  const toInsert = drafts
-    .filter((d) => !blocked.has(d.dedupKey))
-    .map((d) => ({ ...d, deviceId, userId: null }));
+  const filtered = drafts.filter((d) => !blocked.has(d.dedupKey));
+  const deduped = [...new Map(filtered.map((d) => [d.dedupKey, d])).values()];
+  const toInsert = deduped.map((d) => ({ ...d, deviceId, userId: null }));
   if (toInsert.length > 0) {
-    await db
-      .insert(notificationEvents)
-      .values(toInsert)
-      .onDuplicateKeyUpdate({ set: { id: sql`id` } });
+    try {
+      await db
+        .insert(notificationEvents)
+        .values(toInsert)
+        .onDuplicateKeyUpdate({ set: { id: sql`id` } });
+    } catch (error) {
+      if (!isDuplicateKeyError(error)) throw error;
+    }
     void sendPushForDevice(deviceId, toInsert);
   }
 }
@@ -238,14 +255,18 @@ async function evaluateUserDb(
       .map((e) => e.dedupKey),
   );
   const drafts = await buildEvents(config, now);
-  const toInsert = drafts
-    .filter((d) => !pending.has(d.dedupKey))
-    .map((d) => ({ ...d, userId, deviceId: null }));
+  const filtered = drafts.filter((d) => !pending.has(d.dedupKey));
+  const deduped = [...new Map(filtered.map((d) => [d.dedupKey, d])).values()];
+  const toInsert = deduped.map((d) => ({ ...d, userId, deviceId: null }));
   if (toInsert.length > 0) {
-    await db
-      .insert(notificationEvents)
-      .values(toInsert)
-      .onDuplicateKeyUpdate({ set: { id: sql`id` } });
+    try {
+      await db
+        .insert(notificationEvents)
+        .values(toInsert)
+        .onDuplicateKeyUpdate({ set: { id: sql`id` } });
+    } catch (error) {
+      if (!isDuplicateKeyError(error)) throw error;
+    }
     void sendPushForUser(userId, toInsert);
   }
 }

@@ -1,4 +1,5 @@
 import { and, eq, gt, lt, or, type SQLWrapper } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 import {
   appSettings,
   backOrderReminders,
@@ -140,6 +141,12 @@ export async function upsertSyncItem(
   userId: number,
   item: SyncItem,
 ): Promise<{ accepted: boolean; updatedAt: number }> {
+  if (item.collection === "settings" && item.id !== "settings") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Invalid settings id",
+    });
+  }
   const db = await getDb();
   if (!db) return { accepted: false, updatedAt: item.updatedAt };
   const stampedAt = Date.now();

@@ -23,7 +23,14 @@ function parseRates(body: unknown): Record<string, number> | null {
   for (const [code, value] of Object.entries(
     rates as Record<string, unknown>,
   )) {
-    if (typeof value === "number" && Number.isFinite(value)) out[code] = value;
+    if (
+      typeof value !== "number" ||
+      !Number.isFinite(value) ||
+      value <= 0 ||
+      value > 1e6
+    )
+      continue;
+    out[code] = value;
   }
   return Object.keys(out).length > 0 ? out : null;
 }

@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
   deviceNotificationConfigs,
   notificationEvents,
@@ -24,6 +24,15 @@ export {
 } from "./memory-store";
 export { evaluateNotifications } from "./evaluate";
 
+function isDuplicateKeyError(error: unknown): boolean {
+  const err = error as { code?: string; errno?: number; message?: string };
+  return (
+    err?.code === "ER_DUP_ENTRY" ||
+    err?.errno === 1062 ||
+    /Duplicate entry/i.test(err?.message ?? "")
+  );
+}
+
 async function processHealthEvents(
   deviceId: string,
   config: NotificationConfig,
@@ -35,54 +44,84 @@ async function processHealthEvents(
   const db = await getDb();
   const toInsert: Array<Record<string, unknown>> = [];
 
-  for (const event of healthEvents) {
-    const dedupKey = dedupKeyForHealth(event);
-    if (db) {
-      if (userId == null) continue;
-      const existing = await db
-        .select({ id: notificationEvents.id })
-        .from(notificationEvents)
-        .where(
-          and(
-            eq(notificationEvents.userId, userId),
-            eq(notificationEvents.dedupKey, dedupKey),
-          ),
-        );
-      if (existing.length > 0) continue;
-    } else {
-      const exists = [...memoryEvents.values()].some(
-        (e) => e.userId === userId && e.dedupKey === dedupKey,
-      );
-      if (exists) continue;
-    }
-
-    const dbEvent = {
-      id: event.id,
-      type: "health",
-      title: event.title,
-      body: event.body,
-      distributorId: event.distributorId,
-      productId: "",
-      payload: {
+  if (db) {
+    if (userId == null) return;
+    const dedupKeys = healthEvents.map((e) => dedupKeyForHealth(e));
+    const uniqueKeys = [...new Set(dedupKeys)];
+    const existingRows =
+      uniqueKeys.length > 0
+        ? await db
+            .select({ dedupKey: notificationEvents.dedupKey })
+            .from(notificationEvents)
+            .where(
+              and(
+                eq(notificationEvents.userId, userId),
+                inArray(notificationEvents.dedupKey, uniqueKeys),
+              ),
+            )
+        : [];
+    const existingSet = new Set(existingRows.map((r) => r.dedupKey));
+    const seen = new Set<string>();
+    for (const event of healthEvents) {
+      const dedupKey = dedupKeyForHealth(event);
+      if (existingSet.has(dedupKey) || seen.has(dedupKey)) continue;
+      seen.add(dedupKey);
+      const dbEvent = {
+        id: event.id,
+        type: "health",
+        title: event.title,
+        body: event.body,
         distributorId: event.distributorId,
-        distributorName: event.distributorName,
-        healthStatus: event.status,
-      },
-      createdAt: event.createdAt,
-      deviceId: null,
-      userId,
-      dedupKey,
-    };
-
-    if (db) {
-      await db
-        .insert(notificationEvents)
-        .values(dbEvent)
-        .onDuplicateKeyUpdate({ set: { id: sql`id` } });
-    } else {
-      memoryEvents.set(event.id, dbEvent as MemoryEvent);
+        productId: "",
+        payload: {
+          distributorId: event.distributorId,
+          distributorName: event.distributorName,
+          healthStatus: event.status,
+        },
+        createdAt: event.createdAt,
+        deviceId: null,
+        userId,
+        dedupKey,
+      };
+      try {
+        await db.insert(notificationEvents).values(dbEvent);
+      } catch (error) {
+        if (isDuplicateKeyError(error)) continue;
+        throw error;
+      }
+      toInsert.push(dbEvent);
     }
-    toInsert.push(dbEvent);
+  } else {
+    const existingSet = new Set(
+      [...memoryEvents.values()]
+        .filter((e) => e.userId === userId)
+        .map((e) => e.dedupKey),
+    );
+    const seen = new Set<string>();
+    for (const event of healthEvents) {
+      const dedupKey = dedupKeyForHealth(event);
+      if (existingSet.has(dedupKey) || seen.has(dedupKey)) continue;
+      seen.add(dedupKey);
+      const dbEvent = {
+        id: event.id,
+        type: "health",
+        title: event.title,
+        body: event.body,
+        distributorId: event.distributorId,
+        productId: "",
+        payload: {
+          distributorId: event.distributorId,
+          distributorName: event.distributorName,
+          healthStatus: event.status,
+        },
+        createdAt: event.createdAt,
+        deviceId: null,
+        userId,
+        dedupKey,
+      };
+      memoryEvents.set(event.id, dbEvent as MemoryEvent);
+      toInsert.push(dbEvent);
+    }
   }
 
   if (toInsert.length > 0 && userId !== null) {

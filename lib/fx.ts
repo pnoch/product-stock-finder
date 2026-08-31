@@ -38,23 +38,27 @@ let refreshInFlight: Promise<void> | null = null;
 export function refreshFxRates(
   storage: Storage = defaultStorage,
 ): Promise<void> {
+  const doRefresh = async () => {
+    const result = await fetchFxRates();
+    if (!result || typeof result.fetchedAt !== "number" || result.fetchedAt <= 0) return;
+    await storage.saveFxRates({
+      rates: result.rates,
+      fetchedAt: result.fetchedAt,
+    });
+    setExchangeRates(result.rates);
+    const existingHistory = await storage.getFxHistory();
+    const updatedHistory = appendFxHistory(existingHistory, result.rates, result.fetchedAt);
+    await storage.saveFxHistory(updatedHistory);
+  };
+
+  if (storage !== defaultStorage) {
+    return doRefresh();
+  }
+
   if (refreshInFlight) return refreshInFlight;
-  refreshInFlight = (async () => {
-    try {
-      const result = await fetchFxRates();
-      if (!result || typeof result.fetchedAt !== "number" || result.fetchedAt <= 0) return;
-      await storage.saveFxRates({
-        rates: result.rates,
-        fetchedAt: result.fetchedAt,
-      });
-      setExchangeRates(result.rates);
-      const existingHistory = await storage.getFxHistory();
-      const updatedHistory = appendFxHistory(existingHistory, result.rates, result.fetchedAt);
-      await storage.saveFxHistory(updatedHistory);
-    } finally {
-      refreshInFlight = null;
-    }
-  })();
+  refreshInFlight = doRefresh().finally(() => {
+    refreshInFlight = null;
+  });
   return refreshInFlight;
 }
 
