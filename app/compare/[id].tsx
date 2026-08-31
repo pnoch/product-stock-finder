@@ -154,7 +154,7 @@ export default function CompareScreen() {
     await schedulePriceAlert(productName || "Product", targetPrice, displayCurrency, id);
     const sym = CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency;
     showToast(`Alert created — watching below ${sym}${targetPrice.toFixed(2)}`, "success");
-  }, [listings, id, productName, displayCurrency]);
+  }, [listings, id, productName, displayCurrency, showToast]);
 
   const priceTrends = useMemo(() => {
     const map = new Map<string, { pct: number; dir: "up" | "down" | "flat" }>();
