@@ -92,6 +92,37 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
       {provider === "ollama" && (
         <View style={{ marginTop: 12 }}>
           <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 6 }}>
+            API Key
+          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <TextInput
+              style={{
+                flex: 1,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 8,
+                padding: 10,
+                color: colors.foreground,
+                fontSize: 14,
+              }}
+              secureTextEntry={!showApiKey}
+              value={settings.llmApiKey ?? ""}
+              onChangeText={(v) => onUpdate("llmApiKey", v)}
+              placeholder="ollama_..."
+              placeholderTextColor={colors.muted}
+            />
+            <TouchableOpacity
+              onPress={() => setShowApiKey(!showApiKey)}
+              style={{ marginLeft: 8, padding: 8 }}
+            >
+              <Text style={{ color: colors.primary, fontSize: 13 }}>
+                {showApiKey ? "Hide" : "Show"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={{ fontSize: 13, color: colors.muted, marginTop: 12, marginBottom: 6 }}>
             Ollama URL
           </Text>
           <TextInput
@@ -187,7 +218,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
           : provider === "openai"
             ? "Requires an OpenAI API key. Used for price insights, product discovery, and image generation."
             : provider === "ollama"
-              ? "Uses Ollama Cloud (free) for vision and AI. No API key needed."
+              ? "Uses Ollama Cloud. Requires an API key from ollama.com."
               : "Uses your local Ollama installation. Run 'ollama pull llava' to download a model."}
       </Text>
     </View>
