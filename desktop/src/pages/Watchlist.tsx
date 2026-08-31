@@ -12,6 +12,7 @@ import {
 import { useWatchlist, useSettings } from "../hooks/use-storage";
 import { storage } from "../storage";
 import { formatPrice, getBestPrice } from "../../../lib/currency";
+import { getApiBaseUrl } from "../lib/api-base";
 import { computeWatchlistSummary } from "../../../lib/watchlist-summary";
 import { getAllRegions, productHasRegion } from "../../../lib/region-filter";
 import { StockBadge } from "../components/StockBadge";
@@ -147,7 +148,34 @@ export function Watchlist() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await storage.refreshWatchlistPrices();
+      // Attempt live price refresh via Tauri backend when available.
+      // Falls back to a timestamp bump (placeholder) when running outside
+      // Tauri (e.g. web preview) — live prices are kept fresh by the server
+      // catalog warmer / background poller in that case.
+      let liveRefreshed = false;
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const raw = await storage.getWatchlist();
+        const products = raw
+          .map((p) => ({
+            id: p.id,
+            model_number: p.modelNumber,
+            distributor_ids: p.listings.map((l) => l.distributorId),
+          }))
+          .filter((p) => p.distributor_ids.length > 0);
+        if (products.length > 0) {
+          await invoke("check_all_prices", {
+            products,
+            apiBaseUrl: getApiBaseUrl(),
+          });
+          liveRefreshed = true;
+        }
+      } catch {
+        // Not in Tauri or invoke unavailable — fall through to bump
+      }
+      if (!liveRefreshed) {
+        await storage.refreshWatchlistPrices();
+      }
       await refresh();
     } finally {
       setRefreshing(false);

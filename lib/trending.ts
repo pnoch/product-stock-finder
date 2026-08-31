@@ -1,7 +1,19 @@
 import { TrendingProduct } from "@/lib/types";
 
 function getApiBase(): string {
-  return process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+  // Supports both Expo (process.env.EXPO_PUBLIC_API_BASE_URL) and Vite/desktop
+  // (import.meta.env.VITE_API_BASE_URL). Falls back to the server default port 3000.
+  const viteBase =
+    typeof import.meta !== "undefined" &&
+    (import.meta as unknown as { env?: Record<string, string | undefined> }).env
+      ?.VITE_API_BASE_URL;
+  if (viteBase) return (viteBase as string).replace(/\/$/, "");
+  const expoBase =
+    typeof process !== "undefined"
+      ? (process.env as Record<string, string | undefined>).EXPO_PUBLIC_API_BASE_URL
+      : undefined;
+  if (expoBase) return expoBase.replace(/\/$/, "");
+  return "http://localhost:3000";
 }
 
 const FALLBACK_TRENDING: TrendingProduct[] = [

@@ -17,16 +17,30 @@ function pruneStale(maxAge: number) {
   }
 }
 
+function getClientIp(req: TrpcContext["req"]): string {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.trim()) {
+    // Only trust X-Forwarded-For if Express trust proxy is configured
+    const trustProxy = (
+      req as unknown as { app?: { get?: (k: string) => unknown } }
+    ).app?.get?.("trust proxy");
+    if (trustProxy) {
+      const ips = forwarded
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (ips[0]) return ips[0];
+    }
+  }
+  return (
+    (req as unknown as { ip?: string }).ip ??
+    (req.socket as unknown as { remoteAddress?: string })?.remoteAddress ??
+    "unknown"
+  );
+}
+
 function clientKey(ctx: TrpcContext): string {
-  const xf = ctx.req.headers["x-forwarded-for"];
-  const forwarded =
-    typeof xf === "string" ? xf.split(",")[0]?.trim() : undefined;
-  const ip =
-    forwarded ??
-    (ctx.req as unknown as { ip?: string }).ip ??
-    (ctx.req.socket as unknown as { remoteAddress?: string })?.remoteAddress ??
-    "unknown";
-  return ip;
+  return getClientIp(ctx.req);
 }
 
 export function checkRateLimit(

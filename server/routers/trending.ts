@@ -150,7 +150,7 @@ export const trendingRouter = router({
 
 const TRENDING_CACHE_URL = process.env.EXPO_PUBLIC_API_BASE_URL
   ? `${process.env.EXPO_PUBLIC_API_BASE_URL}/api/trending`
-  : "http://localhost:3001/api/trending";
+  : "http://localhost:3000/api/trending";
 
 export async function getTrending(): Promise<
   Array<{
