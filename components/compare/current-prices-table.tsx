@@ -1,4 +1,4 @@
-import { Text, View } from "react-native";
+import { Text, View, StyleSheet } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
@@ -63,7 +63,7 @@ export function CurrentPricesTable({ listings, selected }: Props) {
               flexDirection: "row",
               alignItems: "center",
               paddingVertical: 10,
-              borderTopWidth: i > 0 ? 1 : 0,
+              borderTopWidth: i > 0 ? StyleSheet.hairlineWidth : 0,
               borderTopColor: colors.border,
             }}
           >
@@ -108,14 +108,13 @@ export function CurrentPricesTable({ listings, selected }: Props) {
               )}
               <View
                 style={{
-                  backgroundColor:
-                    l.stockStatus === "in_stock"
-                      ? colors.success + "22"
+                  backgroundColor: isPositive
+                    ? colors.success + "22"
+                    : isUnknown
+                      ? colors.muted + "22"
                       : l.stockStatus === "back_order"
                         ? colors.warning + "22"
-                        : l.stockStatus === "out_of_stock"
-                          ? colors.error + "22"
-                          : colors.muted + "22",
+                        : colors.error + "22",
                   borderRadius: 8,
                   paddingHorizontal: 7,
                   paddingVertical: 2,
@@ -124,14 +123,13 @@ export function CurrentPricesTable({ listings, selected }: Props) {
               >
                 <Text
                   style={{
-                    color:
-                      l.stockStatus === "in_stock"
-                        ? colors.success
+                    color: isPositive
+                      ? colors.success
+                      : isUnknown
+                        ? colors.muted
                         : l.stockStatus === "back_order"
                           ? colors.warning
-                          : l.stockStatus === "out_of_stock"
-                            ? colors.error
-                            : colors.muted,
+                          : colors.error,
                     fontSize: 10,
                     fontWeight: "600",
                   }}
