@@ -158,7 +158,7 @@ export default function ProductDetailScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       Animated.sequence([
         Animated.timing(shareScale, { toValue: 0.85, duration: 90, useNativeDriver: true }),
-        Animated.spring(shareScale, { toValue: 1, duration: 300, useNativeDriver: true, speed: 22, bounciness: 8 }),
+        Animated.spring(shareScale, { toValue: 1, useNativeDriver: true, speed: 22, bounciness: 8 }),
       ]).start();
     }
     try {
