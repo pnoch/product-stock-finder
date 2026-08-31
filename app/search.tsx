@@ -6,10 +6,12 @@ import {
   View,
   TouchableOpacity,
   Platform,
+  Keyboard,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { showAlert } from "@/lib/alert";
+import { useToast } from "@/components/ui/toast";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
@@ -37,6 +39,7 @@ import { countTagMatchesByIds, filterWatchlist } from "@/lib/watchlist-org";
 export default function SearchScreen() {
   const router = useRouter();
   const colors = useColors();
+  const { showToast } = useToast();
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
   const [discovering, setDiscovering] = useState(false);
@@ -63,6 +66,7 @@ export default function SearchScreen() {
 
   const handleSearchSubmit = useCallback(async () => {
     if (!query.trim()) return;
+    Keyboard.dismiss();
     setRecentSearches(await recordSearch(query));
   }, [query]);
 
@@ -73,22 +77,24 @@ export default function SearchScreen() {
 
   const handleDiscover = useCallback(async () => {
     if (!query.trim() || discovering) return;
+    Keyboard.dismiss();
     setDiscovering(true);
     try {
       const result = await discoverProduct(query);
       if (result) {
         loadData();
+        showToast(`Added ${result.product.name} to watchlist`, "success");
         router.push(`/product/${result.product.id}`);
       } else {
         showAlert(
           "Discovery Failed",
-          "Could not find product information. Try a more specific search.",
+          "We couldn't find that product. Try a more specific model number or brand name.",
         );
       }
     } finally {
       setDiscovering(false);
     }
-  }, [query, discovering, loadData, router]);
+  }, [query, discovering, loadData, router, showToast]);
 
   const results =
     query.trim().length > 0 ? searchCatalog(query) : PRODUCT_CATALOG;
@@ -125,6 +131,7 @@ export default function SearchScreen() {
         return;
       }
       setAdding(item.id);
+      Keyboard.dismiss();
       if (Platform.OS !== "web")
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const pending = pendingTags[item.id] ?? [];
@@ -143,6 +150,7 @@ export default function SearchScreen() {
           delete next[item.id];
           return next;
         });
+        showToast(`Added ${item.name} to watchlist`, "success");
         if (pending.length > 0) {
           setPostAddProduct(product);
         } else {
@@ -150,12 +158,12 @@ export default function SearchScreen() {
         }
       } catch (e) {
         console.error("[Search] addToWatchlist failed", e);
-        showAlert("Failed to add", "Could not add product to watchlist. Please try again.");
+        showAlert("Couldn't add product", "We couldn't add this product to your watchlist. Please check your connection and try again.");
       } finally {
         setAdding(null);
       }
     },
-    [router, trackedIds, adding, pendingTags, loadData],
+    [router, trackedIds, adding, pendingTags, loadData, showToast],
   );
 
   return (

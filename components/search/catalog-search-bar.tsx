@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, TextInput } from "react-native";
+import { View, TouchableOpacity, TextInput, Keyboard } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
@@ -40,7 +40,10 @@ export function CatalogSearchBar({
         style={{ flex: 1, color: colors.foreground, fontSize: 15 }}
         autoFocus
         returnKeyType="search"
-        onSubmitEditing={() => onSearchSubmit?.(query.trim())}
+        onSubmitEditing={() => {
+          Keyboard.dismiss();
+          onSearchSubmit?.(query.trim());
+        }}
       />
       {query.length > 0 && (
         <TouchableOpacity onPress={() => onQueryChange("")} accessibilityLabel="Clear search" accessibilityRole="button">

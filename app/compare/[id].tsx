@@ -11,7 +11,6 @@ import {
   View,
   TouchableOpacity,
   Platform,
-  ActivityIndicator,
   useWindowDimensions,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -37,6 +36,8 @@ import { convertPrice, CURRENCY_SYMBOLS } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
+import { SkeletonChart, SkeletonList } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
 import {
   CHART_COLORS,
   TimeRange,
@@ -50,6 +51,7 @@ export default function CompareScreen() {
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const router = useRouter();
   const colors = useColors();
+  const { showToast } = useToast();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [timeRange, setTimeRange] = useState<TimeRange>("3M");
   const [sortBy, setSortBy] = useState<SortBy>("trend");
@@ -130,7 +132,6 @@ export default function CompareScreen() {
       return;
     }
     const targetPrice = parseFloat((bestPrice * 0.95).toFixed(2));
-    const dist = getDistributorById(bestListing.distributorId);
     const granted = await requestNotificationPermissions();
     if (!granted) {
       showAlert(
@@ -152,10 +153,7 @@ export default function CompareScreen() {
     await addAlert(alert);
     await schedulePriceAlert(productName || "Product", targetPrice, displayCurrency, id);
     const sym = CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency;
-    showAlert(
-      "Alert Set!",
-      `You'll be notified when any distributor drops below ${sym}${targetPrice.toFixed(2)} (5% below current best of ${sym}${bestPrice.toFixed(2)} at ${dist?.name ?? bestListing.distributorId}).`,
-    );
+    showToast(`Alert created — watching below ${sym}${targetPrice.toFixed(2)}`, "success");
   }, [listings, id, productName, displayCurrency]);
 
   const priceTrends = useMemo(() => {
@@ -235,11 +233,12 @@ export default function CompareScreen() {
   return (
     <ScreenContainer>
       {!loaded ? (
-        <View
-          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
-        >
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+          <SkeletonChart />
+          <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
+            <SkeletonList count={3} />
+          </View>
+        </ScrollView>
       ) : notFound ? (
         <View
           style={{
@@ -249,22 +248,46 @@ export default function CompareScreen() {
             paddingHorizontal: 32,
           }}
         >
-          <IconSymbol name="magnifyingglass" size={40} color={colors.muted} />
+          <View
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              backgroundColor: colors.primary + "14",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: colors.primary + "22",
+            }}
+          >
+            <IconSymbol name="magnifyingglass" size={36} color={colors.primary} />
+          </View>
           <Text
             style={{
               color: colors.foreground,
-              fontSize: 16,
-              fontWeight: "600",
-              marginTop: 12,
+              fontSize: 17,
+              fontWeight: "700",
+              marginTop: 16,
             }}
           >
             Product not found
           </Text>
+          <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
+            We couldn&apos;t find this product — check the link or browse your watchlist.
+          </Text>
+          <TouchableOpacity
+            onPress={() => refresh()}
+            accessibilityLabel="Try again"
+            accessibilityRole="button"
+            style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 24, paddingVertical: 12, marginTop: 20 }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600" }}>Try Again</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.back()}
             accessibilityLabel="Go back"
             accessibilityRole="button"
-            style={{ marginTop: 16 }}
+            style={{ marginTop: 12, padding: 8 }}
           >
             <Text style={{ color: colors.primary, fontWeight: "600" }}>
               Go back

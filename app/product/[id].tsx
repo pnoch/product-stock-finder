@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { Stack, useLocalSearchParams, router } from "expo-router";
-import { ScrollView, Text, View, ActivityIndicator, TouchableOpacity } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity } from "react-native";
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { DetailHeader } from "@/components/product/detail-header";
@@ -21,13 +21,17 @@ import { showAlert } from "@/lib/alert";
 import { ProductInfoCard, DistributorListingSection } from "./_components";
 import { PriceAlert, DistributorListing } from "@/lib/types";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
+import { SkeletonCard, SkeletonChart, SkeletonDetailHeader } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export default function ProductDetailScreen() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const colors = useColors();
+  const { showToast } = useToast();
   if (!id) return null;
-  const { product, listings, loaded, lastUpdatedAt } = useLiveProduct(id);
+  const { product, listings, loaded, lastUpdatedAt, refresh } = useLiveProduct(id);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(true);
   const [productImage, setProductImage] = useState<string | null>(null);
@@ -102,8 +106,8 @@ export default function ProductDetailScreen() {
       isActive: true,
     };
     await addAlert(alert);
-    showAlert("Alert Set!", `You'll be notified when ${product?.name} drops below ${sym}${listing.price.toFixed(2)} at ${getDistributorById(listing.distributorId)?.name ?? listing.distributorId}.`);
-  }, [id, product]);
+    showToast(`Alert created — you'll be notified below ${sym}${listing.price.toFixed(2)}`, "success");
+  }, [id, product, showToast]);
 
   const handleToggleStockWatch = useCallback(async (listing: DistributorListing) => {
     if (!id) return;
@@ -116,6 +120,7 @@ export default function ProductDetailScreen() {
         await removeStockWatch(watch.id);
       }
       setStockWatches((prev) => ({ ...prev, [listing.distributorId]: false }));
+      showToast("Removed from restock watches", "info");
     } else {
       const granted = await requestNotificationPermissions();
       if (!granted) {
@@ -137,25 +142,57 @@ export default function ProductDetailScreen() {
         notificationId: notificationId ?? undefined,
       });
       setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
-      showAlert("Watching!", `You'll be notified when ${product?.name} is back in stock at ${distributor?.name ?? listing.distributorId}.`);
+      showToast(`Reminder set — you'll be notified when back in stock`, "success");
     }
-  }, [id, product, stockWatches]);
+  }, [id, product, stockWatches, showToast]);
 
   if (!loaded) {
     return (
       <ScreenContainer>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+          <SkeletonDetailHeader />
+          <View style={{ marginTop: 16 }}>
+            <SkeletonCard />
+            <SkeletonChart />
+            <SkeletonCard />
+          </View>
+        </ScrollView>
       </ScreenContainer>
     );
   }
   if (!product) {
     return (
       <ScreenContainer>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: colors.foreground, fontSize: 16 }}>Product not found</Text>
-          <TouchableOpacity onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button" style={{ marginTop: 16 }}><Text style={{ color: colors.primary }}>Go back</Text></TouchableOpacity>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
+          <View
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              backgroundColor: colors.primary + "14",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: colors.primary + "22",
+            }}
+          >
+            <IconSymbol name="magnifyingglass" size={30} color={colors.primary} />
+          </View>
+          <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: "700", marginTop: 16 }}>Product not found</Text>
+          <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
+            We couldn&apos;t find this product. It may have been removed or the link is invalid.
+          </Text>
+          <TouchableOpacity
+            onPress={() => refresh()}
+            accessibilityLabel="Try again"
+            accessibilityRole="button"
+            style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 24, paddingVertical: 12, marginTop: 20 }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600" }}>Try Again</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button" style={{ marginTop: 12, padding: 8 }}>
+            <Text style={{ color: colors.primary, fontWeight: "600" }}>Go back</Text>
+          </TouchableOpacity>
         </View>
       </ScreenContainer>
     );

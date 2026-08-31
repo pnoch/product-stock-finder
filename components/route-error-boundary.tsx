@@ -10,7 +10,7 @@ export class RouteErrorBoundary extends React.Component<
   state = { hasError: false, message: "" };
 
   static getDerivedStateFromError(error: Error) {
-    return { hasError: true, message: error.message.slice(0, 120) };
+    return { hasError: true, message: error.message.slice(0, 160) };
   }
 
   componentDidCatch(error: Error) {
@@ -27,34 +27,78 @@ export class RouteErrorBoundary extends React.Component<
           alignItems: "center",
           justifyContent: "center",
           padding: 24,
+          backgroundColor: "#F8FAFC",
         }}
       >
-        <Text style={{ fontSize: 18, fontWeight: "700" }}>
-          Something went wrong
+        <View
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            backgroundColor: "#EF444422",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 16,
+          }}
+        >
+          <Text style={{ fontSize: 32 }}>⚠️</Text>
+        </View>
+        <Text style={{ fontSize: 18, fontWeight: "700", color: "#0A0E1A" }}>
+          We couldn&apos;t load this screen
         </Text>
-        <Text style={{ marginTop: 8, color: "#666", textAlign: "center" }}>
-          {this.state.message}
+        <Text
+          style={{
+            marginTop: 8,
+            color: "#64748B",
+            textAlign: "center",
+            fontSize: 14,
+            lineHeight: 20,
+          }}
+        >
+          Something unexpected happened. Your data is safe — try again or go back.
         </Text>
+        {this.state.message ? (
+          <Text
+            style={{
+              marginTop: 12,
+              color: "#94A3B8",
+              textAlign: "center",
+              fontSize: 12,
+            }}
+            numberOfLines={2}
+          >
+            {this.state.message}
+          </Text>
+        ) : null}
         <TouchableOpacity
           onPress={() => this.setState({ hasError: false, message: "" })}
           style={{
-            marginTop: 16,
+            marginTop: 20,
             backgroundColor: "#0F52BA",
-            borderRadius: 8,
-            padding: 10,
+            borderRadius: 20,
+            paddingHorizontal: 24,
+            paddingVertical: 12,
           }}
           accessibilityLabel="Try Again"
           accessibilityRole="button"
         >
-          <Text style={{ color: "#fff" }}>Try Again</Text>
+          <Text style={{ color: "#fff", fontWeight: "600" }}>Try Again</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={{ marginTop: 8 }}
+          style={{
+            marginTop: 10,
+            borderWidth: 1,
+            borderColor: "#E2E8F0",
+            borderRadius: 20,
+            paddingHorizontal: 24,
+            paddingVertical: 12,
+            backgroundColor: "#fff",
+          }}
           accessibilityLabel="Go Back"
           accessibilityRole="button"
         >
-          <Text>Go Back</Text>
+          <Text style={{ color: "#0F52BA", fontWeight: "600" }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );

@@ -80,7 +80,7 @@ export function SearchModal({
           return (
             <div
               key={product.id}
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:shadow-sm hover:scale-[1.01] transition-all duration-200 cursor-pointer"
             >
               <div className="flex items-center">
                 <ProductImage productId={product.id} />
@@ -98,7 +98,7 @@ export function SearchModal({
               ) : (
                 <button
                   onClick={() => handleAdd(product)}
-                  className="flex items-center gap-1 px-3 py-1 rounded-lg bg-brand-600 text-white text-xs font-medium hover:bg-brand-700"
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg bg-brand-600 text-white text-xs font-medium hover:bg-brand-700 transition-colors duration-200 cursor-pointer"
                   aria-label={`Add ${product.name} to watchlist`}
                 >
                   <Plus className="w-3 h-3" /> Add
@@ -115,7 +115,7 @@ export function SearchModal({
             {query.trim().length > 0 && !discovering && (
               <button
                 onClick={handleDiscover}
-                className="mt-4 flex items-center justify-center gap-2 w-full px-4 py-3 rounded-lg border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 font-medium text-sm hover:bg-brand-500/20"
+                className="mt-4 flex items-center justify-center gap-2 w-full px-4 py-3 rounded-lg border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 font-medium text-sm hover:bg-brand-500/20 transition-colors duration-200 cursor-pointer"
                 aria-label="Discover product with AI"
               >
                 <Wand2 className="w-5 h-5" />

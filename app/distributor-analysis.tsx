@@ -4,7 +4,6 @@ import {
   Text,
   View,
   TouchableOpacity,
-  ActivityIndicator,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 
@@ -17,6 +16,8 @@ import {
   DistributorAnalysis,
 } from "@/lib/distributor-analysis";
 import { formatPrice } from "@/lib/currency";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { SkeletonList } from "@/components/ui/skeleton";
 
 export default function DistributorAnalysisScreen() {
   const colors = useColors();
@@ -62,13 +63,46 @@ export default function DistributorAnalysisScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+        <SkeletonList count={4} />
       ) : analysis.length === 0 ? (
-        <Text
-          style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}
-        >
-          Add products to see distributor analysis.
-        </Text>
+        <View style={{ alignItems: "center", paddingHorizontal: 32, marginTop: 48 }}>
+          <View
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              backgroundColor: colors.primary + "14",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: colors.primary + "22",
+            }}
+          >
+            <IconSymbol name="chart.bar.fill" size={30} color={colors.primary} />
+          </View>
+          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16, marginTop: 16, textAlign: "center" }}>
+            No distributor data yet
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
+            Add a few products to your watchlist to compare coverage and average prices across distributors.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/search")}
+            accessibilityLabel="Browse products"
+            accessibilityRole="button"
+            style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 24, paddingVertical: 12, marginTop: 20 }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600" }}>Browse Products</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => loadData()}
+            accessibilityLabel="Try again"
+            accessibilityRole="button"
+            style={{ marginTop: 12, padding: 8 }}
+          >
+            <Text style={{ color: colors.primary, fontWeight: "600" }}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}

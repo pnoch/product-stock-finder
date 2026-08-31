@@ -5,6 +5,7 @@ import {
   TextInput,
   Modal,
   Platform,
+  Keyboard,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
@@ -300,6 +301,11 @@ export function PriceAlertModal({
             placeholder={`Target price in ${alertCurrency}`}
             placeholderTextColor={colors.muted}
             keyboardType="decimal-pad"
+            returnKeyType="done"
+            onSubmitEditing={() => {
+              Keyboard.dismiss();
+              onSetAlert();
+            }}
             style={{
               backgroundColor: colors.surface,
               borderRadius: 14,

@@ -2,18 +2,24 @@ import { Text, View, TouchableOpacity } from "react-native";
 import { addBackOrderReminder } from "@/lib/storage";
 import { scheduleBackOrderReminder } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
+import { useToast } from "@/components/ui/toast";
 import { useColors } from "@/hooks/use-colors";
 
 export function ReminderSection({ productId, distributorId, productName, distributorName }: { productId: string; distributorId?: string; productName?: string; distributorName?: string }) {
   const colors = useColors();
+  const { showToast } = useToast();
   if (!distributorId) {
-    return <Text style={{ color: colors.muted }}>No listings available for reminders</Text>;
+    return <Text style={{ color: colors.muted, padding: 16 }}>No listings available for reminders</Text>;
   }
   const onSet = async () => {
-    const d = new Date(Date.now() + 7 * 86400000);
-    const notifId = await scheduleBackOrderReminder(productId, distributorId, d).catch(() => null);
-    await addBackOrderReminder({ id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, productName: productName ?? "", distributorId, distributorName: distributorName ?? "", reminderDate: d.toISOString(), notificationId: notifId ?? undefined, createdAt: new Date().toISOString() });
-    showAlert("Reminder Set", `You'll be reminded on ${d.toLocaleDateString()}.`);
+    try {
+      const d = new Date(Date.now() + 7 * 86400000);
+      const notifId = await scheduleBackOrderReminder(productId, distributorId, d).catch(() => null);
+      await addBackOrderReminder({ id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, productName: productName ?? "", distributorId, distributorName: distributorName ?? "", reminderDate: d.toISOString(), notificationId: notifId ?? undefined, createdAt: new Date().toISOString() });
+      showToast(`Reminder set for ${d.toLocaleDateString()}`, "success");
+    } catch {
+      showAlert("Couldn't set reminder", "We couldn't save your reminder. Please try again.");
+    }
   };
   return (
     <View style={{ padding: 16 }}>

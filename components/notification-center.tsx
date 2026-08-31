@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Platform,
   RefreshControl,
@@ -25,6 +24,7 @@ import {
   markNotificationRead,
 } from "@/lib/storage";
 import type { NotificationHistoryEntry } from "@/lib/types";
+import { SkeletonList } from "@/components/ui/skeleton";
 
 type HistoryType = NotificationHistoryEntry["type"];
 type TypeIconName =
@@ -174,17 +174,30 @@ export function NotificationCenter({
       }
       ListEmptyComponent={
         loading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+          <SkeletonList count={3} />
         ) : (
-          <Text
-            style={{
-              color: colors.muted,
-              textAlign: "center",
-              marginTop: 40,
-            }}
-          >
-            No notifications yet.
-          </Text>
+          <View style={{ alignItems: "center", paddingHorizontal: 16, marginTop: 40 }}>
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: colors.primary + "14",
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: colors.primary + "22",
+              }}
+            >
+              <IconSymbol name="bell.fill" size={26} color={colors.primary} />
+            </View>
+            <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 16, marginTop: 14 }}>
+              No notifications yet
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 6, lineHeight: 20 }}>
+              Price alerts and restock updates will appear here.
+            </Text>
+          </View>
         )
       }
       renderItem={({ item }) => (

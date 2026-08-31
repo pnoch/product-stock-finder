@@ -81,6 +81,7 @@ export function Watchlist() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [refreshing, setRefreshing] = useState(false);
   const [regionFilter, setRegionFilter] = useState<string>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const regions = useMemo(() => getAllRegions(), []);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -372,8 +373,11 @@ export function Watchlist() {
               return (
                 <tr
                   key={product.id}
-                  onClick={() => navigate(`/product/${product.id}`)}
-                  className="border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors"
+                  onClick={() => {
+                    setSelectedId(product.id);
+                    navigate(`/product/${product.id}`);
+                  }}
+                  className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-all duration-200 ${selectedId === product.id ? "bg-brand-50 dark:bg-brand-900/10 border-l-2 border-l-brand-500" : "border-l-2 border-l-transparent hover:border-l-brand-200"}`}
                   role="button"
                   aria-label={`View ${product.name} details`}
                 >

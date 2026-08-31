@@ -43,7 +43,40 @@ export function TrendingSection() {
     setAddedIds((prev) => new Set([...prev, product.id]));
   };
 
-  if (loading || products.length === 0) return null;
+  if (loading) {
+    return (
+      <div>
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <Flame className="w-5 h-5 text-orange-500" />
+          Trending Now
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+          Hard-to-find products from the community
+        </p>
+        <div className="space-y-2">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 animate-pulse"
+              style={{ animationDelay: `${i * 100}ms` }}
+            >
+              <div className="flex items-center flex-1 min-w-0 gap-3">
+                <div className="w-10 h-10 rounded-lg skeleton-shimmer shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-3/4 rounded skeleton-shimmer" />
+                  <div className="h-3 w-1/2 rounded skeleton-shimmer" />
+                  <div className="h-3 w-2/3 rounded skeleton-shimmer" />
+                </div>
+              </div>
+              <div className="ml-4 w-20 h-7 rounded-lg skeleton-shimmer shrink-0" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (products.length === 0) return null;
 
   return (
     <div>
@@ -55,10 +88,11 @@ export function TrendingSection() {
         Hard-to-find products from the community
       </p>
       <div className="space-y-2">
-        {products.slice(0, 3).map((product) => (
+        {products.slice(0, 3).map((product, idx) => (
           <div
             key={product.id}
-            className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 transition-colors"
+            className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 hover:shadow-sm transition-all duration-200 animate-fadeIn"
+            style={{ animationDelay: `${idx * 80}ms` }}
           >
             <div className="flex items-center flex-1 min-w-0">
             <ProductImage productId={product.id} size={40} />
@@ -81,7 +115,7 @@ export function TrendingSection() {
               }}
               disabled={addedIds.has(product.id)}
               aria-label={addedIds.has(product.id) ? `${product.name} is in watchlist` : `Add ${product.name} to watchlist`}
-              className={`ml-4 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`ml-4 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 cursor-pointer ${
                 addedIds.has(product.id)
                   ? "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-default"
                   : "bg-brand-600 text-white hover:bg-brand-700"

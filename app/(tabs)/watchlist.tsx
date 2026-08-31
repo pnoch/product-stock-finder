@@ -6,7 +6,6 @@ import {
   RefreshControl,
   Alert,
   Platform,
-  ActivityIndicator,
   TouchableOpacity,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -53,6 +52,7 @@ import { WatchlistHeader } from "@/components/watchlist/watchlist-header";
 import { SortGroupBar } from "@/components/watchlist/sort-group-bar";
 import { RegionFilterRow } from "@/components/watchlist/region-filter-row";
 import { EmptyState } from "@/components/watchlist/empty-state";
+import { SkeletonList } from "@/components/ui/skeleton";
 
 
 
@@ -335,10 +335,35 @@ export default function WatchlistScreen() {
   if (!loaded) {
     return (
       <ScreenContainer>
-        <View
-          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
-        >
-          <ActivityIndicator size="large" color={colors.primary} />
+        <View style={{ paddingTop: 16 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              paddingHorizontal: 20,
+              marginBottom: 12,
+            }}
+          >
+            <View
+              style={{
+                width: 120,
+                height: 20,
+                borderRadius: 8,
+                backgroundColor: colors.border,
+                opacity: 0.5,
+              }}
+            />
+            <View
+              style={{
+                width: 80,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: colors.border,
+                opacity: 0.5,
+              }}
+            />
+          </View>
+          <SkeletonList count={4} />
         </View>
       </ScreenContainer>
     );

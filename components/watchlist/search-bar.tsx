@@ -1,4 +1,4 @@
-import { View, TextInput, TouchableOpacity } from "react-native";
+import { View, TextInput, TouchableOpacity, Keyboard } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
@@ -32,6 +32,8 @@ export function SearchBar({
         onChangeText={onQueryChange}
         placeholder="Search watchlist..."
         placeholderTextColor={colors.muted}
+        returnKeyType="search"
+        onSubmitEditing={() => Keyboard.dismiss()}
         style={{
           flex: 1,
           marginLeft: 8,

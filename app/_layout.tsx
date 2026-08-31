@@ -48,6 +48,7 @@ import {
 import type { EdgeInsets, Rect } from "react-native-safe-area-context";
 
 import { trpc, createTRPCClient } from "@/lib/trpc";
+import { ToastProvider } from "@/components/ui/toast";
 import { useAuth } from "@/hooks/use-auth";
 import {
   registerDeviceRevokedHandler,
@@ -454,7 +455,11 @@ export default function RootLayout() {
   );
 
   const shouldOverrideSafeArea = Platform.OS === "web";
-  const wrapped = <AppErrorBoundary>{content}</AppErrorBoundary>;
+  const wrapped = (
+    <AppErrorBoundary>
+      <ToastProvider>{content}</ToastProvider>
+    </AppErrorBoundary>
+  );
 
   if (shouldOverrideSafeArea) {
     return (

@@ -205,7 +205,23 @@ export function ProductDetail() {
     });
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loading)
+    return (
+      <div className="p-6 space-y-6 max-w-4xl animate-fadeIn">
+        <div className="h-6 w-24 rounded skeleton-shimmer" />
+        <div className="flex gap-4">
+          <div className="w-24 h-24 rounded-xl skeleton-shimmer shrink-0" />
+          <div className="flex-1 space-y-3">
+            <div className="h-7 w-3/4 rounded skeleton-shimmer" />
+            <div className="h-4 w-1/2 rounded skeleton-shimmer" />
+            <div className="h-3 w-full rounded skeleton-shimmer" />
+          </div>
+        </div>
+        <div className="h-32 rounded-xl skeleton-shimmer" />
+        <div className="h-72 rounded-xl skeleton-shimmer" />
+        <div className="h-64 rounded-xl skeleton-shimmer" />
+      </div>
+    );
 
   if (!product) {
     return (
@@ -305,31 +321,31 @@ export function ProductDetail() {
       )}
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap transition-opacity duration-200">
         <button
           onClick={() => setAlertOpen(true)}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
           aria-label="Set price alert"
         >
           <Bell className="w-4 h-4" /> Set Alert
         </button>
         <button
           onClick={handleRemindMe}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
           aria-label="Set a reminder"
         >
           <Clock className="w-4 h-4" /> Remind Me
         </button>
         <button
           onClick={handleWatchRestock}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
           aria-label="Watch for restock"
         >
           <Star className="w-4 h-4" /> Watch for Restock
         </button>
         <Link
           to={`/compare/${product.id}`}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
           aria-label="Compare prices across distributors"
         >
           <BarChart3 className="w-4 h-4" /> Compare
@@ -340,7 +356,7 @@ export function ProductDetail() {
       {bestListing &&
         bestListing.priceHistory &&
         bestListing.priceHistory.length >= 2 && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 animate-fadeIn transition-opacity duration-200">
             <h2 className="text-lg font-semibold mb-3">Price History</h2>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart
@@ -379,7 +395,7 @@ export function ProductDetail() {
         )}
 
       {/* Distributor Table */}
-      <div>
+      <div className="transition-opacity duration-200">
         <h2 className="text-lg font-semibold mb-3">
           All Listings ({visibleListings.length})
         </h2>
@@ -388,9 +404,9 @@ export function ProductDetail() {
             <button
               key={region}
               onClick={() => setRegionFilter(region)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer ${
                 regionFilter === region
-                  ? "bg-brand-600 text-white"
+                  ? "bg-brand-600 text-white shadow-sm"
                   : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
               }`}
               aria-label={region === "all" ? "Filter by all regions" : `Filter by ${region} region`}
@@ -470,7 +486,7 @@ export function ProductDetail() {
                 return (
                   <tr
                     key={`${listing.distributorId}-${listing.currency}`}
-                    className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 ${isBest ? "bg-emerald-50/50 dark:bg-emerald-900/10" : "hover:bg-gray-50 dark:hover:bg-gray-700/30"}`}
+                    className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 transition-colors duration-200 ${isBest ? "bg-emerald-50/50 dark:bg-emerald-900/10 border-l-2 border-l-emerald-400" : "hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer"}`}
                   >
                     <td className="px-4 py-3">
                       <div>
