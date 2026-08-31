@@ -1,25 +1,15 @@
 /**
- * Image generation helper using internal ImageService
+ * Image generation helper supporting multiple providers:
+ * - forge: Internal Forge API (GPT Image 2)
+ * - ollama: Local Ollama with OpenAI-compatible /v1/images/generations
+ * - openai: Direct OpenAI API (DALL-E / GPT Image)
  *
- * Example usage:
- *   const { url: imageUrl } = await generateImage({
- *     prompt: "A serene landscape with mountains"
- *   });
- *
- * For editing:
- *   const { url: imageUrl } = await generateImage({
- *     prompt: "Add a rainbow to this landscape",
- *     originalImages: [{
- *       url: "https://example.com/original.jpg",
- *       mimeType: "image/jpeg"
- *     }]
- *   });
+ * Set IMAGE_PROVIDER env var to choose (default: "forge").
+ * OLLAMA_BASE_URL defaults to http://localhost:11434.
  */
 import { storagePut } from "../storage";
 import { ENV } from "./env";
 
-// Default model for generated sites. "MODEL_GPT_IMAGE_2" is the forge images.v1
-// enum for GPT Image 2 (id: gpt-image-2). If omitted, forge falls back to Gemini 2.5 Flash.
 const DEFAULT_IMAGE_MODEL = "MODEL_GPT_IMAGE_2";
 const DEFAULT_IMAGE_QUALITY = "medium";
 
@@ -30,9 +20,7 @@ export type GenerateImageOptions = {
     b64Json?: string;
     mimeType?: string;
   }>;
-  /** Forge image model enum, e.g. "MODEL_GPT_IMAGE_2". Defaults to GPT Image 2. */
   model?: string;
-  /** Generation quality, e.g. "medium" | "high". Defaults to "medium" for GPT Image 2. */
   quality?: string;
 };
 
@@ -43,26 +31,23 @@ export type GenerateImageResponse = {
 export async function generateImage(
   options: GenerateImageOptions,
 ): Promise<GenerateImageResponse> {
-  if (!ENV.forgeApiUrl) {
-    throw new Error("BUILT_IN_FORGE_API_URL is not configured");
-  }
-  if (!ENV.forgeApiKey) {
-    throw new Error("BUILT_IN_FORGE_API_KEY is not configured");
-  }
+  const provider = ENV.imageProvider;
+  if (provider === "ollama") return generateWithOllama(options);
+  if (provider === "openai") return generateWithOpenAI(options);
+  return generateWithForge(options);
+}
 
-  // Build the full URL by appending the service path to the base URL
-  const baseUrl = ENV.forgeApiUrl.endsWith("/")
-    ? ENV.forgeApiUrl
-    : `${ENV.forgeApiUrl}/`;
-  const fullUrl = new URL(
-    "images.v1.ImageService/GenerateImage",
-    baseUrl,
-  ).toString();
+async function generateWithForge(
+  options: GenerateImageOptions,
+): Promise<GenerateImageResponse> {
+  if (!ENV.forgeApiUrl) throw new Error("BUILT_IN_FORGE_API_URL is not configured");
+  if (!ENV.forgeApiKey) throw new Error("BUILT_IN_FORGE_API_KEY is not configured");
+
+  const baseUrl = ENV.forgeApiUrl.endsWith("/") ? ENV.forgeApiUrl : `${ENV.forgeApiUrl}/`;
+  const fullUrl = new URL("images.v1.ImageService/GenerateImage", baseUrl).toString();
 
   const model = options.model ?? DEFAULT_IMAGE_MODEL;
-  const quality =
-    options.quality ??
-    (model === DEFAULT_IMAGE_MODEL ? DEFAULT_IMAGE_QUALITY : undefined);
+  const quality = options.quality ?? (model === DEFAULT_IMAGE_MODEL ? DEFAULT_IMAGE_QUALITY : undefined);
 
   const response = await fetch(fullUrl, {
     method: "POST",
@@ -82,35 +67,100 @@ export async function generateImage(
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    throw new Error(
-      `Image generation request failed (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`,
-    );
+    throw new Error(`Forge image generation failed (${response.status})${detail ? `: ${detail}` : ""}`);
+  }
+
+  const result = (await response.json()) as { image: { b64Json: string; mimeType: string } };
+  const buffer = Buffer.from(result.image.b64Json, "base64");
+  const { url } = await storagePut(`generated/${Date.now()}.png`, buffer, result.image.mimeType);
+  return { url };
+}
+
+async function generateWithOllama(
+  options: GenerateImageOptions,
+): Promise<GenerateImageResponse> {
+  const baseUrl = ENV.ollamaBaseUrl || "http://localhost:11434";
+  const model = options.model ?? "llava";
+
+  const response = await fetch(`${baseUrl}/v1/images/generations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      prompt: options.prompt,
+      n: 1,
+      size: "1024x1024",
+      response_format: "b64_json",
+    }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Ollama image generation failed (${response.status})${detail ? `: ${detail}` : ""}`);
   }
 
   const result = (await response.json()) as {
-    image: {
-      b64Json: string;
-      mimeType: string;
-    };
+    data: Array<{ b64_json?: string; b64Json?: string; url?: string }>;
   };
-  const base64Data = result.image.b64Json;
-  const buffer = Buffer.from(base64Data, "base64");
+  const item = result.data?.[0];
+  if (!item) throw new Error("Ollama returned no images");
 
-  // Save to S3
-  const { url } = await storagePut(
-    `generated/${Date.now()}.png`,
-    buffer,
-    result.image.mimeType,
-  );
-  return {
-    url,
+  if (item.url) return { url: item.url };
+
+  const b64 = item.b64_json ?? item.b64Json;
+  if (!b64) throw new Error("Ollama returned no image data");
+
+  const buffer = Buffer.from(b64, "base64");
+  const { url } = await storagePut(`generated/${Date.now()}.png`, buffer, "image/png");
+  return { url };
+}
+
+async function generateWithOpenAI(
+  options: GenerateImageOptions,
+): Promise<GenerateImageResponse> {
+  if (!ENV.openaiApiKey) throw new Error("OPENAI_API_KEY is not configured");
+
+  const model = options.model ?? "dall-e-3";
+  const size = "1024x1024";
+
+  const response = await fetch("https://api.openai.com/v1/images/generations", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${ENV.openaiApiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      prompt: options.prompt,
+      n: 1,
+      size,
+      response_format: "b64_json",
+    }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`OpenAI image generation failed (${response.status})${detail ? `: ${detail}` : ""}`);
+  }
+
+  const result = (await response.json()) as {
+    data: Array<{ b64_json?: string; url?: string }>;
   };
+  const item = result.data?.[0];
+  if (!item) throw new Error("OpenAI returned no images");
+
+  if (item.url) return { url: item.url };
+
+  const b64 = item.b64_json;
+  if (!b64) throw new Error("OpenAI returned no image data");
+
+  const buffer = Buffer.from(b64, "base64");
+  const { url } = await storagePut(`generated/${Date.now()}.png`, buffer, "image/png");
+  return { url };
 }
 
 export type ImageModelInfo = {
-  /** Forge model enum, e.g. "MODEL_GPT_IMAGE_2". Pass into generateImage({ model }). */
   model?: string;
-  /** Stable model id, e.g. "gpt-image-2". */
   id?: string;
 };
 
@@ -118,25 +168,31 @@ export type ListImageModelsResponse = {
   models: ImageModelInfo[];
 };
 
-/**
- * List the image models the internal ImageService currently supports.
- * Feed a returned `model` value into generateImage({ model }).
- */
 export async function listImageModels(): Promise<ListImageModelsResponse> {
-  if (!ENV.forgeApiUrl) {
-    throw new Error("BUILT_IN_FORGE_API_URL is not configured");
-  }
-  if (!ENV.forgeApiKey) {
-    throw new Error("BUILT_IN_FORGE_API_KEY is not configured");
+  const provider = ENV.imageProvider;
+
+  if (provider === "ollama") {
+    const baseUrl = ENV.ollamaBaseUrl || "http://localhost:11434";
+    try {
+      const res = await fetch(`${baseUrl}/api/tags`);
+      if (!res.ok) return { models: [] };
+      const data = (await res.json()) as { models?: Array<{ name: string }> };
+      return {
+        models: (data.models ?? []).map((m) => ({
+          model: m.name,
+          id: m.name,
+        })),
+      };
+    } catch {
+      return { models: [] };
+    }
   }
 
-  const baseUrl = ENV.forgeApiUrl.endsWith("/")
-    ? ENV.forgeApiUrl
-    : `${ENV.forgeApiUrl}/`;
-  const fullUrl = new URL(
-    "images.v1.ImageService/ListModels",
-    baseUrl,
-  ).toString();
+  if (!ENV.forgeApiUrl) throw new Error("BUILT_IN_FORGE_API_URL is not configured");
+  if (!ENV.forgeApiKey) throw new Error("BUILT_IN_FORGE_API_KEY is not configured");
+
+  const baseUrl = ENV.forgeApiUrl.endsWith("/") ? ENV.forgeApiUrl : `${ENV.forgeApiUrl}/`;
+  const fullUrl = new URL("images.v1.ImageService/ListModels", baseUrl).toString();
 
   const response = await fetch(fullUrl, {
     method: "POST",
@@ -151,9 +207,7 @@ export async function listImageModels(): Promise<ListImageModelsResponse> {
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    throw new Error(
-      `List image models failed (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`,
-    );
+    throw new Error(`List image models failed (${response.status})${detail ? `: ${detail}` : ""}`);
   }
 
   const result = (await response.json()) as { models?: ImageModelInfo[] };
