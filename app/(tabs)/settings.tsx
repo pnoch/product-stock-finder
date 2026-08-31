@@ -26,6 +26,7 @@ import { DeviceManagementSection } from "@/components/settings/device-management
 import { DataSection } from "@/components/settings/data-section";
 import { NotificationsSection } from "@/components/settings/notifications-section";
 import { ScraperStatusSection } from "@/components/settings/scraper-status-section";
+import { LlmSettingsSection } from "@/components/settings/llm-settings-section";
 import { AboutSection } from "@/components/settings/about-section";
 import { LoginModal } from "@/components/settings/login-modal";
 import { PillPicker } from "@/components/settings/pill-picker";
@@ -346,6 +347,8 @@ export default function SettingsScreen() {
           products={products}
           onReenableDistributor={handleReenableDistributor}
         />
+
+        <LlmSettingsSection settings={settings} onUpdate={updateSetting} />
 
         <AboutSection />
       </ScrollView>
