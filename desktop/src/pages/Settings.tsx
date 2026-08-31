@@ -209,7 +209,7 @@ export function Settings() {
         <select
           value={settings.displayCurrency}
           onChange={(e) => update({ displayCurrency: e.target.value })}
-          className="w-full max-w-xs px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full max-w-xs px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm shadow-sm dark:shadow-none focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
           aria-label="Display currency"
         >
           {currencies.map((currency) => (
@@ -229,7 +229,7 @@ export function Settings() {
         <select
           value={settings.shippingRegion ?? "Asia-Pacific"}
           onChange={(e) => update({ shippingRegion: e.target.value })}
-          className="w-full max-w-xs px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full max-w-xs px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm shadow-sm dark:shadow-none focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
           aria-label="Shipping region"
         >
           {[
@@ -276,38 +276,47 @@ export function Settings() {
           <Bell className="w-5 h-5 text-brand-600 dark:text-brand-400" />
           <h2 className="text-lg font-semibold">Notifications</h2>
         </div>
-        <div className="space-y-3">
-          <label className="flex items-center justify-between">
+        <div className="space-y-1">
+          <label className="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer">
             <span className="text-sm font-medium">Enable Notifications</span>
-            <input
-              type="checkbox"
-              checked={settings.notificationsEnabled}
-              onChange={(e) =>
-                update({ notificationsEnabled: e.target.checked })
-              }
-              className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
-              aria-label="Enable notifications"
-            />
+            <span className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.notificationsEnabled}
+                onChange={(e) =>
+                  update({ notificationsEnabled: e.target.checked })
+                }
+                className="sr-only peer"
+                aria-label="Enable notifications"
+              />
+              <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
+            </span>
           </label>
-          <label className="flex items-center justify-between">
+          <label className="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer">
             <span className="text-sm font-medium">Stock Alerts</span>
-            <input
-              type="checkbox"
-              checked={settings.stockAlerts}
-              onChange={(e) => update({ stockAlerts: e.target.checked })}
-              className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
-              aria-label="Enable stock alerts"
-            />
+            <span className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.stockAlerts}
+                onChange={(e) => update({ stockAlerts: e.target.checked })}
+                className="sr-only peer"
+                aria-label="Enable stock alerts"
+              />
+              <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
+            </span>
           </label>
-          <label className="flex items-center justify-between">
+          <label className="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer">
             <span className="text-sm font-medium">Price Alerts</span>
-            <input
-              type="checkbox"
-              checked={settings.priceAlerts}
-              onChange={(e) => update({ priceAlerts: e.target.checked })}
-              className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
-              aria-label="Enable price alerts"
-            />
+            <span className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.priceAlerts}
+                onChange={(e) => update({ priceAlerts: e.target.checked })}
+                className="sr-only peer"
+                aria-label="Enable price alerts"
+              />
+              <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
+            </span>
           </label>
         </div>
       </div>

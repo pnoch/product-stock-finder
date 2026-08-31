@@ -191,6 +191,29 @@ export function ProductInfoCard({
       <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
         {product.description}
       </Text>
+      <View style={{ marginTop: 12, borderRadius: 10, overflow: "hidden", borderWidth: 1, borderColor: colors.border }}>
+        {[
+          { label: "Brand", value: product.brand },
+          { label: "Model", value: product.modelNumber },
+          { label: "Category", value: product.category },
+          ...(product.imageUrl ? [{ label: "Image", value: "Available" }] : []),
+        ].map((row, idx) => (
+          <View
+            key={row.label}
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingHorizontal: 12,
+              paddingVertical: 9,
+              backgroundColor: idx % 2 === 0 ? colors.background : colors.surface,
+            }}
+          >
+            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600" }}>{row.label}</Text>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>{row.value}</Text>
+          </View>
+        ))}
+      </View>
       <View
         style={{
           flexDirection: "row",

@@ -13,6 +13,7 @@ import { Settings } from "./pages/Settings";
 import { Health } from "./pages/Health";
 import { RestockWatches } from "./pages/RestockWatches";
 import { DistributorAnalysis } from "./pages/DistributorAnalysis";
+import { Stats } from "./pages/Stats";
 import { exportWatchlistAsJson } from "./import-export";
 import { useTheme } from "./hooks/use-theme";
 import { startPricePoller, onPricesChecked } from "./background";
@@ -165,22 +166,35 @@ export default function App() {
           />
           <div className="flex h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100">
             <Sidebar />
-            <main className="flex-1 overflow-auto">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/watchlist" element={<Watchlist />} />
-                <Route path="/product/:id" element={<ProductDetail />} />
-                <Route path="/compare/:id" element={<Compare />} />
-                <Route path="/alerts" element={<Alerts />} />
-                <Route path="/search" element={<Search />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/health" element={<Health />} />
-                <Route path="/restock-watches" element={<RestockWatches />} />
-                <Route
-                  path="/distributor-analysis"
-                  element={<DistributorAnalysis />}
-                />
-              </Routes>
+            <main className="flex-1 overflow-auto bg-gray-50/50 dark:bg-gray-900/20">
+              <div className="min-h-full flex flex-col">
+                <div className="h-14 shrink-0 hidden lg:flex items-center px-6 border-b border-gray-200/60 dark:border-gray-700/60 bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm sticky top-0 z-10">
+                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Product Stock Finder
+                  </span>
+                  <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
+                    Press ⌘K to search
+                  </span>
+                </div>
+                <div className="flex-1 w-full max-w-6xl mx-auto">
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/watchlist" element={<Watchlist />} />
+                    <Route path="/product/:id" element={<ProductDetail />} />
+                    <Route path="/compare/:id" element={<Compare />} />
+                    <Route path="/alerts" element={<Alerts />} />
+                    <Route path="/search" element={<Search />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/stats" element={<Stats />} />
+                    <Route path="/health" element={<Health />} />
+                    <Route path="/restock-watches" element={<RestockWatches />} />
+                    <Route
+                      path="/distributor-analysis"
+                      element={<DistributorAnalysis />}
+                    />
+                  </Routes>
+                </div>
+              </div>
             </main>
           </div>
         </BrowserRouter>

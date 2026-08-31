@@ -265,20 +265,26 @@ export default function SearchScreen() {
         removeClippedSubviews
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         ListHeaderComponent={
-          <Text
-            style={{
-              color: colors.muted,
-              fontSize: 12,
-              fontWeight: "600",
-              textTransform: "uppercase",
-              letterSpacing: 0.8,
-              marginBottom: 10,
-            }}
-          >
-            {query.trim()
-              ? `${tagFilteredResults.length} result${tagFilteredResults.length !== 1 ? "s" : ""}`
-              : "All Products"}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <Text
+              style={{
+                color: colors.muted,
+                fontSize: 12,
+                fontWeight: "600",
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+              }}
+            >
+              {query.trim()
+                ? `${tagFilteredResults.length} result${tagFilteredResults.length !== 1 ? "s" : ""}`
+                : "All Products"}
+            </Text>
+            {query.trim().length > 0 && tagFilteredResults.length > 0 && (
+              <View style={{ backgroundColor: colors.primary + "14", borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 }}>
+                <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>{tagFilteredResults.length}</Text>
+              </View>
+            )}
+          </View>
         }
         ListEmptyComponent={
           <View>

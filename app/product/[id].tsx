@@ -1,8 +1,9 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { Stack, useLocalSearchParams, router } from "expo-router";
-import { ScrollView, Text, View, TouchableOpacity } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Platform, Animated, Share } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo, useRef } from "react";
+import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { DetailHeader } from "@/components/product/detail-header";
 import { AlertSection } from "@/components/product/alert-section";
@@ -42,6 +43,9 @@ export default function ProductDetailScreen() {
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const stickyOpacity = scrollY.interpolate({ inputRange: [80, 140], outputRange: [0, 1], extrapolate: "clamp" });
+  const shareScale = useRef(new Animated.Value(1)).current;
 
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!id) return;
@@ -148,6 +152,23 @@ export default function ProductDetailScreen() {
     }
   }, [id, product, stockWatches, showToast]);
 
+  const handleShare = useCallback(async () => {
+    if (!product) return;
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Animated.sequence([
+        Animated.timing(shareScale, { toValue: 0.85, duration: 90, useNativeDriver: true }),
+        Animated.spring(shareScale, { toValue: 1, duration: 300, useNativeDriver: true, speed: 22, bounciness: 8 }),
+      ]).start();
+    }
+    try {
+      await Share.share({ message: `${product.name} — ${product.brand} ${product.modelNumber}`, title: product.name });
+    } catch {
+      showToast("Shared!", "success");
+    }
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [product, shareScale, showToast]);
+
   if (!loaded) {
     return (
       <ScreenContainer>
@@ -202,15 +223,57 @@ export default function ProductDetailScreen() {
 
   return (
     <ScreenContainer>
-      <Stack.Screen options={{ headerShown: true, title: product.name }} />
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: product.name,
+          headerRight: () => (
+            <Animated.View style={{ transform: [{ scale: shareScale }] }}>
+              <TouchableOpacity activeOpacity={0.7} onPress={handleShare} style={{ padding: 6, marginRight: 4 }} accessibilityLabel="Share product" accessibilityRole="button">
+                <IconSymbol name="square.and.arrow.up" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            </Animated.View>
+          ),
+        }}
+      />
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+          backgroundColor: colors.surface,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          opacity: stickyOpacity,
+        }}
+      >
+        <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14, flex: 1 }} numberOfLines={1}>
+          {product.name}
+        </Text>
+        <TouchableOpacity activeOpacity={0.7} onPress={handleShare} style={{ padding: 4, marginLeft: 8 }}>
+          <IconSymbol name="square.and.arrow.up" size={18} color={colors.primary} />
+        </TouchableOpacity>
+      </Animated.View>
+      <Animated.ScrollView
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
         <DetailHeader product={product} bestDeal={bestDeal} />
         <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={displayCurrency} productImage={productImage} onEditDetails={() => {}} />
         {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} />}
         <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={shippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={displayCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={() => router.push(`/compare/${id}`)} onRemind={() => {}} />
         <AlertSection productId={product.id} />
         <ReminderSection productId={product.id} distributorId={visibleListings[0]?.distributorId} productName={product.name} distributorName={visibleListings[0] ? getDistributorById(visibleListings[0].distributorId)?.name ?? "" : ""} />
-      </ScrollView>
+      </Animated.ScrollView>
     </ScreenContainer>
   );
 }

@@ -255,10 +255,15 @@ export function NotificationCenter({
           {!item.read && (
             <View
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: 4,
+                width: 10,
+                height: 10,
+                borderRadius: 5,
                 backgroundColor: colors.primary,
+                borderWidth: 1.5,
+                borderColor: colors.surface,
+                position: "absolute",
+                top: 12,
+                right: 12,
               }}
             />
           )}

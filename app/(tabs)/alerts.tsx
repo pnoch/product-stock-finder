@@ -5,8 +5,9 @@ import {
   TouchableOpacity,
   RefreshControl,
   Platform,
+  Animated,
 } from "react-native";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef } from "react";
 import type { PriceAlert } from "@/lib/types";
 import { PriceAlertModal } from "@/components/product/price-alert-modal";
 import * as Haptics from "expo-haptics";
@@ -46,6 +47,13 @@ export default function AlertsScreen() {
     showReschedulePicker, setShowReschedulePicker,
   } = useAlertsData();
 
+  const fabScale = useRef(new Animated.Value(1)).current;
+  const handleFabPressIn = useCallback(() => {
+    Animated.spring(fabScale, { toValue: 0.92, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
+  }, [fabScale]);
+  const handleFabPressOut = useCallback(() => {
+    Animated.spring(fabScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 8 }).start();
+  }, [fabScale]);
   const [editingAlert, setEditingAlert] = useState<PriceAlert | null>(null);
   const [editPrice, setEditPrice] = useState("");
   const [editCurrency, setEditCurrency] = useState("USD");
@@ -120,10 +128,16 @@ export default function AlertsScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-        <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}>
-          {tabCount.alerts} active alert{tabCount.alerts !== 1 ? "s" : ""} ·{" "}
-          {tabCount.reminders} reminder{tabCount.reminders !== 1 ? "s" : ""}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.primary + "14", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 }}>
+            <IconSymbol name="bell.fill" size={12} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>{tabCount.alerts} alerts</Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.warning + "14", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 }}>
+            <IconSymbol name="calendar" size={12} color={colors.warning} />
+            <Text style={{ color: colors.warning, fontSize: 12, fontWeight: "700" }}>{tabCount.reminders} reminders</Text>
+          </View>
+        </View>
       </View>
 
       {/* Tab Switcher */}
@@ -144,6 +158,8 @@ export default function AlertsScreen() {
               refreshing={refreshing}
               onRefresh={onRefresh}
               tintColor={colors.primary}
+              colors={[colors.primary]}
+              progressBackgroundColor={colors.surface}
             />
           }
           ListHeaderComponent={
@@ -175,7 +191,8 @@ export default function AlertsScreen() {
             alerts.length === 0 && triggeredAlerts.length === 0
               ? null
               : triggeredAlerts.length > 0 ? (
-              <View style={{ marginTop: 24 }}>
+              <View style={{ marginTop: 20 }}>
+                <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 16, marginTop: 4 }} />
                 {/* Savings Calculator Banner */}
                 {totalSaved > 0 && (
                   <View
@@ -320,6 +337,8 @@ export default function AlertsScreen() {
               refreshing={refreshing}
               onRefresh={onRefresh}
               tintColor={colors.primary}
+              colors={[colors.primary]}
+              progressBackgroundColor={colors.surface}
             />
           }
           ListHeaderComponent={
@@ -454,6 +473,43 @@ export default function AlertsScreen() {
           setShowReschedulePicker(false);
         }}
       />
+
+      {activeTab !== "notifications" && (
+        <Animated.View
+          style={{
+            position: "absolute",
+            bottom: 24,
+            right: 20,
+            transform: [{ scale: fabScale }],
+          }}
+        >
+          <TouchableOpacity activeOpacity={0.85}
+            onPress={() => {
+              if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              router.push("/search");
+            }}
+            onPressIn={handleFabPressIn}
+            onPressOut={handleFabPressOut}
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: colors.primary,
+              alignItems: "center",
+              justifyContent: "center",
+              shadowColor: colors.primary,
+              shadowOpacity: 0.35,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 6,
+            }}
+            accessibilityLabel="Add product"
+            accessibilityRole="button"
+          >
+            <IconSymbol name="plus" size={26} color="#fff" />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
 
       <PriceAlertModal
         visible={!!editingAlert}

@@ -37,12 +37,12 @@ export function TagFilterRow({
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 16,
-        marginBottom: 8,
+        marginBottom: 10,
         gap: 8,
       }}
     >
       <View
-        style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+        style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", gap: 8, rowGap: 8 }}
       >
         {tags.map((tag) => {
           const active = selectedTagIds.includes(tag.id);
@@ -53,12 +53,17 @@ export function TagFilterRow({
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
+                paddingHorizontal: 13,
+                paddingVertical: 7,
+                borderRadius: 18,
                 backgroundColor: active ? colors.primary : colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
+                borderWidth: active ? 1.5 : 1,
+                borderColor: active ? colors.primary : colors.border,
+                shadowColor: active ? colors.primary : "transparent",
+                shadowOpacity: active ? 0.12 : 0,
+                shadowRadius: active ? 6 : 0,
+                shadowOffset: { width: 0, height: 1 },
+                elevation: active ? 1 : 0,
               }}
               accessibilityLabel={`${active ? "Deselect" : "Select"} tag ${tag.name}`}
               accessibilityRole="checkbox"

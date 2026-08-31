@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Text, View } from "react-native";
+import { useEffect, useMemo, useRef } from "react";
+import { Text, View, Animated } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@/lib/currency";
@@ -8,6 +8,15 @@ import { cheapestByRegion } from "@/lib/compare-utils";
 
 export function CheapestRegionCard({ listings }: { listings: DistributorListing[] }) {
   const colors = useColors();
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.04, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+      ]),
+    ).start();
+  }, [pulse]);
 
   const regionBest = useMemo(() => cheapestByRegion(listings), [listings]);
 
@@ -38,16 +47,23 @@ export function CheapestRegionCard({ listings }: { listings: DistributorListing[
       {regionBest.map((item, i) => {
         const isCheapest = i === 0;
         const distributor = getDistributorById(item.listing.distributorId);
+        const RowWrapper: any = isCheapest ? Animated.View : View;
+        const rowStyle: any = {
+          flexDirection: "row",
+          alignItems: "center",
+          paddingVertical: 10,
+          borderTopWidth: i > 0 ? 1 : 0,
+          borderTopColor: colors.border,
+          backgroundColor: isCheapest ? colors.warning + "0D" : "transparent",
+          borderRadius: isCheapest ? 10 : 0,
+          paddingHorizontal: isCheapest ? 8 : 0,
+          marginHorizontal: isCheapest ? -8 : 0,
+          transform: isCheapest ? [{ scale: pulse }] : undefined,
+        };
         return (
-          <View
+          <RowWrapper
             key={item.region}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              paddingVertical: 10,
-              borderTopWidth: i > 0 ? 1 : 0,
-              borderTopColor: colors.border,
-            }}
+            style={rowStyle}
           >
             {isCheapest && (
               <View
@@ -57,6 +73,8 @@ export function CheapestRegionCard({ listings }: { listings: DistributorListing[
                   paddingHorizontal: 6,
                   paddingVertical: 2,
                   marginRight: 8,
+                  borderWidth: 1,
+                  borderColor: colors.warning + "44",
                 }}
               >
                 <Text
@@ -64,6 +82,7 @@ export function CheapestRegionCard({ listings }: { listings: DistributorListing[
                     fontSize: 10,
                     color: colors.warning,
                     fontWeight: "700",
+                    letterSpacing: 0.6,
                   }}
                 >
                   BEST
@@ -139,7 +158,7 @@ export function CheapestRegionCard({ listings }: { listings: DistributorListing[
                 </Text>
               </View>
             </View>
-          </View>
+          </RowWrapper>
         );
       })}
     </View>

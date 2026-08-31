@@ -27,16 +27,17 @@ export function CatalogProductCard({
       style={{
         backgroundColor: colors.surface,
         borderRadius: 16,
-        padding: 16,
+        padding: 14,
         marginBottom: 10,
         borderWidth: 1,
         borderColor: colors.border,
         flexDirection: "row",
         alignItems: "center",
+        minHeight: 78,
       }}
     >
       <ProductImage productId={product.id} />
-      <View style={{ flex: 1, marginRight: 12 }}>
+      <View style={{ flex: 1, marginRight: 12, justifyContent: "center" }}>
         <Text
           style={{
             color: colors.foreground,

@@ -478,6 +478,9 @@ export default function WatchlistScreen() {
             refreshing={isRefreshingAny}
             onRefresh={refreshAll}
             tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.surface}
+            titleColor={colors.muted}
           />
         }
         ListEmptyComponent={

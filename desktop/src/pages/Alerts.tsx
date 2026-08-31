@@ -142,26 +142,41 @@ function AlertsTab({
   onDelete: (id: string) => void;
   onRearm: (id: string) => void;
 }) {
+  const navigate = useNavigate();
   if (alerts.length === 0) {
     return (
-      <EmptyState
-        icon={<Bell className="w-12 h-12" />}
-        title="No price alerts"
-        description="Set price alerts from product details to get notified when prices drop."
-      />
+      <div className="text-center">
+        <EmptyState
+          icon={<Bell className="w-12 h-12" />}
+          title="No price alerts"
+          description="Set price alerts from product details to get notified when prices drop."
+        />
+        <button
+          onClick={() => navigate("/search")}
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+          aria-label="Browse products to set alerts"
+        >
+          <Bell className="w-4 h-4" /> Browse Products
+        </button>
+      </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      {alerts.map((alert) => (
-        <AlertRow
+      {alerts.map((alert, idx) => (
+        <div
           key={alert.id}
-          alert={alert}
-          onToggle={onToggle}
-          onDelete={onDelete}
-          onRearm={onRearm}
-        />
+          className="animate-fadeIn"
+          style={{ animationDelay: `${idx * 60}ms` } as React.CSSProperties}
+        >
+          <AlertRow
+            alert={alert}
+            onToggle={onToggle}
+            onDelete={onDelete}
+            onRearm={onRearm}
+          />
+        </div>
       ))}
     </div>
   );
@@ -181,12 +196,15 @@ function AlertRow({
   const isTriggered = !alert.isActive && alert.triggeredAt;
   return (
     <div
-      className={`flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border transition-colors ${
+      className={`flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border transition-colors hover:shadow-sm ${
         isTriggered
           ? "border-emerald-200 dark:border-emerald-800"
           : "border-gray-200 dark:border-gray-700"
       }`}
     >
+      <div className="flex items-center justify-center w-9 h-9 rounded-full bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 shrink-0">
+        <Bell className="w-4 h-4" />
+      </div>
       <div className="flex-1 min-w-0">
         <p className="font-medium truncate">
           {alert.distributorId
@@ -279,11 +297,15 @@ function RemindersTab({
             Date Reminders
           </h2>
           <div className="space-y-2">
-            {reminders.map((r) => (
+            {reminders.map((r, idx) => (
               <div
                 key={r.id}
-                className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700"
+                className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow animate-fadeIn"
+                style={{ animationDelay: `${idx * 60}ms` } as React.CSSProperties}
               >
+                <div className="flex items-center justify-center w-9 h-9 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 shrink-0">
+                  <Clock className="w-4 h-4" />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{r.productName}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -311,11 +333,15 @@ function RemindersTab({
             Stock Watches
           </h2>
           <div className="space-y-2">
-            {watches.map((w) => (
+            {watches.map((w, idx) => (
               <div
                 key={w.id}
-                className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700"
+                className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow animate-fadeIn"
+                style={{ animationDelay: `${(reminders.length + idx) * 60}ms` } as React.CSSProperties}
               >
+                <div className="flex items-center justify-center w-9 h-9 rounded-full bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 shrink-0">
+                  <Bell className="w-4 h-4" />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{w.productName}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">

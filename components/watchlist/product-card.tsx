@@ -150,13 +150,18 @@ export const ProductCard = memo(function ProductCard({
     >
       <Animated.View
         style={{
-          backgroundColor: colors.surface,
+          backgroundColor: selected ? colors.primary + "0F" : colors.surface,
           borderRadius: 16,
           padding: 16,
           marginBottom: 12,
-          borderWidth: selectionMode ? 2 : 1,
-          borderColor: selected ? colors.primary : colors.border,
+          borderWidth: selected ? 2 : selectionMode ? 2 : 1,
+          borderColor: selected ? colors.primary : selectionMode ? colors.primary + "55" : colors.border,
           transform: [{ scale: pressScale }],
+          shadowColor: selected ? colors.primary : "transparent",
+          shadowOpacity: selected ? 0.12 : 0,
+          shadowRadius: selected ? 8 : 0,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: selected ? 2 : 0,
         }}
       >
       <View

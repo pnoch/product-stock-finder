@@ -39,11 +39,24 @@ export function WatchlistHeader({
   if (mode === "selection") {
     return (
       <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
-        <View>
-          <Text className="text-2xl font-bold text-foreground">
-            {selectedCount} Selected
-          </Text>
-          <Text className="text-muted text-sm">Tap products to select</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: 16,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <IconSymbol name="checkmark.circle.fill" size={16} color="#fff" />
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
+              {selectedCount} selected
+            </Text>
+          </View>
+          <Text style={{ color: colors.muted, fontSize: 13 }}>Tap to toggle</Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <TouchableOpacity activeOpacity={0.85}

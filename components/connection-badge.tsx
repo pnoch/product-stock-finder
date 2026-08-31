@@ -29,13 +29,15 @@ export function ConnectionBadge({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 5,
+        gap: 6,
         backgroundColor: colors.surface,
         borderRadius: 20,
-        paddingHorizontal: 10,
-        height: 32,
+        paddingHorizontal: 11,
+        height: 30,
+        minWidth: 108,
+        justifyContent: "center",
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: c.color === "success" ? colors.success + "44" : c.color === "error" ? colors.error + "44" : c.color === "warning" ? colors.warning + "44" : colors.border,
       }}
       accessibilityLabel={onPress ? `Connection status: ${c.label}` : undefined}
       accessibilityRole={onPress ? "button" : undefined}
@@ -46,9 +48,13 @@ export function ConnectionBadge({
           height: 8,
           borderRadius: 4,
           backgroundColor: color,
+          shadowColor: color,
+          shadowOpacity: 0.35,
+          shadowRadius: 3,
+          shadowOffset: { width: 0, height: 0 },
         }}
       />
-      <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600" }}>
+      <Text style={{ color: c.color === "muted" ? colors.muted : color, fontSize: 12, fontWeight: "700", letterSpacing: 0.2 }}>
         {c.label}
       </Text>
     </TouchableOpacity>

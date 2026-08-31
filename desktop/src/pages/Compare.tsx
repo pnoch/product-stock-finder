@@ -186,7 +186,7 @@ export function Compare() {
         </div>
       )}
 
-      {chartData.distributors.length > 0 && (
+      {chartData.distributors.length > 0 && chartData.data.length > 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
           <h2 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">
             Price History
@@ -196,6 +196,16 @@ export function Compare() {
             distributors={chartData.distributors}
             colors={chartData.colors}
           />
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-8 flex flex-col items-center justify-center text-center">
+          <div className="text-gray-300 dark:text-gray-600 mb-3">
+            <GitCompareArrows className="w-10 h-10 mx-auto" />
+          </div>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">No price history yet</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm">
+            Price points will appear here once distributors have history. Try tracking more distributors or check back later.
+          </p>
         </div>
       )}
 
@@ -229,51 +239,65 @@ export function Compare() {
             </button>
           </div>
         </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {sortedListings.map((listing) => {
-            const trend = getTrend(listing.priceHistory);
-            return (
-              <div
-                key={listing.distributorId}
-                className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-              >
-                <div className="flex items-center gap-3">
-                  {listing.dist && (
-                    <span className="text-lg">{listing.dist.countryFlag}</span>
-                  )}
-                  <div>
-                    <p className="font-medium text-sm">{listing.distName}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {listing.dist?.country ?? listing.distributorId}
-                    </p>
+        {sortedListings.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="text-gray-300 dark:text-gray-600 mb-3">
+              <GitCompareArrows className="w-10 h-10" />
+            </div>
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">No distributors to compare</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm">
+              Add distributors to this product to see side-by-side prices and trends.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            {sortedListings.map((listing, idx) => {
+              const trend = getTrend(listing.priceHistory);
+              return (
+                <div
+                  key={listing.distributorId}
+                  className={`flex items-center justify-between px-4 py-3 transition-colors ${
+                    idx % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50/60 dark:bg-gray-800/40"
+                  } hover:bg-gray-50 dark:hover:bg-gray-700/60`}
+                >
+                  <div className="flex items-center gap-3">
+                    {listing.dist && (
+                      <span className="text-lg">{listing.dist.countryFlag}</span>
+                    )}
+                    <div>
+                      <p className="font-medium text-sm">{listing.distName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {listing.dist?.country ?? listing.distributorId}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <StockBadge
+                      status={listing.stockStatus}
+                      expectedDate={listing.expectedDate}
+                    />
+                    <div className="text-right min-w-[100px]">
+                      <p className="font-semibold text-sm">
+                        {formatPrice(listing.price, listing.currency)}
+                      </p>
+                    </div>
+                    <div className="w-8 flex justify-center">
+                      {trend === "down" && (
+                        <TrendingDown className="w-4 h-4 text-emerald-500" />
+                      )}
+                      {trend === "up" && (
+                        <TrendingUp className="w-4 h-4 text-red-500" />
+                      )}
+                      {trend === "flat" && (
+                        <Minus className="w-4 h-4 text-gray-400" />
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <StockBadge
-                    status={listing.stockStatus}
-                    expectedDate={listing.expectedDate}
-                  />
-                  <div className="text-right min-w-[100px]">
-                    <p className="font-semibold text-sm">
-                      {formatPrice(listing.price, listing.currency)}
-                    </p>
-                  </div>
-                  <div className="w-8 flex justify-center">
-                    {trend === "down" && (
-                      <TrendingDown className="w-4 h-4 text-emerald-500" />
-                    )}
-                    {trend === "up" && (
-                      <TrendingUp className="w-4 h-4 text-red-500" />
-                    )}
-                    {trend === "flat" && (
-                      <Minus className="w-4 h-4 text-gray-400" />
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
