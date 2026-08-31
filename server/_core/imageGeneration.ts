@@ -79,8 +79,8 @@ async function generateWithForge(
 async function generateWithOllama(
   options: GenerateImageOptions,
 ): Promise<GenerateImageResponse> {
-  const baseUrl = ENV.ollamaBaseUrl || "http://localhost:11434";
-  const model = options.model ?? "llava";
+  const baseUrl = ENV.ollamaBaseUrl || "https://ollama.com";
+  const model = options.model ?? "gemma4";
 
   const response = await fetch(`${baseUrl}/v1/images/generations`, {
     method: "POST",
@@ -172,7 +172,7 @@ export async function listImageModels(): Promise<ListImageModelsResponse> {
   const provider = ENV.imageProvider;
 
   if (provider === "ollama") {
-    const baseUrl = ENV.ollamaBaseUrl || "http://localhost:11434";
+    const baseUrl = ENV.ollamaBaseUrl || "https://ollama.com";
     try {
       const res = await fetch(`${baseUrl}/api/tags`);
       if (!res.ok) return { models: [] };
