@@ -45,6 +45,7 @@ export function ReminderCard({
               fontSize: 14,
             }}
             numberOfLines={2}
+            ellipsizeMode="tail"
           >
             {reminder.productName}
           </Text>

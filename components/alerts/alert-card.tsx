@@ -67,11 +67,12 @@ export const AlertCard = memo(function AlertCard({
               fontSize: 14,
             }}
             numberOfLines={2}
+            ellipsizeMode="tail"
           >
             {productName}
           </Text>
           {distributorLabel && (
-            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
+            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }} numberOfLines={1} ellipsizeMode="tail">
               {distributorLabel}
             </Text>
           )}

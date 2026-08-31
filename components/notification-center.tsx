@@ -129,6 +129,11 @@ export function NotificationCenter({
     <FlatList
       data={history}
       keyExtractor={(item) => item.id}
+      initialNumToRender={10}
+      windowSize={5}
+      maxToRenderPerBatch={8}
+      updateCellsBatchingPeriod={50}
+      removeClippedSubviews
       contentContainerStyle={{
         paddingHorizontal: 20,
         paddingBottom: 24,
@@ -232,19 +237,22 @@ export function NotificationCenter({
                   : colors.success
             }
           />
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, marginRight: 8 }}>
             <Text
               style={{
                 color: colors.foreground,
                 fontWeight: "700",
                 fontSize: 14,
               }}
+              numberOfLines={1}
+              ellipsizeMode="tail"
             >
               {item.title}
             </Text>
             <Text
               style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}
               numberOfLines={2}
+              ellipsizeMode="tail"
             >
               {item.body}
             </Text>
