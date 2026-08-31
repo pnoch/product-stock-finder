@@ -15,7 +15,7 @@ import { computePriceVsAverage } from "@/lib/price-average";
 import { findBestDeal } from "@/lib/best-deal";
 import { fetchPriceInsight } from "@/lib/server-insights";
 import { fetchProductImage } from "@/lib/server-images";
-import { schedulePriceAlert, scheduleStockAlert, requestNotificationPermissions } from "@/lib/notifications";
+import { schedulePriceAlert, scheduleStockAlert, cancelNotification, requestNotificationPermissions } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
 import { ProductInfoCard, DistributorListingSection } from "./_components";
 import { PriceAlert, DistributorListing } from "@/lib/types";
@@ -105,7 +105,10 @@ export default function ProductDetailScreen() {
     if (isWatched) {
       const watches = await getStockWatches();
       const watch = watches.find((w) => w.productId === id && w.distributorId === listing.distributorId);
-      if (watch) await removeStockWatch(watch.id);
+      if (watch) {
+        if (watch.notificationId) await cancelNotification(watch.notificationId);
+        await removeStockWatch(watch.id);
+      }
       setStockWatches((prev) => ({ ...prev, [listing.distributorId]: false }));
     } else {
       const granted = await requestNotificationPermissions();
@@ -114,9 +117,9 @@ export default function ProductDetailScreen() {
         return;
       }
       const distributor = getDistributorById(listing.distributorId);
-      await scheduleStockAlert(product?.name ?? "Product", distributor?.name ?? listing.distributorId, listing.price, listing.currency, id);
+      const notificationId = await scheduleStockAlert(product?.name ?? "Product", distributor?.name ?? listing.distributorId, listing.price, listing.currency, id);
       await addStockWatch({
-        id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        id: `${id}-${listing.distributorId}`,
         productId: id,
         productName: product?.name ?? "",
         distributorId: listing.distributorId,
@@ -125,7 +128,7 @@ export default function ProductDetailScreen() {
         createdAt: new Date().toISOString(),
         reminderType: "back_in_stock",
         lastKnownStatus: listing.stockStatus,
-        notificationId: undefined,
+        notificationId: notificationId ?? undefined,
       });
       setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
       showAlert("Watching!", `You'll be notified when ${product?.name} is back in stock at ${distributor?.name ?? listing.distributorId}.`);

@@ -125,6 +125,10 @@ export default function CompareScreen() {
         bestListing = l;
       }
     }
+    if (!isFinite(bestPrice)) {
+      showAlert("Unable to compare prices", "Currency conversion unavailable. Try switching display currency.");
+      return;
+    }
     const targetPrice = parseFloat((bestPrice * 0.95).toFixed(2));
     const dist = getDistributorById(bestListing.distributorId);
     const granted = await requestNotificationPermissions();
