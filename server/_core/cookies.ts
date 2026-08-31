@@ -31,6 +31,17 @@ function getParentDomain(hostname: string): string | undefined {
     return undefined;
   }
 
+  // Avoid returning a public suffix (e.g. co.uk) as the cookie domain.
+  // For known two-label public suffixes, use the last 3 labels.
+  const publicSuffixes = new Set(["co.uk", "com.au"]);
+  const lastTwo = parts.slice(-2).join(".").toLowerCase();
+  if (publicSuffixes.has(lastTwo)) {
+    if (parts.length < 4) return undefined;
+    return "." + parts.slice(-3).join(".");
+  }
+
+  if (parts.length > 3) return undefined;
+
   return "." + parts.slice(-2).join(".");
 }
 

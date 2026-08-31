@@ -28,7 +28,7 @@ export const users = mysqlTable("users", {
   /** Unique user identifier. Generated on registration. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
-  email: varchar("email", { length: 320 }),
+  email: varchar("email", { length: 320 }).unique(),
   loginMethod: varchar("loginMethod", { length: 64 }),
   passwordHash: varchar("passwordHash", { length: 256 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),

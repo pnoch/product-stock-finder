@@ -36,7 +36,8 @@ class SDKServer {
   }
 
   async register(req: RegisterRequest): Promise<AuthResponse> {
-    const existing = await db.getUserByEmail(req.email);
+    const normalizedEmail = req.email.trim().toLowerCase();
+    const existing = await db.getUserByEmail(normalizedEmail);
     if (existing) {
       throw ForbiddenError("Email already registered");
     }
@@ -46,8 +47,8 @@ class SDKServer {
 
     await db.upsertUser({
       openId,
-      email: req.email,
-      name: req.name || req.email.split("@")[0],
+      email: normalizedEmail,
+      name: req.name || normalizedEmail.split("@")[0],
       loginMethod: "email",
       lastSignedIn: new Date(),
     });
@@ -58,18 +59,19 @@ class SDKServer {
     if (!user) throw ForbiddenError("Registration failed");
 
     const sessionToken = await this.createSessionToken(openId, {
-      name: user.name || req.email,
+      name: user.name || normalizedEmail,
       expiresInMs: ONE_YEAR_MS,
     });
 
     return {
-      user: { id: user.id, email: req.email, name: user.name, openId },
+      user: { id: user.id, email: normalizedEmail, name: user.name, openId },
       sessionToken,
     };
   }
 
   async login(req: LoginRequest): Promise<AuthResponse> {
-    const user = await db.getUserByEmail(req.email);
+    const normalizedEmail = req.email.trim().toLowerCase();
+    const user = await db.getUserByEmail(normalizedEmail);
     if (!user || !user.passwordHash) {
       throw ForbiddenError("Invalid email or password");
     }
@@ -85,7 +87,7 @@ class SDKServer {
     });
 
     const sessionToken = await this.createSessionToken(user.openId, {
-      name: user.name || req.email,
+      name: user.name || normalizedEmail,
       expiresInMs: ONE_YEAR_MS,
     });
 
