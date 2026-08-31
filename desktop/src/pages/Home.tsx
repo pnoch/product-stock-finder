@@ -7,8 +7,10 @@ import {
   Plus,
   ArrowRight,
 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useWatchlist, useAlerts } from "../hooks/use-storage";
 import { formatPrice, getBestPrice } from "../../../lib/currency";
+import { storage } from "../storage";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
@@ -40,6 +42,14 @@ function StatCard({
 export function Home() {
   const { products, loading: watchlistLoading } = useWatchlist();
   const { alerts, loading: alertsLoading } = useAlerts();
+  const [reminderCount, setReminderCount] = useState(0);
+
+  useEffect(() => {
+    storage
+      .getBackOrderReminders()
+      .then((r) => setReminderCount(r.length))
+      .catch(() => {});
+  }, []);
 
   const loading = watchlistLoading || alertsLoading;
 
@@ -112,7 +122,7 @@ export function Home() {
         <StatCard
           icon={<Clock className="w-5 h-5" />}
           label="Reminders"
-          value={alerts.length - activeAlerts}
+          value={reminderCount}
         />
       </div>
 

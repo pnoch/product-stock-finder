@@ -9,9 +9,12 @@ export function useWatchlist() {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const data = await storage.getWatchlist();
-    setProducts(data);
-    setLoading(false);
+    try {
+      const data = await storage.getWatchlist();
+      setProducts(data);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -36,9 +39,12 @@ export function useAlerts() {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const data = await storage.getAlerts();
-    setAlerts(data);
-    setLoading(false);
+    try {
+      const data = await storage.getAlerts();
+      setAlerts(data);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -54,9 +60,12 @@ export function useSettings() {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const data = await storage.getSettings();
-    setSettings(data);
-    setLoading(false);
+    try {
+      const data = await storage.getSettings();
+      setSettings(data);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -64,12 +73,20 @@ export function useSettings() {
   }, [refresh]);
 
   const update = useCallback(async (partial: Partial<AppSettings>) => {
+    let snapshot: AppSettings | null = null;
+    let updated: AppSettings | null = null;
     setSettings((prev) => {
+      snapshot = prev;
       if (!prev) return prev;
-      const updated = { ...prev, ...partial };
-      storage.saveSettings(updated);
+      updated = { ...prev, ...partial };
       return updated;
     });
+    if (!updated) return;
+    try {
+      await storage.saveSettings(updated);
+    } catch {
+      setSettings(snapshot);
+    }
   }, []);
 
   return { settings, loading, refresh, update };

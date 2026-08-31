@@ -91,27 +91,36 @@ export function ProductDetail() {
   const [insight, setInsight] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
     setLoading(true);
     setRegionFilter("all");
     (async () => {
       const products = await storage.getWatchlist();
+      if (cancelled) return;
       const found = products.find((p) => p.id === id);
-      setProduct(found ?? null);
+      if (!cancelled) setProduct(found ?? null);
       const settings = await storage.getSettings();
-      setDisplayCurrency(settings.displayCurrency ?? "USD");
-      setShippingRegion(settings.shippingRegion ?? "Asia-Pacific");
-      setLoading(false);
+      if (cancelled) return;
+      if (!cancelled) {
+        setDisplayCurrency(settings.displayCurrency ?? "USD");
+        setShippingRegion(settings.shippingRegion ?? "Asia-Pacific");
+      }
+      if (!cancelled) setLoading(false);
 
       const base = getApiBaseUrl();
-      if (base) {
+      if (base && !cancelled) {
         const { invoke } = await import("@tauri-apps/api/core");
         invoke("fetch_price_insight", { apiBaseUrl: base, productId: id })
           .then((res: any) => {
-            if (res && res.insight) setInsight(res.insight);
+            if (!cancelled && res && res.insight) setInsight(res.insight);
           })
           .catch(() => {});
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   const visibleListings =
@@ -120,8 +129,8 @@ export function ProductDetail() {
       : filterListingsByRegion(product?.listings ?? [], regionFilter);
 
   const best = useMemo(() => {
-    return getBestPrice(visibleListings, "USD");
-  }, [visibleListings]);
+    return getBestPrice(visibleListings, displayCurrency);
+  }, [visibleListings, displayCurrency]);
 
   const bestListing = useMemo(() => {
     if (!best) return null;
@@ -129,9 +138,9 @@ export function ProductDetail() {
       (l) =>
         l.stockStatus !== "out_of_stock" &&
         l.price > 0 &&
-        Math.abs(convertPrice(l.price, l.currency, "USD") - best.price) < 0.01,
+        Math.abs(convertPrice(l.price, l.currency, displayCurrency) - best.price) < 0.01,
     );
-  }, [visibleListings, best]);
+  }, [visibleListings, best, displayCurrency]);
 
   const bestDistributor = useMemo(() => {
     if (!bestListing) return null;

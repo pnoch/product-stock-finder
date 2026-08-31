@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
+let modalStack: number[] = [];
+let modalIdCounter = 0;
+
 export function Modal({
   open,
   onClose,
@@ -13,14 +16,27 @@ export function Modal({
   children: React.ReactNode;
 }) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const modalIdRef = useRef<number | null>(null);
+  if (modalIdRef.current === null) {
+    modalIdCounter += 1;
+    modalIdRef.current = modalIdCounter;
+  }
 
   useEffect(() => {
     if (!open) return;
+    const id = modalIdRef.current as number;
+    modalStack.push(id);
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && modalStack[modalStack.length - 1] === id) {
+        onClose();
+      }
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      const idx = modalStack.lastIndexOf(id);
+      if (idx !== -1) modalStack.splice(idx, 1);
+    };
   }, [open, onClose]);
 
   if (!open) return null;

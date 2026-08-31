@@ -29,7 +29,7 @@ function KeyboardShortcuts({
   setSearchModalOpen,
 }: {
   searchModalOpen: boolean;
-  setSearchModalOpen: (open: boolean) => void;
+  setSearchModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const navigate = useNavigate();
   const { toggle } = useTheme();
@@ -40,7 +40,7 @@ function KeyboardShortcuts({
 
       if (isMeta && e.key === "k") {
         e.preventDefault();
-        setSearchModalOpen(!searchModalOpen);
+        setSearchModalOpen((prev) => !prev);
       } else if (isMeta && e.key === "e") {
         e.preventDefault();
         exportWatchlistAsJson();
@@ -57,7 +57,7 @@ function KeyboardShortcuts({
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [searchModalOpen, setSearchModalOpen, navigate, toggle]);
+  }, [setSearchModalOpen, navigate, toggle]);
 
   return null;
 }
@@ -106,7 +106,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const unlistenPromise = onPricesChecked(async () => {
