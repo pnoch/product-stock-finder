@@ -7,7 +7,8 @@ export type CatalogProduct = (typeof PRODUCT_CATALOG)[0];
 export function parseModelInput(text: string): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
-  for (const raw of text.split(/[\s,;]/)) {
+  const parts = text.includes("\n") ? text.split("\n") : text.split(/[,;]/);
+  for (const raw of parts) {
     let entry = raw.trim();
     if (
       (entry.startsWith('"') && entry.endsWith('"') && entry.length >= 2) ||

@@ -132,8 +132,10 @@ export default function HealthScreen() {
       <View
         style={{
           flexDirection: "row",
+          flexWrap: "wrap",
           paddingHorizontal: 16,
           marginBottom: 12,
+          gap: 8,
         }}
       >
         {(["all", "working", "blocked", "error"] as const).map((f) => (
@@ -146,7 +148,6 @@ export default function HealthScreen() {
               paddingHorizontal: 12,
               paddingVertical: 6,
               borderRadius: 16,
-              marginRight: 8,
               backgroundColor: filter === f ? colors.primary : colors.surface,
               borderWidth: 1,
               borderColor: colors.border,

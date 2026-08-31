@@ -442,10 +442,10 @@ describe("timelineSegments", () => {
       sample("blocked", "2026-08-01T01:00:00Z"),
       sample("error", "2026-08-01T03:00:00Z"),
     ]);
-    // spans: 1h, 2h -> total 3h -> weights 0.333, 0.666, 0 (last has no duration)
-    expect(segments[0].weight).toBeCloseTo(1/3, 5);
-    expect(segments[1].weight).toBeCloseTo(2/3, 5);
-    expect(segments[2].weight).toBeCloseTo(0, 5);
+    // spans: 1h, 2h -> total 3h + last 2h = 5h -> weights 0.2, 0.4, 0.4 (last visible)
+    expect(segments[0].weight).toBeCloseTo(0.2, 5);
+    expect(segments[1].weight).toBeCloseTo(0.4, 5);
+    expect(segments[2].weight).toBeCloseTo(0.4, 5);
   });
 
   it("last segment reuses the previous span", () => {
@@ -453,9 +453,9 @@ describe("timelineSegments", () => {
       sample("working", "2026-08-01T00:00:00Z"),
       sample("blocked", "2026-08-01T01:00:00Z"),
     ]);
-    // spans: 1h -> total 1h -> weights 1, 0 (last has no duration, no double-count)
-    expect(segments[0].weight).toBeCloseTo(1, 5);
-    expect(segments[1].weight).toBeCloseTo(0, 5);
+    // spans: 1h -> total 1h + last 1h = 2h -> weights 0.5, 0.5 (last visible)
+    expect(segments[0].weight).toBeCloseTo(0.5, 5);
+    expect(segments[1].weight).toBeCloseTo(0.5, 5);
   });
 
   it("equal weights when all timestamps identical", () => {

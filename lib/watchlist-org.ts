@@ -201,23 +201,13 @@ export function groupWatchlist(
       (tag) => ({
         key: `tag-${tag.id}`,
         title: tag.name,
-        products: [] as Product[],
+        products: list.filter((p) => (p.tags ?? []).includes(tag.id)),
       }),
     );
-    const tagIndex = new Map(
-      Object.values(tagDefinitions).map((t, i) => [t.id, i] as const),
+    // Orphaned tag ids must be ignored, not treated as a live tag.
+    const untagged = list.filter(
+      (p) => !(p.tags ?? []).some((id) => tagDefinitions[id]),
     );
-    const untagged: Product[] = [];
-    for (const p of list) {
-      const primaryId = (p.tags ?? []).find((id) => tagDefinitions[id]);
-      if (primaryId !== undefined) {
-        const idx = tagIndex.get(primaryId);
-        if (idx !== undefined) sections[idx].products.push(p);
-        else untagged.push(p);
-      } else {
-        untagged.push(p);
-      }
-    }
     if (untagged.length > 0)
       sections.push({ key: "untagged", title: "Untagged", products: untagged });
     return sections.filter((s) => s.products.length > 0);

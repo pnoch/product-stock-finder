@@ -3,23 +3,34 @@ import { matchModels, parseModelInput } from "../lib/bulk-import";
 import { PRODUCT_CATALOG } from "../lib/catalog";
 
 describe("parseModelInput", () => {
-  it("splits on newlines, commas, semicolons, and tabs", () => {
-    expect(parseModelInput("A\nB,C;D\tE")).toEqual(["A", "B", "C", "D", "E"]);
+  it("splits on newlines when present and preserves spaces inside entries", () => {
+    expect(parseModelInput("A\nB\nC")).toEqual(["A", "B", "C"]);
+    expect(parseModelInput("Model With Space\nAnother")).toEqual(["Model With Space", "Another"]);
+  });
+
+  it("splits on commas and semicolons when no newlines", () => {
+    expect(parseModelInput("A,B;C")).toEqual(["A", "B", "C"]);
+    expect(parseModelInput("A; B, C")).toEqual(["A", "B", "C"]);
   });
 
   it("trims whitespace and drops empties", () => {
-    expect(parseModelInput("  A \n\n B \t , , C ")).toEqual(["A", "B", "C"]);
+    expect(parseModelInput("  A \n\n B \n C ")).toEqual(["A", "B", "C"]);
+    expect(parseModelInput("  A , , B ,, C ")).toEqual(["A", "B", "C"]);
   });
 
   it("strips one layer of wrapping quotes", () => {
-    expect(parseModelInput('"CRS804" \'CCR2216\'')).toEqual([
+    expect(parseModelInput('"CRS804","CCR2216"')).toEqual([
+      "CRS804",
+      "CCR2216",
+    ]);
+    expect(parseModelInput("'CRS804', 'CCR2216'")).toEqual([
       "CRS804",
       "CCR2216",
     ]);
   });
 
   it("dedupes case-insensitively keeping first occurrence", () => {
-    expect(parseModelInput("crs804 CRS804 Crs804 other")).toEqual([
+    expect(parseModelInput("crs804,crs804,Crs804,other")).toEqual([
       "crs804",
       "other",
     ]);
