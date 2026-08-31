@@ -30,6 +30,11 @@ export function Alerts() {
   const [reminders, setReminders] = useState<BackOrderReminder[]>([]);
   const [watches, setWatches] = useState<BackOrderReminder[]>([]);
   const [remindersLoading, setRemindersLoading] = useState(true);
+  const [toast, setToast] = useState<string | null>(null);
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   useEffect(() => {
     (async () => {
@@ -47,21 +52,27 @@ export function Alerts() {
 
   const handleToggle = async (id: string) => {
     await storage.toggleAlert(id);
+    const updated = await storage.getAlerts();
+    const target = updated.find((a) => a.id === id);
+    showToast(target?.isActive ? "Alert activated" : "Alert deactivated");
     refreshAlerts();
   };
 
   const handleDeleteAlert = async (id: string) => {
     await storage.removeAlert(id);
+    showToast("Alert deleted");
     refreshAlerts();
   };
 
   const handleRearm = async (id: string) => {
     await storage.rearmAlert(id);
+    showToast("Alert rearmed");
     refreshAlerts();
   };
 
   const handleSnoozeAlert = async (id: string, days: number) => {
     await storage.snoozeAlert(id, days);
+    showToast(days === 0 ? "Alert resumed" : `Snoozed for ${days} day${days !== 1 ? "s" : ""}`);
     refreshAlerts();
   };
 
@@ -79,6 +90,11 @@ export function Alerts() {
 
   return (
     <div className="p-6 space-y-6">
+      {toast && (
+        <div className="fixed bottom-6 right-6 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50 animate-fadeIn">
+          {toast}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Alerts & Reminders</h1>
         <button
