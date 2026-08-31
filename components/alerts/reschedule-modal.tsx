@@ -40,6 +40,7 @@ export function RescheduleModal({
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
         }}
+        accessibilityViewIsModal
       >
         <View
           style={{
@@ -48,6 +49,7 @@ export function RescheduleModal({
             borderTopRightRadius: 24,
             padding: 24,
           }}
+          accessibilityViewIsModal
         >
           <Text
             style={{
@@ -129,8 +131,9 @@ export function RescheduleModal({
                 borderWidth: 1,
                 borderColor: colors.border,
               }}
-              accessibilityLabel="Cancel"
+              accessibilityLabel="Dismiss"
               accessibilityRole="button"
+              accessibilityHint="Dismisses the reschedule picker"
             >
               <Text style={{ color: colors.foreground, fontWeight: "600" }}>
                 Cancel

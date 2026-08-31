@@ -49,6 +49,7 @@ export function ReminderDatePickerModal({
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
         }}
+        accessibilityViewIsModal
       >
         <View
           style={{
@@ -57,6 +58,7 @@ export function ReminderDatePickerModal({
             borderTopRightRadius: 24,
             padding: 24,
           }}
+          accessibilityViewIsModal
         >
           <Text
             style={{
@@ -153,8 +155,9 @@ export function ReminderDatePickerModal({
                 borderWidth: 1,
                 borderColor: colors.border,
               }}
-              accessibilityLabel="Cancel"
+              accessibilityLabel="Dismiss"
               accessibilityRole="button"
+              accessibilityHint="Dismisses the reminder picker"
             >
               <Text
                 style={{ color: colors.foreground, fontWeight: "600" }}

@@ -13,4 +13,22 @@ const themeColors = {
   tint: { light: "#0F52BA", dark: "#3B7DD8" },
 };
 
-module.exports = { themeColors };
+const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  "2xl": 32,
+};
+
+const radius = {
+  xs: 8,
+  sm: 12,
+  md: 16,
+  lg: 20,
+  pill: 999,
+  full: 9999,
+};
+
+module.exports = { themeColors, spacing, radius };

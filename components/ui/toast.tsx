@@ -126,12 +126,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <View
             style={{
               backgroundColor: bgColor,
-              borderRadius: 14,
+              borderRadius: 16,
               paddingHorizontal: 16,
               paddingVertical: 12,
               flexDirection: "row",
               alignItems: "center",
               gap: 10,
+              borderWidth: 1,
+              borderColor: colors.border + "33",
               shadowColor: "#000",
               shadowOpacity: 0.2,
               shadowRadius: 8,

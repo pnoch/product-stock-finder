@@ -346,6 +346,28 @@ export default function WatchlistScreen() {
     [],
   );
 
+  const sectionData = useMemo(() => sections.map((s) => ({ ...s, data: s.products })), [sections]);
+  const handleProductPress = useCallback((product: Product) => {
+    if (selectionMode) toggleSelection(product.id);
+    else router.push(`/product/${product.id}`);
+  }, [selectionMode, toggleSelection, router]);
+  const handleProductLongPress = useCallback((product: Product) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectionMode(true);
+    setSelectedIds(new Set([product.id]));
+  }, []);
+  const renderSectionHeader = useCallback(({ section }: { section: { title: string; products: Product[] } }) => {
+    if (groupMode === "off") return null;
+    const tag = groupMode === "tag" ? Object.values(tagDefinitions).find((t) => t.name === section.title) : undefined;
+    return (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, backgroundColor: colors.background }}>
+        {tag && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: tag.color }} />}
+        <Text style={{ color: colors.muted, fontWeight: "600", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8 }} numberOfLines={1} ellipsizeMode="tail">{section.title}</Text>
+        <Text style={{ color: colors.muted, fontSize: 12 }}>· {section.products.length}</Text>
+      </View>
+    );
+  }, [groupMode, tagDefinitions, colors.background, colors.muted]);
+
   if (!loaded) {
     return (
       <ScreenContainer>
@@ -460,13 +482,14 @@ export default function WatchlistScreen() {
       />
 
       <SectionList showsVerticalScrollIndicator={true}
-        sections={sections.map((s) => ({ ...s, data: s.products }))}
+        sections={sectionData}
         keyExtractor={(item) => item.id}
-        initialNumToRender={10}
-        windowSize={7}
-        maxToRenderPerBatch={10}
+        initialNumToRender={8}
+        windowSize={5}
+        maxToRenderPerBatch={8}
         updateCellsBatchingPeriod={50}
         removeClippedSubviews
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingHorizontal: 20,
           paddingBottom: 24,
@@ -498,51 +521,7 @@ export default function WatchlistScreen() {
             onAddProduct={() => router.push("/search")}
           />
         }
-        renderSectionHeader={({ section }) => {
-          if (groupMode === "off") return null;
-          const tag =
-            groupMode === "tag"
-              ? Object.values(tagDefinitions).find(
-                  (t) => t.name === section.title,
-                )
-              : undefined;
-          return (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                paddingVertical: 8,
-                backgroundColor: colors.background,
-              }}
-            >
-              {tag && (
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: tag.color,
-                  }}
-                />
-              )}
-              <Text
-                style={{
-                  color: colors.muted,
-                  fontWeight: "600",
-                  fontSize: 12,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.8,
-                }}
-              >
-                {section.title}
-              </Text>
-              <Text style={{ color: colors.muted, fontSize: 12 }}>
-                · {section.products.length}
-              </Text>
-            </View>
-          );
-        }}
+        renderSectionHeader={renderSectionHeader}
         renderItem={({ item }) => (
           <SwipeableCard onDelete={() => handleSwipeDelete(item)}>
             <ProductCard
@@ -557,19 +536,8 @@ export default function WatchlistScreen() {
                   : undefined
               }
               selected={selectedIds.has(item.id)}
-              onPress={() => {
-                if (selectionMode) {
-                  toggleSelection(item.id);
-                } else {
-                  router.push(`/product/${item.id}`);
-                }
-              }}
-              onLongPress={() => {
-                if (Platform.OS !== "web")
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setSelectionMode(true);
-                setSelectedIds(new Set([item.id]));
-              }}
+              onPress={() => handleProductPress(item)}
+              onLongPress={() => handleProductLongPress(item)}
               onDelete={() => handleDelete(item.id, item.name)}
               onTagPress={() => setPickerProduct(item)}
               tagDefinitions={tagDefinitions}
@@ -609,12 +577,14 @@ export default function WatchlistScreen() {
             right: 16,
             bottom: 16 + insets.bottom,
             backgroundColor: colors.foreground,
-            borderRadius: 14,
+            borderRadius: 16,
             paddingHorizontal: 16,
             paddingVertical: 12,
             flexDirection: "row",
             alignItems: "center",
             gap: 12,
+            borderWidth: 1,
+            borderColor: colors.border + "33",
             shadowColor: "#000",
             shadowOpacity: 0.25,
             shadowRadius: 8,

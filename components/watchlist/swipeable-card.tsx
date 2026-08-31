@@ -18,6 +18,10 @@ export function SwipeableCard({
   const renderRightActions = useCallback(
     () => (
       <RectButton
+        accessible
+        accessibilityLabel="Remove from watchlist"
+        accessibilityRole="button"
+        accessibilityHint="Removes this product from your watchlist"
         onPress={() => {
           if (Platform.OS !== "web")
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);

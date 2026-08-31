@@ -21,7 +21,7 @@ export function SearchBar({
         marginHorizontal: 16,
         marginBottom: 10,
         paddingHorizontal: 12,
-        height: 40,
+        minHeight: 40,
         borderRadius: 12,
         backgroundColor: colors.surface,
         borderWidth: 1,

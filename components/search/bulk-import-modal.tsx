@@ -89,6 +89,7 @@ export function BulkImportModal({
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
         }}
+        accessibilityViewIsModal
       >
         <View
           style={{
@@ -97,6 +98,7 @@ export function BulkImportModal({
             borderTopRightRadius: 24,
             padding: 24,
           }}
+          accessibilityViewIsModal
         >
           <View
             style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}
@@ -186,6 +188,7 @@ export function BulkImportModal({
             }}
             accessibilityLabel={`Import ${newProducts.length} products`}
             accessibilityRole="button"
+            accessibilityState={{ disabled: !canImport }}
           >
             {importing ? (
               <ActivityIndicator size="small" color="#fff" />

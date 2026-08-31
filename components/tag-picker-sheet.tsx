@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
+  findNodeHandle,
   Modal,
   ScrollView,
   Text,
@@ -37,6 +39,8 @@ export function TagPickerSheet({
   const selectedRef = useRef<string[]>([]);
   const [newTagName, setNewTagName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const firstTagRef = useRef<View | null>(null);
+  const newTagInputRef = useRef<TextInput | null>(null);
 
   useEffect(() => {
     if (!visible || !product) return;
@@ -49,6 +53,18 @@ export function TagPickerSheet({
     setNewTagName("");
     setError(null);
   }, [visible, product]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const t = setTimeout(() => {
+      const target = firstTagRef.current
+        ? findNodeHandle(firstTagRef.current)
+        : null;
+      if (target) AccessibilityInfo.setAccessibilityFocus(target);
+      else newTagInputRef.current?.focus();
+    }, 300);
+    return () => clearTimeout(t);
+  }, [visible, defs]);
 
   const updateSelected = (next: string[]) => {
     selectedRef.current = next;
@@ -107,6 +123,7 @@ export function TagPickerSheet({
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
         }}
+        accessibilityViewIsModal
       >
         <View
           style={{
@@ -116,6 +133,7 @@ export function TagPickerSheet({
             padding: 24,
             maxHeight: "70%",
           }}
+          accessibilityViewIsModal
         >
           <Text
             style={{
@@ -141,11 +159,12 @@ export function TagPickerSheet({
                 No tags yet — create one below.
               </Text>
             )}
-            {tags.map((tag) => {
+            {tags.map((tag, idx) => {
               const active = selected.includes(tag.id);
               return (
                 <TouchableOpacity activeOpacity={0.7}
                   key={tag.id}
+                  ref={idx === 0 ? (el: unknown) => { firstTagRef.current = el as View; } : undefined}
                   onPress={() => void toggleTag(tag.id)}
                   style={{
                     flexDirection: "row",
@@ -182,7 +201,7 @@ export function TagPickerSheet({
                       marginRight: 8,
                     }}
                   />
-                  <Text style={{ color: colors.foreground, fontSize: 15 }}>
+                  <Text style={{ color: colors.foreground, fontSize: 15, flexShrink: 1, flexWrap: "wrap" }} numberOfLines={1} ellipsizeMode="tail">
                     {tag.name}
                   </Text>
                 </TouchableOpacity>
@@ -191,6 +210,7 @@ export function TagPickerSheet({
           </ScrollView>
           <View style={{ marginTop: 12 }}>
             <TextInput
+              ref={newTagInputRef}
               value={newTagName}
               onChangeText={setNewTagName}
               placeholder="New tag name"
@@ -225,6 +245,7 @@ export function TagPickerSheet({
               }}
               accessibilityLabel="Create tag"
               accessibilityRole="button"
+              accessibilityState={{ disabled: !newTagName.trim() }}
             >
               <Text style={{ color: "#fff", fontWeight: "600" }}>
                 Create tag
@@ -238,10 +259,11 @@ export function TagPickerSheet({
               onClose();
             }}
             style={{ marginTop: 16, alignItems: "center", paddingVertical: 10 }}
-            accessibilityLabel="Done"
+            accessibilityLabel="Close"
             accessibilityRole="button"
+            accessibilityHint="Dismisses the tag picker"
           >
-            <Text style={{ color: colors.muted, fontWeight: "600" }}>Done</Text>
+            <Text style={{ color: colors.foreground, fontWeight: "600" }}>Done</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -5,6 +5,22 @@ import themeConfig from "@/theme.config";
 export type ColorScheme = "light" | "dark";
 
 export const ThemeColors = themeConfig.themeColors;
+export const Spacing = (themeConfig as unknown as { spacing: Record<string, number> }).spacing ?? {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  "2xl": 32,
+};
+export const Radius = (themeConfig as unknown as { radius: Record<string, number> }).radius ?? {
+  xs: 8,
+  sm: 12,
+  md: 16,
+  lg: 20,
+  pill: 999,
+  full: 9999,
+};
 
 type ThemeColorTokens = typeof ThemeColors;
 type ThemeColorName = keyof ThemeColorTokens;

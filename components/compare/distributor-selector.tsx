@@ -83,7 +83,7 @@ export const DistributorSelector = memo(function DistributorSelector({
             >
               <Text
                 style={{
-                  color: sortBy === s ? "#fff" : colors.muted,
+                  color: sortBy === s ? "#fff" : colors.foreground,
                   fontSize: 11,
                   fontWeight: "600",
                 }}
@@ -118,8 +118,8 @@ export const DistributorSelector = memo(function DistributorSelector({
               backgroundColor: isSelected
                 ? chipColor + "18"
                 : colors.surface,
-              borderRadius: 14,
-              padding: 14,
+              borderRadius: 16,
+              padding: 16,
               marginBottom: 8,
               borderWidth: 1.5,
               borderColor: isSelected ? chipColor : colors.border,

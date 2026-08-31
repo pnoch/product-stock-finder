@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import {
   Text,
   TouchableOpacity,
@@ -42,8 +42,10 @@ export function ProductInfoCard({
   onEditDetails,
 }: ProductInfoCardProps) {
   const colors = useColors();
+  const [imageError, setImageError] = useState(false);
   const imageOpacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
+    setImageError(false);
     if (productImage) {
       Animated.timing(imageOpacity, {
         toValue: 1,
@@ -54,6 +56,7 @@ export function ProductInfoCard({
       imageOpacity.setValue(0);
     }
   }, [productImage, imageOpacity]);
+  const handleImageError = useCallback(() => setImageError(true), []);
 
   const primary22 = useMemo(() => colors.primary + "22", [colors.primary]);
 
@@ -125,7 +128,7 @@ export function ProductInfoCard({
         overflow: "hidden",
       }}
     >
-      {productImage ? (
+      {productImage && !imageError ? (
         <Animated.View
           style={{
             opacity: imageOpacity,
@@ -136,6 +139,7 @@ export function ProductInfoCard({
         >
           <Image
             source={{ uri: productImage }}
+            onError={handleImageError}
             style={{
               width: "100%",
               height: 190,
@@ -144,7 +148,26 @@ export function ProductInfoCard({
             resizeMode="cover"
           />
         </Animated.View>
-      ) : null}
+      ) : (
+        <View
+          style={{
+            marginHorizontal: -16,
+            marginTop: -16,
+            marginBottom: 14,
+            height: 120,
+            backgroundColor: colors.border + "66",
+            alignItems: "center",
+            justifyContent: "center",
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
+        >
+          <IconSymbol name="photo" size={28} color={colors.muted} />
+          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }} numberOfLines={1} ellipsizeMode="tail">
+            No image
+          </Text>
+        </View>
+      )}
       <View
         style={{
           flexDirection: "row",
@@ -167,12 +190,14 @@ export function ProductInfoCard({
               fontWeight: "600",
               fontSize: 13,
             }}
+            numberOfLines={1}
+            ellipsizeMode="tail"
           >
             {product.brand}
           </Text>
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Text style={{ color: colors.muted, fontSize: 13 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1, marginLeft: 8 }}>
+          <Text style={{ color: colors.muted, fontSize: 13, flexShrink: 1 }} numberOfLines={1} ellipsizeMode="tail">
             {product.category}
           </Text>
           {onEditDetails && (
@@ -188,8 +213,8 @@ export function ProductInfoCard({
           )}
         </View>
       </View>
-      <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
-        {product.description}
+      <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }} numberOfLines={4} ellipsizeMode="tail">
+        {product.description || "No description available."}
       </Text>
       <View style={{ marginTop: 12, borderRadius: 10, overflow: "hidden", borderWidth: 1, borderColor: colors.border }}>
         {[
@@ -210,7 +235,7 @@ export function ProductInfoCard({
             }}
           >
             <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600" }}>{row.label}</Text>
-            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>{row.value}</Text>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", flexShrink: 1, marginLeft: 8 }} numberOfLines={1} ellipsizeMode="tail">{row.value}</Text>
           </View>
         ))}
       </View>

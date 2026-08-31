@@ -85,7 +85,7 @@ export function StockWatchCard({ watch, onDelete }: StockWatchCardProps) {
               style={{
                 color: colors.muted,
                 fontSize: 12,
-                opacity: 0.6,
+                opacity: 0.5,
               }}
             >
               · last checked
@@ -116,6 +116,7 @@ export function StockWatchCard({ watch, onDelete }: StockWatchCardProps) {
             style={{ padding: 4 }}
             accessibilityLabel={`Delete stock watch for ${watch.productName}`}
             accessibilityRole="button"
+            accessibilityHint="Double tap to delete"
           >
             <IconSymbol
               name="trash.fill"

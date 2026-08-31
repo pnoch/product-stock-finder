@@ -131,6 +131,7 @@ export default function RestockWatchesScreen() {
                   <TouchableOpacity activeOpacity={0.7}
                     accessibilityLabel={`Remove ${watch.productName} restock watch`}
                     accessibilityRole="button"
+                    accessibilityHint="Removes this product from your restock watches"
                     onPress={() => handleRemove(watch.id)}
                     style={{ padding: 8 }}
                   >

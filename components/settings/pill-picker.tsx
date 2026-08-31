@@ -42,7 +42,7 @@ export function PillPicker({
         <Text
           style={{
             color: colors.foreground,
-            fontWeight: "500",
+            fontWeight: "600",
             fontSize: 15,
           }}
         >
@@ -67,7 +67,7 @@ export function PillPicker({
             style={{
               paddingHorizontal: 14,
               paddingVertical: 6,
-              borderRadius: 20,
+              borderRadius: 999,
               backgroundColor:
                 value === opt ? colors.primary : colors.border,
             }}

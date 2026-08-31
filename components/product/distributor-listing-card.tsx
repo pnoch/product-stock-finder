@@ -90,13 +90,15 @@ export const DistributorListingCard = memo(function DistributorListingCard({
           marginBottom: 8,
         }}
       >
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, marginRight: 8 }}>
           <Text
             style={{
               color: colors.foreground,
               fontWeight: "700",
               fontSize: 15,
             }}
+            numberOfLines={1}
+            ellipsizeMode="tail"
           >
             {distributor?.countryFlag}{" "}
             {distributor?.name ?? listing.distributorId}
@@ -107,6 +109,8 @@ export const DistributorListingCard = memo(function DistributorListingCard({
               fontSize: 12,
               marginTop: 2,
             }}
+            numberOfLines={1}
+            ellipsizeMode="tail"
           >
             {distributor?.country} · {distributor?.region}
           </Text>
@@ -208,6 +212,8 @@ export const DistributorListingCard = memo(function DistributorListingCard({
             fontSize: 11,
             marginTop: 8,
           }}
+          numberOfLines={1}
+          ellipsizeMode="tail"
         >
           💳 {distributor.paymentMethods.join(" · ")}
         </Text>

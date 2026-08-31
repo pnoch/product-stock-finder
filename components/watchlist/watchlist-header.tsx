@@ -65,13 +65,14 @@ export function WatchlistHeader({
               backgroundColor: colors.error,
               borderRadius: 20,
               paddingHorizontal: 14,
-              height: 40,
+              minHeight: 40,
               flexDirection: "row",
               alignItems: "center",
               gap: 6,
             }}
             accessibilityLabel="Delete selected"
             accessibilityRole="button"
+            accessibilityHint="Double tap to delete"
           >
             <IconSymbol name="trash.fill" size={16} color="#fff" />
             <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
@@ -84,7 +85,7 @@ export function WatchlistHeader({
               backgroundColor: colors.primary,
               borderRadius: 20,
               paddingHorizontal: 14,
-              height: 40,
+              minHeight: 40,
               flexDirection: "row",
               alignItems: "center",
               gap: 6,
@@ -103,7 +104,7 @@ export function WatchlistHeader({
               backgroundColor: colors.surface,
               borderRadius: 20,
               width: 40,
-              height: 40,
+              minHeight: 40,
               alignItems: "center",
               justifyContent: "center",
               borderWidth: 1,
@@ -111,6 +112,7 @@ export function WatchlistHeader({
             }}
             accessibilityLabel="Exit selection mode"
             accessibilityRole="button"
+            accessibilityHint="Dismisses selection mode"
           >
             <IconSymbol name="xmark" size={18} color={colors.foreground} />
           </TouchableOpacity>
@@ -129,26 +131,26 @@ export function WatchlistHeader({
         </Text>
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <TouchableOpacity activeOpacity={0.85}
-          onPress={() => {
-            if (Platform.OS !== "web")
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onAnalysis();
-          }}
-          style={{
-            backgroundColor: colors.surface,
-            borderRadius: 20,
-            paddingHorizontal: 14,
-            height: 40,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 6,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
-          accessibilityLabel="Analysis"
-          accessibilityRole="button"
-        >
+          <TouchableOpacity activeOpacity={0.85}
+            onPress={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onAnalysis();
+            }}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 20,
+              paddingHorizontal: 14,
+              minHeight: 40,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+            accessibilityLabel="Analysis"
+            accessibilityRole="button"
+          >
           <IconSymbol
             name="chart.bar.xaxis"
             size={16}
@@ -171,7 +173,7 @@ export function WatchlistHeader({
             backgroundColor: colors.surface,
             borderRadius: 20,
             paddingHorizontal: 14,
-            height: 40,
+            minHeight: 40,
             flexDirection: "row",
             alignItems: "center",
             gap: 6,
@@ -180,6 +182,7 @@ export function WatchlistHeader({
           }}
           accessibilityLabel="Refresh all prices"
           accessibilityRole="button"
+          accessibilityState={{ disabled: isRefreshingAny }}
         >
           {isRefreshingAny ? (
             <ActivityIndicator size="small" color={colors.primary} />
@@ -201,7 +204,7 @@ export function WatchlistHeader({
             backgroundColor: checking ? colors.muted : colors.primary,
             borderRadius: 20,
             paddingHorizontal: 14,
-            height: 40,
+            minHeight: 40,
             flexDirection: "row",
             alignItems: "center",
             gap: 6,
@@ -211,6 +214,7 @@ export function WatchlistHeader({
           disabled={checking || watchlistLength === 0}
           accessibilityLabel="Check now"
           accessibilityRole="button"
+          accessibilityState={{ disabled: checking || watchlistLength === 0 }}
         >
           {checking ? (
             <ActivityIndicator size="small" color="#fff" />
@@ -223,23 +227,23 @@ export function WatchlistHeader({
               : "Check Now"}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity activeOpacity={0.85}
-          style={{
-            backgroundColor: colors.primary,
-            borderRadius: 20,
-            width: 40,
-            height: 40,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          onPress={() => {
-            if (Platform.OS !== "web")
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onAdd();
-          }}
-          accessibilityLabel="Add product"
-          accessibilityRole="button"
-        >
+          <TouchableOpacity activeOpacity={0.85}
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: 20,
+              width: 40,
+              minHeight: 40,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onPress={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onAdd();
+            }}
+            accessibilityLabel="Add product"
+            accessibilityRole="button"
+          >
           <IconSymbol name="plus" size={22} color="#fff" />
         </TouchableOpacity>
       </View>

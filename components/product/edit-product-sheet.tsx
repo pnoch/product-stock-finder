@@ -86,6 +86,7 @@ export function EditProductSheet({
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
         }}
+        accessibilityViewIsModal
       >
         <View
           style={{
@@ -95,6 +96,7 @@ export function EditProductSheet({
             padding: 24,
             maxHeight: "85%",
           }}
+          accessibilityViewIsModal
         >
           <View
             style={{
@@ -187,6 +189,7 @@ export function EditProductSheet({
               }}
               accessibilityLabel="Save changes"
               accessibilityRole="button"
+              accessibilityState={{ disabled: !canSave }}
             >
               <IconSymbol name="checkmark.circle.fill" size={18} color="#fff" />
               <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>

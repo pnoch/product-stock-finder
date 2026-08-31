@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
-import { View } from "react-native";
+import { View, Text } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { PricePoint } from "@/lib/types";
 import { formatPrice } from "@/lib/currency";
 import { indexForLocationX } from "@/lib/price-chart";
@@ -65,7 +66,28 @@ export function PriceHistoryChart({
     };
   }, [data, width, height]);
 
-  if (!points) return null;
+  if (!points) {
+    return (
+      <View
+        style={{
+          height: height || 120,
+          width: width || "100%",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.border + "33",
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: colors.border,
+          gap: 6,
+        }}
+      >
+        <IconSymbol name="chart.line.downtrend.xyaxis" size={24} color={colors.muted} />
+        <Text style={{ color: colors.muted, fontSize: 12, textAlign: "center" }} numberOfLines={1} ellipsizeMode="tail">
+          No price history
+        </Text>
+      </View>
+    );
+  }
 
   const lineColor = points.trend === "down" ? colors.success : colors.error;
   const { coords, polylineStr, minP, maxP, padL, padR, padT, padB, usableH } =

@@ -66,7 +66,7 @@ export function LoginModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -77,6 +77,7 @@ export function LoginModal({
             justifyContent: "flex-end",
             backgroundColor: "rgba(0,0,0,0.4)",
           }}
+          accessibilityViewIsModal
         >
           <View
             style={{
@@ -86,6 +87,7 @@ export function LoginModal({
               padding: 24,
               paddingBottom: 40,
             }}
+            accessibilityViewIsModal
           >
             <View
               style={{
@@ -213,6 +215,7 @@ export function LoginModal({
               }}
               accessibilityLabel={mode === "login" ? "Sign in" : "Create account"}
               accessibilityRole="button"
+              accessibilityState={{ disabled: loading }}
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -237,8 +240,8 @@ export function LoginModal({
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={{ alignItems: "center", marginTop: 16 }} accessibilityLabel="Cancel" accessibilityRole="button">
-              <Text style={{ color: colors.muted, fontSize: 14 }}>Cancel</Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={{ alignItems: "center", marginTop: 16 }} accessibilityLabel="Dismiss" accessibilityRole="button" accessibilityHint="Dismisses the login dialog">
+              <Text style={{ color: colors.foreground, fontSize: 14 }}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -55,7 +55,7 @@ export function TagFilterRow({
                 alignItems: "center",
                 paddingHorizontal: 13,
                 paddingVertical: 7,
-                borderRadius: 18,
+                borderRadius: 999,
                 backgroundColor: active ? colors.primary : colors.surface,
                 borderWidth: active ? 1.5 : 1,
                 borderColor: active ? colors.primary : colors.border,
@@ -95,7 +95,7 @@ export function TagFilterRow({
         <View
           style={{
             flexDirection: "row",
-            borderRadius: 14,
+            borderRadius: 999,
             borderWidth: 1,
             borderColor: colors.border,
             overflow: "hidden",

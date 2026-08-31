@@ -1,3 +1,4 @@
+import { memo, useCallback, useMemo } from "react";
 import { Text, View, TouchableOpacity, ActivityIndicator, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
@@ -13,7 +14,7 @@ interface CatalogProductCardProps {
   onTagPress: (item: Product) => void;
 }
 
-export function CatalogProductCard({
+export const CatalogProductCard = memo(function CatalogProductCard({
   product,
   isTracked,
   isAdding,
@@ -21,21 +22,25 @@ export function CatalogProductCard({
   onTagPress,
 }: CatalogProductCardProps) {
   const colors = useColors();
+  const containerStyle = useMemo(() => ({
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    minHeight: 78,
+  }), [colors.surface, colors.border]);
+  const handleAdd = useCallback(() => onAdd(product), [onAdd, product]);
+  const handleTag = useCallback(() => {
+    if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onTagPress(product);
+  }, [onTagPress, product]);
 
   return (
-    <View
-      style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 14,
-        marginBottom: 10,
-        borderWidth: 1,
-        borderColor: colors.border,
-        flexDirection: "row",
-        alignItems: "center",
-        minHeight: 78,
-      }}
-    >
+    <View style={containerStyle}>
       <ProductImage productId={product.id} />
       <View style={{ flex: 1, marginRight: 12, justifyContent: "center" }}>
         <Text
@@ -45,10 +50,11 @@ export function CatalogProductCard({
             fontSize: 15,
           }}
           numberOfLines={2}
+          ellipsizeMode="tail"
         >
           {product.name}
         </Text>
-        <Text style={{ color: colors.muted, fontSize: 12, marginTop: 3 }}>
+        <Text style={{ color: colors.muted, fontSize: 12, marginTop: 3 }} numberOfLines={1} ellipsizeMode="tail">
           {product.modelNumber}
         </Text>
         <View
@@ -73,21 +79,20 @@ export function CatalogProductCard({
                 fontSize: 11,
                 fontWeight: "600",
               }}
+              numberOfLines={1}
+              ellipsizeMode="tail"
             >
               {product.brand}
             </Text>
           </View>
-          <Text style={{ color: colors.muted, fontSize: 11 }}>
+          <Text style={{ color: colors.muted, fontSize: 11, flexShrink: 1 }} numberOfLines={1} ellipsizeMode="tail">
             {product.category}
           </Text>
         </View>
       </View>
       {!isTracked && (
         <TouchableOpacity activeOpacity={0.85}
-          onPress={() => {
-            if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onTagPress(product);
-          }}
+          onPress={handleTag}
           style={{
             marginRight: 8,
             padding: 6,
@@ -103,7 +108,7 @@ export function CatalogProductCard({
         </TouchableOpacity>
       )}
       <TouchableOpacity activeOpacity={0.85}
-        onPress={() => onAdd(product)}
+        onPress={handleAdd}
         disabled={isAdding || isTracked}
         style={{
           backgroundColor: isTracked ? colors.success : colors.primary,
@@ -128,4 +133,5 @@ export function CatalogProductCard({
       </TouchableOpacity>
     </View>
   );
-}
+});
+CatalogProductCard.displayName = "CatalogProductCard";

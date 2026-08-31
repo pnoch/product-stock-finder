@@ -29,7 +29,7 @@ function TrendingSkeletonCard() {
   }, [shimmer]);
   const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
   return (
-    <Animated.View style={{ opacity, backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: colors.border }}>
+    <Animated.View style={{ opacity, backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 8, borderWidth: 1, borderColor: colors.border }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <View style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: colors.border }} />
         <View style={{ flex: 1, gap: 8 }}>
@@ -73,8 +73,8 @@ const TrendingProductRow = memo(function TrendingProductRow({
       onPress={handlePress}
       style={{
         backgroundColor: colors.surface,
-        borderRadius: 12,
-        padding: 14,
+        borderRadius: 16,
+        padding: 16,
         marginBottom: 8,
         borderWidth: 1,
         borderColor: colors.border,
@@ -89,24 +89,44 @@ const TrendingProductRow = memo(function TrendingProductRow({
           alignItems: "flex-start",
         }}
       >
-        {imageUrl && (
+        {imageUrl ? (
           <Image
             source={{ uri: imageUrl }}
+            onError={() => {}}
             style={{
               width: 40,
               height: 40,
               borderRadius: 8,
               marginRight: 12,
+              backgroundColor: colors.border,
             }}
           />
+        ) : (
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 8,
+              marginRight: 12,
+              backgroundColor: colors.border + "66",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <Text style={{ fontSize: 9, color: colors.muted }}>No img</Text>
+          </View>
         )}
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, marginRight: 8 }}>
           <Text
             style={{
               fontSize: 15,
               fontWeight: "600",
               color: colors.foreground,
             }}
+            numberOfLines={1}
+            ellipsizeMode="tail"
           >
             {product.name}
           </Text>
@@ -116,6 +136,8 @@ const TrendingProductRow = memo(function TrendingProductRow({
               color: colors.muted,
               marginTop: 2,
             }}
+            numberOfLines={1}
+            ellipsizeMode="tail"
           >
             {product.category} · {product.brand} ·{" "}
             {product.currency === "USD"
@@ -134,6 +156,8 @@ const TrendingProductRow = memo(function TrendingProductRow({
               marginTop: 4,
               fontStyle: "italic",
             }}
+            numberOfLines={2}
+            ellipsizeMode="tail"
           >
             {product.reason}
           </Text>

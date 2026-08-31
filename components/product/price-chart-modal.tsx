@@ -41,6 +41,7 @@ export function PriceChartModal({
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.55)",
         }}
+        accessibilityViewIsModal
       >
         <View
           style={{
@@ -49,6 +50,7 @@ export function PriceChartModal({
             borderTopRightRadius: 24,
             padding: 24,
           }}
+          accessibilityViewIsModal
         >
           <View
             style={{
@@ -70,8 +72,9 @@ export function PriceChartModal({
             <TouchableOpacity activeOpacity={0.7}
               onPress={onClose}
               style={{ padding: 4 }}
-              accessibilityLabel="Close chart"
+              accessibilityLabel="Close"
               accessibilityRole="button"
+              accessibilityHint="Dismisses the price chart"
             >
               <IconSymbol
                 name="xmark.circle.fill"

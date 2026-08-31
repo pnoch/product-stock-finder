@@ -78,6 +78,33 @@ export const ProductCard = memo(function ProductCard({
     () => getLastRefreshedColor(product.lastRefreshed),
     [product.lastRefreshed],
   );
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const imageOpacity = useRef(new Animated.Value(0)).current;
+  const pressScale = useRef(new Animated.Value(1)).current;
+  const sparklineOpacity = useRef(new Animated.Value(1)).current;
+  const cardStyle = useMemo(
+    () => ({
+      backgroundColor: selected ? colors.primary + "0F" : colors.surface,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: selected ? 2 : selectionMode ? 2 : 1,
+      borderColor: selected
+        ? colors.primary
+        : selectionMode
+          ? colors.primary + "55"
+          : colors.border,
+      transform: [{ scale: pressScale }] as never,
+      shadowColor: selected ? colors.primary : "transparent",
+      shadowOpacity: selected ? 0.12 : 0,
+      shadowRadius: selected ? 8 : 0,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: selected ? 2 : 0,
+    }),
+    [colors.primary, colors.surface, colors.border, selected, selectionMode, pressScale],
+  );
   const handleTagPress = useCallback(
     (e: { stopPropagation: () => void }) => {
       e.stopPropagation();
@@ -98,14 +125,19 @@ export const ProductCard = memo(function ProductCard({
     },
     [onDelete],
   );
-
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const pressScale = useRef(new Animated.Value(1)).current;
-  const sparklineOpacity = useRef(new Animated.Value(1)).current;
+  const handleImageLoad = useCallback(() => {
+    setImageLoaded(true);
+    Animated.timing(imageOpacity, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+  }, [imageOpacity]);
+  const handleImageError = useCallback(() => setImageError(true), []);
   useEffect(() => {
     let active = true;
+    setImageError(false);
+    setImageLoaded(false);
+    imageOpacity.setValue(0);
     fetchProductImage(product.id).then((res) => {
       if (active && res) setImageUrl(res.imageUrl);
+      else if (active) setImageUrl(null);
     });
     return () => {
       active = false;
@@ -147,23 +179,10 @@ export const ProductCard = memo(function ProductCard({
       onPressOut={handlePressOut}
       accessibilityLabel={product.name}
       accessibilityRole="button"
+      accessibilityState={{ selected }}
+      accessibilityHint={selectionMode ? (selected ? "Double tap to deselect" : "Double tap to select") : undefined}
     >
-      <Animated.View
-        style={{
-          backgroundColor: selected ? colors.primary + "0F" : colors.surface,
-          borderRadius: 16,
-          padding: 16,
-          marginBottom: 12,
-          borderWidth: selected ? 2 : selectionMode ? 2 : 1,
-          borderColor: selected ? colors.primary : selectionMode ? colors.primary + "55" : colors.border,
-          transform: [{ scale: pressScale }],
-          shadowColor: selected ? colors.primary : "transparent",
-          shadowOpacity: selected ? 0.12 : 0,
-          shadowRadius: selected ? 8 : 0,
-          shadowOffset: { width: 0, height: 2 },
-          elevation: selected ? 2 : 0,
-        }}
-      >
+      <Animated.View style={cardStyle}>
       <View
         style={{
           flexDirection: "row",
@@ -187,11 +206,37 @@ export const ProductCard = memo(function ProductCard({
             />
           </View>
         )}
-        {imageUrl && (
-          <Image
-            source={{ uri: imageUrl }}
-            style={{ width: 48, height: 48, borderRadius: 8, marginRight: 10 }}
-          />
+        {imageUrl && !imageError ? (
+          <View style={{ width: 48, height: 48, borderRadius: 8, marginRight: 10, overflow: "hidden", backgroundColor: colors.border + "66" }}>
+            {!imageLoaded && (
+              <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
+                <IconSymbol name="photo" size={18} color={colors.muted + "66"} />
+              </View>
+            )}
+            <Animated.Image
+              source={{ uri: imageUrl }}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+              style={{ width: 48, height: 48, borderRadius: 8, opacity: imageOpacity }}
+              resizeMode="cover"
+            />
+          </View>
+        ) : (
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 8,
+              marginRight: 10,
+              backgroundColor: colors.border + "66",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <IconSymbol name="photo" size={18} color={colors.muted} />
+          </View>
         )}
         <View style={{ flex: 1, marginRight: 10 }}>
           <Text
@@ -201,13 +246,14 @@ export const ProductCard = memo(function ProductCard({
               fontSize: 15,
             }}
             numberOfLines={2}
+            ellipsizeMode="tail"
           >
             {product.name}
           </Text>
-          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 3 }}>
+          <Text style={{ color: colors.foreground, fontSize: 12, marginTop: 3 }} numberOfLines={1} ellipsizeMode="tail">
             {product.modelNumber}
           </Text>
-          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>
+          <Text style={{ color: colors.foreground, fontSize: 12, marginTop: 1 }} numberOfLines={1} ellipsizeMode="tail">
             {product.brand} · {product.category}
           </Text>
         </View>
@@ -269,7 +315,7 @@ export const ProductCard = memo(function ProductCard({
                     marginRight: 5,
                   }}
                 />
-                <Text style={{ color: colors.muted, fontSize: 11 }}>
+                <Text style={{ color: colors.foreground, fontSize: 11 }} numberOfLines={1} ellipsizeMode="tail">
                   {tag.name}
                 </Text>
               </View>
@@ -392,6 +438,7 @@ export const ProductCard = memo(function ProductCard({
           style={{ padding: 4 }}
           accessibilityLabel="Delete product"
           accessibilityRole="button"
+          accessibilityHint="Removes this product from your watchlist"
         >
           <IconSymbol name="trash.fill" size={16} color={colors.error} />
         </TouchableOpacity>

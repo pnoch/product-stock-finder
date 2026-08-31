@@ -15,7 +15,11 @@ export function ProductImage({
     imageCache.has(productId) ? (imageCache.get(productId) ?? null) : null,
   );
   const [loading, setLoading] = useState(() => !imageCache.has(productId));
+  const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
   useEffect(() => {
+    setImgError(false);
+    setImgLoaded(false);
     if (imageCache.has(productId)) {
       setImageUrl(imageCache.get(productId)!);
       setLoading(false);
@@ -64,7 +68,7 @@ export function ProductImage({
     );
   }
 
-  if (!imageUrl) {
+  if (!imageUrl || imgError) {
     return (
       <div
         aria-hidden="true"
@@ -74,26 +78,36 @@ export function ProductImage({
           borderRadius: 8,
           marginRight: 10,
         }}
-        className="shrink-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center rounded-lg"
+        className="shrink-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-600"
+        title="No image"
       >
-        <span className="text-[10px] text-gray-400">No img</span>
+        <span className="text-[10px] text-gray-400 text-center leading-none">No image</span>
       </div>
     );
   }
 
   return (
-    <img
-      src={imageUrl}
-      alt=""
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 8,
-        marginRight: 10,
-        objectFit: "cover",
-      }}
-      className="shrink-0 transition-opacity duration-200"
-      loading="lazy"
-    />
+    <div
+      style={{ width: size, height: size, marginRight: 10 }}
+      className="shrink-0 relative overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700"
+    >
+      {!imgLoaded && <div className="absolute inset-0 skeleton-shimmer rounded-lg" aria-hidden="true" />}
+      <img
+        src={imageUrl}
+        alt=""
+        onLoad={() => setImgLoaded(true)}
+        onError={() => setImgError(true)}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: 8,
+          objectFit: "cover",
+          opacity: imgLoaded ? 1 : 0,
+          transition: "opacity 220ms ease",
+        }}
+        className="shrink-0"
+        loading="lazy"
+      />
+    </div>
   );
 }

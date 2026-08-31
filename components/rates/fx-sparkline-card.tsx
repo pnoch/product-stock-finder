@@ -39,7 +39,7 @@ export function FxSparklineCard({
     <View
       style={{
         backgroundColor: colors.surface,
-        borderRadius: 12,
+        borderRadius: 16,
         borderWidth: 1,
         borderColor: colors.border,
         padding: 12,

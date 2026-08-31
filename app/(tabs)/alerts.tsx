@@ -129,11 +129,11 @@ export default function AlertsScreen() {
           </TouchableOpacity>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.primary + "14", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.primary + "14", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
             <IconSymbol name="bell.fill" size={12} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>{tabCount.alerts} alerts</Text>
           </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.warning + "14", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.warning + "14", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
             <IconSymbol name="calendar" size={12} color={colors.warning} />
             <Text style={{ color: colors.warning, fontSize: 12, fontWeight: "700" }}>{tabCount.reminders} reminders</Text>
           </View>
@@ -148,6 +148,11 @@ export default function AlertsScreen() {
         <FlatList showsVerticalScrollIndicator={true}
           data={alerts}
           keyExtractor={(item) => item.id}
+          initialNumToRender={8}
+          windowSize={5}
+          maxToRenderPerBatch={8}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews
           contentContainerStyle={{
             paddingHorizontal: 20,
             paddingBottom: 24,
@@ -327,6 +332,11 @@ export default function AlertsScreen() {
         <FlatList showsVerticalScrollIndicator={true}
           data={reminders}
           keyExtractor={(item) => item.id}
+          initialNumToRender={8}
+          windowSize={5}
+          maxToRenderPerBatch={8}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews
           contentContainerStyle={{
             paddingHorizontal: 20,
             paddingBottom: 24,

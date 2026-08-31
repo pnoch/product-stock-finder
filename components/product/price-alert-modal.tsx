@@ -52,13 +52,14 @@ export function PriceAlertModal({
   const [priceFocused, setPriceFocused] = useState(false);
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View
         style={{
           flex: 1,
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
         }}
+        accessibilityViewIsModal
       >
         <View
           style={{
@@ -67,6 +68,7 @@ export function PriceAlertModal({
             borderTopRightRadius: 24,
             padding: 24,
           }}
+          accessibilityViewIsModal
         >
           <Text
             style={{
@@ -201,7 +203,7 @@ export function PriceAlertModal({
                   >
                     <Text
                       style={{
-                        color: active ? "#fff" : colors.muted,
+                        color: active ? "#fff" : colors.foreground,
                         fontSize: 13,
                         fontWeight: "600",
                       }}
@@ -251,7 +253,7 @@ export function PriceAlertModal({
                     color:
                       selectedDistributorId == null
                         ? colors.primary
-                        : colors.muted,
+                        : colors.foreground,
                     fontSize: 12,
                     fontWeight: "600",
                   }}
@@ -285,7 +287,7 @@ export function PriceAlertModal({
                   >
                     <Text
                       style={{
-                        color: selected ? colors.primary : colors.muted,
+                        color: selected ? colors.primary : colors.foreground,
                         fontSize: 12,
                         fontWeight: "600",
                       }}
@@ -304,6 +306,7 @@ export function PriceAlertModal({
             placeholderTextColor={colors.muted}
             keyboardType="decimal-pad"
             returnKeyType="done"
+            autoFocus
             onFocus={() => setPriceFocused(true)}
             onBlur={() => setPriceFocused(false)}
             onSubmitEditing={() => {
@@ -333,8 +336,9 @@ export function PriceAlertModal({
                 borderWidth: 1,
                 borderColor: colors.border,
               }}
-              accessibilityLabel="Cancel"
+              accessibilityLabel="Dismiss"
               accessibilityRole="button"
+              accessibilityHint="Dismisses the alert modal"
             >
               <Text style={{ color: colors.foreground, fontWeight: "600" }}>
                 Cancel

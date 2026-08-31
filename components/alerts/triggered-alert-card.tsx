@@ -150,6 +150,7 @@ export const TriggeredAlertCard = memo(function TriggeredAlertCard({
             style={{ padding: 4 }}
             accessibilityLabel={`Delete triggered alert for ${productName}`}
             accessibilityRole="button"
+            accessibilityHint="Double tap to delete"
           >
             <IconSymbol name="trash.fill" size={15} color={colors.muted} />
           </TouchableOpacity>

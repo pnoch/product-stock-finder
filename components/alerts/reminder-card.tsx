@@ -128,6 +128,7 @@ export function ReminderCard({
             style={{ padding: 4 }}
             accessibilityLabel={`Delete reminder for ${reminder.productName}`}
             accessibilityRole="button"
+            accessibilityHint="Double tap to delete"
           >
             <IconSymbol
               name="trash.fill"

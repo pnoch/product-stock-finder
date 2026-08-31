@@ -42,7 +42,7 @@ export function RadioPicker({
         <Text
           style={{
             color: colors.foreground,
-            fontWeight: "500",
+            fontWeight: "600",
             fontSize: 15,
           }}
         >

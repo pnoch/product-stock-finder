@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
   Alert,
+  findNodeHandle,
   Modal,
   Platform,
   ScrollView,
@@ -33,6 +35,7 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const firstRowRef = useRef<View | null>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -43,6 +46,15 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
     setEditName("");
     setError(null);
   }, [visible]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const t = setTimeout(() => {
+      const node = firstRowRef.current ? findNodeHandle(firstRowRef.current) : null;
+      if (node) AccessibilityInfo.setAccessibilityFocus(node);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [visible, defs]);
 
   const refresh = useCallback(async () => {
     setDefs(await getTagDefinitions());
@@ -116,6 +128,7 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
         }}
+        accessibilityViewIsModal
       >
         <View
           style={{
@@ -125,6 +138,7 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
             padding: 24,
             maxHeight: "70%",
           }}
+          accessibilityViewIsModal
         >
           <Text
             style={{
@@ -151,8 +165,8 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
             </Text>
           )}
           <ScrollView style={{ maxHeight: 360 }}>
-            {tags.map((tag) => (
-              <View key={tag.id} style={{ marginBottom: 16 }}>
+            {tags.map((tag, idx) => (
+              <View key={tag.id} style={{ marginBottom: 16 }} ref={idx === 0 ? (el: unknown) => { firstRowRef.current = el as View; } : undefined}>
                 {editingId === tag.id ? (
                   <View
                     style={{
@@ -216,6 +230,8 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
                         color: colors.foreground,
                         fontSize: 15,
                       }}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
                     >
                       {tag.name}
                     </Text>
@@ -239,6 +255,7 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
                       style={{ padding: 8 }}
                       accessibilityLabel={`Delete tag ${tag.name}`}
                       accessibilityRole="button"
+                      accessibilityHint="Double tap to delete"
                     >
                       <IconSymbol
                         name="trash.fill"
@@ -283,10 +300,11 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
           <TouchableOpacity activeOpacity={0.7}
             onPress={onClose}
             style={{ alignItems: "center", paddingVertical: 10 }}
-            accessibilityLabel="Done"
+            accessibilityLabel="Close"
             accessibilityRole="button"
+            accessibilityHint="Dismisses the tag manager"
           >
-            <Text style={{ color: colors.muted, fontWeight: "600" }}>Done</Text>
+            <Text style={{ color: colors.foreground, fontWeight: "600" }}>Done</Text>
           </TouchableOpacity>
         </View>
       </View>

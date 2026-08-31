@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
+  findNodeHandle,
   Modal,
   ScrollView,
   Text,
@@ -34,6 +36,7 @@ export function BulkTagSheet({
   const [selected, setSelected] = useState<string[]>([]);
   const [newTagName, setNewTagName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const firstTagRef = useRef<View | null>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -44,6 +47,15 @@ export function BulkTagSheet({
     setNewTagName("");
     setError(null);
   }, [visible]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const t = setTimeout(() => {
+      const node = firstTagRef.current ? findNodeHandle(firstTagRef.current) : null;
+      if (node) AccessibilityInfo.setAccessibilityFocus(node);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [visible, defs]);
 
   const toggleTag = (tagId: string) => {
     setSelected((prev) =>
@@ -94,6 +106,7 @@ export function BulkTagSheet({
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
         }}
+        accessibilityViewIsModal
       >
         <View
           style={{
@@ -103,6 +116,7 @@ export function BulkTagSheet({
             padding: 24,
             maxHeight: "70%",
           }}
+          accessibilityViewIsModal
         >
           <Text
             style={{
@@ -128,11 +142,12 @@ export function BulkTagSheet({
                 No tags yet — create one below.
               </Text>
             )}
-            {tags.map((tag) => {
+            {tags.map((tag, idx) => {
               const active = selected.includes(tag.id);
               return (
                 <TouchableOpacity activeOpacity={0.7}
                   key={tag.id}
+                  ref={idx === 0 ? (el: unknown) => { firstTagRef.current = el as View; } : undefined}
                   onPress={() => toggleTag(tag.id)}
                   style={{
                     flexDirection: "row",
@@ -169,7 +184,7 @@ export function BulkTagSheet({
                       marginRight: 8,
                     }}
                   />
-                  <Text style={{ color: colors.foreground, fontSize: 15 }}>
+                  <Text style={{ color: colors.foreground, fontSize: 15, flexShrink: 1 }} numberOfLines={1} ellipsizeMode="tail">
                     {tag.name}
                   </Text>
                 </TouchableOpacity>
@@ -214,6 +229,7 @@ export function BulkTagSheet({
               }}
               accessibilityLabel="Create tag"
               accessibilityRole="button"
+              accessibilityState={{ disabled: !newTagName.trim() }}
             >
               <Text style={{ color: colors.foreground, fontWeight: "600" }}>
                 Create tag
@@ -232,6 +248,7 @@ export function BulkTagSheet({
               }}
               accessibilityLabel={`Add ${selected.length > 0 ? `${selected.length} tag${selected.length !== 1 ? "s" : ""} ` : ""}to selected`}
               accessibilityRole="button"
+              accessibilityState={{ disabled: selected.length === 0 }}
             >
               <Text style={{ color: "#fff", fontWeight: "600" }}>
                 Add {selected.length > 0 ? `${selected.length} tag${selected.length !== 1 ? "s" : ""} ` : ""}to selected
@@ -241,10 +258,11 @@ export function BulkTagSheet({
           <TouchableOpacity activeOpacity={0.7}
             onPress={onClose}
             style={{ marginTop: 16, alignItems: "center", paddingVertical: 10 }}
-            accessibilityLabel="Cancel"
+            accessibilityLabel="Dismiss"
             accessibilityRole="button"
+            accessibilityHint="Dismisses the bulk tag sheet"
           >
-            <Text style={{ color: colors.muted, fontWeight: "600" }}>Cancel</Text>
+            <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>

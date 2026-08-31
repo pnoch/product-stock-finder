@@ -45,7 +45,7 @@ export const AlertCard = memo(function AlertCard({
         borderRadius: 16,
         padding: 16,
         marginBottom: 12,
-        opacity: snoozed ? 0.6 : 1,
+        opacity: snoozed ? 0.5 : 1,
         borderWidth: 1,
         borderColor: alert.triggeredAt
           ? colors.success + "44"
@@ -167,6 +167,7 @@ export const AlertCard = memo(function AlertCard({
             style={{ padding: 4 }}
             accessibilityLabel={`Delete alert for ${productName}`}
             accessibilityRole="button"
+            accessibilityHint="Double tap to delete"
           >
             <IconSymbol
               name="trash.fill"

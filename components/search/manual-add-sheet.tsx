@@ -182,6 +182,7 @@ export function ManualAddSheet({
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
         }}
+        accessibilityViewIsModal
       >
         <View
           style={{
@@ -191,6 +192,7 @@ export function ManualAddSheet({
             padding: 24,
             maxHeight: "85%",
           }}
+          accessibilityViewIsModal
         >
           <View
             style={{
@@ -259,6 +261,7 @@ export function ManualAddSheet({
                 }}
                 accessibilityLabel="Clean up with AI"
                 accessibilityRole="button"
+                accessibilityState={{ disabled: parsing || raw.trim().length === 0 }}
               >
                 {parsing ? (
                   <ActivityIndicator size="small" color="#fff" />
@@ -361,6 +364,7 @@ export function ManualAddSheet({
                 }}
                 accessibilityLabel="Add and search distributors"
                 accessibilityRole="button"
+                accessibilityState={{ disabled: !canAdd || adding }}
               >
                 {adding ? (
                   <ActivityIndicator size="small" color="#fff" />

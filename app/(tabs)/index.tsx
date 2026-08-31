@@ -395,16 +395,34 @@ export default function HomeScreen() {
                     alignItems: "flex-start",
                   }}
                 >
-                  {images.get(product.id) && (
+                  {images.get(product.id) ? (
                     <Image
                       source={{ uri: images.get(product.id)! }}
+                      onError={() => setImages((prev) => { const n = new Map(prev); n.delete(product.id); return n; })}
                       style={{
                         width: 36,
                         height: 36,
                         borderRadius: 8,
                         marginRight: 12,
+                        backgroundColor: colors.border,
                       }}
                     />
+                  ) : (
+                    <View
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 8,
+                        marginRight: 12,
+                        backgroundColor: colors.border + "66",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      }}
+                    >
+                      <IconSymbol name="photo" size={14} color={colors.muted} />
+                    </View>
                   )}
                   <View style={{ flex: 1, marginRight: 8 }}>
                     <Text
@@ -414,6 +432,7 @@ export default function HomeScreen() {
                         fontSize: 14,
                       }}
                       numberOfLines={1}
+                      ellipsizeMode="tail"
                     >
                       {product.name}
                     </Text>
@@ -423,6 +442,8 @@ export default function HomeScreen() {
                         fontSize: 12,
                         marginTop: 2,
                       }}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
                     >
                       {product.modelNumber}
                     </Text>
@@ -489,7 +510,7 @@ export default function HomeScreen() {
                   }}
                   onPress={() => router.push(`/product/${product.id}`)}
                 >
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, marginRight: 8 }}>
                     <Text
                       style={{
                         color: colors.foreground,
@@ -497,6 +518,7 @@ export default function HomeScreen() {
                         fontSize: 14,
                       }}
                       numberOfLines={1}
+                      ellipsizeMode="tail"
                     >
                       {product.name}
                     </Text>
@@ -506,6 +528,8 @@ export default function HomeScreen() {
                         fontSize: 12,
                         marginTop: 2,
                       }}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
                     >
                       {product.brand} · {product.category}
                     </Text>

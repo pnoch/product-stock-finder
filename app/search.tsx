@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, memo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -171,6 +171,16 @@ export default function SearchScreen() {
     [router, trackedIds, adding, pendingTags, loadData, showToast],
   );
 
+  const handleTagPress = useCallback((p: Product) => {
+    setPickerItem({
+      ...p,
+      addedAt: new Date().toISOString(),
+      isWatched: false,
+      listings: [],
+      tags: pendingTags[p.id] ?? [],
+    });
+  }, [pendingTags]);
+
   return (
     <ScreenContainer>
       {/* Header */}
@@ -263,11 +273,12 @@ export default function SearchScreen() {
       <FlatList showsVerticalScrollIndicator={true}
         data={tagFilteredResults}
         keyExtractor={(item) => item.id}
-        initialNumToRender={20}
-        windowSize={7}
-        maxToRenderPerBatch={10}
+        initialNumToRender={10}
+        windowSize={5}
+        maxToRenderPerBatch={8}
         updateCellsBatchingPeriod={50}
         removeClippedSubviews
+        getItemLayout={(_data, index) => ({ length: 90, offset: 90 * index, index })}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         ListHeaderComponent={
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -285,7 +296,7 @@ export default function SearchScreen() {
                 : "All Products"}
             </Text>
             {query.trim().length > 0 && tagFilteredResults.length > 0 && (
-              <View style={{ backgroundColor: colors.primary + "14", borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 }}>
+              <View style={{ backgroundColor: colors.primary + "14", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}>
                 <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>{tagFilteredResults.length}</Text>
               </View>
             )}
@@ -343,14 +354,8 @@ export default function SearchScreen() {
             product={item as Product}
             isTracked={trackedIds.has(item.id)}
             isAdding={adding === item.id}
-            onAdd={(p) => handleAdd(p)}
-            onTagPress={(p) => setPickerItem({
-              ...p,
-              addedAt: new Date().toISOString(),
-              isWatched: false,
-              listings: [],
-              tags: pendingTags[p.id] ?? [],
-            })}
+            onAdd={handleAdd}
+            onTagPress={handleTagPress}
           />
         )}
       />

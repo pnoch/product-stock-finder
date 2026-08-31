@@ -76,7 +76,7 @@ export function ChartCard({
               >
                 <Text
                   style={{
-                    color: active ? "#fff" : colors.muted,
+                    color: active ? "#fff" : colors.foreground,
                     fontSize: 11,
                     fontWeight: "600",
                   }}

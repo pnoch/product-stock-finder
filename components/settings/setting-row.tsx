@@ -42,7 +42,7 @@ export function SettingRow({
       </View>
       <View style={{ flex: 1 }}>
         <Text
-          style={{ color: colors.foreground, fontWeight: "500", fontSize: 15 }}
+          style={{ color: colors.foreground, fontWeight: "600", fontSize: 15 }}
         >
           {label}
         </Text>

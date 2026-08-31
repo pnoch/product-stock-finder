@@ -96,7 +96,7 @@ function BestDistributorCard({
       >
         <View
           style={{
-            backgroundColor: "#F59E0B",
+            backgroundColor: colors.warning,
             borderRadius: 8,
             paddingHorizontal: 8,
             paddingVertical: 3,

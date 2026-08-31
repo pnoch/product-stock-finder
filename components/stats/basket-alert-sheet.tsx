@@ -51,6 +51,7 @@ export const BasketAlertSheet = memo(function BasketAlertSheet({
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
         }}
+        accessibilityViewIsModal
       >
         <View
           style={{
@@ -59,6 +60,7 @@ export const BasketAlertSheet = memo(function BasketAlertSheet({
             borderTopRightRadius: 24,
             padding: 24,
           }}
+          accessibilityViewIsModal
         >
           <Text
             style={{
@@ -126,6 +128,7 @@ export const BasketAlertSheet = memo(function BasketAlertSheet({
               }}
               accessibilityLabel="Enable basket alert"
               accessibilityRole="button"
+              accessibilityState={{ disabled: !valid }}
             >
               <Text style={{ color: "#fff", fontWeight: "600" }}>Enable</Text>
             </TouchableOpacity>
