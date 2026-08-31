@@ -9,12 +9,22 @@ import type {
 
 const DAY = 86400000;
 
+function toLocalDateKey(ts: number): string {
+  return new Date(ts).toLocaleDateString("en-CA");
+}
+
 // Trailing `days` grid ending today: leading blanks for weekday offset,
-// then one cell per day.
+// then one cell per day anchored to local midnight.
 function buildGridCells(days: number, now: number): (number | null)[] {
   const cells: (number | null)[] = [];
-  const startTs = now - (days - 1) * DAY;
-  const startOffset = new Date(startTs).getUTCDay(); // 0=Sun
+  const nowDate = new Date(now);
+  const todayMidnight = new Date(
+    nowDate.getFullYear(),
+    nowDate.getMonth(),
+    nowDate.getDate(),
+  ).getTime();
+  const startTs = todayMidnight - (days - 1) * DAY;
+  const startOffset = new Date(startTs).getDay(); // local 0=Sun
   for (let i = 0; i < startOffset; i++) cells.push(null);
   for (let i = 0; i < days; i++) cells.push(startTs + i * DAY);
   return cells;
@@ -38,16 +48,16 @@ export const DropCalendarCard = memo(function DropCalendarCard({
   );
   const handleSelect = useCallback(
     (ts: number) => {
-      const key = new Date(ts).toISOString().slice(0, 10);
+      const key = toLocalDateKey(ts);
       setSelectedKey((prev) => (prev === key ? null : key));
     },
     [],
   );
 
   const cellStyle = (ts: number) => {
-    const key = new Date(ts).toISOString().slice(0, 10);
+    const key = toLocalDateKey(ts);
     const day = result.byDay.get(key);
-    const isToday = key === new Date(now).toISOString().slice(0, 10);
+    const isToday = key === toLocalDateKey(now);
     const base = {
       width: 34,
       height: 34,
@@ -116,7 +126,7 @@ export const DropCalendarCard = memo(function DropCalendarCard({
               accessibilityRole="button"
             >
               <Text style={{ color: colors.foreground, fontSize: 11 }}>
-                {new Date(ts).getUTCDate()}
+                {new Date(ts).getDate()}
               </Text>
             </TouchableOpacity>
           ),

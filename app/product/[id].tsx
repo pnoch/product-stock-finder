@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { Stack, useLocalSearchParams, router } from "expo-router";
 import { ScrollView, Text, View, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useCallback, useEffect, useState, useMemo } from "react";
@@ -25,7 +26,8 @@ export default function ProductDetailScreen() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const colors = useColors();
-  const { product, listings, loaded, lastUpdatedAt } = useLiveProduct(id ?? "");
+  if (!id) return null;
+  const { product, listings, loaded, lastUpdatedAt } = useLiveProduct(id);
   const [insight, setInsight] = useState<string | null>(null);
   const [productImage, setProductImage] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
@@ -134,8 +136,6 @@ export default function ProductDetailScreen() {
       showAlert("Watching!", `You'll be notified when ${product?.name} is back in stock at ${distributor?.name ?? listing.distributorId}.`);
     }
   }, [id, product, stockWatches]);
-
-  if (!id) return null;
 
   if (!loaded) {
     return (

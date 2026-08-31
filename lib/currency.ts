@@ -32,7 +32,15 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
 let liveRates: Record<string, number> | null = null;
 
 export function setExchangeRates(rates: Record<string, number> | null): void {
-  liveRates = rates;
+  if (rates === null) {
+    liveRates = null;
+    return;
+  }
+  const filtered: Record<string, number> = {};
+  for (const [k, v] of Object.entries(rates)) {
+    if (Number.isFinite(v) && v > 0) filtered[k] = v;
+  }
+  liveRates = Object.keys(filtered).length > 0 ? filtered : null;
 }
 
 function effectiveRates(): Record<string, number> {
@@ -48,6 +56,8 @@ export function convertPrice(
   if (!(fromCurrency in rates) || !(toCurrency in rates)) return null;
   const fromRate = rates[fromCurrency];
   const toRate = rates[toCurrency];
+  if (!Number.isFinite(fromRate) || !Number.isFinite(toRate)) return null;
+  if (fromRate === 0 || fromRate <= 0 || toRate <= 0) return null;
   return (amount / fromRate) * toRate;
 }
 

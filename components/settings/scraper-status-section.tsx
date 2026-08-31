@@ -4,6 +4,7 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
+import { useMemo } from "react";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
@@ -40,7 +41,7 @@ export function ScraperStatusSection({
   const colors = useColors();
   const router = useRouter();
 
-  const distributorStatuses = (() => {
+  const distributorStatuses = useMemo(() => {
     const statuses: Record<
       string,
       {
@@ -80,7 +81,7 @@ export function ScraperStatusSection({
     }
 
     return statuses;
-  })();
+  }, [products]);
 
   return (
     <>

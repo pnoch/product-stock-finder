@@ -149,12 +149,12 @@ export default function SettingsScreen() {
     async (distributorId: string) => {
       if (Platform.OS !== "web")
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const now = new Date().toISOString();
+      const nowIso = new Date().toISOString();
       for (const product of products) {
         if (!product.listings) continue;
         const updatedListings: DistributorListing[] = product.listings.map(
           (l) =>
-            l.distributorId === distributorId ? { ...l, lastChecked: now } : l,
+            l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
         );
         const changed = updatedListings.some(
           (l, i) => l.lastChecked !== product.listings[i].lastChecked,
@@ -167,7 +167,7 @@ export default function SettingsScreen() {
         prev.map((p) => ({
           ...p,
           listings: p.listings?.map((l) =>
-            l.distributorId === distributorId ? { ...l, lastChecked: now } : l,
+            l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
           ),
         })),
       );

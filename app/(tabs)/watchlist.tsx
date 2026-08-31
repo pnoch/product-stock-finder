@@ -314,14 +314,20 @@ export default function WatchlistScreen() {
     }
   }, [watchlist.length, reload, refreshAll, loadData]);
 
+  const persistChainRef = useRef(Promise.resolve<void>(undefined));
   const persistViewPrefs = useCallback(
     async (sort: WatchlistSort, group: WatchlistGroup) => {
-      const settings = await getSettings();
-      await saveSettings({
-        ...settings,
-        watchlistSort: sort,
-        watchlistGroup: group,
-      });
+      persistChainRef.current = persistChainRef.current
+        .then(async () => {
+          const settings = await getSettings();
+          await saveSettings({
+            ...settings,
+            watchlistSort: sort,
+            watchlistGroup: group,
+          });
+        })
+        .catch((e) => console.error("[Watchlist] persistViewPrefs failed", e));
+      await persistChainRef.current;
     },
     [],
   );

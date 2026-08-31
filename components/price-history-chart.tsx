@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { PricePoint } from "@/lib/types";
@@ -26,6 +26,7 @@ export function PriceHistoryChart({
 }) {
   const colors = useColors();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  useEffect(() => setSelectedIndex(null), [data]);
   const points = useMemo(() => {
     if (!data || data.length < 2) return null;
     if (width < 80 || height < 60) return null;

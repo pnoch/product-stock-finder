@@ -68,7 +68,10 @@ export function pruneHealthHistory(
 ): HealthSample[] {
   const cutoff = now - HISTORY_MAX_AGE_MS;
   const fresh = samples.filter((s) => new Date(s.at).getTime() >= cutoff);
-  return fresh.slice(-HISTORY_MAX_SAMPLES);
+  const sorted = [...fresh].sort(
+    (a, b) => new Date(a.at).getTime() - new Date(b.at).getTime(),
+  );
+  return sorted.slice(-HISTORY_MAX_SAMPLES);
 }
 
 export interface HealthStats {
@@ -252,7 +255,14 @@ export function createHealthService(adapter: StorageAdapter) {
       const raw = await adapter.getItem(HEALTH_HISTORY_KEY);
       if (!raw) return {};
       const parsed = JSON.parse(raw);
-      return parsed && typeof parsed === "object" ? parsed : {};
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+      const history: HealthHistory = {};
+      for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+        if (Array.isArray(value)) {
+          history[key] = value as HealthSample[];
+        }
+      }
+      return history;
     } catch {
       return {};
     }

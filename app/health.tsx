@@ -286,14 +286,20 @@ export default function HealthScreen() {
             </TouchableOpacity>
           );
         })}
-        {filtered.length === 0 && (
+        {health.length === 0 ? (
           <Text
             style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}
           >
             No distributor health data. Tap &quot;Test All Distributors&quot; to
             run a check.
           </Text>
-        )}
+        ) : filtered.length === 0 ? (
+          <Text
+            style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}
+          >
+            No distributors match the selected filter.
+          </Text>
+        ) : null}
       </ScrollView>
     </ScreenContainer>
   );

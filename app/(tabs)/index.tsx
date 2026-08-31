@@ -36,9 +36,13 @@ function SummaryCard({
   color: string;
   icon: string;
 }) {
+  const colors = useColors();
   return (
     <View className="flex-1 bg-surface rounded-2xl p-4 border border-border mx-1">
-      <Text style={{ color, fontSize: 24, fontWeight: "700" }}>{value}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <IconSymbol name={icon as never} size={20} color={colors.muted} />
+        <Text style={{ color, fontSize: 24, fontWeight: "700" }}>{value}</Text>
+      </View>
       <Text className="text-muted text-xs mt-1">{label}</Text>
     </View>
   );
