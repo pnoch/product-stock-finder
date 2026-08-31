@@ -152,6 +152,8 @@ export function Compare() {
   const [timeRange, setTimeRange] = useState("all");
   const [sortBy, setSortBy] = useState<"name" | "price">("name");
   const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const selectionInitialized = useRef<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -165,24 +167,72 @@ export function Compare() {
     });
   }, [id]);
 
+  useEffect(() => {
+    if (!product || selectionInitialized.current === product.id) return;
+    selectionInitialized.current = product.id;
+    const withHistory = product.listings.filter(
+      (l) => l.priceHistory && l.priceHistory.length >= 2,
+    );
+    setSelected(new Set(withHistory.slice(0, 3).map((l) => l.distributorId)));
+  }, [product]);
+
+  const toggleSelect = useCallback((distributorId: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(distributorId)) {
+        next.delete(distributorId);
+      } else if (next.size < 5) {
+        next.add(distributorId);
+      }
+      return next;
+    });
+  }, []);
+
   const timeRangeTyped = useMemo(() => toTimeRange(timeRange), [timeRange]);
 
   const chartSeries = useMemo(() => {
     if (!product) return [];
     const range = timeRangeTyped;
-    return product.listings
-      .filter((l) => l.priceHistory && l.priceHistory.length >= 2)
-      .map((l) => {
-        const distributor = getDistributorById(l.distributorId);
-        const filtered = filterByRange(l.priceHistory, range);
-        const colorIdx = product.listings.findIndex((x) => x.distributorId === l.distributorId);
-        return {
-          label: distributor?.name ?? l.distributorId,
-          color: CHART_COLORS[colorIdx % CHART_COLORS.length],
-          data: (filtered.length >= 2 ? filtered : l.priceHistory) as { price: number; currency: string; date: string }[],
-        };
+    const selectedIds = selected;
+    const list = product.listings.filter(
+      (l) =>
+        selectedIds.has(l.distributorId) &&
+        l.priceHistory &&
+        l.priceHistory.length >= 2,
+    );
+    return list.map((l) => {
+      const distributor = getDistributorById(l.distributorId);
+      const filtered = filterByRange(l.priceHistory, range);
+      const colorIdx = Array.from(selectedIds).indexOf(l.distributorId);
+      return {
+        label: distributor?.name ?? l.distributorId,
+        color: CHART_COLORS[(colorIdx >= 0 ? colorIdx : 0) % CHART_COLORS.length],
+        data: (filtered.length >= 2 ? filtered : l.priceHistory) as { price: number; currency: string; date: string }[],
+      };
+    });
+  }, [product, timeRangeTyped, selected]);
+
+  const priceTrends = useMemo(() => {
+    if (!product) return new Map<string, { pct: number; dir: "up" | "down" | "flat" }>();
+    const map = new Map<string, { pct: number; dir: "up" | "down" | "flat" }>();
+    for (const l of product.listings) {
+      if (!l.priceHistory || l.priceHistory.length < 2) {
+        map.set(l.distributorId, { pct: 0, dir: "flat" });
+        continue;
+      }
+      const sorted = [...l.priceHistory].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      );
+      const oldest = sorted[0].price;
+      const current = l.price;
+      const pct = oldest > 0 ? ((current - oldest) / oldest) * 100 : 0;
+      map.set(l.distributorId, {
+        pct: Math.abs(pct),
+        dir: pct > 0.5 ? "up" : pct < -0.5 ? "down" : "flat",
       });
-  }, [product, timeRangeTyped]);
+    }
+    return map;
+  }, [product]);
 
   const sortedListings = useMemo(() => {
     if (!product) return [];
@@ -265,6 +315,70 @@ export function Compare() {
         </div>
       )}
 
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Select Distributors ({selected.size}/5)
+          </h2>
+          <span className="text-xs text-gray-400">
+            {sortedListings.filter((l) => l.priceHistory && l.priceHistory.length >= 2).length} with history
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {sortedListings.map((listing) => {
+            const distributor = getDistributorById(listing.distributorId);
+            const isSelected = selected.has(listing.distributorId);
+            const hasHistory = listing.priceHistory && listing.priceHistory.length >= 2;
+            const colorIdx = Array.from(selected).indexOf(listing.distributorId);
+            const chipColor = isSelected ? CHART_COLORS[colorIdx % CHART_COLORS.length] : "#d1d5db";
+            const trend = priceTrends.get(listing.distributorId);
+            const disabled = !hasHistory && !isSelected;
+            const atLimit = !isSelected && selected.size >= 5;
+            return (
+              <button
+                key={listing.distributorId}
+                onClick={() => toggleSelect(listing.distributorId)}
+                disabled={disabled || atLimit}
+                aria-pressed={isSelected}
+                aria-label={`${isSelected ? "Deselect" : "Select"} ${distributor?.name ?? listing.distributorId}`}
+                className={`inline-flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium border transition-colors ${
+                  isSelected
+                    ? "text-white border-transparent"
+                    : disabled || atLimit
+                      ? "bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-60"
+                      : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                }`}
+                style={isSelected ? { backgroundColor: chipColor, borderColor: chipColor } : undefined}
+              >
+                <span
+                  className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 border"
+                  style={{
+                    backgroundColor: isSelected ? "#fff" : "transparent",
+                    borderColor: isSelected ? "#fff" : chipColor,
+                  }}
+                >
+                  {isSelected && <Check className="w-3 h-3" style={{ color: chipColor }} />}
+                </span>
+                <span>{distributor?.countryFlag}</span>
+                <span>{distributor?.name ?? listing.distributorId}</span>
+                <span className={`ml-1 ${isSelected ? "text-white/90" : "text-gray-500 dark:text-gray-400"}`}>
+                  {formatPrice(listing.price, listing.currency)}
+                </span>
+                {trend && trend.dir !== "flat" && (
+                  <span className={`text-[10px] font-bold ${isSelected ? "text-white" : trend.dir === "down" ? "text-emerald-600" : "text-red-500"}`}>
+                    {trend.dir === "down" ? "▼" : "▲"} {trend.pct.toFixed(1)}%
+                  </span>
+                )}
+                {!hasHistory && <span className="text-[10px] opacity-70">(no history)</span>}
+              </button>
+            );
+          })}
+        </div>
+        {selected.size >= 5 && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">Maximum 5 distributors selected.</p>
+        )}
+      </div>
+
       {chartSeries.length > 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
           <h2 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">
@@ -286,9 +400,15 @@ export function Compare() {
           <div className="text-gray-300 dark:text-gray-600 mb-3">
             <GitCompareArrows className="w-10 h-10 mx-auto" />
           </div>
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">No price history yet</h3>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            {sortedListings.filter((l) => l.priceHistory && l.priceHistory.length >= 2).length === 0
+              ? "No price history yet"
+              : "Select distributors to compare"}
+          </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm">
-            Price points will appear here once distributors have history. Try tracking more distributors or check back later.
+            {sortedListings.filter((l) => l.priceHistory && l.priceHistory.length >= 2).length === 0
+              ? "Price points will appear here once distributors have history. Try tracking more distributors or check back later."
+              : "Use the selector above to choose up to 5 distributors with price history."}
           </p>
         </div>
       )}

@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, useNavigate } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Sidebar } from "./components/Sidebar";
 import { SearchModal } from "./components/SearchModal";
+import { ConnectionBadge } from "./components/ConnectionBadge";
+import { useConnection } from "./hooks/use-connection";
 import { Home } from "./pages/Home";
 import { Watchlist } from "./pages/Watchlist";
 import { ProductDetail } from "./pages/ProductDetail";
@@ -25,6 +27,31 @@ import { setupSync, type SyncSetup } from "../../lib/sync";
 import { storage } from "./storage";
 import { getApiBaseUrl } from "./lib/api-base";
 import { syncDesktopNotifications } from "./server-notifications";
+
+function HeaderBar() {
+  const connection = useConnection();
+  const navigate = useNavigate();
+  return (
+    <div className="h-14 shrink-0 hidden lg:flex items-center px-6 border-b border-gray-200/60 dark:border-gray-700/60 bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm sticky top-0 z-10">
+      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+        Product Stock Finder
+      </span>
+      <div className="ml-auto flex items-center gap-3">
+        <ConnectionBadge
+          status={connection.status}
+          onPress={
+            connection.status === "signed-out"
+              ? () => navigate("/settings")
+              : undefined
+          }
+        />
+        <span className="text-xs text-gray-400 dark:text-gray-500">
+          Press ⌘K to search
+        </span>
+      </div>
+    </div>
+  );
+}
 
 function KeyboardShortcuts({
   searchModalOpen,
@@ -169,14 +196,7 @@ export default function App() {
             <Sidebar />
             <main className="flex-1 overflow-auto bg-gray-50/50 dark:bg-gray-900/20">
               <div className="min-h-full flex flex-col">
-                <div className="h-14 shrink-0 hidden lg:flex items-center px-6 border-b border-gray-200/60 dark:border-gray-700/60 bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm sticky top-0 z-10">
-                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Product Stock Finder
-                  </span>
-                  <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
-                    Press ⌘K to search
-                  </span>
-                </div>
+                <HeaderBar />
                 <div className="flex-1 w-full max-w-6xl mx-auto">
                   <Routes>
                     <Route path="/" element={<Home />} />
