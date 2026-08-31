@@ -16,6 +16,7 @@ import { getDistributorById } from "@/lib/distributors";
 import type { BackOrderReminder } from "@/lib/types";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SkeletonList } from "@/components/ui/skeleton";
+import { showAlert } from "@/lib/alert";
 
 const STATUS_LABELS: Record<string, string> = {
   in_stock: "In Stock",
@@ -45,15 +46,30 @@ export default function RestockWatchesScreen() {
     }, [loadWatches]),
   );
 
-  const handleRemove = useCallback(async (id: string) => {
-    if (Platform.OS !== "web")
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    try {
-      await removeStockWatch(id);
-      setWatches((prev) => prev.filter((w) => w.id !== id));
-    } catch {
-      // Ignore remove failures — the watch stays in the list
-    }
+  const handleRemove = useCallback((id: string, productName?: string) => {
+    showAlert(
+      "Remove Watch",
+      productName
+        ? `Stop watching for ${productName}? This cannot be undone.`
+        : "Remove this restock watch? This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            if (Platform.OS !== "web")
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            try {
+              await removeStockWatch(id);
+              setWatches((prev) => prev.filter((w) => w.id !== id));
+            } catch {
+              // Ignore remove failures — the watch stays in the list
+            }
+          },
+        },
+      ],
+    );
   }, []);
 
   return (
@@ -103,7 +119,12 @@ export default function RestockWatchesScreen() {
                     borderBottomColor: colors.border,
                   }}
                 >
-                  <View style={{ flex: 1 }}>
+                  <TouchableOpacity activeOpacity={0.7}
+                    accessibilityLabel={`View ${watch.productName}`}
+                    accessibilityRole="button"
+                    onPress={() => router.push(`/product/${watch.productId}`)}
+                    style={{ flex: 1 }}
+                  >
                     <Text
                       style={{
                         color: colors.foreground,
@@ -127,12 +148,12 @@ export default function RestockWatchesScreen() {
                       {STATUS_LABELS[watch.lastKnownStatus ?? "unknown"] ??
                         "Unknown"}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                   <TouchableOpacity activeOpacity={0.7}
                     accessibilityLabel={`Remove ${watch.productName} restock watch`}
                     accessibilityRole="button"
                     accessibilityHint="Removes this product from your restock watches"
-                    onPress={() => handleRemove(watch.id)}
+                    onPress={() => handleRemove(watch.id, watch.productName)}
                     style={{ padding: 8 }}
                   >
                     <Text style={{ color: colors.error, fontSize: 13 }}>

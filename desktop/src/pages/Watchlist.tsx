@@ -8,6 +8,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Search,
 } from "lucide-react";
 import { useWatchlist, useSettings } from "../hooks/use-storage";
 import { storage } from "../storage";
@@ -80,6 +81,7 @@ export function Watchlist() {
   const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagMatchMode, setTagMatchMode] = useState<"any" | "all">("any");
+  const [query, setQuery] = useState("");
   const regions = useMemo(() => getAllRegions(), []);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -123,8 +125,16 @@ export function Watchlist() {
     if (selectedTagIds.length > 0) {
       result = result.filter((p) => matchesTagFilterMode(p, selectedTagIds, tagMatchMode));
     }
+    if (query.trim()) {
+      const q = query.trim().toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.modelNumber.toLowerCase().includes(q),
+      );
+    }
     return result;
-  }, [filteredProducts, filter, selectedTagIds, tagMatchMode]);
+  }, [filteredProducts, filter, selectedTagIds, tagMatchMode, query]);
 
   const tagCounts = useMemo(
     () =>
@@ -338,6 +348,18 @@ export function Watchlist() {
         onChangeMode={setTagMatchMode}
         onClearAll={() => setSelectedTagIds([])}
       />
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by name or model number..."
+          className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+          aria-label="Search watchlist"
+        />
+      </div>
 
       <div
         ref={scrollRef}

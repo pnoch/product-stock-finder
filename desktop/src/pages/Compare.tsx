@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams } from "react-router";
 import { storage } from "../storage";
 import { formatPrice, convertPrice, CURRENCY_SYMBOLS } from "../../../lib/currency";
@@ -15,6 +15,7 @@ import {
   TrendingDown,
   TrendingUp,
   Minus,
+  Check,
 } from "lucide-react";
 
 const CHART_COLORS = [

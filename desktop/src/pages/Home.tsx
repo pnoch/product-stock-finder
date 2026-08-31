@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import {
   Package,
   TrendingUp,
@@ -7,33 +7,51 @@ import {
   Plus,
   ArrowRight,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useWatchlist, useAlerts } from "../hooks/use-storage";
 import { formatPrice, getBestPrice } from "../../../lib/currency";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { storage } from "../storage";
+import { getDistributorById } from "../../../lib/distributors";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
 import { TrendingSection } from "../components/TrendingSection";
 import { ProductImage } from "../components/ProductImage";
+import type { StockStatus } from "../../../lib/types";
+
+const STOCK_ORDER: Record<StockStatus, number> = {
+  in_stock: 0,
+  back_order: 1,
+  out_of_stock: 2,
+  unknown: 3,
+};
+
+function getBestStatus(
+  listings: { stockStatus: StockStatus }[],
+): StockStatus {
+  if (!listings.length) return "unknown";
+  const sorted = [...listings].sort(
+    (a, b) => STOCK_ORDER[a.stockStatus] - STOCK_ORDER[b.stockStatus],
+  );
+  return sorted[0]!.stockStatus;
+}
 
 function StatCard({
   icon,
   label,
   value,
   delay = 0,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number | string;
   delay?: number;
+  onClick?: () => void;
 }) {
-  return (
-    <div
-      className="flex items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-200 dark:hover:border-brand-700 hover:shadow-sm transition-all duration-200 animate-fadeIn cursor-pointer"
-      style={{ animationDelay: `${delay}ms` }}
-    >
+  const content = (
+    <>
       <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400">
         {icon}
       </div>
@@ -41,6 +59,27 @@ function StatCard({
         <p className="text-2xl font-bold">{value}</p>
         <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
       </div>
+    </>
+  );
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        role="button"
+        className="flex items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-200 dark:hover:border-brand-700 hover:shadow-sm transition-all duration-200 animate-fadeIn cursor-pointer text-left w-full"
+        style={{ animationDelay: `${delay}ms` }}
+        aria-label={label}
+      >
+        {content}
+      </button>
+    );
+  }
+  return (
+    <div
+      className="flex items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-200 dark:hover:border-brand-700 hover:shadow-sm transition-all duration-200 animate-fadeIn"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      {content}
     </div>
   );
 }
@@ -49,11 +88,17 @@ export function Home() {
   const { products, loading: watchlistLoading } = useWatchlist();
   const { alerts, loading: alertsLoading } = useAlerts();
   const [reminderCount, setReminderCount] = useState(0);
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const navigate = useNavigate();
 
   useEffect(() => {
     storage
       .getBackOrderReminders()
       .then((r) => setReminderCount(r.length))
+      .catch(() => {});
+    storage
+      .getSettings()
+      .then((s) => setDisplayCurrency(s?.displayCurrency ?? "USD"))
       .catch(() => {});
   }, []);
 
@@ -67,13 +112,20 @@ export function Home() {
 
   const activeAlerts = alerts.filter((a) => a.isActive).length;
 
-  const recentProducts = [...products]
-    .sort((a, b) => {
-      const aTime = a.lastRefreshed ?? a.addedAt;
-      const bTime = b.lastRefreshed ?? b.addedAt;
-      return new Date(bTime).getTime() - new Date(aTime).getTime();
-    })
-    .slice(0, 5);
+  const recentActivity = useMemo(() => {
+    return products
+      .flatMap((p) => (p.listings ?? []).map((l) => ({ product: p, listing: l })))
+      .sort((a, b) => {
+        const aTime = isNaN(new Date(a.listing.lastChecked).getTime())
+          ? 0
+          : new Date(a.listing.lastChecked).getTime();
+        const bTime = isNaN(new Date(b.listing.lastChecked).getTime())
+          ? 0
+          : new Date(b.listing.lastChecked).getTime();
+        return bTime - aTime;
+      })
+      .slice(0, 5);
+  }, [products]);
 
   if (products.length === 0) {
     return (
@@ -115,24 +167,28 @@ export function Home() {
           label="Total Tracked"
           value={products.length}
           delay={0}
+          onClick={() => navigate("/watchlist")}
         />
         <StatCard
           icon={<TrendingUp className="w-5 h-5" />}
           label="In Stock"
           value={inStockCount}
           delay={80}
+          onClick={() => navigate("/watchlist")}
         />
         <StatCard
           icon={<Bell className="w-5 h-5" />}
           label="Alerts Active"
           value={activeAlerts}
           delay={160}
+          onClick={() => navigate("/alerts")}
         />
         <StatCard
           icon={<Clock className="w-5 h-5" />}
           label="Reminders"
           value={reminderCount}
           delay={240}
+          onClick={() => navigate("/alerts")}
         />
       </div>
 
@@ -141,42 +197,32 @@ export function Home() {
       <div>
         <h2 className="text-lg font-semibold mb-3">Recent Activity</h2>
         <div className="space-y-2">
-          {recentProducts.map((product, idx) => {
-            const best = getBestPrice(product.listings, "USD");
-            const listing = product.listings.find(
-              (l) =>
-                best && l.price === best.price && l.currency === best.currency,
-            );
-            const refreshed = product.lastRefreshed ?? product.addedAt;
-            const timeAgo = formatLastRefreshed(refreshed);
-
+          {recentActivity.map(({ product, listing }, idx) => {
+            const distributor = getDistributorById(listing.distributorId);
+            const timeAgo = formatLastRefreshed(listing.lastChecked);
             return (
               <Link
-                key={product.id}
+                key={`${product.id}-${listing.distributorId}-${idx}`}
                 to={`/product/${product.id}`}
                 className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 hover:shadow-sm transition-all duration-200 cursor-pointer animate-fadeIn"
                 style={{ animationDelay: `${150 + idx * 60}ms` } as React.CSSProperties}
                 role="button"
-                aria-label={`View ${product.name} details`}
+                aria-label={`View ${product.name} at ${distributor?.name ?? listing.distributorId} details`}
               >
                 <div className="flex items-center flex-1 min-w-0">
                   <ProductImage productId={product.id} size={36} />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{product.name}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {product.brand} · {product.modelNumber}
+                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                      {product.brand} · {product.modelNumber} · {distributor ? `${distributor.countryFlag} ${distributor.name}` : listing.distributorId}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 ml-4">
-                  {best ? (
-                    <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                      {formatPrice(best.price, best.currency)}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-gray-400">No price</span>
-                  )}
-                  {listing && <StockBadge status={listing.stockStatus} />}
+                  <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                    {formatPrice(listing.price, listing.currency)}
+                  </span>
+                  <StockBadge status={listing.stockStatus} />
                   <span className="text-xs text-gray-400 whitespace-nowrap">
                     {timeAgo}
                   </span>
@@ -187,6 +233,51 @@ export function Home() {
           })}
         </div>
       </div>
+
+      {products.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">Your Watchlist</h2>
+            <Link
+              to="/watchlist"
+              className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline"
+              aria-label={`View all ${products.length} products`}
+            >
+              View all {products.length} →
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {products.slice(0, 3).map((product) => {
+              const bestPrice = getBestPrice(product.listings ?? [], displayCurrency);
+              const bestStatus = getBestStatus(product.listings ?? []);
+              return (
+                <Link
+                  key={product.id}
+                  to={`/product/${product.id}`}
+                  className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 hover:shadow-sm transition-all duration-200"
+                  aria-label={`View ${product.name} details`}
+                >
+                  <ProductImage productId={product.id} size={44} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{product.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {product.brand} · {product.modelNumber}
+                    </p>
+                    {bestPrice ? (
+                      <p className="text-sm font-semibold text-brand-600 dark:text-brand-400 mt-1">
+                        {formatPrice(bestPrice.price, bestPrice.currency)}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-400 mt-1">No price</p>
+                    )}
+                  </div>
+                  <StockBadge status={bestStatus} />
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
