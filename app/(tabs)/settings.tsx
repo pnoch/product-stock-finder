@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, View, Platform } from "react-native";
+import { ScrollView, Text, View, Platform, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
@@ -56,6 +56,8 @@ export default function SettingsScreen() {
   const [now, setNow] = useState(() => Date.now());
   const [syncing, setSyncing] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [reenabling, setReenabling] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -110,13 +112,24 @@ export default function SettingsScreen() {
   }, []);
 
   useEffect(() => {
-    getSettings()
-      .then(setSettings)
-      .catch((e) => console.error("[Settings] getSettings failed", e));
-    getWatchlist()
-      .then(setProducts)
-      .catch((e) => console.error("[Settings] getWatchlist failed", e));
-    void maybeRefreshFxRates();
+    let cancelled = false;
+    (async () => {
+      try {
+        const [s, p] = await Promise.all([getSettings(), getWatchlist()]);
+        if (!cancelled) {
+          setSettings(s);
+          setProducts(p);
+        }
+      } catch (e) {
+        console.error("[Settings] load failed", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+      void maybeRefreshFxRates();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const updateSetting = useCallback(
@@ -153,32 +166,37 @@ export default function SettingsScreen() {
 
   const handleReenableDistributor = useCallback(
     async (distributorId: string) => {
+      if (reenabling) return;
       if (Platform.OS !== "web")
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const nowIso = new Date().toISOString();
-      for (const product of products) {
-        if (!product.listings) continue;
-        const updatedListings: DistributorListing[] = product.listings.map(
-          (l) =>
-            l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
+      setReenabling(true);
+      try {
+        const nowIso = new Date().toISOString();
+        const tasks = products
+          .filter((p) => p.listings?.some((l) => l.distributorId === distributorId))
+          .map((product) => {
+            const updatedListings: DistributorListing[] = product.listings.map((l) =>
+              l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
+            );
+            return updateProductListings(product.id, updatedListings);
+          });
+        await Promise.all(tasks);
+        setProducts((prev) =>
+          prev.map((p) => ({
+            ...p,
+            listings: p.listings?.map((l) =>
+              l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
+            ),
+          })),
         );
-        const changed = updatedListings.some(
-          (l, i) => l.lastChecked !== product.listings[i].lastChecked,
-        );
-        if (changed) {
-          await updateProductListings(product.id, updatedListings);
-        }
+      } catch (e) {
+        console.error("[Settings] handleReenableDistributor failed", e);
+        showAlert("Failed", "Could not re-enable distributor. Please try again.");
+      } finally {
+        setReenabling(false);
       }
-      setProducts((prev) =>
-        prev.map((p) => ({
-          ...p,
-          listings: p.listings?.map((l) =>
-            l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
-          ),
-        })),
-      );
     },
-    [products],
+    [products, reenabling],
   );
 
   const currencies = [
@@ -207,11 +225,16 @@ export default function SettingsScreen() {
     { value: "hourly", label: "Every hour" },
     { value: "daily", label: "Once a day" },
   ];
-  const digestFrequencies = [
-    { value: "off", label: "Off" },
-    { value: "daily", label: "Daily" },
-    { value: "weekly", label: "Weekly" },
-  ];
+
+  if (loading) {
+    return (
+      <ScreenContainer>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>
@@ -327,31 +350,6 @@ export default function SettingsScreen() {
               updateSetting(
                 "checkInterval",
                 v as AppSettings["checkInterval"],
-              )
-            }
-          />
-        </View>
-
-        <SectionHeader title="Price Digest" />
-        <View
-          style={{
-            backgroundColor: colors.surface,
-            borderRadius: 16,
-            marginHorizontal: 16,
-            borderWidth: 1,
-            borderColor: colors.border,
-            overflow: "hidden",
-          }}
-        >
-          <RadioPicker
-            icon="envelope.fill"
-            label="Price Digest"
-            options={digestFrequencies}
-            value={settings.digestFrequency ?? "off"}
-            onSelect={(v) =>
-              updateSetting(
-                "digestFrequency",
-                v as AppSettings["digestFrequency"],
               )
             }
           />

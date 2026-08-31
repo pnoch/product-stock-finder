@@ -33,6 +33,7 @@ export function useAlertsData() {
   const [stockWatches, setStockWatches] = useState<BackOrderReminder[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const [rescheduleTarget, setRescheduleTarget] =
@@ -41,18 +42,22 @@ export function useAlertsData() {
   const [showReschedulePicker, setShowReschedulePicker] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [a, p, r, w, n] = await Promise.all([
-      getAlerts(),
-      getWatchlist(),
-      getBackOrderReminders(),
-      getStockWatches(),
-      getUnreadNotificationCount(),
-    ]);
-    setAlerts(a);
-    setProducts(p);
-    setReminders(r);
-    setStockWatches(w);
-    setUnreadNotifications(n);
+    try {
+      const [a, p, r, w, n] = await Promise.all([
+        getAlerts(),
+        getWatchlist(),
+        getBackOrderReminders(),
+        getStockWatches(),
+        getUnreadNotificationCount(),
+      ]);
+      setAlerts(a);
+      setProducts(p);
+      setReminders(r);
+      setStockWatches(w);
+      setUnreadNotifications(n);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -251,6 +256,7 @@ export function useAlertsData() {
     stockWatches,
     products,
     refreshing,
+    loading,
     onRefresh,
     unreadNotifications,
     setUnreadNotifications,

@@ -28,6 +28,7 @@ import { TriggeredAlertCard } from "@/components/alerts/triggered-alert-card";
 import { StockWatchCard } from "@/components/alerts/stock-watch-card";
 import { ReminderCard } from "@/components/alerts/reminder-card";
 import { RescheduleModal } from "@/components/alerts/reschedule-modal";
+import { SkeletonList } from "@/components/ui/skeleton";
 
 export default function AlertsScreen() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export default function AlertsScreen() {
     activeTab, setActiveTab,
     alerts, reminders, stockWatches,
     products,
-    refreshing, onRefresh,
+    refreshing, loading, onRefresh,
     setUnreadNotifications,
     handleToggle, handleDeleteAlert, handleDeleteReminder,
     handleSnoozeAlert, handleUpdateAlert,
@@ -87,6 +88,14 @@ export default function AlertsScreen() {
           };
         }) ?? []
     : [];
+
+  if (loading) {
+    return (
+      <ScreenContainer>
+        <SkeletonList count={4} />
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>
