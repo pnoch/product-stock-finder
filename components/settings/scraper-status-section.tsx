@@ -95,22 +95,24 @@ export function ScraperStatusSection({
           overflow: "hidden",
         }}
       >
-        {Object.entries(distributorStatuses).map(([id, status], idx) => {
-          const distributor = getDistributorById(id);
-          if (!distributor) return null;
-          const health = getDistributorHealth(status.lastSuccess, colors);
-          return (
-            <View
-              key={id}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                borderBottomWidth:
-                  idx < Object.keys(distributorStatuses).length - 1 ? 1 : 0,
-                borderBottomColor: colors.border,
-              }}
+        {(() => {
+          const entries = Object.entries(distributorStatuses).filter(([id]) =>
+            getDistributorById(id),
+          );
+          return entries.map(([id, status], idx) => {
+            const distributor = getDistributorById(id)!;
+            const health = getDistributorHealth(status.lastSuccess, colors);
+            return (
+              <View
+                key={id}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  borderBottomWidth: idx < entries.length - 1 ? 1 : 0,
+                  borderBottomColor: colors.border,
+                }}
             >
               <View style={{ flex: 1 }}>
                 <View
@@ -177,7 +179,8 @@ export function ScraperStatusSection({
               )}
             </View>
           );
-        })}
+          });
+        })()}
         {Object.keys(distributorStatuses).length === 0 && (
           <View style={{ paddingVertical: 20, paddingHorizontal: 16 }}>
             <Text

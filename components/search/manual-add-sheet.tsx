@@ -102,6 +102,9 @@ export function ManualAddSheet({
         setDraft({ ...EMPTY_DRAFT, name: text.slice(0, 200) });
         setAiFailed(true);
       }
+    } catch {
+      setDraft({ ...EMPTY_DRAFT, name: text.slice(0, 200) });
+      setAiFailed(true);
     } finally {
       setParsing(false);
     }

@@ -6,26 +6,33 @@ export function appendPricePoint(
   maxDays = 90,
   now = new Date().toISOString(),
 ): PricePoint[] {
+  if (Number.isNaN(Date.parse(point.date))) {
+    // Drop invalid incoming point; also prune invalid history entries
+    return history.filter((p) => !Number.isNaN(Date.parse(p.date)));
+  }
+  const validHistory = history.filter((p) => !Number.isNaN(Date.parse(p.date)));
   const day = point.date.slice(0, 10);
-  const existingIdx = history.findIndex((p) => p.date.slice(0, 10) === day);
+  const existingIdx = validHistory.findIndex((p) => p.date.slice(0, 10) === day);
 
   let result: PricePoint[];
   if (existingIdx >= 0) {
-    const existing = history[existingIdx];
+    const existing = validHistory[existingIdx];
     // Keep the newer point for the same day (full timestamp, not just day)
     result =
       point.date > existing.date
-        ? history.map((p, i) => (i === existingIdx ? point : p))
-        : history;
+        ? validHistory.map((p, i) => (i === existingIdx ? point : p))
+        : validHistory;
   } else {
-    result = [...history, point];
+    result = [...validHistory, point];
   }
 
   const cutoff = new Date(now);
   cutoff.setUTCDate(cutoff.getUTCDate() - maxDays);
   const cutoffDay = cutoff.toISOString().slice(0, 10);
 
-  return result.filter((p) => p.date.slice(0, 10) >= cutoffDay);
+  return result.filter(
+    (p) => !Number.isNaN(Date.parse(p.date)) && p.date.slice(0, 10) >= cutoffDay,
+  );
 }
 
 export function mergePriceHistory(
@@ -36,6 +43,7 @@ export function mergePriceHistory(
 ): PricePoint[] {
   const byDay = new Map<string, PricePoint>();
   for (const p of [...local, ...server]) {
+    if (Number.isNaN(Date.parse(p.date))) continue;
     const day = p.date.slice(0, 10);
     const existing = byDay.get(day);
     if (!existing || p.date > existing.date) byDay.set(day, p);
@@ -46,5 +54,7 @@ export function mergePriceHistory(
   const cutoff = new Date(now);
   cutoff.setUTCDate(cutoff.getUTCDate() - maxDays);
   const cutoffDay = cutoff.toISOString().slice(0, 10);
-  return merged.filter((p) => p.date.slice(0, 10) >= cutoffDay);
+  return merged.filter(
+    (p) => !Number.isNaN(Date.parse(p.date)) && p.date.slice(0, 10) >= cutoffDay,
+  );
 }

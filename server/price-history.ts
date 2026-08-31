@@ -1,4 +1,4 @@
-import { and, eq, lt } from "drizzle-orm";
+import { and, eq, lt, sql } from "drizzle-orm";
 import { priceHistory, type PriceHistoryRow } from "../drizzle/schema";
 import { getDb } from "./db";
 import type { PricePoint, PriceSnapshot, StockStatus } from "../lib/types";
@@ -70,29 +70,24 @@ export async function mergeHistory(
     memoryHistory.set(key, [...byDay.values()]);
     return;
   }
-  for (const p of points) {
-    const priceStr = p.price.toFixed(2);
-    const values = {
-      distributorId,
-      modelNumber,
-      date: dayOf(p.date),
-      price: priceStr,
-      currency: p.currency,
-      stockStatus: p.stockStatus,
-      fetchedAt: Date.parse(p.date),
-    };
-    await db
-      .insert(priceHistory)
-      .values(values)
-      .onDuplicateKeyUpdate({
-        set: {
-          price: priceStr,
-          currency: p.currency,
-          stockStatus: p.stockStatus,
-          fetchedAt: Date.parse(p.date),
-        },
-      });
-  }
+  const values = points.map((p) => ({
+    distributorId,
+    modelNumber,
+    date: dayOf(p.date),
+    price: p.price.toFixed(2),
+    currency: p.currency,
+    stockStatus: p.stockStatus,
+    fetchedAt: Date.parse(p.date),
+  }));
+  if (values.length === 0) return;
+  await db.insert(priceHistory).values(values).onDuplicateKeyUpdate({
+    set: {
+      price: sql`VALUES(price)`,
+      currency: sql`VALUES(currency)`,
+      stockStatus: sql`VALUES(stockStatus)`,
+      fetchedAt: sql`VALUES(fetchedAt)`,
+    },
+  });
 }
 
 export async function purgeOldHistory(now: number): Promise<void> {

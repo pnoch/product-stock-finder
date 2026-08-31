@@ -49,15 +49,13 @@ export async function runPriceCheckCore(opts?: {
           const updatedListings: DistributorListing[] = [];
 
           for (const listing of product.listings) {
+            if (Date.now() - startTime > TIME_BUDGET_MS) break;
             const updated = await refreshListing(
               product,
               listing,
               healthCollector,
             );
             updatedListings.push(updated);
-
-            // 2-second delay between scrapes
-            await new Promise((resolve) => setTimeout(resolve, 2000));
           }
 
           await updateProductListings(product.id, updatedListings);

@@ -24,8 +24,15 @@ export const TIME_RANGE_DAYS: Record<TimeRange, number> = {
 
 export function filterByRange(data: PricePoint[], range: TimeRange): PricePoint[] {
   if (range === "All") return data;
-  const cutoff = Date.now() - TIME_RANGE_DAYS[range] * 86400000;
-  return data.filter((p) => new Date(p.date).getTime() >= cutoff);
+  const anchor = Math.max(
+    ...data.map((p) => new Date(p.date).getTime()).filter((t) => !Number.isNaN(t)),
+    Date.now(),
+  );
+  const cutoff = anchor - TIME_RANGE_DAYS[range] * 86400000;
+  return data.filter((p) => {
+    const t = new Date(p.date).getTime();
+    return !Number.isNaN(t) && t >= cutoff;
+  });
 }
 
 export interface RegionBest {

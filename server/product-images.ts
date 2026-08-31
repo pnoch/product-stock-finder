@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { productImages } from "../drizzle/schema";
 import { PRODUCT_CATALOG } from "../lib/catalog";
 import { getDb } from "./db";
@@ -82,12 +82,18 @@ async function generateImageForProduct(
 }
 
 export async function listProductsMissingImage(): Promise<string[]> {
-  const missing: string[] = [];
-  for (const product of PRODUCT_CATALOG) {
-    const cached = await readCached(product.id);
-    if (!cached) missing.push(product.id);
+  const allIds = PRODUCT_CATALOG.map((p) => p.id);
+  if (allIds.length === 0) return [];
+  const db = await getDb();
+  if (!db) {
+    return allIds.filter((id) => !memoryImages.has(id));
   }
-  return missing;
+  const rows = await db
+    .select({ productId: productImages.productId })
+    .from(productImages)
+    .where(inArray(productImages.productId, allIds));
+  const existing = new Set(rows.map((r: { productId: string }) => r.productId));
+  return allIds.filter((id) => !existing.has(id));
 }
 
 export function clearImagesForTests(): void {

@@ -19,14 +19,20 @@ export function isPushSupported(): boolean {
 }
 
 export function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
-  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
-  const base64Url = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64Url);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
+  const input = base64.trim();
+  const padding = "=".repeat((4 - (input.length % 4)) % 4);
+  const base64Url = (input + padding).replace(/-/g, "+").replace(/_/g, "/");
+  if (typeof window !== "undefined" && window.atob) {
+    const rawData = window.atob(base64Url);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  } else {
+    const buf = Buffer.from(base64Url, "base64");
+    return new Uint8Array(buf);
   }
-  return outputArray;
 }
 
 export async function registerWebPushServiceWorker(): Promise<ServiceWorkerRegistration | null> {

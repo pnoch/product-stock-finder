@@ -54,8 +54,8 @@ export function CurrentPricesTable({ listings, selected }: Props) {
         const colorIdx = Array.from(selected).indexOf(l.distributorId);
         const color = CHART_COLORS[colorIdx % CHART_COLORS.length];
         const label = stockLabel[l.stockStatus] ?? l.stockStatus;
-        const isPositive =
-          l.stockStatus === "in_stock" || l.stockStatus === "unknown";
+        const isUnknown = l.stockStatus === "unknown";
+        const isPositive = l.stockStatus === "in_stock";
         return (
           <View
             key={l.distributorId}
@@ -110,7 +110,9 @@ export function CurrentPricesTable({ listings, selected }: Props) {
                 style={{
                   backgroundColor: isPositive
                     ? colors.success + "22"
-                    : colors.warning + "22",
+                    : isUnknown
+                      ? colors.muted + "22"
+                      : colors.warning + "22",
                   borderRadius: 8,
                   paddingHorizontal: 7,
                   paddingVertical: 2,
@@ -119,7 +121,11 @@ export function CurrentPricesTable({ listings, selected }: Props) {
               >
                 <Text
                   style={{
-                    color: isPositive ? colors.success : colors.warning,
+                    color: isPositive
+                      ? colors.success
+                      : isUnknown
+                        ? colors.muted
+                        : colors.warning,
                     fontSize: 10,
                     fontWeight: "600",
                   }}

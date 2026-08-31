@@ -52,7 +52,12 @@ export function PriceSparkline({
   const lineColor = points.trend === "down" ? colors.success : colors.error;
 
   return (
-    <View style={{ alignItems: "flex-end" }}>
+    <View
+      style={{ alignItems: "flex-end" }}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={`Price sparkline, ${points.trend === "up" ? "up" : "down"} trend, ${data.length} points`}
+    >
       <Svg width={width} height={height}>
         <Polyline
           points={points.polylineStr}

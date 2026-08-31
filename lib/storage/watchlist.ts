@@ -34,7 +34,7 @@ export function createWatchlistStorage(ctx: StorageContext) {
         list.unshift({
           ...product,
           isWatched: true,
-          addedAt: new Date().toISOString(),
+          addedAt: product.addedAt ?? new Date().toISOString(),
         });
         await saveWatchlist(list);
         notify("watchlist", product.id);

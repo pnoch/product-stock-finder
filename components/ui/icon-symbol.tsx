@@ -107,7 +107,7 @@ export function IconSymbol({
     <MaterialIcons
       color={color}
       size={size}
-      name={MAPPING[name]}
+      name={MAPPING[name] ?? "help-outline"}
       style={style}
     />
   );

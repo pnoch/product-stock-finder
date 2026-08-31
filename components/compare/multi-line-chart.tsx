@@ -50,7 +50,7 @@ export function MultiLineChart({
     for (const s of series) {
       for (const p of s.data) {
         const c = convertPrice(p.price, p.currency, displayCurrency);
-        if (c !== null) allPrices.push(c);
+        if (c !== null && Number.isFinite(c)) allPrices.push(c);
       }
     }
     if (allPrices.length === 0)
@@ -75,7 +75,7 @@ export function MultiLineChart({
       const coords = sorted
         .map((p) => {
           const converted = convertPrice(p.price, p.currency, displayCurrency);
-          if (converted === null) return null;
+          if (converted === null || !Number.isFinite(converted)) return null;
           const x =
             padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
           const y = padT + (1 - (converted - globalMin) / range) * usableH;

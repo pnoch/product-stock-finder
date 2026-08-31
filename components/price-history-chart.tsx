@@ -28,6 +28,7 @@ export function PriceHistoryChart({
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const points = useMemo(() => {
     if (!data || data.length < 2) return null;
+    if (width < 80 || height < 60) return null;
     const sorted = [...data].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
@@ -39,8 +40,8 @@ export function PriceHistoryChart({
       padR = 16,
       padT = 24,
       padB = 44;
-    const usableW = width - padL - padR;
-    const usableH = height - padT - padB;
+    const usableW = Math.max(0, width - padL - padR);
+    const usableH = Math.max(0, height - padT - padB);
     const coords = sorted.map((p, i) => {
       const x = padL + (i / (sorted.length - 1)) * usableW;
       const y = padT + (1 - (p.price - minP) / range) * usableH;

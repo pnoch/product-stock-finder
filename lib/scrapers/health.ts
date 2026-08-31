@@ -160,11 +160,9 @@ export function timelineSegments(samples: HealthSample[]): TimelineSegment[] {
   if (total <= 0) {
     return sorted.map((s) => ({ status: s.status, weight: 1 / sorted.length }));
   }
-  spans.push(spans[spans.length - 1]);
-  const totalWithLast = spans.reduce((sum, s) => sum + s, 0);
   return sorted.map((s, i) => ({
     status: s.status,
-    weight: spans[i] / totalWithLast,
+    weight: i < spans.length ? spans[i] / total : 0,
   }));
 }
 

@@ -275,14 +275,25 @@ export async function maybeSendDigest(
 
     const intervalMs = frequency === "weekly" ? 7 * 86400000 : 86400000;
     if (previous) {
-      const elapsed =
-        new Date(now).getTime() - new Date(previous.lastDigestAt).getTime();
-      if (elapsed < intervalMs) return null;
-      if (
-        frequency === "weekly" &&
-        new Date(now).getDay() !== (settings.digestDayOfWeek ?? 0)
-      ) {
-        return null;
+      const lastTime = new Date(previous.lastDigestAt).getTime();
+      const nowTime = new Date(now).getTime();
+      if (!Number.isNaN(lastTime) && !Number.isNaN(nowTime)) {
+        const nextEligible = lastTime + intervalMs;
+        if (nowTime < nextEligible) return null;
+        if (
+          frequency === "weekly" &&
+          new Date(now).getDay() !== (settings.digestDayOfWeek ?? 0)
+        ) {
+          return null;
+        }
+      } else if (Number.isNaN(lastTime)) {
+        // Invalid lastDigestAt — skip interval check but still respect weekly day gate
+        if (
+          frequency === "weekly" &&
+          new Date(now).getDay() !== (settings.digestDayOfWeek ?? 0)
+        ) {
+          return null;
+        }
       }
     }
 

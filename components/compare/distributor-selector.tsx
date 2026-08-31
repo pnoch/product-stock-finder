@@ -104,6 +104,7 @@ export function DistributorSelector({
           <TouchableOpacity
             key={l.distributorId}
             onPress={() => handleToggle(l.distributorId)}
+            disabled={!hasHistory && !isSelected}
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -119,7 +120,7 @@ export function DistributorSelector({
             }}
             accessibilityLabel={`${isSelected ? "Deselect" : "Select"} ${distributor?.name ?? l.distributorId}`}
             accessibilityRole="checkbox"
-            accessibilityState={{ checked: isSelected }}
+            accessibilityState={{ checked: isSelected, disabled: !hasHistory && !isSelected }}
           >
             <View
               style={{

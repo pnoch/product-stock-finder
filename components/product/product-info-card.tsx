@@ -156,9 +156,11 @@ export function ProductInfoCard({
       </View>
       {/* Last Refreshed Indicator */}
       {(() => {
-        const refreshTime = lastUpdatedAt
-          ? new Date(lastUpdatedAt).toISOString()
-          : product.lastRefreshed;
+        const d = lastUpdatedAt ? new Date(lastUpdatedAt) : null;
+        const refreshTime =
+          lastUpdatedAt && d && !isNaN(d.getTime())
+            ? d.toISOString()
+            : product.lastRefreshed;
         const refreshColor = getLastRefreshedColor(refreshTime);
         const colorMap = {
           green: colors.success,

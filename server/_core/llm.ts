@@ -316,6 +316,16 @@ const fetchWithBackoff = async (
       if (response.ok || attempt === RETRY_MAX_RETRIES) {
         return response;
       }
+      if (
+        response.status >= 400 &&
+        response.status < 500 &&
+        response.status !== 429
+      ) {
+        const errorText = await response.text().catch(() => "");
+        throw new Error(
+          `LLM request failed: ${response.status} ${response.statusText} – ${errorText}`,
+        );
+      }
 
       const retryAfterMs = parseRetryAfter(response.headers.get("retry-after"));
       try {

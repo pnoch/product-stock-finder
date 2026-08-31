@@ -35,7 +35,7 @@ import {
 
 const syncItemSchema = z.object({
   collection: z.enum(["watchlist", "alerts", "reminders", "settings"]),
-  id: z.string(),
+  id: z.string().min(1).max(191),
   data: z.unknown(),
   updatedAt: z.number(),
   deletedAt: z.number().nullable(),
@@ -186,11 +186,11 @@ export const appRouter = router({
         z.object({
           alerts: z.array(
             z.object({
-              id: z.string().min(1),
-              productId: z.string().min(1),
-              targetPrice: z.number(),
-              currency: z.string().min(1),
-              distributorId: z.string().optional(),
+              id: z.string().min(1).max(191),
+              productId: z.string().min(1).max(191),
+              targetPrice: z.number().finite().positive(),
+              currency: z.string().min(1).max(8),
+              distributorId: z.string().max(64).optional(),
               direction: z.enum(["drop", "rise"]).optional(),
               snoozedUntil: z.string().optional(),
             }),

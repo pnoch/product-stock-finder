@@ -21,7 +21,7 @@ Return ONLY valid JSON, no markdown fences.`;
 
 export const discoveryRouter = router({
   discover: protectedProcedure
-    .input(z.object({ query: z.string().min(1) }))
+    .input(z.object({ query: z.string().min(1).max(200) }))
     .mutation(async ({ input }) => {
       const prompt = `${DISCOVERY_PROMPT}\n\nSearch query: ${input.query}`;
       const result = await invokeLLM({
