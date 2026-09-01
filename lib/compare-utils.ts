@@ -24,23 +24,21 @@ export const TIME_RANGE_DAYS: Record<TimeRange, number> = {
 
 export function filterByRange(data: PricePoint[], range: TimeRange): PricePoint[] {
   if (range === "All") return data;
-  const now = Date.now();
   const validDates = data
     .map((p) => new Date(p.date).getTime())
-    .filter((t) => !Number.isNaN(t) && t <= now);
+    .filter((t) => !Number.isNaN(t));
   if (validDates.length === 0) return [];
-  const anchor = Math.min(Math.max(...validDates), now);
+  const anchor = Math.max(...validDates);
   const cutoff = anchor - TIME_RANGE_DAYS[range] * 86400000;
   return data.filter((p) => {
     const t = new Date(p.date).getTime();
-    return !Number.isNaN(t) && t >= cutoff && t <= now;
+    return !Number.isNaN(t) && t >= cutoff;
   });
 }
 
 export interface RegionBest {
   region: string;
   listing: DistributorListing;
-  /** USD value — kept for backwards compat; prefer `converted` */
   usd: number;
   converted: number;
 }
@@ -52,8 +50,8 @@ export function cheapestByRegion(
   listings: DistributorListing[],
   targetCurrency = "USD",
 ): RegionBest[] {
-  const inStockMap = new Map<string, { listing: DistributorListing; converted: number; usd: number }>();
-  const fallbackMap = new Map<string, { listing: DistributorListing; converted: number; usd: number }>();
+  const inStockMap = new Map<string, { listing: DistributorListing; converted: number }>();
+  const fallbackMap = new Map<string, { listing: DistributorListing; converted: number }>();
   for (const l of listings) {
     if (l.stockStatus === "out_of_stock" || l.price <= 0) continue;
     const dist = getDistributorById(l.distributorId);
@@ -61,17 +59,15 @@ export function cheapestByRegion(
     const region = dist.region ?? "Other";
     const converted = convertPrice(l.price, l.currency, targetCurrency);
     if (converted === null || !Number.isFinite(converted)) continue;
-    const usd = convertPrice(l.price, l.currency, "USD");
-    const usdVal = usd !== null && Number.isFinite(usd) ? usd : converted;
     if (l.stockStatus === "in_stock") {
       const existing = inStockMap.get(region);
       if (!existing || converted < existing.converted) {
-        inStockMap.set(region, { listing: l, converted, usd: usdVal });
+        inStockMap.set(region, { listing: l, converted });
       }
     } else {
       const existing = fallbackMap.get(region);
       if (!existing || converted < existing.converted) {
-        fallbackMap.set(region, { listing: l, converted, usd: usdVal });
+        fallbackMap.set(region, { listing: l, converted });
       }
     }
   }
@@ -80,6 +76,6 @@ export function cheapestByRegion(
     if (!merged.has(region)) merged.set(region, data);
   }
   return Array.from(merged.entries())
-    .map(([region, data]) => ({ region, listing: data.listing, usd: data.usd, converted: data.converted }))
+    .map(([region, data]) => ({ region, listing: data.listing, usd: data.converted, converted: data.converted }))
     .sort((a, b) => a.converted - b.converted);
 }
