@@ -70,6 +70,46 @@ function InsightSkeleton() {
   );
 }
 
+function BestDealSkeleton() {
+  const colors = useColors();
+  const shimmer = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmer, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(shimmer, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [shimmer]);
+  const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
+  return (
+    <Animated.View
+      style={{
+        opacity,
+        backgroundColor: colors.surface,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
+    >
+      <View style={{ height: 10, width: 140, borderRadius: 6, backgroundColor: colors.border }} />
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
+        <View style={{ height: 16, width: 120, borderRadius: 6, backgroundColor: colors.border }} />
+        <View style={{ height: 20, width: 80, borderRadius: 10, backgroundColor: colors.border }} />
+      </View>
+      <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
+        <View style={{ height: 10, flex: 1, borderRadius: 6, backgroundColor: colors.border }} />
+        <View style={{ height: 10, flex: 1, borderRadius: 6, backgroundColor: colors.border }} />
+        <View style={{ height: 10, flex: 1, borderRadius: 6, backgroundColor: colors.border }} />
+      </View>
+    </Animated.View>
+  );
+}
+
 export function DistributorListingSection({
   sortedListings,
   visibleListings,
@@ -268,6 +308,9 @@ export function DistributorListingSection({
               </TouchableOpacity>
             ))}
           </View>
+          {!bestDeal && insightLoading && sortedListings.length > 0 ? (
+            <BestDealSkeleton />
+          ) : null}
           {bestDeal && (
             <View
               style={{

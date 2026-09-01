@@ -8,6 +8,7 @@ import {
   Platform,
   Image,
   Animated,
+  Easing,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -46,6 +47,23 @@ function getBestStatus(product: Product): StockStatus {
   return sorted[0]!.stockStatus;
 }
 
+function useAnimatedNumber(target: number) {
+  const [display, setDisplay] = useState(target);
+  const anim = useRef(new Animated.Value(target)).current;
+  const prev = useRef(target);
+  useEffect(() => {
+    const id = anim.addListener(({ value }) => setDisplay(Math.round(value)));
+    return () => anim.removeListener(id);
+  }, [anim]);
+  useEffect(() => {
+    if (prev.current === target) return;
+    prev.current = target;
+    Animated.timing(anim, { toValue: target, duration: 520, useNativeDriver: false, easing: Easing.out(Easing.cubic) } as unknown as Animated.TimingAnimationConfig).start();
+  }, [target, anim]);
+  useEffect(() => { anim.setValue(target); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return display;
+}
+
 function SummaryCard({
   label,
   value,
@@ -58,11 +76,25 @@ function SummaryCard({
   icon: string;
 }) {
   const colors = useColors();
+  const numericValue = typeof value === "number" ? value : 0;
+  const animatedNumber = useAnimatedNumber(numericValue);
+  const numeric = typeof value === "number" ? animatedNumber : value;
+  const pop = useRef(new Animated.Value(1)).current;
+  const prevVal = useRef(value);
+  useEffect(() => {
+    if (prevVal.current !== value) {
+      prevVal.current = value;
+      Animated.sequence([
+        Animated.spring(pop, { toValue: 1.12, useNativeDriver: true, tension: 280, friction: 8 }),
+        Animated.spring(pop, { toValue: 1, useNativeDriver: true, tension: 180, friction: 9 }),
+      ]).start();
+    }
+  }, [value, pop]);
   return (
     <View className="flex-1 bg-surface rounded-2xl p-4 border border-border">
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <IconSymbol name={icon as never} size={20} color={colors.muted} />
-        <Text style={{ color, fontSize: 24, fontWeight: "700" }}>{value}</Text>
+        <Animated.Text style={{ color, fontSize: 24, fontWeight: "700", transform: [{ scale: pop }] }}>{numeric}</Animated.Text>
       </View>
       <Text className="text-muted text-xs mt-1">{label}</Text>
     </View>
@@ -129,15 +161,16 @@ export default function HomeScreen() {
   );
 
   const onRefresh = useCallback(async () => {
-    if (Platform.OS !== "web") {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
+    if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
     try {
       await Promise.all([
         loadData(),
         queryClient.invalidateQueries({ queryKey: ["trending"] }),
       ]);
+      if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setRefreshing(false);
     }

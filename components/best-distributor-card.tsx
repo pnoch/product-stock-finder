@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Text, View, TouchableOpacity, Platform } from "react-native";
+import { Text, View, Pressable, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
@@ -232,13 +232,13 @@ function BestDistributorCard({
               ) : null;
             })()}
         </View>
-        <TouchableOpacity activeOpacity={0.85}
+        <Pressable
           onPress={() => {
-            if (Platform.OS !== "web")
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             openListingUrl(listing.url);
           }}
-          style={{
+          android_ripple={{ color: "#ffffff33" }}
+          style={({ pressed }) => ({
             backgroundColor: colors.primary,
             borderRadius: 20,
             paddingHorizontal: 18,
@@ -246,15 +246,15 @@ function BestDistributorCard({
             flexDirection: "row",
             alignItems: "center",
             gap: 5,
-          }}
+            opacity: pressed ? 0.85 : 1,
+            overflow: "hidden",
+          })}
           accessibilityLabel="Buy now from distributor"
           accessibilityRole="button"
         >
-          <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>
-            Buy Now
-          </Text>
+          <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>Buy Now</Text>
           <IconSymbol name="arrow.up.right.square" size={14} color="#fff" />
-        </TouchableOpacity>
+        </Pressable>
       </View>
       {distributor?.paymentMethods && (
         <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8 }}>
@@ -265,9 +265,10 @@ function BestDistributorCard({
       {(() => {
         const suggestedPrice = Math.round(listing.price * 0.95 * 100) / 100;
         return (
-          <TouchableOpacity activeOpacity={0.85}
+          <Pressable
             onPress={onSetAlert}
-            style={{
+            android_ripple={{ color: colors.primary + "22" }}
+            style={({ pressed }) => ({
               marginTop: 10,
               flexDirection: "row",
               alignItems: "center",
@@ -278,17 +279,17 @@ function BestDistributorCard({
               paddingVertical: 9,
               borderWidth: 1,
               borderColor: colors.primary,
-            }}
+              opacity: pressed ? 0.85 : 1,
+              overflow: "hidden",
+            })}
             accessibilityLabel={`Set alert at ${formatPrice(suggestedPrice, listing.currency)}`}
             accessibilityRole="button"
           >
             <IconSymbol name="bell.fill" size={14} color={colors.primary} />
-            <Text
-              style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}
-            >
+            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
               Set Alert at {formatPrice(suggestedPrice, listing.currency)} (−5%)
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         );
       })()}
     </View>

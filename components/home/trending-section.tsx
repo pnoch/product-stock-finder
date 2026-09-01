@@ -292,12 +292,12 @@ export const TrendingSection = memo(function TrendingSection() {
     if (!visibleProducts.length) return;
     entryAnims.forEach((a) => a.setValue(0));
     Animated.stagger(
-      100,
+      85,
       entryAnims.slice(0, visibleProducts.length).map((anim) =>
         Animated.spring(anim, {
           toValue: 1,
           useNativeDriver: true,
-          tension: 70,
+          tension: 75,
           friction: 9,
         }),
       ),
@@ -399,9 +399,15 @@ export const TrendingSection = memo(function TrendingSection() {
             opacity: entryAnims[idx],
             transform: [
               {
-                translateY: entryAnims[idx].interpolate({
+                translateY: entryAnims[idx]!.interpolate({
                   inputRange: [0, 1],
                   outputRange: [16, 0],
+                }),
+              },
+              {
+                scale: entryAnims[idx]!.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.96, 1],
                 }),
               },
             ],

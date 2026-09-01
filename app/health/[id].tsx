@@ -264,7 +264,7 @@ export default function HealthDetailScreen() {
                         fontWeight: "500",
                       }}
                     >
-                      {new Date(s.at).toLocaleString()}
+                      {new Date(s.at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </Text>
                     <Text style={{ color: colors.muted, fontSize: 12 }}>
                       {s.reason || s.status}

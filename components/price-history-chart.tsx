@@ -143,7 +143,7 @@ export function PriceHistoryChart({
           fill={colors.muted}
           textAnchor="end"
         >
-          {maxP.toFixed(0)}
+          {formatPrice(maxP, currency)}
         </SvgText>
         <SvgText
           x={padL - 6}
@@ -152,7 +152,7 @@ export function PriceHistoryChart({
           fill={colors.muted}
           textAnchor="end"
         >
-          {midP.toFixed(0)}
+          {formatPrice(midP, currency)}
         </SvgText>
         <SvgText
           x={padL - 6}
@@ -161,7 +161,7 @@ export function PriceHistoryChart({
           fill={colors.muted}
           textAnchor="end"
         >
-          {minP.toFixed(0)}
+          {formatPrice(minP, currency)}
         </SvgText>
         <Polyline
           points={polylineStr}
@@ -216,7 +216,7 @@ export function PriceHistoryChart({
                 textAnchor="middle"
                 fontWeight="700"
               >
-                LOW {minP.toFixed(0)}
+                LOW {formatPrice(minP, currency)}
               </SvgText>
               <Rect
                 x={maxCoord.x - 24}
@@ -234,7 +234,7 @@ export function PriceHistoryChart({
                 textAnchor="middle"
                 fontWeight="700"
               >
-                HIGH {maxP.toFixed(0)}
+                HIGH {formatPrice(maxP, currency)}
               </SvgText>
             </>
           );

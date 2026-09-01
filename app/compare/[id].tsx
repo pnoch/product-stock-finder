@@ -7,9 +7,7 @@ import {
 } from "react";
 import {
   ScrollView,
-  Text,
   View,
-  TouchableOpacity,
   Platform,
   useWindowDimensions,
 } from "react-native";
@@ -24,7 +22,6 @@ import { CheapestRegionCard } from "@/components/compare/cheapest-region-card";
 import { CurrentPricesTable } from "@/components/compare/current-prices-table";
 import { CrossAlertCTA } from "@/components/compare/cross-alert-cta";
 import { DistributorSelector } from "@/components/compare/distributor-selector";
-import { useColors } from "@/hooks/use-colors";
 import { useLiveProduct } from "@/hooks/use-live-prices";
 import { addAlert, getSettings } from "@/lib/storage";
 import {
@@ -34,7 +31,6 @@ import {
 import { PriceAlert } from "@/lib/types";
 import { convertPrice, formatPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
 import { SkeletonChart, SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
@@ -51,7 +47,6 @@ export default function CompareScreen() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const router = useRouter();
-  const colors = useColors();
   const { showToast } = useToast();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [timeRange, setTimeRange] = useState<TimeRange>("3M");

@@ -120,7 +120,7 @@ export const AlertCard = memo(function AlertCard({
               />
               <Text style={{ color: colors.success, fontSize: 12 }}>
                 Triggered{" "}
-                {new Date(alert.triggeredAt).toLocaleDateString()}
+                {new Date(alert.triggeredAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
               </Text>
             </View>
           )}

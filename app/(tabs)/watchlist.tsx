@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
   SectionList,
   Text,
   View,
@@ -94,6 +95,8 @@ export default function WatchlistScreen() {
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkingRef = useRef(false);
   const regions = useMemo(() => getAllRegions(), []);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerCollapse = scrollY.interpolate({ inputRange: [0, 80], outputRange: [1, 0], extrapolate: "clamp" });
 
   const loadData = useCallback(async () => {
     const settings = await getSettings();
@@ -411,22 +414,33 @@ export default function WatchlistScreen() {
 
   return (
     <ScreenContainer>
-      <WatchlistHeader
-        mode={selectionMode ? "selection" : "normal"}
-        selectedCount={selectedIds.size}
-        watchlistLength={watchlist.length}
-        filteredCount={filteredWatchlist.length}
-        isRefreshingAny={isRefreshingAny}
-        checking={checking}
-        checkProgress={checkProgress}
-        onAnalysis={() => router.push("/distributor-analysis")}
-        onRefresh={handleRefreshAll}
-        onCheckNow={handleCheckNow}
-        onAdd={() => router.push("/search")}
-        onBulkDelete={handleBulkDelete}
-        onBulkTag={() => setBulkTagVisible(true)}
-        onExitSelection={exitSelection}
-      />
+      <Animated.View
+        style={{
+          opacity: headerCollapse.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.6, 1] }),
+          transform: [
+            {
+              translateY: scrollY.interpolate({ inputRange: [0, 80], outputRange: [0, -10], extrapolate: "clamp" }),
+            },
+          ],
+        }}
+      >
+        <WatchlistHeader
+          mode={selectionMode ? "selection" : "normal"}
+          selectedCount={selectedIds.size}
+          watchlistLength={watchlist.length}
+          filteredCount={filteredWatchlist.length}
+          isRefreshingAny={isRefreshingAny}
+          checking={checking}
+          checkProgress={checkProgress}
+          onAnalysis={() => router.push("/distributor-analysis")}
+          onRefresh={handleRefreshAll}
+          onCheckNow={handleCheckNow}
+          onAdd={() => router.push("/search")}
+          onBulkDelete={handleBulkDelete}
+          onBulkTag={() => setBulkTagVisible(true)}
+          onExitSelection={exitSelection}
+        />
+      </Animated.View>
 
       {watchlist.length > 0 && (
         <SummaryCard
@@ -487,6 +501,8 @@ export default function WatchlistScreen() {
       />
 
       <SectionList showsVerticalScrollIndicator={true}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        scrollEventThrottle={16}
         sections={sectionData}
         keyExtractor={(item: Product & { _sectionKey?: string }) => `${item.id}-${item._sectionKey ?? ''}`}
         extraData={groupMode}

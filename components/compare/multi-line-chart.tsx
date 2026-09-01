@@ -10,7 +10,7 @@ import Svg, {
 
 import { useColors } from "@/hooks/use-colors";
 import { PricePoint } from "@/lib/types";
-import { convertPrice, CURRENCY_SYMBOLS } from "@/lib/currency";
+import { convertPrice, formatPrice } from "@/lib/currency";
 import { nearestByX } from "@/lib/price-chart";
 
 export function MultiLineChart({
@@ -109,7 +109,6 @@ export function MultiLineChart({
   const midY = padT + usableH / 2;
   const minY = padT + usableH;
   const maxY = padT;
-  const currencySymbol = CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency;
 
   if (allCoords.length === 0) {
     return (
@@ -164,7 +163,7 @@ export function MultiLineChart({
         fill={colors.muted}
         textAnchor="end"
       >
-        {currencySymbol}{globalMax.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+        {formatPrice(globalMax, displayCurrency)}
       </SvgText>
       <SvgText
         x={padL - 6}
@@ -173,7 +172,7 @@ export function MultiLineChart({
         fill={colors.muted}
         textAnchor="end"
       >
-        {currencySymbol}{midP.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+        {formatPrice(midP, displayCurrency)}
       </SvgText>
       <SvgText
         x={padL - 6}
@@ -182,7 +181,7 @@ export function MultiLineChart({
         fill={colors.muted}
         textAnchor="end"
       >
-        {currencySymbol}{globalMin.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+        {formatPrice(globalMin, displayCurrency)}
       </SvgText>
       {allCoords.map((s) => (
         <Fragment key={s.label}>
@@ -319,7 +318,7 @@ export function MultiLineChart({
                     fontSize={9}
                     fill={colors.foreground}
                   >
-                    {`${row.label}  ${row.point ? `${currencySymbol}${row.point.converted.toFixed(2)}` : "—"}`}
+                    {`${row.label}  ${row.point ? formatPrice(row.point.converted, displayCurrency) : "—"}`}
                   </SvgText>
                 </Fragment>
               ))}

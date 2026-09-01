@@ -1,5 +1,5 @@
 import React from "react";
-import { Text, View, TouchableOpacity } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { StockBadge } from "@/components/stock-badge";
 import { formatPrice } from "@/lib/currency";
 import { useColors } from "@/hooks/use-colors";
@@ -22,9 +22,15 @@ export const DistributorRow = React.memo(function DistributorRow({
         <Text style={{ color: colors.primary, fontWeight: "700" }}>{formatPrice(listing.price, listing.currency)}</Text>
       </View>
       <StockBadge status={listing.stockStatus} />
-      <TouchableOpacity activeOpacity={0.7} onPress={() => onWatchToggle(product.id, listing.distributorId)} accessibilityLabel="Toggle watch" accessibilityRole="button">
+      <Pressable
+        onPress={() => onWatchToggle(product.id, listing.distributorId)}
+        android_ripple={{ color: colors.primary + "22" }}
+        style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: 6, borderRadius: 10, overflow: "hidden" })}
+        accessibilityLabel="Toggle watch"
+        accessibilityRole="button"
+      >
         <Text style={{ color: colors.primary }}>Watch</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 });

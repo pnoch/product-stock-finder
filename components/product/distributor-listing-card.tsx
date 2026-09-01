@@ -2,7 +2,7 @@ import { memo, useMemo, useCallback } from "react";
 import {
   Text,
   View,
-  TouchableOpacity,
+  Pressable,
   Platform,
 } from "react-native";
 import * as Haptics from "expo-haptics";
@@ -163,9 +163,10 @@ export const DistributorListingCard = memo(function DistributorListingCard({
         <View style={{ alignItems: "flex-end", gap: 4 }}>
           {listing.priceHistory &&
             listing.priceHistory.length >= 2 && (
-              <TouchableOpacity
+              <Pressable
                 onPress={handleOpenChart}
-                activeOpacity={0.7}
+                android_ripple={{ color: colors.primary + "22", borderless: false, radius: 24 }}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, borderRadius: 8, overflow: "hidden" })}
                 accessibilityLabel="Open price chart"
                 accessibilityRole="button"
               >
@@ -175,11 +176,12 @@ export const DistributorListingCard = memo(function DistributorListingCard({
                   height={28}
                   currency={listing.currency}
                 />
-              </TouchableOpacity>
+              </Pressable>
             )}
-          <TouchableOpacity activeOpacity={0.85}
+          <Pressable
             onPress={handleVisit}
-            style={{
+            android_ripple={{ color: colors.primary + "22", borderless: false }}
+            style={({ pressed }) => ({
               backgroundColor: colors.primary + "22",
               borderRadius: 20,
               paddingHorizontal: 14,
@@ -187,7 +189,9 @@ export const DistributorListingCard = memo(function DistributorListingCard({
               flexDirection: "row",
               alignItems: "center",
               gap: 4,
-            }}
+              opacity: pressed ? 0.85 : 1,
+              overflow: "hidden",
+            })}
             accessibilityLabel="Visit distributor website"
             accessibilityRole="button"
           >
@@ -205,7 +209,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
               size={14}
               color={colors.primary}
             />
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
       {distributor?.paymentMethods && (
@@ -243,21 +247,22 @@ export const DistributorListingCard = memo(function DistributorListingCard({
       {/* Watch for Restock button on back-order or out-of-stock cards */}
       {(listing.stockStatus === "back_order" || listing.stockStatus === "out_of_stock") && (
         <View style={{ gap: 8, marginTop: 10 }}>
-          <TouchableOpacity activeOpacity={0.7}
+          <Pressable
             onPress={handleToggleWatch}
-            style={{
+            android_ripple={{ color: (isWatching ? colors.warning : colors.muted) + "22" }}
+            style={({ pressed }) => ({
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "center",
               gap: 6,
-              backgroundColor: isWatching
-                ? colors.warning + "22"
-                : colors.surface,
+              backgroundColor: isWatching ? colors.warning + "22" : colors.surface,
               borderRadius: 12,
               paddingVertical: 9,
               borderWidth: 1,
               borderColor: isWatching ? colors.warning + "88" : colors.border,
-            }}
+              opacity: pressed ? 0.85 : 1,
+              overflow: "hidden",
+            })}
             accessibilityLabel={isWatching ? "Stop watching for restock" : "Watch for restock"}
             accessibilityRole="button"
             accessibilityState={{ checked: isWatching }}
@@ -276,11 +281,12 @@ export const DistributorListingCard = memo(function DistributorListingCard({
             >
               {isWatching ? "Watching for Restock" : "Watch for Restock"}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
           {onRemind && (
-            <TouchableOpacity activeOpacity={0.85}
+            <Pressable
               onPress={handleRemind}
-              style={{
+              android_ripple={{ color: colors.primary + "22" }}
+              style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
@@ -290,15 +296,13 @@ export const DistributorListingCard = memo(function DistributorListingCard({
                 paddingVertical: 9,
                 borderWidth: 1,
                 borderColor: colors.border,
-              }}
+                opacity: pressed ? 0.85 : 1,
+                overflow: "hidden",
+              })}
               accessibilityLabel="Set reminder"
               accessibilityRole="button"
             >
-              <IconSymbol
-                name="calendar"
-                size={15}
-                color={colors.primary}
-              />
+              <IconSymbol name="calendar" size={15} color={colors.primary} />
               <Text
                 style={{
                   color: colors.primary,
@@ -308,7 +312,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
               >
                 Remind Me
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
       )}

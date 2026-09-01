@@ -1,8 +1,9 @@
 import React from "react";
-import { Text, View, TouchableOpacity } from "react-native";
+import { Text, View, Pressable, Platform } from "react-native";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useColors } from "@/hooks/use-colors";
+import * as Haptics from "expo-haptics";
 
 function ThemedAppFallback({
   message,
@@ -63,25 +64,33 @@ function ThemedAppFallback({
           {message}
         </Text>
       ) : null}
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={onRetry}
-        style={{
+      <Pressable
+        onPress={() => {
+          if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onRetry();
+        }}
+        android_ripple={{ color: "#ffffff33" }}
+        style={({ pressed }) => ({
           marginTop: 20,
           backgroundColor: colors.primary,
           borderRadius: 20,
           paddingHorizontal: 24,
           paddingVertical: 12,
-        }}
+          opacity: pressed ? 0.85 : 1,
+          overflow: "hidden",
+        })}
         accessibilityLabel="Try Again"
         accessibilityRole="button"
       >
         <Text style={{ color: "#fff", fontWeight: "600" }}>Try Again</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={() => router.replace("/(tabs)")}
-        style={{
+      </Pressable>
+      <Pressable
+        onPress={() => {
+          if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.replace("/(tabs)");
+        }}
+        android_ripple={{ color: colors.primary + "22" }}
+        style={({ pressed }) => ({
           marginTop: 10,
           borderWidth: 1,
           borderColor: colors.border,
@@ -89,12 +98,14 @@ function ThemedAppFallback({
           paddingHorizontal: 24,
           paddingVertical: 12,
           backgroundColor: colors.surface,
-        }}
+          opacity: pressed ? 0.85 : 1,
+          overflow: "hidden",
+        })}
         accessibilityLabel="Go Home"
         accessibilityRole="button"
       >
         <Text style={{ color: colors.primary, fontWeight: "600" }}>Go Home</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
