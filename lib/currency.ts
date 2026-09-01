@@ -52,12 +52,13 @@ export function convertPrice(
   fromCurrency: string,
   toCurrency: string,
 ): number | null {
+  if (!Number.isFinite(amount) || amount <= 0) return null;
   const rates = effectiveRates();
   if (!(fromCurrency in rates) || !(toCurrency in rates)) return null;
   const fromRate = rates[fromCurrency];
   const toRate = rates[toCurrency];
   if (!Number.isFinite(fromRate) || !Number.isFinite(toRate)) return null;
-  if (fromRate === 0 || fromRate <= 0 || toRate <= 0) return null;
+  if (fromRate <= 0 || toRate <= 0) return null;
   return (amount / fromRate) * toRate;
 }
 
@@ -77,7 +78,7 @@ export function getCurrencySymbol(currency: string): string {
 export function formatPrice(amount: number, currency: string): string {
   if (!Number.isFinite(amount)) return "N/A";
   const symbol = CURRENCY_SYMBOLS[currency] ?? currency;
-  return `${symbol}${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function getBestPrice(

@@ -188,12 +188,12 @@ export function computeDataFreshness(
 
   for (const product of watchlist) {
     for (const listing of product.listings ?? []) {
-      pointCount += listing.priceHistory?.length ?? 0;
       const t = listing.lastChecked ? Date.parse(listing.lastChecked) : NaN;
       if (!Number.isFinite(t)) {
         neverCheckedCount += 1;
         continue;
       }
+      pointCount += listing.priceHistory?.length ?? 0;
       checkedListingCount += 1;
       if (now - t > STALE_MS) staleCount += 1;
       if (oldest === null || t < oldest) oldest = t;

@@ -7,7 +7,7 @@ export type CatalogProduct = (typeof PRODUCT_CATALOG)[0];
 export function parseModelInput(text: string): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
-  const parts = text.split(/[\n,;]+/);
+  const parts = text.split(/[\n,; \t]+/);
   for (const raw of parts) {
     let entry = raw.trim();
     if (

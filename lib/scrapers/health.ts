@@ -33,6 +33,38 @@ const HISTORY_MAX_SAMPLES = 30 * 24;
 const HISTORY_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const PROBE_MODEL = "CRS326";
 
+const PROBE_MODEL_BY_DISTRIBUTOR: Record<string, string> = {
+  "server2u-my": "CRS804-4DDQ-hRM",
+  "linitx-uk": "CRS326-24S+2Q+RM",
+  "interprojekt-pl": "CRS804-4DDQ-hRM",
+  "nasstore-eu": "CRS326-24S+2Q+RM",
+  "aerial-gr": "CRS804-4DDQ-hRM",
+  "mikrotikstore-de": "CRS326-24S+2Q+RM",
+  "miro-za": "CRS804-4DDQ-hRM",
+  "gearup-ae": "CRS326-24S+2Q+RM",
+  "balticnetworks-us": "CRS326-24S+2Q+RM",
+  "linktechs-us": "CRS804-4DDQ-hRM",
+  "winncom-us": "CRS326-24S+2Q+RM",
+  "bhphoto-us": "CRS804-4DDQ-hRM",
+  "duxtel-au": "CRS326-24S+2Q+RM",
+  "wisp-au": "CRS804-4DDQ-hRM",
+  "pbtech-nz": "CRS326-24S+2Q+RM",
+  "gowifi-nz": "CRS804-4DDQ-hRM",
+  "getic-gr": "CRS326-24S+2Q+RM",
+  "100mega-cz": "CRS804-4DDQ-hRM",
+  "hellascom-gr": "CRS326-24S+2Q+RM",
+  "rocnoc-us": "CRS804-4DDQ-hRM",
+  "networkdevices-us": "CRS326-24S+2Q+RM",
+  "flytec-us": "CRS804-4DDQ-hRM",
+  "mbsiwav-ca": "CRS326-24S+2Q+RM",
+  "multilink-us": "CRS804-4DDQ-hRM",
+  "neobits-us": "CRS326-24S+2Q+RM",
+};
+
+export function getProbeModel(distributorId: string): string {
+  return PROBE_MODEL_BY_DISTRIBUTOR[distributorId] ?? PROBE_MODEL;
+}
+
 export function classifyResult(
   html: string,
   result: ScrapeResult | null,
@@ -49,7 +81,8 @@ export function classifyProbeOutcome(
   parser: DistributorParser,
 ): { status: HealthStatus; reason?: string } {
   if (outcome.status === "ok" && outcome.html) {
-    const result = parser.parsePrice(outcome.html, PROBE_MODEL);
+    const model = getProbeModel(parser.id);
+    const result = parser.parsePrice(outcome.html, model);
     const status = classifyResult(outcome.html, result);
     return { status, reason: status === "error" ? "no price found" : undefined };
   }
@@ -57,7 +90,7 @@ export function classifyProbeOutcome(
     return { status: "blocked", reason: outcome.error ?? "blocked by site" };
   }
   if (outcome.status === "skipped") {
-    return { status: "blocked", reason: "in cooldown" };
+    return { status: "error", reason: "in cooldown" };
   }
   return { status: "error", reason: outcome.error ?? "no price found" };
 }
@@ -307,7 +340,8 @@ export function createHealthService(adapter: StorageAdapter) {
         batch.map(async (parser) => {
           const start = Date.now();
           try {
-            const url = parser.buildSearchUrl(PROBE_MODEL);
+            const model = getProbeModel(parser.id);
+            const url = parser.buildSearchUrl(model);
             const outcome = await resilientFetch({
               parser,
               url,

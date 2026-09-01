@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 
 let modalStack: number[] = [];
 let modalIdCounter = 0;
+let openModalCount = 0;
 
 export function Modal({
   open,
@@ -24,9 +25,13 @@ export function Modal({
 
   useEffect(() => {
     if (!open) return;
+    openModalCount += 1;
     document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = "";
+      openModalCount = Math.max(0, openModalCount - 1);
+      if (openModalCount === 0) {
+        document.body.style.overflow = "";
+      }
     };
   }, [open]);
 

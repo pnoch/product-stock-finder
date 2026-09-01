@@ -42,15 +42,23 @@ export function computeProductInsights(
   const volatility = { low: 0, medium: 0, high: 0 };
 
   for (const product of watchlist) {
-    const points = product.listings
-      .flatMap((l) => l.priceHistory ?? [])
-      .map((p) => ({
-        t: Date.parse(p.date),
-        v: convert(p.price, p.currency, displayCurrency),
-      }))
-      .filter((p) => Number.isFinite(p.t) && p.v !== null)
-      .sort((a, b) => a.t - b.t)
-      .map((p) => p.v!);
+    // Group by timestamp and average to avoid phantom volatility from
+    // interleaving multiple distributors' prices at the same time or
+    // mixing currencies without aggregation.
+    const pointsByTime = new Map<number, number[]>();
+    for (const l of product.listings ?? []) {
+      for (const p of l.priceHistory ?? []) {
+        const t = Date.parse(p.date);
+        const v = convert(p.price, p.currency, displayCurrency);
+        if (!Number.isFinite(t) || v === null) continue;
+        const arr = pointsByTime.get(t);
+        if (arr) arr.push(v);
+        else pointsByTime.set(t, [v]);
+      }
+    }
+    const points = Array.from(pointsByTime.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([, vs]) => vs.reduce((s, v) => s + v, 0) / vs.length);
 
     const inStockPrices = product.listings
       .filter((l) => l.stockStatus === "in_stock")

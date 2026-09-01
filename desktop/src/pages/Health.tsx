@@ -64,6 +64,10 @@ export function Health() {
       setProgress(100);
       try {
         const svc = createHealthService(localAdapter as unknown as import("../../../lib/storage/adapter").StorageAdapter);
+        await svc.saveDistributorHealth(results as unknown as import("../../../lib/scrapers/health").DistributorHealth[]);
+        for (const r of results) {
+          await svc.recordSample(r.distributorId, r.status, r.reason, r.responseTimeMs);
+        }
         const history = await svc.getHealthHistory();
         setStats(computeHealthStats(history));
       } catch {
@@ -129,7 +133,7 @@ export function Health() {
         </div>
         <div className="text-right">
           <p className="text-xs text-gray-400">Last check</p>
-          <p className="text-sm font-medium">{health[0]?.lastChecked ? formatLastRefreshed(health[0].lastChecked) : "Never"}</p>
+          <p className="text-sm font-medium">{(() => { if (health.length === 0) return "Never"; const latest = health.reduce((max, h) => Math.max(max, new Date(h.lastChecked).getTime()), 0); return Number.isFinite(latest) && latest > 0 ? formatLastRefreshed(new Date(latest).toISOString()) : "Never"; })()}</p>
         </div>
       </div>
 

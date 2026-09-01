@@ -93,24 +93,37 @@ export default function RootLayout() {
   // Request notification permissions and set up Android channel on first load
   useEffect(() => {
     if (Platform.OS === "web") return;
-    // Route notification taps to their target screens
-    const handledResponses = new Set<string>();
+    // Route notification taps to their target screens — dedup with short TTL to avoid double-fire on cold start
+    const handledResponses = new Map<string, number>();
     const handleNotificationResponse = (
       response: Notifications.NotificationResponse,
     ) => {
-      const id = response.notification.request.identifier;
-      if (handledResponses.has(id)) return;
-      handledResponses.add(id);
-      const data = response.notification.request.content.data as {
+      const rawId = response.notification.request.identifier;
+      const dataForId = response.notification.request.content.data as {
+        eventId?: string;
         productId?: string;
         type?: string;
       };
+      const id =
+        rawId ??
+        `${dataForId?.eventId ?? JSON.stringify(dataForId ?? {})}:${response.actionIdentifier ?? "default"}`;
+      const now = Date.now();
+      const last = handledResponses.get(id);
+      if (last !== undefined && now - last < 2000) return;
+      handledResponses.set(id, now);
+      // prune entries older than 10s to bound memory
+      for (const [k, v] of handledResponses.entries()) {
+        if (now - v > 10_000) handledResponses.delete(k);
+      }
+      const data = dataForId;
       if (data.productId) {
         router.push(`/product/${data.productId}`);
       } else if (data.type === "digest") {
         router.push("/stats");
       } else if (data.type?.startsWith("health")) {
         router.push("/health");
+      } else {
+        router.push("/(tabs)");
       }
     };
     const responseSubscription =

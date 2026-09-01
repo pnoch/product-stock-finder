@@ -39,7 +39,11 @@ function ratesEqual(a: Record<string, number>, b: Record<string, number>): boole
   const aKeys = Object.keys(a);
   const bKeys = Object.keys(b);
   if (aKeys.length !== bKeys.length) return false;
-  for (const k of aKeys) if (a[k] !== b[k]) return false;
+  const EPSILON = 1e-9;
+  for (const k of aKeys) {
+    if (!(k in b)) return false;
+    if (Math.abs(a[k] - b[k]) > EPSILON) return false;
+  }
   return true;
 }
 
@@ -81,8 +85,8 @@ export async function maybeRefreshFxRates(
   storage: Storage = defaultStorage,
 ): Promise<void> {
   const stored = await storage.getFxRates();
-  // ±5m jitter to avoid thundering herd on fleet launch
-  const jitter = Math.floor(Math.random() * 600_000) - 300_000;
+  // 0-5m positive jitter to avoid thundering herd — never expires early
+  const jitter = Math.floor(Math.random() * 300_000);
   const fresh =
     stored !== null &&
     stored.fetchedAt > 0 &&

@@ -350,12 +350,18 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
     // Returns (alert_index, best_price) for each triggered alert.
     let mut triggered: Vec<(usize, f64)> = Vec::new();
     let mut notifications: Vec<(String, String)> = Vec::new();
+    let now_ts = current_iso_timestamp();
 
     for (idx, alert) in alerts.iter().enumerate() {
         let is_active = alert.get("isActive").and_then(|v| v.as_bool()).unwrap_or(false);
         let triggered_at = alert.get("triggeredAt").and_then(|v| v.as_str());
         if !is_active || triggered_at.is_some() {
             continue;
+        }
+        if let Some(snoozed_until) = alert.get("snoozedUntil").and_then(|v| v.as_str()) {
+            if snoozed_until > now_ts.as_str() {
+                continue;
+            }
         }
 
         let product_id = alert.get("productId").and_then(|v| v.as_str()).unwrap_or("");
@@ -372,14 +378,17 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
 
         let listings = product.get("listings").and_then(|v| v.as_array()).cloned().unwrap_or_default();
         let best_price = listings.iter().filter(|l| {
-            l.get("stockStatus").and_then(|v| v.as_str()) == Some("in_stock")
+            l.get("stockStatus").and_then(|v| v.as_str()) != Some("out_of_stock")
         }).fold(f64::INFINITY, |best, listing| {
             let price = listing.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0);
             if price <= 0.0 {
                 return best;
             }
             let currency = listing.get("currency").and_then(|v| v.as_str()).unwrap_or("USD");
-            let converted = convert_price(price, currency, alert_currency);
+            let converted = match convert_price(price, currency, alert_currency) {
+                Some(v) => v,
+                None => return best,
+            };
             if converted < best { converted } else { best }
         });
 
@@ -439,33 +448,46 @@ struct WatchedProduct {
 
 #[tauri::command]
 async fn check_all_prices(products: Vec<WatchedProduct>, api_base_url: String) -> Result<Vec<scrapers::ScrapeJobResult>, String> {
-    let mut results = Vec::new();
-    let mut first = true;
+    use futures::StreamExt as _;
+    use std::sync::Arc;
+
+    let semaphore = Arc::new(tokio::sync::Semaphore::new(3));
+    let mut futures = futures::stream::FuturesUnordered::new();
+
     for product in products {
         for distributor_id in product.distributor_ids {
-            if !first {
-                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-            }
-            first = false;
-            let start = std::time::Instant::now();
-            let (scrape_result, history) = match fetch_server_price(&api_base_url, &distributor_id, &product.model_number).await {
-                Some((r, h)) => (Ok(r), h),
-                None => (scrape_distributor(&distributor_id, &product.model_number).await, Vec::new()),
-            };
-            let duration_ms = start.elapsed().as_millis() as u64;
-            let (result, error) = match scrape_result {
-                Ok(r) => (Some(r), None),
-                Err(e) => (None, Some(e)),
-            };
-            results.push(scrapers::ScrapeJobResult {
-                distributor_id,
-                product_id: product.id.clone(),
-                result,
-                error,
-                duration_ms,
-                history,
+            let sem = semaphore.clone();
+            let api_url = api_base_url.clone();
+            let product_id = product.id.clone();
+            let model = product.model_number.clone();
+            let dist = distributor_id.clone();
+            futures.push(async move {
+                let _permit = sem.acquire_owned().await.map_err(|e| e.to_string())?;
+                let start = std::time::Instant::now();
+                let (scrape_result, history) = match fetch_server_price(&api_url, &dist, &model).await {
+                    Some((r, h)) => (Ok(r), h),
+                    None => (scrape_distributor(&dist, &model).await, Vec::new()),
+                };
+                let duration_ms = start.elapsed().as_millis() as u64;
+                let (result, error) = match scrape_result {
+                    Ok(r) => (Some(r), None),
+                    Err(e) => (None, Some(e)),
+                };
+                Ok::<scrapers::ScrapeJobResult, String>(scrapers::ScrapeJobResult {
+                    distributor_id: dist,
+                    product_id,
+                    result,
+                    error,
+                    duration_ms,
+                    history,
+                })
             });
         }
+    }
+
+    let mut results = Vec::new();
+    while let Some(res) = futures.next().await {
+        results.push(res?);
     }
     Ok(results)
 }
@@ -685,6 +707,30 @@ async fn fetch_server_price(
 
 // ─── Distributor Health ──────────────────────────────────────────────────────
 
+static BLOCKED_MARKERS: &[&str] = &[
+    "403 Forbidden",
+    "Access Denied",
+    "cf-browser-verification",
+    "Checking your browser",
+    "Just a moment",
+    "Attention Required",
+    "challenge-platform",
+    "px-captcha",
+    "captcha-delivery.com",
+];
+
+fn is_blocked_error(msg: &str) -> bool {
+    BLOCKED_MARKERS.iter().any(|m| msg.contains(m))
+}
+
+fn classify_fetch_status(msg: &str) -> &str {
+    if is_blocked_error(msg) {
+        "blocked"
+    } else {
+        "error"
+    }
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct DistributorHealth {
@@ -735,7 +781,8 @@ async fn check_distributor_health() -> Result<Vec<DistributorHealth>, String> {
         let (status, reason) = match scrape_result {
             Ok(r) if r.price > 0.0 => ("working".to_string(), None),
             Ok(_) => ("error".to_string(), Some("no price found".to_string())),
-            Err(e) => ("error".to_string(), Some(e)),
+            Err(e) if is_blocked_error(&e) => ("blocked".to_string(), Some(e)),
+            Err(e) => (classify_fetch_status(&e).to_string(), Some(e)),
         };
 
         results.push(DistributorHealth {

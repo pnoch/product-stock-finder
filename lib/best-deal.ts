@@ -6,7 +6,7 @@ export interface BestDeal {
   distributorId: string;
   price: number;
   tax: number;
-  shipping: number;
+  shipping: number | null;
   total: number;
   currency: string;
 }
@@ -31,8 +31,8 @@ export function findBestDeal(
       displayCurrency,
     );
     if (price === null) continue;
-    // Shipping is denominated in the distributor's native currency
-    const shipping = convertPrice(
+    // Shipping is denominated in the distributor's native currency — 0 is free shipping, bypass convert
+    const shipping = shippingCost === 0 ? 0 : convertPrice(
       shippingCost,
       distributor.currency,
       displayCurrency,
@@ -54,7 +54,7 @@ export function findBestDeal(
   }
 
   // Fallback: no shipping cost for the requested region — return cheapest
-  // in-stock price + tax without shipping rather than "no deal".
+  // in-stock price + tax without fabricating free shipping.
   if (!best) {
     const fallback = findBestInStockListing(listings, displayCurrency);
     if (fallback) {
@@ -65,7 +65,7 @@ export function findBestDeal(
         distributorId: fallback.distributorId,
         price,
         tax,
-        shipping: 0,
+        shipping: null,
         total: price + tax,
         currency: displayCurrency,
       };

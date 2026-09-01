@@ -41,7 +41,7 @@ describe("findBestDeal", () => {
       .filter((t): t is number => t != null);
     expect(individualTotals.length).toBeGreaterThan(0);
     expect(deal!.total).toBeCloseTo(Math.min(...individualTotals), 2);
-    expect(deal!.total).toBeCloseTo(deal!.price + deal!.shipping, 2);
+    expect(deal!.total).toBeCloseTo(deal!.price + (deal!.shipping ?? 0), 2);
   });
 
   it("skips out-of-stock listings", () => {
@@ -81,8 +81,9 @@ describe("findBestDeal", () => {
     const deal = findBestDeal(listings, "Asia-Pacific", "USD");
     expect(deal!.currency).toBe("USD");
     expect(deal!.price).toBeCloseTo(100, 2);
-    expect(deal!.shipping).toBeGreaterThan(0);
-    expect(deal!.total).toBeCloseTo(deal!.price + deal!.shipping, 2);
+    expect(deal!.shipping).not.toBeNull();
+    expect(deal!.shipping!).toBeGreaterThan(0);
+    expect(deal!.total).toBeCloseTo(deal!.price + (deal!.shipping ?? 0), 2);
   });
 
   it("returns null with no in-stock listings", () => {
@@ -107,7 +108,7 @@ describe("findBestDeal", () => {
     expect(deal).not.toBeNull();
     expect(deal!.tax).toBeCloseTo(20, 2); // 100 * 0.2
     expect(deal!.total).toBeCloseTo(
-      deal!.price + deal!.tax + deal!.shipping,
+      deal!.price + deal!.tax + (deal!.shipping ?? 0),
       2,
     );
   });

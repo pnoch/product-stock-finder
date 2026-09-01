@@ -316,7 +316,7 @@ export function DistributorListingSection({
                     : "Tax-free"}
                 </Text>
                 <Text style={{ color: colors.muted, fontSize: 12 }}>
-                  Ship: {formatPrice(bestDeal.shipping, bestDeal.currency)}
+                  Ship: {bestDeal.shipping === null ? "N/A" : formatPrice(bestDeal.shipping, bestDeal.currency)}
                 </Text>
               </View>
             </View>

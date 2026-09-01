@@ -13,7 +13,6 @@ import {
   UserCircle,
 } from "lucide-react";
 import { useSettings } from "../hooks/use-storage";
-import { useTheme } from "../hooks/use-theme";
 import { storage } from "../storage";
 import { startPricePoller, stopPricePoller } from "../background";
 import { EXCHANGE_RATES, CURRENCY_SYMBOLS } from "../../../lib/currency";
@@ -27,7 +26,6 @@ import { getApiBaseUrl } from "../lib/api-base";
 
 export function Settings() {
   const { settings, loading, update } = useSettings();
-  const { set: setTheme } = useTheme();
   const navigate = useNavigate();
   const prevIntervalRef = useRef<string | undefined>(settings?.checkInterval);
   useEffect(() => {
@@ -183,10 +181,7 @@ export function Settings() {
           {(["light", "dark", "auto"] as const).map((t) => (
             <button
               key={t}
-              onClick={() => {
-                setTheme(t);
-                update({ theme: t });
-              }}
+              onClick={() => update({ theme: t })}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 settings.theme === t
                   ? "bg-brand-600 text-white"

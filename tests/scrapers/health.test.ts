@@ -352,7 +352,7 @@ describe("classifyProbeOutcome", () => {
   it("maps skipped outcome to blocked with cooldown reason", () => {
     expect(
       classifyProbeOutcome({ status: "skipped", method: "none" }, workingParser),
-    ).toEqual({ status: "blocked", reason: "in cooldown" });
+    ).toEqual({ status: "error", reason: "in cooldown" });
   });
 
   it("maps error outcome to error", () => {

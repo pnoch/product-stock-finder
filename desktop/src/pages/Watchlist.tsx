@@ -80,6 +80,11 @@ export function Watchlist() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagMatchMode, setTagMatchMode] = useState<"any" | "all">("any");
   const [query, setQuery] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
   const regions = useMemo(() => getAllRegions(), []);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -99,26 +104,14 @@ export function Watchlist() {
     );
   };
 
-  const filteredProducts = useMemo(
-    () =>
-      regionFilter === "all"
-        ? products
-        : products.filter((p) => productHasRegion(p, regionFilter)),
-    [products, regionFilter],
-  );
-
-  const summary = useMemo(
-    () => computeWatchlistSummary(filteredProducts, displayCurrency),
-    [filteredProducts, displayCurrency],
-  );
-
+  // Single pipeline: apply all filters (region, status, tags, query) in one pass
   const filtered = useMemo(() => {
-    let result = filteredProducts;
+    let result = products;
+    if (regionFilter !== "all") {
+      result = result.filter((p) => productHasRegion(p, regionFilter));
+    }
     if (filter !== "all") {
-      result = result.filter((p) => {
-        const dominant = getDominantStatus(p);
-        return dominant === filter;
-      });
+      result = result.filter((p) => getDominantStatus(p) === filter);
     }
     if (selectedTagIds.length > 0) {
       result = result.filter((p) => matchesTagFilterMode(p, selectedTagIds, tagMatchMode));
@@ -132,12 +125,18 @@ export function Watchlist() {
       );
     }
     return result;
-  }, [filteredProducts, filter, selectedTagIds, tagMatchMode, query]);
+  }, [products, regionFilter, filter, selectedTagIds, tagMatchMode, query]);
+
+  const summary = useMemo(
+    () => computeWatchlistSummary(filtered, displayCurrency),
+    [filtered, displayCurrency],
+  );
 
   const tagCounts = useMemo(
     () =>
       countTagMatches(
-        filteredProducts.filter((p) => {
+        products.filter((p) => {
+          if (regionFilter !== "all" && !productHasRegion(p, regionFilter)) return false;
           if (filter !== "all" && getDominantStatus(p) !== filter) return false;
           if (query.trim()) {
             const q = query.trim().toLowerCase();
@@ -147,7 +146,7 @@ export function Watchlist() {
         }),
         { region: "all", status: "all", query: "" },
       ),
-    [filteredProducts, filter, query],
+    [products, regionFilter, filter, query],
   );
 
   const sorted = useMemo(() => {
@@ -215,6 +214,7 @@ export function Watchlist() {
         await storage.refreshWatchlistPrices();
       }
       await refresh();
+      showToast("Watchlist refreshed");
     } finally {
       setRefreshing(false);
     }
@@ -224,6 +224,7 @@ export function Watchlist() {
     e.stopPropagation();
     await storage.removeFromWatchlist(productId);
     await refresh();
+    showToast("Removed from watchlist");
   };
 
   const handleSort = (key: SortKey) => {
@@ -251,6 +252,11 @@ export function Watchlist() {
 
   return (
     <div className="p-6 space-y-4">
+      {toast && (
+        <div className="fixed bottom-6 right-6 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50 animate-fadeIn">
+          {toast}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Watchlist</h1>
         <div className="flex items-center gap-2">

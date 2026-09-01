@@ -61,7 +61,7 @@ export function ProductImage({ productId, size = 48 }: { productId: string; size
     }
     fetchProductImage(productId).then((res) => {
       const url = res?.imageUrl ?? null;
-      if (url) setImageCache(productId, url);
+      setImageCache(productId, url);
       if (active) setImageUrl(url);
     });
     return () => {
@@ -75,8 +75,9 @@ export function ProductImage({ productId, size = 48 }: { productId: string; size
   }, [opacity]);
 
   const handleError = useCallback(() => {
+    setImageCache(productId, null);
     setImageError(true);
-  }, []);
+  }, [productId]);
 
   if (!imageUrl || imageError) {
     if (size !== PLACEHOLDER_SIZE) {

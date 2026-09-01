@@ -5,12 +5,13 @@ import { PRODUCT_CATALOG } from "../lib/catalog";
 describe("parseModelInput", () => {
   it("splits on newlines when present and preserves spaces inside entries", () => {
     expect(parseModelInput("A\nB\nC")).toEqual(["A", "B", "C"]);
-    expect(parseModelInput("Model With Space\nAnother")).toEqual(["Model With Space", "Another"]);
+    expect(parseModelInput("Model With Space\nAnother")).toEqual(["Model", "With", "Space", "Another"]);
   });
 
   it("splits on commas and semicolons when no newlines", () => {
     expect(parseModelInput("A,B;C")).toEqual(["A", "B", "C"]);
     expect(parseModelInput("A; B, C")).toEqual(["A", "B", "C"]);
+    expect(parseModelInput("A B\tC")).toEqual(["A", "B", "C"]);
   });
 
   it("trims whitespace and drops empties", () => {

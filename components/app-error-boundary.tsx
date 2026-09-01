@@ -105,7 +105,8 @@ export class AppErrorBoundary extends React.Component<
 > {
   state = { hasError: false, message: "" };
   static getDerivedStateFromError(error: Error) {
-    return { hasError: true, message: error.message.slice(0, 120) };
+    const safeMessage = Array.from(error.message).slice(0, 120).join("");
+    return { hasError: true, message: safeMessage };
   }
   componentDidCatch(error: Error) {
     console.error(error);
