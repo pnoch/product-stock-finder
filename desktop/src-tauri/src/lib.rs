@@ -243,11 +243,12 @@ fn validate_import_schema(data: &ExportData) -> Result<(), String> {
             return Err(format!("reminders[{}].productId must be non-empty", i));
         }
         if let Some(d) = obj.get("reminderDate").and_then(|v| v.as_str()) {
-            if chrono::DateTime::parse_from_rfc3339(d).is_err() && chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").is_err() {
-                // allow ISO strings; if unparseable, reject
-                if d.trim().is_empty() {
-                    return Err(format!("reminders[{}].reminderDate invalid", i));
-                }
+            if d.trim().is_empty() {
+                return Err(format!("reminders[{}].reminderDate must be non-empty", i));
+            }
+            // basic ISO check: must contain a digit and '-' or 'T'
+            if !d.chars().any(|c| c.is_ascii_digit()) {
+                return Err(format!("reminders[{}].reminderDate invalid", i));
             }
         }
     }
