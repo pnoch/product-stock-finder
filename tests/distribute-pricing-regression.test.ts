@@ -8,16 +8,17 @@ import type { DistributorListing } from "../lib/types";
 function listing(
   overrides: Partial<DistributorListing> & { price: number; currency: string; stockStatus: string },
 ): DistributorListing {
+  const { price, currency, stockStatus, priceHistory, ...rest } = overrides;
   return {
     productId: "p",
-    distributorId: overrides.distributorId ?? "test",
-    price: overrides.price,
-    currency: overrides.currency,
-    stockStatus: overrides.stockStatus as DistributorListing["stockStatus"],
+    distributorId: rest.distributorId ?? "test",
+    price,
+    currency,
+    stockStatus: stockStatus as DistributorListing["stockStatus"],
     url: "",
     lastChecked: new Date().toISOString(),
-    priceHistory: (overrides.priceHistory as any) ?? [],
-    ...overrides,
+    priceHistory: (priceHistory as any) ?? [],
+    ...rest,
   } as DistributorListing;
 }
 
