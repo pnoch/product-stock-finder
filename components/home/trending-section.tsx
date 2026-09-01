@@ -220,7 +220,7 @@ export const TrendingSection = memo(function TrendingSection() {
         products.slice(0, 3).map((p) => fetchProductImage(p.id)),
       );
       if (!active) return;
-      const entries: Array<[string, string]> = [];
+      const entries: [string, string][] = [];
       results.forEach((r, i) => {
         const product = products[i];
         if (r.status === "fulfilled" && r.value && product) {
