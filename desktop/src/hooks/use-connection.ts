@@ -13,7 +13,7 @@ async function checkHealth(): Promise<boolean> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
   try {
-    const res = await fetch(`${baseUrl}/api/health`, {
+    const res = await fetch(`${baseUrl}/api/trpc/fx.get`, {
       signal: controller.signal,
     });
     return res.ok;

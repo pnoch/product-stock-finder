@@ -16,6 +16,7 @@ export function SearchModal({
   const [query, setQuery] = useState("");
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
   const [discovering, setDiscovering] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -31,13 +32,19 @@ export function SearchModal({
   const results = searchCatalog(query);
 
   const handleAdd = async (product: (typeof PRODUCT_CATALOG)[number]) => {
-    await storage.addToWatchlist({
-      ...product,
-      addedAt: new Date().toISOString(),
-      isWatched: true,
-      listings: [],
-    });
-    setTrackedIds((prev) => new Set([...prev, product.id]));
+    try {
+      await storage.addToWatchlist({
+        ...product,
+        addedAt: new Date().toISOString(),
+        isWatched: true,
+        listings: [],
+      });
+      setTrackedIds((prev) => new Set([...prev, product.id]));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to add to watchlist";
+      setToast(msg);
+      setTimeout(() => setToast(null), 3000);
+    }
   };
 
   const handleDiscover = useCallback(async () => {
@@ -133,6 +140,11 @@ export function SearchModal({
           </div>
         )}
       </div>
+      {toast && (
+        <div className="mt-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-3 py-2 text-sm text-red-700 dark:text-red-300" role="alert">
+          {toast}
+        </div>
+      )}
     </Modal>
   );
 }

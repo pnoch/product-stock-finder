@@ -111,6 +111,7 @@ export function ProductDetail() {
       }
       if (!cancelled) setLoading(false);
 
+      if (!("__TAURI__" in window)) return;
       const base = getApiBaseUrl();
       if (base && !cancelled) {
         const { invoke } = await import("@tauri-apps/api/core");
@@ -347,13 +348,14 @@ export function ProductDetail() {
             target="_blank"
             rel="noopener noreferrer"
             aria-disabled={bestListing.stockStatus !== "in_stock"}
+            tabIndex={bestListing.stockStatus !== "in_stock" ? -1 : undefined}
             onClick={(e) => {
               if (bestListing.stockStatus !== "in_stock") e.preventDefault();
             }}
             className={`mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               bestListing.stockStatus === "in_stock"
                 ? "bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer"
-                : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed pointer-events-none"
             }`}
             aria-label={
               bestListing.stockStatus === "in_stock"
