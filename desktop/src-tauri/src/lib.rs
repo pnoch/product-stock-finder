@@ -27,18 +27,20 @@ static EXCHANGE_RATES: [(&str, f64); 12] = [
     ("AED", 3.67),
 ];
 
-fn convert_price(amount: f64, from_currency: &str, to_currency: &str) -> f64 {
+fn convert_price(amount: f64, from_currency: &str, to_currency: &str) -> Option<f64> {
     let from_rate = EXCHANGE_RATES
         .iter()
         .find(|(c, _)| *c == from_currency)
-        .map(|(_, r)| *r)
-        .unwrap_or(1.0);
+        .map(|(_, r)| *r)?;
     let to_rate = EXCHANGE_RATES
         .iter()
         .find(|(c, _)| *c == to_currency)
-        .map(|(_, r)| *r)
-        .unwrap_or(1.0);
-    (amount / from_rate) * to_rate
+        .map(|(_, r)| *r)?;
+    if !from_rate.is_finite() || !to_rate.is_finite() || from_rate <= 0.0 || to_rate <= 0.0 {
+        return None;
+    }
+    let v = (amount / from_rate) * to_rate;
+    if v.is_finite() { Some(v) } else { None }
 }
 
 fn format_price(amount: f64, currency: &str) -> String {
