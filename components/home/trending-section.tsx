@@ -13,19 +13,24 @@ import { TrendingProduct } from "@/lib/types";
 import { fetchTrending } from "@/lib/trending";
 import { useColors } from "@/hooks/use-colors";
 import { addToWatchlist, getWatchlist } from "@/lib/storage";
+import { PRODUCT_CATALOG } from "@/lib/catalog";
+import { formatPrice } from "@/lib/currency";
 import { useRouter } from "expo-router";
 import { fetchProductImage } from "@/lib/server-images";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 
 function TrendingSkeletonCard() {
   const colors = useColors();
   const shimmer = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.loop(
+    const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(shimmer, { toValue: 1, duration: 850, useNativeDriver: true }),
         Animated.timing(shimmer, { toValue: 0, duration: 850, useNativeDriver: true }),
       ]),
-    ).start();
+    );
+    anim.start();
+    return () => anim.stop();
   }, [shimmer]);
   const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
   return (
@@ -115,7 +120,7 @@ const TrendingProductRow = memo(function TrendingProductRow({
               borderColor: colors.border,
             }}
           >
-            <Text style={{ fontSize: 9, color: colors.muted }}>No img</Text>
+            <IconSymbol name="photo" size={18} color={colors.muted} />
           </View>
         )}
         <View style={{ flex: 1, marginRight: 8 }}>
@@ -140,14 +145,7 @@ const TrendingProductRow = memo(function TrendingProductRow({
             ellipsizeMode="tail"
           >
             {product.category} · {product.brand} ·{" "}
-            {product.currency === "USD"
-              ? "$"
-              : product.currency === "EUR"
-                ? "€"
-                : product.currency === "GBP"
-                  ? "£"
-                  : product.currency + " "}
-            {product.estimatedPrice.toLocaleString()}
+            {formatPrice(product.estimatedPrice, product.currency)}
           </Text>
           <Text
             style={{
@@ -167,6 +165,7 @@ const TrendingProductRow = memo(function TrendingProductRow({
           disabled={isInWatchlist}
           style={{
             backgroundColor: isInWatchlist ? colors.muted : colors.primary,
+            opacity: isInWatchlist ? 0.6 : 1,
             borderRadius: 8,
             paddingHorizontal: 12,
             paddingVertical: 6,
@@ -217,15 +216,18 @@ export const TrendingSection = memo(function TrendingSection() {
     if (!products) return;
     let active = true;
     const load = async () => {
-      const entries = await Promise.all(
-        products.slice(0, 3).map(async (p) => {
-          const res = await fetchProductImage(p.id);
-          return [p.id, res?.imageUrl ?? ""] as const;
-        }),
+      const results = await Promise.allSettled(
+        products.slice(0, 3).map((p) => fetchProductImage(p.id)),
       );
-      if (active) {
-        setImageUrls(new Map(entries.filter(([, url]) => url)));
-      }
+      if (!active) return;
+      const entries: Array<[string, string]> = [];
+      results.forEach((r, i) => {
+        const product = products[i];
+        if (r.status === "fulfilled" && r.value && product) {
+          entries.push([product.id, r.value.imageUrl]);
+        }
+      });
+      setImageUrls(new Map(entries));
     };
     load();
     return () => {
@@ -237,13 +239,14 @@ export const TrendingSection = memo(function TrendingSection() {
     if (Platform.OS !== "web") {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+    const catalogProduct = PRODUCT_CATALOG.find((p) => p.id === product.id);
     await addToWatchlist({
       id: product.id,
       name: product.name,
-      modelNumber: product.id,
+      modelNumber: catalogProduct?.modelNumber ?? product.id,
       brand: product.brand,
       category: product.category,
-      description: "",
+      description: catalogProduct?.description ?? "",
       isWatched: true,
       addedAt: new Date().toISOString(),
       listings: [],

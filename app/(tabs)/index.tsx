@@ -29,6 +29,23 @@ import { fetchProductImage } from "@/lib/server-images";
 
 
 
+const STOCK_ORDER: Record<StockStatus, number> = {
+  in_stock: 0,
+  back_order: 1,
+  out_of_stock: 2,
+  unknown: 3,
+};
+
+// Derive best stock status across all listings for a product
+function getBestStatus(product: Product): StockStatus {
+  const listings = product.listings ?? [];
+  if (!listings.length) return "unknown";
+  const sorted = [...listings].sort(
+    (a, b) => STOCK_ORDER[a.stockStatus] - STOCK_ORDER[b.stockStatus],
+  );
+  return sorted[0]!.stockStatus;
+}
+
 function SummaryCard({
   label,
   value,
@@ -120,29 +137,17 @@ export default function HomeScreen() {
     }
   }, [loadData, queryClient]);
 
-  const inStockCount = watchlist.reduce((count, p) => {
-    const hasInStock = p.listings?.some((l) => l.stockStatus === "in_stock");
-    return hasInStock ? count + 1 : count;
-  }, 0);
-
-  const STOCK_ORDER: Record<StockStatus, number> = {
-    in_stock: 0,
-    back_order: 1,
-    out_of_stock: 2,
-    unknown: 3,
-  };
-
-  // Derive best stock status across all listings for a product
-  function getBestStatus(product: Product): StockStatus {
-    const listings = product.listings ?? [];
-    if (!listings.length) return "unknown";
-    const sorted = [...listings].sort(
-      (a, b) => STOCK_ORDER[a.stockStatus] - STOCK_ORDER[b.stockStatus],
-    );
-    return sorted[0]!.stockStatus;
-  }
+  const inStockCount = useMemo(
+    () =>
+      watchlist.reduce((count, p) => {
+        const hasInStock = p.listings?.some((l) => l.stockStatus === "in_stock");
+        return hasInStock ? count + 1 : count;
+      }, 0),
+    [watchlist],
+  );
 
   const recentActivity = useMemo(() => {
+    const seen = new Set<string>();
     return watchlist
       .flatMap((p) => (p.listings ?? []).map((l) => ({ product: p, listing: l })))
       .sort((a, b) => {
@@ -154,23 +159,29 @@ export default function HomeScreen() {
           : new Date(b.listing.lastChecked).getTime();
         return bTime - aTime;
       })
+      .filter(({ product }) => {
+        if (seen.has(product.id)) return false;
+        seen.add(product.id);
+        return true;
+      })
       .slice(0, 5);
   }, [watchlist]);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
-      const seen = new Set<string>();
-      for (const { product } of recentActivity) {
-        if (seen.has(product.id)) continue;
-        seen.add(product.id);
-        try {
-          const res = await fetchProductImage(product.id);
-          if (active && res) {
-            setImages((prev) => new Map([...prev, [product.id, res.imageUrl]]));
-          }
-        } catch {}
-      }
+      const results = await Promise.allSettled(
+        recentActivity.map(({ product }) => fetchProductImage(product.id)),
+      );
+      if (!active) return;
+      const newImages = new Map<string, string>();
+      results.forEach((r, i) => {
+        const product = recentActivity[i]?.product;
+        if (r.status === "fulfilled" && r.value && product) {
+          newImages.set(product.id, r.value.imageUrl);
+        }
+      });
+      setImages(newImages);
     };
     load();
     return () => {
@@ -355,7 +366,7 @@ export default function HomeScreen() {
                   paddingVertical: 10,
                   marginTop: 14,
                   borderWidth: 1,
-                  borderColor: colors.border,
+                  borderColor: colors.primary + "22",
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 8,
