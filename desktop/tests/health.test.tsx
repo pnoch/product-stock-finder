@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { Health } from "../src/pages/Health";
 
@@ -39,12 +39,24 @@ describe("Health", () => {
     expect(await screen.findByText("Distributor Health")).toBeDefined();
   });
 
-  it("calls invoke on mount", async () => {
+  it("does not call invoke on mount — only loads stored history", async () => {
     render(
       <MemoryRouter>
         <Health />
       </MemoryRouter>,
     );
+    await new Promise((r) => setTimeout(r, 50));
+    expect(mockInvoke).not.toHaveBeenCalled();
+  });
+
+  it("calls invoke when Test All is clicked", async () => {
+    render(
+      <MemoryRouter>
+        <Health />
+      </MemoryRouter>,
+    );
+    const button = await screen.findByText("Test All Distributors");
+    fireEvent.click(button);
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith("check_distributor_health");
     });
@@ -56,6 +68,8 @@ describe("Health", () => {
         <Health />
       </MemoryRouter>,
     );
+    const button = await screen.findByText("Test All Distributors");
+    fireEvent.click(button);
     expect(await screen.findByText(/Server2U/)).toBeDefined();
     expect(await screen.findByText(/NAS Store EU/)).toBeDefined();
   });

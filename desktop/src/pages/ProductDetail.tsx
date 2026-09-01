@@ -26,7 +26,6 @@ import type { Product } from "../../../lib/types";
 import { findBestDeal } from "../../../lib/best-deal";
 import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
-import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ProductImage } from "../components/ProductImage";
 import {
   LineChart,
@@ -139,7 +138,7 @@ export function ProductDetail() {
       (l) =>
         l.stockStatus !== "out_of_stock" &&
         l.price > 0 &&
-        Math.abs(convertPrice(l.price, l.currency, displayCurrency) - best.price) < 0.01,
+        Math.abs((convertPrice(l.price, l.currency, displayCurrency) ?? l.price) - best.price) < 0.01,
     );
   }, [visibleListings, best, displayCurrency]);
 

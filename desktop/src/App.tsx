@@ -53,10 +53,8 @@ function HeaderBar() {
 }
 
 function KeyboardShortcuts({
-  searchModalOpen,
   setSearchModalOpen,
 }: {
-  searchModalOpen: boolean;
   setSearchModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const navigate = useNavigate();
@@ -170,7 +168,6 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <KeyboardShortcuts
-            searchModalOpen={searchModalOpen}
             setSearchModalOpen={setSearchModalOpen}
           />
           <SearchModal

@@ -60,7 +60,7 @@ export function Stats() {
     [products],
   );
   const movers = useMemo(
-    () => (products ? computeMovers(products, displayCurrency, days as 7 | 30 | 90) : null),
+    () => (products ? computeMovers(products, displayCurrency, days === 90 ? null : (days as 7 | 30)) : null),
     [products, displayCurrency, days],
   );
   const freshness = useMemo(
@@ -82,7 +82,7 @@ export function Stats() {
           if (pt.date < cutoffStr) return;
           if (!dateMap.has(pt.date)) dateMap.set(pt.date, { date: pt.date });
           const row = dateMap.get(pt.date)!;
-          row[name] = convertPrice(pt.price, pt.currency, displayCurrency);
+          row[name] = convertPrice(pt.price, pt.currency, displayCurrency) ?? pt.price;
         });
       });
     });
@@ -212,10 +212,15 @@ export function Stats() {
           {freshness ? (
             <div className="space-y-1 text-sm">
               <p className="text-gray-600 dark:text-gray-400">
-                Fresh: <span className="font-medium text-gray-900 dark:text-gray-100">{freshness.freshCount}</span> · Stale:{" "}
-                <span className="font-medium text-gray-900 dark:text-gray-100">{freshness.staleCount}</span>
+                Stale: <span className="font-medium text-gray-900 dark:text-gray-100">{freshness.staleCount}</span> · Never checked:{" "}
+                <span className="font-medium text-gray-900 dark:text-gray-100">{freshness.neverCheckedCount}</span>
               </p>
-              <p className="text-xs text-gray-400">Oldest update {freshness.oldestAgeLabel}</p>
+              <p className="text-xs text-gray-400">
+                Oldest update{" "}
+                {freshness.oldestCheck
+                  ? new Date(freshness.oldestCheck).toLocaleDateString()
+                  : "—"}
+              </p>
             </div>
           ) : (
             <p className="text-sm text-gray-400">No data</p>

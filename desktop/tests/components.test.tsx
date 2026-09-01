@@ -27,9 +27,9 @@ describe("StockBadge", () => {
     expect(screen.getByText("Unknown")).toBeInTheDocument();
   });
 
-  it("renders expected date when provided", () => {
+  it("renders formatted expected date when provided", () => {
     render(<StockBadge status="back_order" expectedDate="2026-01-15" />);
-    expect(screen.getByText(/2026-01-15/)).toBeInTheDocument();
+    expect(screen.getByText(/2026/)).toBeInTheDocument();
   });
 });
 

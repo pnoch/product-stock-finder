@@ -243,8 +243,8 @@ export function Compare() {
     if (sortBy === "price") {
       return listings.sort(
         (a, b) =>
-          convertPrice(a.price, a.currency, displayCurrency) -
-          convertPrice(b.price, b.currency, displayCurrency),
+          (convertPrice(a.price, a.currency, displayCurrency) ?? a.price) -
+          (convertPrice(b.price, b.currency, displayCurrency) ?? b.price),
       );
     }
     return listings.sort((a, b) => a.distName.localeCompare(b.distName));
@@ -257,8 +257,8 @@ export function Compare() {
     );
     if (!inStock.length) return null;
     return inStock.reduce((best, curr) => {
-      const currConv = convertPrice(curr.price, curr.currency, displayCurrency);
-      const bestConv = convertPrice(best.price, best.currency, displayCurrency);
+      const currConv = convertPrice(curr.price, curr.currency, displayCurrency) ?? curr.price;
+      const bestConv = convertPrice(best.price, best.currency, displayCurrency) ?? best.price;
       return currConv < bestConv ? curr : best;
     });
   }, [sortedListings, displayCurrency]);

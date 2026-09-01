@@ -104,14 +104,6 @@ export function Home() {
 
   const loading = watchlistLoading || alertsLoading;
 
-  if (loading) return <LoadingSpinner size="large" label="Loading dashboard..." />;
-
-  const inStockCount = products.filter((p) =>
-    p.listings.some((l) => l.stockStatus === "in_stock"),
-  ).length;
-
-  const activeAlerts = alerts.filter((a) => a.isActive).length;
-
   const recentActivity = useMemo(() => {
     return products
       .flatMap((p) => (p.listings ?? []).map((l) => ({ product: p, listing: l })))
@@ -126,6 +118,14 @@ export function Home() {
       })
       .slice(0, 5);
   }, [products]);
+
+  if (loading) return <LoadingSpinner size="large" label="Loading dashboard..." />;
+
+  const inStockCount = products.filter((p) =>
+    p.listings.some((l) => l.stockStatus === "in_stock"),
+  ).length;
+
+  const activeAlerts = alerts.filter((a) => a.isActive).length;
 
   if (products.length === 0) {
     return (

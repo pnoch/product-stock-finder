@@ -43,6 +43,7 @@ export function TrendingSection() {
         modelNumber: product.id,
         brand: product.brand,
         category: product.category,
+        description: product.reason,
         isWatched: true,
         addedAt: new Date().toISOString(),
         listings: [],
