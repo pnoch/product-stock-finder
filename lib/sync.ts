@@ -131,7 +131,7 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     ...(await storage.getSyncMeta()),
     lastSyncedAt: nextCursor,
     lastSyncError: null,
-    lastSyncOkAt: nextCursor,
+    lastSyncOkAt: opts.now ? opts.now() : Date.now(),
   });
 }
 
