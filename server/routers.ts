@@ -82,6 +82,7 @@ export const appRouter = router({
     push: protectedProcedure
       .input(z.object({ items: z.array(syncItemSchema).max(500) }))
       .mutation(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "sync.push", 30, 60_000);
         const db = await getDb();
         if (!db) {
           console.warn("[Sync] Database not available; accepting nothing");

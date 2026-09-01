@@ -5,6 +5,16 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { fetchProductImage } from "@/lib/server-images";
 
 const imageCache = new Map<string, string | null>();
+const IMAGE_CACHE_MAX = 200;
+
+function setImageCache(key: string, value: string | null) {
+  if (imageCache.has(key)) imageCache.delete(key);
+  else if (imageCache.size >= IMAGE_CACHE_MAX) {
+    const oldest = imageCache.keys().next().value as string | undefined;
+    if (oldest !== undefined) imageCache.delete(oldest);
+  }
+  imageCache.set(key, value);
+}
 
 const PLACEHOLDER_SIZE = 48;
 
@@ -51,7 +61,7 @@ export function ProductImage({ productId, size = 48 }: { productId: string; size
     }
     fetchProductImage(productId).then((res) => {
       const url = res?.imageUrl ?? null;
-      if (url) imageCache.set(productId, url);
+      setImageCache(productId, url);
       if (active) setImageUrl(url);
     });
     return () => {
@@ -65,8 +75,9 @@ export function ProductImage({ productId, size = 48 }: { productId: string; size
   }, [opacity]);
 
   const handleError = useCallback(() => {
+    setImageCache(productId, null);
     setImageError(true);
-  }, []);
+  }, [productId]);
 
   if (!imageUrl || imageError) {
     if (size !== PLACEHOLDER_SIZE) {

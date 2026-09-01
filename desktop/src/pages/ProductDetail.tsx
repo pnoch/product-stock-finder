@@ -10,11 +10,13 @@ import {
 } from "lucide-react";
 import { storage } from "../storage";
 import { getApiBaseUrl } from "../lib/api-base";
+import { useTheme } from "../hooks/use-theme";
 import {
   formatPrice,
   getBestPrice,
   convertPrice,
   EXCHANGE_RATES,
+  CURRENCY_SYMBOLS,
 } from "../../../lib/currency";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { DISTRIBUTORS } from "../../../lib/distributors";
@@ -89,6 +91,7 @@ export function ProductDetail() {
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
   const [insight, setInsight] = useState<string | null>(null);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     if (!id) return;
@@ -427,24 +430,32 @@ export function ProductDetail() {
                   price: convertPrice(p.price, p.currency, displayCurrency),
                 }))}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#374151" : "#e5e7eb"} />
+                <XAxis dataKey="date" tick={{ fontSize: 12, fill: isDark ? "#9ca3af" : "#6b7280" }} axisLine={{ stroke: isDark ? "#4b5563" : "#d1d5db" }} tickLine={{ stroke: isDark ? "#4b5563" : "#d1d5db" }} />
                 <YAxis
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 12, fill: isDark ? "#9ca3af" : "#6b7280" }}
+                  axisLine={{ stroke: isDark ? "#4b5563" : "#d1d5db" }}
+                  tickLine={{ stroke: isDark ? "#4b5563" : "#d1d5db" }}
                   tickFormatter={(v: number) =>
-                    `${v.toFixed(0)} ${displayCurrency}`
+                    `${CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency}${v.toFixed(0)}`
                   }
                 />
                 <Tooltip
+                  contentStyle={{
+                    backgroundColor: isDark ? "#1f2937" : "#ffffff",
+                    border: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`,
+                    borderRadius: 8,
+                    color: isDark ? "#f3f4f6" : undefined,
+                  }}
                   formatter={(value: number) => [
-                    `${value.toFixed(2)} ${displayCurrency}`,
+                    `${CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency}${value.toFixed(2)}`,
                     "Price",
                   ]}
                 />
                 <Line
                   type="monotone"
                   dataKey="price"
-                  stroke="#0F52BA"
+                  stroke={isDark ? "#3B7DD8" : "#0F52BA"}
                   strokeWidth={2}
                   dot={false}
                 />

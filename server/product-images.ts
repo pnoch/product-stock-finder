@@ -74,7 +74,12 @@ async function generateImageForProduct(
   product: CatalogProduct,
 ): Promise<string | null> {
   try {
-    const result = await generateImage({ prompt: buildImagePrompt(product) });
+    const result = await Promise.race([
+      generateImage({ prompt: buildImagePrompt(product) }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Image generation timeout")), 15_000),
+      ),
+    ]);
     return result.url ?? null;
   } catch {
     return null;

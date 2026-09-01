@@ -79,7 +79,10 @@ export async function listNearExpiry(
     const entries: Array<{ distributorId: string; modelNumber: string }> = [];
     for (const [key, snap] of memoryCache) {
       if (snap.fetchedAt < cutoff) {
-        const [distributorId, modelNumber] = key.split(":");
+        const sep = key.indexOf(":");
+        if (sep === -1) continue;
+        const distributorId = key.slice(0, sep);
+        const modelNumber = key.slice(sep + 1);
         entries.push({ distributorId, modelNumber });
       }
     }
@@ -106,7 +109,10 @@ export async function getAllFetchedAt(): Promise<
       fetchedAt: number;
     }> = [];
     for (const [key, snap] of memoryCache) {
-      const [distributorId, modelNumber] = key.split(":");
+      const sep = key.indexOf(":");
+      if (sep === -1) continue;
+      const distributorId = key.slice(0, sep);
+      const modelNumber = key.slice(sep + 1);
       entries.push({ distributorId, modelNumber, fetchedAt: snap.fetchedAt });
     }
     return entries;

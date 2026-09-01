@@ -136,11 +136,18 @@ export function Watchlist() {
 
   const tagCounts = useMemo(
     () =>
-      countTagMatches(filteredProducts.filter((p) => {
-        if (filter === "all") return true;
-        return getDominantStatus(p) === filter;
-      }), { region: "all", status: "all", query: "" }),
-    [filteredProducts, filter],
+      countTagMatches(
+        filteredProducts.filter((p) => {
+          if (filter !== "all" && getDominantStatus(p) !== filter) return false;
+          if (query.trim()) {
+            const q = query.trim().toLowerCase();
+            if (!p.name.toLowerCase().includes(q) && !p.modelNumber.toLowerCase().includes(q)) return false;
+          }
+          return true;
+        }),
+        { region: "all", status: "all", query: "" },
+      ),
+    [filteredProducts, filter, query],
   );
 
   const sorted = useMemo(() => {
@@ -515,8 +522,22 @@ export function Watchlist() {
         </table>
 
         {sorted.length === 0 && (
-          <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-            No products match this filter.
+          <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400 space-y-3">
+            <p>No products match this filter.</p>
+            {products.length > 0 && (
+              <button
+                onClick={() => {
+                  setFilter("all");
+                  setQuery("");
+                  setRegionFilter("all");
+                  setSelectedTagIds([]);
+                }}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+                aria-label="Clear all filters"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
         )}
       </div>

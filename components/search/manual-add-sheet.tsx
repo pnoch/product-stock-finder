@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -83,6 +83,14 @@ export function ManualAddSheet({
   const [adding, setAdding] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [aiFailed, setAiFailed] = useState(false);
+  const activeRef = useRef(true);
+
+  useEffect(() => {
+    activeRef.current = true;
+    return () => {
+      activeRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (visible) {
@@ -151,6 +159,7 @@ export function ManualAddSheet({
     }
 
     setAdding(true);
+    let active = true;
     try {
       await addToWatchlist({
         id,
@@ -163,15 +172,17 @@ export function ManualAddSheet({
         addedAt: new Date().toISOString(),
         listings: [],
       });
-      setProgress("Searching distributors 0/…");
+      if (active && activeRef.current) setProgress("Searching distributors 0/…");
       const listings = await withTimeout(
         discoverListings(modelNumber, {
           productId: id,
-          onProgress: (done, total) =>
-            setProgress(`Searching distributors ${done}/${total}…`),
+          onProgress: (done, total) => {
+            if (active && activeRef.current) setProgress(`Searching distributors ${done}/${total}…`);
+          },
         }),
         DISCOVER_TIMEOUT_MS,
       );
+      if (!active || !activeRef.current) return;
       await updateProductListings(id, listings);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showAlert(
@@ -184,11 +195,15 @@ export function ManualAddSheet({
       onAdded?.();
       onClose();
     } catch {
+      if (!active || !activeRef.current) return;
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showAlert("Couldn't add product", "We couldn't add this product. Please try again.");
     } finally {
-      setAdding(false);
-      setProgress(null);
+      active = false;
+      if (activeRef.current) {
+        setAdding(false);
+        setProgress(null);
+      }
     }
   };
 

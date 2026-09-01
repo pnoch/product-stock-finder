@@ -24,6 +24,12 @@ export function useTheme() {
   const theme: "light" | "dark" =
     preference === "auto" ? (systemDark ? "dark" : "light") : preference;
 
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.classList.toggle("dark", theme === "dark");
+    }
+  }, [theme]);
+
   const set = (pref: ThemePreference) => {
     setPreferenceState(pref);
     if (typeof window !== "undefined") {

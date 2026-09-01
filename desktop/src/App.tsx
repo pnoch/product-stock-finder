@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router";
+import { HashRouter, Routes, Route, useNavigate } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Sidebar } from "./components/Sidebar";
 import { SearchModal } from "./components/SearchModal";
@@ -148,6 +148,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     let cancelled = false;
     const run = async () => {
       if (cancelled) return;
@@ -161,12 +162,12 @@ export default function App() {
       cancelled = true;
       clearInterval(timer);
     };
-  }, []);
+  }, [isAuthenticated]);
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
+        <HashRouter>
           <KeyboardShortcuts
             setSearchModalOpen={setSearchModalOpen}
           />
@@ -201,7 +202,7 @@ export default function App() {
               </div>
             </main>
           </div>
-        </BrowserRouter>
+        </HashRouter>
       </QueryClientProvider>
     </trpc.Provider>
   );

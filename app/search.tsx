@@ -107,6 +107,14 @@ export default function SearchScreen() {
     (typeof PRODUCT_CATALOG)[0][]
   >([]);
 
+  const refreshDiscovered = useCallback(async () => {
+    const all = await getAllCatalog();
+    const staticIds = new Set(PRODUCT_CATALOG.map((p) => p.id));
+    let discovered = all.filter((p) => !staticIds.has(p.id));
+    if (discovered.length > 50) discovered = discovered.slice(-50);
+    setDiscoveredProducts(discovered);
+  }, []);
+
   useEffect(() => {
     let active = true;
     void getAllCatalog().then((all) => {
@@ -120,6 +128,11 @@ export default function SearchScreen() {
       active = false;
     };
   }, []);
+
+  const handleManualAdded = useCallback(() => {
+    loadData();
+    void refreshDiscovered();
+  }, [loadData, refreshDiscovered]);
 
   const results = useMemo(() => {
     if (discoveredProducts.length === 0) {
@@ -331,8 +344,7 @@ export default function SearchScreen() {
           }}
         >
           <Text style={{ color: colors.muted, fontSize: 12 }}>
-            Tag filter highlights watchlist matches — untracked products remain
-            visible
+            Tag filter: showing watchlist matches only — clear to see catalog
           </Text>
         </View>
       )}
@@ -468,7 +480,7 @@ export default function SearchScreen() {
         onClose={() => setManualVisible(false)}
         initialText={query}
         trackedIds={trackedIds}
-        onAdded={loadData}
+        onAdded={handleManualAdded}
       />
     </ScreenContainer>
   );
