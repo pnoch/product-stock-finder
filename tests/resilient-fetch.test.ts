@@ -458,7 +458,7 @@ describe("resilientFetch escalation and timeouts", () => {
     expect(outcome.method).toBe("plain");
   });
 
-  it("returns skipped for a concurrent duplicate fetch of the same distributor", async () => {
+  it("shares the promise for a concurrent duplicate fetch of the same distributor", async () => {
     let releaseFetch!: () => void;
     const gate = new Promise<void>((resolve) => (releaseFetch = resolve));
     let fetchCalls = 0;
@@ -481,7 +481,7 @@ describe("resilientFetch escalation and timeouts", () => {
     releaseFetch();
     const [first, second] = await Promise.all([firstP, secondP]);
     expect(first.status).toBe("ok");
-    expect(second.status).toBe("skipped");
+    expect(second.status).toBe("ok");
     expect(fetchCalls).toBe(1);
     // Sequential follow-up must not be blocked by the released guard
     const third = await resilientFetch(opts);

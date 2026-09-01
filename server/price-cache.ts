@@ -41,7 +41,7 @@ export async function setCachedPrice(
     return;
   }
   // Drizzle decimal columns expect string values to preserve precision
-  const priceStr = snapshot.price.toFixed(2);
+  const priceStr = String(snapshot.price);
   const values = {
     distributorId,
     modelNumber,

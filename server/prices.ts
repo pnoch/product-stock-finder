@@ -75,7 +75,10 @@ export async function getPrice(
     getCachedPrice(distributorId, modelNumber),
     getHistory(distributorId, modelNumber),
   ]);
-  const fresh = cached !== null && Date.now() - cached.fetchedAt < PRICE_TTL_MS;
+  const fresh =
+    cached !== null &&
+    cached.fetchedAt <= Date.now() &&
+    Date.now() - cached.fetchedAt < PRICE_TTL_MS;
   if (!fresh) {
     void refreshSingleFlight(distributorId, modelNumber);
   }

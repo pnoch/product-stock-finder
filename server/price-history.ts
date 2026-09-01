@@ -74,7 +74,7 @@ export async function mergeHistory(
     distributorId,
     modelNumber,
     date: dayOf(p.date),
-    price: p.price.toFixed(2),
+    price: String(p.price),
     currency: p.currency,
     stockStatus: p.stockStatus,
     fetchedAt: Date.parse(p.date),

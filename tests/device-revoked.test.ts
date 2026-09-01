@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { createContext } from "../server/_core/context";
 import { DEVICE_REVOKED_ERR_MSG } from "../shared/const";
+import { ForbiddenError } from "../shared/_core/errors";
 
 vi.mock("../server/_core/sdk", () => ({
   sdk: { authenticateRequest: vi.fn() },
@@ -55,7 +56,7 @@ describe("createContext revocation check", () => {
   });
 
   it("passes for a revoked device without a user", async () => {
-    mockedAuth.mockRejectedValue(new Error("no user"));
+    mockedAuth.mockRejectedValue(ForbiddenError("no user"));
     mockedRevoked.mockResolvedValue(true);
     const ctx = await createContext({
       req: makeReq({ "x-device-id": "dev-1" }),

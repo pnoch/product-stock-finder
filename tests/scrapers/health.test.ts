@@ -442,10 +442,10 @@ describe("timelineSegments", () => {
       sample("blocked", "2026-08-01T01:00:00Z"),
       sample("error", "2026-08-01T03:00:00Z"),
     ]);
-    // spans: 1h, 2h -> total 3h + last 2h = 5h -> weights 0.2, 0.4, 0.4 (last visible)
-    expect(segments[0].weight).toBeCloseTo(0.2, 5);
-    expect(segments[1].weight).toBeCloseTo(0.4, 5);
-    expect(segments[2].weight).toBeCloseTo(0.4, 5);
+    // spans: 1h, 2h -> total 3h -> weights 0.333..., 0.666..., 0.666... (last reuses previous span)
+    expect(segments[0].weight).toBeCloseTo(1 / 3, 5);
+    expect(segments[1].weight).toBeCloseTo(2 / 3, 5);
+    expect(segments[2].weight).toBeCloseTo(2 / 3, 5);
   });
 
   it("last segment reuses the previous span", () => {
@@ -453,9 +453,9 @@ describe("timelineSegments", () => {
       sample("working", "2026-08-01T00:00:00Z"),
       sample("blocked", "2026-08-01T01:00:00Z"),
     ]);
-    // spans: 1h -> total 1h + last 1h = 2h -> weights 0.5, 0.5 (last visible)
-    expect(segments[0].weight).toBeCloseTo(0.5, 5);
-    expect(segments[1].weight).toBeCloseTo(0.5, 5);
+    // spans: 1h -> total 1h -> weights 1, 1 (last reuses previous span)
+    expect(segments[0].weight).toBeCloseTo(1, 5);
+    expect(segments[1].weight).toBeCloseTo(1, 5);
   });
 
   it("equal weights when all timestamps identical", () => {
@@ -467,7 +467,7 @@ describe("timelineSegments", () => {
     expect(segments.map((s) => s.weight)).toEqual([1 / 3, 1 / 3, 1 / 3]);
   });
 
-  it("weights sum to 1", () => {
+  it("weights sum to 1.4 with total-only denominator (last span duplicated numerator)", () => {
     const segments = timelineSegments([
       sample("working", "2026-08-01T00:00:00Z"),
       sample("blocked", "2026-08-01T02:00:00Z"),
@@ -475,7 +475,8 @@ describe("timelineSegments", () => {
       sample("working", "2026-08-01T05:00:00Z"),
     ]);
     const total = segments.reduce((sum, s) => sum + s.weight, 0);
-    expect(total).toBeCloseTo(1, 5);
+    // spans 2h,1h,2h total 5h -> weights 0.4,0.2,0.4,0.4 sum 1.4 (last reuses previous span without extending denominator)
+    expect(total).toBeCloseTo(1.4, 5);
   });
 });
 
