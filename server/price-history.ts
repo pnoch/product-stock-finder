@@ -82,10 +82,10 @@ export async function mergeHistory(
   if (values.length === 0) return;
   await db.insert(priceHistory).values(values).onDuplicateKeyUpdate({
     set: {
-      price: sql`VALUES(price)`,
-      currency: sql`VALUES(currency)`,
-      stockStatus: sql`VALUES(stockStatus)`,
-      fetchedAt: sql`VALUES(fetchedAt)`,
+      price: sql`IF(VALUES(fetchedAt) > fetchedAt, VALUES(price), price)`,
+      currency: sql`IF(VALUES(fetchedAt) > fetchedAt, VALUES(currency), currency)`,
+      stockStatus: sql`IF(VALUES(fetchedAt) > fetchedAt, VALUES(stockStatus), stockStatus)`,
+      fetchedAt: sql`IF(VALUES(fetchedAt) > fetchedAt, VALUES(fetchedAt), fetchedAt)`,
     },
   });
 }

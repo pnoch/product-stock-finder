@@ -10,7 +10,7 @@ import { ReminderSection } from "@/components/product/reminder-section";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveProduct } from "@/hooks/use-live-prices";
 import { getSettings, getStockWatches, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch } from "@/lib/storage";
-import { formatPrice } from "@/lib/currency";
+import { convertPrice, formatPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
 import { computePriceVsAverage } from "@/lib/price-average";
@@ -105,8 +105,18 @@ export default function ProductDetailScreen() {
   const bestInStockListing = useMemo(() => {
     const inStock = visibleListings.filter((l) => l.stockStatus === "in_stock");
     if (inStock.length === 0) return null;
-    return inStock.reduce((best, l) => (l.price < best.price ? l : best));
-  }, [visibleListings]);
+    let best: DistributorListing | null = null;
+    let bestConverted = Infinity;
+    for (const l of inStock) {
+      const converted = convertPrice(l.price, l.currency, displayCurrency);
+      if (converted === null || !Number.isFinite(converted)) continue;
+      if (converted < bestConverted) {
+        bestConverted = converted;
+        best = l;
+      }
+    }
+    return best;
+  }, [visibleListings, displayCurrency]);
   const priceVsAvg = useMemo(() => computePriceVsAverage(listings, displayCurrency), [listings, displayCurrency]);
 
   const handleSetBestAlert = useCallback(async (listing: DistributorListing) => {
@@ -190,6 +200,12 @@ export default function ProductDetailScreen() {
   const handleSetReminder = useCallback(async () => {
     const listing = reminderListing;
     if (!id || !listing) return;
+    const granted = await requestNotificationPermissions();
+    if (!granted) {
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showAlert("Permission Denied", "Please enable notifications in your device settings to set reminders.");
+      return;
+    }
     try {
       const distributor = getDistributorById(listing.distributorId);
       const notifId = await scheduleBackOrderReminder(product?.name ?? "Product", distributor?.name ?? listing.distributorId, reminderDate, id);

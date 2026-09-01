@@ -112,8 +112,9 @@ export const DistributorSelector = memo(function DistributorSelector({
         const isSelected = selected.has(l.distributorId);
         const hasHistory = l.priceHistory && l.priceHistory.length >= 2;
         const colorIdx = allDistributorIds.indexOf(l.distributorId);
+        const safeIdx = colorIdx === -1 ? 0 : colorIdx % CHART_COLORS.length;
         const chipColor = isSelected
-          ? CHART_COLORS[colorIdx % CHART_COLORS.length]
+          ? CHART_COLORS[safeIdx]
           : colors.border;
         const trend = priceTrends.get(l.distributorId);
         return (

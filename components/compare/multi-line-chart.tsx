@@ -63,8 +63,13 @@ export function MultiLineChart({
 
     const allDates: number[] = [];
     for (const s of series) {
-      for (const p of s.data) allDates.push(new Date(p.date).getTime());
+      for (const p of s.data) {
+        const t = new Date(p.date).getTime();
+        if (!Number.isNaN(t)) allDates.push(t);
+      }
     }
+    if (allDates.length === 0)
+      return { allCoords: [], globalMin: 0, globalMax: 0, globalMinDate: 0, globalMaxDate: 0 };
     const minDate = Math.min(...allDates);
     const maxDate = Math.max(...allDates);
     const dateRange = maxDate - minDate || 1;
@@ -77,8 +82,9 @@ export function MultiLineChart({
         .map((p) => {
           const converted = convertPrice(p.price, p.currency, displayCurrency);
           if (converted === null || !Number.isFinite(converted)) return null;
-          const x =
-            padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
+          const t = new Date(p.date).getTime();
+          if (Number.isNaN(t)) return null;
+          const x = padL + ((t - minDate) / dateRange) * usableW;
           const y = isFlat
             ? padT + usableH / 2
             : padT + (1 - (converted - globalMin) / range) * usableH;
