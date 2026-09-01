@@ -333,7 +333,7 @@ export default function RootLayout() {
   if (onboardingState === "checking") {
     return (
       <ThemeProvider>
-        <View style={{ flex: 1, backgroundColor: Colors.light.background }} />
+        <View style={{ flex: 1, backgroundColor: Colors[systemColorScheme].background }} />
       </ThemeProvider>
     );
   }

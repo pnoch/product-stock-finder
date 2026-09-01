@@ -24,12 +24,24 @@ function showWebAlert(
   buttons?: AlertButton[],
 ): void {
   if (typeof window === "undefined") return;
-  const text = message ?? title;
-  const destructive = buttons?.find((b) => b.style === "destructive");
-  if (destructive) {
-    if (window.confirm(text)) destructive.onPress?.();
+  const text = message ? `${title}\n\n${message}` : title;
+  if (!buttons || buttons.length === 0) {
+    window.alert(text);
     return;
   }
-  window.alert(text);
-  buttons?.find((b) => b.style !== "cancel")?.onPress?.();
+  if (buttons.length === 1) {
+    window.alert(text);
+    buttons[0].onPress?.();
+    return;
+  }
+  const cancel = buttons.find((b) => b.style === "cancel");
+  const action =
+    buttons.find((b) => b.style === "destructive") ??
+    buttons.find((b) => b.style !== "cancel") ??
+    buttons[0];
+  if (window.confirm(text)) {
+    action.onPress?.();
+  } else {
+    cancel?.onPress?.();
+  }
 }

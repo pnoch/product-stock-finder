@@ -141,8 +141,10 @@ export default function SettingsScreen() {
         await saveSettings(updated);
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {
+        setSettings(current);
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        throw new Error("Failed to save setting");
+        showAlert("Failed to save", "Could not save setting. Please try again.");
+        return;
       }
       if (key === "checkInterval") {
         void syncBackgroundTasks();

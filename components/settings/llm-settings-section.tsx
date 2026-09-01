@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { SectionHeader } from "./section-header";
@@ -20,6 +20,29 @@ interface Props {
 export function LlmSettingsSection({ settings, onUpdate }: Props) {
   const colors = useColors();
   const [showApiKey, setShowApiKey] = useState(false);
+  const [draftApiKey, setDraftApiKey] = useState(settings.llmApiKey ?? "");
+  const [draftModel, setDraftModel] = useState(settings.llmModel ?? "");
+  const [draftOllamaUrl, setDraftOllamaUrl] = useState(settings.llmOllamaUrl ?? "");
+
+  useEffect(() => { setDraftApiKey(settings.llmApiKey ?? ""); }, [settings.llmApiKey]);
+  useEffect(() => { setDraftModel(settings.llmModel ?? ""); }, [settings.llmModel]);
+  useEffect(() => { setDraftOllamaUrl(settings.llmOllamaUrl ?? ""); }, [settings.llmOllamaUrl]);
+
+  useEffect(() => {
+    if (draftApiKey === (settings.llmApiKey ?? "")) return;
+    const t = setTimeout(() => onUpdate("llmApiKey", draftApiKey), 500);
+    return () => clearTimeout(t);
+  }, [draftApiKey, settings.llmApiKey, onUpdate]);
+  useEffect(() => {
+    if (draftModel === (settings.llmModel ?? "")) return;
+    const t = setTimeout(() => onUpdate("llmModel", draftModel), 500);
+    return () => clearTimeout(t);
+  }, [draftModel, settings.llmModel, onUpdate]);
+  useEffect(() => {
+    if (draftOllamaUrl === (settings.llmOllamaUrl ?? "")) return;
+    const t = setTimeout(() => onUpdate("llmOllamaUrl", draftOllamaUrl), 500);
+    return () => clearTimeout(t);
+  }, [draftOllamaUrl, settings.llmOllamaUrl, onUpdate]);
 
   const provider = settings.llmProvider ?? "forge";
 
@@ -53,8 +76,9 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
                 fontSize: 14,
               }}
               secureTextEntry={!showApiKey}
-              value={settings.llmApiKey ?? ""}
-              onChangeText={(v) => onUpdate("llmApiKey", v)}
+              value={draftApiKey}
+              onChangeText={setDraftApiKey}
+              onBlur={() => { if (draftApiKey !== (settings.llmApiKey ?? "")) onUpdate("llmApiKey", draftApiKey); }}
               placeholder="sk-..."
               placeholderTextColor={colors.muted}
             />
@@ -81,8 +105,9 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
               color: colors.foreground,
               fontSize: 14,
             }}
-            value={settings.llmModel ?? ""}
-            onChangeText={(v) => onUpdate("llmModel", v)}
+            value={draftModel}
+            onChangeText={setDraftModel}
+            onBlur={() => { if (draftModel !== (settings.llmModel ?? "")) onUpdate("llmModel", draftModel); }}
             placeholder="dall-e-3"
             placeholderTextColor={colors.muted}
           />
@@ -107,8 +132,9 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
                 fontSize: 14,
               }}
               secureTextEntry={!showApiKey}
-              value={settings.llmApiKey ?? ""}
-              onChangeText={(v) => onUpdate("llmApiKey", v)}
+              value={draftApiKey}
+              onChangeText={setDraftApiKey}
+              onBlur={() => { if (draftApiKey !== (settings.llmApiKey ?? "")) onUpdate("llmApiKey", draftApiKey); }}
               placeholder="ollama_..."
               placeholderTextColor={colors.muted}
             />
@@ -135,8 +161,9 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
               color: colors.foreground,
               fontSize: 14,
             }}
-            value={settings.llmOllamaUrl ?? ""}
-            onChangeText={(v) => onUpdate("llmOllamaUrl", v)}
+            value={draftOllamaUrl}
+            onChangeText={setDraftOllamaUrl}
+            onBlur={() => { if (draftOllamaUrl !== (settings.llmOllamaUrl ?? "")) onUpdate("llmOllamaUrl", draftOllamaUrl); }}
             placeholder="https://ollama.com"
             placeholderTextColor={colors.muted}
             autoCapitalize="none"
@@ -156,8 +183,9 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
               color: colors.foreground,
               fontSize: 14,
             }}
-            value={settings.llmModel ?? ""}
-            onChangeText={(v) => onUpdate("llmModel", v)}
+            value={draftModel}
+            onChangeText={setDraftModel}
+            onBlur={() => { if (draftModel !== (settings.llmModel ?? "")) onUpdate("llmModel", draftModel); }}
             placeholder="gemma4"
             placeholderTextColor={colors.muted}
             autoCapitalize="none"
@@ -181,8 +209,9 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
               color: colors.foreground,
               fontSize: 14,
             }}
-            value={settings.llmOllamaUrl ?? ""}
-            onChangeText={(v) => onUpdate("llmOllamaUrl", v)}
+            value={draftOllamaUrl}
+            onChangeText={setDraftOllamaUrl}
+            onBlur={() => { if (draftOllamaUrl !== (settings.llmOllamaUrl ?? "")) onUpdate("llmOllamaUrl", draftOllamaUrl); }}
             placeholder="http://localhost:11434"
             placeholderTextColor={colors.muted}
             autoCapitalize="none"
@@ -202,8 +231,9 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
               color: colors.foreground,
               fontSize: 14,
             }}
-            value={settings.llmModel ?? ""}
-            onChangeText={(v) => onUpdate("llmModel", v)}
+            value={draftModel}
+            onChangeText={setDraftModel}
+            onBlur={() => { if (draftModel !== (settings.llmModel ?? "")) onUpdate("llmModel", draftModel); }}
             placeholder="llava"
             placeholderTextColor={colors.muted}
             autoCapitalize="none"

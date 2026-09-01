@@ -21,7 +21,7 @@ describe("showAlert on web", () => {
       { text: "Cancel", style: "cancel" },
       { text: "Remove", style: "destructive", onPress },
     ]);
-    expect(window.confirm).toHaveBeenCalledWith("Remove this?");
+    expect(window.confirm).toHaveBeenCalledWith("Remove\n\nRemove this?");
     expect(onPress).toHaveBeenCalled();
     expect(alertMock).not.toHaveBeenCalled();
   });
@@ -39,13 +39,13 @@ describe("showAlert on web", () => {
   it("shows an informational alert and runs the OK onPress", () => {
     const onPress = vi.fn();
     showAlert("Done", "All set.", [{ text: "OK", onPress }]);
-    expect(window.alert).toHaveBeenCalledWith("All set.");
+    expect(window.alert).toHaveBeenCalledWith("Done\n\nAll set.");
     expect(onPress).toHaveBeenCalled();
   });
 
   it("shows an informational alert when no buttons are given", () => {
     showAlert("Oops", "Something went wrong.");
-    expect(window.alert).toHaveBeenCalledWith("Something went wrong.");
+    expect(window.alert).toHaveBeenCalledWith("Oops\n\nSomething went wrong.");
   });
 
   it("falls back to the title when no message is given", () => {
