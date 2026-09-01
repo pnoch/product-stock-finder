@@ -34,11 +34,7 @@ export function createRemindersStorage(ctx: StorageContext) {
   ): Promise<void> {
     await enqueue(KEYS.REMINDERS, async () => {
       const reminders = await getBackOrderReminders();
-      const existing = reminders.findIndex(
-        (r) =>
-          r.productId === reminder.productId &&
-          r.distributorId === reminder.distributorId,
-      );
+      const existing = reminders.findIndex((r) => r.id === reminder.id);
       if (existing >= 0) {
         reminders[existing] = reminder;
       } else {

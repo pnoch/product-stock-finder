@@ -81,8 +81,8 @@ export async function maybeRefreshFxRates(
   storage: Storage = defaultStorage,
 ): Promise<void> {
   const stored = await storage.getFxRates();
-  // ±5m jitter to avoid thundering herd on fleet launch, clamped >=0 so fresh never appears stale early
-  const jitter = Math.max(0, Math.floor(Math.random() * 300_000) - 100_000);
+  // ±5m jitter to avoid thundering herd on fleet launch
+  const jitter = Math.floor(Math.random() * 600_000) - 300_000;
   const fresh =
     stored !== null &&
     stored.fetchedAt > 0 &&

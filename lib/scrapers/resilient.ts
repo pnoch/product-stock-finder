@@ -162,19 +162,25 @@ export class BrowserUnavailableError extends Error {
 }
 
 let browserUnavailableReason: string | null = null;
+let browserUnavailableAt = 0;
+const BROWSER_UNAVAILABLE_TTL_MS = 60_000;
 
 async function fetchBrowser(
   parser: DistributorParser,
   url: string,
 ): Promise<string> {
   if (browserUnavailableReason) {
-    throw new BrowserUnavailableError(browserUnavailableReason);
+    if (Date.now() - browserUnavailableAt < BROWSER_UNAVAILABLE_TTL_MS) {
+      throw new BrowserUnavailableError(browserUnavailableReason);
+    }
+    browserUnavailableReason = null;
   }
   let mod: typeof import("./browser");
   try {
     mod = await import("./browser");
   } catch (error) {
     browserUnavailableReason = "browser module unavailable";
+    browserUnavailableAt = Date.now();
     throw new BrowserUnavailableError(browserUnavailableReason, {
       cause: error,
     });
@@ -260,7 +266,7 @@ export async function resilientFetch(
 ): Promise<FetchOutcome> {
   const inFlightKey = `${opts.parser.id}:${(opts as unknown as { url?: string; model?: string }).url ?? (opts as unknown as { model?: string }).model ?? ""}`;
   const existing = inFlight.get(inFlightKey);
-  if (existing) return { status: "skipped", method: "none" };
+  if (existing) return existing;
   const run = runResilientFetch(opts).finally(() => {
     inFlight.delete(inFlightKey);
   });

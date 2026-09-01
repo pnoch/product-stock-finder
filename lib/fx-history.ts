@@ -1,4 +1,3 @@
-import { EXCHANGE_RATES } from "./currency";
 import type { FxHistory } from "./storage/fx-history";
 
 const MAX_POINTS = 90;
@@ -16,6 +15,9 @@ export function appendFxHistory(
     return { rates: historyRates, timestamps: [timestamp] };
   }
 
+  const isDuplicateTs =
+    existing.timestamps[existing.timestamps.length - 1] === timestamp;
+
   const newRates: Record<string, number[]> = {};
   const allCodes = new Set([
     ...Object.keys(existing.rates),
@@ -23,17 +25,30 @@ export function appendFxHistory(
   ]);
 
   for (const code of allCodes) {
+    if (!(code in rates)) {
+      newRates[code] = [...(existing.rates[code] ?? [])];
+      continue;
+    }
     const prev = existing.rates[code] ?? [];
-    let newVal = rates[code] ?? prev[prev.length - 1] ?? EXCHANGE_RATES[code];
+    let newVal = rates[code];
     if (newVal === undefined) continue;
     if (!Number.isFinite(newVal)) continue;
-    newRates[code] = [...prev, newVal];
+    if (isDuplicateTs) {
+      newRates[code] =
+        prev.length === 0
+          ? [newVal]
+          : [...prev.slice(0, -1), newVal];
+    } else {
+      newRates[code] = [...prev, newVal];
+    }
     if (newRates[code].length > MAX_POINTS) {
       newRates[code] = newRates[code].slice(-MAX_POINTS);
     }
   }
 
-  const newTimestamps = [...existing.timestamps, timestamp];
+  const newTimestamps = isDuplicateTs
+    ? [...existing.timestamps]
+    : [...existing.timestamps, timestamp];
   return {
     rates: newRates,
     timestamps: newTimestamps.slice(-MAX_POINTS),

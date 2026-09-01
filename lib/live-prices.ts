@@ -102,6 +102,6 @@ export function mergeSampleHistory(
         ),
       };
     }
-    return { ...l, priceHistory: sample.priceHistory };
+    return { ...l, priceHistory: [...(sample.priceHistory ?? [])] };
   });
 }

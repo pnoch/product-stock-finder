@@ -93,6 +93,7 @@ export function createAlertsStorage(ctx: StorageContext) {
         if (patch.distributorId !== undefined)
           next.distributorId = patch.distributorId ?? undefined;
         // Field changes re-arm the alert and clear stale trigger info
+        next.isActive = true;
         next.triggeredAt = undefined;
         next.triggeredPrice = undefined;
         return next;

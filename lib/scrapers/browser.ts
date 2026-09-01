@@ -99,47 +99,69 @@ class BrowserPool {
   private mutex = new Mutex();
 
   async acquire(): Promise<Browser> {
-    return this.mutex.runExclusive(async () => {
-      if (this.browsers.length > 0) {
-        const browser = this.browsers.pop()!;
-        if (browser.isConnected()) {
+    // Fast path: reuse idle browser without holding mutex across launch
+    let reused: Browser | null = null;
+    await this.mutex.runExclusive(async () => {
+      while (this.browsers.length > 0) {
+        const candidate = this.browsers.pop()!;
+        if (candidate.isConnected()) {
+          reused = candidate;
           this.checkedOut++;
-          return browser;
+          break;
         }
-        // Browser crashed while idle — discard and launch a fresh one
       }
+    });
+    if (reused) return reused;
+
+    // Reserve a slot for a new browser — only counter is protected
+    let shouldLaunch = false;
+    await this.mutex.runExclusive(async () => {
       if (this.checkedOut < this.maxPoolSize) {
         this.checkedOut++;
-        try {
-          return await chromium.launch({
-            headless: true,
-            args: [
-              "--disable-blink-features=AutomationControlled",
-              "--disable-dev-shm-usage",
-              "--no-sandbox",
-              "--disable-web-security",
-              "--disable-features=IsolateOrigins,site-per-process",
-            ],
-          });
-        } catch (error) {
-          this.checkedOut--;
-          throw new Error(
-            `Failed to launch browser: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
+        shouldLaunch = true;
       }
-      // All browsers checked out — wait for one to be released
-      for (let i = 0; i < this.maxRetries; i++) {
-        await new Promise((r) => setTimeout(r, 100));
-        if (this.browsers.length > 0) {
-          this.checkedOut++;
-          return this.browsers.pop()!;
-        }
-      }
-      throw new Error(
-        "Browser pool exhausted: no browsers available after waiting",
-      );
     });
+    if (shouldLaunch) {
+      try {
+        return await chromium.launch({
+          headless: true,
+          args: [
+            "--disable-blink-features=AutomationControlled",
+            "--disable-dev-shm-usage",
+            "--no-sandbox",
+            "--disable-web-security",
+            "--disable-features=IsolateOrigins,site-per-process",
+          ],
+        });
+      } catch (error) {
+        await this.mutex.runExclusive(async () => {
+          this.checkedOut = Math.max(0, this.checkedOut - 1);
+        });
+        throw new Error(
+          `Failed to launch browser: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
+    // All browsers checked out — wait for one to be released (poll without holding mutex)
+    for (let i = 0; i < this.maxRetries; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      let waiting: Browser | null = null;
+      await this.mutex.runExclusive(async () => {
+        while (this.browsers.length > 0) {
+          const candidate = this.browsers.pop()!;
+          if (candidate.isConnected()) {
+            waiting = candidate;
+            this.checkedOut++;
+            break;
+          }
+        }
+      });
+      if (waiting) return waiting;
+    }
+    throw new Error(
+      "Browser pool exhausted: no browsers available after waiting",
+    );
   }
 
   release(browser: Browser): void {

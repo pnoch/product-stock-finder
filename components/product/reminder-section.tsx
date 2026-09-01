@@ -15,7 +15,7 @@ export function ReminderSection({ productId, distributorId, productName, distrib
   const onSet = async () => {
     try {
       const d = new Date(Date.now() + 7 * 86400000);
-      const notifId = await scheduleBackOrderReminder(productId, distributorId, d).catch(() => null);
+      const notifId = await scheduleBackOrderReminder(productName ?? "", distributorName ?? "", d, productId).catch(() => null);
       await addBackOrderReminder({ id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, productName: productName ?? "", distributorId, distributorName: distributorName ?? "", reminderDate: d.toISOString(), notificationId: notifId ?? undefined, createdAt: new Date().toISOString() });
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showToast(`Reminder set for ${d.toLocaleDateString()}`, "success");

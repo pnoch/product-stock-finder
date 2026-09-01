@@ -170,12 +170,13 @@ export default function HomeScreen() {
 
   const recentIdsKey = useMemo(() => recentActivity.map(({ product }) => product.id).join(","), [recentActivity]);
 
-  const prevIdsRef = useRef<string>("");
   useEffect(() => {
-    if (prevIdsRef.current === recentIdsKey) return;
-    prevIdsRef.current = recentIdsKey;
     let active = true;
-    const ids = recentActivity.map(({ product }) => product.id);
+    const ids = recentIdsKey ? recentIdsKey.split(",").filter(Boolean) : [];
+    if (ids.length === 0) {
+      setImages(new Map());
+      return;
+    }
     const load = async () => {
       const results = await Promise.allSettled(ids.map((id) => fetchProductImage(id)));
       if (!active) return;
@@ -192,7 +193,7 @@ export default function HomeScreen() {
     return () => {
       active = false;
     };
-  }, [recentIdsKey, recentActivity]);
+  }, [recentIdsKey]);
 
   return (
     <ScreenContainer>

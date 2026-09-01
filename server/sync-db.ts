@@ -22,8 +22,8 @@ export function shouldAcceptSyncWrite(
   existingServerUpdatedAtMs: number,
   incomingUpdatedAt: number,
 ): boolean {
-  const baseline = existingClientUpdatedAtMs ?? existingServerUpdatedAtMs;
-  return incomingUpdatedAt > baseline;
+  if (existingClientUpdatedAtMs === null) return true;
+  return incomingUpdatedAt > existingClientUpdatedAtMs;
 }
 
 /**
@@ -147,10 +147,10 @@ export async function upsertSyncItem(
   const stampedAt = Date.now();
 
   const conditionalSet = {
-    data: sql`IF(VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs), VALUES(data), data)`,
-    updatedAtMs: sql`IF(VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs), VALUES(updatedAtMs), updatedAtMs)`,
-    clientUpdatedAtMs: sql`IF(VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs), VALUES(clientUpdatedAtMs), clientUpdatedAtMs)`,
-    deletedAtMs: sql`IF(VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs), VALUES(deletedAtMs), deletedAtMs)`,
+    data: sql`IF(clientUpdatedAtMs IS NULL OR VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs), VALUES(data), data)`,
+    updatedAtMs: sql`IF(clientUpdatedAtMs IS NULL OR VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs), VALUES(updatedAtMs), updatedAtMs)`,
+    clientUpdatedAtMs: sql`IF(clientUpdatedAtMs IS NULL OR VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs), VALUES(clientUpdatedAtMs), clientUpdatedAtMs)`,
+    deletedAtMs: sql`IF(clientUpdatedAtMs IS NULL OR VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs), VALUES(deletedAtMs), deletedAtMs)`,
   };
 
   switch (item.collection) {
@@ -181,7 +181,7 @@ export async function upsertSyncItem(
           ),
         )
         .limit(1);
-      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt && row[0]?.updatedAtMs === stampedAt;
+      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt;
       return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
     }
     case "alerts": {
@@ -208,7 +208,7 @@ export async function upsertSyncItem(
           and(eq(priceAlerts.userId, userId), eq(priceAlerts.alertId, item.id)),
         )
         .limit(1);
-      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt && row[0]?.updatedAtMs === stampedAt;
+      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt;
       return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
     }
     case "reminders": {
@@ -238,7 +238,7 @@ export async function upsertSyncItem(
           ),
         )
         .limit(1);
-      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt && row[0]?.updatedAtMs === stampedAt;
+      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt;
       return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
     }
     case "settings": {
@@ -262,7 +262,7 @@ export async function upsertSyncItem(
         .from(appSettings)
         .where(eq(appSettings.userId, userId))
         .limit(1);
-      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt && row[0]?.updatedAtMs === stampedAt;
+      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt;
       return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
     }
     default:

@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import { DEVICE_REVOKED_ERR_MSG } from "../../shared/const.js";
+import { HttpError } from "../../shared/_core/errors.js";
 import { isDeviceRevoked } from "../devices";
 import { sdk, type AuthenticatedUser } from "./sdk";
 
@@ -19,8 +20,12 @@ export async function createContext(
   try {
     user = await sdk.authenticateRequest(opts.req);
   } catch (error) {
-    // Authentication is optional for public procedures.
-    user = null;
+    // Authentication is optional for public procedures — only swallow auth failures.
+    if (error instanceof HttpError && error.statusCode === 403) {
+      user = null;
+    } else {
+      throw error;
+    }
   }
 
   const rawDeviceId = opts.req.headers["x-device-id"];

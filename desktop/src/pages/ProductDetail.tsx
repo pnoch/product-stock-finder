@@ -217,18 +217,23 @@ export function ProductDetail() {
 
   const handleRemindMe = async () => {
     if (!product) return;
+    if (!bestListing) {
+      showToast("No distributor available");
+      return;
+    }
     const date = new Date();
     date.setDate(date.getDate() + 7);
     await storage.addBackOrderReminder({
       id: `reminder-${Date.now()}`,
       productId: product.id,
       productName: product.name,
-      distributorId: bestListing?.distributorId ?? "",
+      distributorId: bestListing.distributorId,
       distributorName: bestDistributor?.name ?? "Unknown",
       reminderDate: date.toISOString(),
       createdAt: new Date().toISOString(),
       reminderType: "date",
     });
+    showToast(`Reminder set for ${date.toLocaleDateString()}`);
   };
 
   const handleWatchRestock = async () => {

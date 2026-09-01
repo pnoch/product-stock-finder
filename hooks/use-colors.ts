@@ -12,7 +12,9 @@ import { useColorScheme } from "./use-color-scheme";
 export function useColors(
   colorSchemeOverride?: ColorScheme,
 ): ThemeColorPalette {
-  const colorSchema = useColorScheme();
-  const scheme = (colorSchemeOverride ?? colorSchema ?? "light") as ColorScheme;
+  const colorScheme = useColorScheme();
+  const scheme =
+    (colorSchemeOverride ??
+      (colorScheme === "dark" ? "dark" : "light")) as ColorScheme;
   return Colors[scheme];
 }

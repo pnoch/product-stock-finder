@@ -79,12 +79,20 @@ function parseSearchResults(html: string, model?: string): string | null {
   return best;
 }
 
+function buildMikrotikSearchUrl(model: string): string {
+  return `https://mikrotik-store.eu/en/search?q=${encodeURIComponent(model)}`;
+}
+
 export const mikrotikstoreParser: DistributorParser = {
   id: "mikrotikstore-de",
   baseUrl: "https://mikrotik-store.eu",
-  buildSearchUrl: (model) =>
-    `https://mikrotik-store.eu/en/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseProductPage(html, "https://mikrotik-store.eu", model),
+  buildSearchUrl: buildMikrotikSearchUrl,
+  parsePrice: (html, model) =>
+    parseProductPage(
+      html,
+      model ? buildMikrotikSearchUrl(model) : "https://mikrotik-store.eu",
+      model,
+    ),
   rateLimitMs: 3000,
 };
 

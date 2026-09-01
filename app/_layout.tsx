@@ -174,30 +174,36 @@ export default function RootLayout() {
 
     async function seedProducts() {
       const watchlist = await getWatchlist();
+      const existingIds = new Set(watchlist.map((p) => p.id));
+      const existingById = new Map(watchlist.map((p) => [p.id, p] as const));
       for (const id of SEED_IDS) {
-        const existing = watchlist.find((p) => p.id === id);
-        if (existing) {
-          // Backfill listings if a seeded product was stored without listing data
-          if (
-            (id === "mikrotik-crs804-4ddq-hrm" ||
-              id === "mikrotik-crs326-24s") &&
-            (!existing.listings || existing.listings.length === 0)
-          ) {
-            await updateProductListings(
-              id,
-              freshenSampleListings(SAMPLE_LISTINGS[id] ?? []),
-            );
+        try {
+          if (existingIds.has(id)) {
+            const existing = existingById.get(id)!;
+            // Backfill listings if a seeded product was stored without listing data
+            if (
+              (id === "mikrotik-crs804-4ddq-hrm" ||
+                id === "mikrotik-crs326-24s") &&
+              (!existing.listings || existing.listings.length === 0)
+            ) {
+              await updateProductListings(
+                id,
+                freshenSampleListings(SAMPLE_LISTINGS[id] ?? []),
+              );
+            }
+            continue;
           }
-          continue;
+          const product = PRODUCT_CATALOG.find((p) => p.id === id);
+          if (!product) continue;
+          await addToWatchlist({
+            ...product,
+            isWatched: true,
+            addedAt: new Date().toISOString(),
+            listings: freshenSampleListings(SAMPLE_LISTINGS[id] ?? []),
+          });
+        } catch (e) {
+          console.error(`[Seed] failed for ${id}:`, e);
         }
-        const product = PRODUCT_CATALOG.find((p) => p.id === id);
-        if (!product) continue;
-        await addToWatchlist({
-          ...product,
-          isWatched: true,
-          addedAt: new Date().toISOString(),
-          listings: freshenSampleListings(SAMPLE_LISTINGS[id] ?? []),
-        });
       }
     }
 

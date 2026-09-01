@@ -15,7 +15,8 @@ export async function fetchServerPrice(
         setTimeout(() => resolve(null), TIMEOUT_MS),
       ),
     ]);
-    if (!result || !result.snapshot) return null;
+    if (!result) return null;
+    if (!result.snapshot && !result.history?.length) return null;
     return result;
   } catch {
     return null;

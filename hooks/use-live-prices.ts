@@ -55,7 +55,7 @@ export function useLiveProduct(productId: string) {
   const modelNumber =
     product?.modelNumber ??
     PRODUCT_CATALOG.find((p) => p.id === productId)?.modelNumber ??
-    productId;
+    null;
 
   const queries = useMemo(
     () => (modelNumber ? deriveListingQueries(modelNumber, seedListings) : []),
@@ -95,13 +95,30 @@ export function useLiveProduct(productId: string) {
   }, [loaded, product, productId, persistKey, hasLiveData]);
 
   const refresh = useCallback(async () => {
+    const watchlist = await getWatchlist();
+    const found = watchlist.find((p) => p.id === productId);
+    const sample = SAMPLE_LISTINGS[productId] ?? [];
+    let nextSeed: DistributorListing[];
+    if (found) {
+      const base = found.listings ?? [];
+      if (base.length === 0) nextSeed = sample;
+      else nextSeed = mergeSampleHistory(base, sample);
+    } else {
+      nextSeed = sample;
+    }
     await loadSeed();
-    const keys = queries.map((q) => q.queryKey);
+    const nextModel =
+      found?.modelNumber ??
+      PRODUCT_CATALOG.find((p) => p.id === productId)?.modelNumber ??
+      null;
+    const keys = nextModel
+      ? deriveListingQueries(nextModel, nextSeed).map((q) => q.queryKey)
+      : [];
     await Promise.all(
       keys.map((key) => queryClient.invalidateQueries({ queryKey: key })),
     );
     return keys.some((key) => queryClient.getQueryData(key) != null);
-  }, [loadSeed, queryClient, queries]);
+  }, [loadSeed, productId, queryClient]);
 
   const isRefreshingAny = results.some((r) => r.isFetching);
 

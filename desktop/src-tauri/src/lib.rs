@@ -112,6 +112,20 @@ struct ExportData {
     settings: serde_json::Value,
 }
 
+// ─── Storage split-brain note ─────────────────────────────────────────────────
+// Desktop frontend persistence is split: the renderer uses `localStorage` via
+// `createStorage(localStorageAdapter)` (see `desktop/src/storage.ts`), while
+// Tauri commands read/write JSON files in `app_data_dir` (see `read_json_file`/
+// `write_json_file` below). To avoid divergence, either adopt
+// `tauri-plugin-store` for a single shared store, or keep the frontend in sync
+// by reading through the `read_watchlist` invoke exposed below (which reads the
+// same JSON file the Rust side owns).
+#[tauri::command]
+fn read_watchlist(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    read_json_file(&data_dir, "watchlist_products")
+}
+
 #[tauri::command]
 fn export_watchlist(
     app: tauri::AppHandle,
@@ -192,7 +206,8 @@ fn import_watchlist(
 
 fn parse_query_params(query: &str) -> std::collections::HashMap<String, String> {
     let mut params = std::collections::HashMap::new();
-    if let Some(q) = query.split('?').nth(1) {
+    let path = query.split_whitespace().nth(1).unwrap_or(query);
+    if let Some(q) = path.split('?').nth(1) {
         for pair in q.split('&') {
             if let Some((k, v)) = pair.split_once('=') {
                 let decoded = urlencoding::decode(v).unwrap_or_else(|_| v.into());
@@ -236,10 +251,13 @@ async fn start_oauth(login_url: String) -> Result<serde_json::Value, String> {
         .await
         .map_err(|e| format!("Failed to bind OAuth callback listener: {e}"))?;
 
-    let (mut socket, _) = listener
-        .accept()
-        .await
-        .map_err(|e| format!("Failed to accept OAuth callback: {e}"))?;
+    let (mut socket, _) = tokio::time::timeout(
+        std::time::Duration::from_secs(120),
+        listener.accept(),
+    )
+    .await
+    .map_err(|_| "OAuth callback timed out after 120 seconds".to_string())?
+    .map_err(|e| format!("Failed to accept OAuth callback: {e}"))?;
 
     let mut buf = [0u8; 8192];
     let n = socket
@@ -1144,6 +1162,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             send_notification,
             get_app_data_dir,
+            read_watchlist,
             export_watchlist,
             import_watchlist,
             start_price_poller,

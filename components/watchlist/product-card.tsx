@@ -135,6 +135,7 @@ export const ProductCard = memo(function ProductCard({
   const handleImageError = useCallback(() => setImageError(true), []);
   useEffect(() => {
     let active = true;
+    setImageUrl(null);
     setImageError(false);
     setImageLoaded(false);
     imageOpacity.setValue(0);

@@ -34,7 +34,7 @@ export function nextTagColor(defs: Record<string, TagDefinition>): string {
   const last = Object.values(defs).at(-1);
   if (!last) return TAG_PALETTE[0];
   const idx = TAG_PALETTE.indexOf(last.color);
-  return TAG_PALETTE[(idx + 1) % TAG_PALETTE.length];
+  return TAG_PALETTE[idx === -1 ? 0 : (idx + 1) % TAG_PALETTE.length];
 }
 
 export function matchesTagFilterMode(

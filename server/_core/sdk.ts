@@ -5,6 +5,7 @@ import {
 import { ForbiddenError } from "../../shared/_core/errors.js";
 import bcrypt from "bcryptjs";
 import { parse as parseCookieHeader } from "cookie";
+import { randomUUID } from "crypto";
 import type { Request } from "express";
 import { SignJWT, jwtVerify } from "jose";
 import type { User } from "../../drizzle/schema";
@@ -43,7 +44,7 @@ class SDKServer {
     }
 
     const passwordHash = await bcrypt.hash(req.password, SALT_ROUNDS);
-    const openId = `email_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const openId = `email_${Date.now()}_${randomUUID()}`;
 
     await db.upsertUser({
       openId,

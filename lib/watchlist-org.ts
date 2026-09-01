@@ -68,9 +68,11 @@ export function productStatus(product: Product): StockStatus {
 }
 
 export function productRegion(product: Product): string {
-  const first = (product.listings ?? [])[0];
-  if (!first) return "Unknown";
-  return getDistributorById(first.distributorId)?.region ?? "Unknown";
+  for (const listing of product.listings ?? []) {
+    const region = getDistributorById(listing.distributorId)?.region;
+    if (region) return region;
+  }
+  return "Unknown";
 }
 
 export function priceDropPercent(product: Product): number | null {
@@ -236,10 +238,28 @@ export function groupWatchlist(
       products: list.filter((p) => productStatus(p) === status),
     })).filter((s) => s.products.length > 0);
   }
-  const regions = Array.from(new Set(list.map(productRegion))).sort();
-  return regions.map((region) => ({
-    key: `region-${region}`,
-    title: region,
-    products: list.filter((p) => productRegion(p) === region),
-  }));
+  const regions = Array.from(
+    new Set(
+      list.flatMap((p) => {
+        const listings = p.listings ?? [];
+        if (listings.length === 0) return ["Unknown"];
+        const regs = listings
+          .map((l) => getDistributorById(l.distributorId)?.region)
+          .filter((r): r is string => Boolean(r));
+        return regs.length > 0 ? regs : ["Unknown"];
+      }),
+    ),
+  ).sort();
+  return regions
+    .map((region) => ({
+      key: `region-${region}`,
+      title: region,
+      products: list.filter((p) =>
+        region === "Unknown"
+          ? (p.listings ?? []).length === 0 ||
+            (p.listings ?? []).every((l) => !getDistributorById(l.distributorId)?.region)
+          : productHasRegion(p, region),
+      ),
+    }))
+    .filter((s) => s.products.length > 0);
 }

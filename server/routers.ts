@@ -11,6 +11,9 @@ import {
   TOMBSTONE_PURGE_WINDOW_MS,
   upsertSyncItem,
 } from "./sync-db";
+
+let lastTombstonePurgeAt = 0;
+const TOMBSTONE_PURGE_INTERVAL_MS = 60 * 60 * 1000;
 import { getPrice } from "./prices";
 import { getFxRates } from "./fx";
 import { mergeHistory } from "./price-history";
@@ -101,10 +104,14 @@ export const appRouter = router({
             });
           }
         }
-        await purgeOldTombstones(
-          ctx.user.id,
-          Date.now() - TOMBSTONE_PURGE_WINDOW_MS,
-        );
+        const now = Date.now();
+        if (now - lastTombstonePurgeAt > TOMBSTONE_PURGE_INTERVAL_MS) {
+          lastTombstonePurgeAt = now;
+          await purgeOldTombstones(
+            ctx.user.id,
+            now - TOMBSTONE_PURGE_WINDOW_MS,
+          );
+        }
         return { accepted, stamped };
       }),
   }),

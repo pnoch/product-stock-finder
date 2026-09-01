@@ -80,7 +80,7 @@ function ThemedFallback({
       </TouchableOpacity>
       <TouchableOpacity
         activeOpacity={0.7}
-        onPress={() => router.back()}
+        onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)"))}
         style={{
           marginTop: 10,
           borderWidth: 1,

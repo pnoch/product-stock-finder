@@ -102,7 +102,7 @@ export default function WatchlistScreen() {
     setGroupMode(settings?.watchlistGroup ?? "off");
     const defs = await getTagDefinitions();
     setTagDefinitions(defs);
-    setSelectedTagIds((prev) => prev.filter((id) => id in defs));
+    setSelectedTagIds((prev) => prev.filter((id) => Object.prototype.hasOwnProperty.call(defs, id)));
   }, []);
 
   useFocusEffect(
@@ -329,6 +329,10 @@ export default function WatchlistScreen() {
   }, [watchlist.length, reload, refreshAll, loadData]);
 
   const persistChainRef = useRef(Promise.resolve<void>(undefined));
+  const sortModeRef = useRef(sortMode);
+  const groupModeRef = useRef(groupMode);
+  sortModeRef.current = sortMode;
+  groupModeRef.current = groupMode;
   const persistViewPrefs = useCallback(
     async (sort: WatchlistSort, group: WatchlistGroup) => {
       persistChainRef.current = persistChainRef.current
@@ -453,11 +457,11 @@ export default function WatchlistScreen() {
           onSortModeChange={(mode) => {
             setSortMode(mode);
             setSortMenuOpen(false);
-            void persistViewPrefs(mode, groupMode);
+            void persistViewPrefs(mode, groupModeRef.current);
           }}
           onGroupModeChange={(mode) => {
             setGroupMode(mode);
-            void persistViewPrefs(sortMode, mode);
+            void persistViewPrefs(sortModeRef.current, mode);
           }}
           onSortMenuToggle={() => setSortMenuOpen((v) => !v)}
         />

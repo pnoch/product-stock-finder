@@ -224,11 +224,10 @@ export default function HealthScreen() {
         >
           {filtered.map((h) => {
           const distributor = getDistributorById(h.distributorId);
-          if (!distributor) return null;
           return (
             <TouchableOpacity activeOpacity={0.7}
               key={h.distributorId}
-              accessibilityLabel={`${distributor.name}, ${h.status}`}
+              accessibilityLabel={`${distributor?.name ?? h.distributorId}, ${h.status}`}
               accessibilityRole="button"
               onPress={() => router.push(`/health/${h.distributorId}`)}
               style={{
@@ -256,7 +255,7 @@ export default function HealthScreen() {
                     fontSize: 14,
                   }}
                 >
-                  {distributor.countryFlag} {distributor.name}
+                  {distributor ? `${distributor.countryFlag} ${distributor.name}` : h.distributorId}
                 </Text>
                 <Text style={{ color: colors.muted, fontSize: 12 }}>
                   {h.reason || h.status}
