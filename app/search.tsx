@@ -116,7 +116,7 @@ export default function SearchScreen() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [watchlist]);
 
   const results = useMemo(() => {
     const staticResults =

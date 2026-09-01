@@ -269,6 +269,7 @@ export default function HealthDetailScreen() {
           </Text>
         )}
       </ScrollView>
+      )}
     </ScreenContainer>
   );
 }

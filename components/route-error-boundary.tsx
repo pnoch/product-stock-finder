@@ -111,7 +111,7 @@ export class RouteErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error) {
     console.error("[RouteErrorBoundary]", error);
-    void AsyncStorage.setItem("last_error", error.message).catch(() => {});
+    void AsyncStorage.setItem("last_route_error", error.message).catch(() => {});
   }
 
   render() {

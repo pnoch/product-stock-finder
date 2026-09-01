@@ -38,7 +38,6 @@ import {
   SAMPLE_LISTINGS,
   freshenSampleListings,
 } from "@/lib/sample-data";
-import { DistributorListing } from "@/lib/types";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -67,13 +66,6 @@ import { backfillLocalHistory } from "@/lib/history-sync";
 import { syncServerNotifications } from "@/lib/server-notifications";
 import { registerPushToken } from "@/lib/push-token";
 import { loadFxRates, maybeRefreshFxRates } from "@/lib/fx";
-
-// CRS804 + CRS326 listings seeded at first launch from lib/sample-data.ts so Home/Watchlist
-// badges and Product Detail sparklines/charts have full price history immediately.
-const CRS804_SEED_LISTINGS: DistributorListing[] =
-  SAMPLE_LISTINGS["mikrotik-crs804-4ddq-hrm"] ?? [];
-const CRS326_SEED_LISTINGS: DistributorListing[] =
-  SAMPLE_LISTINGS["mikrotik-crs326-24s"] ?? [];
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -168,156 +160,48 @@ export default function RootLayout() {
     };
   }, []);
 
-  // Seed CRS804 into watchlist on first launch if watchlist is empty
+  // Seed sample products into the watchlist on first launch (single read, batched)
   useEffect(() => {
-    async function seedCRS804() {
-      const watchlist = await getWatchlist();
-      const existing = watchlist.find(
-        (p) => p.id === "mikrotik-crs804-4ddq-hrm",
-      );
-      if (existing) {
-        // Backfill listings if the product was seeded without listing data
-        if (!existing.listings || existing.listings.length === 0) {
-          await updateProductListings(
-            "mikrotik-crs804-4ddq-hrm",
-            freshenSampleListings(CRS804_SEED_LISTINGS),
-          );
-        }
-        return;
-      }
-      // First launch: add CRS804 with full listing data
-      const crs804 = PRODUCT_CATALOG.find(
-        (p) => p.id === "mikrotik-crs804-4ddq-hrm",
-      );
-      if (!crs804) return;
-      await addToWatchlist({
-        ...crs804,
-        isWatched: true,
-        addedAt: new Date().toISOString(),
-        listings: freshenSampleListings(CRS804_SEED_LISTINGS),
-      });
-    }
-    seedCRS804()
-      .then(seedCRS326)
-      .then(seedRTX4090)
-      .then(seedMacBookPro)
-      .then(seedRaspberryPi5)
-      .then(seedAirPodsMax)
-      .then(seedSteamDeck)
-      .catch((err) => console.error("Seeding failed:", err));
+    const SEED_IDS = [
+      "mikrotik-crs804-4ddq-hrm",
+      "mikrotik-crs326-24s",
+      "nvidia-rtx-4090",
+      "apple-macbook-pro-m4-max",
+      "raspberry-pi-5-8gb",
+      "apple-airpods-max-2",
+      "valve-steam-deck-oled",
+    ] as const;
 
-    async function seedRTX4090() {
+    async function seedProducts() {
       const watchlist = await getWatchlist();
-      const existing = watchlist.find((p) => p.id === "nvidia-rtx-4090");
-      if (existing) return;
-      const product = PRODUCT_CATALOG.find((p) => p.id === "nvidia-rtx-4090");
-      if (!product) return;
-      await addToWatchlist({
-        ...product,
-        isWatched: true,
-        addedAt: new Date().toISOString(),
-        listings: freshenSampleListings(
-          SAMPLE_LISTINGS["nvidia-rtx-4090"] ?? [],
-        ),
-      });
-    }
-    async function seedMacBookPro() {
-      const watchlist = await getWatchlist();
-      const existing = watchlist.find(
-        (p) => p.id === "apple-macbook-pro-m4-max",
-      );
-      if (existing) return;
-      const product = PRODUCT_CATALOG.find(
-        (p) => p.id === "apple-macbook-pro-m4-max",
-      );
-      if (!product) return;
-      await addToWatchlist({
-        ...product,
-        isWatched: true,
-        addedAt: new Date().toISOString(),
-        listings: freshenSampleListings(
-          SAMPLE_LISTINGS["apple-macbook-pro-m4-max"] ?? [],
-        ),
-      });
-    }
-    async function seedRaspberryPi5() {
-      const watchlist = await getWatchlist();
-      const existing = watchlist.find((p) => p.id === "raspberry-pi-5-8gb");
-      if (existing) return;
-      const product = PRODUCT_CATALOG.find(
-        (p) => p.id === "raspberry-pi-5-8gb",
-      );
-      if (!product) return;
-      await addToWatchlist({
-        ...product,
-        isWatched: true,
-        addedAt: new Date().toISOString(),
-        listings: freshenSampleListings(
-          SAMPLE_LISTINGS["raspberry-pi-5-8gb"] ?? [],
-        ),
-      });
-    }
-    async function seedAirPodsMax() {
-      const watchlist = await getWatchlist();
-      const existing = watchlist.find(
-        (p) => p.id === "apple-airpods-max-2",
-      );
-      if (existing) return;
-      const product = PRODUCT_CATALOG.find(
-        (p) => p.id === "apple-airpods-max-2",
-      );
-      if (!product) return;
-      await addToWatchlist({
-        ...product,
-        isWatched: true,
-        addedAt: new Date().toISOString(),
-        listings: freshenSampleListings(
-          SAMPLE_LISTINGS["apple-airpods-max-2"] ?? [],
-        ),
-      });
-    }
-    async function seedSteamDeck() {
-      const watchlist = await getWatchlist();
-      const existing = watchlist.find(
-        (p) => p.id === "valve-steam-deck-oled",
-      );
-      if (existing) return;
-      const product = PRODUCT_CATALOG.find(
-        (p) => p.id === "valve-steam-deck-oled",
-      );
-      if (!product) return;
-      await addToWatchlist({
-        ...product,
-        isWatched: true,
-        addedAt: new Date().toISOString(),
-        listings: freshenSampleListings(
-          SAMPLE_LISTINGS["valve-steam-deck-oled"] ?? [],
-        ),
-      });
-    }
-    async function seedCRS326() {
-      const watchlist = await getWatchlist();
-      const existing = watchlist.find((p) => p.id === "mikrotik-crs326-24s");
-      if (existing) {
-        if (!existing.listings || existing.listings.length === 0) {
-          await updateProductListings(
-            "mikrotik-crs326-24s",
-            freshenSampleListings(CRS326_SEED_LISTINGS),
-          );
+      for (const id of SEED_IDS) {
+        const existing = watchlist.find((p) => p.id === id);
+        if (existing) {
+          // Backfill listings if a seeded product was stored without listing data
+          if (
+            (id === "mikrotik-crs804-4ddq-hrm" ||
+              id === "mikrotik-crs326-24s") &&
+            (!existing.listings || existing.listings.length === 0)
+          ) {
+            await updateProductListings(
+              id,
+              freshenSampleListings(SAMPLE_LISTINGS[id] ?? []),
+            );
+          }
+          continue;
         }
-        return;
+        const product = PRODUCT_CATALOG.find((p) => p.id === id);
+        if (!product) continue;
+        await addToWatchlist({
+          ...product,
+          isWatched: true,
+          addedAt: new Date().toISOString(),
+          listings: freshenSampleListings(SAMPLE_LISTINGS[id] ?? []),
+        });
       }
-      const crs326 = PRODUCT_CATALOG.find(
-        (p) => p.id === "mikrotik-crs326-24s",
-      );
-      if (!crs326) return;
-      await addToWatchlist({
-        ...crs326,
-        isWatched: true,
-        addedAt: new Date().toISOString(),
-        listings: freshenSampleListings(CRS326_SEED_LISTINGS),
-      });
     }
+
+    seedProducts().catch((err) => console.error("Seeding failed:", err));
   }, []);
 
   // Create clients once and reuse them
