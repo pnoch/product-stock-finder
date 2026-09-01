@@ -3,7 +3,7 @@ import type { PricePoint } from "@/lib/types";
 export function appendPricePoint(
   history: PricePoint[],
   point: PricePoint,
-  maxDays = 90,
+  maxDays = 365,
   now = new Date().toISOString(),
 ): PricePoint[] {
   if (Number.isNaN(Date.parse(point.date))) {
@@ -38,7 +38,7 @@ export function appendPricePoint(
 export function mergePriceHistory(
   local: PricePoint[],
   server: PricePoint[],
-  maxDays = 90,
+  maxDays = 365,
   now = new Date().toISOString(),
 ): PricePoint[] {
   const byDay = new Map<string, PricePoint>();

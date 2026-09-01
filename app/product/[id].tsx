@@ -44,14 +44,6 @@ export default function ProductDetailScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const stickyOpacity = scrollY.interpolate({ inputRange: [80, 140], outputRange: [0, 1], extrapolate: "clamp" });
   const shareScale = useRef(new Animated.Value(1)).current;
-  const [isStickyVisible, setIsStickyVisible] = useState(false);
-  useEffect(() => {
-    const subId = scrollY.addListener(({ value }) => {
-      const visible = value > 110;
-      setIsStickyVisible((prev) => (prev === visible ? prev : visible));
-    });
-    return () => scrollY.removeListener(subId);
-  }, [scrollY]);
   const [reminderListing, setReminderListing] = useState<DistributorListing | null>(null);
   const [reminderDate, setReminderDate] = useState(() => new Date(Date.now() + 7 * 86400000));
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -250,9 +242,10 @@ export default function ProductDetailScreen() {
       ]).start();
     }
     try {
-      await Share.share({ message: `${product.name} — ${product.brand} ${product.modelNumber}`, title: product.name });
+      const result = await Share.share({ message: `${product.name} — ${product.brand} ${product.modelNumber}`, title: product.name });
+      if ((result as unknown as { action: string })?.action === Share.dismissedAction) return;
     } catch {
-      showToast("Shared!", "success");
+      return;
     }
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, [product, shareScale, showToast]);
@@ -325,7 +318,7 @@ export default function ProductDetailScreen() {
         }}
       />
       <Animated.View
-        pointerEvents={isStickyVisible ? "auto" : "none"}
+        pointerEvents="none"
         style={{
           position: "absolute",
           top: 0,
@@ -337,6 +330,7 @@ export default function ProductDetailScreen() {
           borderBottomColor: colors.border,
           paddingHorizontal: 16,
           paddingVertical: 10,
+          paddingTop: insets.top + 10,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",

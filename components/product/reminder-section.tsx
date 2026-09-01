@@ -1,7 +1,7 @@
 import { Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { addBackOrderReminder } from "@/lib/storage";
-import { scheduleBackOrderReminder } from "@/lib/notifications";
+import { scheduleBackOrderReminder, requestNotificationPermissions } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
 import { useToast } from "@/components/ui/toast";
 import { useColors } from "@/hooks/use-colors";
@@ -17,6 +17,12 @@ export function ReminderSection({ productId, distributorId, productName, distrib
     );
   }
   const onSet = async () => {
+    const granted = await requestNotificationPermissions();
+    if (!granted) {
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showAlert("Permission Denied", "Please enable notifications in your device settings to set reminders.");
+      return;
+    }
     try {
       const d = new Date(Date.now() + 7 * 86400000);
       const notifId = await scheduleBackOrderReminder(productName ?? "", distributorName ?? "", d, productId).catch(() => null);

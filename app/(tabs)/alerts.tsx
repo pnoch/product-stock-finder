@@ -67,6 +67,25 @@ export default function AlertsScreen() {
 
   const activeAlerts = useMemo(() => alerts.filter((a) => !a.triggeredAt), [alerts]);
 
+  const alertsFlatData = useMemo(() => {
+    type FlatItem =
+      | { id: string; kind: "active"; alert: PriceAlert }
+      | { id: string; kind: "divider" }
+      | { id: string; kind: "savings" }
+      | { id: string; kind: "triggeredHeader" }
+      | { id: string; kind: "triggered"; alert: PriceAlert };
+    const items: FlatItem[] = activeAlerts.map((a) => ({ id: a.id, kind: "active" as const, alert: a }));
+    if (triggeredAlerts.length > 0) {
+      items.push({ id: "__divider", kind: "divider" as const });
+      if (typeof totalSaved === "number" && Number.isFinite(totalSaved) && totalSaved > 0) {
+        items.push({ id: "__savings", kind: "savings" as const });
+      }
+      items.push({ id: "__triggeredHeader", kind: "triggeredHeader" as const });
+      triggeredAlerts.forEach((a) => items.push({ id: a.id, kind: "triggered" as const, alert: a }));
+    }
+    return items;
+  }, [activeAlerts, triggeredAlerts, totalSaved]);
+
   const handleEditAlert = useCallback(
     (alertId: string) => {
       const alert = alerts.find((a) => a.id === alertId);
@@ -163,7 +182,7 @@ export default function AlertsScreen() {
       {/* Alerts Tab */}
       {activeTab === "alerts" && (
         <FlatList showsVerticalScrollIndicator={true}
-          data={activeAlerts}
+          data={alertsFlatData}
           keyExtractor={(item) => item.id}
           initialNumToRender={8}
           windowSize={5}
@@ -185,121 +204,52 @@ export default function AlertsScreen() {
             />
           }
           ListHeaderComponent={
-            activeAlerts.length > 0 ? (
-              <View
-                style={{
-                  backgroundColor: colors.primary + "15",
-                  borderRadius: 12,
-                  padding: 12,
-                  marginBottom: 16,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <IconSymbol
-                  name="info.circle.fill"
-                  size={18}
-                  color={colors.primary}
-                />
-                <Text style={{ color: colors.primary, fontSize: 13, flex: 1 }}>
-                  You&apos;ll be notified when a product&apos;s price drops
-                  below your target.
-                </Text>
-              </View>
-            ) : null
-          }
-          ListFooterComponent={
-            activeAlerts.length === 0 && triggeredAlerts.length === 0
-              ? null
-              : triggeredAlerts.length > 0 ? (
-              <View style={{ marginTop: 20 }}>
-                <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 16, marginTop: 4 }} />
-                {/* Savings Calculator Banner */}
-                {typeof totalSaved === "number" && Number.isFinite(totalSaved) && totalSaved > 0 && (
-                  <View
-                    style={{
-                      backgroundColor: colors.success + "18",
-                      borderRadius: 14,
-                      padding: 14,
-                      marginBottom: 14,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 10,
-                      borderWidth: 1,
-                      borderColor: colors.success + "44",
-                    }}
-                  >
-                    <Text style={{ fontSize: 24 }}>🎉</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={{
-                          color: colors.success,
-                          fontWeight: "700",
-                          fontSize: 15,
-                        }}
-                      >
-                        Total Saved: {formatPrice(totalSaved, displayCurrency)}
-                      </Text>
-                      <Text
-                        style={{
-                          color: colors.muted,
-                          fontSize: 12,
-                          marginTop: 2,
-                        }}
-                      >
-                        Across{" "}
-                        {
-                          triggeredAlerts.filter(
-                            (a) => a.triggeredPrice != null,
-                          ).length
-                        }{" "}
-                        triggered alert
-                        {triggeredAlerts.filter((a) => a.triggeredPrice != null)
-                          .length !== 1
-                          ? "s"
-                          : ""}
-                      </Text>
-                    </View>
-                  </View>
-                )}
+            <>
+              {loadError && (
                 <View
                   style={{
+                    backgroundColor: colors.error + "15",
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: 12,
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 6,
-                    marginBottom: 12,
+                    gap: 8,
+                    borderWidth: 1,
+                    borderColor: colors.error + "30",
+                  }}
+                >
+                  <IconSymbol name="exclamationmark.triangle.fill" size={16} color={colors.error} />
+                  <Text style={{ color: colors.error, fontSize: 13, flex: 1 }}>{loadError}</Text>
+                </View>
+              )}
+              {activeAlerts.length > 0 ? (
+                <View
+                  style={{
+                    backgroundColor: colors.primary + "15",
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: 16,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
                   }}
                 >
                   <IconSymbol
-                    name="checkmark.circle.fill"
-                    size={16}
-                    color={colors.success}
+                    name="info.circle.fill"
+                    size={18}
+                    color={colors.primary}
                   />
-                  <Text
-                    style={{
-                      color: colors.foreground,
-                      fontWeight: "700",
-                      fontSize: 15,
-                    }}
-                  >
-                    Price Drop History ({triggeredAlerts.length})
+                  <Text style={{ color: colors.primary, fontSize: 13, flex: 1 }}>
+                    You&apos;ll be notified when a product&apos;s price drops
+                    below your target.
                   </Text>
                 </View>
-                {triggeredAlerts.map((item) => (
-                  <TriggeredAlertCard
-                    key={item.id}
-                    alert={item}
-                    productName={getProductName(item.productId)}
-                    onRearm={handleRearmAlert}
-                    onDelete={handleDeleteAlert}
-                  />
-                ))}
-              </View>
-            ) : null
+              ) : null}
+            </>
           }
           ListEmptyComponent={
-            activeAlerts.length === 0 && triggeredAlerts.length === 0 ? (
+            alertsFlatData.length === 0 ? (
               <View
                 style={{
                   flex: 1,
@@ -333,16 +283,107 @@ export default function AlertsScreen() {
               </View>
             ) : null
           }
-          renderItem={({ item }) => (
-            <AlertCard
-              alert={item}
-              productName={getProductName(item.productId)}
-              onToggle={handleToggle}
-              onDelete={handleDeleteAlert}
-              onSnooze={handleSnoozeAlert}
-              onEdit={handleEditAlert}
-            />
-          )}
+          renderItem={({ item }) => {
+            if (item.kind === "active") {
+              return (
+                <AlertCard
+                  alert={item.alert}
+                  productName={getProductName(item.alert.productId)}
+                  onToggle={handleToggle}
+                  onDelete={handleDeleteAlert}
+                  onSnooze={handleSnoozeAlert}
+                  onEdit={handleEditAlert}
+                />
+              );
+            }
+            if (item.kind === "divider") {
+              return <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 16, marginTop: 20 }} />;
+            }
+            if (item.kind === "savings") {
+              return (
+                <View
+                  style={{
+                    backgroundColor: colors.success + "18",
+                    borderRadius: 14,
+                    padding: 14,
+                    marginBottom: 14,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 10,
+                    borderWidth: 1,
+                    borderColor: colors.success + "44",
+                  }}
+                >
+                  <Text style={{ fontSize: 24 }}>🎉</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        color: colors.success,
+                        fontWeight: "700",
+                        fontSize: 15,
+                      }}
+                    >
+                      Total Saved: {formatPrice(totalSaved, displayCurrency)}
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.muted,
+                        fontSize: 12,
+                        marginTop: 2,
+                      }}
+                    >
+                      Across{" "}
+                      {
+                        triggeredAlerts.filter(
+                          (a) => a.triggeredPrice != null,
+                        ).length
+                      }{" "}
+                      triggered alert
+                      {triggeredAlerts.filter((a) => a.triggeredPrice != null)
+                        .length !== 1
+                        ? "s"
+                        : ""}
+                    </Text>
+                  </View>
+                </View>
+              );
+            }
+            if (item.kind === "triggeredHeader") {
+              return (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    marginBottom: 12,
+                  }}
+                >
+                  <IconSymbol
+                    name="checkmark.circle.fill"
+                    size={16}
+                    color={colors.success}
+                  />
+                  <Text
+                    style={{
+                      color: colors.foreground,
+                      fontWeight: "700",
+                      fontSize: 15,
+                    }}
+                  >
+                    Price Drop History ({triggeredAlerts.length})
+                  </Text>
+                </View>
+              );
+            }
+            return (
+              <TriggeredAlertCard
+                alert={item.alert}
+                productName={getProductName(item.alert.productId)}
+                onRearm={handleRearmAlert}
+                onDelete={handleDeleteAlert}
+              />
+            );
+          }}
         />
       )}
 

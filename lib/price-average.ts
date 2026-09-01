@@ -24,6 +24,9 @@ function convert(
   return convertPrice(price, currency, displayCurrency);
 }
 
+// NOTE: Historical price points are converted using current FX rates; this skews
+// the average if exchange rates have moved significantly. Ideally would use
+// historical FX rates per point date, but current rates are used as a limitation.
 export function computePriceVsAverage(
   listings: DistributorListing[],
   displayCurrency: string,

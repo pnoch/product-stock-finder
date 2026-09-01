@@ -20,6 +20,8 @@ export function CrossAlertCTA({
     if (!displayCurrency) return null;
     const inStock = listings.filter((l) => l.stockStatus === "in_stock");
     if (inStock.length === 0) return null;
+    // Sentinel: cheapest across any distributor — CTA watches any distributor dropping below threshold
+    // per-distributor alternative would map each distributor to its own alert threshold
     const vals = inStock
       .map((l) => convertPrice(l.price, l.currency, displayCurrency))
       .filter((v): v is number => v !== null && Number.isFinite(v));

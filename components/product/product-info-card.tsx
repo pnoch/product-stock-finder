@@ -94,7 +94,7 @@ export function ProductInfoCard({
 
   const currencyConverterData = useMemo(() => {
     const available = visibleListings.filter(
-      (l) => l.stockStatus !== "out_of_stock" && l.price > 0,
+      (l) => l.stockStatus === "in_stock" && l.price > 0,
     );
     if (!available.length) return null;
     const bestListing = available.reduce((best, curr) => {

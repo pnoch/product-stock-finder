@@ -8,11 +8,16 @@ import type { Product, DistributorListing } from "@/lib/types";
 
 export function useProductDetail() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
-  const id = Array.isArray(rawId) ? rawId[0] : rawId;
+  const id = Array.isArray(rawId) ? rawId[0] : (rawId as string | undefined);
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!id) {
+      setProduct(null);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     (async () => {

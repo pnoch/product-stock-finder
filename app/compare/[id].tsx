@@ -76,6 +76,7 @@ export default function CompareScreen() {
   useEffect(() => {
     const key = `${id ?? ""}-${displayCurrency}`;
     if (!loaded || !id || selectionInitialized.current === key) return;
+    if (selected.size > 0) return;
     selectionInitialized.current = key;
     const withHistory = listings.filter(
       (l) => l.priceHistory && l.priceHistory.length >= 2,
@@ -127,13 +128,11 @@ export default function CompareScreen() {
       return;
     }
     let bestPrice = Infinity;
-    let bestListing = inStock[0]!;
     for (const l of inStock) {
       const converted = convertPrice(l.price, l.currency, displayCurrency);
       if (converted == null || !isFinite(converted)) continue;
       if (converted < bestPrice) {
         bestPrice = converted;
-        bestListing = l;
       }
     }
     if (!isFinite(bestPrice)) {
@@ -153,7 +152,9 @@ export default function CompareScreen() {
     const alert: PriceAlert = {
       id: `cross-${id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       productId: id,
-      distributorId: bestListing.distributorId,
+      // sentinel: watch any distributor (cross-distributor alert) rather than single best only
+      // per-distributor alternative would loop inStock and create one alert per distributorId
+      distributorId: undefined,
       targetPrice,
       currency: displayCurrency,
       createdAt: new Date().toISOString(),
@@ -330,7 +331,7 @@ export default function CompareScreen() {
 
           <CrossAlertCTA listings={listings} displayCurrency={displayCurrency} onPress={handleCrossAlert} />
 
-          <CurrentPricesTable listings={listings} selected={selected} />
+          <CurrentPricesTable listings={listings} selected={selected} displayCurrency={displayCurrency} />
 
           <DistributorSelector
             sortedListings={sortedListings}
