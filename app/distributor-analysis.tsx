@@ -114,7 +114,7 @@ export default function DistributorAnalysisScreen() {
                       fontSize: 14,
                     }}
                   >
-                    {distrib?.countryFlag} {distrib?.name ?? a.distributorId}
+                    {`${distrib?.countryFlag ?? ""} ${distrib?.name ?? a.distributorId}`.trim()}
                   </Text>
                   <Text style={{ color: colors.muted, fontSize: 12 }}>
                     {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg{" "}

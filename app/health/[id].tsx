@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, View, TouchableOpacity } from "react-native";
+import { ActivityIndicator, ScrollView, Text, View, TouchableOpacity } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
@@ -25,6 +25,7 @@ export default function HealthDetailScreen() {
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const [samples, setSamples] = useState<HealthSample[]>([]);
   const [currentStatus, setCurrentStatus] = useState<HealthStatus | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const distributor = id ? getDistributorById(id) : undefined;
 
@@ -36,11 +37,16 @@ export default function HealthDetailScreen() {
 
   const load = useCallback(async () => {
     if (!id) return;
-    const history = await healthService.getHealthHistory();
-    setSamples(history[id] ?? []);
-    const health = await healthService.getDistributorHealth();
-    const entry = health.find((h) => h.distributorId === id);
-    setCurrentStatus(entry?.status ?? null);
+    setLoading(true);
+    try {
+      const history = await healthService.getHealthHistory();
+      setSamples(history[id] ?? []);
+      const health = await healthService.getDistributorHealth();
+      const entry = health.find((h) => h.distributorId === id);
+      setCurrentStatus(entry?.status ?? null);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
   useEffect(() => {
@@ -92,6 +98,21 @@ export default function HealthDetailScreen() {
         </Text>
       </View>
 
+      {loading ? (
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingTop: 60,
+          }}
+        >
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ color: colors.muted, fontSize: 14, marginTop: 12 }}>
+            Loading health history...
+          </Text>
+        </View>
+      ) : (
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
       >

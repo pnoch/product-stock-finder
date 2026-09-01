@@ -51,7 +51,7 @@ export function ProductImage({ productId, size = 48 }: { productId: string; size
     }
     fetchProductImage(productId).then((res) => {
       const url = res?.imageUrl ?? null;
-      imageCache.set(productId, url);
+      if (url) imageCache.set(productId, url);
       if (active) setImageUrl(url);
     });
     return () => {

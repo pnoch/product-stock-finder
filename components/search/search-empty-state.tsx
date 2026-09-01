@@ -70,7 +70,7 @@ export function SearchEmptyState({ query, selectedTagIds }: SearchEmptyStateProp
         >
           <IconSymbol name="lightbulb.fill" size={16} color={colors.warning} />
           <Text style={{ color: colors.muted, fontSize: 12, flex: 1, textAlign: "center" }}>
-            Try searching for RTX 4090, Pi 5, CRS326, U7 Pro Max, or AirPods Max
+            Try searching for RTX 4090, Pi 5, CRS326, or AirPods Max
           </Text>
         </View>
       )}

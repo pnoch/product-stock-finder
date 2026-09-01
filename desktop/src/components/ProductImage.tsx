@@ -94,7 +94,7 @@ export function ProductImage({
       {!imgLoaded && <div className="absolute inset-0 skeleton-shimmer rounded-lg" aria-hidden="true" />}
       <img
         src={imageUrl}
-        alt=""
+        alt={productId}
         onLoad={() => setImgLoaded(true)}
         onError={() => setImgError(true)}
         style={{

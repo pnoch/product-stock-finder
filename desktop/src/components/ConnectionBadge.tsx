@@ -38,19 +38,27 @@ export function ConnectionBadge({
   onPress?: () => void;
 }) {
   const c = CONFIG[status] ?? CONFIG.local;
-  const Component = onPress ? "button" : "div";
-  return (
-    <Component
+  const className = `inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-white dark:bg-gray-800 ${c.borderClass} ${c.textClass} ${onPress ? "cursor-pointer hover:opacity-80" : ""}`;
+  return onPress ? (
+    <button
       onClick={onPress}
-      disabled={!onPress ? undefined : false}
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-white dark:bg-gray-800 ${c.borderClass} ${c.textClass} ${onPress ? "cursor-pointer hover:opacity-80" : ""}`}
-      aria-label={onPress ? `Connection status: ${c.label}` : undefined}
+      type="button"
+      className={className}
+      aria-label={`Connection status: ${c.label}`}
     >
       <span
         className={`w-2 h-2 rounded-full shadow-sm ${c.dotClass}`}
         aria-hidden
       />
       {c.label}
-    </Component>
+    </button>
+  ) : (
+    <div className={className} aria-label={`Connection status: ${c.label}`}>
+      <span
+        className={`w-2 h-2 rounded-full shadow-sm ${c.dotClass}`}
+        aria-hidden
+      />
+      {c.label}
+    </div>
   );
 }
