@@ -42,17 +42,20 @@ function getTrend(product: Product): "up" | "down" | "flat" {
   const listings = product.listings.filter((l) => l.priceHistory.length >= 2);
   if (!listings.length) return "flat";
 
-  let totalChange = 0;
+  let totalPct = 0;
+  let count = 0;
   for (const listing of listings) {
     const history = listing.priceHistory;
     const recent = history[history.length - 1].price;
     const older = history[Math.max(0, history.length - 3)].price;
-    totalChange += recent - older;
+    if (!Number.isFinite(recent) || !Number.isFinite(older) || older <= 0) continue;
+    totalPct += ((recent - older) / older) * 100;
+    count += 1;
   }
-
-  const avgChange = totalChange / listings.length;
-  if (avgChange > 1) return "up";
-  if (avgChange < -1) return "down";
+  if (count === 0) return "flat";
+  const avgPct = totalPct / count;
+  if (avgPct > 1) return "up";
+  if (avgPct < -1) return "down";
   return "flat";
 }
 

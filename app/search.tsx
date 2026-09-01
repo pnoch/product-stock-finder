@@ -355,8 +355,7 @@ export default function SearchScreen() {
         windowSize={5}
         maxToRenderPerBatch={8}
         updateCellsBatchingPeriod={50}
-        removeClippedSubviews
-        getItemLayout={(_, index) => ({ length: 88, offset: 88 * index, index })}
+        removeClippedSubviews={Platform.OS === "android"}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         ListHeaderComponent={
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>

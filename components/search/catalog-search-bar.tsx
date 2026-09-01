@@ -40,7 +40,7 @@ export function CatalogSearchBar({
         placeholder="Search by model number or brand..."
         placeholderTextColor={colors.muted}
         style={{ flex: 1, color: colors.foreground, fontSize: 15 }}
-        autoFocus={Platform.OS !== "web"}
+        autoFocus={false}
         returnKeyType="search"
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}

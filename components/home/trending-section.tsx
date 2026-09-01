@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Pressable,
   Image,
   Animated,
   Platform,
@@ -15,11 +16,12 @@ import { useColors } from "@/hooks/use-colors";
 import { addToWatchlist, getWatchlist } from "@/lib/storage";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
 import { formatPrice } from "@/lib/currency";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { fetchProductImage } from "@/lib/server-images";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useToast } from "@/components/ui/toast";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
+import { SAMPLE_LISTINGS } from "@/lib/sample-data";
 
 function TrendingSkeletonCard() {
   const colors = useColors();
@@ -67,7 +69,10 @@ const TrendingProductRow = memo(function TrendingProductRow({
   const handlePress = useCallback(() => onPress(product.id), [onPress, product.id]);
   const handleAddPress = useCallback(
     (e: unknown) => {
-      (e as { stopPropagation?: () => void })?.stopPropagation?.();
+      // stopPropagation is web-only (native Pressable never bubbles); keeps outer Pressable from firing on web
+      if (Platform.OS === "web") {
+        (e as { stopPropagation?: () => void })?.stopPropagation?.();
+      }
       if (Platform.OS !== "web") {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
@@ -76,7 +81,7 @@ const TrendingProductRow = memo(function TrendingProductRow({
     [onAdd, product],
   );
   return (
-    <TouchableOpacity activeOpacity={0.7}
+    <Pressable
       onPress={handlePress}
       style={{
         backgroundColor: colors.surface,
@@ -187,7 +192,7 @@ const TrendingProductRow = memo(function TrendingProductRow({
           </Text>
         </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 });
 TrendingProductRow.displayName = "TrendingProductRow";
@@ -197,7 +202,7 @@ export const TrendingSection = memo(function TrendingSection() {
   const router = useRouter();
   const { showToast } = useToast();
   const [pickerProduct, setPickerProduct] = React.useState<TrendingProduct | null>(null);
-  const { data: products, isLoading } = useQuery({
+  const { data: products, isLoading, isError, refetch, error } = useQuery({
     queryKey: ["trending"],
     queryFn: fetchTrending,
     staleTime: 6 * 60 * 60 * 1000,
@@ -211,11 +216,11 @@ export const TrendingSection = memo(function TrendingSection() {
     new Map(),
   );
 
-  React.useEffect(() => {
-    getWatchlist().then((w) =>
-      setWatchlistIds(new Set(w.map((p) => p.id))),
-    );
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getWatchlist().then((w) => setWatchlistIds(new Set(w.map((p) => p.id))));
+    }, []),
+  );
 
   React.useEffect(() => {
     if (!products) return;
@@ -245,16 +250,23 @@ export const TrendingSection = memo(function TrendingSection() {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     const catalogProduct = PRODUCT_CATALOG.find((p) => p.id === product.id);
+    if (!catalogProduct && !(product as unknown as { modelNumber?: string }).modelNumber) {
+      showToast("Not yet available", "info");
+      return;
+    }
+    const fallbackListings = SAMPLE_LISTINGS[product.id]
+      ? (SAMPLE_LISTINGS[product.id] as unknown as never[])
+      : ([] as never[]);
     const newProduct = {
       id: product.id,
       name: product.name,
-      modelNumber: catalogProduct?.modelNumber ?? product.id,
+      modelNumber: catalogProduct?.modelNumber ?? (product as unknown as { modelNumber?: string }).modelNumber ?? product.id,
       brand: product.brand,
       category: product.category,
       description: catalogProduct?.description ?? "",
       isWatched: true,
       addedAt: new Date().toISOString(),
-      listings: [] as never[],
+      listings: fallbackListings,
       tags: [] as string[],
     };
     await addToWatchlist(newProduct as never);
@@ -309,6 +321,53 @@ export const TrendingSection = memo(function TrendingSection() {
         <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 12 }}>
           Hard-to-find products from the community
         </Text>
+        {isError && !products && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <Text style={{ color: colors.muted, fontSize: 12 }}>Couldn&apos;t load</Text>
+            <TouchableOpacity
+              onPress={() => void (refetch as unknown as () => Promise<unknown>)()}
+              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}
+              accessibilityLabel="Retry loading trending"
+              accessibilityRole="button"
+            >
+              <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        <TrendingSkeletonCard />
+        <TrendingSkeletonCard />
+        <TrendingSkeletonCard />
+      </View>
+    );
+  }
+  if (isError && !products) {
+    return (
+      <View style={{ marginBottom: 16 }}>
+        <Text
+          accessibilityRole="header"
+          style={{
+            fontSize: 18,
+            fontWeight: "700",
+            color: colors.foreground,
+            marginBottom: 4,
+          }}
+        >
+          🔥 Trending Now
+        </Text>
+        <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 12 }}>
+          Hard-to-find products from the community
+        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>Couldn&apos;t load</Text>
+          <TouchableOpacity
+            onPress={() => void (refetch as unknown as () => Promise<unknown>)()}
+            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}
+            accessibilityLabel="Retry loading trending"
+            accessibilityRole="button"
+          >
+            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
         <TrendingSkeletonCard />
         <TrendingSkeletonCard />
         <TrendingSkeletonCard />

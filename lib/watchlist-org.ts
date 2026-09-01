@@ -104,7 +104,9 @@ export function filterWatchlist(
     if (
       q &&
       !p.name.toLowerCase().includes(q) &&
-      !p.modelNumber.toLowerCase().includes(q)
+      !p.modelNumber.toLowerCase().includes(q) &&
+      !p.brand.toLowerCase().includes(q) &&
+      !p.category.toLowerCase().includes(q)
     )
       return false;
     return true;
@@ -125,7 +127,9 @@ export function countTagMatches(
     if (
       q &&
       !p.name.toLowerCase().includes(q) &&
-      !p.modelNumber.toLowerCase().includes(q)
+      !p.modelNumber.toLowerCase().includes(q) &&
+      !p.brand.toLowerCase().includes(q) &&
+      !p.category.toLowerCase().includes(q)
     )
       continue;
     for (const tagId of p.tags ?? []) {

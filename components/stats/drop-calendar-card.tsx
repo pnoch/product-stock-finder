@@ -3,16 +3,13 @@ import { Text, View, TouchableOpacity } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@/lib/currency";
+import { dateKey } from "@/lib/drop-calendar";
 import type {
   DropCalendarResult,
   DropDay,
 } from "@/lib/drop-calendar";
 
 const DAY = 86400000;
-
-function toLocalDateKey(ts: number): string {
-  return new Date(ts).toLocaleDateString("en-CA");
-}
 
 // Trailing `days` grid ending today: leading blanks for weekday offset,
 // then one cell per day anchored to local midnight.

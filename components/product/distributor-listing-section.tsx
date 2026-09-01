@@ -11,6 +11,7 @@ import {
   formatPrice,
 } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
+import { convertPrice } from "@/lib/currency";
 import { BestDistributorCard } from "@/components/best-distributor-card";
 import type { Product } from "@/lib/types";
 import type { BestDeal } from "@/lib/best-deal";

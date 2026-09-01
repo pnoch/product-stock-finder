@@ -2,6 +2,16 @@ import { Product, Distributor } from "./types";
 import { getApiBaseUrl } from "@/constants/oauth";
 import { defaultStorage } from "@/lib/storage";
 
+export class DiscoveryAuthError extends Error {
+  kind = "auth" as const;
+  status: number;
+  constructor(status: number, message?: string) {
+    super(message ?? `Authentication failed (${status})`);
+    this.status = status;
+    this.name = "DiscoveryAuthError";
+  }
+}
+
 export async function discoverProduct(
   query: string,
 ): Promise<{ product: Product; retailers: Distributor[] } | null> {
@@ -11,7 +21,7 @@ export async function discoverProduct(
     // tRPC mutation: discovery.discover — superjson body {json:{query}}
     const url = `${baseUrl}/api/trpc/discovery.discover`;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    const timeout = setTimeout(() => controller.abort(), 15_000);
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -19,6 +29,7 @@ export async function discoverProduct(
       body: JSON.stringify({ json: { query } }),
       signal: controller.signal,
     }).finally(() => clearTimeout(timeout));
+    if (res.status === 401 || res.status === 403) throw new DiscoveryAuthError(res.status);
     if (!res.ok) return null;
     const body = (await res.json()) as {
       result?: { data?: { json?: { product?: any; retailers?: any[] } } };
@@ -45,7 +56,8 @@ export async function discoverProduct(
     }
 
     return { product, retailers };
-  } catch {
+  } catch (e) {
+    if (e instanceof DiscoveryAuthError) throw e;
     return null;
   }
 }

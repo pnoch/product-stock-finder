@@ -36,8 +36,8 @@ export default function ProductDetailScreen() {
   const [insight, setInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(true);
   const [productImage, setProductImage] = useState<string | null>(null);
-  const [displayCurrency, setDisplayCurrency] = useState("USD");
-  const [shippingRegion, setShippingRegion] = useState("Asia-Pacific");
+  const [displayCurrency, setDisplayCurrency] = useState<string | null>(null);
+  const [shippingRegion, setShippingRegion] = useState<string | null>(null);
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
@@ -89,7 +89,10 @@ export default function ProductDetailScreen() {
     return () => { signal.cancelled = true; };
   }, [loadData]);
 
-  const bestDeal = useMemo(() => findBestDeal(listings, shippingRegion, displayCurrency), [listings, shippingRegion, displayCurrency]);
+  const bestDeal = useMemo(() => {
+    if (!shippingRegion || !displayCurrency) return null;
+    return findBestDeal(listings, shippingRegion, displayCurrency);
+  }, [listings, shippingRegion, displayCurrency]);
   const sortedListings = useMemo(
     () =>
       [...listings].sort((a, b) => {
@@ -102,13 +105,16 @@ export default function ProductDetailScreen() {
     () => (regionFilter === "all" ? sortedListings : filterListingsByRegion(sortedListings, regionFilter)),
     [sortedListings, regionFilter],
   );
+  const effectiveCurrency = displayCurrency ?? "USD";
+  const effectiveShippingRegion = shippingRegion ?? "Asia-Pacific";
+  const isSettingsLoaded = displayCurrency !== null && shippingRegion !== null;
   const bestInStockListing = useMemo(() => {
     const inStock = visibleListings.filter((l) => l.stockStatus === "in_stock");
     if (inStock.length === 0) return null;
     let best: DistributorListing | null = null;
     let bestConverted = Infinity;
     for (const l of inStock) {
-      const converted = convertPrice(l.price, l.currency, displayCurrency);
+      const converted = convertPrice(l.price, l.currency, effectiveCurrency);
       if (converted === null || !Number.isFinite(converted)) continue;
       if (converted < bestConverted) {
         bestConverted = converted;
@@ -116,8 +122,12 @@ export default function ProductDetailScreen() {
       }
     }
     return best;
-  }, [visibleListings, displayCurrency]);
-  const priceVsAvg = useMemo(() => computePriceVsAverage(listings, displayCurrency), [listings, displayCurrency]);
+  }, [visibleListings, effectiveCurrency]);
+  const priceVsAvg = useMemo(() => computePriceVsAverage(listings, effectiveCurrency), [listings, effectiveCurrency]);
+  const reminderTarget = useMemo(
+    () => bestInStockListing ?? sortedListings.find((l) => l.stockStatus !== "out_of_stock") ?? sortedListings[0] ?? null,
+    [bestInStockListing, sortedListings],
+  );
 
   const handleSetBestAlert = useCallback(async (listing: DistributorListing) => {
     if (!id) return;
@@ -346,11 +356,11 @@ export default function ProductDetailScreen() {
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         <DetailHeader product={product} bestDeal={bestDeal} />
-        <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={displayCurrency} productImage={productImage} />
-        {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} displayCurrency={displayCurrency} />}
-        <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={shippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={displayCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={() => router.push(`/compare/${id}`)} onRemind={setReminderListing} />
-        <AlertSection productId={product.id} productName={product.name} displayCurrency={displayCurrency} />
-        <ReminderSection productId={product.id} distributorId={visibleListings[0]?.distributorId} productName={product.name} distributorName={visibleListings[0] ? getDistributorById(visibleListings[0].distributorId)?.name ?? "" : ""} />
+        <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={effectiveCurrency} productImage={productImage} />
+        {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} displayCurrency={effectiveCurrency} />}
+        <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={effectiveShippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={effectiveCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={() => router.push(`/compare/${id}`)} onRemind={setReminderListing} />
+        <AlertSection productId={product.id} productName={product.name} displayCurrency={effectiveCurrency} />
+        <ReminderSection productId={product.id} distributorId={reminderTarget?.distributorId} productName={product.name} distributorName={reminderTarget ? getDistributorById(reminderTarget.distributorId)?.name ?? "" : ""} />
       </Animated.ScrollView>
       <ReminderDatePickerModal
         visible={!!reminderListing}

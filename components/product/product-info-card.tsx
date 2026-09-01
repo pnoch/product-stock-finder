@@ -94,7 +94,6 @@ export function ProductInfoCard({
   ]);
 
   const currencyConverterData = useMemo(() => {
-    if (displayCurrency === "USD") return null;
     const available = visibleListings.filter(
       (l) => l.stockStatus !== "out_of_stock" && l.price > 0,
     );
@@ -106,6 +105,7 @@ export function ProductInfoCard({
       if (bPrice === null) return curr;
       return cPrice < bPrice ? curr : best;
     });
+    if (bestListing.currency === displayCurrency) return null;
     const convertedPrice = convertPrice(
       bestListing.price,
       bestListing.currency,
@@ -154,7 +154,7 @@ export function ProductInfoCard({
             marginHorizontal: -16,
             marginTop: -16,
             marginBottom: 14,
-            height: 120,
+            height: 190,
             backgroundColor: colors.border + "66",
             alignItems: "center",
             justifyContent: "center",

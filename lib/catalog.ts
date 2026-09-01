@@ -397,23 +397,25 @@ export const PRODUCT_CATALOG: Omit<
   },
 ];
 
-const fuse = new Fuse(PRODUCT_CATALOG, {
-  keys: [
-    { name: "modelNumber", weight: 0.4 },
-    { name: "name", weight: 0.3 },
-    { name: "brand", weight: 0.15 },
-    { name: "category", weight: 0.1 },
-    { name: "description", weight: 0.05 },
-  ],
-  threshold: 0.4,
-  includeScore: true,
-  minMatchCharLength: 2,
-  ignoreLocation: true,
-});
+function buildFuse(catalog: typeof PRODUCT_CATALOG) {
+  return new Fuse(catalog, {
+    keys: [
+      { name: "modelNumber", weight: 0.4 },
+      { name: "name", weight: 0.3 },
+      { name: "brand", weight: 0.15 },
+      { name: "category", weight: 0.1 },
+      { name: "description", weight: 0.05 },
+    ],
+    threshold: 0.4,
+    includeScore: true,
+    minMatchCharLength: 2,
+    ignoreLocation: true,
+  });
+}
 
 export function searchCatalog(query: string): typeof PRODUCT_CATALOG {
   if (!query.trim()) return PRODUCT_CATALOG;
-  return fuse.search(query).map((result) => result.item);
+  return buildFuse(PRODUCT_CATALOG).search(query).map((result) => result.item);
 }
 
 export async function getAllCatalog() {

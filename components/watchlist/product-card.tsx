@@ -109,8 +109,8 @@ export const ProductCard = memo(function ProductCard({
     [colors.primary, colors.surface, colors.border, selected, selectionMode, pressScale],
   );
   const handleTagPress = useCallback(
-    (e: { stopPropagation: () => void }) => {
-      e.stopPropagation();
+    (e: { stopPropagation?: () => void }) => {
+      if (Platform.OS === "web") e?.stopPropagation?.();
       if (Platform.OS !== "web") {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
@@ -119,8 +119,8 @@ export const ProductCard = memo(function ProductCard({
     [onTagPress],
   );
   const handleDeletePress = useCallback(
-    (e: { stopPropagation: () => void }) => {
-      e.stopPropagation();
+    (e: { stopPropagation?: () => void }) => {
+      if (Platform.OS === "web") e?.stopPropagation?.();
       if (Platform.OS !== "web") {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }

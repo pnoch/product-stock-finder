@@ -107,12 +107,18 @@ export default function HomeScreen() {
   }, [statAnim0, statAnim1, statAnim2]);
 
   const loadData = useCallback(async () => {
-    const list = await getWatchlist();
-    setWatchlist(list);
-    const alerts = await getAlerts();
-    setAlertCount(alerts.filter((a) => a.isActive && !a.triggeredAt).length);
-    const settings = await getSettings();
-    setDisplayCurrency(settings?.displayCurrency ?? "USD");
+    try {
+      const list = await getWatchlist();
+      setWatchlist(list);
+      const alerts = await getAlerts();
+      setAlertCount(alerts.filter((a) => a.isActive && !a.triggeredAt).length);
+      const settings = await getSettings();
+      setDisplayCurrency(settings?.displayCurrency ?? "USD");
+    } catch (e) {
+      console.error(e);
+      setWatchlist([]);
+      setAlertCount(0);
+    }
   }, []);
 
   // Reload whenever the tab is focused so seed/backfill changes are reflected immediately
@@ -150,7 +156,9 @@ export default function HomeScreen() {
     const withTime = watchlist.map((p) => {
       const listings = p.listings ?? [];
       if (listings.length === 0) {
-        const fallback = isNaN(new Date(p.addedAt ?? 0).getTime()) ? 0 : new Date(p.addedAt ?? 0).getTime();
+        const raw = p.addedAt as string | undefined;
+        const t = raw ? Date.parse(raw) : NaN;
+        const fallback = isNaN(t) ? 0 : t;
         return { product: p, listing: null as unknown as typeof listings[0] | null, sortTime: fallback };
       }
       let best = listings[0]!;

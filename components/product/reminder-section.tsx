@@ -10,7 +10,11 @@ export function ReminderSection({ productId, distributorId, productName, distrib
   const colors = useColors();
   const { showToast } = useToast();
   if (!distributorId) {
-    return <Text style={{ color: colors.muted, padding: 16 }}>No listings available for reminders</Text>;
+    return (
+      <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16 }}>
+        <Text style={{ color: colors.muted }}>No listings available for reminders</Text>
+      </View>
+    );
   }
   const onSet = async () => {
     try {

@@ -173,15 +173,24 @@ export function ManualAddSheet({
         listings: [],
       });
       if (active && activeRef.current) setProgress("Searching distributors 0/…");
-      const listings = await withTimeout(
-        discoverListings(modelNumber, {
-          productId: id,
-          onProgress: (done, total) => {
-            if (active && activeRef.current) setProgress(`Searching distributors ${done}/${total}…`);
-          },
-        }),
-        DISCOVER_TIMEOUT_MS,
-      );
+      let listings: Awaited<ReturnType<typeof discoverListings>>;
+      try {
+        listings = await withTimeout(
+          discoverListings(modelNumber, {
+            productId: id,
+            onProgress: (done, total) => {
+              if (active && activeRef.current) setProgress(`Searching distributors ${done}/${total}…`);
+            },
+          }),
+          DISCOVER_TIMEOUT_MS,
+        );
+      } catch (e) {
+        if (e instanceof Error && e.message === "timeout") {
+          listings = [];
+        } else {
+          throw e;
+        }
+      }
       if (!active || !activeRef.current) return;
       await updateProductListings(id, listings);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

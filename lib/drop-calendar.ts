@@ -39,8 +39,7 @@ function convert(
   return convertPrice(price, currency, displayCurrency);
 }
 
-// Local-date key (YYYY-MM-DD) — must match drop-calendar-card's en-CA keys
-function dateKey(ts: number): string {
+export function dateKey(ts: number): string {
   const d = new Date(ts);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -54,6 +53,7 @@ export function computeDropCalendar(
   const cutoff = now - days * DAY_MS;
   const byDay = new Map<string, DropDay>();
   let totalDrops = 0;
+  const seenByDay = new Map<string, Set<string>>();
 
   for (const product of watchlist) {
     for (const listing of product.listings) {
@@ -72,6 +72,11 @@ export function computeDropCalendar(
         if (curr.v! >= prev.v!) continue;
 
         const key = dateKey(curr.t);
+        const seen = seenByDay.get(key) ?? new Set<string>();
+        if (seen.has(product.id)) continue;
+        seen.add(product.id);
+        seenByDay.set(key, seen);
+
         const day = byDay.get(key) ?? {
           dateKey: key,
           dropCount: 0,
