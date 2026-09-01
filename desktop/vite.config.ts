@@ -6,9 +6,62 @@ import path from "path";
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      {
+        // Shared lib files (imported by desktop via relative paths) use @/lib/...,
+        // @/constants/... etc internally. Resolve to repo root when not shadowed
+        // in desktop/src.
+        find: /^@\/lib\/(.*)$/,
+        replacement: path.resolve(__dirname, "../lib/$1"),
+      },
+      {
+        find: /^@\/constants\/(.*)$/,
+        replacement: path.resolve(__dirname, "../constants/$1"),
+      },
+      {
+        find: /^@\/server\/(.*)$/,
+        replacement: path.resolve(__dirname, "../server/$1"),
+      },
+      {
+        find: /^@\/shared\/(.*)$/,
+        replacement: path.resolve(__dirname, "../shared/$1"),
+      },
+      {
+        // Keep react-native out of the desktop bundle: shared lib modules
+        // transitively import AsyncStorage; stub it.
+        find: "@react-native-async-storage/async-storage",
+        replacement: path.resolve(__dirname, "./src/lib/async-storage-stub.ts"),
+      },
+      {
+        // Keep playwright out of the desktop bundle — same trick as the web
+        // export: browser.web.ts is a stub with the same export surface.
+        // Matches both "./browser" (from within lib/scrapers) and the
+        // absolute path form.
+        find: /^(?:\.\/browser|.*lib\/scrapers\/browser)$/,
+        replacement: path.resolve(__dirname, "../lib/scrapers/browser.web.ts"),
+      },
+      {
+        // Keep react-native out of the desktop bundle: shared lib modules
+        // import Platform/Alert/Linking that desktop never renders.
+        find: /^react-native$/,
+        replacement: path.resolve(__dirname, "./src/lib/react-native-stub.ts"),
+      },
+      {
+        // lib/_core/auth short-circuits on Platform.OS === "web" before
+        // touching SecureStore, so a stub is safe on desktop.
+        find: /^expo-secure-store$/,
+        replacement: path.resolve(__dirname, "./src/lib/expo-secure-store-stub.ts"),
+      },
+      {
+        // constants/oauth uses expo-linking only for native deep links.
+        find: /^expo-linking$/,
+        replacement: path.resolve(__dirname, "./src/lib/expo-linking-stub.ts"),
+      },
+      {
+        find: "@",
+        replacement: path.resolve(__dirname, "./src"),
+      },
+    ],
   },
   clearScreen: false,
   server: {
