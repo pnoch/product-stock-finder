@@ -5,6 +5,7 @@ let revokedHandler: (() => void) | null = null;
 let fired = false;
 
 export function registerDeviceRevokedHandler(cb: () => void): () => void {
+  fired = false;
   revokedHandler = cb;
   return () => {
     revokedHandler = null;
@@ -23,6 +24,12 @@ export async function handleDeviceRevoked(): Promise<void> {
   await Auth.removeSessionToken();
   await Auth.clearUserInfo();
   revokedHandler?.();
+  // Allow future revocations after the current logout cycle completes
+  // (e.g., user re-authenticates and is revoked again). Reset on next tick
+  // so concurrent duplicate invocations are still coalesced.
+  setTimeout(() => {
+    fired = false;
+  }, 0);
 }
 
 export function resetDeviceRevoked(): void {

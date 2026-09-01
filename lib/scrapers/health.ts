@@ -196,12 +196,13 @@ export function timelineSegments(samples: HealthSample[]): TimelineSegment[] {
   if (total <= 0) {
     return sorted.map((s) => ({ status: s.status, weight: 1 / sorted.length }));
   }
+  const extendedTotal = total + spans[spans.length - 1];
   return sorted.map((s, i) => ({
     status: s.status,
     weight:
       i < spans.length
-        ? spans[i] / total
-        : spans[spans.length - 1] / total,
+        ? spans[i] / extendedTotal
+        : spans[spans.length - 1] / extendedTotal,
   }));
 }
 
@@ -212,9 +213,9 @@ export interface DayGroup {
 
 function localDayKey(at: string): string {
   const d = new Date(at);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 

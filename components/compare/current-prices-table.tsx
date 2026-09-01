@@ -8,6 +8,7 @@ import { CHART_COLORS } from "@/lib/compare-utils";
 interface Props {
   listings: DistributorListing[];
   selected: Set<string>;
+  displayCurrency?: string;
 }
 
 const stockLabel: Record<string, string> = {
@@ -17,7 +18,7 @@ const stockLabel: Record<string, string> = {
   unknown: "Unknown",
 };
 
-export function CurrentPricesTable({ listings, selected }: Props) {
+export function CurrentPricesTable({ listings, selected, displayCurrency = "USD" }: Props) {
   const colors = useColors();
 
   if (selected.size === 0) {
@@ -71,7 +72,7 @@ export function CurrentPricesTable({ listings, selected }: Props) {
       </Text>
       {selectedListings.map((l, i) => {
         const distributor = getDistributorById(l.distributorId);
-        const usd = convertPrice(l.price, l.currency, "USD");
+        const converted = convertPrice(l.price, l.currency, displayCurrency);
         const colorIdx = stableIds.indexOf(l.distributorId);
         const color = CHART_COLORS[(colorIdx >= 0 ? colorIdx : 0) % CHART_COLORS.length];
         const label = stockLabel[l.stockStatus] ?? l.stockStatus;
@@ -122,9 +123,9 @@ export function CurrentPricesTable({ listings, selected }: Props) {
               >
                 {formatPrice(l.price, l.currency)}
               </Text>
-              {l.currency !== "USD" && usd !== null && (
+              {l.currency !== displayCurrency && converted !== null && (
                 <Text style={{ color: colors.muted, fontSize: 11 }}>
-                  ≈ ${usd.toFixed(2)}
+                  ≈ {formatPrice(converted, displayCurrency)}
                 </Text>
               )}
               <View

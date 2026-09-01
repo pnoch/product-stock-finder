@@ -164,19 +164,23 @@ class BrowserPool {
     );
   }
 
-  release(browser: Browser): void {
-    this.checkedOut = Math.max(0, this.checkedOut - 1);
-    if (browser.isConnected()) {
-      this.browsers.push(browser);
-    }
+  async release(browser: Browser): Promise<void> {
+    await this.mutex.runExclusive(async () => {
+      this.checkedOut = Math.max(0, this.checkedOut - 1);
+      if (browser.isConnected()) {
+        this.browsers.push(browser);
+      }
+    });
   }
 
   async shutdown(): Promise<void> {
-    for (const b of this.browsers) {
-      await b.close();
-    }
-    this.browsers = [];
-    this.checkedOut = 0;
+    await this.mutex.runExclusive(async () => {
+      for (const b of this.browsers) {
+        await b.close();
+      }
+      this.browsers = [];
+      this.checkedOut = 0;
+    });
   }
 }
 
@@ -286,7 +290,7 @@ async function waitForCloudflare(
 export async function teardownBrowserSession(
   page: { close(): Promise<void> } | undefined,
   context: { close(): Promise<void> } | undefined,
-  release: () => void,
+  release: () => void | Promise<void>,
 ): Promise<void> {
   try {
     if (page) await page.close();
@@ -298,7 +302,7 @@ export async function teardownBrowserSession(
   } catch {
     // context already dead
   }
-  release();
+  await Promise.resolve(release()).catch(() => {});
 }
 
 export async function fetchWithBrowser(

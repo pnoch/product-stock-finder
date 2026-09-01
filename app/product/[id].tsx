@@ -257,7 +257,7 @@ export default function ProductDetailScreen() {
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, [product, shareScale, showToast]);
 
-  if (!loaded) {
+  if (!loaded || !isSettingsLoaded) {
     return (
       <ScreenContainer>
         <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}>

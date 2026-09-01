@@ -64,7 +64,8 @@ export default function CompareScreen() {
     (id ?? "");
   const notFound = loaded && !product && listings.length === 0;
   const { width: windowWidth } = useWindowDimensions();
-  const chartWidth = windowWidth - 64;
+  const [measuredWidth, setMeasuredWidth] = useState<number | null>(null);
+  const chartWidth = measuredWidth ? Math.max(280, measuredWidth - 64) : Math.max(280, windowWidth - 64);
 
   useEffect(() => {
     getSettings().then((s) => {
@@ -75,7 +76,7 @@ export default function CompareScreen() {
   const selectionInitialized = useRef<string | null>(null);
   useEffect(() => {
     const key = `${id ?? ""}-${displayCurrency}`;
-    if (!loaded || !id || selectionInitialized.current === key) return;
+    if (!loaded || !id || (selectionInitialized.current === key && selected.size > 0)) return;
     selectionInitialized.current = key;
     const withHistory = listings.filter(
       (l) => l.priceHistory && l.priceHistory.length >= 2,
@@ -89,21 +90,24 @@ export default function CompareScreen() {
       return pa - pb;
     });
     setSelected(new Set(sortedByPrice.slice(0, 3).map((l) => l.distributorId)));
-  }, [loaded, listings, id, displayCurrency]);
+  }, [loaded, listings, id, displayCurrency, selected.size]);
 
   const toggleSelect = useCallback((distributorId: string) => {
-    if (Platform.OS !== "web")
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(distributorId)) {
+        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         next.delete(distributorId);
       } else if (next.size < 5) {
+        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         next.add(distributorId);
+      } else {
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        showToast("Maximum 5 distributors — deselect one to add another", "info");
       }
       return next;
     });
-  }, []);
+  }, [showToast]);
 
   const setRange = useCallback((r: TimeRange) => {
     if (Platform.OS !== "web")
@@ -136,11 +140,15 @@ export default function CompareScreen() {
         bestListing = l;
       }
     }
+    if (!displayCurrency) {
+      showAlert("Unable to compare prices", "Display currency unavailable.");
+      return;
+    }
     if (!isFinite(bestPrice)) {
       showAlert("Unable to compare prices", "Currency conversion unavailable. Try switching display currency.");
       return;
     }
-    const targetPrice = parseFloat((bestPrice * 0.95).toFixed(2));
+    const targetPrice = Math.round(bestPrice * 0.95 * 100) / 100;
     const granted = await requestNotificationPermissions();
     if (!granted) {
       showAlert(
@@ -176,7 +184,7 @@ export default function CompareScreen() {
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
       );
       const oldest = sorted[0].price;
-      const current = l.price;
+      const current = sorted[sorted.length - 1].price;
       const pct = oldest > 0 ? ((current - oldest) / oldest) * 100 : 0;
       map.set(l.distributorId, {
         pct: Math.abs(pct),
@@ -317,20 +325,27 @@ export default function CompareScreen() {
             onBack={() => router.back()}
           />
 
-          <ChartCard
-            timeRange={timeRange}
-            onRangeChange={setRange}
-            chartSeries={chartSeries}
-            chartWidth={chartWidth}
-            displayCurrency={displayCurrency}
-          />
+          <View
+            onLayout={(e) => {
+              const w = e.nativeEvent.layout.width;
+              if (w > 0 && w !== measuredWidth) setMeasuredWidth(w);
+            }}
+          >
+            <ChartCard
+              timeRange={timeRange}
+              onRangeChange={setRange}
+              chartSeries={chartSeries}
+              chartWidth={chartWidth}
+              displayCurrency={displayCurrency}
+            />
+          </View>
 
           {/* Cheapest Region summary */}
           <CheapestRegionCard listings={listings} displayCurrency={displayCurrency} />
 
           <CrossAlertCTA listings={listings} displayCurrency={displayCurrency} onPress={handleCrossAlert} />
 
-          <CurrentPricesTable listings={listings} selected={selected} />
+          <CurrentPricesTable listings={listings} selected={selected} displayCurrency={displayCurrency} />
 
           <DistributorSelector
             sortedListings={sortedListings}

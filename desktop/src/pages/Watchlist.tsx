@@ -452,14 +452,16 @@ export function Watchlist() {
                     navigate(`/product/${product.id}`);
                   }}
                   onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       setSelectedId(product.id);
                       navigate(`/product/${product.id}`);
                     }
                   }}
+                  onFocus={() => setSelectedId(product.id)}
                   tabIndex={0}
-                  className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-all duration-200 ${selectedId === product.id ? "bg-brand-50 dark:bg-brand-900/10 border-l-2 border-l-brand-500" : "border-l-2 border-l-transparent hover:border-l-brand-200"}`}
+                  className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset ${selectedId === product.id ? "bg-brand-50 dark:bg-brand-900/10 border-l-2 border-l-brand-500" : "border-l-2 border-l-transparent hover:border-l-brand-200"}`}
                   role="button"
                   aria-label={`View ${product.name} details`}
                 >
@@ -530,7 +532,9 @@ export function Watchlist() {
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={(e) => handleRemove(e, product.id)}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      onKeyDown={(e) => e.stopPropagation()}
+                      tabIndex={0}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                       aria-label={`Remove ${product.name} from watchlist`}
                     >
                       <Trash2 className="w-4 h-4" />

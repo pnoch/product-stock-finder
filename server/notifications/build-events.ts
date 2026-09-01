@@ -29,6 +29,7 @@ export function dedupKeyForHealth(event: {
 
 export function dedupKeyFor(event: NotificationEvent): string {
   if (event.type === "price_drop") return `price_drop:${event.alertId}`;
+  if (event.type === "price_rise") return `price_rise:${event.alertId}`;
   if (event.type === "restock")
     return `restock:${event.productId}:${event.distributorId}`;
   return `reminder:${event.reminderId}`;

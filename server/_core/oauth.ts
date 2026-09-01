@@ -12,9 +12,19 @@ function checkAuthRateLimit(ip: string): boolean {
   const windowStart = now - AUTH_RATE_WINDOW;
   const timestamps = authBuckets.get(ip) ?? [];
   const recent = timestamps.filter((t) => t > windowStart);
-  if (recent.length >= AUTH_RATE_LIMIT) return false;
+  if (recent.length >= AUTH_RATE_LIMIT) {
+    authBuckets.set(ip, recent);
+    return false;
+  }
   recent.push(now);
   authBuckets.set(ip, recent);
+  // prune stale buckets to bound memory
+  if (authBuckets.size > 500) {
+    for (const [k, v] of authBuckets.entries()) {
+      if (v.length === 0 || v.every((t) => t <= windowStart)) authBuckets.delete(k);
+      if (authBuckets.size <= 300) break;
+    }
+  }
   return true;
 }
 

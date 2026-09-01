@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -44,7 +44,10 @@ export function useAlertsData() {
   const [rescheduleDate, setRescheduleDate] = useState<Date>(new Date());
   const [showReschedulePicker, setShowReschedulePicker] = useState(false);
 
+  const loadGen = useRef(0);
+
   const loadData = useCallback(async () => {
+    const gen = ++loadGen.current;
     try {
       const [a, p, r, w, n, s] = await Promise.all([
         getAlerts(),
@@ -54,6 +57,7 @@ export function useAlertsData() {
         getUnreadNotificationCount(),
         getSettings(),
       ]);
+      if (gen !== loadGen.current) return;
       setAlerts(a);
       setProducts(p);
       setReminders(r);
@@ -61,9 +65,10 @@ export function useAlertsData() {
       setUnreadNotifications(n);
       setDisplayCurrency(s.displayCurrency ?? "USD");
     } catch {
+      if (gen !== loadGen.current) return;
       // keep stale data on failure; state already loaded stays intact
     } finally {
-      setLoading(false);
+      if (gen === loadGen.current) setLoading(false);
     }
   }, []);
 
@@ -120,8 +125,17 @@ export function useAlertsData() {
           "7",
         );
         if (input === null) return;
-        const days = parseInt(input, 10);
-        if (!isNaN(days) && days >= 0) void apply(days);
+        const trimmed = input.trim();
+        if (trimmed === "") {
+          showAlert("Invalid input", "Please enter a number of days.");
+          return;
+        }
+        const days = Number(trimmed);
+        if (!Number.isFinite(days) || !Number.isInteger(days) || days < 0) {
+          showAlert("Invalid input", "Please enter a non-negative integer.");
+          return;
+        }
+        void apply(days);
         return;
       }
       showAlert("Snooze Alert", "Pause notifications for this alert.", [

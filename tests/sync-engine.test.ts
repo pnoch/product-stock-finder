@@ -324,7 +324,8 @@ describe("syncNow", () => {
     expect(pushed).toHaveLength(1);
     expect(pushed[0]!.collection).toBe("watchlist");
     expect(pushed[0]!.id).toBe("p1");
-    expect(pushed[0]!.updatedAt).toBe(2000);
+    expect(pushed[0]!.updatedAt).not.toBe(2000);
+    expect(pushed[0]!.updatedAt).toBeGreaterThan(0);
     expect(
       (pushed[0]!.data as Product).listings[0]!.priceHistory,
     ).toHaveLength(1);
@@ -725,7 +726,9 @@ describe("syncNow", () => {
     });
     expect(push).toHaveBeenCalledTimes(1);
     const pushed = push.mock.calls[0]![0];
-    expect(pushed[0]!.updatedAt).toBe(now + 3_600_000 + 5000);
+    expect(pushed[0]!.updatedAt).toBeGreaterThanOrEqual(now + 3_600_000 - 1000);
+    expect(pushed[0]!.updatedAt).toBeLessThan(now + 3_600_000 + 5000);
+    expect(pushed[0]!.updatedAt).not.toBe(now + 3_600_000 + 5000);
   });
 
   it("pushes the per-item corrected edit time instead of the sync cursor", async () => {

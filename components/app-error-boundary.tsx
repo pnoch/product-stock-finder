@@ -105,12 +105,27 @@ export class AppErrorBoundary extends React.Component<
 > {
   state = { hasError: false, message: "" };
   static getDerivedStateFromError(error: Error) {
-    const safeMessage = Array.from(error.message).slice(0, 120).join("");
+    const raw = String((error as Error)?.message ?? "Unknown error");
+    let safeMessage: string;
+    try {
+      const Segmenter = (Intl as unknown as { Segmenter?: unknown })?.Segmenter as
+        | (new (locale: string | undefined, opts: { granularity: string }) => { segment(s: string): Iterable<{ segment: string }> })
+        | undefined;
+      if (Segmenter) {
+        const seg = new Segmenter(undefined, { granularity: "grapheme" });
+        safeMessage = [...seg.segment(raw)].slice(0, 120).map((s) => s.segment).join("");
+      } else {
+        safeMessage = Array.from(raw).slice(0, 120).join("");
+      }
+    } catch {
+      safeMessage = raw.slice(0, 120);
+    }
     return { hasError: true, message: safeMessage };
   }
   componentDidCatch(error: Error) {
     console.error(error);
-    void AsyncStorage.setItem("last_error", error.message).catch(() => {});
+    const truncated = String(error.message).slice(0, 500);
+    void AsyncStorage.setItem("last_error", truncated).catch(() => {});
   }
   render() {
     if (!this.state.hasError) return this.props.children;

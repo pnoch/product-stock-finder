@@ -74,7 +74,7 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) {
           console.warn("[Sync] Database not available; returning empty pull");
-          return { lastSyncedAt: Date.now(), items: [] };
+          return { lastSyncedAt: input.since ?? 0, items: [] };
         }
         // Capture the cursor before the SELECT so writes committed during
         // the query are not missed on the next pull.

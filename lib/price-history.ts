@@ -48,9 +48,7 @@ export function mergePriceHistory(
     const existing = byDay.get(day);
     if (!existing || p.date > existing.date) byDay.set(day, p);
   }
-  const merged = [...byDay.values()].sort((a, b) =>
-    a.date.localeCompare(b.date),
-  );
+  const merged = [...byDay.values()].sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
   const cutoff = new Date(now);
   cutoff.setUTCDate(cutoff.getUTCDate() - maxDays);
   const cutoffDay = cutoff.toISOString().slice(0, 10);

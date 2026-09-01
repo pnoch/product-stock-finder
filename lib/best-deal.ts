@@ -53,9 +53,13 @@ export function findBestDeal(
     }
   }
 
-  // Fallback: no shipping cost for the requested region — return cheapest
-  // in-stock price + tax without fabricating free shipping.
+  // Fallback: no shipping cost for the requested region — when only a
+  // single in-stock listing exists, return its price + tax without
+  // fabricating free shipping. With multiple in-stock options and no
+  // shipping data, we cannot fairly rank them so return no deal.
   if (!best) {
+    const inStock = listings.filter((l) => l.stockStatus === "in_stock" && l.price > 0);
+    if (inStock.length !== 1) return best;
     const fallback = findBestInStockListing(listings, displayCurrency);
     if (fallback) {
       const price = convertPrice(fallback.price, fallback.currency, displayCurrency);

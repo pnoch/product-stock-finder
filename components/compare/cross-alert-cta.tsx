@@ -17,16 +17,18 @@ export function CrossAlertCTA({
   const colors = useColors();
 
   const best = useMemo(() => {
+    if (!displayCurrency) return null;
     const inStock = listings.filter((l) => l.stockStatus === "in_stock");
     if (inStock.length === 0) return null;
     const vals = inStock
       .map((l) => convertPrice(l.price, l.currency, displayCurrency))
-      .filter((v): v is number => v !== null);
+      .filter((v): v is number => v !== null && Number.isFinite(v));
     if (vals.length === 0) return null;
     return Math.min(...vals);
   }, [listings, displayCurrency]);
 
-  if (best === null) return null;
+  if (best === null || !displayCurrency) return null;
+  const alertPrice = Math.round(best * 0.95 * 100) / 100;
 
   return (
     <TouchableOpacity activeOpacity={0.85}
@@ -64,7 +66,7 @@ export function CrossAlertCTA({
             marginTop: 1,
           }}
         >
-          {formatPrice(best * 0.95, displayCurrency)} (5% below current best of {formatPrice(best, displayCurrency)})
+          {formatPrice(alertPrice, displayCurrency)} (5% below current best of {formatPrice(best, displayCurrency)})
         </Text>
       </View>
       <IconSymbol name="chevron.right" size={16} color={colors.primary} />

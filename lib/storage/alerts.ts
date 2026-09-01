@@ -96,6 +96,7 @@ export function createAlertsStorage(ctx: StorageContext) {
         next.isActive = true;
         next.triggeredAt = undefined;
         next.triggeredPrice = undefined;
+        next.snoozedUntil = undefined;
         return next;
       });
       await saveAlerts(updated);
@@ -113,6 +114,7 @@ export function createAlertsStorage(ctx: StorageContext) {
               isActive: true,
               triggeredAt: undefined,
               triggeredPrice: undefined,
+              snoozedUntil: undefined,
             }
           : a,
       );

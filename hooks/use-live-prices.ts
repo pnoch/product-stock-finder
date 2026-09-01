@@ -14,14 +14,15 @@ const PERSIST_DEBOUNCE_MS = 500;
 
 export function useLiveProduct(productId: string) {
   const queryClient = useQueryClient();
-  const mounted = useRef(true);
+  const generationRef = useRef(0);
   const [product, setProduct] = useState<Product | null>(null);
   const [seedListings, setSeedListings] = useState<DistributorListing[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   const loadSeed = useCallback(async () => {
+    const gen = ++generationRef.current;
     const watchlist = await getWatchlist();
-    if (!mounted.current) return;
+    if (gen !== generationRef.current) return;
     const found = watchlist.find((p) => p.id === productId);
     const sample = SAMPLE_LISTINGS[productId] ?? [];
     let seed: DistributorListing[];
@@ -45,10 +46,9 @@ export function useLiveProduct(productId: string) {
   }, [productId]);
 
   useEffect(() => {
-    mounted.current = true;
     void loadSeed();
     return () => {
-      mounted.current = false;
+      generationRef.current++;
     };
   }, [loadSeed]);
 
@@ -115,7 +115,7 @@ export function useLiveProduct(productId: string) {
       ? deriveListingQueries(nextModel, nextSeed).map((q) => q.queryKey)
       : [];
     await Promise.all(
-      keys.map((key) => queryClient.invalidateQueries({ queryKey: key })),
+      keys.map((key) => queryClient.refetchQueries({ queryKey: key })),
     );
     return keys.some((key) => queryClient.getQueryData(key) != null);
   }, [loadSeed, productId, queryClient]);
@@ -142,22 +142,22 @@ export function useLiveProduct(productId: string) {
 
 export function useLiveWatchlist() {
   const queryClient = useQueryClient();
-  const mounted = useRef(true);
+  const generationRef = useRef(0);
   const [products, setProducts] = useState<Product[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   const reload = useCallback(async () => {
+    const gen = ++generationRef.current;
     const list = await getWatchlist();
-    if (!mounted.current) return;
+    if (gen !== generationRef.current) return;
     setProducts(list);
     setLoaded(true);
   }, []);
 
   useEffect(() => {
-    mounted.current = true;
     void reload();
     return () => {
-      mounted.current = false;
+      generationRef.current++;
     };
   }, [reload]);
 
@@ -224,7 +224,7 @@ export function useLiveWatchlist() {
     await reload();
     const keys = queries.map((q) => q.queryKey);
     await Promise.all(
-      keys.map((key) => queryClient.invalidateQueries({ queryKey: key })),
+      keys.map((key) => queryClient.refetchQueries({ queryKey: key })),
     );
     return keys.some((key) => queryClient.getQueryData(key) != null);
   }, [reload, queryClient, queries]);

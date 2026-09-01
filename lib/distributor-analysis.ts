@@ -37,13 +37,13 @@ export function analyzeDistributors(
         if (bPrice === null) return l;
         return cPrice < bPrice ? l : best;
       });
-      coverage++;
       const price = convertPrice(
         cheapest.price,
         cheapest.currency,
         displayCurrency,
       );
       if (price === null) continue;
+      coverage++;
       totalCost += price + price * (cheapest.taxRate ?? 0);
     }
 

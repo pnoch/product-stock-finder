@@ -78,7 +78,7 @@ export function getCurrencySymbol(currency: string): string {
 export function formatPrice(amount: number, currency: string): string {
   if (!Number.isFinite(amount)) return "N/A";
   const symbol = CURRENCY_SYMBOLS[currency] ?? currency;
-  return `${symbol}${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function getBestPrice(

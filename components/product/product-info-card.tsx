@@ -46,16 +46,15 @@ export function ProductInfoCard({
   const imageOpacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     setImageError(false);
+    imageOpacity.setValue(0);
     if (productImage) {
       Animated.timing(imageOpacity, {
         toValue: 1,
         duration: 420,
         useNativeDriver: true,
       }).start();
-    } else {
-      imageOpacity.setValue(0);
     }
-  }, [productImage, imageOpacity]);
+  }, [product.id, productImage, imageOpacity]);
   const handleImageError = useCallback(() => setImageError(true), []);
 
   const primary22 = useMemo(() => colors.primary + "22", [colors.primary]);

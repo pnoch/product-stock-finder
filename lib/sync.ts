@@ -92,7 +92,7 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     storage.setChangeSuppressed(false);
   }
 
-  const dirty = await collectDirty(storage, oldCursor, applied, pulled.lastSyncedAt);
+  const { dirty, pendingClearMeta } = await collectDirty(storage, oldCursor, applied, pulled.lastSyncedAt);
 
   if (dirty.length > 0) {
     let stamped: SyncStampedItem[] = [];
@@ -126,6 +126,10 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     await storage.saveSyncMeta(metaAfter);
   }
 
+  for (const { collection, id } of pendingClearMeta) {
+    await storage.clearItemSyncMeta(collection, id);
+  }
+
   const nextCursor = pulled.lastSyncedAt;
   await storage.saveSyncMeta({
     ...(await storage.getSyncMeta()),
@@ -140,13 +144,15 @@ async function collectDirty(
   oldCursor: number,
   applied: Set<string>,
   now: number,
-): Promise<SyncItem[]> {
+): Promise<{ dirty: SyncItem[]; pendingClearMeta: Array<{ collection: Collection; id: string }> }> {
   const meta = await storage.getSyncMeta();
   const dirty: SyncItem[] = [];
   const keyOf = (c: Collection, id: string) => `${c}:${id}`;
   const local = await collectLocalState(storage);
   const pendingSetMeta: Array<{ collection: Collection; id: string }> = [];
   const pendingClearMeta: Array<{ collection: Collection; id: string }> = [];
+  const rawServerNow = await serverNow(storage);
+  const freshServerNow = Math.max(rawServerNow, oldCursor + 1);
 
   for (const collection of COLLECTIONS) {
     if (collection === "settings") {
@@ -158,7 +164,7 @@ async function collectDirty(
           collection: "settings",
           id: SETTINGS_ID,
           data: local.settings,
-          updatedAt: entry ? entry.updatedAt : now,
+          updatedAt: entry ? entry.updatedAt : freshServerNow,
           deletedAt: null,
         });
       }
@@ -174,7 +180,7 @@ async function collectDirty(
           collection,
           id: item.id,
           data: serializeItem(collection, item),
-          updatedAt: entry && !entry.deleted ? entry.updatedAt : now,
+          updatedAt: entry && !entry.deleted ? entry.updatedAt : freshServerNow,
           deletedAt: null,
         });
         if (entry?.deleted) {
@@ -206,15 +212,11 @@ async function collectDirty(
     }
   }
 
-  const freshServerNow = await serverNow(storage);
   for (const { collection, id } of pendingSetMeta) {
     await storage.setItemSyncMeta(collection, id, freshServerNow);
   }
-  for (const { collection, id } of pendingClearMeta) {
-    await storage.clearItemSyncMeta(collection, id);
-  }
 
-  return dirty;
+  return { dirty, pendingClearMeta };
 }
 
 async function collectLocalState(storage: Storage): Promise<{

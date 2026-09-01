@@ -82,9 +82,10 @@ export default function AlertsScreen() {
 
   const editDistributors = useMemo(() => {
     if (!editingAlert) return [];
+    const productId = editingAlert.productId;
     return (
       products
-        .find((p) => p.id === editingAlert.productId)
+        .find((p) => p.id === productId)
         ?.listings.map((l) => {
           const d = getDistributorById(l.distributorId);
           return {
@@ -94,7 +95,7 @@ export default function AlertsScreen() {
           };
         }) ?? []
     );
-  }, [editingAlert, products]);
+  }, [editingAlert?.productId, products]);
 
   if (loading) {
     return (
@@ -215,7 +216,7 @@ export default function AlertsScreen() {
               <View style={{ marginTop: 20 }}>
                 <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 16, marginTop: 4 }} />
                 {/* Savings Calculator Banner */}
-                {totalSaved > 0 && (
+                {typeof totalSaved === "number" && Number.isFinite(totalSaved) && totalSaved > 0 && (
                   <View
                     style={{
                       backgroundColor: colors.success + "18",

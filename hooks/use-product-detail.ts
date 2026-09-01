@@ -7,12 +7,14 @@ import { filterByRange, type TimeRange } from "@/lib/compare-utils";
 import type { Product, DistributorListing } from "@/lib/types";
 
 export function useProductDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     (async () => {
       const list = await getWatchlist();
       const found = list.find((p) => p.id === id) ?? null;

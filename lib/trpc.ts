@@ -31,7 +31,7 @@ const revokedDeviceLink: TRPCLink<AppRouter> = () => {
             error(result) {
               if (
                 result instanceof Error &&
-                result.message === DEVICE_REVOKED_ERR_MSG
+                result.message.includes(DEVICE_REVOKED_ERR_MSG)
               ) {
                 void handleDeviceRevoked();
               }

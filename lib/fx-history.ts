@@ -25,33 +25,67 @@ export function appendFxHistory(
   ]);
 
   for (const code of allCodes) {
-    if (!(code in rates)) {
-      newRates[code] = [...(existing.rates[code] ?? [])];
-      continue;
-    }
     const prev = existing.rates[code] ?? [];
-    let newVal = rates[code];
-    if (newVal === undefined) continue;
-    if (!Number.isFinite(newVal)) continue;
+    const hasIncoming = code in rates;
+    const rawVal = rates[code];
+    const incomingValid =
+      hasIncoming && rawVal !== undefined && Number.isFinite(rawVal);
+
     if (isDuplicateTs) {
-      newRates[code] =
-        prev.length === 0
-          ? [newVal]
-          : [...prev.slice(0, -1), newVal];
+      if (incomingValid) {
+        const newVal = rawVal as number;
+        newRates[code] =
+          prev.length === 0 ? [newVal] : [...prev.slice(0, -1), newVal];
+      } else {
+        newRates[code] = [...prev];
+      }
+    } else if (incomingValid) {
+      const newVal = rawVal as number;
+      let base = [...prev];
+      if (base.length < existing.timestamps.length) {
+        const pad = existing.timestamps.length - base.length;
+        for (let i = 0; i < pad; i++) base.push(null as unknown as number);
+      }
+      newRates[code] = [...base, newVal];
     } else {
-      newRates[code] = [...prev, newVal];
-    }
-    if (newRates[code].length > MAX_POINTS) {
-      newRates[code] = newRates[code].slice(-MAX_POINTS);
+      let base = [...prev];
+      if (base.length < existing.timestamps.length) {
+        const pad = existing.timestamps.length - base.length;
+        for (let i = 0; i < pad; i++) {
+          const last = base.length > 0 ? base[base.length - 1] : (null as unknown as number);
+          base.push(last as number);
+        }
+      }
+      if (base.length === 0) {
+        newRates[code] = [null as unknown as number];
+      } else {
+        const last = base[base.length - 1] as number;
+        newRates[code] = [...base, last];
+      }
     }
   }
 
   const newTimestamps = isDuplicateTs
     ? [...existing.timestamps]
     : [...existing.timestamps, timestamp];
+  const trimmedTimestamps = newTimestamps.slice(-MAX_POINTS);
+  for (const code of Object.keys(newRates)) {
+    let arr = newRates[code];
+    if (arr.length > trimmedTimestamps.length) {
+      arr = arr.slice(-MAX_POINTS);
+    } else if (arr.length < trimmedTimestamps.length) {
+      while (arr.length < trimmedTimestamps.length) {
+        arr.unshift(null as unknown as number);
+      }
+    } else if (arr.length > MAX_POINTS) {
+      arr = arr.slice(-MAX_POINTS);
+    }
+    if (arr.length > MAX_POINTS) arr = arr.slice(-MAX_POINTS);
+    newRates[code] = arr;
+  }
   return {
     rates: newRates,
-    timestamps: newTimestamps.slice(-MAX_POINTS),
+    timestamps: trimmedTimestamps,
   };
 }
 

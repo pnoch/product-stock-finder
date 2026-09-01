@@ -31,32 +31,33 @@ export function PriceSparkline({
     const prices = sorted.map((p) => p.price);
     const minP = Math.min(...prices);
     const maxP = Math.max(...prices);
-    const range = maxP - minP || 1;
+    const range = maxP - minP;
+    const isFlat = range === 0;
     const pad = 3;
     const usableW = width - pad * 2;
     const usableH = height - pad * 2;
     const coords = sorted.map((p, i) => {
       const x = pad + (i / (sorted.length - 1)) * usableW;
-      const y = pad + (1 - (p.price - minP) / range) * usableH;
+      const y = isFlat ? pad + usableH / 2 : pad + (1 - (p.price - minP) / range) * usableH;
       return { x, y, price: p.price };
     });
     const polylineStr = coords.map((c) => `${c.x},${c.y}`).join(" ");
     const last = coords[coords.length - 1];
     const first = coords[0];
-    const trend = last.price >= first.price ? "up" : "down";
-    return { coords, polylineStr, last, trend };
+    const trend = isFlat ? "flat" : last.price >= first.price ? "up" : "down";
+    return { coords, polylineStr, last, trend, isFlat } as const;
   }, [data, width, height]);
 
   if (!points) return null;
 
-  const lineColor = points.trend === "down" ? colors.success : colors.error;
+  const lineColor = points.isFlat ? colors.muted : points.trend === "down" ? colors.success : colors.error;
 
   return (
     <View
       style={{ alignItems: "flex-end" }}
       accessible
       accessibilityRole="image"
-      accessibilityLabel={`Price sparkline, ${points.trend === "up" ? "up" : "down"} trend, ${data.length} points`}
+      accessibilityLabel={`Price sparkline, ${points.trend} trend, ${data.length} points`}
     >
       <Svg width={width} height={height}>
         <Polyline
@@ -83,7 +84,7 @@ export function PriceSparkline({
             opacity: 0.8,
           }}
         >
-          {points.trend === "up" ? "▲" : "▼"} {currency}
+          {points.trend === "flat" ? "—" : points.trend === "up" ? "▲" : "▼"} {currency}
         </Text>
       )}
     </View>

@@ -104,16 +104,19 @@ export default function RootLayout() {
         productId?: string;
         type?: string;
       };
-      const id =
-        rawId ??
-        `${dataForId?.eventId ?? JSON.stringify(dataForId ?? {})}:${response.actionIdentifier ?? "default"}`;
+      const fallbackId = dataForId?.eventId ?? dataForId?.productId ?? dataForId?.type ?? "unknown";
+      const id = rawId ?? `${fallbackId}:${response.actionIdentifier ?? "default"}`;
       const now = Date.now();
       const last = handledResponses.get(id);
       if (last !== undefined && now - last < 2000) return;
       handledResponses.set(id, now);
-      // prune entries older than 10s to bound memory
+      // prune entries older than 10s to bound memory + cap size to prevent leak
       for (const [k, v] of handledResponses.entries()) {
         if (now - v > 10_000) handledResponses.delete(k);
+      }
+      if (handledResponses.size > 100) {
+        const oldest = [...handledResponses.entries()].sort((a, b) => a[1] - b[1])[0]?.[0];
+        if (oldest) handledResponses.delete(oldest);
       }
       const data = dataForId;
       if (data.productId) {

@@ -133,9 +133,10 @@ export const DistributorSelector = memo(function DistributorSelector({
               marginBottom: 8,
               borderWidth: 1.5,
               borderColor: isSelected ? chipColor : colors.border,
-              opacity: !hasHistory && !isSelected ? 0.5 : 1,
+              opacity: !hasHistory && !isSelected ? 0.45 : 1,
             }}
-            accessibilityLabel={`${isSelected ? "Deselect" : "Select"} ${distributor?.name ?? l.distributorId}`}
+            accessibilityLabel={`${isSelected ? "Deselect" : "Select"} ${distributor?.name ?? l.distributorId}${!hasHistory && !isSelected ? " — no price history" : ""}`}
+            accessibilityHint={!hasHistory && !isSelected ? "No price history — cannot compare" : undefined}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: isSelected, disabled: !hasHistory && !isSelected }}
           >

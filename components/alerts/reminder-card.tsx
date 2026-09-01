@@ -18,7 +18,9 @@ export const ReminderCard = memo(function ReminderCard({
 }: ReminderCardProps) {
   const colors = useColors();
   const reminderDate = new Date(reminder.reminderDate);
-  const isPast = reminderDate < new Date();
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const isPast = reminderDate < startOfToday;
 
   return (
     <View

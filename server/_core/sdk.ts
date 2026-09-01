@@ -173,6 +173,8 @@ class SDKServer {
     }
   }
 
+  private lastSignInWrite = new Map<string, number>();
+
   async authenticateRequest(req: Request): Promise<AuthenticatedUser> {
     const authHeader = req.headers.authorization || req.headers.Authorization;
     let token: string | undefined;
@@ -198,10 +200,18 @@ class SDKServer {
     const lastSignIn = user.lastSignedIn instanceof Date ? user.lastSignedIn : new Date(user.lastSignedIn ?? 0);
     const hoursSinceLastSignIn = (Date.now() - lastSignIn.getTime()) / (1000 * 60 * 60);
     if (hoursSinceLastSignIn >= 24) {
-      await db.upsertUser({
-        openId: user.openId,
-        lastSignedIn: new Date(),
-      });
+      const lastWrite = this.lastSignInWrite.get(user.openId) ?? 0;
+      if (Date.now() - lastWrite > 60_000) {
+        this.lastSignInWrite.set(user.openId, Date.now());
+        await db.upsertUser({
+          openId: user.openId,
+          lastSignedIn: new Date(),
+        });
+        if (this.lastSignInWrite.size > 1000) {
+          const oldest = [...this.lastSignInWrite.entries()].sort((a, b) => a[1] - b[1])[0]?.[0];
+          if (oldest) this.lastSignInWrite.delete(oldest);
+        }
+      }
     }
 
     return {
