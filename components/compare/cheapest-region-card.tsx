@@ -6,7 +6,7 @@ import { formatPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { cheapestByRegion } from "@/lib/compare-utils";
 
-export function CheapestRegionCard({ listings }: { listings: DistributorListing[] }) {
+export function CheapestRegionCard({ listings, displayCurrency = "USD" }: { listings: DistributorListing[]; displayCurrency?: string }) {
   const colors = useColors();
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -20,7 +20,7 @@ export function CheapestRegionCard({ listings }: { listings: DistributorListing[
     return () => anim.stop();
   }, [pulse]);
 
-  const regionBest = useMemo(() => cheapestByRegion(listings), [listings]);
+  const regionBest = useMemo(() => cheapestByRegion(listings, displayCurrency), [listings, displayCurrency]);
 
     if (regionBest.length === 0) {
     return (
@@ -132,9 +132,9 @@ export function CheapestRegionCard({ listings }: { listings: DistributorListing[
               >
                 {formatPrice(item.listing.price, item.listing.currency)}
               </Text>
-              {item.listing.currency !== "USD" && (
+              {item.listing.currency !== displayCurrency && (
                 <Text style={{ color: colors.muted, fontSize: 11 }}>
-                  ≈ ${item.usd.toFixed(0)}
+                  ≈ {formatPrice(item.converted ?? item.usd, displayCurrency)}
                 </Text>
               )}
               <View

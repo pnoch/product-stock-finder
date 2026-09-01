@@ -74,8 +74,9 @@ export default function CompareScreen() {
 
   const selectionInitialized = useRef<string | null>(null);
   useEffect(() => {
-    if (!loaded || !id || selectionInitialized.current === id) return;
-    selectionInitialized.current = id;
+    const key = `${id ?? ""}-${displayCurrency}`;
+    if (!loaded || !id || selectionInitialized.current === key) return;
+    selectionInitialized.current = key;
     const withHistory = listings.filter(
       (l) => l.priceHistory && l.priceHistory.length >= 2,
     );
@@ -325,7 +326,7 @@ export default function CompareScreen() {
           />
 
           {/* Cheapest Region summary */}
-          <CheapestRegionCard listings={listings} />
+          <CheapestRegionCard listings={listings} displayCurrency={displayCurrency} />
 
           <CrossAlertCTA listings={listings} displayCurrency={displayCurrency} onPress={handleCrossAlert} />
 

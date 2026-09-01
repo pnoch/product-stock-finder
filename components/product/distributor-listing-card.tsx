@@ -24,6 +24,7 @@ import { openListingUrl } from "@/lib/listing-utils";
 
 interface DistributorListingCardProps {
   listing: DistributorListing;
+  displayCurrency?: string;
   stockWatches: Record<string, boolean>;
   onToggleStockWatch: (listing: DistributorListing) => void;
   onOpenChart: (listing: DistributorListing) => void;
@@ -32,6 +33,7 @@ interface DistributorListingCardProps {
 
 export const DistributorListingCard = memo(function DistributorListingCard({
   listing,
+  displayCurrency,
   stockWatches,
   onToggleStockWatch,
   onOpenChart,
@@ -42,9 +44,10 @@ export const DistributorListingCard = memo(function DistributorListingCard({
     () => getDistributorById(listing.distributorId),
     [listing.distributorId],
   );
-  const usdPrice = useMemo(
-    () => convertPrice(listing.price, listing.currency, "USD"),
-    [listing.price, listing.currency],
+  const effectiveCurrency = displayCurrency ?? "USD";
+  const convertedPrice = useMemo(
+    () => convertPrice(listing.price, listing.currency, effectiveCurrency),
+    [listing.price, listing.currency, effectiveCurrency],
   );
   const refreshColorKey = useMemo(
     () => getLastRefreshedColor(listing.lastChecked),
@@ -137,9 +140,9 @@ export const DistributorListingCard = memo(function DistributorListingCard({
           >
             {formatPrice(listing.price, listing.currency)}
           </Text>
-          {listing.currency !== "USD" && usdPrice !== null && (
+          {listing.currency !== effectiveCurrency && convertedPrice !== null && (
             <Text style={{ color: colors.muted, fontSize: 12 }}>
-              ≈ {formatPrice(usdPrice, "USD")}
+              ≈ {formatPrice(convertedPrice, effectiveCurrency)}
             </Text>
           )}
           {listing.taxRate != null && listing.taxRate > 0 ? (

@@ -40,6 +40,7 @@ export interface RegionBest {
   region: string;
   listing: DistributorListing;
   usd: number;
+  converted: number;
 }
 
 // Cheapest buyable listing per distributor region. Out-of-stock and
@@ -47,25 +48,26 @@ export interface RegionBest {
 // has nothing in stock.
 export function cheapestByRegion(
   listings: DistributorListing[],
+  targetCurrency = "USD",
 ): RegionBest[] {
-  const inStockMap = new Map<string, { listing: DistributorListing; usd: number }>();
-  const fallbackMap = new Map<string, { listing: DistributorListing; usd: number }>();
+  const inStockMap = new Map<string, { listing: DistributorListing; converted: number }>();
+  const fallbackMap = new Map<string, { listing: DistributorListing; converted: number }>();
   for (const l of listings) {
     if (l.stockStatus === "out_of_stock" || l.price <= 0) continue;
     const dist = getDistributorById(l.distributorId);
     if (!dist) continue;
     const region = dist.region ?? "Other";
-    const usd = convertPrice(l.price, l.currency, "USD");
-    if (usd === null || !Number.isFinite(usd)) continue;
+    const converted = convertPrice(l.price, l.currency, targetCurrency);
+    if (converted === null || !Number.isFinite(converted)) continue;
     if (l.stockStatus === "in_stock") {
       const existing = inStockMap.get(region);
-      if (!existing || usd < existing.usd) {
-        inStockMap.set(region, { listing: l, usd });
+      if (!existing || converted < existing.converted) {
+        inStockMap.set(region, { listing: l, converted });
       }
     } else {
       const existing = fallbackMap.get(region);
-      if (!existing || usd < existing.usd) {
-        fallbackMap.set(region, { listing: l, usd });
+      if (!existing || converted < existing.converted) {
+        fallbackMap.set(region, { listing: l, converted });
       }
     }
   }
@@ -74,6 +76,6 @@ export function cheapestByRegion(
     if (!merged.has(region)) merged.set(region, data);
   }
   return Array.from(merged.entries())
-    .map(([region, data]) => ({ region, ...data }))
-    .sort((a, b) => a.usd - b.usd);
+    .map(([region, data]) => ({ region, listing: data.listing, usd: data.converted, converted: data.converted }))
+    .sort((a, b) => a.converted - b.converted);
 }

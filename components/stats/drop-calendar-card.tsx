@@ -54,16 +54,16 @@ export const DropCalendarCard = memo(function DropCalendarCard({
   );
   const handleSelect = useCallback(
     (ts: number) => {
-      const key = toLocalDateKey(ts);
+      const key = dateKey(ts);
       setSelectedKey((prev) => (prev === key ? null : key));
     },
     [],
   );
 
   const cellStyle = (ts: number) => {
-    const key = toLocalDateKey(ts);
+    const key = dateKey(ts);
     const day = result.byDay.get(key);
-    const isToday = key === toLocalDateKey(now);
+    const isToday = key === dateKey(now);
     const isSelected = key === selectedKey;
     const base = {
       width: 34,

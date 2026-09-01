@@ -91,6 +91,24 @@ export function DistributorListingSection({
   onRemind,
 }: DistributorListingSectionProps) {
   const colors = useColors();
+  const globalBestInStockListing = (() => {
+    const inStock = sortedListings.filter((l) => l.stockStatus === "in_stock");
+    if (inStock.length > 0) {
+      let best: DistributorListing | null = null;
+      let bestConverted = Infinity;
+      const target = displayCurrency ?? "USD";
+      for (const l of inStock) {
+        const c = convertPrice(l.price, l.currency, target);
+        if (c === null || !Number.isFinite(c)) continue;
+        if (c < bestConverted) {
+          bestConverted = c;
+          best = l;
+        }
+      }
+      if (best) return best;
+    }
+    return sortedListings.find((l) => l.stockStatus !== "out_of_stock") ?? sortedListings[0] ?? null;
+  })();
 
   return (
     <View style={{ paddingHorizontal: 16 }}>
@@ -154,11 +172,11 @@ export function DistributorListingSection({
         </View>
       ) : (
         <>
-          {bestInStockListing && (
+          {globalBestInStockListing && (
             <BestDistributorCard
-              listing={bestInStockListing}
+              listing={globalBestInStockListing}
               product={product}
-              onSetAlert={() => onSetBestAlert(bestInStockListing)}
+              onSetAlert={() => onSetBestAlert(globalBestInStockListing)}
               displayCurrency={displayCurrency}
             />
           )}
@@ -326,6 +344,7 @@ export function DistributorListingSection({
             <DistributorListingCard
               key={listing.distributorId}
               listing={listing}
+              displayCurrency={displayCurrency}
               stockWatches={stockWatches}
               onToggleStockWatch={onToggleStockWatch}
               onOpenChart={onOpenChart}
