@@ -184,8 +184,8 @@ describe("shouldAcceptSyncWrite", () => {
     expect(shouldAcceptSyncWrite(1_000, 1_000, 1_000)).toBe(false);
   });
 
-  it("falls back to the server stamp for legacy rows without a client stamp", () => {
-    expect(shouldAcceptSyncWrite(null, 5_000, 4_000)).toBe(false);
+  it("accepts any write for legacy rows without a client stamp", () => {
+    expect(shouldAcceptSyncWrite(null, 5_000, 4_000)).toBe(true);
     expect(shouldAcceptSyncWrite(null, 1_000, 5_000)).toBe(true);
   });
 });

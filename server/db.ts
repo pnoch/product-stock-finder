@@ -15,14 +15,7 @@ export async function getDb() {
   if (!_pool) {
     if (!creatingPool) {
       creatingPool = (async () => {
-        const pool = mysql.createPool({
-          uri: url,
-          waitForConnections: true,
-          connectionLimit: 10,
-          queueLimit: 0,
-          enableKeepAlive: true,
-          keepAliveInitialDelay: 10000,
-        });
+        const pool = mysql.createPool(url);
         _pool = pool;
         return pool;
       })().finally(() => {

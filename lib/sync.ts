@@ -131,7 +131,7 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     ...(await storage.getSyncMeta()),
     lastSyncedAt: nextCursor,
     lastSyncError: null,
-    lastSyncOkAt: opts.now ? opts.now() : Date.now(),
+    lastSyncOkAt: opts.now?.() ?? Date.now(),
   });
 }
 
@@ -279,23 +279,30 @@ async function applyLocalItem(
         }
         return list.map((p) => {
           if (p.id !== incoming.id) return p;
+          const incomingIds = new Set(
+            incoming.listings.map((l) => l.distributorId),
+          );
+          const merged = incoming.listings.map((l) => {
+            const local = existing.listings.find(
+              (el) => el.distributorId === l.distributorId,
+            );
+            return local
+              ? {
+                  ...l,
+                  priceHistory: mergePriceHistory(
+                    local.priceHistory,
+                    l.priceHistory ?? [],
+                    PRICE_HISTORY_DAYS,
+                  ),
+                }
+              : l;
+          });
+          const localOnly = existing.listings.filter(
+            (el) => !incomingIds.has(el.distributorId),
+          );
           return {
             ...incoming,
-            listings: incoming.listings.map((l) => {
-              const local = existing.listings.find(
-                (el) => el.distributorId === l.distributorId,
-              );
-              return local
-                ? {
-                    ...l,
-                    priceHistory: mergePriceHistory(
-                      local.priceHistory,
-                      l.priceHistory ?? [],
-                      PRICE_HISTORY_DAYS,
-                    ),
-                  }
-                : l;
-            }),
+            listings: [...merged, ...localOnly],
           };
         });
       });
@@ -398,7 +405,7 @@ async function itemExists(
 async function serverNow(storage: Storage): Promise<number> {
   const meta = await storage.getSyncMeta();
   const lastSyncedAt = meta.lastSyncedAt ?? Date.now();
-  const okAt = meta.lastSyncOkAt ?? lastSyncedAt ?? Date.now();
+  const okAt = meta.lastSyncOkAt ?? Date.now();
   if (!Number.isFinite(lastSyncedAt) || !Number.isFinite(okAt)) return Date.now();
   return Date.now() + (lastSyncedAt - okAt);
 }
