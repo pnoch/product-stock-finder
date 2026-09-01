@@ -24,7 +24,16 @@ export function FxSparklineCard({
     ? (() => {
         const min = Math.min(...history);
         const max = Math.max(...history);
-        const range = max - min || 1;
+        const range = max - min;
+        if (range === 0) {
+          return history
+            .map((_, i) => {
+              const x = (i / (history.length - 1)) * 56;
+              const y = 11;
+              return `${x},${y}`;
+            })
+            .join(" ");
+        }
         return history
           .map((v, i) => {
             const x = (i / (history.length - 1)) * 56;

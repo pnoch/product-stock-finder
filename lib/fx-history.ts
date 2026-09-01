@@ -24,7 +24,9 @@ export function appendFxHistory(
 
   for (const code of allCodes) {
     const prev = existing.rates[code] ?? [];
-    const newVal = rates[code] ?? prev[prev.length - 1] ?? 1;
+    let newVal = rates[code] ?? prev[prev.length - 1] ?? EXCHANGE_RATES[code];
+    if (newVal === undefined) continue;
+    if (!Number.isFinite(newVal)) continue;
     newRates[code] = [...prev, newVal];
     if (newRates[code].length > MAX_POINTS) {
       newRates[code] = newRates[code].slice(-MAX_POINTS);
