@@ -156,16 +156,19 @@ export function Watchlist() {
     const arr = [...filtered];
     arr.sort((a, b) => {
       let cmp = 0;
+      let priceNullCase: boolean = false;
       switch (sortKey) {
         case "name":
           cmp = a.name.localeCompare(b.name);
           break;
         case "price": {
-          const aPrice =
-            getBestPrice(a.listings, displayCurrency)?.price ?? Infinity;
-          const bPrice =
-            getBestPrice(b.listings, displayCurrency)?.price ?? Infinity;
-          cmp = aPrice - bPrice;
+          const aPrice = getBestPrice(a.listings, displayCurrency)?.price ?? null;
+          const bPrice = getBestPrice(b.listings, displayCurrency)?.price ?? null;
+          if (aPrice === null && bPrice === null) cmp = 0;
+          else if (aPrice === null) cmp = 1;
+          else if (bPrice === null) cmp = -1;
+          else cmp = aPrice - bPrice;
+          priceNullCase = aPrice === null || bPrice === null;
           break;
         }
         case "trend": {
@@ -180,6 +183,7 @@ export function Watchlist() {
           break;
         }
       }
+      if (priceNullCase) return cmp;
       return sortAsc ? cmp : -cmp;
     });
     return arr;
@@ -447,6 +451,14 @@ export function Watchlist() {
                     setSelectedId(product.id);
                     navigate(`/product/${product.id}`);
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedId(product.id);
+                      navigate(`/product/${product.id}`);
+                    }
+                  }}
+                  tabIndex={0}
                   className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-all duration-200 ${selectedId === product.id ? "bg-brand-50 dark:bg-brand-900/10 border-l-2 border-l-brand-500" : "border-l-2 border-l-transparent hover:border-l-brand-200"}`}
                   role="button"
                   aria-label={`View ${product.name} details`}

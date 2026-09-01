@@ -56,7 +56,17 @@ export function Health() {
   const runTest = useCallback(async () => {
     setTesting(true);
     setProgress(0);
+    let unlisten: (() => void) | null = null;
     try {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        unlisten = await listen<{ progress: number }>("health-check-progress", (event) => {
+          const p = event.payload.progress;
+          if (typeof p === "number" && Number.isFinite(p)) setProgress(Math.min(100, Math.max(0, p)));
+        });
+      } catch {
+        // listen unavailable (e.g. web preview)
+      }
       const results = await invoke<DistributorHealth[]>(
         "check_distributor_health",
       );
@@ -76,6 +86,7 @@ export function Health() {
     } catch (error) {
       console.error("Health check failed:", error);
     } finally {
+      if (unlisten) unlisten();
       setTesting(false);
     }
   }, []);

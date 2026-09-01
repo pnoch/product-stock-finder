@@ -1,4 +1,5 @@
 import type { Product } from "./types";
+import { formatPrice } from "./currency";
 import {
   computeBasketValue,
   computeMovers,
@@ -30,7 +31,7 @@ export function buildWatchlistShareText(input: WatchlistShareInput): string {
   const basket = computeBasketValue(watchlist, displayCurrency);
   if (basket.productCount > 0) {
     lines.push(
-      `Basket value: $${basket.total.toFixed(2)} (${basket.productCount} products)`,
+      `Basket value: ${formatPrice(basket.total, displayCurrency)} (${basket.productCount} products)`,
     );
   }
 

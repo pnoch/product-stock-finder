@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useWatchlist, useAlerts } from "../hooks/use-storage";
-import { formatPrice, getBestPrice } from "../../../lib/currency";
+import { formatPrice, getBestPrice, convertPrice } from "../../../lib/currency";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { storage } from "../storage";
 import { getDistributorById } from "../../../lib/distributors";
@@ -220,7 +220,10 @@ export function Home() {
                 </div>
                 <div className="flex items-center gap-4 ml-4">
                   <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                    {formatPrice(listing.price, listing.currency)}
+                    {(() => {
+                      const conv = convertPrice(listing.price, listing.currency, displayCurrency);
+                      return formatPrice(conv ?? listing.price, conv !== null ? displayCurrency : listing.currency);
+                    })()}
                   </span>
                   <StockBadge status={listing.stockStatus} />
                   <span className="text-xs text-gray-400 whitespace-nowrap">

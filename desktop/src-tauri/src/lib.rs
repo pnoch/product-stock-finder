@@ -114,6 +114,157 @@ struct ExportData {
     settings: serde_json::Value,
 }
 
+fn validate_import_schema(data: &ExportData) -> Result<(), String> {
+    // top-level shape
+    let watchlist = data
+        .watchlist
+        .as_array()
+        .ok_or("Invalid import structure: watchlist must be an array")?;
+    let alerts = data
+        .alerts
+        .as_array()
+        .ok_or("Invalid import structure: alerts must be an array")?;
+    let reminders = data
+        .reminders
+        .as_array()
+        .ok_or("Invalid import structure: reminders must be an array")?;
+    let settings = data
+        .settings
+        .as_object()
+        .ok_or("Invalid import structure: settings must be an object")?;
+
+    // watchlist items: require id (string), name (string), modelNumber (string) when present
+    for (i, item) in watchlist.iter().enumerate() {
+        let obj = item
+            .as_object()
+            .ok_or(format!("watchlist[{}] must be an object", i))?;
+        let id = obj
+            .get("id")
+            .and_then(|v| v.as_str())
+            .ok_or(format!("watchlist[{}].id must be a non-empty string", i))?;
+        if id.trim().is_empty() {
+            return Err(format!("watchlist[{}].id must be a non-empty string", i));
+        }
+        // name and modelNumber are expected for catalog items; validate type if present
+        if let Some(v) = obj.get("name") {
+            if v.as_str().map(|s| s.trim().is_empty()).unwrap_or(true) {
+                return Err(format!("watchlist[{}].name must be a non-empty string", i));
+            }
+        }
+        if let Some(v) = obj.get("modelNumber") {
+            if v.as_str().map(|s| s.trim().is_empty()).unwrap_or(true) {
+                return Err(format!("watchlist[{}].modelNumber must be a string", i));
+            }
+        }
+        if let Some(listings) = obj.get("listings") {
+            let arr = listings
+                .as_array()
+                .ok_or(format!("watchlist[{}].listings must be an array", i))?;
+            for (j, l) in arr.iter().enumerate() {
+                let lo = l
+                    .as_object()
+                    .ok_or(format!("watchlist[{}].listings[{}] must be an object", i, j))?;
+                let did = lo
+                    .get("distributorId")
+                    .and_then(|v| v.as_str())
+                    .ok_or(format!(
+                        "watchlist[{}].listings[{}].distributorId must be a string",
+                        i, j
+                    ))?;
+                if did.trim().is_empty() {
+                    return Err(format!(
+                        "watchlist[{}].listings[{}].distributorId must be non-empty",
+                        i, j
+                    ));
+                }
+                if let Some(price) = lo.get("price") {
+                    let p = price
+                        .as_f64()
+                        .ok_or(format!("watchlist[{}].listings[{}].price must be a number", i, j))?;
+                    if !p.is_finite() || p < 0.0 {
+                        return Err(format!(
+                            "watchlist[{}].listings[{}].price must be a finite non-negative number",
+                            i, j
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    for (i, item) in alerts.iter().enumerate() {
+        let obj = item
+            .as_object()
+            .ok_or(format!("alerts[{}] must be an object", i))?;
+        let id = obj
+            .get("id")
+            .and_then(|v| v.as_str())
+            .ok_or(format!("alerts[{}].id must be a string", i))?;
+        if id.trim().is_empty() {
+            return Err(format!("alerts[{}].id must be non-empty", i));
+        }
+        let pid = obj
+            .get("productId")
+            .and_then(|v| v.as_str())
+            .ok_or(format!("alerts[{}].productId must be a string", i))?;
+        if pid.trim().is_empty() {
+            return Err(format!("alerts[{}].productId must be non-empty", i));
+        }
+        let target = obj
+            .get("targetPrice")
+            .and_then(|v| v.as_f64())
+            .ok_or(format!("alerts[{}].targetPrice must be a number", i))?;
+        if !target.is_finite() || target <= 0.0 {
+            return Err(format!("alerts[{}].targetPrice must be finite >0", i));
+        }
+        if let Some(cur) = obj.get("currency").and_then(|v| v.as_str()) {
+            if cur.trim().is_empty() || cur.len() > 8 {
+                return Err(format!("alerts[{}].currency invalid", i));
+            }
+        }
+    }
+
+    for (i, item) in reminders.iter().enumerate() {
+        let obj = item
+            .as_object()
+            .ok_or(format!("reminders[{}] must be an object", i))?;
+        let id = obj
+            .get("id")
+            .and_then(|v| v.as_str())
+            .ok_or(format!("reminders[{}].id must be a string", i))?;
+        if id.trim().is_empty() {
+            return Err(format!("reminders[{}].id must be non-empty", i));
+        }
+        let pid = obj
+            .get("productId")
+            .and_then(|v| v.as_str())
+            .ok_or(format!("reminders[{}].productId must be a string", i))?;
+        if pid.trim().is_empty() {
+            return Err(format!("reminders[{}].productId must be non-empty", i));
+        }
+        if let Some(d) = obj.get("reminderDate").and_then(|v| v.as_str()) {
+            if chrono::DateTime::parse_from_rfc3339(d).is_err() && chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").is_err() {
+                // allow ISO strings; if unparseable, reject
+                if d.trim().is_empty() {
+                    return Err(format!("reminders[{}].reminderDate invalid", i));
+                }
+            }
+        }
+    }
+
+    // settings: if displayCurrency present, validate against known currencies
+    if let Some(cur) = settings.get("displayCurrency").and_then(|v| v.as_str()) {
+        const ALLOWED: &[&str] = &[
+            "USD", "EUR", "GBP", "MYR", "AUD", "NZD", "CAD", "ZAR", "THB", "SGD", "HKD", "AED",
+        ];
+        if !ALLOWED.contains(&cur) {
+            return Err(format!("settings.displayCurrency invalid: {}", cur));
+        }
+    }
+
+    Ok(())
+}
+
 // ─── Storage split-brain note ─────────────────────────────────────────────────
 // Desktop frontend persistence is split: the renderer uses `localStorage` via
 // `createStorage(localStorageAdapter)` (see `desktop/src/storage.ts`), while
@@ -184,13 +335,7 @@ fn import_watchlist(
                 return Err(format!("Unsupported version: {}", import.version));
             }
 
-            if !import.watchlist.is_array()
-                || !import.alerts.is_array()
-                || !import.reminders.is_array()
-                || !import.settings.is_object()
-            {
-                return Err("Invalid import structure: expected arrays for watchlist/alerts/reminders and an object for settings".to_string());
-            }
+            validate_import_schema(&import)?;
 
             write_json_file(&data_dir, "watchlist_products", &import.watchlist)?;
             write_json_file(&data_dir, "price_alerts", &import.alerts)?;
@@ -744,7 +889,7 @@ struct DistributorHealth {
 }
 
 #[tauri::command]
-async fn check_distributor_health() -> Result<Vec<DistributorHealth>, String> {
+async fn check_distributor_health(app: tauri::AppHandle) -> Result<Vec<DistributorHealth>, String> {
     let model = "CRS326";
     let distributor_ids = [
         "server2u-my",
@@ -774,8 +919,9 @@ async fn check_distributor_health() -> Result<Vec<DistributorHealth>, String> {
         "neobits-us",
     ];
 
+    let total = distributor_ids.len() as u32;
     let mut results = Vec::new();
-    for distributor_id in distributor_ids {
+    for (idx, distributor_id) in distributor_ids.iter().enumerate() {
         let start = std::time::Instant::now();
         let scrape_result = scrape_distributor(distributor_id, model).await;
         let duration_ms = start.elapsed().as_millis() as u64;
@@ -794,6 +940,11 @@ async fn check_distributor_health() -> Result<Vec<DistributorHealth>, String> {
             response_time_ms: Some(duration_ms),
             last_checked: current_iso_timestamp(),
         });
+        let progress = (((idx as u32 + 1) * 100) / total) as u32;
+        let _ = app.emit(
+            "health-check-progress",
+            serde_json::json!({ "progress": progress, "distributorId": distributor_id }),
+        );
     }
 
     Ok(results)

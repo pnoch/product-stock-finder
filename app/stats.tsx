@@ -49,6 +49,7 @@ export default function StatsScreen() {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [days, setDays] = useState<MoversWindow>(30);
   const [loaded, setLoaded] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [digestSnapshot, setDigestSnapshot] = useState<DigestSnapshot | null>(
     null,
   );
@@ -58,9 +59,13 @@ export default function StatsScreen() {
   const [basketSheetVisible, setBasketSheetVisible] = useState(false);
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const loadedRef = useRef(loaded);
+  loadedRef.current = loaded;
 
   const load = useCallback(async () => {
-    setLoaded(false);
+    const isFirst = !loadedRef.current;
+    if (isFirst) setLoaded(false);
+    else setRefreshing(true);
     setLoadError(null);
     try {
       const [wl, loadedSettings, snapshot, loadedAlerts] = await Promise.all([
@@ -79,7 +84,8 @@ export default function StatsScreen() {
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : String(e));
     } finally {
-      setLoaded(true);
+      if (isFirst) setLoaded(true);
+      setRefreshing(false);
     }
   }, []);
 
@@ -197,6 +203,7 @@ export default function StatsScreen() {
         >
           Statistics
         </Text>
+        {refreshing && <ActivityIndicator size="small" color={colors.primary} />}
         <TouchableOpacity activeOpacity={0.7} accessibilityLabel="Share statistics" accessibilityRole="button" onPress={handleShare} style={{ padding: 4 }}>
           <IconSymbol
             name="square.and.arrow.up"

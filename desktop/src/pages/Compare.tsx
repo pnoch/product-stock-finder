@@ -170,11 +170,15 @@ export function Compare() {
   useEffect(() => {
     if (!product || selectionInitialized.current === product.id) return;
     selectionInitialized.current = product.id;
-    const withHistory = product.listings.filter(
-      (l) => l.priceHistory && l.priceHistory.length >= 2,
-    );
+    const withHistory = product.listings
+      .filter((l) => l.priceHistory && l.priceHistory.length >= 2)
+      .sort((a, b) => {
+        const aConv = convertPrice(a.price, a.currency, displayCurrency) ?? a.price;
+        const bConv = convertPrice(b.price, b.currency, displayCurrency) ?? b.price;
+        return aConv - bConv;
+      });
     setSelected(new Set(withHistory.slice(0, 3).map((l) => l.distributorId)));
-  }, [product]);
+  }, [product, displayCurrency]);
 
   const toggleSelect = useCallback((distributorId: string) => {
     setSelected((prev) => {
@@ -207,7 +211,7 @@ export function Compare() {
       return {
         label: distributor?.name ?? l.distributorId,
         color: CHART_COLORS[(colorIdx >= 0 ? colorIdx : 0) % CHART_COLORS.length],
-        data: (filtered.length >= 2 ? filtered : l.priceHistory) as { price: number; currency: string; date: string }[],
+        data: filtered as { price: number; currency: string; date: string }[],
       };
     });
   }, [product, timeRangeTyped, selected]);

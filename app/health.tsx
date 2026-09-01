@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ScrollView,
   Text,
@@ -62,6 +62,12 @@ export default function HealthScreen() {
   const [testing, setTesting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stats, setStats] = useState<Record<string, HealthStats>>({});
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const statusColors: Record<HealthStatus, string> = {
     working: colors.success,
@@ -90,14 +96,16 @@ export default function HealthScreen() {
     try {
       const results = await healthService.testAllDistributors(
         (current, total) => {
-          setProgress(Math.round((current / total) * 100));
+          if (isMountedRef.current) setProgress(Math.round((current / total) * 100));
         },
       );
+      if (!isMountedRef.current) return;
       setHealth(results);
       const history = await healthService.getHealthHistory();
+      if (!isMountedRef.current) return;
       setStats(computeHealthStats(history));
     } finally {
-      setTesting(false);
+      if (isMountedRef.current) setTesting(false);
     }
   }, []);
 
