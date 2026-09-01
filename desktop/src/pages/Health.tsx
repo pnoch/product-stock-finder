@@ -18,6 +18,7 @@ interface DistributorHealth {
 type Filter = "all" | "working" | "blocked" | "error";
 
 function HealthSparkline({ data, color }: { data: number[]; color: string }) {
+  const [hover, setHover] = useState<{ idx: number; x: number } | null>(null);
   if (data.length < 2) return null;
   const w = 60;
   const h = 24;
@@ -31,10 +32,39 @@ function HealthSparkline({ data, color }: { data: number[]; color: string }) {
       return `${x},${y}`;
     })
     .join(" ");
+  const coords = data.map((v, i) => ({
+    x: pad + (i / (data.length - 1)) * usableW,
+    y: pad + (1 - v) * usableH,
+    v,
+  }));
   return (
-    <svg width={w} height={h} className="shrink-0">
-      <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
+    <div className="relative shrink-0" style={{ width: w, height: h }}>
+      <svg
+        width={w}
+        height={h}
+        className="block"
+        onMouseMove={(e) => {
+          const rect = (e.currentTarget as SVGElement).getBoundingClientRect();
+          const mx = e.clientX - rect.left;
+          let best = 0;
+          let bestD = Infinity;
+          coords.forEach((c, i) => {
+            const d = Math.abs(c.x - mx);
+            if (d < bestD) { bestD = d; best = i; }
+          });
+          setHover({ idx: best, x: coords[best].x });
+        }}
+        onMouseLeave={() => setHover(null)}
+      >
+        <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+        {hover && <circle cx={coords[hover.idx].x} cy={coords[hover.idx].y} r={3} fill={color} stroke="#fff" strokeWidth={1.2} />}
+      </svg>
+      {hover && (
+        <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 text-white text-[10px] font-medium px-1.5 py-0.5 shadow-md pointer-events-none" style={{ left: coords[hover.idx].x }}>
+          {(data[hover.idx] * 100).toFixed(0)}%
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -75,68 +75,119 @@ function SeriesChart({
   const maxDate = Math.max(...allDates);
   const dateRange = maxDate - minDate || 1;
   const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency;
+  const [hover, setHover] = useState<{ x: number; y: number; idx: number } | null>(null);
+
+  const sortedSeries = series.map((s) => ({
+    ...s,
+    sorted: [...s.data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+  }));
 
   return (
     <div className="w-full overflow-x-auto">
-      <svg width={width} height={height} className="mx-auto block">
-        {[0, 0.5, 1].map((t) => {
-          const y = padT + (1 - t) * usableH;
-          const val = globalMin + t * range;
-          return (
-            <g key={t}>
-              <line x1={padL} y1={y} x2={width - padR} y2={y} stroke="#e5e7eb" strokeDasharray="4,4" strokeWidth={0.5} />
-              <text x={padL - 6} y={y + 3} fontSize={9} fill="#6b7280" textAnchor="end">
-                {symbol}
-                {val.toFixed(0)}
-              </text>
-            </g>
-          );
-        })}
-        {series.map((s) => {
-          const sorted = [...s.data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-          const coords = sorted
-            .map((p) => {
-              const conv = convertPrice(p.price, p.currency, displayCurrency);
-              if (conv === null || !Number.isFinite(conv)) return null;
+      <div className="relative mx-auto" style={{ width, height }}>
+        <svg
+          width={width}
+          height={height}
+          className="block"
+          onMouseMove={(e) => {
+            const rect = (e.currentTarget as SVGElement).getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            // find nearest date index from first series
+            const firstSorted = sortedSeries[0]?.sorted;
+            if (!firstSorted || firstSorted.length === 0) return;
+            let bestIdx = 0;
+            let bestDist = Infinity;
+            firstSorted.forEach((p, i) => {
               const x = padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
-              const y = padT + (1 - (conv - globalMin) / range) * usableH;
-              return { x, y };
-            })
-            .filter((c): c is { x: number; y: number } => c !== null);
-          if (coords.length < 2) return null;
-          const points = coords.map((c) => `${c.x},${c.y}`).join(" ");
-          return (
-            <g key={s.label}>
-              <polyline points={points} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-              {coords.map((c, i) => (
-                <circle key={i} cx={c.x} cy={c.y} r={2.5} fill={s.color} />
-              ))}
-            </g>
-          );
-        })}
-        {(() => {
-          if (series[0]?.data.length === 0) return null;
-          const first = series[0]?.data ?? [];
-          if (first.length === 0) return null;
-          const sorted = [...first].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-          const idxs = [0, Math.floor((sorted.length - 1) / 2), sorted.length - 1];
-          return idxs.map((idx) => {
-            const p = sorted[idx];
-            if (!p) return null;
-            const x = padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
-            const label = new Date(p.date).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+              const d = Math.abs(x - mx);
+              if (d < bestDist) { bestDist = d; bestIdx = i; }
+            });
+            const px = padL + ((new Date(firstSorted[bestIdx].date).getTime() - minDate) / dateRange) * usableW;
+            setHover({ x: px, y: padT, idx: bestIdx });
+          }}
+          onMouseLeave={() => setHover(null)}
+        >
+          {[0, 0.5, 1].map((t) => {
+            const y = padT + (1 - t) * usableH;
+            const val = globalMin + t * range;
             return (
-              <text key={idx} x={x} y={height - 8} fontSize={9} fill="#6b7280" textAnchor="middle">
-                {label}
-              </text>
+              <g key={t}>
+                <line x1={padL} y1={y} x2={width - padR} y2={y} stroke="#e5e7eb" strokeDasharray="4,4" strokeWidth={0.5} />
+                <text x={padL - 6} y={y + 3} fontSize={9} fill="#6b7280" textAnchor="end">
+                  {symbol}
+                  {val.toFixed(0)}
+                </text>
+              </g>
             );
-          });
-        })()}
-      </svg>
-      <div className="flex flex-wrap gap-3 mt-2 justify-center">
+          })}
+          {sortedSeries.map((s) => {
+            const coords = s.sorted
+              .map((p) => {
+                const conv = convertPrice(p.price, p.currency, displayCurrency);
+                if (conv === null || !Number.isFinite(conv)) return null;
+                const x = padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
+                const y = padT + (1 - (conv - globalMin) / range) * usableH;
+                return { x, y };
+              })
+              .filter((c): c is { x: number; y: number } => c !== null);
+            if (coords.length < 2) return null;
+            const points = coords.map((c) => `${c.x},${c.y}`).join(" ");
+            return (
+              <g key={s.label}>
+                <polyline points={points} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                {coords.map((c, i) => (
+                  <circle key={i} cx={c.x} cy={c.y} r={hover?.idx === i ? 4 : 2.5} fill={s.color} stroke={hover?.idx === i ? "#fff" : "none"} strokeWidth={hover?.idx === i ? 1.5 : 0} />
+                ))}
+              </g>
+            );
+          })}
+          {hover && <line x1={hover.x} y1={padT} x2={hover.x} y2={height - padB} stroke="#0F52BA" strokeDasharray="4 4" strokeOpacity={0.35} />}
+          {(() => {
+            if (sortedSeries[0]?.sorted.length === 0) return null;
+            const first = sortedSeries[0]?.sorted ?? [];
+            if (first.length === 0) return null;
+            const idxs = [0, Math.floor((first.length - 1) / 2), first.length - 1];
+            return idxs.map((idx) => {
+              const p = first[idx];
+              if (!p) return null;
+              const x = padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
+              const label = new Date(p.date).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+              return (
+                <text key={idx} x={x} y={height - 8} fontSize={9} fill="#6b7280" textAnchor="middle">
+                  {label}
+                </text>
+              );
+            });
+          })()}
+        </svg>
+        {hover && (
+          <div
+            className="absolute z-10 rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 shadow-lg px-3 py-2 text-xs pointer-events-none"
+            style={{ left: Math.min(Math.max(hover.x + 12, 8), width - 160), top: 12 }}
+          >
+            <p className="font-semibold text-gray-700 dark:text-gray-200 mb-1">
+              {new Date(sortedSeries[0].sorted[hover.idx]?.date ?? "").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+            </p>
+            {sortedSeries.map((s, i) => {
+              const pt = s.sorted[hover.idx];
+              if (!pt) return null;
+              const conv = convertPrice(pt.price, pt.currency, displayCurrency);
+              if (conv === null) return null;
+              return (
+                <p key={s.label} className="flex items-center gap-2 animate-fadeIn" style={{ animationDelay: `${i * 55}ms` } as React.CSSProperties}>
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                  <span className="text-gray-500 dark:text-gray-400 truncate max-w-[90px]">{s.label}</span>
+                  <span className="font-semibold text-gray-900 dark:text-gray-100 ml-auto">{symbol}{conv.toFixed(2)}</span>
+                </p>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2 mt-3 justify-center">
         {series.map((s) => (
-          <span key={s.label} className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+          <span key={s.label} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-white dark:bg-gray-800 shadow-sm border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
             {s.label}
           </span>
         ))}

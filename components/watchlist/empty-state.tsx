@@ -109,7 +109,10 @@ export function EmptyState({
             paddingVertical: 12,
             marginTop: 20,
           }}
-          onPress={onClearFilters}
+          onPress={() => {
+            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onClearFilters();
+          }}
           accessibilityLabel="Clear filters"
           accessibilityRole="button"
         >

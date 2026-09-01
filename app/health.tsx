@@ -5,7 +5,9 @@ import {
   View,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import Svg, { Polyline } from "react-native-svg";
@@ -125,7 +127,10 @@ export default function HealthScreen() {
         <TouchableOpacity activeOpacity={0.7}
           accessibilityLabel="Go back"
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={() => {
+            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.back();
+          }}
           style={{ marginRight: 12 }}
         >
           <Text style={{ color: colors.primary, fontSize: 16 }}>‹ Back</Text>
@@ -151,7 +156,10 @@ export default function HealthScreen() {
             key={f}
             accessibilityLabel={`Filter by ${f}`}
             accessibilityRole="button"
-            onPress={() => setFilter(f)}
+            onPress={() => {
+              if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setFilter(f);
+            }}
             style={{
               paddingHorizontal: 12,
               paddingVertical: 6,
@@ -177,7 +185,10 @@ export default function HealthScreen() {
       <TouchableOpacity activeOpacity={0.85}
         accessibilityLabel="Test All Distributors"
         accessibilityRole="button"
-        onPress={runTest}
+        onPress={() => {
+          if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          runTest();
+        }}
         disabled={testing}
         style={{
           marginHorizontal: 16,
@@ -237,7 +248,10 @@ export default function HealthScreen() {
               key={h.distributorId}
               accessibilityLabel={`${distributor?.name ?? h.distributorId}, ${h.status}`}
               accessibilityRole="button"
-              onPress={() => router.push(`/health/${h.distributorId}`)}
+              onPress={() => {
+                if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push(`/health/${h.distributorId}`);
+              }}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -311,7 +325,10 @@ export default function HealthScreen() {
               title="No distributor health data"
               subtitle='Tap "Test All Distributors" to run a check.'
               ctaLabel="Test All Distributors"
-              onCtaPress={() => runTest()}
+              onCtaPress={() => {
+                if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                runTest();
+              }}
             />
           ) : filtered.length === 0 ? (
             <EmptyStateView
@@ -319,7 +336,10 @@ export default function HealthScreen() {
               title="No matches"
               subtitle="No distributors match the selected filter."
               ctaLabel="Show All"
-              onCtaPress={() => setFilter("all")}
+              onCtaPress={() => {
+                if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setFilter("all");
+              }}
             />
           ) : null}
         </ScrollView>

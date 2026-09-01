@@ -25,6 +25,7 @@ import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
 import { SkeletonCard, SkeletonChart, SkeletonDetailHeader } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { EmptyStateView } from "@/components/ui/empty-state-view";
 
 export default function ProductDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -225,7 +226,7 @@ export default function ProductDetailScreen() {
       setReminderListing(null);
       setShowDatePicker(false);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showToast(`Reminder set for ${reminderDate.toLocaleDateString()}`, "success");
+      showToast(`Reminder set for ${reminderDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`, "success");
     } catch {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showAlert("Couldn't set reminder", "We couldn't save your reminder. Please try again.");
@@ -267,37 +268,15 @@ export default function ProductDetailScreen() {
   if (!product) {
     return (
       <ScreenContainer>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
-          <View
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: 36,
-              backgroundColor: colors.primary + "14",
-              alignItems: "center",
-              justifyContent: "center",
-              borderWidth: 1,
-              borderColor: colors.primary + "22",
-            }}
-          >
-            <IconSymbol name="magnifyingglass" size={30} color={colors.primary} />
-          </View>
-          <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: "700", marginTop: 16 }}>Product not found</Text>
-          <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
-            We couldn&apos;t find this product. It may have been removed or the link is invalid.
-          </Text>
-          <TouchableOpacity activeOpacity={0.85}
-            onPress={() => refresh()}
-            accessibilityLabel="Try again"
-            accessibilityRole="button"
-            style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 24, paddingVertical: 12, marginTop: 20 }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "600" }}>Try Again</Text>
-          </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.7} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button" style={{ marginTop: 12, padding: 8 }}>
-            <Text style={{ color: colors.primary, fontWeight: "600" }}>Go back</Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyStateView
+          icon="magnifyingglass"
+          title="Product not found"
+          subtitle="We couldn't find this product. It may have been removed or the link is invalid."
+          ctaLabel="Try Again"
+          onCtaPress={() => refresh()}
+          secondaryLabel="Go back"
+          onSecondaryPress={() => router.back()}
+        />
       </ScreenContainer>
     );
   }

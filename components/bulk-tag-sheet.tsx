@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
+  Animated,
+  Easing,
   findNodeHandle,
   Modal,
   ScrollView,
@@ -37,6 +39,8 @@ export function BulkTagSheet({
   const [newTagName, setNewTagName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const firstTagRef = useRef<View | null>(null);
+  const sheetAnim = useRef(new Animated.Value(0)).current;
+  const backdropAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!visible) return;
@@ -49,11 +53,23 @@ export function BulkTagSheet({
   }, [visible]);
 
   useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(backdropAnim, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.spring(sheetAnim, { toValue: 1, useNativeDriver: true, tension: 68, friction: 11 }),
+      ]).start();
+    } else {
+      sheetAnim.setValue(0);
+      backdropAnim.setValue(0);
+    }
+  }, [visible, sheetAnim, backdropAnim]);
+
+  useEffect(() => {
     if (!visible) return;
     const t = setTimeout(() => {
       const node = firstTagRef.current ? findNodeHandle(firstTagRef.current) : null;
       if (node) AccessibilityInfo.setAccessibilityFocus(node);
-    }, 300);
+    }, 320);
     return () => clearTimeout(t);
   }, [visible, defs]);
 
@@ -97,24 +113,31 @@ export function BulkTagSheet({
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="fade"
+      statusBarTranslucent
       onRequestClose={onClose}
     >
-      <View
+      <Animated.View
         style={{
           flex: 1,
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
+          opacity: backdropAnim,
         }}
         accessibilityViewIsModal
       >
-        <View
+        <Animated.View
           style={{
             backgroundColor: colors.background,
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             padding: 24,
             maxHeight: "70%",
+            opacity: sheetAnim,
+            transform: [
+              { translateY: sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [48, 0] }) },
+              { scale: sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }) },
+            ],
           }}
           accessibilityViewIsModal
         >
@@ -264,8 +287,8 @@ export function BulkTagSheet({
           >
             <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
           </TouchableOpacity>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 }

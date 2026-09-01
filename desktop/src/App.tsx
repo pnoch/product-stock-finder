@@ -58,10 +58,49 @@ function HeaderBar() {
   );
 }
 
+function ShortcutsOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null;
+  const shortcuts = [
+    { keys: ["⌘", "K"], label: "Search products" },
+    { keys: ["⌘", ","], label: "Open Settings" },
+    { keys: ["⌘", "Shift", "T"], label: "Toggle theme" },
+    { keys: ["⌘", "E"], label: "Export watchlist" },
+    { keys: ["?"], label: "Show shortcuts" },
+    { keys: ["Esc"], label: "Close dialog" },
+  ];
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fadeIn" onClick={onClose} role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6 animate-scaleIn" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Keyboard Shortcuts</h2>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500" aria-label="Close shortcuts">✕</button>
+        </div>
+        <div className="space-y-2">
+          {shortcuts.map((s) => (
+            <div key={s.label} className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-700/50 last:border-0">
+              <span className="text-sm text-gray-600 dark:text-gray-300">{s.label}</span>
+              <span className="flex items-center gap-1">
+                {s.keys.map((k) => (
+                  <kbd key={k} className="px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs font-medium text-gray-700 dark:text-gray-200 shadow-sm">
+                    {k}
+                  </kbd>
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-4 text-center">Press <kbd className="px-1 py-0.5 rounded border bg-gray-50 dark:bg-gray-700 text-[10px]">?</kbd> or <kbd className="px-1 py-0.5 rounded border bg-gray-50 dark:bg-gray-700 text-[10px]">Esc</kbd> to close</p>
+      </div>
+    </div>
+  );
+}
+
 function KeyboardShortcuts({
   setSearchModalOpen,
+  setShortcutsOpen,
 }: {
   setSearchModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setShortcutsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const navigate = useNavigate();
   const { toggle } = useTheme();
@@ -69,6 +108,14 @@ function KeyboardShortcuts({
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const isMeta = e.metaKey || e.ctrlKey;
+      const target = e.target as HTMLElement | null;
+      const isTyping = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+
+      if (!isTyping && e.key === "?" && !isMeta) {
+        e.preventDefault();
+        setShortcutsOpen((prev) => !prev);
+        return;
+      }
 
       if (isMeta && e.key === "k") {
         e.preventDefault();
@@ -84,18 +131,20 @@ function KeyboardShortcuts({
         toggle();
       } else if (e.key === "Escape") {
         setSearchModalOpen(false);
+        setShortcutsOpen(false);
       }
     };
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [setSearchModalOpen, navigate, toggle]);
+  }, [setSearchModalOpen, setShortcutsOpen, navigate, toggle]);
 
   return null;
 }
 
 export default function App() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -178,7 +227,9 @@ export default function App() {
         <HashRouter>
           <KeyboardShortcuts
             setSearchModalOpen={setSearchModalOpen}
+            setShortcutsOpen={setShortcutsOpen}
           />
+          <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
           <SearchModal
             open={searchModalOpen}
             onClose={() => setSearchModalOpen(false)}

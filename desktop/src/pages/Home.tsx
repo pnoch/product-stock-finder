@@ -66,7 +66,7 @@ function StatCard({
       <button
         onClick={onClick}
         role="button"
-        className="flex items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-200 dark:hover:border-brand-700 hover:shadow-sm transition-all duration-200 animate-fadeIn cursor-pointer text-left w-full"
+        className="flex items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-200 dark:hover:border-brand-700 transition-colors duration-150 animate-fadeIn cursor-pointer text-left w-full"
         style={{ animationDelay: `${delay}ms` }}
         aria-label={label}
       >
@@ -76,7 +76,7 @@ function StatCard({
   }
   return (
     <div
-      className="flex items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-200 dark:hover:border-brand-700 hover:shadow-sm transition-all duration-200 animate-fadeIn"
+      className="flex items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-200 dark:hover:border-brand-700 transition-colors duration-150 animate-fadeIn"
       style={{ animationDelay: `${delay}ms` }}
     >
       {content}
@@ -131,7 +131,7 @@ export function Home() {
     return (
       <div className="p-6">
         <EmptyState
-          icon={<Package className="w-12 h-12" />}
+          icon={<Package className="w-8 h-8" />}
           title="No products tracked"
           description="Add products to your watchlist to see your dashboard."
         />
@@ -204,7 +204,7 @@ export function Home() {
               <Link
                 key={`${product.id}-${listing.distributorId}-${idx}`}
                 to={`/product/${product.id}`}
-                className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 hover:shadow-sm transition-all duration-200 cursor-pointer animate-fadeIn"
+                className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 transition-colors duration-150 cursor-pointer animate-fadeIn"
                 style={{ animationDelay: `${150 + idx * 60}ms` } as React.CSSProperties}
                 role="button"
                 aria-label={`View ${product.name} at ${distributor?.name ?? listing.distributorId} details`}
@@ -257,7 +257,7 @@ export function Home() {
                 <Link
                   key={product.id}
                   to={`/product/${product.id}`}
-                  className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 hover:shadow-sm transition-all duration-200"
+                  className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 transition-colors duration-150"
                   aria-label={`View ${product.name} details`}
                 >
                   <ProductImage productId={product.id} size={44} />

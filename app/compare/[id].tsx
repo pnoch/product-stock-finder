@@ -38,6 +38,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
 import { SkeletonChart, SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
+import { EmptyStateView } from "@/components/ui/empty-state-view";
 import {
   CHART_COLORS,
   TimeRange,
@@ -254,60 +255,15 @@ export default function CompareScreen() {
           </View>
         </ScrollView>
       ) : notFound ? (
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            paddingHorizontal: 32,
-          }}
-        >
-          <View
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: 36,
-              backgroundColor: colors.primary + "14",
-              alignItems: "center",
-              justifyContent: "center",
-              borderWidth: 1,
-              borderColor: colors.primary + "22",
-            }}
-          >
-            <IconSymbol name="magnifyingglass" size={36} color={colors.primary} />
-          </View>
-          <Text
-            style={{
-              color: colors.foreground,
-              fontSize: 17,
-              fontWeight: "700",
-              marginTop: 16,
-            }}
-          >
-            Product not found
-          </Text>
-          <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
-            We couldn&apos;t find this product — check the link or browse your watchlist.
-          </Text>
-          <TouchableOpacity activeOpacity={0.85}
-            onPress={() => refresh()}
-            accessibilityLabel="Try again"
-            accessibilityRole="button"
-            style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 24, paddingVertical: 12, marginTop: 20 }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "600" }}>Try Again</Text>
-          </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.7}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-            style={{ marginTop: 12, padding: 8 }}
-          >
-            <Text style={{ color: colors.primary, fontWeight: "600" }}>
-              Go back
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyStateView
+          icon="magnifyingglass"
+          title="Product not found"
+          subtitle="We couldn't find this product — check the link or browse your watchlist."
+          ctaLabel="Try Again"
+          onCtaPress={() => refresh()}
+          secondaryLabel="Go back"
+          onSecondaryPress={() => router.back()}
+        />
       ) : (
         <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 40 }}>
           {/* Header */}

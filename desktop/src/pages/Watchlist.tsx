@@ -249,7 +249,7 @@ export function Watchlist() {
     return (
       <div className="p-6">
         <EmptyState
-          icon={<Package className="w-12 h-12" />}
+          icon={<Package className="w-8 h-8" />}
           title="No products in watchlist"
           description="Search for products to start tracking prices and stock availability."
         />
@@ -374,7 +374,7 @@ export function Watchlist() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name or model number..."
-          className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+          className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600"
           aria-label="Search watchlist"
         />
       </div>
@@ -461,7 +461,7 @@ export function Watchlist() {
                   }}
                   onFocus={() => setSelectedId(product.id)}
                   tabIndex={0}
-                  className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset ${selectedId === product.id ? "bg-brand-50 dark:bg-brand-900/10 border-l-2 border-l-brand-500" : "border-l-2 border-l-transparent hover:border-l-brand-200"}`}
+                  className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset ${selectedId === product.id ? "bg-brand-50 dark:bg-brand-900/10 border-l-2 border-l-brand-500" : "border-l-2 border-l-transparent hover:border-l-brand-200"}`}
                   role="button"
                   aria-label={`View ${product.name} details`}
                 >

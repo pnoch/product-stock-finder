@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   findNodeHandle,
+  Animated,
+  Easing,
   Modal,
   ScrollView,
   Text,
@@ -41,6 +43,8 @@ export function TagPickerSheet({
   const [error, setError] = useState<string | null>(null);
   const firstTagRef = useRef<View | null>(null);
   const newTagInputRef = useRef<TextInput | null>(null);
+  const sheetAnim = useRef(new Animated.Value(0)).current;
+  const backdropAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!visible || !product) return;
@@ -55,6 +59,18 @@ export function TagPickerSheet({
   }, [visible, product]);
 
   useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(backdropAnim, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.spring(sheetAnim, { toValue: 1, useNativeDriver: true, tension: 68, friction: 11 }),
+      ]).start();
+    } else {
+      sheetAnim.setValue(0);
+      backdropAnim.setValue(0);
+    }
+  }, [visible, sheetAnim, backdropAnim]);
+
+  useEffect(() => {
     if (!visible) return;
     const t = setTimeout(() => {
       const target = firstTagRef.current
@@ -62,7 +78,7 @@ export function TagPickerSheet({
         : null;
       if (target) AccessibilityInfo.setAccessibilityFocus(target);
       else newTagInputRef.current?.focus();
-    }, 300);
+    }, 320);
     return () => clearTimeout(t);
   }, [visible, defs]);
 
@@ -114,24 +130,35 @@ export function TagPickerSheet({
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="fade"
+      statusBarTranslucent
       onRequestClose={onClose}
     >
-      <View
+      <Animated.View
         style={{
           flex: 1,
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
+          opacity: backdropAnim,
         }}
         accessibilityViewIsModal
       >
-        <View
+        <Animated.View
           style={{
             backgroundColor: colors.background,
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             padding: 24,
             maxHeight: "70%",
+            opacity: sheetAnim,
+            transform: [
+              {
+                translateY: sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [48, 0] }),
+              },
+              {
+                scale: sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }),
+              },
+            ],
           }}
           accessibilityViewIsModal
         >
@@ -265,8 +292,8 @@ export function TagPickerSheet({
           >
             <Text style={{ color: colors.foreground, fontWeight: "600" }}>Done</Text>
           </TouchableOpacity>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 }

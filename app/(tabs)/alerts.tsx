@@ -30,6 +30,7 @@ import { StockWatchCard } from "@/components/alerts/stock-watch-card";
 import { ReminderCard } from "@/components/alerts/reminder-card";
 import { RescheduleModal } from "@/components/alerts/reschedule-modal";
 import { SkeletonList } from "@/components/ui/skeleton";
+import { EmptyStateView } from "@/components/ui/empty-state-view";
 
 export default function AlertsScreen() {
   const router = useRouter();
@@ -221,6 +222,9 @@ export default function AlertsScreen() {
                 >
                   <IconSymbol name="exclamationmark.triangle.fill" size={16} color={colors.error} />
                   <Text style={{ color: colors.error, fontSize: 13, flex: 1 }}>{loadError}</Text>
+                  <TouchableOpacity activeOpacity={0.7} onPress={onRefresh} accessibilityLabel="Retry" accessibilityRole="button" style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: colors.error + "22" }}>
+                    <Text style={{ color: colors.error, fontWeight: "600", fontSize: 13 }}>Retry</Text>
+                  </TouchableOpacity>
                 </View>
               )}
               {activeAlerts.length > 0 ? (
@@ -250,37 +254,13 @@ export default function AlertsScreen() {
           }
           ListEmptyComponent={
             alertsFlatData.length === 0 ? (
-              <View
-                style={{
-                  flex: 1,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingTop: 60,
-                }}
-              >
-                <IconSymbol name="bell.fill" size={48} color={colors.muted} />
-                <Text
-                  style={{
-                    color: colors.foreground,
-                    fontWeight: "600",
-                    fontSize: 18,
-                    marginTop: 16,
-                  }}
-                >
-                  No alerts set
-                </Text>
-                <Text
-                  style={{
-                    color: colors.muted,
-                    fontSize: 14,
-                    textAlign: "center",
-                    marginTop: 8,
-                  }}
-                >
-                  Open a product and tap &quot;Set Alert&quot; to get notified
-                  when the price drops.
-                </Text>
-              </View>
+              <EmptyStateView
+                icon="bell.fill"
+                title="No alerts set"
+                subtitle='Open a product and tap "Set Alert" to get notified when the price drops.'
+                ctaLabel="Browse Products"
+                onCtaPress={() => router.push("/search")}
+              />
             ) : null
           }
           renderItem={({ item }) => {
@@ -476,37 +456,13 @@ export default function AlertsScreen() {
               )}
               {/* Empty state when both lists are empty */}
               {stockWatches.length === 0 && reminders.length === 0 && (
-                <View
-                  style={{
-                    alignItems: "center",
-                    justifyContent: "center",
-                    paddingTop: 60,
-                  }}
-                >
-                  <IconSymbol name="calendar" size={48} color={colors.muted} />
-                  <Text
-                    style={{
-                      color: colors.foreground,
-                      fontWeight: "600",
-                      fontSize: 18,
-                      marginTop: 16,
-                    }}
-                  >
-                    No reminders set
-                  </Text>
-                  <Text
-                    style={{
-                      color: colors.muted,
-                      fontSize: 14,
-                      textAlign: "center",
-                      marginTop: 8,
-                      paddingHorizontal: 20,
-                    }}
-                  >
-                    Open a back-order product listing and tap &quot;Remind
-                    me&quot; or &quot;Watch for Restock&quot;.
-                  </Text>
-                </View>
+                <EmptyStateView
+                  icon="calendar"
+                  title="No reminders set"
+                  subtitle='Open a back-order product listing and tap "Remind me" or "Watch for Restock".'
+                  ctaLabel="Browse Products"
+                  onCtaPress={() => router.push("/search")}
+                />
               )}
             </View>
           }

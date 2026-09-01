@@ -51,17 +51,36 @@ export function MultiLineChart({ data, distributors, colors, currencySymbol = "$
           tickFormatter={(v: number) => `${currencySymbol}${v}`}
         />
         <Tooltip
-          contentStyle={{
-            backgroundColor: "#ffffff",
-            border: "1px solid #e5e7eb",
-            borderRadius: 8,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-            fontSize: 12,
+          cursor={{ stroke: "#0F52BA", strokeDasharray: "4 4", strokeOpacity: 0.3 }}
+          content={({ active, payload, label }) => {
+            if (!active || !payload || payload.length === 0) return null;
+            return (
+              <div className="rounded-xl border bg-white shadow-lg px-3 py-2 text-xs" style={{ borderColor: "#e5e7eb" }}>
+                <p className="font-semibold text-gray-700 mb-1">{label}</p>
+                {payload.map((entry: any, idx: number) => (
+                  <p key={idx} className="flex items-center gap-2 animate-fadeIn" style={{ animationDelay: `${idx * 45}ms` } as React.CSSProperties}>
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+                    <span className="text-gray-500 truncate max-w-[110px]">{entry.name}</span>
+                    <span className="font-semibold text-gray-900 ml-auto">{currencySymbol}{Number(entry.value).toFixed(2)}</span>
+                  </p>
+                ))}
+              </div>
+            );
           }}
-          labelStyle={{ fontWeight: 600, color: "#1f2937" }}
-          cursor={{ stroke: "#0F52BA", strokeDasharray: "4 4", strokeOpacity: 0.4 }}
         />
-        <Legend wrapperStyle={{ paddingTop: 12, fontSize: 12 }} />
+        <Legend
+          wrapperStyle={{ paddingTop: 14, fontSize: 12 }}
+          content={({ payload }) => (
+            <div className="flex flex-wrap gap-2 justify-center pt-2">
+              {(payload ?? []).map((entry: any, idx: number) => (
+                <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-white shadow-sm" style={{ borderColor: "#e5e7eb", color: "#374151" }}>
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+                  {entry.value}
+                </span>
+              ))}
+            </div>
+          )}
+        />
         {distributors.map((d, i) => (
           <Line
             key={d}

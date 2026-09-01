@@ -64,7 +64,7 @@ export function DeviceManagementSection({
         />
         {devicesLoading ? (
           <View style={{ alignItems: "center", paddingVertical: 20 }}>
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator size="small" color={colors.primary} />
           </View>
         ) : devices === null ? (
           <View

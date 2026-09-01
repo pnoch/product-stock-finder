@@ -47,6 +47,7 @@ export default function RestockWatchesScreen() {
   );
 
   const handleRemove = useCallback((id: string, productName?: string) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     showAlert(
       "Remove Watch",
       productName
@@ -78,7 +79,10 @@ export default function RestockWatchesScreen() {
         <TouchableOpacity activeOpacity={0.7}
           accessibilityLabel="Go back"
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={() => {
+            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.back();
+          }}
           style={{ marginRight: 12 }}
         >
           <Text style={{ color: colors.primary, fontSize: 16 }}>‹ Back</Text>
@@ -103,7 +107,10 @@ export default function RestockWatchesScreen() {
               title="No restock watches"
               subtitle='Open a product and tap "Watch for Restock" to get notified when it&apos;s back in stock.'
               ctaLabel="Browse Products"
-              onCtaPress={() => router.push("/search")}
+              onCtaPress={() => {
+                if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push("/search");
+              }}
             />
           ) : (
             watches.map((watch) => {

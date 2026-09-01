@@ -87,6 +87,12 @@ export const ProductCard = memo(function ProductCard({
   const imageOpacity = useRef(new Animated.Value(0)).current;
   const pressScale = useRef(new Animated.Value(1)).current;
   const sparklineOpacity = useRef(new Animated.Value(1)).current;
+  const selectionAnim = useRef(new Animated.Value(selectionMode ? 1 : 0)).current;
+  const selectedPop = useRef(new Animated.Value(selected ? 1 : 0)).current;
+  const selectedScale = selectedPop.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.015],
+  });
   const cardStyle = useMemo(
     () => ({
       backgroundColor: selected ? colors.primary + "0F" : colors.surface,
@@ -99,14 +105,14 @@ export const ProductCard = memo(function ProductCard({
         : selectionMode
           ? colors.primary + "55"
           : colors.border,
-      transform: [{ scale: pressScale }] as never,
+      transform: [{ scale: Animated.multiply(pressScale, selectedScale) }] as unknown as never,
       shadowColor: selected ? colors.primary : "transparent",
       shadowOpacity: selected ? 0.12 : 0,
       shadowRadius: selected ? 8 : 0,
       shadowOffset: { width: 0, height: 2 },
       elevation: selected ? 2 : 0,
     }),
-    [colors.primary, colors.surface, colors.border, selected, selectionMode, pressScale],
+    [colors.primary, colors.surface, colors.border, selected, selectionMode, pressScale, selectedScale],
   );
   const handleTagPress = useCallback(
     (e: { stopPropagation?: () => void }) => {
@@ -161,6 +167,24 @@ export const ProductCard = memo(function ProductCard({
     }).start();
   }, [product.id]);
 
+  useEffect(() => {
+    Animated.spring(selectionAnim, {
+      toValue: selectionMode ? 1 : 0,
+      useNativeDriver: true,
+      tension: 140,
+      friction: 12,
+    }).start();
+  }, [selectionMode, selectionAnim]);
+
+  useEffect(() => {
+    Animated.spring(selectedPop, {
+      toValue: selected ? 1 : 0,
+      useNativeDriver: true,
+      tension: 220,
+      friction: 10,
+    }).start();
+  }, [selected, selectedPop]);
+
   const handlePressIn = useCallback(() => {
     Animated.spring(pressScale, {
       toValue: 0.98,
@@ -199,20 +223,35 @@ export const ProductCard = memo(function ProductCard({
         }}
       >
         {selectionMode && (
-          <View
+          <Animated.View
             style={{
               width: 26,
               alignItems: "center",
               justifyContent: "center",
               marginRight: 8,
+              opacity: selectionAnim,
+              transform: [
+                {
+                  scale: selectionAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.5, 1],
+                  }),
+                },
+              ],
             }}
           >
-            <IconSymbol
-              name={selected ? "checkmark.circle.fill" : "circle.fill"}
-              size={22}
-              color={selected ? colors.primary : colors.muted}
-            />
-          </View>
+            <Animated.View
+              style={{
+                transform: [{ scale: selectedPop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] }) }],
+              }}
+            >
+              <IconSymbol
+                name={selected ? "checkmark.circle.fill" : "circle.fill"}
+                size={22}
+                color={selected ? colors.primary : colors.muted}
+              />
+            </Animated.View>
+          </Animated.View>
         )}
         {imageUrl && !imageError ? (
           <View style={{ width: 48, height: 48, borderRadius: 8, marginRight: 10, overflow: "hidden", backgroundColor: colors.border + "66" }}>

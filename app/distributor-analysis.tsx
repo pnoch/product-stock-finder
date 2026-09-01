@@ -4,7 +4,9 @@ import {
   Text,
   View,
   TouchableOpacity,
+  Platform,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -55,7 +57,10 @@ export default function DistributorAnalysisScreen() {
         <TouchableOpacity activeOpacity={0.85}
           accessibilityLabel="Go back"
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={() => {
+            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.back();
+          }}
           style={{ marginRight: 12 }}
         >
           <Text style={{ color: colors.primary, fontSize: 16 }}>‹ Back</Text>
@@ -75,9 +80,15 @@ export default function DistributorAnalysisScreen() {
           title="Failed to load analysis"
           subtitle={error}
           ctaLabel="Retry"
-          onCtaPress={() => loadData()}
+          onCtaPress={() => {
+            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            loadData();
+          }}
           secondaryLabel="Browse Products"
-          onSecondaryPress={() => router.push("/search")}
+          onSecondaryPress={() => {
+            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/search");
+          }}
         />
       ) : analysis.length === 0 ? (
         <EmptyStateView
@@ -85,9 +96,15 @@ export default function DistributorAnalysisScreen() {
           title="No distributor data yet"
           subtitle="Add a few products to your watchlist to compare coverage and average prices across distributors."
           ctaLabel="Browse Products"
-          onCtaPress={() => router.push("/search")}
+          onCtaPress={() => {
+            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/search");
+          }}
           secondaryLabel="Try Again"
-          onSecondaryPress={() => loadData()}
+          onSecondaryPress={() => {
+            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            loadData();
+          }}
         />
       ) : (
         <ScrollView

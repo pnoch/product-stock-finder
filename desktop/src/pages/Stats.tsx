@@ -144,21 +144,21 @@ export function Stats() {
       <h1 className="text-2xl font-bold">Statistics</h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow">
+        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
           <p className="text-sm text-gray-500 dark:text-gray-400">Basket Value</p>
           <p className="text-2xl font-bold mt-1">
             {basket ? formatPrice(basket.total, displayCurrency) : "—"}
           </p>
           <p className="text-xs text-gray-400 mt-1">{basket?.productCount ?? 0} products</p>
         </div>
-        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow">
+        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
           <p className="text-sm text-gray-500 dark:text-gray-400">In Stock</p>
           <p className="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">
             {stockHealth ? `${stockHealth.inStockPct}%` : "—"}
           </p>
           <p className="text-xs text-gray-400 mt-1">{stockHealth?.totalListings ?? 0} listings</p>
         </div>
-        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow">
+        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
           <p className="text-sm text-gray-500 dark:text-gray-400">Biggest Drop</p>
           {movers && movers.drops.length > 0 ? (
             <>
@@ -171,7 +171,7 @@ export function Stats() {
             <p className="text-sm text-gray-400 mt-2">No movers yet</p>
           )}
         </div>
-        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow">
+        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
           <p className="text-sm text-gray-500 dark:text-gray-400">Biggest Rise</p>
           {movers && movers.gainers.length > 0 ? (
             <>

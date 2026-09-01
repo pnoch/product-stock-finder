@@ -7,6 +7,7 @@ import {
   Clock,
   Star,
   BarChart3,
+  Loader2,
 } from "lucide-react";
 import { storage } from "../storage";
 import { getApiBaseUrl } from "../lib/api-base";
@@ -91,12 +92,15 @@ export function ProductDetail() {
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
   const [insight, setInsight] = useState<string | null>(null);
+  const [buyNowLoading, setBuyNowLoading] = useState(false);
+  const [livePriceLoading, setLivePriceLoading] = useState(false);
   const { isDark } = useTheme();
 
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
     setLoading(true);
+    setLivePriceLoading(true);
     setRegionFilter("all");
     (async () => {
       const products = await storage.getWatchlist();
@@ -109,7 +113,11 @@ export function ProductDetail() {
         setDisplayCurrency(settings.displayCurrency ?? "USD");
         setShippingRegion(settings.shippingRegion ?? "Asia-Pacific");
       }
-      if (!cancelled) setLoading(false);
+      if (!cancelled) {
+        setLoading(false);
+        // small delay to surface Buy Now loading polish
+        setTimeout(() => { if (!cancelled) setLivePriceLoading(false); }, 350);
+      }
 
       if (!("__TAURI__" in window)) return;
       const base = getApiBaseUrl();
@@ -349,31 +357,45 @@ export function ProductDetail() {
             </div>
           </div>
           <a
-            href={bestListing.stockStatus === "in_stock" ? bestListing.url : undefined}
+            href={buyNowLoading || livePriceLoading || bestListing.stockStatus !== "in_stock" ? undefined : bestListing.url}
             target="_blank"
             rel="noopener noreferrer"
-            aria-disabled={bestListing.stockStatus !== "in_stock"}
-            tabIndex={bestListing.stockStatus !== "in_stock" ? -1 : undefined}
+            aria-disabled={buyNowLoading || livePriceLoading || bestListing.stockStatus !== "in_stock"}
+            tabIndex={buyNowLoading || livePriceLoading || bestListing.stockStatus !== "in_stock" ? -1 : undefined}
             onClick={(e) => {
-              if (bestListing.stockStatus !== "in_stock") e.preventDefault();
+              if (buyNowLoading || livePriceLoading || bestListing.stockStatus !== "in_stock") {
+                e.preventDefault();
+                return;
+              }
+              setBuyNowLoading(true);
+              setTimeout(() => setBuyNowLoading(false), 900);
             }}
-            className={`mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              bestListing.stockStatus === "in_stock"
-                ? "bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer"
-                : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed pointer-events-none"
+            className={`mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150 ${
+              buyNowLoading || livePriceLoading
+                ? "bg-emerald-500 text-white cursor-wait opacity-80"
+                : bestListing.stockStatus === "in_stock"
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer"
+                  : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed pointer-events-none"
             }`}
             aria-label={
-              bestListing.stockStatus === "in_stock"
-                ? `Buy ${product.name} at ${bestDistributor.name}`
-                : `${product.name} is not in stock at ${bestDistributor.name}`
+              buyNowLoading || livePriceLoading
+                ? "Loading price"
+                : bestListing.stockStatus === "in_stock"
+                  ? `Buy ${product.name} at ${bestDistributor.name}`
+                  : `${product.name} is not in stock at ${bestDistributor.name}`
             }
           >
-            {bestListing.stockStatus === "in_stock"
-              ? "Buy Now"
-              : bestListing.stockStatus === "back_order"
-                ? "Back Order"
-                : "Out of Stock"}{" "}
-            <ExternalLink className="w-3.5 h-3.5" />
+            {buyNowLoading || livePriceLoading ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
+              </>
+            ) : bestListing.stockStatus === "in_stock" ? (
+              <>Buy Now <ExternalLink className="w-3.5 h-3.5" /></>
+            ) : bestListing.stockStatus === "back_order" ? (
+              <>Back Order <ExternalLink className="w-3.5 h-3.5" /></>
+            ) : (
+              <>Out of Stock <ExternalLink className="w-3.5 h-3.5" /></>
+            )}
           </a>
         </div>
       )}
@@ -448,16 +470,31 @@ export function ProductDetail() {
                   }
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                    border: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`,
-                    borderRadius: 8,
-                    color: isDark ? "#f3f4f6" : undefined,
+                  cursor={{ stroke: isDark ? "#3B7DD8" : "#0F52BA", strokeDasharray: "4 4", strokeOpacity: 0.3 }}
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload || payload.length === 0) return null;
+                    return (
+                      <div
+                        className="rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 shadow-lg px-3 py-2 text-xs"
+                        style={{ borderColor: isDark ? "#374151" : "#e5e7eb" }}
+                      >
+                        <p className="font-semibold text-gray-700 dark:text-gray-200 mb-1">{label}</p>
+                        {payload.map((entry: any, idx: number) => (
+                          <p
+                            key={idx}
+                            className="flex items-center gap-2 animate-fadeIn"
+                            style={{ animationDelay: `${idx * 60}ms` } as React.CSSProperties}
+                          >
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: entry.color ?? (isDark ? "#3B7DD8" : "#0F52BA") }} />
+                            <span className="text-gray-500 dark:text-gray-400">{entry.name ?? "Price"}:</span>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">
+                              {`${CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency}${Number(entry.value).toFixed(2)}`}
+                            </span>
+                          </p>
+                        ))}
+                      </div>
+                    );
                   }}
-                  formatter={(value: number) => [
-                    `${CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency}${value.toFixed(2)}`,
-                    "Price",
-                  ]}
                 />
                 <Line
                   type="monotone"

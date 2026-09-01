@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, View, TouchableOpacity } from "react-native";
+import { ActivityIndicator, ScrollView, Text, View, TouchableOpacity, Platform } from "react-native";
+import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { EmptyStateView } from "@/components/ui/empty-state-view";
 import {
   computeHealthStats,
   computeHealthSummary,
@@ -60,15 +62,25 @@ export default function HealthDetailScreen() {
           <TouchableOpacity activeOpacity={0.7}
             accessibilityLabel="Go back"
             accessibilityRole="button"
-            onPress={() => router.back()}
+            onPress={() => {
+              if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.back();
+            }}
             style={{ marginRight: 12 }}
           >
             <Text style={{ color: colors.primary, fontSize: 16 }}>‹ Back</Text>
           </TouchableOpacity>
         </View>
-        <Text style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}>
-          Distributor not found
-        </Text>
+        <EmptyStateView
+          icon="magnifyingglass"
+          title="Distributor not found"
+          subtitle="We couldn't find this distributor. Check the link or browse distributor health."
+          ctaLabel="Go back"
+          onCtaPress={() => {
+            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.back();
+          }}
+        />
       </ScreenContainer>
     );
   }
@@ -86,7 +98,10 @@ export default function HealthDetailScreen() {
         <TouchableOpacity activeOpacity={0.85}
           accessibilityLabel="Go back"
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={() => {
+            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.back();
+          }}
           style={{ marginRight: 12 }}
         >
           <Text style={{ color: colors.primary, fontSize: 16 }}>‹ Back</Text>
