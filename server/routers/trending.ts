@@ -4,11 +4,11 @@ import { trendingProducts } from "../../drizzle/schema";
 import { gte } from "drizzle-orm";
 
 const RSS_FEEDS = [
-  { name: "r/buildapcsales", url: "https://www.reddit.com/r/buildapcsales/.rss" },
-  { name: "r/hardwareswap", url: "https://www.reddit.com/r/hardwareswap/.rss" },
-  { name: "Hacker News", url: "https://hn.algolia.com/api/v1/search?query=hardware&tags=story" },
-  { name: "Slickdeals", url: "https://slickdeals.net/newsearch.php?searcharea=deals&searchin=first&rss=1" },
-  { name: "Tom's Hardware", url: "https://www.tomshardware.com/feeds/all" },
+  { name: "r/buildapcsales", url: "https://www.reddit.com/r/buildapcsales/.rss", type: "xml" as const },
+  { name: "r/hardwareswap", url: "https://www.reddit.com/r/hardwareswap/.rss", type: "xml" as const },
+  { name: "Hacker News", url: "https://hn.algolia.com/api/v1/search?query=hardware&tags=story", type: "json" as const },
+  { name: "Slickdeals", url: "https://slickdeals.net/newsearch.php?searcharea=deals&searchin=first&rss=1", type: "xml" as const },
+  { name: "Tom's Hardware", url: "https://www.tomshardware.com/feeds/all", type: "xml" as const },
 ];
 
 interface RssItem {
@@ -34,6 +34,17 @@ function parseRssItems(xml: string, source: string): RssItem[] {
   return items;
 }
 
+function parseJsonFeed(body: string, source: string): RssItem[] {
+  try {
+    const data = JSON.parse(body) as { hits?: Array<{ title?: string; url?: string; story_title?: string }> };
+    return (data.hits ?? [])
+      .map((h) => ({ title: (h.title ?? h.story_title ?? "").trim(), link: h.url ?? "", source }))
+      .filter((i) => i.title.length > 0);
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchRssFeeds(): Promise<RssItem[]> {
   const allItems: RssItem[] = [];
   const results = await Promise.allSettled(
@@ -42,8 +53,8 @@ export async function fetchRssFeeds(): Promise<RssItem[]> {
         headers: { "User-Agent": "ProductStockFinder/1.0" },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const xml = await res.text();
-      return parseRssItems(xml, feed.name);
+      const body = await res.text();
+      return feed.type === "json" ? parseJsonFeed(body, feed.name) : parseRssItems(body, feed.name);
     }),
   );
   for (const r of results) {
