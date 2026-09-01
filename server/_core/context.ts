@@ -26,7 +26,7 @@ export async function createContext(
   const rawDeviceId = opts.req.headers["x-device-id"];
   const headerDeviceId = typeof rawDeviceId === "string" ? rawDeviceId : null;
   const claimDeviceId = user?.sessionDeviceId ?? null;
-  const effectiveDeviceId = claimDeviceId ?? headerDeviceId;
+  const effectiveDeviceId = user ? (claimDeviceId ?? headerDeviceId) : null;
 
   if (effectiveDeviceId && user) {
     const revoked = await isDeviceRevoked(user.id, effectiveDeviceId);

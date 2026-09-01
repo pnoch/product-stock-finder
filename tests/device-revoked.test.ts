@@ -62,7 +62,8 @@ describe("createContext revocation check", () => {
       res: makeRes(),
     } as any);
     expect(ctx.user).toBeNull();
-    expect(ctx.deviceId).toBe("dev-1");
+    expect(ctx.deviceId).toBeNull();
+    expect(mockedRevoked).not.toHaveBeenCalled();
   });
 
   it("passes for a non-revoked device with a user", async () => {
