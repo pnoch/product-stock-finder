@@ -65,6 +65,15 @@ export function hasExchangeRate(currency: string): boolean {
   return currency in effectiveRates();
 }
 
+export function getExchangeRate(currency: string): number | null {
+  const rates = effectiveRates();
+  return rates[currency] ?? null;
+}
+
+export function getCurrencySymbol(currency: string): string {
+  return CURRENCY_SYMBOLS[currency] ?? currency;
+}
+
 export function formatPrice(amount: number, currency: string): string {
   if (!Number.isFinite(amount)) return "N/A";
   const symbol = CURRENCY_SYMBOLS[currency] ?? currency;

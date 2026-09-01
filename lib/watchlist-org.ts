@@ -168,7 +168,11 @@ export function sortWatchlist(
       return copy.sort((a, b) => {
         const pa = getBestPrice(a.listings ?? [], "USD")?.price ?? Infinity;
         const pb = getBestPrice(b.listings ?? [], "USD")?.price ?? Infinity;
-        return pa - pb;
+        if (pa !== pb) return pa - pb;
+        return (
+          new Date(b.addedAt ?? 0).getTime() -
+          new Date(a.addedAt ?? 0).getTime()
+        );
       });
     case "price_drop":
       return copy.sort((a, b) => {
