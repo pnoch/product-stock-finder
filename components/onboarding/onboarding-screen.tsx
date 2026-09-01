@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/use-colors";
 import { setOnboardingSeen } from "@/lib/onboarding";
 
@@ -35,6 +36,7 @@ export function OnboardingScreen({
   onComplete: () => void;
 }) {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList>(null);
   const [index, setIndex] = useState(0);
 
@@ -61,7 +63,7 @@ export function OnboardingScreen({
         onPress={() => void finish()}
         style={{
           position: "absolute",
-          top: 52,
+          top: insets.top + 12,
           right: 20,
           zIndex: 1,
           padding: 8,

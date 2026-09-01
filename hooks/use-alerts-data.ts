@@ -43,6 +43,7 @@ export function useAlertsData() {
     useState<BackOrderReminder | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState<Date>(new Date());
   const [showReschedulePicker, setShowReschedulePicker] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadGen = useRef(0);
 
@@ -64,9 +65,10 @@ export function useAlertsData() {
       setStockWatches(w);
       setUnreadNotifications(n);
       setDisplayCurrency(s.displayCurrency ?? "USD");
+      setLoadError(null);
     } catch {
       if (gen !== loadGen.current) return;
-      // keep stale data on failure; state already loaded stays intact
+      setLoadError("Failed to load alerts. Pull to retry.");
     } finally {
       if (gen === loadGen.current) setLoading(false);
     }
@@ -235,6 +237,7 @@ export function useAlertsData() {
       rescheduleDate,
       rescheduleTarget.productId,
     );
+    const notificationFailed = !notifId && Platform.OS !== "web";
     await addBackOrderReminder({
       ...rescheduleTarget,
       reminderDate: rescheduleDate.toISOString(),
@@ -245,10 +248,17 @@ export function useAlertsData() {
     setRescheduleTarget(null);
     setShowReschedulePicker(false);
     await loadData();
-    showAlert(
-      "Reminder Rescheduled ✅",
-      `You'll be reminded on ${rescheduleDate.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}.`,
-    );
+    if (notificationFailed) {
+      showAlert(
+        "Reminder Saved",
+        "Reminder rescheduled, but notifications are disabled. Enable notifications in your device settings to receive the alert.",
+      );
+    } else {
+      showAlert(
+        "Reminder Rescheduled ✅",
+        `You'll be reminded on ${rescheduleDate.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}.`,
+      );
+    }
   }, [rescheduleTarget, rescheduleDate, loadData]);
 
   const getProductName = (productId: string) =>
@@ -297,6 +307,7 @@ export function useAlertsData() {
     refreshing,
     loading,
     onRefresh,
+    loadError,
     unreadNotifications,
     setUnreadNotifications,
     handleToggle,

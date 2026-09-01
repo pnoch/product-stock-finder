@@ -6,7 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-import { AppState, Platform, View } from "react-native";
+import { AppState, Platform, View, useColorScheme } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { AppErrorBoundary } from "@/components/app-error-boundary";
@@ -80,6 +80,7 @@ export default function RootLayout() {
 
   const [insets] = useState<EdgeInsets>(initialInsets);
   const [frame] = useState<Rect>(initialFrame);
+  const systemColorScheme = useColorScheme() ?? "light";
 
   // Initialize unhandled rejection handler
   useEffect(() => {

@@ -39,7 +39,7 @@ export default function AlertsScreen() {
     activeTab, setActiveTab,
     alerts, reminders, stockWatches,
     products,
-    refreshing, loading, onRefresh,
+    refreshing, loading, onRefresh, loadError,
     setUnreadNotifications,
     handleToggle, handleDeleteAlert, handleDeleteReminder,
     handleSnoozeAlert, handleUpdateAlert,
@@ -473,7 +473,8 @@ export default function AlertsScreen() {
             <ReminderCard
               reminder={item}
               onReschedule={(r) => {
-                setRescheduleDate(new Date(r.reminderDate));
+                const d = new Date(r.reminderDate);
+                setRescheduleDate(isNaN(d.getTime()) ? new Date() : d);
                 setShowReschedulePicker(true);
                 setRescheduleTarget(r);
               }}

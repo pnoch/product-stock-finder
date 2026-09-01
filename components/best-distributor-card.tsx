@@ -27,11 +27,11 @@ function BestDistributorCard({
 
   const derivedColors = useMemo(
     () => ({
-      primary12: colors.primary + "12",
+      primary12: colors.primary + "18",
       primary22: colors.primary + "22",
       primary44: colors.primary + "44",
-      primary55: colors.primary + "55",
-      success18: colors.success + "18",
+      primary55: colors.primary + "66",
+      success18: colors.success + "22",
       success22: colors.success + "22",
       success44: colors.success + "44",
       error22: colors.error + "22",
@@ -185,7 +185,7 @@ function BestDistributorCard({
             {distributor?.name ?? listing.distributorId}
           </Text>
           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
-            {distributor?.country} · {distributor?.region}
+            {distributor?.country ?? "—"} · {distributor?.region ?? "—"}
           </Text>
         </View>
         <View

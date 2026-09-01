@@ -74,10 +74,12 @@ export function NotificationsSection({
                   value={!!settings.webNotificationsEnabled}
                   onValueChange={(v) => {
                     void setWebNotificationsEnabled(v).then((permission) => {
+                      const enabled = v && permission === "granted";
                       setSettings((prev) => ({
                         ...prev,
-                        webNotificationsEnabled: v && permission === "granted",
+                        webNotificationsEnabled: enabled,
                       }));
+                      void updateSetting("webNotificationsEnabled", enabled);
                       if (v && permission !== "granted") {
                         setWebNotificationHint(
                           permission === "denied"
