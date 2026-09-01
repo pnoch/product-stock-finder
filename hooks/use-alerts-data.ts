@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Platform } from "react-native";
+import { useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import { ActiveTab } from "@/components/alerts/tab-switcher";
@@ -17,6 +18,7 @@ import {
   removeStockWatch,
   rearmAlert,
   getUnreadNotificationCount,
+  getSettings,
 } from "@/lib/storage";
 import { PriceAlert, Product, BackOrderReminder } from "@/lib/types";
 import { convertPrice } from "@/lib/currency";
@@ -35,6 +37,7 @@ export function useAlertsData() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
 
   const [rescheduleTarget, setRescheduleTarget] =
     useState<BackOrderReminder | null>(null);
@@ -43,26 +46,32 @@ export function useAlertsData() {
 
   const loadData = useCallback(async () => {
     try {
-      const [a, p, r, w, n] = await Promise.all([
+      const [a, p, r, w, n, s] = await Promise.all([
         getAlerts(),
         getWatchlist(),
         getBackOrderReminders(),
         getStockWatches(),
         getUnreadNotificationCount(),
+        getSettings(),
       ]);
       setAlerts(a);
       setProducts(p);
       setReminders(r);
       setStockWatches(w);
       setUnreadNotifications(n);
+      setDisplayCurrency(s.displayCurrency ?? "USD");
+    } catch {
+      // keep stale data on failure; state already loaded stays intact
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData]),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -105,6 +114,16 @@ export function useAlertsData() {
         await snoozeAlert(alertId, days);
         await loadData();
       };
+      if (Platform.OS === "web") {
+        const input = window.prompt(
+          "Snooze Alert\nPause notifications for how many days? (0 to wake now)",
+          "7",
+        );
+        if (input === null) return;
+        const days = parseInt(input, 10);
+        if (!isNaN(days) && days >= 0) void apply(days);
+        return;
+      }
       showAlert("Snooze Alert", "Pause notifications for this alert.", [
         { text: "1 day", onPress: () => void apply(1) },
         { text: "7 days", onPress: () => void apply(7) },
@@ -219,11 +238,11 @@ export function useAlertsData() {
 
   const totalSaved = triggeredAlerts.reduce((sum, a) => {
     if (a.triggeredPrice != null) {
-      const savedUsd = convertPrice(
-        Math.max(0, a.targetPrice - a.triggeredPrice),
-        a.currency,
-        "USD",
-      );
+      const delta =
+        a.direction === "rise"
+          ? a.triggeredPrice - a.targetPrice
+          : a.targetPrice - a.triggeredPrice;
+      const savedUsd = convertPrice(Math.max(0, delta), a.currency, "USD");
       if (savedUsd === null) return sum;
       return sum + savedUsd;
     }
@@ -271,6 +290,7 @@ export function useAlertsData() {
     getProductName,
     triggeredAlerts,
     totalSaved,
+    displayCurrency,
     tabCount,
     rescheduleTarget,
     setRescheduleTarget,

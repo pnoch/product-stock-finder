@@ -39,8 +39,10 @@ function convert(
   return convertPrice(price, currency, displayCurrency);
 }
 
+// Local-date key (YYYY-MM-DD) — must match drop-calendar-card's en-CA keys
 function dateKey(ts: number): string {
-  return new Date(ts).toISOString().slice(0, 10);
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 export function computeDropCalendar(

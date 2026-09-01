@@ -3,7 +3,11 @@ import { useState, useEffect } from "react";
 export type ThemePreference = "light" | "dark" | "auto";
 
 export function useTheme() {
-  const [preference, setPreference] = useState<ThemePreference>("auto");
+  const [preference, setPreferenceState] = useState<ThemePreference>(() => {
+    if (typeof window === "undefined") return "auto";
+    const stored = localStorage.getItem("theme-preference");
+    return stored === "light" || stored === "dark" ? stored : "auto";
+  });
   const [systemDark, setSystemDark] = useState<boolean>(() => {
     if (typeof window === "undefined" || !window.matchMedia) return false;
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -20,12 +24,21 @@ export function useTheme() {
   const theme: "light" | "dark" =
     preference === "auto" ? (systemDark ? "dark" : "light") : preference;
 
-  const set = (pref: ThemePreference) => setPreference(pref);
+  const set = (pref: ThemePreference) => {
+    setPreferenceState(pref);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("theme-preference", pref);
+    }
+  };
 
   const toggle = () =>
-    setPreference((prev) => {
+    setPreferenceState((prev) => {
       const current = prev === "auto" ? (systemDark ? "dark" : "light") : prev;
-      return current === "light" ? "dark" : "light";
+      const next = current === "light" ? "dark" : "light";
+      if (typeof window !== "undefined") {
+        localStorage.setItem("theme-preference", next);
+      }
+      return next;
     });
 
   return { theme, preference, set, toggle, isDark: theme === "dark" };

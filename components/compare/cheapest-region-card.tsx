@@ -10,12 +10,14 @@ export function CheapestRegionCard({ listings }: { listings: DistributorListing[
   const colors = useColors();
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    Animated.loop(
+    const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1.04, duration: 900, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
       ]),
-    ).start();
+    );
+    anim.start();
+    return () => anim.stop();
   }, [pulse]);
 
   const regionBest = useMemo(() => cheapestByRegion(listings), [listings]);

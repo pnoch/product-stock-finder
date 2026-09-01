@@ -7,11 +7,12 @@ import {
   Platform,
   Animated,
 } from "react-native";
-import { useCallback, useState, useRef } from "react";
+import { useCallback, useState, useRef, useMemo } from "react";
 import type { PriceAlert } from "@/lib/types";
 import { PriceAlertModal } from "@/components/product/price-alert-modal";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { NotificationCenter } from "@/components/notification-center";
@@ -33,6 +34,7 @@ import { SkeletonList } from "@/components/ui/skeleton";
 export default function AlertsScreen() {
   const router = useRouter();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const {
     activeTab, setActiveTab,
     alerts, reminders, stockWatches,
@@ -42,7 +44,7 @@ export default function AlertsScreen() {
     handleToggle, handleDeleteAlert, handleDeleteReminder,
     handleSnoozeAlert, handleUpdateAlert,
     handleRemoveStockWatch, handleReschedule, handleRearmAlert,
-    getProductName, triggeredAlerts, totalSaved, tabCount,
+    getProductName, triggeredAlerts, totalSaved, displayCurrency, tabCount,
     rescheduleTarget, setRescheduleTarget,
     rescheduleDate, setRescheduleDate,
     showReschedulePicker, setShowReschedulePicker,
@@ -76,8 +78,10 @@ export default function AlertsScreen() {
     [alerts],
   );
 
-  const editDistributors = editingAlert
-    ? products
+  const editDistributors = useMemo(() => {
+    if (!editingAlert) return [];
+    return (
+      products
         .find((p) => p.id === editingAlert.productId)
         ?.listings.map((l) => {
           const d = getDistributorById(l.distributorId);
@@ -87,7 +91,8 @@ export default function AlertsScreen() {
             countryFlag: d?.countryFlag ?? "",
           };
         }) ?? []
-    : [];
+    );
+  }, [editingAlert, products]);
 
   if (loading) {
     return (
@@ -164,7 +169,7 @@ export default function AlertsScreen() {
           removeClippedSubviews
           contentContainerStyle={{
             paddingHorizontal: 20,
-            paddingBottom: 24,
+            paddingBottom: 96 + insets.bottom,
             flexGrow: 1,
           }}
           refreshControl={
@@ -231,7 +236,7 @@ export default function AlertsScreen() {
                           fontSize: 15,
                         }}
                       >
-                        Total Saved: {formatPrice(totalSaved, "USD")}
+                        Total Saved: {formatPrice(totalSaved, displayCurrency)}
                       </Text>
                       <Text
                         style={{
@@ -348,7 +353,7 @@ export default function AlertsScreen() {
           removeClippedSubviews
           contentContainerStyle={{
             paddingHorizontal: 20,
-            paddingBottom: 24,
+            paddingBottom: 96 + insets.bottom,
             flexGrow: 1,
           }}
           refreshControl={
@@ -497,7 +502,7 @@ export default function AlertsScreen() {
         <Animated.View
           style={{
             position: "absolute",
-            bottom: 24,
+            bottom: 24 + insets.bottom,
             right: 20,
             transform: [{ scale: fabScale }],
           }}

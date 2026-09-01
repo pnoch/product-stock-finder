@@ -7,7 +7,11 @@ import type { BestDeal } from "@/lib/best-deal";
 
 export function DetailHeader({ product, bestDeal }: { product: Product; bestDeal: BestDeal | null }) {
   const colors = useColors();
-  const region = product.listings?.[0] ? getDistributorById(product.listings[0].distributorId)?.region ?? "" : "";
+  const region = bestDeal
+    ? getDistributorById(bestDeal.distributorId)?.region
+    : product.listings?.[0]
+      ? getDistributorById(product.listings[0].distributorId)?.region
+      : undefined;
   return (
     <View style={{ padding: 16 }}>
       <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}>{product.name}</Text>

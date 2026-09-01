@@ -38,13 +38,20 @@ export function StockBadge({
   expectedDate?: string;
 }) {
   const c = config[status] ?? config.unknown;
+  const formattedDate = expectedDate
+    ? new Date(expectedDate).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : null;
   return (
     <span
       className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
       {c.label}
-      {expectedDate ? ` · ${expectedDate}` : ""}
+      {formattedDate ? ` · ${formattedDate}` : ""}
     </span>
   );
 }

@@ -54,7 +54,8 @@ export function useLiveProduct(productId: string) {
 
   const modelNumber =
     product?.modelNumber ??
-    PRODUCT_CATALOG.find((p) => p.id === productId)?.modelNumber;
+    PRODUCT_CATALOG.find((p) => p.id === productId)?.modelNumber ??
+    productId;
 
   const queries = useMemo(
     () => (modelNumber ? deriveListingQueries(modelNumber, seedListings) : []),

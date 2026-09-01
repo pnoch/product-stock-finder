@@ -155,7 +155,7 @@ export function MultiLineChart({
         fill={colors.muted}
         textAnchor="end"
       >
-        {currencySymbol}{globalMax.toFixed(0)}
+        {currencySymbol}{globalMax.toLocaleString(undefined, { maximumFractionDigits: 0 })}
       </SvgText>
       <SvgText
         x={padL - 6}
@@ -164,7 +164,7 @@ export function MultiLineChart({
         fill={colors.muted}
         textAnchor="end"
       >
-        {currencySymbol}{midP.toFixed(0)}
+        {currencySymbol}{midP.toLocaleString(undefined, { maximumFractionDigits: 0 })}
       </SvgText>
       <SvgText
         x={padL - 6}
@@ -173,7 +173,7 @@ export function MultiLineChart({
         fill={colors.muted}
         textAnchor="end"
       >
-        {currencySymbol}{globalMin.toFixed(0)}
+        {currencySymbol}{globalMin.toLocaleString(undefined, { maximumFractionDigits: 0 })}
       </SvgText>
       {allCoords.map((s) => (
         <Fragment key={s.label}>

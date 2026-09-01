@@ -77,7 +77,6 @@ export function Health() {
   }, []);
 
   useEffect(() => {
-    runTest();
     (async () => {
       try {
         const svc = createHealthService(localAdapter as unknown as import("../../../lib/storage/adapter").StorageAdapter);
@@ -89,7 +88,7 @@ export function Health() {
         // ignore
       }
     })();
-  }, [runTest]);
+  }, []);
 
   const counts = {
     working: health.filter((h) => h.status === "working").length,
@@ -142,7 +141,7 @@ export function Health() {
             className={`px-3 py-1 rounded-full text-sm font-semibold border ${
               filter === f
                 ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-800 border-gray-300"
+                : "bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600"
             }`}
             aria-label={`Filter by ${f === "all" ? "all statuses" : f}`}
           >
@@ -163,7 +162,11 @@ export function Health() {
       {testing && (
         <div className="mb-4">
           <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-            <div className="h-1.5 bg-blue-600 transition-all duration-300" style={{ width: `${progress || 45}%` }} />
+            {progress > 0 && progress < 100 ? (
+              <div className="h-1.5 bg-blue-600 transition-all duration-300" style={{ width: `${progress}%` }} />
+            ) : (
+              <div className="h-1.5 w-1/3 bg-blue-600 rounded-full animate-pulse" />
+            )}
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{progress ? `${progress}%` : "Running checks..."}</p>
         </div>

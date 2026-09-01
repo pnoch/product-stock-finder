@@ -4,7 +4,7 @@ import { TrendingDown, TrendingUp, Package, BarChart3 } from "lucide-react";
 import { storage } from "../storage";
 import { EmptyState } from "../components/EmptyState";
 import { MultiLineChart } from "../components/MultiLineChart";
-import { formatPrice, convertPrice } from "../../../lib/currency";
+import { formatPrice, convertPrice, CURRENCY_SYMBOLS } from "../../../lib/currency";
 import { DISTRIBUTORS } from "../../../lib/distributors";
 import type { Product } from "../../../lib/types";
 import {
@@ -189,7 +189,12 @@ export function Stats() {
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
         <h2 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Price History</h2>
         {chartData.data.length > 0 ? (
-          <MultiLineChart data={chartData.data} distributors={chartData.distributors} colors={CHART_COLORS} />
+          <MultiLineChart
+            data={chartData.data}
+            distributors={chartData.distributors}
+            colors={CHART_COLORS}
+            currencySymbol={CURRENCY_SYMBOLS[displayCurrency] ?? "$"}
+          />
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/50">
             <BarChart3 className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-2" />

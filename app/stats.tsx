@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -57,9 +57,12 @@ export default function StatsScreen() {
   const [basketThreshold, setBasketThreshold] = useState<number | null>(null);
   const [basketSheetVisible, setBasketSheetVisible] = useState(false);
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => {
-    void (async () => {
+  const load = useCallback(async () => {
+    setLoaded(false);
+    setLoadError(null);
+    try {
       const [wl, loadedSettings, snapshot, loadedAlerts] = await Promise.all([
         getWatchlist(),
         getSettings(),
@@ -73,9 +76,18 @@ export default function StatsScreen() {
       setBasketThreshold(loadedSettings?.basketAlertThreshold ?? null);
       setDigestSnapshot(snapshot);
       setAlerts(loadedAlerts);
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : String(e));
+    } finally {
       setLoaded(true);
-    })();
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   const digest = useMemo(() => {
     if (!digestSnapshot || !settings || digestFrequency === "off") return null;
@@ -85,10 +97,13 @@ export default function StatsScreen() {
   const handleSaveBasketAlert = useCallback(
     async (threshold: number | null) => {
       setBasketThreshold(threshold);
-      const s = await getSettings();
-      await saveSettings({ ...s, basketAlertThreshold: threshold });
+      const current = settings ?? (await getSettings());
+      if (!current) return;
+      const updated = { ...current, basketAlertThreshold: threshold };
+      setSettings(updated);
+      await saveSettings(updated);
     },
-    [],
+    [settings],
   );
 
   const insights = useMemo(
@@ -196,6 +211,14 @@ export default function StatsScreen() {
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={{ color: colors.muted, fontSize: 14, marginTop: 12 }}>Loading statistics...</Text>
         </View>
+      ) : loadError ? (
+        <EmptyStateView
+          icon="exclamationmark.triangle"
+          title="Failed to load statistics"
+          subtitle={loadError}
+          ctaLabel="Retry"
+          onCtaPress={() => void load()}
+        />
       ) : watchlist.length === 0 ? (
         <EmptyStateView
           icon="chart.bar.xaxis"

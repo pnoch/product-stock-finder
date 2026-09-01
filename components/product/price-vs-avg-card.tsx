@@ -9,6 +9,12 @@ const VERDICT_COPY: Record<PriceVsAverage["verdict"], string> = {
   above: "Above average",
 };
 
+const VERDICT_ICON: Record<PriceVsAverage["verdict"], string> = {
+  below: "▼",
+  at: "—",
+  above: "▲",
+};
+
 export function PriceVsAvgCard({ data, displayCurrency = "USD" }: { data: PriceVsAverage; displayCurrency?: string }) {
   const colors = useColors();
   const color =
@@ -17,6 +23,7 @@ export function PriceVsAvgCard({ data, displayCurrency = "USD" }: { data: PriceV
       : data.verdict === "above"
         ? colors.error
         : colors.muted;
+  const a11yLabel = `${VERDICT_ICON[data.verdict]} ${data.percentVsAvg > 0 ? "+" : ""}${data.percentVsAvg.toFixed(1)}% versus 30-day average — ${VERDICT_COPY[data.verdict]}`;
 
   return (
     <View
@@ -32,6 +39,7 @@ export function PriceVsAvgCard({ data, displayCurrency = "USD" }: { data: PriceV
         alignItems: "center",
         gap: 14,
       }}
+      accessibilityLabel={a11yLabel}
     >
       <Text
         style={{
@@ -41,6 +49,7 @@ export function PriceVsAvgCard({ data, displayCurrency = "USD" }: { data: PriceV
           minWidth: 84,
         }}
       >
+        {VERDICT_ICON[data.verdict]}{" "}
         {data.percentVsAvg > 0 ? "+" : ""}
         {data.percentVsAvg.toFixed(1)}%
       </Text>

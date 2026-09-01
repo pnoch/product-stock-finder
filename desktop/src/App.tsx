@@ -19,13 +19,12 @@ import { DistributorAnalysis } from "./pages/DistributorAnalysis";
 import { Stats } from "./pages/Stats";
 import { exportWatchlistAsJson } from "./import-export";
 import { useTheme } from "./hooks/use-theme";
-import { startPricePoller, onPricesChecked } from "./background";
+import { onPricesChecked } from "./background";
 import { maybeSendDigest } from "../../lib/price-digest";
 import { useAuth } from "./hooks/use-auth";
 import { trpc, createTRPCClient } from "./lib/trpc";
 import { setupSync, type SyncSetup } from "../../lib/sync";
 import { storage } from "./storage";
-import { getApiBaseUrl } from "./lib/api-base";
 import { syncDesktopNotifications } from "./server-notifications";
 
 function HeaderBar() {
@@ -76,7 +75,7 @@ function KeyboardShortcuts({
       } else if (isMeta && e.key === ",") {
         e.preventDefault();
         navigate("/settings");
-      } else if (isMeta && e.shiftKey && e.key === "T") {
+      } else if (isMeta && e.shiftKey && e.key.toLowerCase() === "t") {
         e.preventDefault();
         toggle();
       } else if (e.key === "Escape") {
@@ -121,20 +120,6 @@ export default function App() {
 
   useEffect(() => {
     if (isAuthenticated) syncRef.current?.syncNow();
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const settings = await storage.getSettings();
-      if (cancelled) return;
-      if (settings.checkInterval === "manual") return;
-      const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
-      await startPricePoller(intervalMinutes, getApiBaseUrl());
-    })();
-    return () => {
-      cancelled = true;
-    };
   }, [isAuthenticated]);
 
   useEffect(() => {

@@ -2,12 +2,12 @@ import { PRODUCT_CATALOG } from "./catalog";
 
 export type CatalogProduct = (typeof PRODUCT_CATALOG)[0];
 
-// Splits pasted input on whitespace/commas/semicolons, trims whitespace,
+// Splits pasted input on newlines/commas/semicolons, trims whitespace,
 // strips one layer of wrapping quotes, drops empties, dedupes case-insensitively.
 export function parseModelInput(text: string): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
-  const parts = text.includes("\n") ? text.split("\n") : text.split(/[,;]/);
+  const parts = text.split(/[\n,;]+/);
   for (const raw of parts) {
     let entry = raw.trim();
     if (

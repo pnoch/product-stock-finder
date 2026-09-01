@@ -9,7 +9,7 @@ import { AlertSection } from "@/components/product/alert-section";
 import { ReminderSection } from "@/components/product/reminder-section";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveProduct } from "@/hooks/use-live-prices";
-import { getSettings, getStockWatches, addAlert, addStockWatch, removeStockWatch } from "@/lib/storage";
+import { getSettings, getStockWatches, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch } from "@/lib/storage";
 import { formatPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
@@ -17,9 +17,9 @@ import { computePriceVsAverage } from "@/lib/price-average";
 import { findBestDeal } from "@/lib/best-deal";
 import { fetchPriceInsight } from "@/lib/server-insights";
 import { fetchProductImage } from "@/lib/server-images";
-import { schedulePriceAlert, scheduleStockAlert, cancelNotification, requestNotificationPermissions } from "@/lib/notifications";
+import { schedulePriceAlert, scheduleStockAlert, scheduleBackOrderReminder, cancelNotification, requestNotificationPermissions } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
-import { ProductInfoCard, DistributorListingSection } from "./_components";
+import { ProductInfoCard, DistributorListingSection, ReminderDatePickerModal } from "./_components";
 import { PriceAlert, DistributorListing } from "@/lib/types";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
 import { SkeletonCard, SkeletonChart, SkeletonDetailHeader } from "@/components/ui/skeleton";
@@ -46,9 +46,15 @@ export default function ProductDetailScreen() {
   const shareScale = useRef(new Animated.Value(1)).current;
   const [isStickyVisible, setIsStickyVisible] = useState(false);
   useEffect(() => {
-    const subId = scrollY.addListener(({ value }) => setIsStickyVisible(value > 110));
+    const subId = scrollY.addListener(({ value }) => {
+      const visible = value > 110;
+      setIsStickyVisible((prev) => (prev === visible ? prev : visible));
+    });
     return () => scrollY.removeListener(subId);
   }, [scrollY]);
+  const [reminderListing, setReminderListing] = useState<DistributorListing | null>(null);
+  const [reminderDate, setReminderDate] = useState(() => new Date(Date.now() + 7 * 86400000));
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!id) return;
@@ -84,11 +90,18 @@ export default function ProductDetailScreen() {
   }, [loadData]);
 
   const bestDeal = useMemo(() => findBestDeal(listings, shippingRegion, displayCurrency), [listings, shippingRegion, displayCurrency]);
-  const sortedListings = [...listings].sort((a, b) => {
-    const order: Record<string, number> = { in_stock: 0, back_order: 1, out_of_stock: 2, unknown: 3 };
-    return (order[a.stockStatus] ?? 3) - (order[b.stockStatus] ?? 3);
-  });
-  const visibleListings = regionFilter === "all" ? sortedListings : filterListingsByRegion(sortedListings, regionFilter);
+  const sortedListings = useMemo(
+    () =>
+      [...listings].sort((a, b) => {
+        const order: Record<string, number> = { in_stock: 0, back_order: 1, out_of_stock: 2, unknown: 3 };
+        return (order[a.stockStatus] ?? 3) - (order[b.stockStatus] ?? 3);
+      }),
+    [listings],
+  );
+  const visibleListings = useMemo(
+    () => (regionFilter === "all" ? sortedListings : filterListingsByRegion(sortedListings, regionFilter)),
+    [sortedListings, regionFilter],
+  );
   const bestInStockListing = useMemo(() => {
     const inStock = visibleListings.filter((l) => l.stockStatus === "in_stock");
     if (inStock.length === 0) return null;
@@ -173,6 +186,33 @@ export default function ProductDetailScreen() {
       }
     }
   }, [id, product, stockWatches, showToast]);
+
+  const handleSetReminder = useCallback(async () => {
+    const listing = reminderListing;
+    if (!id || !listing) return;
+    try {
+      const distributor = getDistributorById(listing.distributorId);
+      const notifId = await scheduleBackOrderReminder(product?.name ?? "Product", distributor?.name ?? listing.distributorId, reminderDate, id);
+      await addBackOrderReminder({
+        id: `reminder-${id}-${listing.distributorId}-${Date.now()}`,
+        productId: id,
+        productName: product?.name ?? "",
+        distributorId: listing.distributorId,
+        distributorName: distributor?.name ?? "",
+        reminderDate: reminderDate.toISOString(),
+        notificationId: notifId ?? undefined,
+        createdAt: new Date().toISOString(),
+        reminderType: "date",
+      });
+      setReminderListing(null);
+      setShowDatePicker(false);
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast(`Reminder set for ${reminderDate.toLocaleDateString()}`, "success");
+    } catch {
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showAlert("Couldn't set reminder", "We couldn't save your reminder. Please try again.");
+    }
+  }, [id, product, reminderListing, reminderDate, showToast]);
 
   const handleShare = useCallback(async () => {
     if (!product) return;
@@ -290,12 +330,26 @@ export default function ProductDetailScreen() {
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         <DetailHeader product={product} bestDeal={bestDeal} />
-        <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={displayCurrency} productImage={productImage} onEditDetails={() => {}} />
+        <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={displayCurrency} productImage={productImage} />
         {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} displayCurrency={displayCurrency} />}
-        <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={shippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={displayCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={() => router.push(`/compare/${id}`)} onRemind={() => {}} />
-        <AlertSection productId={product.id} displayCurrency={displayCurrency} />
+        <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={shippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={displayCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={() => router.push(`/compare/${id}`)} onRemind={setReminderListing} />
+        <AlertSection productId={product.id} productName={product.name} displayCurrency={displayCurrency} />
         <ReminderSection productId={product.id} distributorId={visibleListings[0]?.distributorId} productName={product.name} distributorName={visibleListings[0] ? getDistributorById(visibleListings[0].distributorId)?.name ?? "" : ""} />
       </Animated.ScrollView>
+      <ReminderDatePickerModal
+        visible={!!reminderListing}
+        onClose={() => {
+          setReminderListing(null);
+          setShowDatePicker(false);
+        }}
+        reminderListing={reminderListing}
+        reminderDate={reminderDate}
+        showDatePicker={showDatePicker}
+        setShowDatePicker={setShowDatePicker}
+        setReminderDate={setReminderDate}
+        onSetReminder={handleSetReminder}
+        productName={product.name}
+      />
     </ScreenContainer>
   );
 }

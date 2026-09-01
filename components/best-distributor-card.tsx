@@ -40,7 +40,7 @@ function BestDistributorCard({
   );
 
   // Price-drop indicator: compare oldest vs current price in history
-  const priceTrend = (() => {
+  const priceTrend = useMemo(() => {
     const hist = listing.priceHistory;
     if (!hist || hist.length < 2) return null;
     const sorted = [...hist].sort(
@@ -57,22 +57,23 @@ function BestDistributorCard({
       return { dir: "up" as const, pct };
     }
     return null;
-  })();
+  }, [listing.priceHistory]);
 
-  // Lowest Price Ever: compare current price against minimum across all history points
-  const isLowestEver = (() => {
+  // Lowest Price Ever: compare current price against minimum across all
+  // prior history points (excluding the current point)
+  const isLowestEver = useMemo(() => {
     const hist = listing.priceHistory;
     if (!hist || hist.length < 2) return false;
-    // Convert all prices to USD for fair comparison
-    const historicalPrices = hist
+    const priorPoints = hist
+      .slice(0, -1)
       .map((p) => convertPrice(p.price, p.currency, "USD"))
       .filter((v): v is number => v !== null);
-    if (historicalPrices.length === 0) return false;
-    const historicalMin = Math.min(...historicalPrices);
+    if (priorPoints.length === 0) return false;
+    const priorMin = Math.min(...priorPoints);
     const currentUsd = convertPrice(listing.price, listing.currency, "USD");
     if (currentUsd === null) return false;
-    return currentUsd <= historicalMin;
-  })();
+    return currentUsd < priorMin;
+  }, [listing.priceHistory, listing.price, listing.currency]);
 
   return (
     <View
@@ -272,11 +273,11 @@ function BestDistributorCard({
               alignItems: "center",
               justifyContent: "center",
               gap: 6,
-              backgroundColor: derivedColors.primary12,
+              backgroundColor: colors.surface,
               borderRadius: 12,
               paddingVertical: 9,
               borderWidth: 1,
-              borderColor: derivedColors.primary44,
+              borderColor: colors.primary,
             }}
             accessibilityLabel={`Set alert at ${formatPrice(suggestedPrice, listing.currency)}`}
             accessibilityRole="button"

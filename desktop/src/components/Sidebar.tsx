@@ -6,6 +6,8 @@ import {
   Search,
   Settings,
   BarChart3,
+  Activity,
+  LineChart,
 } from "lucide-react";
 
 const navItems = [
@@ -13,6 +15,8 @@ const navItems = [
   { to: "/watchlist", icon: List, label: "Watchlist" },
   { to: "/alerts", icon: Bell, label: "Alerts" },
   { to: "/search", icon: Search, label: "Search" },
+  { to: "/stats", icon: LineChart, label: "Stats" },
+  { to: "/health", icon: Activity, label: "Health" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 

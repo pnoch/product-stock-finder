@@ -67,11 +67,13 @@ export function TabSwitcher({ active, counts, onChange }: TabSwitcherProps) {
           <IconSymbol
             name={TAB_ICONS[tab]}
             size={15}
-            color={active === tab ? "#fff" : colors.muted}
+            color={active === tab ? "#fff" : colors.foreground}
+            style={active === tab ? undefined : { opacity: 0.55 }}
           />
           <Text
             style={{
-              color: active === tab ? "#fff" : colors.muted,
+              color: active === tab ? "#fff" : colors.foreground,
+              opacity: active === tab ? 1 : 0.7,
               fontWeight: "600",
               fontSize: 14,
             }}

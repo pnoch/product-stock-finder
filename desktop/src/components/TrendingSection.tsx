@@ -17,6 +17,12 @@ export function TrendingSection() {
   const [products, setProducts] = useState<TrendingProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   useEffect(() => {
     fetchTrending()
@@ -30,17 +36,22 @@ export function TrendingSection() {
   }, []);
 
   const handleAdd = async (product: TrendingProduct) => {
-    await storage.addToWatchlist({
-      id: product.id,
-      name: product.name,
-      modelNumber: product.id,
-      brand: product.brand,
-      category: product.category,
-      isWatched: true,
-      addedAt: new Date().toISOString(),
-      listings: [],
-    });
-    setAddedIds((prev) => new Set([...prev, product.id]));
+    try {
+      await storage.addToWatchlist({
+        id: product.id,
+        name: product.name,
+        modelNumber: product.id,
+        brand: product.brand,
+        category: product.category,
+        isWatched: true,
+        addedAt: new Date().toISOString(),
+        listings: [],
+      });
+      setAddedIds((prev) => new Set([...prev, product.id]));
+      showToast("Added to watchlist");
+    } catch {
+      showToast("Failed to add");
+    }
   };
 
   if (loading) {
@@ -80,6 +91,11 @@ export function TrendingSection() {
 
   return (
     <div>
+      {toast && (
+        <div className="fixed bottom-6 right-6 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50 animate-fadeIn">
+          {toast}
+        </div>
+      )}
       <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
         <Flame className="w-5 h-5 text-orange-500" />
         Trending Now

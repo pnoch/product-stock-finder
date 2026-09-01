@@ -23,7 +23,7 @@ export function analyzeDistributors(
       const listings = (product.listings ?? []).filter(
         (l) =>
           l.distributorId === distributor.id &&
-          l.stockStatus !== "out_of_stock" &&
+          l.stockStatus === "in_stock" &&
           l.price > 0 &&
           hasExchangeRate(l.currency) &&
           hasExchangeRate(displayCurrency),

@@ -1,5 +1,7 @@
+import { useNavigate } from "react-router";
 import { SearchModal } from "../components/SearchModal";
 
 export function Search() {
-  return <SearchModal open={true} onClose={() => {}} />;
+  const navigate = useNavigate();
+  return <SearchModal open={true} onClose={() => navigate(-1)} />;
 }

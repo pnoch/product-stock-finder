@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Platform, Text, TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { BackOrderReminder } from "@/lib/types";
@@ -10,7 +11,7 @@ type ReminderCardProps = {
   onDelete: (reminder: BackOrderReminder) => void;
 };
 
-export function ReminderCard({
+export const ReminderCard = memo(function ReminderCard({
   reminder,
   onReschedule,
   onDelete,
@@ -141,4 +142,5 @@ export function ReminderCard({
       </View>
     </View>
   );
-}
+});
+ReminderCard.displayName = "ReminderCard";

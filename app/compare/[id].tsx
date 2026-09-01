@@ -79,8 +79,16 @@ export default function CompareScreen() {
     const withHistory = listings.filter(
       (l) => l.priceHistory && l.priceHistory.length >= 2,
     );
-    setSelected(new Set(withHistory.slice(0, 3).map((l) => l.distributorId)));
-  }, [loaded, listings, id]);
+    const sortedByPrice = [...withHistory].sort((a, b) => {
+      const pa = convertPrice(a.price, a.currency, displayCurrency);
+      const pb = convertPrice(b.price, b.currency, displayCurrency);
+      if (pa === null && pb === null) return 0;
+      if (pa === null) return 1;
+      if (pb === null) return -1;
+      return pa - pb;
+    });
+    setSelected(new Set(sortedByPrice.slice(0, 3).map((l) => l.distributorId)));
+  }, [loaded, listings, id, displayCurrency]);
 
   const toggleSelect = useCallback((distributorId: string) => {
     if (Platform.OS !== "web")
@@ -209,6 +217,10 @@ export default function CompareScreen() {
   }, [listings, sortBy, priceTrends, displayCurrency]);
 
   const chartSeries = useMemo(() => {
+    const stableIds = listings
+      .filter((l) => l.priceHistory && l.priceHistory.length >= 2)
+      .map((l) => l.distributorId)
+      .sort();
     const selectedListings = listings.filter(
       (l) =>
         selected.has(l.distributorId) &&
@@ -218,7 +230,7 @@ export default function CompareScreen() {
     return selectedListings.map((l) => {
       const distributor = getDistributorById(l.distributorId);
       const filtered = filterByRange(l.priceHistory!, timeRange);
-      const colorIdx = Array.from(selected).indexOf(l.distributorId);
+      const colorIdx = stableIds.indexOf(l.distributorId);
       return {
         label: distributor?.name ?? l.distributorId,
         color: CHART_COLORS[colorIdx % CHART_COLORS.length],

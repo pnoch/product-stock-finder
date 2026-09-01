@@ -341,13 +341,30 @@ export function ProductDetail() {
             </div>
           </div>
           <a
-            href={bestListing.url}
+            href={bestListing.stockStatus === "in_stock" ? bestListing.url : undefined}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
-            aria-label={`Buy ${product.name} at ${bestDistributor.name}`}
+            aria-disabled={bestListing.stockStatus !== "in_stock"}
+            onClick={(e) => {
+              if (bestListing.stockStatus !== "in_stock") e.preventDefault();
+            }}
+            className={`mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              bestListing.stockStatus === "in_stock"
+                ? "bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer"
+                : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+            }`}
+            aria-label={
+              bestListing.stockStatus === "in_stock"
+                ? `Buy ${product.name} at ${bestDistributor.name}`
+                : `${product.name} is not in stock at ${bestDistributor.name}`
+            }
           >
-            Buy Now <ExternalLink className="w-3.5 h-3.5" />
+            {bestListing.stockStatus === "in_stock"
+              ? "Buy Now"
+              : bestListing.stockStatus === "back_order"
+                ? "Back Order"
+                : "Out of Stock"}{" "}
+            <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
       )}

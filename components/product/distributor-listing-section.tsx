@@ -41,12 +41,14 @@ function InsightSkeleton() {
   const colors = useColors();
   const shimmer = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.loop(
+    const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(shimmer, { toValue: 1, duration: 800, useNativeDriver: true }),
         Animated.timing(shimmer, { toValue: 0, duration: 800, useNativeDriver: true }),
       ]),
-    ).start();
+    );
+    anim.start();
+    return () => anim.stop();
   }, [shimmer]);
   const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
   return (
@@ -193,7 +195,7 @@ export function DistributorListingSection({
               </Text>
             </View>
           ) : null}
-          {bestInStockListing && (
+          {visibleListings.length > 0 && (
             <Text
               style={{
                 color: colors.muted,

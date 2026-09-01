@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import {
   Bell,
   Clock,
@@ -30,6 +30,9 @@ export function Alerts() {
   const [reminders, setReminders] = useState<BackOrderReminder[]>([]);
   const [watches, setWatches] = useState<BackOrderReminder[]>([]);
   const [remindersLoading, setRemindersLoading] = useState(true);
+  const [productNames, setProductNames] = useState<Map<string, string>>(
+    () => new Map(),
+  );
   const [toast, setToast] = useState<string | null>(null);
   const showToast = (msg: string) => {
     setToast(msg);
@@ -46,6 +49,12 @@ export function Alerts() {
       setWatches(w);
       setRemindersLoading(false);
     })();
+  }, []);
+
+  useEffect(() => {
+    storage.getWatchlist().then((w) => {
+      setProductNames(new Map(w.map((p) => [p.id, p.name])));
+    });
   }, []);
 
   const loading = alertsLoading || remindersLoading;
@@ -137,6 +146,7 @@ export function Alerts() {
       {tab === "alerts" ? (
         <AlertsTab
           alerts={alerts}
+          productNames={productNames}
           onToggle={handleToggle}
           onDelete={handleDeleteAlert}
           onRearm={handleRearm}
@@ -156,12 +166,14 @@ export function Alerts() {
 
 function AlertsTab({
   alerts,
+  productNames,
   onToggle,
   onDelete,
   onRearm,
   onSnooze,
 }: {
   alerts: ReturnType<typeof useAlerts>["alerts"];
+  productNames: Map<string, string>;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onRearm: (id: string) => void;
@@ -210,6 +222,7 @@ function AlertsTab({
         >
           <AlertRow
             alert={alert}
+            productName={productNames.get(alert.productId)}
             onToggle={onToggle}
             onDelete={onDelete}
             onRearm={onRearm}
@@ -246,6 +259,7 @@ function AlertsTab({
             >
               <AlertRow
                 alert={alert}
+                productName={productNames.get(alert.productId)}
                 onToggle={onToggle}
                 onDelete={onDelete}
                 onRearm={onRearm}
@@ -261,12 +275,14 @@ function AlertsTab({
 
 function AlertRow({
   alert,
+  productName,
   onToggle,
   onDelete,
   onRearm,
   onSnooze,
 }: {
   alert: ReturnType<typeof useAlerts>["alerts"][number];
+  productName?: string;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onRearm: (id: string) => void;
@@ -290,9 +306,22 @@ function AlertRow({
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-medium truncate">
-          {alert.distributorId
-            ? `Alert for ${alert.distributorId}`
-            : `Alert — target ${formatPrice(alert.targetPrice, alert.currency)}`}
+          {productName ? (
+            <Link
+              to={`/product/${alert.productId}`}
+              className="hover:underline"
+              aria-label={`View ${productName} details`}
+            >
+              {productName}
+            </Link>
+          ) : (
+            `Alert — target ${formatPrice(alert.targetPrice, alert.currency)}`
+          )}
+          {alert.distributorId ? (
+            <span className="ml-1.5 text-xs text-gray-400 font-normal">
+              at {alert.distributorId}
+            </span>
+          ) : null}
           {isSnoozed && <span className="ml-2 text-xs font-semibold text-amber-600 dark:text-amber-400">Snoozed until {new Date(alert.snoozedUntil!).toLocaleDateString()}</span>}
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-400">

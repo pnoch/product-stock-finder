@@ -13,9 +13,10 @@ interface Props {
   data: Record<string, string | number>[];
   distributors: string[];
   colors: string[];
+  currencySymbol?: string;
 }
 
-export function MultiLineChart({ data, distributors, colors }: Props) {
+export function MultiLineChart({ data, distributors, colors, currencySymbol = "$" }: Props) {
   return (
     <ResponsiveContainer width="100%" height={400}>
       <LineChart data={data} margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
@@ -47,7 +48,7 @@ export function MultiLineChart({ data, distributors, colors }: Props) {
             position: "insideLeft",
             style: { fontSize: 12, fill: "#6b7280", fontWeight: 500 },
           }}
-          tickFormatter={(v: number) => `$${v}`}
+          tickFormatter={(v: number) => `${currencySymbol}${v}`}
         />
         <Tooltip
           contentStyle={{

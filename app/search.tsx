@@ -18,7 +18,7 @@ import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { BulkImportModal } from "@/components/search/bulk-import-modal";
 import { ManualAddSheet } from "@/components/search/manual-add-sheet";
 import { useColors } from "@/hooks/use-colors";
-import { searchCatalog, PRODUCT_CATALOG } from "@/lib/catalog";
+import { searchCatalog, getAllCatalog, PRODUCT_CATALOG } from "@/lib/catalog";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
 import { RecentSearches } from "@/components/search/recent-searches";
 import {
@@ -102,8 +102,37 @@ export default function SearchScreen() {
   }, [query, discovering, loadData, router, showToast]);
 
   const deferredQuery = useDeferredValue(query);
-  const results =
-    deferredQuery.trim().length > 0 ? searchCatalog(deferredQuery) : PRODUCT_CATALOG;
+  const [discoveredProducts, setDiscoveredProducts] = useState<
+    (typeof PRODUCT_CATALOG)[0][]
+  >([]);
+
+  useEffect(() => {
+    let active = true;
+    void getAllCatalog().then((all) => {
+      if (!active) return;
+      const staticIds = new Set(PRODUCT_CATALOG.map((p) => p.id));
+      setDiscoveredProducts(all.filter((p) => !staticIds.has(p.id)));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const results = useMemo(() => {
+    const staticResults =
+      deferredQuery.trim().length > 0
+        ? searchCatalog(deferredQuery)
+        : PRODUCT_CATALOG;
+    const q = deferredQuery.trim().toLowerCase();
+    const matchingDiscovered = q
+      ? discoveredProducts.filter(
+          (p) =>
+            p.name.toLowerCase().includes(q) ||
+            p.modelNumber.toLowerCase().includes(q),
+        )
+      : discoveredProducts;
+    return [...staticResults, ...matchingDiscovered];
+  }, [deferredQuery, discoveredProducts]);
 
   const tagFilteredIds = useMemo(() => {
     const matching = filterWatchlist(watchlist, {
@@ -195,7 +224,7 @@ export default function SearchScreen() {
           gap: 12,
         }}
       >
-        <TouchableOpacity activeOpacity={0.7} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button" style={{ padding: 4 }}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button" style={{ padding: 4 }} hitSlop={12}>
           <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
         </TouchableOpacity>
         <Text
@@ -217,6 +246,7 @@ export default function SearchScreen() {
             setManualVisible(true);
           }}
           style={{ padding: 4 }}
+          hitSlop={12}
         >
           <IconSymbol name="wand.and.stars" size={22} color={colors.primary} />
         </TouchableOpacity>
@@ -229,6 +259,7 @@ export default function SearchScreen() {
             setBulkVisible(true);
           }}
           style={{ padding: 4 }}
+          hitSlop={12}
         >
           <IconSymbol
             name="square.and.arrow.down"
@@ -271,6 +302,24 @@ export default function SearchScreen() {
       )}
 
       {/* Results */}
+      {selectedTagIds.length > 0 && (
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 12,
+            padding: 10,
+            borderRadius: 10,
+            backgroundColor: colors.primary + "14",
+            borderWidth: 1,
+            borderColor: colors.primary + "33",
+          }}
+        >
+          <Text style={{ color: colors.muted, fontSize: 12 }}>
+            Showing watchlist matches for selected tags — clear tag filter to
+            see full catalog
+          </Text>
+        </View>
+      )}
       <FlatList showsVerticalScrollIndicator={true}
         data={tagFilteredResults}
         keyExtractor={(item) => item.id}
@@ -279,7 +328,6 @@ export default function SearchScreen() {
         maxToRenderPerBatch={8}
         updateCellsBatchingPeriod={50}
         removeClippedSubviews
-        getItemLayout={(_data, index) => ({ length: 90, offset: 90 * index, index })}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         ListHeaderComponent={
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>

@@ -1,4 +1,12 @@
-import { Platform, Modal, ScrollView, Text, View, TouchableOpacity } from "react-native";
+import {
+  Platform,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  TouchableOpacity,
+} from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -13,6 +21,12 @@ interface RescheduleModalProps {
   onShowPicker: (show: boolean) => void;
   onConfirm: () => void;
   onCancel: () => void;
+}
+
+function startOfToday(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
 export function RescheduleModal({
@@ -34,15 +48,17 @@ export function RescheduleModal({
       animationType="slide"
       onRequestClose={onCancel}
     >
-      <View
+      <Pressable
         style={{
           flex: 1,
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
         }}
+        onPress={onCancel}
         accessibilityViewIsModal
       >
-        <View
+        <Pressable
+          onPress={(e) => e.stopPropagation()}
           style={{
             backgroundColor: colors.background,
             borderTopLeftRadius: 24,
@@ -69,6 +85,8 @@ export function RescheduleModal({
             </Text>
             <Text
               style={{ color: colors.muted, fontSize: 14, marginBottom: 20 }}
+              numberOfLines={1}
+              ellipsizeMode="tail"
             >
               Choose a new date for{" "}
               <Text style={{ fontWeight: "600", color: colors.foreground }}>
@@ -118,7 +136,7 @@ export function RescheduleModal({
                 value={date}
                 mode="date"
                 display={Platform.OS === "ios" ? "inline" : "default"}
-                minimumDate={new Date()}
+                minimumDate={startOfToday()}
                 onChange={(_, selected) => {
                   onShowPicker(Platform.OS === "ios");
                   if (selected) onDateChange(selected);
@@ -163,8 +181,8 @@ export function RescheduleModal({
               </TouchableOpacity>
             </View>
           </ScrollView>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }

@@ -24,6 +24,14 @@ export function Modal({
 
   useEffect(() => {
     if (!open) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
     const id = modalIdRef.current as number;
     modalStack.push(id);
     const handler = (e: KeyboardEvent) => {

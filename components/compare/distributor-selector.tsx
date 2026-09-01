@@ -1,4 +1,4 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
@@ -27,6 +27,15 @@ export const DistributorSelector = memo(function DistributorSelector({
   priceTrends,
 }: DistributorSelectorProps) {
   const colors = useColors();
+
+  const allDistributorIds = useMemo(
+    () =>
+      sortedListings
+        .filter((l) => l.priceHistory && l.priceHistory.length >= 2)
+        .map((l) => l.distributorId)
+        .sort(),
+    [sortedListings],
+  );
 
   const handleSort = useCallback(
     (s: SortBy) => {
@@ -102,7 +111,7 @@ export const DistributorSelector = memo(function DistributorSelector({
         const distributor = getDistributorById(l.distributorId);
         const isSelected = selected.has(l.distributorId);
         const hasHistory = l.priceHistory && l.priceHistory.length >= 2;
-        const colorIdx = Array.from(selected).indexOf(l.distributorId);
+        const colorIdx = allDistributorIds.indexOf(l.distributorId);
         const chipColor = isSelected
           ? CHART_COLORS[colorIdx % CHART_COLORS.length]
           : colors.border;

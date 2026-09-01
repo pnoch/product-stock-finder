@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -51,6 +52,17 @@ function fieldStyle(colors: ReturnType<typeof useColors>) {
   };
 }
 
+const DISCOVER_TIMEOUT_MS = 15_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), ms),
+    ),
+  ]);
+}
+
 export function ManualAddSheet({
   visible,
   onClose,
@@ -90,6 +102,11 @@ export function ManualAddSheet({
 
   const handleClose = () => {
     if (parsing || adding) return;
+    reset();
+    onClose();
+  };
+
+  const handleForceClose = () => {
     reset();
     onClose();
   };
@@ -146,11 +163,14 @@ export function ManualAddSheet({
         listings: [],
       });
       setProgress("Searching distributors 0/…");
-      const listings = await discoverListings(modelNumber, {
-        productId: id,
-        onProgress: (done, total) =>
-          setProgress(`Searching distributors ${done}/${total}…`),
-      });
+      const listings = await withTimeout(
+        discoverListings(modelNumber, {
+          productId: id,
+          onProgress: (done, total) =>
+            setProgress(`Searching distributors ${done}/${total}…`),
+        }),
+        DISCOVER_TIMEOUT_MS,
+      );
       await updateProductListings(id, listings);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showAlert(
@@ -183,6 +203,10 @@ export function ManualAddSheet({
       animationType="slide"
       onRequestClose={handleClose}
     >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
       <View
         style={{
           flex: 1,
@@ -401,10 +425,23 @@ export function ManualAddSheet({
                   Back to paste
                 </Text>
               </TouchableOpacity>
+              {adding ? (
+                <TouchableOpacity activeOpacity={0.7}
+                  onPress={handleForceClose}
+                  style={{ alignItems: "center", paddingVertical: 10 }}
+                  accessibilityLabel="Cancel"
+                  accessibilityRole="button"
+                >
+                  <Text style={{ color: colors.muted, fontSize: 13 }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
             </ScrollView>
           )}
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

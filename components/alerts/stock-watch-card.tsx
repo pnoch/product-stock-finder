@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Text, View, TouchableOpacity } from "react-native";
 import { BackOrderReminder } from "@/lib/types";
 import { useColors } from "@/hooks/use-colors";
@@ -8,7 +9,10 @@ type StockWatchCardProps = {
   onDelete: (watch: BackOrderReminder) => void;
 };
 
-export function StockWatchCard({ watch, onDelete }: StockWatchCardProps) {
+export const StockWatchCard = memo(function StockWatchCard({
+  watch,
+  onDelete,
+}: StockWatchCardProps) {
   const colors = useColors();
 
   return (
@@ -70,7 +74,9 @@ export function StockWatchCard({ watch, onDelete }: StockWatchCardProps) {
                 backgroundColor:
                   watch.lastKnownStatus === "in_stock"
                     ? colors.success
-                    : colors.warning,
+                    : watch.lastKnownStatus === "unknown"
+                      ? colors.muted
+                      : colors.warning,
               }}
             />
             <Text style={{ color: colors.muted, fontSize: 12 }}>
@@ -129,4 +135,5 @@ export function StockWatchCard({ watch, onDelete }: StockWatchCardProps) {
       </View>
     </View>
   );
-}
+});
+StockWatchCard.displayName = "StockWatchCard";

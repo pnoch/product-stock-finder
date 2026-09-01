@@ -49,7 +49,7 @@ export function classifyProbeOutcome(
   parser: DistributorParser,
 ): { status: HealthStatus; reason?: string } {
   if (outcome.status === "ok" && outcome.html) {
-    const result = parser.parsePrice(outcome.html);
+    const result = parser.parsePrice(outcome.html, PROBE_MODEL);
     const status = classifyResult(outcome.html, result);
     return { status, reason: status === "error" ? "no price found" : undefined };
   }
@@ -276,11 +276,17 @@ export function createHealthService(adapter: StorageAdapter) {
     distributorId: string,
     status: HealthStatus,
     reason?: string,
+    responseTimeMs?: number,
   ): Promise<void> {
     try {
       const history = await getHealthHistory();
       const samples = history[distributorId] ?? [];
-      samples.push({ status, reason, at: new Date().toISOString() });
+      samples.push({
+        status,
+        reason,
+        responseTimeMs,
+        at: new Date().toISOString(),
+      });
       history[distributorId] = pruneHealthHistory(samples);
       await adapter.setItem(HEALTH_HISTORY_KEY, JSON.stringify(history));
     } catch {
@@ -333,7 +339,7 @@ export function createHealthService(adapter: StorageAdapter) {
 
     await saveDistributorHealth(results);
     for (const r of results) {
-      await recordSample(r.distributorId, r.status, r.reason);
+      await recordSample(r.distributorId, r.status, r.reason, r.responseTimeMs);
     }
     return results;
   }

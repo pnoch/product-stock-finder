@@ -66,8 +66,6 @@ function getDominantStatus(product: Product): StockStatus {
 
 
 
-const VIEWPORT_HEIGHT = 520;
-
 export function Watchlist() {
   const { products, loading, refresh } = useWatchlist();
   const { settings } = useSettings();
@@ -363,7 +361,7 @@ export function Watchlist() {
 
       <div
         ref={scrollRef}
-        style={{ maxHeight: VIEWPORT_HEIGHT, overflow: "auto" }}
+        style={{ maxHeight: "60vh", overflow: "auto" }}
         className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700"
       >
         <table className="w-full">

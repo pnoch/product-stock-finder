@@ -292,26 +292,28 @@ export function Settings() {
               <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
             </span>
           </label>
-          <label className="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer">
+          <label className={`flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors ${settings.notificationsEnabled ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
             <span className="text-sm font-medium">Stock Alerts</span>
             <span className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
                 checked={settings.stockAlerts}
                 onChange={(e) => update({ stockAlerts: e.target.checked })}
+                disabled={!settings.notificationsEnabled}
                 className="sr-only peer"
                 aria-label="Enable stock alerts"
               />
               <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
             </span>
           </label>
-          <label className="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer">
+          <label className={`flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors ${settings.notificationsEnabled ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
             <span className="text-sm font-medium">Price Alerts</span>
             <span className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
                 checked={settings.priceAlerts}
                 onChange={(e) => update({ priceAlerts: e.target.checked })}
+                disabled={!settings.notificationsEnabled}
                 className="sr-only peer"
                 aria-label="Enable price alerts"
               />
