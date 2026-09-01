@@ -1,4 +1,4 @@
-import { and, eq, gt, lt, or, type SQLWrapper } from "drizzle-orm";
+import { and, eq, gt, lt, or, sql, type SQLWrapper } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import {
   appSettings,
@@ -124,18 +124,13 @@ export async function listChangedItems(
 }
 
 /**
- * Last-write-wins upsert. Each row keeps two clocks: `clientUpdatedAtMs` (the
- * incoming item's own timestamp, used for LWW ordering via
- * shouldAcceptSyncWrite) and `updatedAtMs` (server-stamped, used for pull
- * cursors so server time stays monotonic across devices).
+ * Last-write-wins upsert. Atomic via INSERT ... ON DUPLICATE KEY UPDATE with
+ * conditional IF so concurrent pushes cannot interleave between SELECT and
+ * INSERT (TOCTOU). Ordering compares the incoming clientUpdatedAtMs against
+ * COALESCE(clientUpdatedAtMs, updatedAtMs) so client clock is authoritative.
  * Returns { accepted, updatedAt }: accepted is false when the incoming item
  * is not newer than the existing row; updatedAt is the server-stamped value
  * on acceptance (or the existing row's timestamp on rejection).
- *
- * Note: concurrent pushes for same item may race between the SELECT check and
- * the INSERT … ON DUPLICATE KEY UPDATE — acceptable per last-write-wins
- * semantics with millisecond granularity. Server timestamp from ON DUPLICATE
- * KEY (stampedAt) ensures monotonic ordering for pull cursors.
  */
 export async function upsertSyncItem(
   userId: number,
@@ -151,9 +146,29 @@ export async function upsertSyncItem(
   if (!db) return { accepted: false, updatedAt: item.updatedAt };
   const stampedAt = Date.now();
 
+  const conditionalSet = {
+    data: sql`IF(VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs), VALUES(data), data)`,
+    updatedAtMs: sql`IF(VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs), VALUES(updatedAtMs), updatedAtMs)`,
+    clientUpdatedAtMs: sql`IF(VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs), VALUES(clientUpdatedAtMs), clientUpdatedAtMs)`,
+    deletedAtMs: sql`IF(VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs), VALUES(deletedAtMs), deletedAtMs)`,
+  };
+
   switch (item.collection) {
     case "watchlist": {
-      const existing = await db
+      await db
+        .insert(watchlistItems)
+        .values({
+          userId,
+          productId: item.id,
+          data: item.data,
+          updatedAtMs: stampedAt,
+          clientUpdatedAtMs: item.updatedAt,
+          deletedAtMs: item.deletedAt,
+        })
+        .onDuplicateKeyUpdate({
+          set: conditionalSet as never,
+        });
+      const row = await db
         .select({
           updatedAtMs: watchlistItems.updatedAtMs,
           clientUpdatedAtMs: watchlistItems.clientUpdatedAtMs,
@@ -166,57 +181,10 @@ export async function upsertSyncItem(
           ),
         )
         .limit(1);
-      if (
-        existing.length > 0 &&
-        !shouldAcceptSyncWrite(
-          existing[0]!.clientUpdatedAtMs,
-          existing[0]!.updatedAtMs,
-          item.updatedAt,
-        )
-      ) {
-        return { accepted: false, updatedAt: existing[0]!.updatedAtMs };
-      }
-      await db
-        .insert(watchlistItems)
-        .values({
-          userId,
-          productId: item.id,
-          data: item.data,
-          updatedAtMs: stampedAt,
-          clientUpdatedAtMs: item.updatedAt,
-          deletedAtMs: item.deletedAt,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            data: item.data,
-            updatedAtMs: stampedAt,
-            clientUpdatedAtMs: item.updatedAt,
-            deletedAtMs: item.deletedAt,
-          },
-        });
-      return { accepted: true, updatedAt: stampedAt };
+      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt && row[0]?.updatedAtMs === stampedAt;
+      return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
     }
     case "alerts": {
-      const existing = await db
-        .select({
-          updatedAtMs: priceAlerts.updatedAtMs,
-          clientUpdatedAtMs: priceAlerts.clientUpdatedAtMs,
-        })
-        .from(priceAlerts)
-        .where(
-          and(eq(priceAlerts.userId, userId), eq(priceAlerts.alertId, item.id)),
-        )
-        .limit(1);
-      if (
-        existing.length > 0 &&
-        !shouldAcceptSyncWrite(
-          existing[0]!.clientUpdatedAtMs,
-          existing[0]!.updatedAtMs,
-          item.updatedAt,
-        )
-      ) {
-        return { accepted: false, updatedAt: existing[0]!.updatedAtMs };
-      }
       await db
         .insert(priceAlerts)
         .values({
@@ -228,17 +196,36 @@ export async function upsertSyncItem(
           deletedAtMs: item.deletedAt,
         })
         .onDuplicateKeyUpdate({
-          set: {
-            data: item.data,
-            updatedAtMs: stampedAt,
-            clientUpdatedAtMs: item.updatedAt,
-            deletedAtMs: item.deletedAt,
-          },
+          set: conditionalSet as never,
         });
-      return { accepted: true, updatedAt: stampedAt };
+      const row = await db
+        .select({
+          updatedAtMs: priceAlerts.updatedAtMs,
+          clientUpdatedAtMs: priceAlerts.clientUpdatedAtMs,
+        })
+        .from(priceAlerts)
+        .where(
+          and(eq(priceAlerts.userId, userId), eq(priceAlerts.alertId, item.id)),
+        )
+        .limit(1);
+      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt && row[0]?.updatedAtMs === stampedAt;
+      return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
     }
     case "reminders": {
-      const existing = await db
+      await db
+        .insert(backOrderReminders)
+        .values({
+          userId,
+          reminderId: item.id,
+          data: item.data,
+          updatedAtMs: stampedAt,
+          clientUpdatedAtMs: item.updatedAt,
+          deletedAtMs: item.deletedAt,
+        })
+        .onDuplicateKeyUpdate({
+          set: conditionalSet as never,
+        });
+      const row = await db
         .select({
           updatedAtMs: backOrderReminders.updatedAtMs,
           clientUpdatedAtMs: backOrderReminders.clientUpdatedAtMs,
@@ -251,55 +238,10 @@ export async function upsertSyncItem(
           ),
         )
         .limit(1);
-      if (
-        existing.length > 0 &&
-        !shouldAcceptSyncWrite(
-          existing[0]!.clientUpdatedAtMs,
-          existing[0]!.updatedAtMs,
-          item.updatedAt,
-        )
-      ) {
-        return { accepted: false, updatedAt: existing[0]!.updatedAtMs };
-      }
-      await db
-        .insert(backOrderReminders)
-        .values({
-          userId,
-          reminderId: item.id,
-          data: item.data,
-          updatedAtMs: stampedAt,
-          clientUpdatedAtMs: item.updatedAt,
-          deletedAtMs: item.deletedAt,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            data: item.data,
-            updatedAtMs: stampedAt,
-            clientUpdatedAtMs: item.updatedAt,
-            deletedAtMs: item.deletedAt,
-          },
-        });
-      return { accepted: true, updatedAt: stampedAt };
+      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt && row[0]?.updatedAtMs === stampedAt;
+      return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
     }
     case "settings": {
-      const existing = await db
-        .select({
-          updatedAtMs: appSettings.updatedAtMs,
-          clientUpdatedAtMs: appSettings.clientUpdatedAtMs,
-        })
-        .from(appSettings)
-        .where(eq(appSettings.userId, userId))
-        .limit(1);
-      if (
-        existing.length > 0 &&
-        !shouldAcceptSyncWrite(
-          existing[0]!.clientUpdatedAtMs,
-          existing[0]!.updatedAtMs,
-          item.updatedAt,
-        )
-      ) {
-        return { accepted: false, updatedAt: existing[0]!.updatedAtMs };
-      }
       await db
         .insert(appSettings)
         .values({
@@ -310,21 +252,25 @@ export async function upsertSyncItem(
           deletedAtMs: item.deletedAt,
         })
         .onDuplicateKeyUpdate({
-          set: {
-            data: item.data,
-            updatedAtMs: stampedAt,
-            clientUpdatedAtMs: item.updatedAt,
-            deletedAtMs: item.deletedAt,
-          },
+          set: conditionalSet as never,
         });
-      return { accepted: true, updatedAt: stampedAt };
+      const row = await db
+        .select({
+          updatedAtMs: appSettings.updatedAtMs,
+          clientUpdatedAtMs: appSettings.clientUpdatedAtMs,
+        })
+        .from(appSettings)
+        .where(eq(appSettings.userId, userId))
+        .limit(1);
+      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt && row[0]?.updatedAtMs === stampedAt;
+      return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
     }
     default:
       return { accepted: false, updatedAt: stampedAt };
   }
 }
 
-/** Hard-deletes tombstoned rows older than the cutoff (epoch ms). */
+/** Hard-deletes tombstoned rows older than the cutoff (epoch ms). Batch-limited to avoid long locks; schedule via cron for full purge. */
 export async function purgeOldTombstones(
   userId: number,
   cutoff: number,
@@ -339,7 +285,8 @@ export async function purgeOldTombstones(
           eq(watchlistItems.userId, userId),
           lt(watchlistItems.deletedAtMs, cutoff),
         ),
-      ),
+      )
+      .limit(1000),
     db
       .delete(priceAlerts)
       .where(
@@ -347,7 +294,8 @@ export async function purgeOldTombstones(
           eq(priceAlerts.userId, userId),
           lt(priceAlerts.deletedAtMs, cutoff),
         ),
-      ),
+      )
+      .limit(1000),
     db
       .delete(backOrderReminders)
       .where(
@@ -355,7 +303,8 @@ export async function purgeOldTombstones(
           eq(backOrderReminders.userId, userId),
           lt(backOrderReminders.deletedAtMs, cutoff),
         ),
-      ),
+      )
+      .limit(1000),
     db
       .delete(appSettings)
       .where(
@@ -363,7 +312,8 @@ export async function purgeOldTombstones(
           eq(appSettings.userId, userId),
           lt(appSettings.deletedAtMs, cutoff),
         ),
-      ),
+      )
+      .limit(1000),
   ]);
 }
 

@@ -107,6 +107,7 @@ export function ManualAddSheet({
   };
 
   const handleForceClose = () => {
+    if (adding) return;
     reset();
     onClose();
   };
@@ -428,9 +429,11 @@ export function ManualAddSheet({
               {adding ? (
                 <TouchableOpacity activeOpacity={0.7}
                   onPress={handleForceClose}
-                  style={{ alignItems: "center", paddingVertical: 10 }}
+                  disabled={adding}
+                  style={{ alignItems: "center", paddingVertical: 10, opacity: 0.5 }}
                   accessibilityLabel="Cancel"
                   accessibilityRole="button"
+                  accessibilityState={{ disabled: true }}
                 >
                   <Text style={{ color: colors.muted, fontSize: 13 }}>
                     Cancel

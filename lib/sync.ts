@@ -37,19 +37,20 @@ const COLLECTIONS: Collection[] = [
 ];
 const SETTINGS_ID = "settings";
 
-let inFlight: Promise<void> | null = null;
+const inFlight = new WeakMap<Storage, Promise<void>>();
 
 export async function syncNow(opts: SyncNowOptions): Promise<void> {
   if (!opts.isSignedIn()) return;
-  if (inFlight) return inFlight;
-  inFlight = doSync(opts).finally(() => {
-    inFlight = null;
+  const existing = inFlight.get(opts.storage);
+  if (existing) return existing;
+  const promise = doSync(opts).finally(() => {
+    inFlight.delete(opts.storage);
   });
-  return inFlight;
+  inFlight.set(opts.storage, promise);
+  return promise;
 }
 
 async function doSync(opts: SyncNowOptions): Promise<void> {
-  const nowValue = (opts.now ?? Date.now)();
   const storage = opts.storage;
   const meta = await storage.getSyncMeta();
   const oldCursor = meta.lastSyncedAt || 0;
@@ -130,7 +131,7 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     ...(await storage.getSyncMeta()),
     lastSyncedAt: nextCursor,
     lastSyncError: null,
-    lastSyncOkAt: nowValue,
+    lastSyncOkAt: nextCursor,
   });
 }
 
@@ -205,8 +206,9 @@ async function collectDirty(
     }
   }
 
+  const freshServerNow = await serverNow(storage);
   for (const { collection, id } of pendingSetMeta) {
-    await storage.setItemSyncMeta(collection, id, now);
+    await storage.setItemSyncMeta(collection, id, freshServerNow);
   }
   for (const { collection, id } of pendingClearMeta) {
     await storage.clearItemSyncMeta(collection, id);
@@ -395,8 +397,10 @@ async function itemExists(
 // so device clock skew cannot lose or wrongly win edits.
 async function serverNow(storage: Storage): Promise<number> {
   const meta = await storage.getSyncMeta();
-  const okAt = meta.lastSyncOkAt ?? meta.lastSyncedAt;
-  return Date.now() + (meta.lastSyncedAt - okAt);
+  const lastSyncedAt = meta.lastSyncedAt ?? Date.now();
+  const okAt = meta.lastSyncOkAt ?? lastSyncedAt ?? Date.now();
+  if (!Number.isFinite(lastSyncedAt) || !Number.isFinite(okAt)) return Date.now();
+  return Date.now() + (lastSyncedAt - okAt);
 }
 
 async function markDirty(

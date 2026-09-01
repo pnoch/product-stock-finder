@@ -42,6 +42,10 @@ export function CurrentPricesTable({ listings, selected }: Props) {
   const selectedListings = listings.filter((l) =>
     selected.has(l.distributorId),
   );
+  const stableIds = listings
+    .filter((l) => l.priceHistory && l.priceHistory.length >= 2)
+    .map((l) => l.distributorId)
+    .sort();
 
   return (
     <View
@@ -68,8 +72,8 @@ export function CurrentPricesTable({ listings, selected }: Props) {
       {selectedListings.map((l, i) => {
         const distributor = getDistributorById(l.distributorId);
         const usd = convertPrice(l.price, l.currency, "USD");
-        const colorIdx = Array.from(selected).indexOf(l.distributorId);
-        const color = CHART_COLORS[colorIdx % CHART_COLORS.length];
+        const colorIdx = stableIds.indexOf(l.distributorId);
+        const color = CHART_COLORS[(colorIdx >= 0 ? colorIdx : 0) % CHART_COLORS.length];
         const label = stockLabel[l.stockStatus] ?? l.stockStatus;
         const isUnknown = l.stockStatus === "unknown";
         const isPositive = l.stockStatus === "in_stock";

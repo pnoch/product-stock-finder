@@ -65,6 +65,8 @@ export default function AlertsScreen() {
     null,
   );
 
+  const activeAlerts = useMemo(() => alerts.filter((a) => !a.triggeredAt), [alerts]);
+
   const handleEditAlert = useCallback(
     (alertId: string) => {
       const alert = alerts.find((a) => a.id === alertId);
@@ -160,7 +162,7 @@ export default function AlertsScreen() {
       {/* Alerts Tab */}
       {activeTab === "alerts" && (
         <FlatList showsVerticalScrollIndicator={true}
-          data={alerts}
+          data={activeAlerts}
           keyExtractor={(item) => item.id}
           initialNumToRender={8}
           windowSize={5}
@@ -182,7 +184,7 @@ export default function AlertsScreen() {
             />
           }
           ListHeaderComponent={
-            alerts.length > 0 ? (
+            activeAlerts.length > 0 ? (
               <View
                 style={{
                   backgroundColor: colors.primary + "15",
@@ -207,7 +209,7 @@ export default function AlertsScreen() {
             ) : null
           }
           ListFooterComponent={
-            alerts.length === 0 && triggeredAlerts.length === 0
+            activeAlerts.length === 0 && triggeredAlerts.length === 0
               ? null
               : triggeredAlerts.length > 0 ? (
               <View style={{ marginTop: 20 }}>
@@ -296,37 +298,39 @@ export default function AlertsScreen() {
             ) : null
           }
           ListEmptyComponent={
-            <View
-              style={{
-                flex: 1,
-                alignItems: "center",
-                justifyContent: "center",
-                paddingTop: 60,
-              }}
-            >
-              <IconSymbol name="bell.fill" size={48} color={colors.muted} />
-              <Text
+            activeAlerts.length === 0 && triggeredAlerts.length === 0 ? (
+              <View
                 style={{
-                  color: colors.foreground,
-                  fontWeight: "600",
-                  fontSize: 18,
-                  marginTop: 16,
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingTop: 60,
                 }}
               >
-                No alerts set
-              </Text>
-              <Text
-                style={{
-                  color: colors.muted,
-                  fontSize: 14,
-                  textAlign: "center",
-                  marginTop: 8,
-                }}
-              >
-                Open a product and tap &quot;Set Alert&quot; to get notified
-                when the price drops.
-              </Text>
-            </View>
+                <IconSymbol name="bell.fill" size={48} color={colors.muted} />
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontWeight: "600",
+                    fontSize: 18,
+                    marginTop: 16,
+                  }}
+                >
+                  No alerts set
+                </Text>
+                <Text
+                  style={{
+                    color: colors.muted,
+                    fontSize: 14,
+                    textAlign: "center",
+                    marginTop: 8,
+                  }}
+                >
+                  Open a product and tap &quot;Set Alert&quot; to get notified
+                  when the price drops.
+                </Text>
+              </View>
+            ) : null
           }
           renderItem={({ item }) => (
             <AlertCard

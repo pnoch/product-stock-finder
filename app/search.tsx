@@ -34,7 +34,8 @@ import { discoverProduct } from "@/lib/llm-discovery";
 import { useSearchData } from "@/hooks/use-search-data";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TagFilterRow } from "@/components/tag-filter-row";
-import { countTagMatchesByIds, filterWatchlist } from "@/lib/watchlist-org";
+import { countTagMatches, filterWatchlist } from "@/lib/watchlist-org";
+import Fuse from "fuse.js";
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -111,27 +112,37 @@ export default function SearchScreen() {
     void getAllCatalog().then((all) => {
       if (!active) return;
       const staticIds = new Set(PRODUCT_CATALOG.map((p) => p.id));
-      setDiscoveredProducts(all.filter((p) => !staticIds.has(p.id)));
+      let discovered = all.filter((p) => !staticIds.has(p.id));
+      if (discovered.length > 50) discovered = discovered.slice(-50);
+      setDiscoveredProducts(discovered);
     });
     return () => {
       active = false;
     };
-  }, [watchlist]);
+  }, []);
 
   const results = useMemo(() => {
-    const staticResults =
-      deferredQuery.trim().length > 0
+    if (discoveredProducts.length === 0) {
+      return deferredQuery.trim().length > 0
         ? searchCatalog(deferredQuery)
         : PRODUCT_CATALOG;
-    const q = deferredQuery.trim().toLowerCase();
-    const matchingDiscovered = q
-      ? discoveredProducts.filter(
-          (p) =>
-            p.name.toLowerCase().includes(q) ||
-            p.modelNumber.toLowerCase().includes(q),
-        )
-      : discoveredProducts;
-    return [...staticResults, ...matchingDiscovered];
+    }
+    const combined = [...PRODUCT_CATALOG, ...discoveredProducts];
+    if (deferredQuery.trim().length === 0) return combined;
+    const fuse = new Fuse(combined, {
+      keys: [
+        { name: "modelNumber", weight: 0.4 },
+        { name: "name", weight: 0.3 },
+        { name: "brand", weight: 0.15 },
+        { name: "category", weight: 0.1 },
+        { name: "description", weight: 0.05 },
+      ],
+      threshold: 0.4,
+      includeScore: true,
+      minMatchCharLength: 2,
+      ignoreLocation: true,
+    });
+    return fuse.search(deferredQuery).map((r) => r.item);
   }, [deferredQuery, discoveredProducts]);
 
   const tagFilteredIds = useMemo(() => {
@@ -147,13 +158,18 @@ export default function SearchScreen() {
 
   const tagFilteredResults = useMemo(() => {
     if (selectedTagIds.length === 0) return results;
-    return results.filter((product) => tagFilteredIds.has(product.id));
-  }, [results, selectedTagIds, tagFilteredIds]);
+    return results.filter(
+      (product) => tagFilteredIds.has(product.id) || !trackedIds.has(product.id),
+    );
+  }, [results, selectedTagIds, tagFilteredIds, trackedIds]);
 
   const tagCounts = useMemo(() => {
-    const resultIds = new Set(results.map((p) => p.id));
-    return countTagMatchesByIds(watchlist, resultIds);
-  }, [watchlist, results]);
+    return countTagMatches(watchlist, {
+      region: "all",
+      status: "all",
+      query: deferredQuery,
+    });
+  }, [watchlist, deferredQuery]);
 
   const handleAdd = useCallback(
     async (item: (typeof PRODUCT_CATALOG)[0]) => {
@@ -315,8 +331,8 @@ export default function SearchScreen() {
           }}
         >
           <Text style={{ color: colors.muted, fontSize: 12 }}>
-            Showing watchlist matches for selected tags — clear tag filter to
-            see full catalog
+            Tag filter highlights watchlist matches — untracked products remain
+            visible
           </Text>
         </View>
       )}
@@ -328,6 +344,7 @@ export default function SearchScreen() {
         maxToRenderPerBatch={8}
         updateCellsBatchingPeriod={50}
         removeClippedSubviews
+        getItemLayout={(_, index) => ({ length: 88, offset: 88 * index, index })}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         ListHeaderComponent={
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>

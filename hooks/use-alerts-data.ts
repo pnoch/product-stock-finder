@@ -204,6 +204,12 @@ export function useAlertsData() {
 
   const handleReschedule = useCallback(async () => {
     if (!rescheduleTarget) return;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    if (rescheduleDate.getTime() < startOfToday.getTime()) {
+      showAlert("Invalid Date", "Please select today or a future date.");
+      return;
+    }
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (rescheduleTarget.notificationId) {
@@ -242,9 +248,9 @@ export function useAlertsData() {
         a.direction === "rise"
           ? a.triggeredPrice - a.targetPrice
           : a.targetPrice - a.triggeredPrice;
-      const savedUsd = convertPrice(Math.max(0, delta), a.currency, "USD");
-      if (savedUsd === null) return sum;
-      return sum + savedUsd;
+      const saved = convertPrice(Math.max(0, delta), a.currency, displayCurrency);
+      if (saved === null) return sum;
+      return sum + saved;
     }
     return sum;
   }, 0);

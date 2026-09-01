@@ -4,7 +4,8 @@ import mysql from "mysql2/promise";
 import { InsertUser, users } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
-let _pool: any = null;
+let _pool: ReturnType<typeof mysql.createPool> | null = null;
+let creatingPool: Promise<ReturnType<typeof mysql.createPool>> | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -12,22 +13,40 @@ export async function getDb() {
   const url = process.env.DATABASE_URL;
   if (!url) return null;
   if (!_pool) {
-    _pool = mysql.createPool({
-      uri: url,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-      enableKeepAlive: true,
-      keepAliveInitialDelay: 10000,
-    });
+    if (!creatingPool) {
+      creatingPool = (async () => {
+        const pool = mysql.createPool({
+          uri: url,
+          waitForConnections: true,
+          connectionLimit: 10,
+          queueLimit: 0,
+          enableKeepAlive: true,
+          keepAliveInitialDelay: 10000,
+        });
+        _pool = pool;
+        return pool;
+      })().finally(() => {
+        creatingPool = null;
+      });
+    }
+    await creatingPool;
   }
   try {
-    _db = drizzle(_pool as any);
+    _db = drizzle(_pool as never);
   } catch (error) {
     console.error("[Database] Failed to connect:", error);
     throw error;
   }
   return _db;
+}
+
+export async function closeDb(): Promise<void> {
+  if (_pool) {
+    const pool = _pool;
+    _pool = null;
+    _db = null;
+    await pool.end();
+  }
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {

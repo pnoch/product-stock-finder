@@ -7,6 +7,8 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { startWarmer } from "../prices";
+import { closeDb } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -89,6 +91,19 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`[api] server listening on port ${port}`);
   });
+
+  const stopWarmer = startWarmer();
+
+  const shutdown = async (signal: string) => {
+    console.log(`[api] ${signal} received, shutting down`);
+    if (stopWarmer) stopWarmer();
+    await closeDb().catch((e) => console.error("[Database] close failed", e));
+    server.close(() => process.exit(0));
+    const t = setTimeout(() => process.exit(1), 5000);
+    (t as unknown as NodeJS.Timeout).unref?.();
+  };
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+  process.on("SIGINT", () => void shutdown("SIGINT"));
 }
 
 startServer().catch(console.error);

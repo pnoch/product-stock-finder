@@ -11,6 +11,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BackOrderReminder } from "@/lib/types";
+import { showAlert } from "@/lib/alert";
 
 interface RescheduleModalProps {
   visible: boolean;
@@ -40,6 +41,14 @@ export function RescheduleModal({
   onCancel,
 }: RescheduleModalProps) {
   const colors = useColors();
+
+  const handleConfirm = () => {
+    if (date.getTime() < startOfToday().getTime()) {
+      showAlert("Invalid Date", "Please select today or a future date.");
+      return;
+    }
+    onConfirm();
+  };
 
   return (
     <Modal
@@ -164,7 +173,7 @@ export function RescheduleModal({
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity activeOpacity={0.85}
-                onPress={onConfirm}
+                onPress={handleConfirm}
                 style={{
                   flex: 1,
                   backgroundColor: colors.primary,

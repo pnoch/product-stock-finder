@@ -6,6 +6,7 @@ import { FxRateGrid } from "@/components/rates/fx-rate-grid";
 import { EXCHANGE_RATES } from "@/lib/currency";
 import { getFxHistory } from "@/lib/storage";
 import { getFxChange } from "@/lib/fx-history";
+import { refreshFxRates } from "@/lib/fx";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
 import type { FxHistory } from "@/lib/storage/fx-history";
 
@@ -26,6 +27,7 @@ export default function RatesScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
+      await refreshFxRates();
       await loadData();
     } finally {
       setRefreshing(false);

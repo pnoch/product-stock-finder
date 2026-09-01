@@ -1,3 +1,4 @@
+import { EXCHANGE_RATES } from "./currency";
 import type { FxHistory } from "./storage/fx-history";
 
 const MAX_POINTS = 90;

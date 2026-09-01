@@ -43,16 +43,19 @@ export function BulkImportModal({
     if (!canImport) return;
     setImporting(true);
     try {
-      for (const item of newProducts) {
-        try {
-          await addToWatchlist({
+      const results = await Promise.allSettled(
+        newProducts.map((item) =>
+          addToWatchlist({
             ...item,
             addedAt: new Date().toISOString(),
             isWatched: true,
             listings: [],
-          });
-        } catch (e) {
-          console.warn("[BulkImport] Skipping", item.modelNumber, e);
+          }),
+        ),
+      );
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].status === "rejected") {
+          console.warn("[BulkImport] Skipping", newProducts[i].modelNumber, (results[i] as PromiseRejectedResult).reason);
         }
       }
       if (Platform.OS !== "web")

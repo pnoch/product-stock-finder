@@ -54,7 +54,7 @@ export function FxSparklineCard({
         </Text>
       </View>
       <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "600", marginTop: 4 }}>
-        {rate.toFixed(4)}
+        {rate >= 10 ? rate.toFixed(2) : rate >= 1 ? rate.toFixed(3) : rate.toFixed(4)}
       </Text>
       <Text style={{ color: changeColor, fontSize: 12, fontWeight: "600", marginTop: 2 }}>
         {change > 0 ? "+" : ""}{change.toFixed(2)}%

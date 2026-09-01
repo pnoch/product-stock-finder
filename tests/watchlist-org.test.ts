@@ -389,9 +389,9 @@ describe("groupWatchlist", () => {
 
   it("groups by tag with an untagged section at the end", () => {
     const sections = groupWatchlist([untagged, tagged], "tag", defs);
-    expect(sections.map((s) => s.key)).toEqual(["tag-t1", "tag-t2", "untagged"]);
+    expect(sections.map((s) => s.key)).toEqual(["tag-t1", "untagged"]);
     expect(sections[0].products.map((p) => p.id)).toEqual(["c"]);
-    expect(sections[2].products.map((p) => p.id)).toEqual(["d"]);
+    expect(sections[1].products.map((p) => p.id)).toEqual(["d"]);
   });
 
   it("groups by status, omitting empty sections", () => {

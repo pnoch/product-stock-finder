@@ -71,20 +71,44 @@ export async function getPrice(
   distributorId: string,
   modelNumber: string,
 ): Promise<ServerPriceResult> {
-  const cached = await getCachedPrice(distributorId, modelNumber);
+  const [cached, history] = await Promise.all([
+    getCachedPrice(distributorId, modelNumber),
+    getHistory(distributorId, modelNumber),
+  ]);
   const fresh = cached !== null && Date.now() - cached.fetchedAt < PRICE_TTL_MS;
   if (!fresh) {
     void refreshSingleFlight(distributorId, modelNumber);
   }
-  const history = await getHistory(distributorId, modelNumber);
   return { snapshot: cached, history };
+}
+
+function pLimit(concurrency: number) {
+  let active = 0;
+  const queue: Array<() => void> = [];
+  const next = () => {
+    active--;
+    const fn = queue.shift();
+    if (fn) fn();
+  };
+  return <T>(fn: () => Promise<T>): Promise<T> =>
+    new Promise<T>((resolve, reject) => {
+      const run = () => {
+        active++;
+        fn().then(resolve, reject).finally(next);
+      };
+      if (active < concurrency) run();
+      else queue.push(run);
+    });
 }
 
 export async function refreshNearExpiry(now: number): Promise<void> {
   const entries = await listNearExpiry(now, PRICE_TTL_MS - WARMER_LEAD_MS);
-  for (const entry of entries) {
-    await refreshSingleFlight(entry.distributorId, entry.modelNumber);
-  }
+  const limit = pLimit(3);
+  await Promise.all(
+    entries.map((entry) =>
+      limit(() => refreshSingleFlight(entry.distributorId, entry.modelNumber)),
+    ),
+  );
 }
 
 export async function warmCatalogRotation(count: number): Promise<number> {
@@ -96,18 +120,20 @@ export async function warmCatalogRotation(count: number): Promise<number> {
     fetchedAtMap.set(`${row.distributorId}:${row.modelNumber}`, row.fetchedAt);
   }
   const toWarm = pickPairsToWarm(pairs, fetchedAtMap, count);
-  for (const pair of toWarm) {
-    await refreshSingleFlight(pair.distributorId, pair.modelNumber);
-  }
+  const limit = pLimit(3);
+  await Promise.all(
+    toWarm.map((pair) =>
+      limit(() => refreshSingleFlight(pair.distributorId, pair.modelNumber)),
+    ),
+  );
   return toWarm.length;
 }
 
 export async function warmProductImages(count: number): Promise<number> {
   const missing = await listProductsMissingImage();
   const toGenerate = missing.slice(0, count);
-  for (const productId of toGenerate) {
-    await getProductImage(productId);
-  }
+  const limit2 = pLimit(3);
+  await Promise.all(toGenerate.map((productId) => limit2(() => getProductImage(productId))));
   return toGenerate.length;
 }
 
@@ -143,5 +169,3 @@ export function startWarmer(opts?: { intervalMs?: number }): () => void {
     warmerTimer = null;
   };
 }
-
-startWarmer();

@@ -38,7 +38,7 @@ export function MultiLineChart({
   const clampScrub = (x: number) =>
     Math.max(padLConst, Math.min(x, width - padRConst));
 
-  const { allCoords, globalMin, globalMax } = useMemo(() => {
+  const { allCoords, globalMin, globalMax, globalMinDate, globalMaxDate } = useMemo(() => {
     const padL = 56,
       padR = 16,
       padT = 24,
@@ -54,11 +54,12 @@ export function MultiLineChart({
       }
     }
     if (allPrices.length === 0)
-      return { allCoords: [], globalMin: 0, globalMax: 0 };
+      return { allCoords: [], globalMin: 0, globalMax: 0, globalMinDate: 0, globalMaxDate: 0 };
 
     const globalMin = Math.min(...allPrices);
     const globalMax = Math.max(...allPrices);
-    const range = globalMax - globalMin || 1;
+    const range = globalMax - globalMin;
+    const isFlat = range === 0;
 
     const allDates: number[] = [];
     for (const s of series) {
@@ -78,7 +79,9 @@ export function MultiLineChart({
           if (converted === null || !Number.isFinite(converted)) return null;
           const x =
             padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
-          const y = padT + (1 - (converted - globalMin) / range) * usableH;
+          const y = isFlat
+            ? padT + usableH / 2
+            : padT + (1 - (converted - globalMin) / range) * usableH;
           return { x, y, price: p.price, converted, date: p.date };
         })
         .filter((c): c is NonNullable<typeof c> => c !== null);
@@ -89,7 +92,7 @@ export function MultiLineChart({
       };
     });
 
-    return { allCoords, globalMin, globalMax };
+    return { allCoords, globalMin, globalMax, globalMinDate: minDate, globalMaxDate: maxDate };
   }, [series, width, height, displayCurrency]);
 
   const padL = 56,
@@ -197,24 +200,28 @@ export function MultiLineChart({
           ))}
         </Fragment>
       ))}
-      {allCoords[0]?.coords &&
-        (() => {
-          const coords = allCoords[0].coords;
-          const indices = [
-            0,
-            Math.floor((coords.length - 1) / 2),
-            coords.length - 1,
+      {(() => {
+          if (!globalMinDate || !globalMaxDate) return null;
+          const usableW = width - 56 - 16;
+          const padL = 56;
+          const minDate = globalMinDate;
+          const maxDate = globalMaxDate;
+          const midDate = (minDate + maxDate) / 2;
+          const dates = [minDate, midDate, maxDate];
+          const xs = [
+            padL,
+            padL + usableW / 2,
+            width - 16,
           ];
-          return indices.map((idx) => {
-            const c = coords[idx];
-            const label = new Date(c.date).toLocaleDateString(undefined, {
+          return dates.map((t, i) => {
+            const label = new Date(t).toLocaleDateString(undefined, {
               month: "short",
               day: "numeric",
             });
             return (
               <SvgText
-                key={idx}
-                x={c.x}
+                key={i}
+                x={xs[i]}
                 y={height - padB + 16}
                 fontSize={9}
                 fill={colors.muted}

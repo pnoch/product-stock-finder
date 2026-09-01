@@ -234,7 +234,7 @@ export default function CompareScreen() {
       return {
         label: distributor?.name ?? l.distributorId,
         color: CHART_COLORS[colorIdx % CHART_COLORS.length],
-        data: filtered.length >= 2 ? filtered : l.priceHistory!,
+        data: filtered,
         currency: l.currency,
       };
     });

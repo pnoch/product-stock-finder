@@ -24,10 +24,11 @@ export const TIME_RANGE_DAYS: Record<TimeRange, number> = {
 
 export function filterByRange(data: PricePoint[], range: TimeRange): PricePoint[] {
   if (range === "All") return data;
-  const anchor = Math.max(
-    ...data.map((p) => new Date(p.date).getTime()).filter((t) => !Number.isNaN(t)),
-    Date.now(),
-  );
+  const validDates = data
+    .map((p) => new Date(p.date).getTime())
+    .filter((t) => !Number.isNaN(t));
+  if (validDates.length === 0) return [];
+  const anchor = Math.max(...validDates);
   const cutoff = anchor - TIME_RANGE_DAYS[range] * 86400000;
   return data.filter((p) => {
     const t = new Date(p.date).getTime();
@@ -47,7 +48,8 @@ export interface RegionBest {
 export function cheapestByRegion(
   listings: DistributorListing[],
 ): RegionBest[] {
-  const map = new Map<string, { listing: DistributorListing; usd: number }>();
+  const inStockMap = new Map<string, { listing: DistributorListing; usd: number }>();
+  const fallbackMap = new Map<string, { listing: DistributorListing; usd: number }>();
   for (const l of listings) {
     if (l.stockStatus === "out_of_stock" || l.price <= 0) continue;
     const dist = getDistributorById(l.distributorId);
@@ -55,12 +57,23 @@ export function cheapestByRegion(
     const region = dist.region ?? "Other";
     const usd = convertPrice(l.price, l.currency, "USD");
     if (usd === null || !Number.isFinite(usd)) continue;
-    const existing = map.get(region);
-    if (!existing || usd < existing.usd) {
-      map.set(region, { listing: l, usd });
+    if (l.stockStatus === "in_stock") {
+      const existing = inStockMap.get(region);
+      if (!existing || usd < existing.usd) {
+        inStockMap.set(region, { listing: l, usd });
+      }
+    } else {
+      const existing = fallbackMap.get(region);
+      if (!existing || usd < existing.usd) {
+        fallbackMap.set(region, { listing: l, usd });
+      }
     }
   }
-  return Array.from(map.entries())
+  const merged = new Map(inStockMap);
+  for (const [region, data] of fallbackMap) {
+    if (!merged.has(region)) merged.set(region, data);
+  }
+  return Array.from(merged.entries())
     .map(([region, data]) => ({ region, ...data }))
     .sort((a, b) => a.usd - b.usd);
 }
