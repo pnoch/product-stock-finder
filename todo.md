@@ -893,3 +893,12 @@
 - [x] parsePrice(html, model?) contract; all 25 parsers verify priced row vs requested model
 - [x] Mismatch = miss: no cache/history write, existing health error path
 - [x] Cross-parser guard tests over full registry
+
+## Phase 109: Audit 5 - v5.2
+
+- [x] BestDistributorCard parity (bestPrice→formatPrice, converter fix) + a11y
+- [x] ReminderSection: permission gate + reminderType + null shipping
+- [x] Desktop SearchModal (399→365): history dedupe/getItemLayout/Fuse per-call/removeClippedSubviews/android
+- [x] Mikrotikstore parser live-site fix: two-hop search, .price-tag, German format
+- [x] FX history sparse write guard + jitter ±5m
+- [x] 5 regression suites (currency, trending tRPC, price stability, GB→GBP, watchlist sort)

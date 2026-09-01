@@ -143,7 +143,7 @@ async function collectDirty(
   storage: Storage,
   oldCursor: number,
   applied: Set<string>,
-  now: number,
+  _now: number,
 ): Promise<{ dirty: SyncItem[]; pendingClearMeta: Array<{ collection: Collection; id: string }> }> {
   const meta = await storage.getSyncMeta();
   const dirty: SyncItem[] = [];
