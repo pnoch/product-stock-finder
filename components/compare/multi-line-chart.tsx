@@ -227,8 +227,19 @@ export function MultiLineChart({
         })()}
         {(() => {
           if (scrubX == null || allCoords.length === 0) return null;
-          const nearestFirst = nearestByX(allCoords[0].coords, scrubX);
-          if (!nearestFirst) return null;
+          let globalNearest: { date: string } | null = null;
+          let globalBestDist = Infinity;
+          for (const s of allCoords) {
+            const pt = nearestByX(s.coords, scrubX);
+            if (pt) {
+              const d = Math.abs(pt.x - scrubX);
+              if (d < globalBestDist) {
+                globalBestDist = d;
+                globalNearest = pt;
+              }
+            }
+          }
+          if (!globalNearest) return null;
           const rows = allCoords.slice(0, 6).map((s) => ({
             label: s.label,
             color: s.color,
@@ -276,7 +287,7 @@ export function MultiLineChart({
                 fill={colors.muted}
                 fontWeight="700"
               >
-                {new Date(nearestFirst.date).toLocaleDateString(undefined, {
+                {new Date(globalNearest.date).toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
                 })}

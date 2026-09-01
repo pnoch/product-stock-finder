@@ -8,9 +8,11 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 export function SwipeableCard({
   children,
   onDelete,
+  enabled = true,
 }: {
   children: React.ReactNode;
   onDelete: () => void;
+  enabled?: boolean;
 }) {
   const colors = useColors();
   const swipeableRef = useRef<Swipeable>(null);
@@ -51,6 +53,7 @@ export function SwipeableCard({
     <View>
       <Swipeable
         ref={swipeableRef}
+        enabled={enabled}
         renderRightActions={renderRightActions}
         rightThreshold={40}
       >

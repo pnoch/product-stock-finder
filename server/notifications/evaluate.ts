@@ -241,8 +241,8 @@ async function evaluateUserDb(
       .select({ eventId: notificationEventDeliveries.eventId })
       .from(notificationEventDeliveries)
       .where(inArray(notificationEventDeliveries.eventId, eventIds));
-    for (const d of deliveries) {
-      deliveryCounts.set(d.eventId, (deliveryCounts.get(d.eventId) ?? 0) + 1);
+    for (const d of deliveries as any[]) {
+      deliveryCounts.set((d as any).eventId, (deliveryCounts.get((d as any).eventId) ?? 0) + 1);
     }
   }
   const pending = new Set(

@@ -346,7 +346,7 @@ export default function WatchlistScreen() {
     [],
   );
 
-  const sectionData = useMemo(() => sections.map((s) => ({ ...s, data: s.products })), [sections]);
+  const sectionData = useMemo(() => sections.map((s) => ({ ...s, data: s.products.map((p) => ({ ...p, _sectionKey: s.key } as Product & { _sectionKey: string })) })), [sections]);
   const handleProductPress = useCallback((product: Product) => {
     if (selectionMode) toggleSelection(product.id);
     else router.push(`/product/${product.id}`);
@@ -356,9 +356,9 @@ export default function WatchlistScreen() {
     setSelectionMode(true);
     setSelectedIds(new Set([product.id]));
   }, []);
-  const renderSectionHeader = useCallback(({ section }: { section: { title: string; products: Product[] } }) => {
+  const renderSectionHeader = useCallback(({ section }: { section: { key: string; title: string; products: Product[] } }) => {
     if (groupMode === "off") return null;
-    const tag = groupMode === "tag" ? Object.values(tagDefinitions).find((t) => t.name === section.title) : undefined;
+    const tag = groupMode === "tag" ? tagDefinitions[section.key.replace('tag-', '')] : undefined;
     return (
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, backgroundColor: colors.background }}>
         {tag && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: tag.color }} />}
@@ -410,7 +410,8 @@ export default function WatchlistScreen() {
       <WatchlistHeader
         mode={selectionMode ? "selection" : "normal"}
         selectedCount={selectedIds.size}
-        watchlistLength={filteredWatchlist.length}
+        watchlistLength={watchlist.length}
+        filteredCount={filteredWatchlist.length}
         isRefreshingAny={isRefreshingAny}
         checking={checking}
         checkProgress={checkProgress}
@@ -483,13 +484,13 @@ export default function WatchlistScreen() {
 
       <SectionList showsVerticalScrollIndicator={true}
         sections={sectionData}
-        keyExtractor={(item: Product) => item.id}
+        keyExtractor={(item: Product & { _sectionKey?: string }) => `${item.id}-${item._sectionKey ?? ''}`}
         extraData={groupMode}
         initialNumToRender={8}
         windowSize={5}
         maxToRenderPerBatch={8}
         updateCellsBatchingPeriod={50}
-        removeClippedSubviews
+        removeClippedSubviews={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingHorizontal: 20,
@@ -524,9 +525,9 @@ export default function WatchlistScreen() {
         }
         renderSectionHeader={renderSectionHeader}
         renderItem={({ item }) => (
-          <SwipeableCard onDelete={() => handleSwipeDelete(item)}>
+          <SwipeableCard enabled={!selectionMode} onDelete={() => handleSwipeDelete(item as Product)}>
             <ProductCard
-              product={item}
+              product={item as Product}
               displayCurrency={displayCurrency}
               selectionMode={selectionMode}
               insight={

@@ -18,6 +18,8 @@ import { formatPrice } from "@/lib/currency";
 import { useRouter } from "expo-router";
 import { fetchProductImage } from "@/lib/server-images";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useToast } from "@/components/ui/toast";
+import { TagPickerSheet } from "@/components/tag-picker-sheet";
 
 function TrendingSkeletonCard() {
   const colors = useColors();
@@ -193,10 +195,13 @@ TrendingProductRow.displayName = "TrendingProductRow";
 export const TrendingSection = memo(function TrendingSection() {
   const colors = useColors();
   const router = useRouter();
+  const { showToast } = useToast();
+  const [pickerProduct, setPickerProduct] = React.useState<TrendingProduct | null>(null);
   const { data: products, isLoading } = useQuery({
     queryKey: ["trending"],
     queryFn: fetchTrending,
     staleTime: 6 * 60 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   const [watchlistIds, setWatchlistIds] = React.useState<Set<string>>(
@@ -240,7 +245,7 @@ export const TrendingSection = memo(function TrendingSection() {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     const catalogProduct = PRODUCT_CATALOG.find((p) => p.id === product.id);
-    await addToWatchlist({
+    const newProduct = {
       id: product.id,
       name: product.name,
       modelNumber: catalogProduct?.modelNumber ?? product.id,
@@ -249,10 +254,14 @@ export const TrendingSection = memo(function TrendingSection() {
       description: catalogProduct?.description ?? "",
       isWatched: true,
       addedAt: new Date().toISOString(),
-      listings: [],
-    });
+      listings: [] as never[],
+      tags: [] as string[],
+    };
+    await addToWatchlist(newProduct as never);
     setWatchlistIds((prev) => new Set([...prev, product.id]));
-  }, []);
+    showToast("Added — tap tag to organize", "success");
+    setPickerProduct(product);
+  }, [showToast]);
 
   const handlePress = useCallback(
     (id: string) => router.push(`/product/${id}`),
@@ -348,6 +357,27 @@ export const TrendingSection = memo(function TrendingSection() {
           />
         </Animated.View>
       ))}
+      {pickerProduct && (
+        <TagPickerSheet
+          visible={!!pickerProduct}
+          product={
+            {
+              id: pickerProduct.id,
+              name: pickerProduct.name,
+              modelNumber: PRODUCT_CATALOG.find((p) => p.id === pickerProduct.id)?.modelNumber ?? pickerProduct.id,
+              brand: pickerProduct.brand,
+              category: pickerProduct.category,
+              description: "",
+              isWatched: true,
+              addedAt: new Date().toISOString(),
+              listings: [],
+              tags: [],
+            } as never
+          }
+          onClose={() => setPickerProduct(null)}
+          onChanged={() => {}}
+        />
+      )}
     </View>
   );
 });

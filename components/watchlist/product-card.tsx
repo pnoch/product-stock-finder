@@ -138,14 +138,18 @@ export const ProductCard = memo(function ProductCard({
     setImageError(false);
     setImageLoaded(false);
     imageOpacity.setValue(0);
-    fetchProductImage(product.id).then((res) => {
-      if (active && res) setImageUrl(res.imageUrl);
-      else if (active) setImageUrl(null);
-    });
+    fetchProductImage(product.id)
+      .then((res) => {
+        if (active && res) setImageUrl(res.imageUrl);
+        else if (active) setImageUrl(null);
+      })
+      .catch(() => {
+        if (active) setImageUrl(null);
+      });
     return () => {
       active = false;
     };
-  }, [product.id, imageOpacity]);
+  }, [product.id]);
 
   useEffect(() => {
     sparklineOpacity.setValue(0.55);
@@ -154,7 +158,7 @@ export const ProductCard = memo(function ProductCard({
       duration: 420,
       useNativeDriver: true,
     }).start();
-  }, [product.listings, sparklineOpacity]);
+  }, [product.id]);
 
   const handlePressIn = useCallback(() => {
     Animated.spring(pressScale, {

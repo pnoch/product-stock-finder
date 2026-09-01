@@ -27,13 +27,11 @@ export function SortGroupBar({
   const colors = useColors();
 
   return (
-    <>
+    <View style={{ position: "relative", zIndex: 10, paddingHorizontal: 16, paddingBottom: 10 }}>
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
-          paddingHorizontal: 16,
-          paddingBottom: 10,
           gap: 8,
           flexWrap: "wrap",
         }}
@@ -104,13 +102,21 @@ export function SortGroupBar({
       {sortMenuOpen && (
         <View
           style={{
-            marginHorizontal: 16,
-            marginBottom: 10,
+            position: "absolute",
+            top: 40,
+            left: 0,
+            right: 0,
             borderRadius: 12,
             backgroundColor: colors.surface,
             borderWidth: 1,
             borderColor: colors.border,
             overflow: "hidden",
+            zIndex: 10,
+            elevation: 8,
+            shadowColor: "#000",
+            shadowOpacity: 0.15,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 4 },
           }}
         >
           {SORT_OPTIONS.map((opt) => {
@@ -148,6 +154,6 @@ export function SortGroupBar({
           })}
         </View>
       )}
-    </>
+    </View>
   );
 }

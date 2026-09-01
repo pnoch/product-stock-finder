@@ -129,7 +129,7 @@ export async function sendPushForUser(
         .select({ deviceId: devicePushTokens.deviceId })
         .from(devicePushTokens)
         .where(eq(devicePushTokens.userId, userId));
-      deviceIds = rows.map((r) => r.deviceId);
+      deviceIds = rows.map((r: any) => r.deviceId);
     } else {
       deviceIds = [...memoryTokens.entries()]
         .filter(([, t]) => t.userId === userId)

@@ -1,4 +1,4 @@
-import { Text, View, TouchableOpacity, ActivityIndicator, Platform } from "react-native";
+import { Text, View, TouchableOpacity, ActivityIndicator, Platform, useWindowDimensions } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -7,6 +7,7 @@ type WatchlistHeaderProps = {
   mode: "normal" | "selection";
   selectedCount: number;
   watchlistLength: number;
+  filteredCount?: number;
   isRefreshingAny: boolean;
   checking: boolean;
   checkProgress?: { current: number; total: number } | null;
@@ -23,6 +24,7 @@ export function WatchlistHeader({
   mode,
   selectedCount,
   watchlistLength,
+  filteredCount,
   isRefreshingAny,
   checking,
   checkProgress,
@@ -35,11 +37,13 @@ export function WatchlistHeader({
   onExitSelection,
 }: WatchlistHeaderProps) {
   const colors = useColors();
+  const { width } = useWindowDimensions();
+  const isCompact = width < 360;
 
   if (mode === "selection") {
     return (
-      <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+      <View className="px-5 pt-4 pb-2 flex-row items-center justify-between" style={{ flexWrap: "wrap", gap: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <View
             style={{
               backgroundColor: colors.primary,
@@ -58,7 +62,7 @@ export function WatchlistHeader({
           </View>
           <Text style={{ color: colors.muted, fontSize: 13 }}>Tap to toggle</Text>
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <TouchableOpacity activeOpacity={0.85}
             onPress={onBulkDelete}
             style={{
@@ -122,15 +126,15 @@ export function WatchlistHeader({
   }
 
   return (
-    <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
-      <View>
+    <View className="px-5 pt-4 pb-2 flex-row items-center justify-between" style={{ flexWrap: "wrap", gap: 8 }}>
+      <View style={{ flexShrink: 1 }}>
         <Text className="text-2xl font-bold text-foreground">Watchlist</Text>
         <Text className="text-muted text-sm">
-          {watchlistLength} product
-          {watchlistLength !== 1 ? "s" : ""} tracked
+          {watchlistLength} product{watchlistLength !== 1 ? "s" : ""} tracked
+          {filteredCount !== undefined && filteredCount !== watchlistLength ? ` · ${filteredCount} shown` : ""}
         </Text>
       </View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <TouchableOpacity activeOpacity={0.85}
             onPress={() => {
               if (Platform.OS !== "web")
@@ -140,7 +144,7 @@ export function WatchlistHeader({
             style={{
               backgroundColor: colors.surface,
               borderRadius: 20,
-              paddingHorizontal: 14,
+              paddingHorizontal: isCompact ? 10 : 14,
               minHeight: 40,
               flexDirection: "row",
               alignItems: "center",
@@ -156,11 +160,13 @@ export function WatchlistHeader({
             size={16}
             color={colors.primary}
           />
-          <Text
-            style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}
-          >
-            Analysis
-          </Text>
+          {!isCompact && (
+            <Text
+              style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}
+            >
+              Analysis
+            </Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity activeOpacity={0.85}
           onPress={() => {
@@ -172,7 +178,7 @@ export function WatchlistHeader({
           style={{
             backgroundColor: colors.surface,
             borderRadius: 20,
-            paddingHorizontal: 14,
+            paddingHorizontal: isCompact ? 10 : 14,
             minHeight: 40,
             flexDirection: "row",
             alignItems: "center",
@@ -193,17 +199,19 @@ export function WatchlistHeader({
               color={colors.primary}
             />
           )}
-          <Text
-            style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}
-          >
-            Refresh all
-          </Text>
+          {!isCompact && (
+            <Text
+              style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}
+            >
+              Refresh all
+            </Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity activeOpacity={0.85}
           style={{
             backgroundColor: checking ? colors.muted : colors.primary,
             borderRadius: 20,
-            paddingHorizontal: 14,
+            paddingHorizontal: isCompact ? 10 : 14,
             minHeight: 40,
             flexDirection: "row",
             alignItems: "center",
@@ -221,11 +229,13 @@ export function WatchlistHeader({
           ) : (
             <IconSymbol name="arrow.clockwise" size={16} color="#fff" />
           )}
-          <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
-            {checkProgress
-              ? `Checking ${checkProgress.current}/${checkProgress.total}`
-              : "Check Now"}
-          </Text>
+          {!isCompact && (
+            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+              {checkProgress
+                ? `Checking ${checkProgress.current}/${checkProgress.total}`
+                : "Check Now"}
+            </Text>
+          )}
         </TouchableOpacity>
           <TouchableOpacity activeOpacity={0.85}
             style={{

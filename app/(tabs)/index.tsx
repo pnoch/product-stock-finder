@@ -147,38 +147,43 @@ export default function HomeScreen() {
   );
 
   const recentActivity = useMemo(() => {
-    const seen = new Set<string>();
-    return watchlist
-      .flatMap((p) => (p.listings ?? []).map((l) => ({ product: p, listing: l })))
-      .sort((a, b) => {
-        const aTime = isNaN(new Date(a.listing.lastChecked).getTime())
-          ? 0
-          : new Date(a.listing.lastChecked).getTime();
-        const bTime = isNaN(new Date(b.listing.lastChecked).getTime())
-          ? 0
-          : new Date(b.listing.lastChecked).getTime();
-        return bTime - aTime;
-      })
-      .filter(({ product }) => {
-        if (seen.has(product.id)) return false;
-        seen.add(product.id);
-        return true;
-      })
-      .slice(0, 5);
+    const withTime = watchlist.map((p) => {
+      const listings = p.listings ?? [];
+      if (listings.length === 0) {
+        const fallback = isNaN(new Date(p.addedAt ?? 0).getTime()) ? 0 : new Date(p.addedAt ?? 0).getTime();
+        return { product: p, listing: null as unknown as typeof listings[0] | null, sortTime: fallback };
+      }
+      let best = listings[0]!;
+      let bestTime = isNaN(new Date(best.lastChecked).getTime()) ? 0 : new Date(best.lastChecked).getTime();
+      for (const l of listings) {
+        const t = isNaN(new Date(l.lastChecked).getTime()) ? 0 : new Date(l.lastChecked).getTime();
+        if (t > bestTime) {
+          best = l;
+          bestTime = t;
+        }
+      }
+      return { product: p, listing: best as typeof listings[0] | null, sortTime: bestTime };
+    });
+    withTime.sort((a, b) => b.sortTime - a.sortTime);
+    return withTime.slice(0, 5).map(({ product, listing }) => ({ product, listing }));
   }, [watchlist]);
 
+  const recentIdsKey = useMemo(() => recentActivity.map(({ product }) => product.id).join(","), [recentActivity]);
+
+  const prevIdsRef = useRef<string>("");
   useEffect(() => {
+    if (prevIdsRef.current === recentIdsKey) return;
+    prevIdsRef.current = recentIdsKey;
     let active = true;
+    const ids = recentActivity.map(({ product }) => product.id);
     const load = async () => {
-      const results = await Promise.allSettled(
-        recentActivity.map(({ product }) => fetchProductImage(product.id)),
-      );
+      const results = await Promise.allSettled(ids.map((id) => fetchProductImage(id)));
       if (!active) return;
       const newImages = new Map<string, string>();
       results.forEach((r, i) => {
-        const product = recentActivity[i]?.product;
-        if (r.status === "fulfilled" && r.value && product) {
-          newImages.set(product.id, r.value.imageUrl);
+        const pid = ids[i];
+        if (r.status === "fulfilled" && r.value && pid) {
+          newImages.set(pid, r.value.imageUrl);
         }
       });
       setImages(newImages);
@@ -187,7 +192,7 @@ export default function HomeScreen() {
     return () => {
       active = false;
     };
-  }, [recentActivity]);
+  }, [recentIdsKey, recentActivity]);
 
   return (
     <ScreenContainer>
@@ -399,10 +404,10 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            recentActivity.map(({ product, listing }, idx) => (
+            recentActivity.map(({ product, listing }) => (
               <TouchableOpacity activeOpacity={0.7}
-                key={`${product.id}-${listing.distributorId}-${idx}`}
-                accessibilityLabel={`${product.name}, ${formatPrice(listing.price, listing.currency)}`}
+                key={product.id}
+                accessibilityLabel={listing ? `${product.name}, ${formatPrice(listing!.price, listing!.currency)}` : product.name}
                 accessibilityRole="button"
                 style={{
                   backgroundColor: colors.surface,
@@ -475,8 +480,8 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                   <StockBadge
-                    status={listing.stockStatus}
-                    expectedDate={listing.expectedDate}
+                    status={listing ? listing!.stockStatus : "unknown"}
+                    expectedDate={listing?.expectedDate}
                   />
                 </View>
                 <View
@@ -493,10 +498,10 @@ export default function HomeScreen() {
                       fontSize: 15,
                     }}
                   >
-                    {formatPrice(listing.price, listing.currency)}
+                    {listing ? formatPrice(listing!.price, listing!.currency) : "—"}
                   </Text>
                   <Text style={{ color: colors.muted, fontSize: 11 }}>
-                    {formatLastRefreshed(listing.lastChecked)}
+                    {listing ? formatLastRefreshed(listing!.lastChecked) : formatLastRefreshed(product.addedAt)}
                   </Text>
                 </View>
               </TouchableOpacity>

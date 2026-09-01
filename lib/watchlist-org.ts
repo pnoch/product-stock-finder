@@ -201,16 +201,29 @@ export function groupWatchlist(
   if (list.length === 0) return [];
   if (group === "off") return [{ key: "all", title: "All", products: list }];
   if (group === "tag") {
+    // Deduplicate to first-tag-only: each product appears once in its first live tag section
+    const sectionsMap = new Map<string, Product[]>();
+    for (const tag of Object.values(tagDefinitions)) {
+      sectionsMap.set(`tag-${tag.id}`, []);
+    }
+    const untagged: Product[] = [];
+    for (const p of list) {
+      const tags = p.tags ?? [];
+      const firstLiveId = tags.find((id) => tagDefinitions[id]);
+      if (firstLiveId) {
+        const key = `tag-${firstLiveId}`;
+        sectionsMap.get(key)?.push(p);
+      } else {
+        // Orphaned tag ids must be ignored, not treated as a live tag.
+        untagged.push(p);
+      }
+    }
     const sections: WatchlistSection[] = Object.values(tagDefinitions).map(
       (tag) => ({
         key: `tag-${tag.id}`,
         title: tag.name,
-        products: list.filter((p) => (p.tags ?? []).includes(tag.id)),
+        products: sectionsMap.get(`tag-${tag.id}`) ?? [],
       }),
-    );
-    // Orphaned tag ids must be ignored, not treated as a live tag.
-    const untagged = list.filter(
-      (p) => !(p.tags ?? []).some((id) => tagDefinitions[id]),
     );
     if (untagged.length > 0)
       sections.push({ key: "untagged", title: "Untagged", products: untagged });
