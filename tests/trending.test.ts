@@ -23,7 +23,10 @@ describe("fetchTrending", () => {
     ];
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(mockData) }),
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ result: { data: { json: mockData } } }),
+      }),
     );
     const result = await fetchTrending();
     expect(result).toEqual(mockData);

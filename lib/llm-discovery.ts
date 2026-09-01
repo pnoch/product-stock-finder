@@ -8,14 +8,20 @@ export async function discoverProduct(
   try {
     const baseUrl = getApiBaseUrl();
     if (!baseUrl) return null;
-    const res = await fetch(`${baseUrl}/api/discovery/discover`, {
+    // tRPC mutation: discovery.discover — superjson body {json:{query}}
+    const url = `${baseUrl}/api/trpc/discovery.discover`;
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ json: { query } }),
     });
     if (!res.ok) return null;
-    const data = await res.json();
+    const body = (await res.json()) as {
+      result?: { data?: { json?: { product?: any; retailers?: any[] } } };
+    };
+    const data = body?.result?.data?.json;
+    if (!data?.product) return null;
 
     const product: Product = {
       ...data.product,
@@ -24,7 +30,7 @@ export async function discoverProduct(
       listings: [],
     };
 
-    const retailers = data.retailers.map((r: any) => ({
+    const retailers: Distributor[] = (data.retailers ?? []).map((r: any) => ({
       ...r,
       paymentMethods: r.paymentMethods ?? [],
       shippingCosts: r.shippingCosts ?? {},

@@ -81,10 +81,15 @@ const FALLBACK_TRENDING: TrendingProduct[] = [
 
 export async function fetchTrending(): Promise<TrendingProduct[]> {
   try {
-    const res = await fetch(`${getApiBase()}/api/trending`);
+    // tRPC query: trending.get — response is superjson-wrapped {json: [...]}
+    const url = `${getApiBase()}/api/trpc/trending.get`;
+    const res = await fetch(url, {
+      headers: { accept: "application/json" },
+    });
     if (!res.ok) return FALLBACK_TRENDING;
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) return data;
+    const body = (await res.json()) as { result?: { data?: { json?: unknown } } };
+    const data = body?.result?.data?.json;
+    if (Array.isArray(data) && data.length > 0) return data as TrendingProduct[];
     return FALLBACK_TRENDING;
   } catch {
     return FALLBACK_TRENDING;
