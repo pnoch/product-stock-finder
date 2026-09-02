@@ -929,3 +929,9 @@
 - [x] GAP-02 — AGENTS.md: Directory Layout lists 5 tabs (index/home, watchlist, alerts, rates, settings); Server section documents device binding (session JWT `deviceId` claim → `x-device-id` header, `assertDeviceAccess` per-user ownership, unrevoke on login, 30-day idle `cleanupStaleDevices`, `revokedDevices` user-scoped composite keys)
 - [x] GAP-03 — todo.md: gaps marked addressed via this Phase 112 follow-up
 - [x] GAP-04/P1 — `components/settings/account-section.tsx`: `emailVerified:false` shows "Verify your email — check your inbox" banner with Resend CTA (`POST /api/auth/resend-verification`, `hooks/use-auth.ts:resendVerification`)
+
+## Phase 113: v5.4 — Tauri E2E + P1 Polish
+
+- [x] `cargo check` (Tauri) + `expo export` (web) + `pnpm check` (root `tsc 0` + desktop vite 4.2s + `145 passed` + `36 tests`) all green at `33a0256`
+- [x] Desktop bulk/tag/alert parity, tag collapse, thumbnail herds, drift, contrast, health `blocked` parity
+- [x] Version sync: 5.4.0 → package/app.config/desktop/Cargo/tauri.conf
