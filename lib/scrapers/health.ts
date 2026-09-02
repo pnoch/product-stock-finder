@@ -82,7 +82,8 @@ export function classifyProbeOutcome(
 ): { status: HealthStatus; reason?: string } {
   if (outcome.status === "ok" && outcome.html) {
     const model = getProbeModel(parser.id);
-    const result = parser.parsePrice(outcome.html, model);
+    const url = parser.buildSearchUrl(model);
+    const result = parser.parsePrice(outcome.html, model, url);
     const status = classifyResult(outcome.html, result);
     return { status, reason: status === "error" ? "no price found" : undefined };
   }
@@ -196,13 +197,12 @@ export function timelineSegments(samples: HealthSample[]): TimelineSegment[] {
   if (total <= 0) {
     return sorted.map((s) => ({ status: s.status, weight: 1 / sorted.length }));
   }
-  const extendedTotal = total + spans[spans.length - 1];
   return sorted.map((s, i) => ({
     status: s.status,
     weight:
       i < spans.length
-        ? spans[i] / extendedTotal
-        : spans[spans.length - 1] / extendedTotal,
+        ? spans[i] / total
+        : spans[spans.length - 1] / total,
   }));
 }
 

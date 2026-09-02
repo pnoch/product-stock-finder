@@ -70,7 +70,7 @@ export async function refreshListing(
   }
 
   try {
-    const result = parser.parsePrice(outcome.html, product.modelNumber);
+    const result = parser.parsePrice(outcome.html, product.modelNumber, url);
     if (!result) {
       healthCollector.record(parser.id, "error", "no price found");
       return listing;

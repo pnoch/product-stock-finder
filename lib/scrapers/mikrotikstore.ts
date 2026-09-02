@@ -87,10 +87,10 @@ export const mikrotikstoreParser: DistributorParser = {
   id: "mikrotikstore-de",
   baseUrl: "https://mikrotik-store.eu",
   buildSearchUrl: buildMikrotikSearchUrl,
-  parsePrice: (html, model) =>
+  parsePrice: (html, model, url) =>
     parseProductPage(
       html,
-      model ? buildMikrotikSearchUrl(model) : "https://mikrotik-store.eu",
+      url ?? (model ? buildMikrotikSearchUrl(model) : "https://mikrotik-store.eu"),
       model,
     ),
   rateLimitMs: 3000,

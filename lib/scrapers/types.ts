@@ -13,7 +13,7 @@ export interface DistributorParser {
   id: string;
   baseUrl: string;
   buildSearchUrl: (model: string) => string;
-  parsePrice: (html: string, model?: string) => ScrapeResult | null;
+  parsePrice: (html: string, model?: string, url?: string) => ScrapeResult | null;
   rateLimitMs: number;
   useBrowser?: boolean;
   browserOptions?: {

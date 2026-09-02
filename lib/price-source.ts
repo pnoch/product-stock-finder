@@ -45,7 +45,7 @@ export async function scrapePriceOnDevice(
     const url = parser.buildSearchUrl(modelNumber);
     const outcome = await resilientFetch({ parser, url, state: breakerStore });
     if (outcome.status !== "ok" || !outcome.html) return null;
-    const result = parser.parsePrice(outcome.html, modelNumber);
+    const result = parser.parsePrice(outcome.html, modelNumber, url);
     if (!result) return null;
     return {
       snapshot: { ...result, fetchedAt: Date.now() },

@@ -354,7 +354,7 @@ fn import_watchlist(
 
 fn parse_query_params(query: &str) -> std::collections::HashMap<String, String> {
     let mut params = std::collections::HashMap::new();
-    let path = query.split_whitespace().nth(1).unwrap_or(query);
+    let path = query.split_whitespace().nth(1).unwrap_or("");
     if let Some(q) = path.split('?').nth(1) {
         for pair in q.split('&') {
             if let Some((k, v)) = pair.split_once('=') {
