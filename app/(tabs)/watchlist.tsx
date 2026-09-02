@@ -133,6 +133,46 @@ export default function WatchlistScreen() {
     hasLoadedSettingsRef.current = true;
   }, []);
 
+  // Real-time price range filter without Apply — updates as user types
+  useEffect(() => {
+    if (!hasLoadedSettingsRef.current) return;
+    const minStr = priceMinInput.trim();
+    const maxStr = priceMaxInput.trim();
+    if (minStr === "" && maxStr === "") {
+      setPriceRange((prev) => (prev === undefined ? prev : undefined));
+      return;
+    }
+    const min = minStr === "" ? 0 : Number(minStr);
+    const max = maxStr === "" ? Infinity : Number(maxStr);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < 0 || min > max) {
+      return;
+    }
+    const effectiveMax = max === Infinity ? Number.MAX_SAFE_INTEGER : max;
+    setPriceRange((prev) => {
+      if (prev && prev[0] === min && prev[1] === effectiveMax) return prev;
+      return [min, effectiveMax];
+    });
+  }, [priceMinInput, priceMaxInput]);
+
+  // Persist priceRange / inStockOnly to AppSettings (real-time)
+  useEffect(() => {
+    if (!hasLoadedSettingsRef.current) return;
+    let cancelled = false;
+    const persist = async () => {
+      try {
+        const settings = await getSettings();
+        const next: typeof settings = {
+          ...settings,
+          watchlistInStockOnly: inStockOnly,
+          watchlistPriceRange: priceRange ?? null,
+        };
+        if (!cancelled) await saveSettings(next);
+      } catch {}
+    };
+    void persist();
+    return () => { cancelled = true; };
+  }, [inStockOnly, priceRange]);
+
   useFocusEffect(
     useCallback(() => {
       void reload();
@@ -548,6 +588,7 @@ export default function WatchlistScreen() {
               keyboardType="numeric"
               style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, minWidth: 60, color: colors.foreground, fontSize: 12 }}
               placeholderTextColor={colors.muted}
+              accessibilityLabel="Minimum price"
             />
             <Text style={{ color: colors.muted }}>—</Text>
             <TextInput
@@ -557,24 +598,10 @@ export default function WatchlistScreen() {
               keyboardType="numeric"
               style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, minWidth: 60, color: colors.foreground, fontSize: 12 }}
               placeholderTextColor={colors.muted}
+              accessibilityLabel="Maximum price"
             />
-            <TouchableOpacity
-              onPress={() => {
-                const min = priceMinInput.trim() === "" ? 0 : Number(priceMinInput);
-                const max = priceMaxInput.trim() === "" ? Infinity : Number(priceMaxInput);
-                if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < 0 || min > max) {
-                  showAlert("Invalid range", "Enter a valid min/max price.");
-                  return;
-                }
-                if (priceMinInput.trim() === "" && priceMaxInput.trim() === "") setPriceRange(undefined);
-                else setPriceRange([min, max === Infinity ? Number.MAX_SAFE_INTEGER : max]);
-              }}
-              style={{ backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
-            >
-              <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>Apply</Text>
-            </TouchableOpacity>
-            {priceRange && (
-              <TouchableOpacity onPress={() => { setPriceRange(undefined); setPriceMinInput(""); setPriceMaxInput(""); }}>
+            {(priceRange || priceMinInput !== "" || priceMaxInput !== "") && (
+              <TouchableOpacity onPress={() => { setPriceRange(undefined); setPriceMinInput(""); setPriceMaxInput(""); }} accessibilityLabel="Clear price filter" accessibilityRole="button">
                 <Text style={{ color: colors.muted, fontSize: 12 }}>Clear</Text>
               </TouchableOpacity>
             )}

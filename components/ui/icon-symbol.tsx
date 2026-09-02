@@ -89,6 +89,7 @@ const MAPPING = {
   "exclamationmark.circle.fill": "error",
   "lightbulb.fill": "lightbulb",
   "line.3.horizontal.decrease.circle": "filter-list",
+  link: "link",
 } as IconMapping;
 
 /**
