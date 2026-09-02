@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Collection } from "../types";
 import { StorageAdapter, DISTRIBUTOR_BREAKER_KEY } from "./adapter";
 import { createContext, STORAGE_KEYS } from "./context";
+import { createIDBAdapter, isIndexedDBAvailable } from "./idb-adapter";
 import { createWatchlistStorage } from "./watchlist";
 import { createAlertsStorage } from "./alerts";
 import { createRemindersStorage } from "./reminders";
@@ -72,8 +73,23 @@ export type Storage = ReturnType<typeof createStorage>;
 
 // ─── Default instance (mobile / AsyncStorage) ──────────────────────────────────
 // Preserves backward-compatible named exports so existing imports work unchanged.
+// On web we prefer IndexedDB (via idb-adapter) to avoid the 5 MB localStorage quota.
+// 50×25×90 pts (~112k points) would exceed localStorage; capped to maxHistoryPerProduct
+// and spilled to IDB when available (AsyncStorage on web is localStorage-backed).
 
-export const defaultStorage = createStorage(AsyncStorage);
+function getDefaultAdapter(): StorageAdapter {
+  if (isIndexedDBAvailable()) {
+    try {
+      // isIndexedDBAvailable already checks window + indexedDB, so this is web with IDB
+      return createIDBAdapter();
+    } catch {
+      // fall through to AsyncStorage
+    }
+  }
+  return AsyncStorage;
+}
+
+export const defaultStorage = createStorage(getDefaultAdapter());
 
 // ─── Watchlist ───────────────────────────────────────────────────────────
 export const {

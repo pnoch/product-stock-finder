@@ -503,6 +503,23 @@ export function setupSync(
   return { syncNow: runNow, schedule };
 }
 
+export function countQueuedEdits(meta: SyncMeta): number {
+  const cursor = meta.lastSyncedAt || 0;
+  let count = 0;
+  for (const col of Object.keys(meta.items) as Collection[]) {
+    const colMap = meta.items[col] ?? {};
+    for (const entry of Object.values(colMap)) {
+      if (entry.updatedAt > cursor) count++;
+    }
+  }
+  return count;
+}
+
+export async function getQueuedEditCount(storage: Storage): Promise<number> {
+  const meta = await storage.getSyncMeta();
+  return countQueuedEdits(meta);
+}
+
 export interface SyncStatus {
   label: string;
   tone: "success" | "error" | "muted";

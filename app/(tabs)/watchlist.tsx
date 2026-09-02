@@ -20,6 +20,8 @@ import { showAlert } from "@/lib/alert";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveWatchlist } from "@/hooks/use-live-prices";
+import { useConnection } from "@/hooks/use-connection";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { buildWatchlistShareText } from "@/lib/watchlist-share";
 import {
   getSettings,
@@ -27,7 +29,9 @@ import {
   getTagDefinitions,
   addToWatchlist,
   removeFromWatchlist,
+  getSyncMeta,
 } from "@/lib/storage";
+import { countQueuedEdits } from "@/lib/sync";
 import { computeWatchlistSummary } from "@/lib/watchlist-summary";
 import { computeProductInsights } from "@/lib/product-insights";
 import {
@@ -106,6 +110,32 @@ export default function WatchlistScreen() {
   const regions = useMemo(() => getAllRegions(), []);
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerCollapse = scrollY.interpolate({ inputRange: [0, 80], outputRange: [1, 0], extrapolate: "clamp" });
+  const connection = useConnection();
+  const [queuedCount, setQueuedCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refreshQueue = async () => {
+      try {
+        const meta = await getSyncMeta();
+        if (!cancelled) setQueuedCount(countQueuedEdits(meta));
+      } catch {}
+    };
+    void refreshQueue();
+    const interval = setInterval(refreshQueue, 30000);
+    const onFocus = () => void refreshQueue();
+    if (Platform.OS === "web") {
+      window.addEventListener("focus", onFocus);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") void refreshQueue();
+      });
+    }
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      if (Platform.OS === "web") window.removeEventListener("focus", onFocus);
+    };
+  }, [watchlist.length]);
 
   const hasLoadedSettingsRef = useRef(false);
   const loadData = useCallback(async () => {
@@ -521,6 +551,32 @@ export default function WatchlistScreen() {
           onShare={handleShareWatchlist}
         />
       </Animated.View>
+
+      {connection.status === "offline" && queuedCount > 0 && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            backgroundColor: colors.warning + "14",
+            borderWidth: 1,
+            borderColor: colors.warning + "44",
+            borderRadius: 12,
+            marginHorizontal: 20,
+            marginTop: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+          }}
+          accessibilityLabel={`Offline — ${queuedCount} edits queued`}
+          accessibilityRole="alert"
+        >
+          <IconSymbol name="wifi.slash" size={16} color={colors.warning} />
+          <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", flex: 1 }}>
+            Offline — {queuedCount} edit{queuedCount !== 1 ? "s" : ""} queued
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>Will sync when back online</Text>
+        </View>
+      )}
 
       {watchlist.length > 0 && (
         <SummaryCard

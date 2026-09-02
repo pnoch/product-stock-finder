@@ -1,5 +1,6 @@
 import type { DistributorListing, Product } from "../types";
 import type { StorageContext } from "./context";
+import { MAX_HISTORY_PER_LISTING, maxHistoryPerProduct } from "./adapter";
 
 export function createWatchlistStorage(ctx: StorageContext) {
   const { adapter, KEYS, notify, enqueue, readList } = ctx;
@@ -10,8 +11,50 @@ export function createWatchlistStorage(ctx: StorageContext) {
     return readList<Product>(KEYS.WATCHLIST);
   }
 
+  function trimHistory(listings: DistributorListing[]): DistributorListing[] {
+    let trimmed = listings.map((l) => {
+      const h = l.priceHistory ?? [];
+      if (h.length > MAX_HISTORY_PER_LISTING) return { ...l, priceHistory: h.slice(-MAX_HISTORY_PER_LISTING) };
+      return l;
+    });
+    let total = trimmed.reduce((s, l) => s + (l.priceHistory?.length ?? 0), 0);
+    if (total <= maxHistoryPerProduct) return trimmed;
+    const mutable = trimmed.map((l) => ({ ...l, priceHistory: [...(l.priceHistory ?? [])] }));
+    while (total > maxHistoryPerProduct) {
+      let idx = -1;
+      let maxLen = 0;
+      for (let i = 0; i < mutable.length; i++) {
+        const len = mutable[i].priceHistory.length;
+        if (len > maxLen) {
+          maxLen = len;
+          idx = i;
+        }
+      }
+      if (idx === -1 || maxLen === 0) break;
+      mutable[idx].priceHistory.shift();
+      total--;
+    }
+    return mutable;
+  }
+
+  function capProducts(products: Product[]): Product[] {
+    let mutated = false;
+    const next = products.map((p) => {
+      const trimmed = trimHistory(p.listings ?? []);
+      const orig = p.listings ?? [];
+      const changed = trimmed.length !== orig.length || trimmed.some((l, i) => l.priceHistory !== orig[i]?.priceHistory);
+      if (changed) {
+        mutated = true;
+        return { ...p, listings: trimmed };
+      }
+      return p;
+    });
+    return mutated ? next : products;
+  }
+
   async function saveWatchlist(products: Product[]): Promise<void> {
-    await adapter.setItem(KEYS.WATCHLIST, JSON.stringify(products));
+    const capped = capProducts(products);
+    await adapter.setItem(KEYS.WATCHLIST, JSON.stringify(capped));
   }
 
   // Enqueued read-modify-write so concurrent callers (sync engine, background

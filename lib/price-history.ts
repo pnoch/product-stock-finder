@@ -1,5 +1,7 @@
 import type { PricePoint } from "@/lib/types";
 
+export const MAX_HISTORY_POINTS = 500;
+
 export function appendPricePoint(
   history: PricePoint[],
   point: PricePoint,
@@ -30,9 +32,10 @@ export function appendPricePoint(
   cutoff.setUTCDate(cutoff.getUTCDate() - maxDays);
   const cutoffDay = cutoff.toISOString().slice(0, 10);
 
-  return result.filter(
+  const filtered = result.filter(
     (p) => !Number.isNaN(Date.parse(p.date)) && p.date.slice(0, 10) >= cutoffDay,
   );
+  return filtered.length > MAX_HISTORY_POINTS ? filtered.slice(-MAX_HISTORY_POINTS) : filtered;
 }
 
 export function mergePriceHistory(
@@ -52,7 +55,8 @@ export function mergePriceHistory(
   const cutoff = new Date(now);
   cutoff.setUTCDate(cutoff.getUTCDate() - maxDays);
   const cutoffDay = cutoff.toISOString().slice(0, 10);
-  return merged.filter(
+  const filtered = merged.filter(
     (p) => !Number.isNaN(Date.parse(p.date)) && p.date.slice(0, 10) >= cutoffDay,
   );
+  return filtered.length > MAX_HISTORY_POINTS ? filtered.slice(-MAX_HISTORY_POINTS) : filtered;
 }

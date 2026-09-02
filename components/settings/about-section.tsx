@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Text, View, TouchableOpacity, Linking, ActivityIndicator, Platform } from "react-native";
 import Constants from "expo-constants";
+import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SettingRow } from "@/components/settings/setting-row";
@@ -11,10 +12,43 @@ import { useAuth } from "@/hooks/use-auth";
 import { getApiBaseUrl } from "@/constants/oauth";
 import * as Auth from "@/lib/_core/auth";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+}
+
 export function AboutSection() {
   const colors = useColors();
   const { isAuthenticated, logout } = useAuth();
   const [deleting, setDeleting] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+    const installedHandler = () => setDeferredPrompt(null);
+    window.addEventListener("beforeinstallprompt", handler);
+    window.addEventListener("appinstalled", installedHandler);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("appinstalled", installedHandler);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      await deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice.outcome === "accepted") setDeferredPrompt(null);
+    } catch (e) {
+      console.warn("[AboutSection] install prompt failed", e);
+    }
+  };
 
   const handleDeleteMyData = () => {
     showAlert(
@@ -149,6 +183,27 @@ export function AboutSection() {
             }
           />
         </TouchableOpacity>
+        {deferredPrompt && (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleInstall}
+            accessibilityLabel="Install app"
+            accessibilityRole="button"
+          >
+            <SettingRow
+              icon="arrow.down.circle.fill"
+              label="Install app"
+              description="Add to home screen for offline access"
+              right={
+                <IconSymbol
+                  name="chevron.right"
+                  size={16}
+                  color={colors.primary}
+                />
+              }
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={{ alignItems: "center", marginTop: 32 }}>
