@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useWatchlist, useSettings } from "../hooks/use-storage";
 import { storage } from "../storage";
-import { formatPrice, getBestPrice } from "../../../lib/currency";
+import { formatPrice, getBestPrice } from "@shared/currency";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { getApiBaseUrl } from "../lib/api-base";
 import { computeWatchlistSummary } from "../../../lib/watchlist-summary";

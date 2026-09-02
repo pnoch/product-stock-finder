@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Flame, Plus, Check } from "lucide-react";
-import { fetchTrending } from "../../../lib/trending";
+import { fetchTrending } from "@shared/trending";
 import type { TrendingProduct } from "../../../lib/types";
 import { storage } from "../storage";
 import { ProductImage } from "./ProductImage";

@@ -15,7 +15,8 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["../*"]
+      "@/*": ["../*"],
+      "@shared/*": ["../shared/src/*", "../shared/*"]
     }
   },
   "include": ["src"]

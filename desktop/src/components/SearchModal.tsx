@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, Check, Plus, Wand2, Loader2 } from "lucide-react";
-import { searchCatalog, PRODUCT_CATALOG } from "../../../lib/catalog";
+import { searchCatalog, PRODUCT_CATALOG } from "@shared/catalog";
 import { storage } from "../storage";
 import { Modal } from "./Modal";
 import { ProductImage } from "./ProductImage";

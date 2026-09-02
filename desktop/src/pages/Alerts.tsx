@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useAlerts } from "../hooks/use-storage";
 import { storage } from "../storage";
-import { formatPrice, convertPrice } from "../../../lib/currency";
+import { formatPrice, convertPrice } from "@shared/currency";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";

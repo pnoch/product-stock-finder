@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { invoke } from "@tauri-apps/api/core";
-import { getDistributorById } from "../../../lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import { computeHealthStats, createHealthService, type HealthStats } from "../../../lib/scrapers/health";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 

@@ -4,8 +4,8 @@ import { TrendingDown, TrendingUp, Package, BarChart3 } from "lucide-react";
 import { storage } from "../storage";
 import { EmptyState } from "../components/EmptyState";
 import { MultiLineChart } from "../components/MultiLineChart";
-import { formatPrice, convertPrice, CURRENCY_SYMBOLS } from "../../../lib/currency";
-import { DISTRIBUTORS } from "../../../lib/distributors";
+import { formatPrice, convertPrice, CURRENCY_SYMBOLS } from "@shared/currency";
+import { DISTRIBUTORS } from "@shared/distributors";
 import type { Product } from "../../../lib/types";
 import {
   computeBasketValue,

@@ -8,23 +8,12 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        // Shared lib files (imported by desktop via relative paths) use @/lib/...,
-        // @/constants/... etc internally. Resolve to repo root when not shadowed
-        // in desktop/src.
-        find: /^@\/lib\/(.*)$/,
-        replacement: path.resolve(__dirname, "../lib/$1"),
+        find: "@shared",
+        replacement: path.resolve(__dirname, "../shared/src"),
       },
       {
-        find: /^@\/constants\/(.*)$/,
-        replacement: path.resolve(__dirname, "../constants/$1"),
-      },
-      {
-        find: /^@\/server\/(.*)$/,
-        replacement: path.resolve(__dirname, "../server/$1"),
-      },
-      {
-        find: /^@\/shared\/(.*)$/,
-        replacement: path.resolve(__dirname, "../shared/$1"),
+        find: "@",
+        replacement: path.resolve(__dirname, ".."),
       },
       {
         // Keep react-native out of the desktop bundle: shared lib modules
@@ -56,10 +45,6 @@ export default defineConfig({
         // constants/oauth uses expo-linking only for native deep links.
         find: /^expo-linking$/,
         replacement: path.resolve(__dirname, "./src/lib/expo-linking-stub.ts"),
-      },
-      {
-        find: "@",
-        replacement: path.resolve(__dirname, "./src"),
       },
     ],
   },

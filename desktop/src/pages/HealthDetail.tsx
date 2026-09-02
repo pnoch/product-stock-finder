@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { getDistributorById } from "../../../lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import {
   computeHealthStats,
   computeHealthSummary,

@@ -1,37 +1,13 @@
-import { createTRPCClient } from "./trpc";
+// Deprecated: prefer @shared/fx. Kept for one release.
+// Pure fetch stays in @shared/fx; storage persistence + setExchangeRates stays here.
+import { fetchFxRates, FX_TTL_MS } from "@shared/fx";
+export { fetchFxRates, FX_TTL_MS };
 import { defaultStorage, type Storage } from "./storage";
 import { appendFxHistory } from "./fx-history";
 import { setExchangeRates } from "./currency";
 import type { FxRatesResult } from "./types";
 
-const TIMEOUT_MS = 4000;
-
-export const FX_TTL_MS = 60 * 60 * 1000; // 1 hour
-
-export async function fetchFxRates(): Promise<FxRatesResult | null> {
-  try {
-    const client = createTRPCClient();
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    const timeoutPromise = new Promise<null>((resolve) => {
-      timeoutId = setTimeout(() => resolve(null), TIMEOUT_MS);
-    });
-    const fetchPromise = client.fx.get.query();
-    // prevent unhandled rejection if fetch resolves after timeout
-    fetchPromise.catch(() => {});
-    const result = await Promise.race([fetchPromise, timeoutPromise]);
-    if (timeoutId) clearTimeout(timeoutId);
-    if (!result || typeof result.rates !== "object" || result.rates === null) {
-      return null;
-    }
-    return result;
-  } catch {
-    return null;
-  }
-}
-
-export async function loadFxRates(
-  storage: Storage = defaultStorage,
-): Promise<void> {
+export async function loadFxRates(storage: Storage = defaultStorage): Promise<void> {
   const stored = await storage.getFxRates();
   if (stored) setExchangeRates(stored.rates);
 }
@@ -52,18 +28,12 @@ function ratesEqual(a: Record<string, number>, b: Record<string, number>): boole
   return true;
 }
 
-export function refreshFxRates(
-  storage: Storage = defaultStorage,
-): Promise<void> {
+export function refreshFxRates(storage: Storage = defaultStorage): Promise<void> {
   const doRefresh = async () => {
     const result = await fetchFxRates();
     if (!result || typeof result.fetchedAt !== "number" || result.fetchedAt <= 0) return;
     const stored = await storage.getFxRates();
-    if (
-      stored &&
-      stored.fetchedAt === result.fetchedAt &&
-      ratesEqual(stored.rates, result.rates)
-    ) {
+    if (stored && stored.fetchedAt === result.fetchedAt && ratesEqual(stored.rates, result.rates)) {
       setExchangeRates(result.rates);
       return;
     }
@@ -86,15 +56,10 @@ export function refreshFxRates(
   return promise;
 }
 
-export async function maybeRefreshFxRates(
-  storage: Storage = defaultStorage,
-): Promise<void> {
+export async function maybeRefreshFxRates(storage: Storage = defaultStorage): Promise<void> {
   const stored = await storage.getFxRates();
-  // +0–5m jitter to avoid thundering herd — never expires early
   const jitter = Math.floor(Math.random() * 600_000);
   const fresh =
-    stored !== null &&
-    stored.fetchedAt > 0 &&
-    Date.now() - stored.fetchedAt < FX_TTL_MS + jitter;
+    stored !== null && stored.fetchedAt > 0 && Date.now() - stored.fetchedAt < FX_TTL_MS + jitter;
   if (!fresh) await refreshFxRates(storage);
 }

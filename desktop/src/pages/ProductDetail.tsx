@@ -18,9 +18,9 @@ import {
   convertPrice,
   EXCHANGE_RATES,
   CURRENCY_SYMBOLS,
-} from "../../../lib/currency";
+} from "@shared/currency";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
-import { DISTRIBUTORS } from "../../../lib/distributors";
+import { DISTRIBUTORS } from "@shared/distributors";
 import {
   getAllRegions,
   filterListingsByRegion,
@@ -92,7 +92,7 @@ export function ProductDetail() {
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
   const [insight, setInsight] = useState<string | null>(null);
-  const [buyNowLoading, setBuyNowLoading] = useState(false);
+  const [buyNowLoading] = useState(false);
   const [livePriceLoading, setLivePriceLoading] = useState(false);
   const { isDark } = useTheme();
 

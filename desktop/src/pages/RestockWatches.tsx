@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Trash2 } from "lucide-react";
 import { storage } from "../storage";
-import { getDistributorById } from "../../../lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import type { BackOrderReminder, StockStatus } from "../../../lib/types";

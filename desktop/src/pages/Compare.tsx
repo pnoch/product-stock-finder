@@ -1,15 +1,14 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams } from "react-router";
 import { storage } from "../storage";
-import { formatPrice, convertPrice, CURRENCY_SYMBOLS } from "../../../lib/currency";
-import { DISTRIBUTORS } from "../../../lib/distributors";
-import { getDistributorById } from "../../../lib/distributors";
+import { formatPrice, convertPrice, CURRENCY_SYMBOLS } from "@shared/currency";
+import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
 import type { Product } from "../../../lib/types";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
 import { TimeRangeChips } from "../components/TimeRangeChips";
-import { filterByRange, type TimeRange } from "../../../lib/compare-utils";
+import { filterByRange, type TimeRange } from "@shared/compare-utils";
 import {
   GitCompareArrows,
   TrendingDown,

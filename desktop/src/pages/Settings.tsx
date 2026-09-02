@@ -15,7 +15,7 @@ import {
 import { useSettings } from "../hooks/use-storage";
 import { storage } from "../storage";
 import { startPricePoller, stopPricePoller } from "../background";
-import { EXCHANGE_RATES, CURRENCY_SYMBOLS } from "../../../lib/currency";
+import { EXCHANGE_RATES, CURRENCY_SYMBOLS } from "@shared/currency";
 import {
   exportWatchlistAsJson,
   importWatchlistFromJson,

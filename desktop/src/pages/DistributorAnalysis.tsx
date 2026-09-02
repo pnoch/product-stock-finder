@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { storage } from "../storage";
-import { getDistributorById } from "../../../lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import { analyzeDistributors } from "../../../lib/distributor-analysis";
 import type { DistributorAnalysis } from "../../../lib/distributor-analysis";
-import { formatPrice } from "../../../lib/currency";
+import { formatPrice } from "@shared/currency";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 
 export function DistributorAnalysis() {

@@ -9,10 +9,10 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useWatchlist, useAlerts } from "../hooks/use-storage";
-import { formatPrice, getBestPrice, convertPrice } from "../../../lib/currency";
+import { formatPrice, getBestPrice, convertPrice } from "@shared/currency";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { storage } from "../storage";
-import { getDistributorById } from "../../../lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
