@@ -181,7 +181,7 @@ export async function upsertSyncItem(
           ),
         )
         .limit(1);
-      const accepted = row[0]?.updatedAtMs === stampedAt;
+      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt;
       return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
     }
     case "alerts": {
@@ -208,7 +208,7 @@ export async function upsertSyncItem(
           and(eq(priceAlerts.userId, userId), eq(priceAlerts.alertId, item.id)),
         )
         .limit(1);
-      const accepted = row[0]?.updatedAtMs === stampedAt;
+      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt;
       return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
     }
     case "reminders": {
@@ -238,7 +238,7 @@ export async function upsertSyncItem(
           ),
         )
         .limit(1);
-      const accepted = row[0]?.updatedAtMs === stampedAt;
+      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt;
       return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
     }
     case "settings": {
@@ -262,7 +262,7 @@ export async function upsertSyncItem(
         .from(appSettings)
         .where(eq(appSettings.userId, userId))
         .limit(1);
-      const accepted = row[0]?.updatedAtMs === stampedAt;
+      const accepted = row[0]?.clientUpdatedAtMs === item.updatedAt;
       return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
     }
     default:
