@@ -9,6 +9,7 @@ import {
   Image,
   Animated,
   Easing,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -64,6 +65,7 @@ function useAnimatedNumber(target: number) {
   return display;
 }
 
+// Shared stat pill — tokens aligned with components/watchlist/summary-card.tsx: 16px radius, 16px padding, 1px border
 function SummaryCard({
   label,
   value,
@@ -91,7 +93,10 @@ function SummaryCard({
     }
   }, [value, pop]);
   return (
-    <View className="flex-1 bg-surface rounded-2xl p-4 border border-border">
+    <View
+      className="flex-1 bg-surface rounded-2xl p-4 border border-border"
+      style={{ borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border }}
+    >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <IconSymbol name={icon as never} size={20} color={colors.muted} />
         <Animated.Text style={{ color, fontSize: 24, fontWeight: "700", transform: [{ scale: pop }] }}>{numeric}</Animated.Text>
@@ -109,6 +114,8 @@ export default function HomeScreen() {
   const [watchlist, setWatchlist] = useState<Product[]>([]);
   const [alertCount, setAlertCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [images, setImages] = useState<Map<string, string>>(new Map());
   const statAnim0 = useRef(new Animated.Value(0)).current;
@@ -140,6 +147,7 @@ export default function HomeScreen() {
 
   const loadData = useCallback(async () => {
     try {
+      setLoadError(null);
       const list = await getWatchlist();
       setWatchlist(list);
       const alerts = await getAlerts();
@@ -148,8 +156,9 @@ export default function HomeScreen() {
       setDisplayCurrency(settings?.displayCurrency ?? "USD");
     } catch (e) {
       console.error(e);
-      setWatchlist([]);
-      setAlertCount(0);
+      setLoadError(e instanceof Error ? e.message : "Failed to load watchlist");
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
@@ -379,7 +388,53 @@ export default function HomeScreen() {
           <Text className="text-base font-semibold text-foreground mb-3">
             Recent Activity
           </Text>
-          {recentActivity.length === 0 ? (
+          {!loaded ? (
+            <View style={{ alignItems: "center", paddingVertical: 32 }}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8 }}>Loading watchlist…</Text>
+            </View>
+          ) : loadError ? (
+            <View className="bg-surface rounded-2xl p-6 items-center border border-border">
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
+                  backgroundColor: colors.error + "14",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: 1,
+                  borderColor: colors.error + "22",
+                }}
+              >
+                <IconSymbol name="exclamationmark.triangle.fill" size={24} color={colors.error} />
+              </View>
+              <Text style={{ color: colors.foreground, fontWeight: "600", marginTop: 12, textAlign: "center" }}>
+                Couldn&apos;t load watchlist
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4, textAlign: "center" }}>
+                {loadError}
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                accessibilityLabel="Retry loading watchlist"
+                accessibilityRole="button"
+                style={{
+                  backgroundColor: colors.primary,
+                  borderRadius: 20,
+                  paddingHorizontal: 24,
+                  paddingVertical: 10,
+                  marginTop: 14,
+                }}
+                onPress={() => {
+                  setLoaded(false);
+                  void loadData();
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "600" }}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : recentActivity.length === 0 ? (
             <View className="bg-surface rounded-2xl p-8 items-center border border-border">
               <View
                 style={{
@@ -446,10 +501,12 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            recentActivity.map(({ product, listing }) => (
+            recentActivity.map(({ product, listing }) => {
+              const bestPrice = getBestPrice(product.listings ?? [], displayCurrency);
+              return (
               <TouchableOpacity activeOpacity={0.7}
                 key={product.id}
-                accessibilityLabel={listing ? `${product.name}, ${formatPrice(listing!.price, listing!.currency)}` : product.name}
+                accessibilityLabel={bestPrice ? `${product.name}, ${formatPrice(bestPrice.price, bestPrice.currency)}` : product.name}
                 accessibilityRole="button"
                 style={{
                   backgroundColor: colors.surface,
@@ -540,19 +597,22 @@ export default function HomeScreen() {
                       fontSize: 15,
                     }}
                   >
-                    {listing ? formatPrice(listing!.price, listing!.currency) : "—"}
+                    {bestPrice ? formatPrice(bestPrice.price, bestPrice.currency) : "—"}
                   </Text>
                   <Text style={{ color: colors.muted, fontSize: 11 }}>
                     {listing ? formatLastRefreshed(listing!.lastChecked) : formatLastRefreshed(product.addedAt)}
                   </Text>
                 </View>
               </TouchableOpacity>
-            ))
+              );
+            })
           )}
         </View>
 
         {/* Trending */}
-        <TrendingSection />
+        <View style={{ paddingHorizontal: 16 }}>
+          <TrendingSection />
+        </View>
 
         {/* Quick Access */}
         {watchlist.length > 0 && (

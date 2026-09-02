@@ -69,10 +69,7 @@ const TrendingProductRow = memo(function TrendingProductRow({
   const handlePress = useCallback(() => onPress(product.id), [onPress, product.id]);
   const handleAddPress = useCallback(
     (e: unknown) => {
-      // stopPropagation is web-only (native Pressable never bubbles); keeps outer Pressable from firing on web
-      if (Platform.OS === "web") {
-        (e as { stopPropagation?: () => void })?.stopPropagation?.();
-      }
+      (e as { stopPropagation?: () => void })?.stopPropagation?.();
       if (Platform.OS !== "web") {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
@@ -167,7 +164,7 @@ const TrendingProductRow = memo(function TrendingProductRow({
             {product.reason}
           </Text>
         </View>
-        <TouchableOpacity activeOpacity={0.85}
+        <Pressable
           onPress={handleAddPress}
           disabled={isInWatchlist}
           style={{
@@ -190,7 +187,7 @@ const TrendingProductRow = memo(function TrendingProductRow({
           >
             {isInWatchlist ? "In Watchlist" : "Add"}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </Pressable>
   );
@@ -202,7 +199,7 @@ export const TrendingSection = memo(function TrendingSection() {
   const router = useRouter();
   const { showToast } = useToast();
   const [pickerProduct, setPickerProduct] = React.useState<TrendingProduct | null>(null);
-  const { data: products, isLoading, isError, refetch, error } = useQuery({
+  const { data: products, isLoading, isError, refetch } = useQuery({
     queryKey: ["trending"],
     queryFn: fetchTrending,
     staleTime: 6 * 60 * 60 * 1000,
@@ -282,11 +279,7 @@ export const TrendingSection = memo(function TrendingSection() {
 
   const visibleProducts = useMemo(() => products?.slice(0, 3) ?? [], [products]);
 
-  const entryAnims = [
-    useRef(new Animated.Value(0)).current,
-    useRef(new Animated.Value(0)).current,
-    useRef(new Animated.Value(0)).current,
-  ];
+  const entryAnims = useMemo(() => Array.from({ length: 3 }, () => new Animated.Value(0)), []);
 
   useEffect(() => {
     if (!visibleProducts.length) return;

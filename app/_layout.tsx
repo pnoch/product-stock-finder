@@ -266,15 +266,26 @@ export default function RootLayout() {
 
   // Retry a failed sync when the app returns to the foreground.
   useEffect(() => {
+    let lastActive = 0;
     const onActive = async () => {
+      const now = Date.now();
+      if (now - lastActive < 1000) return;
+      lastActive = now;
       const setup = getSyncSetup();
       if (!setup) return;
       const meta = await getSyncMeta();
       if (meta.lastSyncError) void setup.syncNow();
     };
     if (Platform.OS === "web") {
+      const onVisibility = () => {
+        if (document.visibilityState === "visible") void onActive();
+      };
       window.addEventListener("focus", onActive);
-      return () => window.removeEventListener("focus", onActive);
+      document.addEventListener("visibilitychange", onVisibility);
+      return () => {
+        window.removeEventListener("focus", onActive);
+        document.removeEventListener("visibilitychange", onVisibility);
+      };
     }
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") void onActive();

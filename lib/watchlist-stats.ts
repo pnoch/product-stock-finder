@@ -107,7 +107,8 @@ export function computeMovers(
   }
 
   const byMagnitude = (a: PriceMove, b: PriceMove) =>
-    Math.abs(b.changePct) - Math.abs(a.changePct) || a.oldPrice - b.oldPrice;
+    Math.abs(b.changePct) - Math.abs(a.changePct) ||
+    a.productName.localeCompare(b.productName);
 
   return {
     drops: moves.filter((m) => m.changePct < 0).sort(byMagnitude).slice(0, 5),

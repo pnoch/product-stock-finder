@@ -115,8 +115,7 @@ export function ProductDetail() {
       }
       if (!cancelled) {
         setLoading(false);
-        // small delay to surface Buy Now loading polish
-        setTimeout(() => { if (!cancelled) setLivePriceLoading(false); }, 350);
+        setLivePriceLoading(false);
       }
 
       if (!("__TAURI__" in window)) return;
@@ -356,47 +355,38 @@ export function ProductDetail() {
               <PriceSparkline history={bestListing.priceHistory} />
             </div>
           </div>
-          <a
-            href={buyNowLoading || livePriceLoading || bestListing.stockStatus !== "in_stock" ? undefined : bestListing.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-disabled={buyNowLoading || livePriceLoading || bestListing.stockStatus !== "in_stock"}
-            tabIndex={buyNowLoading || livePriceLoading || bestListing.stockStatus !== "in_stock" ? -1 : undefined}
-            onClick={(e) => {
-              if (buyNowLoading || livePriceLoading || bestListing.stockStatus !== "in_stock") {
-                e.preventDefault();
-                return;
-              }
-              setBuyNowLoading(true);
-              setTimeout(() => setBuyNowLoading(false), 900);
-            }}
-            className={`mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150 ${
-              buyNowLoading || livePriceLoading
-                ? "bg-emerald-500 text-white cursor-wait opacity-80"
-                : bestListing.stockStatus === "in_stock"
-                  ? "bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer"
-                  : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed pointer-events-none"
-            }`}
-            aria-label={
-              buyNowLoading || livePriceLoading
-                ? "Loading price"
-                : bestListing.stockStatus === "in_stock"
-                  ? `Buy ${product.name} at ${bestDistributor.name}`
+          {bestListing.stockStatus !== "in_stock" || buyNowLoading || livePriceLoading ? (
+            <button
+              type="button"
+              disabled
+              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150 bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+              aria-label={
+                buyNowLoading || livePriceLoading
+                  ? "Loading price"
                   : `${product.name} is not in stock at ${bestDistributor.name}`
-            }
-          >
-            {buyNowLoading || livePriceLoading ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
-              </>
-            ) : bestListing.stockStatus === "in_stock" ? (
-              <>Buy Now <ExternalLink className="w-3.5 h-3.5" /></>
-            ) : bestListing.stockStatus === "back_order" ? (
-              <>Back Order <ExternalLink className="w-3.5 h-3.5" /></>
-            ) : (
-              <>Out of Stock <ExternalLink className="w-3.5 h-3.5" /></>
-            )}
-          </a>
+              }
+            >
+              {buyNowLoading || livePriceLoading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
+                </>
+              ) : bestListing.stockStatus === "back_order" ? (
+                <>Back Order <ExternalLink className="w-3.5 h-3.5" /></>
+              ) : (
+                <>Out of Stock <ExternalLink className="w-3.5 h-3.5" /></>
+              )}
+            </button>
+          ) : (
+            <a
+              href={bestListing.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150 bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer"
+              aria-label={`Buy ${product.name} at ${bestDistributor.name}`}
+            >
+              Buy Now <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          )}
         </div>
       )}
 

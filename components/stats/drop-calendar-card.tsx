@@ -1,5 +1,5 @@
 import { memo, useState, useMemo, useCallback } from "react";
-import { Text, View, TouchableOpacity } from "react-native";
+import { Text, View, TouchableOpacity, useWindowDimensions } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@/lib/currency";
@@ -40,6 +40,12 @@ export const DropCalendarCard = memo(function DropCalendarCard({
   now?: number;
 }) {
   const colors = useColors();
+  const { width: windowWidth } = useWindowDimensions();
+  const cellSize = useMemo(() => {
+    const available = windowWidth - 32 - 32 - 6 * 4;
+    const ideal = Math.floor(available / 7);
+    return Math.max(28, Math.min(34, ideal));
+  }, [windowWidth]);
   const [now, setNow] = useState(() => nowProp ?? Date.now());
   useFocusEffect(
     useCallback(() => {
@@ -66,8 +72,8 @@ export const DropCalendarCard = memo(function DropCalendarCard({
     const isToday = key === dateKey(now);
     const isSelected = key === selectedKey;
     const base = {
-      width: 34,
-      height: 34,
+      width: cellSize,
+      height: cellSize,
       borderRadius: 8,
       alignItems: "center" as const,
       justifyContent: "center" as const,
@@ -122,7 +128,7 @@ export const DropCalendarCard = memo(function DropCalendarCard({
             style={{
               color: colors.muted,
               fontSize: 9,
-              width: 34,
+              width: cellSize,
               textAlign: "center",
             }}
           >
@@ -136,7 +142,7 @@ export const DropCalendarCard = memo(function DropCalendarCard({
           ts === null ? (
             <View
               key={`blank-${i}`}
-              style={{ width: 34, height: 34, marginBottom: 4 }}
+              style={{ width: cellSize, height: cellSize, marginBottom: 4 }}
             />
           ) : (
             <TouchableOpacity activeOpacity={0.7}

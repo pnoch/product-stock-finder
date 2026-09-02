@@ -279,11 +279,15 @@ export function DistributorListingSection({
             {["all", ...regions].map((region) => (
               <TouchableOpacity activeOpacity={0.85}
                 key={region}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                 onPress={() => onSetRegionFilter(region)}
                 style={{
                   paddingHorizontal: 12,
                   paddingVertical: 6,
                   borderRadius: 16,
+                  minHeight: 44,
+                  justifyContent: "center",
+                  alignItems: "center",
                   backgroundColor:
                     regionFilter === region
                       ? colors.primary

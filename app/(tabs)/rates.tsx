@@ -45,10 +45,10 @@ export default function RatesScreen() {
 
   const currentRates = history?.rates
     ? Object.fromEntries(
-        Object.entries(history.rates).map(([code, rates]) => [
-          code,
-          rates[rates.length - 1] ?? EXCHANGE_RATES[code] ?? 1,
-        ])
+        Object.entries(history.rates).map(([code, rates]) => {
+          const last = rates[rates.length - 1];
+          return [code, last !== null && last !== undefined && Number.isFinite(last) ? last : (EXCHANGE_RATES[code] ?? 1)];
+        })
       )
     : EXCHANGE_RATES;
 

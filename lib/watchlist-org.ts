@@ -5,7 +5,7 @@ import type {
   WatchlistGroup,
   WatchlistSort,
 } from "./types";
-import { convertPrice, CURRENCY_SYMBOLS, getBestPrice } from "./currency";
+import { convertPrice, getBestPrice } from "./currency";
 import { getDistributorById } from "./distributors";
 import { productHasRegion } from "./region-filter";
 import { matchesTagFilterMode } from "./tags";
@@ -97,7 +97,6 @@ export function filterWatchlist(
   filters: WatchlistFilters,
 ): Product[] {
   const q = filters.query.trim().toLowerCase();
-  void CURRENCY_SYMBOLS;
   return list.filter((p) => {
     if (filters.region !== "all" && !productHasRegion(p, filters.region))
       return false;
@@ -112,7 +111,6 @@ export function filterWatchlist(
       const best = getBestPrice(p.listings ?? [], currency);
       if (!best) return false;
       if (best.price < min || best.price > max) return false;
-      void convertPrice(best.price, currency, currency);
     }
     if (
       q &&

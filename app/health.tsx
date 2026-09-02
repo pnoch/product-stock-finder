@@ -40,7 +40,7 @@ function HealthSparkline({ data, color }: { data: number[]; color: string }) {
     return `${x},${y}`;
   });
   return (
-    <Svg width={width} height={height}>
+    <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       <Polyline
         points={coords.join(" ")}
         fill="none"
@@ -185,6 +185,7 @@ export default function HealthScreen() {
       <TouchableOpacity activeOpacity={0.85}
         accessibilityLabel="Test All Distributors"
         accessibilityRole="button"
+        accessibilityState={{ disabled: testing }}
         onPress={() => {
           if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           runTest();
@@ -197,6 +198,7 @@ export default function HealthScreen() {
           borderRadius: 12,
           backgroundColor: colors.primary,
           alignItems: "center",
+          opacity: testing ? 0.5 : 1,
         }}
       >
         {testing ? (

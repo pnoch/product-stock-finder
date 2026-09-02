@@ -72,9 +72,10 @@ export function computeDropCalendar(
         if (curr.v! >= prev.v!) continue;
 
         const key = dateKey(curr.t);
+        const dedupeKey = `${product.id}::${listing.distributorId}`;
         const seen = seenByDay.get(key) ?? new Set<string>();
-        if (seen.has(product.id)) continue;
-        seen.add(product.id);
+        if (seen.has(dedupeKey)) continue;
+        seen.add(dedupeKey);
         seenByDay.set(key, seen);
 
         const day = byDay.get(key) ?? {

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useId } from "react";
 import { HashRouter, Routes, Route, useNavigate } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { X } from "lucide-react";
 import { Sidebar } from "./components/Sidebar";
 import { SearchModal } from "./components/SearchModal";
 import { ConnectionBadge } from "./components/ConnectionBadge";
@@ -26,6 +27,23 @@ import { trpc, createTRPCClient } from "./lib/trpc";
 import { setupSync, type SyncSetup } from "../../lib/sync";
 import { storage } from "./storage";
 import { syncDesktopNotifications } from "./server-notifications";
+
+function NotFound() {
+  const navigate = useNavigate();
+  return (
+    <div className="flex flex-col items-center justify-center p-12 text-center">
+      <h1 className="text-2xl font-bold mb-2">Page not found</h1>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">The page you requested does not exist.</p>
+      <button
+        type="button"
+        onClick={() => navigate("/")}
+        className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
+      >
+        Go to Dashboard
+      </button>
+    </div>
+  );
+}
 
 function HeaderBar() {
   const connection = useConnection();
@@ -59,21 +77,54 @@ function HeaderBar() {
 }
 
 function ShortcutsOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousActiveRef = useRef<HTMLElement | null>(null);
+  const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform ?? navigator.userAgent);
+  const mod = isMac ? "⌘" : "Ctrl";
   if (!open) return null;
   const shortcuts = [
-    { keys: ["⌘", "K"], label: "Search products" },
-    { keys: ["⌘", ","], label: "Open Settings" },
-    { keys: ["⌘", "Shift", "T"], label: "Toggle theme" },
-    { keys: ["⌘", "E"], label: "Export watchlist" },
+    { keys: [mod, "K"], label: "Search products" },
+    { keys: [mod, ","], label: "Open Settings" },
+    { keys: [mod, "Shift", "T"], label: "Toggle theme" },
+    { keys: [mod, "E"], label: "Export watchlist" },
     { keys: ["?"], label: "Show shortcuts" },
     { keys: ["Esc"], label: "Close dialog" },
   ];
+  // focus trap + restore
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    previousActiveRef.current = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    if (dialog) {
+      const focusable = dialog.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      (focusable[0] as HTMLElement | undefined)?.focus();
+    }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "Tab") {
+        const dialogEl = dialogRef.current;
+        if (!dialogEl) return;
+        const focusable = Array.from(dialogEl.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter((el) => !el.hasAttribute("disabled"));
+        if (focusable.length === 0) { e.preventDefault(); return; }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      if (previousActiveRef.current) previousActiveRef.current.focus();
+    };
+  }, [open, onClose]);
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fadeIn" onClick={onClose} role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6 animate-scaleIn" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fadeIn" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div ref={dialogRef} tabIndex={-1} className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6 animate-scaleIn outline-none" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Keyboard Shortcuts</h2>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500" aria-label="Close shortcuts">✕</button>
+          <h2 id={titleId} className="text-lg font-semibold">Keyboard Shortcuts</h2>
+          <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500" aria-label="Close shortcuts"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-2">
           {shortcuts.map((s) => (
@@ -256,6 +307,7 @@ export default function App() {
                       path="/distributor-analysis"
                       element={<DistributorAnalysis />}
                     />
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                 </div>
               </div>

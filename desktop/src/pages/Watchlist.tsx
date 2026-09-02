@@ -156,7 +156,6 @@ export function Watchlist() {
     const arr = [...filtered];
     arr.sort((a, b) => {
       let cmp = 0;
-      let priceNullCase: boolean = false;
       switch (sortKey) {
         case "name":
           cmp = a.name.localeCompare(b.name);
@@ -165,10 +164,9 @@ export function Watchlist() {
           const aPrice = getBestPrice(a.listings, displayCurrency)?.price ?? null;
           const bPrice = getBestPrice(b.listings, displayCurrency)?.price ?? null;
           if (aPrice === null && bPrice === null) cmp = 0;
-          else if (aPrice === null) cmp = 1;
-          else if (bPrice === null) cmp = -1;
+          else if (aPrice === null) return 1;
+          else if (bPrice === null) return -1;
           else cmp = aPrice - bPrice;
-          priceNullCase = aPrice === null || bPrice === null;
           break;
         }
         case "trend": {
@@ -179,15 +177,14 @@ export function Watchlist() {
         case "lastUpdated": {
           const aTime = new Date(a.lastRefreshed ?? a.addedAt).getTime();
           const bTime = new Date(b.lastRefreshed ?? b.addedAt).getTime();
-          cmp = bTime - aTime;
+          cmp = aTime - bTime;
           break;
         }
       }
-      if (priceNullCase) return cmp;
       return sortAsc ? cmp : -cmp;
     });
     return arr;
-  }, [filtered, sortKey, sortAsc]);
+  }, [filtered, sortKey, sortAsc, displayCurrency]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -229,6 +226,7 @@ export function Watchlist() {
 
   const handleRemove = async (e: React.MouseEvent, productId: string) => {
     e.stopPropagation();
+    if (!window.confirm("Remove this product from your watchlist?")) return;
     await storage.removeFromWatchlist(productId);
     await refresh();
     showToast("Removed from watchlist");
@@ -381,11 +379,11 @@ export function Watchlist() {
 
       <div
         ref={scrollRef}
-        style={{ maxHeight: "60vh", overflow: "auto" }}
-        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
       >
-        <table className="w-full">
-          <thead className="sticky top-0 bg-white dark:bg-gray-800 z-10">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="sticky top-0 bg-white dark:bg-gray-800 z-10">
             <tr className="border-b border-gray-200 dark:border-gray-700">
               <th className="text-left">
                 <button
@@ -451,19 +449,7 @@ export function Watchlist() {
                     setSelectedId(product.id);
                     navigate(`/product/${product.id}`);
                   }}
-                  onKeyDown={(e) => {
-                    if (e.target !== e.currentTarget) return;
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setSelectedId(product.id);
-                      navigate(`/product/${product.id}`);
-                    }
-                  }}
-                  onFocus={() => setSelectedId(product.id)}
-                  tabIndex={0}
-                  className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset ${selectedId === product.id ? "bg-brand-50 dark:bg-brand-900/10 border-l-2 border-l-brand-500" : "border-l-2 border-l-transparent hover:border-l-brand-200"}`}
-                  role="button"
-                  aria-label={`View ${product.name} details`}
+                  className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors duration-150 ${selectedId === product.id ? "bg-brand-50 dark:bg-brand-900/10 border-l-2 border-l-brand-500" : "border-l-2 border-l-transparent hover:border-l-brand-200"}`}
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center">
@@ -531,9 +517,9 @@ export function Watchlist() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
+                      type="button"
                       onClick={(e) => handleRemove(e, product.id)}
                       onKeyDown={(e) => e.stopPropagation()}
-                      tabIndex={0}
                       className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                       aria-label={`Remove ${product.name} from watchlist`}
                     >
@@ -544,7 +530,8 @@ export function Watchlist() {
               );
             })}
           </tbody>
-        </table>
+          </table>
+        </div>
 
         {sorted.length === 0 && (
           <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400 space-y-3">

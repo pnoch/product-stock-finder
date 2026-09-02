@@ -611,6 +611,8 @@ export default function WatchlistScreen() {
             statusFilter={statusFilter}
             regionFilter={regionFilter}
             selectedTagIds={selectedTagIds}
+            inStockOnly={inStockOnly}
+            priceRange={priceRange}
             onClearFilters={() => {
               setRegionFilter("all");
               setSelectedTagIds([]);

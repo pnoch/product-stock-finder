@@ -9,6 +9,8 @@ export function EmptyState({
   statusFilter,
   regionFilter,
   selectedTagIds,
+  inStockOnly,
+  priceRange,
   onClearFilters,
   onAddProduct,
 }: {
@@ -16,6 +18,8 @@ export function EmptyState({
   statusFilter: StatusFilter;
   regionFilter: string;
   selectedTagIds: string[];
+  inStockOnly?: boolean;
+  priceRange?: [number, number];
   onClearFilters: () => void;
   onAddProduct: () => void;
 }) {
@@ -25,7 +29,9 @@ export function EmptyState({
     regionFilter !== "all" ||
     selectedTagIds.length > 0 ||
     statusFilter !== "all" ||
-    query.trim().length > 0;
+    query.trim().length > 0 ||
+    !!inStockOnly ||
+    !!priceRange;
 
   return (
     <View

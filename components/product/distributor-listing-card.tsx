@@ -103,8 +103,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
             numberOfLines={1}
             ellipsizeMode="tail"
           >
-            {distributor?.countryFlag}{" "}
-            {distributor?.name ?? listing.distributorId}
+            {[distributor?.countryFlag, distributor?.name ?? listing.distributorId].filter(Boolean).join(" ")}
           </Text>
           <Text
             style={{
@@ -165,8 +164,9 @@ export const DistributorListingCard = memo(function DistributorListingCard({
             listing.priceHistory.length >= 2 && (
               <Pressable
                 onPress={handleOpenChart}
+                hitSlop={8}
                 android_ripple={{ color: colors.primary + "22", borderless: false, radius: 24 }}
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, borderRadius: 8, overflow: "hidden" })}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, borderRadius: 8, overflow: "hidden", minHeight: 44, minWidth: 44, justifyContent: "center", alignItems: "center" })}
                 accessibilityLabel="Open price chart"
                 accessibilityRole="button"
               >
@@ -180,6 +180,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
             )}
           <Pressable
             onPress={handleVisit}
+            hitSlop={8}
             android_ripple={{ color: colors.primary + "22", borderless: false }}
             style={({ pressed }) => ({
               backgroundColor: colors.primary + "22",
@@ -191,6 +192,8 @@ export const DistributorListingCard = memo(function DistributorListingCard({
               gap: 4,
               opacity: pressed ? 0.85 : 1,
               overflow: "hidden",
+              minHeight: 44,
+              justifyContent: "center",
             })}
             accessibilityLabel="Visit distributor website"
             accessibilityRole="button"

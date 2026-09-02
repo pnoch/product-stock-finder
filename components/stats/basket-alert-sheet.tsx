@@ -13,11 +13,13 @@ export const BasketAlertSheet = memo(function BasketAlertSheet({
   onClose,
   currentThreshold,
   onSave,
+  displayCurrency,
 }: {
   visible: boolean;
   onClose: () => void;
   currentThreshold: number | null;
   onSave: (threshold: number | null) => void;
+  displayCurrency?: string;
 }) {
   const colors = useColors();
   const [value, setValue] = useState("");
@@ -74,7 +76,7 @@ export const BasketAlertSheet = memo(function BasketAlertSheet({
           </Text>
           <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 14 }}>
             Notify me when the total watchlist value drops below this amount
-            (USD). Fires once, then turns off.
+            ({displayCurrency ?? "USD"}). Fires once, then turns off.
           </Text>
           <TextInput
             value={value}

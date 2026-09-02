@@ -32,6 +32,7 @@ export function MultiLineChart({
   const colors = useColors();
   const [scrubX, setScrubX] = useState<number | null>(null);
   const movedRef = useRef(false);
+  const startXRef = useRef<number | null>(null);
   const padLConst = 56;
   const padRConst = 16;
 
@@ -129,19 +130,29 @@ export function MultiLineChart({
 
   return (
     <View
-      onStartShouldSetResponder={() => true}
-      onMoveShouldSetResponder={() => true}
+      onStartShouldSetResponder={(e) => {
+        startXRef.current = e.nativeEvent.locationX;
+        return false;
+      }}
+      onMoveShouldSetResponder={(e) => {
+        if (startXRef.current == null) return false;
+        return Math.abs(e.nativeEvent.locationX - startXRef.current) > 8;
+      }}
       onResponderGrant={(e) => {
         movedRef.current = false;
+        startXRef.current = e.nativeEvent.locationX;
         setScrubX(clampScrub(e.nativeEvent.locationX));
       }}
       onResponderMove={(e) => {
+        if (startXRef.current != null && Math.abs(e.nativeEvent.locationX - startXRef.current) <= 8 && !movedRef.current) return;
         movedRef.current = true;
         setScrubX(clampScrub(e.nativeEvent.locationX));
       }}
       onResponderRelease={() => {
+        startXRef.current = null;
         if (!movedRef.current) setScrubX(null);
       }}
+      onResponderTerminationRequest={() => false}
     >
       <Svg width={width} height={height}>
       {[maxY, midY, minY].map((y, i) => (

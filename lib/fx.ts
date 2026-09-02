@@ -11,12 +11,15 @@ export const FX_TTL_MS = 60 * 60 * 1000; // 1 hour
 export async function fetchFxRates(): Promise<FxRatesResult | null> {
   try {
     const client = createTRPCClient();
-    const result = await Promise.race([
-      client.fx.get.query(),
-      new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), TIMEOUT_MS),
-      ),
-    ]);
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const timeoutPromise = new Promise<null>((resolve) => {
+      timeoutId = setTimeout(() => resolve(null), TIMEOUT_MS);
+    });
+    const fetchPromise = client.fx.get.query();
+    // prevent unhandled rejection if fetch resolves after timeout
+    fetchPromise.catch(() => {});
+    const result = await Promise.race([fetchPromise, timeoutPromise]);
+    if (timeoutId) clearTimeout(timeoutId);
     if (!result || typeof result.rates !== "object" || result.rates === null) {
       return null;
     }
@@ -87,8 +90,8 @@ export async function maybeRefreshFxRates(
   storage: Storage = defaultStorage,
 ): Promise<void> {
   const stored = await storage.getFxRates();
-  // ±5m jitter to avoid thundering herd — never expires early on negative side via TTL+jitter floor
-  const jitter = Math.floor(Math.random() * 600_000) - 300_000;
+  // +0–5m jitter to avoid thundering herd — never expires early
+  const jitter = Math.floor(Math.random() * 600_000);
   const fresh =
     stored !== null &&
     stored.fetchedAt > 0 &&

@@ -8,7 +8,7 @@ export function appendFxHistory(
   timestamp: number,
 ): FxHistory {
   if (!existing) {
-    const historyRates: Record<string, number[]> = {};
+    const historyRates: Record<string, (number | null)[]> = {};
     for (const [code, value] of Object.entries(rates)) {
       historyRates[code] = [value];
     }
@@ -18,7 +18,7 @@ export function appendFxHistory(
   const isDuplicateTs =
     existing.timestamps[existing.timestamps.length - 1] === timestamp;
 
-  const newRates: Record<string, number[]> = {};
+  const newRates: Record<string, (number | null)[]> = {};
   const allCodes = new Set([
     ...Object.keys(existing.rates),
     ...Object.keys(rates),
@@ -41,23 +41,21 @@ export function appendFxHistory(
       }
     } else if (incomingValid) {
       const newVal = rawVal as number;
-      let base = [...prev];
+      let base: (number | null)[] = [...prev];
       if (base.length < existing.timestamps.length) {
         const pad = existing.timestamps.length - base.length;
-        for (let i = 0; i < pad; i++) base.push(null as unknown as number);
+        for (let i = 0; i < pad; i++) base.push(null);
       }
       newRates[code] = [...base, newVal];
     } else {
       if (!(code in rates)) continue;
-      let base = [...prev];
+      let base: (number | null)[] = [...prev];
       if (base.length < existing.timestamps.length) {
         const pad = existing.timestamps.length - base.length;
-        for (let i = 0; i < pad; i++) base.push(null as unknown as number);
+        for (let i = 0; i < pad; i++) base.push(null);
       }
       newRates[code] =
-        base.length === 0
-          ? [null as unknown as number]
-          : [...base, null as unknown as number];
+        base.length === 0 ? [null] : [...base, null];
     }
   }
 
@@ -71,7 +69,7 @@ export function appendFxHistory(
       arr = arr.slice(-MAX_POINTS);
     } else if (arr.length < trimmedTimestamps.length) {
       while (arr.length < trimmedTimestamps.length) {
-        arr.unshift(null as unknown as number);
+        arr.unshift(null);
       }
     } else if (arr.length > MAX_POINTS) {
       arr = arr.slice(-MAX_POINTS);
@@ -95,7 +93,11 @@ export function getFxChange(
     } else {
       const prev = rates[rates.length - 2];
       const curr = rates[rates.length - 1];
-      change[code] = prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : 0;
+      if (prev === null || curr === null || !Number.isFinite(prev) || !Number.isFinite(curr)) {
+        change[code] = 0;
+      } else {
+        change[code] = prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : 0;
+      }
     }
   }
   return change;

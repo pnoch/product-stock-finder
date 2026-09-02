@@ -44,7 +44,11 @@ export const InsightsCard = memo(function InsightsCard({ result }: { result: Pro
           </Text>
           <Text style={{ color: colors.muted, fontSize: 11 }}>Dropping now</Text>
         </View>
-        <View style={{ flex: 1 }}>
+        <View
+          style={{ flex: 1 }}
+          accessibilityLabel={`Volatility Low ${result.volatility.low}, Medium ${result.volatility.medium}, High ${result.volatility.high}`}
+          accessibilityRole="text"
+        >
           <Text
             style={{
               color: colors.foreground,
@@ -56,7 +60,10 @@ export const InsightsCard = memo(function InsightsCard({ result }: { result: Pro
             {result.volatility.high}
           </Text>
           <Text style={{ color: colors.muted, fontSize: 11 }}>
-            Volatility L·M·H
+            Volatility
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 9 }}>
+            Low · Medium · High
           </Text>
         </View>
       </View>

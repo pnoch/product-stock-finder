@@ -75,7 +75,7 @@ describe("computeMovers", () => {
       ], "Router C"),
     ];
     const result = computeMovers(wl, "USD", 30, NOW);
-    expect(result.drops.map((d) => d.productId)).toEqual(["p3", "p1"]);
+    expect(result.drops.map((d) => d.productId)).toEqual(["p1", "p3"]);
     expect(result.drops[0].changePct).toBe(-20);
     expect(result.gainers.map((g) => g.productId)).toEqual(["p2"]);
     expect(result.gainers[0].changePct).toBe(25);

@@ -1,3 +1,4 @@
+import Fuse from "fuse.js";
 import { PRODUCT_CATALOG } from "./catalog";
 
 export type CatalogProduct = (typeof PRODUCT_CATALOG)[0];
@@ -31,20 +32,35 @@ export interface MatchResult {
   unmatched: string[];
 }
 
-// Case-insensitive exact modelNumber equality — no substring matching.
 export function matchModels(
   models: string[],
   catalog: CatalogProduct[] = PRODUCT_CATALOG,
 ): MatchResult {
-  const byModel = new Map(
-    catalog.map((p) => [p.modelNumber.toLowerCase(), p] as const),
-  );
+  const fuse = new Fuse(catalog, {
+    keys: ["modelNumber"],
+    threshold: 0.3,
+    includeScore: true,
+    ignoreLocation: true,
+  });
   const matched: CatalogProduct[] = [];
   const matchedKeys = new Set<string>();
   const unmatched: string[] = [];
+  const byExact = new Map(
+    catalog.map((p) => [p.modelNumber.toLowerCase(), p] as const),
+  );
   for (const model of models) {
-    const hit = byModel.get(model.toLowerCase());
-    if (hit) {
+    const exact = byExact.get(model.toLowerCase());
+    if (exact) {
+      const key = exact.id;
+      if (!matchedKeys.has(key)) {
+        matchedKeys.add(key);
+        matched.push(exact);
+      }
+      continue;
+    }
+    const results = fuse.search(model);
+    const hit = results[0]?.item;
+    if (hit && results[0].score !== undefined && results[0].score <= 0.3) {
       const key = hit.id;
       if (!matchedKeys.has(key)) {
         matchedKeys.add(key);

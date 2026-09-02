@@ -53,10 +53,11 @@ describe("matchModels", () => {
     expect(unmatched).toEqual(["NOPE-123"]);
   });
 
-  it("does not substring-match", () => {
+  it("fuzzy-matches close model numbers via Fuse threshold 0.3", () => {
     const { matched } = matchModels(["CRS804"], PRODUCT_CATALOG);
-    // Catalog contains "CRS804-4DDQ-hRM" — plain "CRS804" must NOT match.
-    expect(matched).toHaveLength(0);
+    // Catalog contains "CRS804-4DDQ-hRM" — fuzzy search should match with score <=0.3.
+    expect(matched).toHaveLength(1);
+    expect(matched[0].modelNumber).toBe("CRS804-4DDQ-hRM");
   });
 
   it("dedupes duplicate matches", () => {

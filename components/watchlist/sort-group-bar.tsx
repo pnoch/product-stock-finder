@@ -1,4 +1,4 @@
-import { Text, View, TouchableOpacity, Platform } from "react-native";
+import { Text, View, TouchableOpacity, Pressable, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -8,6 +8,7 @@ import {
   type WatchlistSort,
   type WatchlistGroup,
 } from "@/lib/watchlist-org";
+import { useRef, useCallback } from "react";
 
 export function SortGroupBar({
   sortMode,
@@ -25,6 +26,14 @@ export function SortGroupBar({
   onSortMenuToggle: () => void;
 }) {
   const colors = useColors();
+  const lastHapticRef = useRef(0);
+  const throttledHaptic = useCallback(() => {
+    if (Platform.OS === "web") return;
+    const now = Date.now();
+    if (now - lastHapticRef.current < 300) return;
+    lastHapticRef.current = now;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
 
   return (
     <View style={{ position: "relative", zIndex: 10, paddingHorizontal: 16, paddingBottom: 10 }}>
@@ -38,8 +47,7 @@ export function SortGroupBar({
       >
         <TouchableOpacity activeOpacity={0.7}
           onPress={() => {
-            if (Platform.OS !== "web")
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            throttledHaptic();
             onSortMenuToggle();
           }}
           style={{
@@ -69,8 +77,7 @@ export function SortGroupBar({
             <TouchableOpacity activeOpacity={0.85}
               key={opt.key}
               onPress={() => {
-                if (Platform.OS !== "web")
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                throttledHaptic();
                 onGroupModeChange(opt.key);
               }}
               style={{
@@ -100,35 +107,47 @@ export function SortGroupBar({
       </View>
 
       {sortMenuOpen && (
-        <View
-          style={{
-            position: "absolute",
-            top: 40,
-            left: 0,
-            right: 0,
-            borderRadius: 12,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-            overflow: "hidden",
-            zIndex: 10,
-            elevation: 8,
-            shadowColor: "#000",
-            shadowOpacity: 0.15,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 4 },
-          }}
-        >
-          {SORT_OPTIONS.map((opt) => {
-            const active = sortMode === opt.key;
-            return (
-              <TouchableOpacity activeOpacity={0.85}
-                key={opt.key}
-                onPress={() => {
-                  if (Platform.OS !== "web")
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  onSortModeChange(opt.key);
-                }}
+        <>
+          <Pressable
+            onPress={onSortMenuToggle}
+            style={{
+              position: "absolute",
+              top: -1000,
+              left: -1000,
+              right: -1000,
+              bottom: -1000,
+              zIndex: 5,
+            }}
+            accessibilityLabel="Dismiss sort menu"
+          />
+          <View
+            style={{
+              position: "absolute",
+              top: 40,
+              left: 16,
+              right: 16,
+              borderRadius: 12,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              overflow: "hidden",
+              zIndex: 10,
+              elevation: 8,
+              shadowColor: "#000",
+              shadowOpacity: 0.15,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 4 },
+            }}
+          >
+            {SORT_OPTIONS.map((opt) => {
+              const active = sortMode === opt.key;
+              return (
+                <TouchableOpacity activeOpacity={0.85}
+                  key={opt.key}
+                  onPress={() => {
+                    throttledHaptic();
+                    onSortModeChange(opt.key);
+                  }}
                 style={{
                   paddingVertical: 10,
                   paddingHorizontal: 14,
@@ -150,9 +169,10 @@ export function SortGroupBar({
                   {opt.label}
                 </Text>
               </TouchableOpacity>
-            );
-          })}
-        </View>
+              );
+            })}
+          </View>
+        </>
       )}
     </View>
   );

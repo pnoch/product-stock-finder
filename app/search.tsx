@@ -379,10 +379,17 @@ export default function SearchScreen() {
             )}
           </View>
         }
-        ListEmptyComponent={
-          <View>
-            <SearchEmptyState query={query} selectedTagIds={selectedTagIds} />
-            {query.trim().length > 0 && !discovering && (
+        ListEmptyComponent={<SearchEmptyState query={query} selectedTagIds={selectedTagIds} />}
+        ListFooterComponent={
+          query.trim().length > 0 ? (
+            discovering ? (
+              <View style={{ alignItems: "center", padding: 24 }}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={{ color: colors.muted, marginTop: 8 }}>
+                  Discovering product...
+                </Text>
+              </View>
+            ) : (
               <TouchableOpacity activeOpacity={0.85}
                 accessibilityLabel="Discover with AI"
                 accessibilityRole="button"
@@ -415,16 +422,8 @@ export default function SearchScreen() {
                   Discover with AI
                 </Text>
               </TouchableOpacity>
-            )}
-            {discovering && (
-              <View style={{ alignItems: "center", padding: 24 }}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={{ color: colors.muted, marginTop: 8 }}>
-                  Discovering product...
-                </Text>
-              </View>
-            )}
-          </View>
+            )
+          ) : null
         }
         renderItem={({ item }) => (
           <CatalogProductCard

@@ -18,7 +18,7 @@ const CURRENCY_INFO: Record<string, { flag: string }> = {
 
 interface FxRateGridProps {
   currentRates: Record<string, number>;
-  history: Record<string, number[]>;
+  history: Record<string, (number | null)[]>;
   change: Record<string, number>;
 }
 

@@ -1,7 +1,7 @@
 import type { StorageContext } from "./context";
 
 export interface FxHistory {
-  rates: Record<string, number[]>;
+  rates: Record<string, (number | null)[]>;
   timestamps: number[];
 }
 

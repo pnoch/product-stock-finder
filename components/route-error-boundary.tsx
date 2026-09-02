@@ -118,7 +118,16 @@ export class RouteErrorBoundary extends React.Component<
   state = { hasError: false, message: "" };
 
   static getDerivedStateFromError(error: Error) {
-    return { hasError: true, message: error.message.slice(0, 160) };
+    const msg = error.message ?? "";
+    let truncated: string;
+    if (typeof Intl !== "undefined" && (Intl as unknown as { Segmenter?: unknown }).Segmenter) {
+      const segmenter = new (Intl as unknown as { Segmenter: new (opts: unknown, opts2: unknown) => { segment: (s: string) => Iterable<{ segment: string }> } }).Segmenter(undefined, { granularity: "grapheme" });
+      const graphemes = [...segmenter.segment(msg)].map((s) => s.segment);
+      truncated = graphemes.slice(0, 160).join("");
+    } else {
+      truncated = Array.from(msg).slice(0, 160).join("");
+    }
+    return { hasError: true, message: truncated };
   }
 
   componentDidCatch(error: Error) {

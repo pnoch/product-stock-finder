@@ -60,7 +60,10 @@ export default function CompareScreen() {
     (id ?? "");
   const notFound = loaded && !product && listings.length === 0;
   const { width: windowWidth } = useWindowDimensions();
-  const chartWidth = windowWidth - 64;
+  const [chartWidth, setChartWidth] = useState(windowWidth - 64);
+  useEffect(() => {
+    setChartWidth(windowWidth - 64);
+  }, [windowWidth]);
 
   useEffect(() => {
     getSettings().then((s) => {
@@ -97,10 +100,13 @@ export default function CompareScreen() {
         next.delete(distributorId);
       } else if (next.size < 5) {
         next.add(distributorId);
+      } else {
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        showToast("You can compare up to 5 distributors", "info");
       }
       return next;
     });
-  }, []);
+  }, [showToast]);
 
   const setRange = useCallback((r: TimeRange) => {
     if (Platform.OS !== "web")
@@ -269,13 +275,20 @@ export default function CompareScreen() {
             onBack={() => router.back()}
           />
 
-          <ChartCard
-            timeRange={timeRange}
-            onRangeChange={setRange}
-            chartSeries={chartSeries}
-            chartWidth={chartWidth}
-            displayCurrency={displayCurrency}
-          />
+          <View
+            onLayout={(e) => {
+              const w = e.nativeEvent.layout.width;
+              if (w > 0) setChartWidth(w - 32);
+            }}
+          >
+            <ChartCard
+              timeRange={timeRange}
+              onRangeChange={setRange}
+              chartSeries={chartSeries}
+              chartWidth={chartWidth}
+              displayCurrency={displayCurrency}
+            />
+          </View>
 
           {/* Cheapest Region summary */}
           <CheapestRegionCard listings={listings} displayCurrency={displayCurrency} />

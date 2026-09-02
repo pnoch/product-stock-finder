@@ -4,6 +4,7 @@ import {
   TouchableOpacity,
   Modal,
   Platform,
+  ScrollView,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useColors } from "@/hooks/use-colors";
@@ -51,15 +52,20 @@ export function ReminderDatePickerModal({
         }}
         accessibilityViewIsModal
       >
-        <View
-          style={{
-            backgroundColor: colors.background,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            padding: 24,
-          }}
-          accessibilityViewIsModal
+        <ScrollView
+          style={{ maxHeight: "85%" }}
+          contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
         >
+          <View
+            style={{
+              backgroundColor: colors.background,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 24,
+            }}
+            accessibilityViewIsModal
+          >
           <Text
             style={{
               color: colors.foreground,
@@ -132,16 +138,18 @@ export function ReminderDatePickerModal({
             />
           </TouchableOpacity>
           {showDatePicker && (
-            <DateTimePicker
-              value={reminderDate}
-              mode="date"
-              display={Platform.OS === "ios" ? "inline" : "default"}
-              minimumDate={new Date()}
-              onChange={(_, selected) => {
-                setShowDatePicker(Platform.OS === "ios");
-                if (selected) setReminderDate(selected);
-              }}
-            />
+            <ScrollView style={{ maxHeight: 380, marginBottom: 12 }} showsVerticalScrollIndicator={false}>
+              <DateTimePicker
+                value={reminderDate}
+                mode="date"
+                display={Platform.OS === "ios" ? "inline" : "default"}
+                minimumDate={new Date(Date.now() + 86400000)}
+                onChange={(_, selected) => {
+                  setShowDatePicker(Platform.OS === "ios");
+                  if (selected) setReminderDate(selected);
+                }}
+              />
+            </ScrollView>
           )}
           <View style={{ flexDirection: "row", gap: 10 }}>
             <TouchableOpacity activeOpacity={0.85}
@@ -182,8 +190,9 @@ export function ReminderDatePickerModal({
               </Text>
             </TouchableOpacity>
           </View>
+          </View>
+          </ScrollView>
         </View>
-      </View>
     </Modal>
   );
 }

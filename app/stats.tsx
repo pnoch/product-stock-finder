@@ -293,6 +293,7 @@ export default function StatsScreen() {
         visible={basketSheetVisible}
         onClose={() => setBasketSheetVisible(false)}
         currentThreshold={basketThreshold}
+        displayCurrency={displayCurrency}
         onSave={handleSaveBasketAlert}
       />
     </ScreenContainer>

@@ -64,9 +64,9 @@ function StatCard({
   if (onClick) {
     return (
       <button
+        type="button"
         onClick={onClick}
-        role="button"
-        className="flex items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-200 dark:hover:border-brand-700 transition-colors duration-150 animate-fadeIn cursor-pointer text-left w-full"
+        className="flex items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-200 dark:hover:border-brand-700 transition-colors duration-150 animate-fadeIn cursor-pointer text-left w-full motion-reduce:animate-none"
         style={{ animationDelay: `${delay}ms` }}
         aria-label={label}
       >
@@ -76,7 +76,7 @@ function StatCard({
   }
   return (
     <div
-      className="flex items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-200 dark:hover:border-brand-700 transition-colors duration-150 animate-fadeIn"
+      className="flex items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-200 dark:hover:border-brand-700 transition-colors duration-150 animate-fadeIn motion-reduce:animate-none"
       style={{ animationDelay: `${delay}ms` }}
     >
       {content}
@@ -204,9 +204,8 @@ export function Home() {
               <Link
                 key={`${product.id}-${listing.distributorId}-${idx}`}
                 to={`/product/${product.id}`}
-                className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 transition-colors duration-150 cursor-pointer animate-fadeIn"
+                className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 transition-colors duration-150 cursor-pointer animate-fadeIn motion-reduce:animate-none"
                 style={{ animationDelay: `${150 + idx * 60}ms` } as React.CSSProperties}
-                role="button"
                 aria-label={`View ${product.name} at ${distributor?.name ?? listing.distributorId} details`}
               >
                 <div className="flex items-center flex-1 min-w-0">
@@ -222,7 +221,10 @@ export function Home() {
                   <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                     {(() => {
                       const conv = convertPrice(listing.price, listing.currency, displayCurrency);
-                      return formatPrice(conv ?? listing.price, conv !== null ? displayCurrency : listing.currency);
+                      if (conv !== null && Number.isFinite(conv)) {
+                        return formatPrice(conv, displayCurrency);
+                      }
+                      return formatPrice(listing.price, listing.currency);
                     })()}
                   </span>
                   <StockBadge status={listing.stockStatus} />

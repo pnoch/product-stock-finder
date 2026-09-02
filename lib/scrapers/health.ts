@@ -199,10 +199,7 @@ export function timelineSegments(samples: HealthSample[]): TimelineSegment[] {
   }
   return sorted.map((s, i) => ({
     status: s.status,
-    weight:
-      i < spans.length
-        ? spans[i] / total
-        : spans[spans.length - 1] / total,
+    weight: i < spans.length ? spans[i] / total : 0,
   }));
 }
 
@@ -213,9 +210,9 @@ export interface DayGroup {
 
 function localDayKey(at: string): string {
   const d = new Date(at);
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 

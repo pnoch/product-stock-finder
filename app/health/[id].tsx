@@ -58,19 +58,6 @@ export default function HealthDetailScreen() {
   if (!distributor) {
     return (
       <ScreenContainer>
-        <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
-          <TouchableOpacity activeOpacity={0.7}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-            onPress={() => {
-              if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.back();
-            }}
-            style={{ marginRight: 12 }}
-          >
-            <Text style={{ color: colors.primary, fontSize: 16 }}>‹ Back</Text>
-          </TouchableOpacity>
-        </View>
         <EmptyStateView
           icon="magnifyingglass"
           title="Distributor not found"

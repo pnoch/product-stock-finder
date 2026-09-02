@@ -254,7 +254,7 @@ export const ProductCard = memo(function ProductCard({
           </Animated.View>
         )}
         {imageUrl && !imageError ? (
-          <View style={{ width: 48, height: 48, borderRadius: 8, marginRight: 10, overflow: "hidden", backgroundColor: colors.border + "66" }}>
+          <View style={{ width: 48, height: 48, borderRadius: 8, marginRight: 10, overflow: "hidden", backgroundColor: colors.border + "66", borderWidth: 1, borderColor: colors.border }}>
             {!imageLoaded && (
               <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
                 <IconSymbol name="photo" size={18} color={colors.muted + "66"} />

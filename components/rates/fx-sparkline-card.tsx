@@ -7,7 +7,7 @@ interface FxSparklineCardProps {
   flag: string;
   rate: number;
   change: number;
-  history: number[];
+  history: (number | null)[];
 }
 
 export function FxSparklineCard({
@@ -20,23 +20,24 @@ export function FxSparklineCard({
   const colors = useColors();
   const changeColor = change > 0 ? colors.success : change < 0 ? colors.error : colors.muted;
 
-  const sparklinePoints = history.length >= 2
+  const filtered = history.filter((v): v is number => v !== null && Number.isFinite(v));
+  const sparklinePoints = filtered.length >= 2
     ? (() => {
-        const min = Math.min(...history);
-        const max = Math.max(...history);
+        const min = Math.min(...filtered);
+        const max = Math.max(...filtered);
         const range = max - min;
         if (range === 0) {
-          return history
+          return filtered
             .map((_, i) => {
-              const x = (i / (history.length - 1)) * 56;
+              const x = (i / (filtered.length - 1)) * 56;
               const y = 11;
               return `${x},${y}`;
             })
             .join(" ");
         }
-        return history
+        return filtered
           .map((v, i) => {
-            const x = (i / (history.length - 1)) * 56;
+            const x = (i / (filtered.length - 1)) * 56;
             const y = 20 - ((v - min) / range) * 18;
             return `${x},${y}`;
           })
