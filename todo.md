@@ -911,3 +911,14 @@
 - [x] Tauri: parse_query_params whitespace split + 120s timeout, storage split-brain filing, price-drop snooze + blocked
 - [x] E2E: endpoint drift (fetchTrending/discoverProduct → tRPC superjson), desktop build aliases + RN/expo/playwright stubs (cargo check + expo export)
 - [x] Version sync: 5.2.1 → package/app.config/desktop/Cargo/tauri.conf
+
+## Phase 111: v5.3 — Desktop parity shared package
+
+- [x] `shared/src/` — 6 pure modules: catalog, distributors, currency, fx, trending, compare-utils (bf1379b)
+- [x] `lib/` shims: `export * from "@shared/*"` + storage side-effect wrappers (currency liveRates, fx AsyncStorage) (9be9161)
+- [x] `desktop/vite.config.ts`: 4 regex aliases → `@shared → ../shared/src` + `@ → ..` + RN/expo/playwright stubs retained (9be9161)
+- [x] `desktop/src/pages/Rates.tsx` + `/rates` route + `FxRateGrid` (sparkline, change %, refreshFxRates with storage param) (a07a041)
+- [x] `desktop/src/components/SearchModal.tsx` + `desktop/src/pages/Search.tsx`: Fuse 0.4 + discovered 50 + Bulk/Manual sheets + Recent + tag pre-assign (a07a041)
+- [x] `desktop/src/pages/Watchlist.tsx`: selectedIds + selectionMode + checkbox + undoProduct 5s (a07a041)
+- [x] `vitest.config.ts`: `@shared → shared/src` so lib shims resolve in tests (5a87dfc)
+- [x] Version sync: 5.3.0 → package/app.config/desktop/Cargo/tauri.conf
