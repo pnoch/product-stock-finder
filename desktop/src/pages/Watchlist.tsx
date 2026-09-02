@@ -84,6 +84,11 @@ export function Watchlist() {
   const [tagMatchMode, setTagMatchMode] = useState<"any" | "all">("any");
   const [query, setQuery] = useState("");
   const [toast, setToast] = useState<string | null>(null);
+  // Bulk select + undo parity
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [undoProduct, setUndoProduct] = useState<Product | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
@@ -224,12 +229,55 @@ export function Watchlist() {
     }
   };
 
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const exitSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (!window.confirm(`Remove ${ids.length} product${ids.length !== 1 ? "s" : ""} from watchlist?`)) return;
+    for (const id of ids) await storage.removeFromWatchlist(id);
+    await refresh();
+    exitSelection();
+    showToast(`Removed ${ids.length} product${ids.length !== 1 ? "s" : ""}`);
+  };
+
+  const showUndoBar = (product: Product) => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndoProduct(product);
+    undoTimer.current = setTimeout(() => setUndoProduct(null), 5000);
+  };
+  const handleUndo = async () => {
+    if (!undoProduct) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    await storage.addToWatchlist(undoProduct);
+    setUndoProduct(null);
+    await refresh();
+    showToast("Restored " + undoProduct.name);
+  };
+  useEffect(() => {
+    return () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    };
+  }, []);
+
   const handleRemove = async (e: React.MouseEvent, productId: string) => {
     e.stopPropagation();
+    const product = products.find((p) => p.id === productId);
     if (!window.confirm("Remove this product from your watchlist?")) return;
     await storage.removeFromWatchlist(productId);
     await refresh();
-    showToast("Removed from watchlist");
+    if (product) showUndoBar(product);
+    else showToast("Removed from watchlist");
   };
 
   const handleSort = (key: SortKey) => {
@@ -265,6 +313,21 @@ export function Watchlist() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Watchlist</h1>
         <div className="flex items-center gap-2">
+          {!selectionMode ? (
+            <button
+              onClick={() => setSelectionMode(true)}
+              className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800"
+              aria-label="Enter bulk select mode"
+            >
+              Select
+            </button>
+          ) : (
+            <>
+              <span className="text-sm text-gray-600 dark:text-gray-300">{selectedIds.size} selected</span>
+              <button onClick={handleBulkDelete} disabled={selectedIds.size === 0} className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-medium disabled:opacity-50">Delete</button>
+              <button onClick={exitSelection} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">Cancel</button>
+            </>
+          )}
           <button
             onClick={() => navigate("/distributor-analysis")}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -385,6 +448,7 @@ export function Watchlist() {
           <table className="w-full">
             <thead className="sticky top-0 bg-white dark:bg-gray-800 z-10">
             <tr className="border-b border-gray-200 dark:border-gray-700">
+              {selectionMode && <th className="px-2 py-3 w-8"><span className="sr-only">Select</span></th>}
               <th className="text-left">
                 <button
                   onClick={() => handleSort("name")}
@@ -446,11 +510,26 @@ export function Watchlist() {
                 <tr
                   key={product.id}
                   onClick={() => {
+                    if (selectionMode) {
+                      toggleSelection(product.id);
+                      return;
+                    }
                     setSelectedId(product.id);
                     navigate(`/product/${product.id}`);
                   }}
-                  className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors duration-150 ${selectedId === product.id ? "bg-brand-50 dark:bg-brand-900/10 border-l-2 border-l-brand-500" : "border-l-2 border-l-transparent hover:border-l-brand-200"}`}
+                  className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors duration-150 ${selectedId === product.id ? "bg-brand-50 dark:bg-brand-900/10 border-l-2 border-l-brand-500" : "border-l-2 border-l-transparent hover:border-l-brand-200"} ${selectedIds.has(product.id) ? "bg-brand-50/60 dark:bg-brand-900/20" : ""}`}
                 >
+                  {selectionMode && (
+                    <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(product.id)}
+                        onChange={() => toggleSelection(product.id)}
+                        className="rounded border-gray-300"
+                        aria-label={`Select ${product.name}`}
+                      />
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <div className="flex items-center">
                       <ProductImage productId={product.id} />
@@ -553,6 +632,13 @@ export function Watchlist() {
           </div>
         )}
       </div>
+      {undoProduct && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 z-50">
+          <span>Removed {undoProduct.name}</span>
+          <button onClick={handleUndo} className="px-3 py-1 rounded-lg bg-white text-gray-900 text-xs font-semibold hover:bg-gray-100">Undo</button>
+          <button onClick={() => setUndoProduct(null)} className="p-1 rounded hover:bg-white/10" aria-label="Dismiss undo">×</button>
+        </div>
+      )}
     </div>
   );
 }

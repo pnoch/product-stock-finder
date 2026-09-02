@@ -18,6 +18,7 @@ import { HealthDetail } from "./pages/HealthDetail";
 import { RestockWatches } from "./pages/RestockWatches";
 import { DistributorAnalysis } from "./pages/DistributorAnalysis";
 import { Stats } from "./pages/Stats";
+import { Rates } from "./pages/Rates";
 import { exportWatchlistAsJson } from "./import-export";
 import { useTheme } from "./hooks/use-theme";
 import { onPricesChecked } from "./background";
@@ -299,6 +300,7 @@ export default function App() {
                     <Route path="/alerts" element={<Alerts />} />
                     <Route path="/search" element={<Search />} />
                     <Route path="/settings" element={<Settings />} />
+                    <Route path="/rates" element={<Rates />} />
                     <Route path="/stats" element={<Stats />} />
                     <Route path="/health" element={<Health />} />
                     <Route path="/health/:id" element={<HealthDetail />} />

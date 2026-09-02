@@ -1,14 +1,230 @@
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router";
-import { SearchModal } from "../components/SearchModal";
+import { Search as SearchIcon, Check, Plus, Wand2, Loader2, Upload, PenLine, X } from "lucide-react";
+import { PRODUCT_CATALOG, getAllCategories, getAllBrands } from "@shared/catalog";
+import Fuse from "fuse.js";
+import { storage } from "../storage";
+import { ProductImage } from "../components/ProductImage";
+import { discoverProduct } from "../../../lib/llm-discovery";
+import { matchModels, parseModelInput } from "../../../lib/bulk-import";
+import type { TagDefinition } from "../../../lib/types";
+
+const RECENT_KEY = "recent_searches";
+function loadRecent(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string").slice(0, 8) : [];
+  } catch { return []; }
+}
+function saveRecent(list: string[]) { try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 8))); } catch {} }
+function recordRecent(q: string): string[] {
+  const t = q.trim(); if (!t) return loadRecent();
+  const list = loadRecent();
+  const filtered = list.filter((x) => x.toLowerCase() !== t.toLowerCase());
+  const upd = [t, ...filtered].slice(0, 8); saveRecent(upd); return upd;
+}
 
 export function Search() {
   const navigate = useNavigate();
-  const handleClose = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate("/", { replace: true });
-    }
+  const [query, setQuery] = useState("");
+  const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
+  const [discoveredProducts, setDiscoveredProducts] = useState<typeof PRODUCT_CATALOG>([]);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
+  const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
+  const [tagPickerFor, setTagPickerFor] = useState<string | null>(null);
+  const [discovering, setDiscovering] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualName, setManualName] = useState("");
+  const [manualModel, setManualModel] = useState("");
+  const [manualBrand, setManualBrand] = useState("");
+  const [manualCategory, setManualCategory] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    storage.getWatchlist().then((p) => setTrackedIds(new Set(p.map((x) => x.id))));
+    storage.getDiscoveredProducts().then((disc) => {
+      let list = disc.map((p) => ({ id: p.id, name: p.name, modelNumber: p.modelNumber, brand: p.brand, category: p.category, description: p.description ?? "" }));
+      if (list.length > 50) list = list.slice(-50);
+      setDiscoveredProducts(list as typeof PRODUCT_CATALOG);
+    }).catch(() => {});
+    setRecentSearches(loadRecent());
+    storage.getSettings().then((s) => setTagDefinitions((s.tagDefinitions ?? {}) as Record<string, TagDefinition>)).catch(() => {});
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }, []);
+
+  const combinedCatalog = useMemo(() => {
+    if (discoveredProducts.length === 0) return PRODUCT_CATALOG;
+    const ids = new Set(PRODUCT_CATALOG.map((p) => p.id));
+    return [...PRODUCT_CATALOG, ...discoveredProducts.filter((p) => !ids.has(p.id))] as typeof PRODUCT_CATALOG;
+  }, [discoveredProducts]);
+
+  const results = useMemo(() => {
+    if (!query.trim()) return combinedCatalog;
+    const fuse = new Fuse(combinedCatalog, {
+      keys: [{ name: "modelNumber", weight: 0.4 }, { name: "name", weight: 0.3 }, { name: "brand", weight: 0.15 }, { name: "category", weight: 0.1 }, { name: "description", weight: 0.05 }],
+      threshold: 0.4, includeScore: true, minMatchCharLength: 2, ignoreLocation: true,
+    });
+    return fuse.search(query).map((r) => r.item);
+  }, [query, combinedCatalog]);
+
+  const categories = useMemo(() => getAllCategories(), []);
+  const brands = useMemo(() => getAllBrands(), []);
+
+  const handleAdd = async (product: (typeof PRODUCT_CATALOG)[number]) => {
+    const tags = pendingTags[product.id] ?? [];
+    try {
+      await storage.addToWatchlist({ ...product, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags });
+      if (tags.length) setPendingTags((prev) => { const n = { ...prev }; delete n[product.id]; return n; });
+      setTrackedIds((prev) => new Set([...prev, product.id]));
+      setToast(`Added ${product.name}`); setTimeout(() => setToast(null), 2500);
+      if (query.trim()) setRecentSearches(recordRecent(query));
+    } catch (e) { setToast(e instanceof Error ? e.message : "Failed"); setTimeout(() => setToast(null), 2500); }
   };
-  return <SearchModal open={true} onClose={handleClose} />;
+
+  const handleDiscover = useCallback(async () => {
+    if (!query.trim() || discovering) return;
+    setDiscovering(true);
+    try {
+      const res = await discoverProduct(query);
+      if (res) {
+        await storage.addToWatchlist({ ...res.product, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
+        setRecentSearches(recordRecent(query));
+        navigate(`/product/${res.product.id}`);
+      } else { setToast("Discovery failed"); setTimeout(() => setToast(null), 2500); }
+    } finally { setDiscovering(false); }
+  }, [query, discovering, navigate]);
+
+  const bulkPreview = useMemo(() => matchModels(parseModelInput(bulkText)), [bulkText]);
+  const bulkNew = bulkPreview.matched.filter((p) => !trackedIds.has(p.id));
+  const handleBulkImport = async () => {
+    if (bulkImporting || bulkNew.length === 0) return;
+    setBulkImporting(true);
+    try {
+      for (const it of bulkNew) await storage.addToWatchlist({ ...it, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
+      setTrackedIds((prev) => new Set([...prev, ...bulkNew.map((p) => p.id)]));
+      setBulkText(""); setBulkOpen(false);
+      setToast(`Imported ${bulkNew.length}`); setTimeout(() => setToast(null), 2500);
+    } finally { setBulkImporting(false); }
+  };
+  const handleManualAdd = async () => {
+    if (!manualName.trim() || !manualModel.trim()) { setToast("Name and model required"); setTimeout(() => setToast(null), 2000); return; }
+    const id = `manual-${Date.now()}`;
+    const prod = { id, name: manualName.trim(), modelNumber: manualModel.trim(), brand: manualBrand.trim() || "Unknown", category: manualCategory.trim() || categories[0] || "Other", description: "" };
+    await storage.addToWatchlist({ ...prod, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
+    setTrackedIds((prev) => new Set([...prev, id]));
+    setManualOpen(false); setManualName(""); setManualModel(""); setManualBrand(""); setManualCategory("");
+    setToast(`Added ${prod.name}`); setTimeout(() => setToast(null), 2500);
+  };
+
+  return (
+    <div className="p-6 space-y-4 max-w-4xl mx-auto">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Search Products</h1>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setBulkOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700"><Upload className="w-4 h-4" /> Bulk Import</button>
+          <button onClick={() => setManualOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700"><PenLine className="w-4 h-4" /> Manual Add</button>
+        </div>
+      </div>
+
+      <div className="relative">
+        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && query.trim()) setRecentSearches(recordRecent(query)); }} placeholder="Search by name, model, or brand..." className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600" aria-label="Search products" />
+      </div>
+
+      {query.length === 0 && recentSearches.length > 0 && (
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-xs text-gray-500">Recent:</span>
+          {recentSearches.map((q) => <button key={q} onClick={() => setQuery(q)} className="px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-xs hover:bg-gray-200 dark:hover:bg-gray-600">{q}</button>)}
+          <button onClick={() => { localStorage.removeItem(RECENT_KEY); setRecentSearches([]); }} className="text-xs text-gray-400 ml-1">Clear</button>
+        </div>
+      )}
+
+      {discoveredProducts.length > 0 && <p className="text-xs text-gray-500">{discoveredProducts.length} discovered products included</p>}
+
+      <div className="flex items-center gap-2 text-xs text-gray-500">
+        <span>{results.length} result{results.length !== 1 ? "s" : ""}</span>
+        {query.trim() && <span className="px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-600">{query}</span>}
+      </div>
+
+      <div className="space-y-2">
+        {results.map((product) => {
+          const isTracked = trackedIds.has(product.id);
+          const pending = pendingTags[product.id] ?? [];
+          return (
+            <div key={product.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-sm transition-all">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <ProductImage productId={product.id} />
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-sm truncate">{product.name}</div>
+                  <div className="text-xs text-gray-500 truncate">{product.brand} · {product.category} · {product.modelNumber}</div>
+                  {Object.keys(tagDefinitions).length > 0 && !isTracked && (
+                    <button onClick={() => setTagPickerFor(product.id)} className="mt-1 text-xs text-brand-600 hover:underline">{pending.length ? `${pending.length} tag${pending.length !== 1 ? "s" : ""}` : "Assign tags"}</button>
+                  )}
+                  {pending.length > 0 && <div className="flex gap-1 mt-1 flex-wrap">{pending.map((tid) => { const d = tagDefinitions[tid]; if (!d) return null; return <span key={tid} className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: d.color }}>{d.name}</span>; })}</div>}
+                </div>
+              </div>
+              {isTracked ? <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium ml-2"><Check className="w-4 h-4" /> Tracked</span> : <button onClick={() => handleAdd(product)} className="ml-2 px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium hover:bg-brand-700 flex items-center gap-1"><Plus className="w-3 h-3" /> Add</button>}
+            </div>
+          );
+        })}
+        {results.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-sm text-gray-500 mb-4">No products found.</p>
+            {query.trim() && !discovering && <button onClick={handleDiscover} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-brand-500/30 bg-brand-500/10 text-brand-600 text-sm font-medium"><Wand2 className="w-4 h-4" /> Discover with AI</button>}
+            {discovering && <div className="flex flex-col items-center gap-2 mt-4"><Loader2 className="w-6 h-6 animate-spin text-brand-600" /><span className="text-sm text-gray-500">Discovering...</span></div>}
+          </div>
+        )}
+      </div>
+
+      {toast && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm shadow-lg">{toast}</div>}
+
+      {tagPickerFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setTagPickerFor(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3"><h3 className="font-semibold text-sm">Assign tags</h3><button onClick={() => setTagPickerFor(null)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button></div>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {Object.values(tagDefinitions).map((def) => {
+                const sel = (pendingTags[tagPickerFor] ?? []).includes(def.id);
+                return <label key={def.id} className="flex items-center gap-2 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"><input type="checkbox" checked={sel} onChange={() => setPendingTags((prev) => { const cur = prev[tagPickerFor] ?? []; const nxt = sel ? cur.filter((id) => id !== def.id) : [...cur, def.id]; return { ...prev, [tagPickerFor]: nxt }; })} /><span className="w-3 h-3 rounded-full" style={{ backgroundColor: def.color }} /><span className="text-sm">{def.name}</span></label>;
+              })}
+              {Object.keys(tagDefinitions).length === 0 && <p className="text-sm text-gray-500">No tags yet.</p>}
+            </div>
+            <div className="flex justify-end gap-2 mt-4"><button onClick={() => setTagPickerFor(null)} className="px-3 py-1.5 rounded-lg border text-sm">Done</button><button onClick={() => { setPendingTags((p) => { const n = { ...p }; delete n[tagPickerFor]; return n; }); setTagPickerFor(null); }} className="px-3 py-1.5 text-sm text-gray-500">Clear</button></div>
+          </div>
+        </div>
+      )}
+
+      {bulkOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setBulkOpen(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold mb-2">Bulk Import</h3>
+            <textarea value={bulkText} onChange={(e) => setBulkText(e.target.value)} rows={6} placeholder="CRS804-4DDQ-hRM\nCCR2216-1G-12XS-2XQ" className="w-full p-3 rounded-lg border text-sm mb-3" />
+            {bulkText.trim() && <p className="text-xs text-gray-600 mb-3">{bulkPreview.matched.length} matched · {bulkPreview.unmatched.length} not found · {bulkNew.length} new</p>}
+            <div className="flex justify-end gap-2"><button onClick={() => setBulkOpen(false)} className="px-3 py-2 rounded-lg border text-sm">Cancel</button><button onClick={handleBulkImport} disabled={bulkNew.length === 0 || bulkImporting} className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm disabled:opacity-50">{bulkImporting ? "Importing…" : `Import ${bulkNew.length}`}</button></div>
+          </div>
+        </div>
+      )}
+      {manualOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setManualOpen(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold mb-3">Manual Add</h3>
+            <div className="space-y-3">
+              <input value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Product name *" className="w-full px-3 py-2 rounded-lg border text-sm" />
+              <input value={manualModel} onChange={(e) => setManualModel(e.target.value)} placeholder="Model number *" className="w-full px-3 py-2 rounded-lg border text-sm" />
+              <input value={manualBrand} onChange={(e) => setManualBrand(e.target.value)} placeholder="Brand" list="b-list" className="w-full px-3 py-2 rounded-lg border text-sm" /><datalist id="b-list">{brands.map((b) => <option key={b} value={b} />)}</datalist>
+              <input value={manualCategory} onChange={(e) => setManualCategory(e.target.value)} placeholder="Category" list="c-list" className="w-full px-3 py-2 rounded-lg border text-sm" /><datalist id="c-list">{categories.map((c) => <option key={c} value={c} />)}</datalist>
+            </div>
+            <div className="flex justify-end gap-2 mt-4"><button onClick={() => setManualOpen(false)} className="px-3 py-2 rounded-lg border text-sm">Cancel</button><button onClick={handleManualAdd} className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm">Add</button></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

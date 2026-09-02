@@ -5,7 +5,6 @@ export { fetchFxRates, FX_TTL_MS };
 import { defaultStorage, type Storage } from "./storage";
 import { appendFxHistory } from "./fx-history";
 import { setExchangeRates } from "./currency";
-import type { FxRatesResult } from "./types";
 
 export async function loadFxRates(storage: Storage = defaultStorage): Promise<void> {
   const stored = await storage.getFxRates();
