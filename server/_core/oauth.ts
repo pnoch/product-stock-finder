@@ -196,21 +196,6 @@ export function registerOAuthRoutes(app: Express) {
     res.json({ url });
   });
 
-  app.delete("/api/auth/account", async (req: Request, res: Response) => {
-    try {
-      const user = await sdk.authenticateRequest(req);
-      await db.deleteUserById(user.id);
-      const cookieOptions = getSessionCookieOptions(req);
-      res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      res.json({ success: true });
-    } catch (e: unknown) {
-      console.error("[Auth] delete account failed", e);
-      const message = e instanceof Error ? e.message : String(e);
-      const status = message.includes("Invalid session") || message.includes("User not found") ? 401 : 400;
-      res.status(status).json({ error: message || "Failed to delete account" });
-    }
-  });
-
   app.post("/api/auth/forgot", async (req: Request, res: Response) => {
     try {
       const { email } = req.body ?? {};

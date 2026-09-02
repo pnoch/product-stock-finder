@@ -38,9 +38,10 @@ export function AboutSection() {
                       const token = await Auth.getSessionToken();
                       if (token) headers.Authorization = `Bearer ${token}`;
                     }
-                    await fetch(`${baseUrl}/api/auth/account`, {
-                      method: "DELETE",
+                    await fetch(`${baseUrl}/api/auth/delete-account`, {
+                      method: "POST",
                       headers,
+                      body: JSON.stringify({ confirm: "DELETE" }),
                       credentials: "include",
                     });
                   } catch (e) {
