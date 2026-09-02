@@ -18,7 +18,7 @@ import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { BulkImportModal } from "@/components/search/bulk-import-modal";
 import { ManualAddSheet } from "@/components/search/manual-add-sheet";
 import { useColors } from "@/hooks/use-colors";
-import { searchCatalog, getAllCatalog, PRODUCT_CATALOG } from "@/lib/catalog";
+import { searchCatalog, getAllCatalog, PRODUCT_CATALOG, getAllCategories, getAllBrands } from "@/lib/catalog";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
 import { RecentSearches } from "@/components/search/recent-searches";
 import {
@@ -37,6 +37,71 @@ import { TagFilterRow } from "@/components/tag-filter-row";
 import { countTagMatches, filterWatchlist } from "@/lib/watchlist-org";
 import Fuse from "fuse.js";
 
+type CatalogSort = "relevance" | "name" | "price" | "brand";
+
+const CATALOG_SORT_OPTIONS: { key: CatalogSort; label: string }[] = [
+  { key: "relevance", label: "Relevance" },
+  { key: "name", label: "Name" },
+  { key: "brand", label: "Brand" },
+  { key: "price", label: "Price" },
+];
+
+function PillFilterRow({
+  label,
+  options,
+  selected,
+  onSelect,
+  colors,
+}: {
+  label: string;
+  options: string[];
+  selected: string | null;
+  onSelect: (v: string | null) => void;
+  colors: ReturnType<typeof useColors>;
+}) {
+  return (
+    <View style={{ flexDirection: "row", paddingHorizontal: 16, marginBottom: 8, flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+      <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginRight: 4 }}>{label}</Text>
+      <TouchableOpacity activeOpacity={0.85}
+        onPress={() => onSelect(null)}
+        style={{
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          borderRadius: 16,
+          backgroundColor: selected === null ? colors.primary : colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+        }}
+        accessibilityRole="radio"
+        accessibilityState={{ selected: selected === null }}
+      >
+        <Text style={{ color: selected === null ? "#fff" : colors.foreground, fontSize: 13, fontWeight: "600" }}>All</Text>
+      </TouchableOpacity>
+      {options.map((opt) => {
+        const active = selected === opt;
+        return (
+          <TouchableOpacity activeOpacity={0.85}
+            key={opt}
+            onPress={() => onSelect(active ? null : opt)}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 16,
+              backgroundColor: active ? colors.primary : colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: active }}
+          >
+            <Text style={{ color: active ? "#fff" : colors.foreground, fontSize: 13, fontWeight: "600" }}>{opt}</Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
 export default function SearchScreen() {
   const router = useRouter();
   const colors = useColors();
@@ -48,6 +113,9 @@ export default function SearchScreen() {
   const [pickerItem, setPickerItem] = useState<Product | null>(null);
   const [postAddProduct, setPostAddProduct] = useState<Product | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [catalogSort, setCatalogSort] = useState<CatalogSort>("relevance");
 
   useEffect(() => {
     void getRecentSearches().then(setRecentSearches);
@@ -183,6 +251,32 @@ export default function SearchScreen() {
       query: deferredQuery,
     });
   }, [watchlist, deferredQuery]);
+
+  const categories = useMemo(() => getAllCategories(), []);
+  const brands = useMemo(() => getAllBrands(), []);
+
+  const categoryBrandFiltered = useMemo(() => {
+    let out = tagFilteredResults;
+    if (selectedCategory) out = out.filter((p) => p.category === selectedCategory);
+    if (selectedBrand) out = out.filter((p) => p.brand === selectedBrand);
+    return out;
+  }, [tagFilteredResults, selectedCategory, selectedBrand]);
+
+  const sortedResults = useMemo(() => {
+    if (catalogSort === "relevance") return categoryBrandFiltered;
+    const copy = [...categoryBrandFiltered];
+    switch (catalogSort) {
+      case "name":
+        return copy.sort((a, b) => a.name.localeCompare(b.name));
+      case "brand":
+        return copy.sort((a, b) => a.brand.localeCompare(b.brand) || a.name.localeCompare(b.name));
+      case "price":
+        // No price on catalog items; fall back to name for deterministic order but keep chip parity
+        return copy.sort((a, b) => a.name.localeCompare(b.name));
+      default:
+        return copy;
+    }
+  }, [categoryBrandFiltered, catalogSort]);
 
   const handleAdd = useCallback(
     async (item: (typeof PRODUCT_CATALOG)[0]) => {
@@ -330,6 +424,44 @@ export default function SearchScreen() {
         />
       )}
 
+      {/* Category / Brand filters — pill rows (RegionFilterRow pattern) */}
+      <PillFilterRow label="Category" options={categories} selected={selectedCategory} onSelect={setSelectedCategory} colors={colors} />
+      <PillFilterRow label="Brand" options={brands} selected={selectedBrand} onSelect={setSelectedBrand} colors={colors} />
+
+      {/* Catalog sort bar — parity with watchlist SortGroupBar */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingBottom: 10, flexWrap: "wrap" }}>
+        <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 }}>Sort</Text>
+        {CATALOG_SORT_OPTIONS.map((opt) => {
+          const active = catalogSort === opt.key;
+          return (
+            <TouchableOpacity activeOpacity={0.85}
+              key={opt.key}
+              onPress={() => {
+                if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setCatalogSort(opt.key);
+              }}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 16,
+                backgroundColor: active ? colors.primary : colors.surface,
+                borderWidth: 1,
+                borderColor: active ? colors.primary : colors.border,
+              }}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: active }}
+            >
+              <Text style={{ color: active ? "#fff" : colors.muted, fontSize: 13, fontWeight: "600" }}>{opt.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+        {(selectedCategory || selectedBrand) && (
+          <TouchableOpacity activeOpacity={0.7} onPress={() => { setSelectedCategory(null); setSelectedBrand(null); }} style={{ padding: 4 }} accessibilityLabel="Clear category/brand filter" accessibilityRole="button">
+            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600" }}>Clear</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       {/* Results */}
       {selectedTagIds.length > 0 && (
         <View
@@ -349,7 +481,7 @@ export default function SearchScreen() {
         </View>
       )}
       <FlatList showsVerticalScrollIndicator={true}
-        data={tagFilteredResults}
+        data={sortedResults}
         keyExtractor={(item) => item.id}
         initialNumToRender={10}
         windowSize={5}
@@ -369,12 +501,12 @@ export default function SearchScreen() {
               }}
             >
               {query.trim()
-                ? `${tagFilteredResults.length} result${tagFilteredResults.length !== 1 ? "s" : ""}`
+                ? `${sortedResults.length} result${sortedResults.length !== 1 ? "s" : ""}`
                 : "All Products"}
             </Text>
-            {query.trim().length > 0 && tagFilteredResults.length > 0 && (
+            {query.trim().length > 0 && sortedResults.length > 0 && (
               <View style={{ backgroundColor: colors.primary + "14", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}>
-                <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>{tagFilteredResults.length}</Text>
+                <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>{sortedResults.length}</Text>
               </View>
             )}
           </View>

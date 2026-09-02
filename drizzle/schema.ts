@@ -320,10 +320,13 @@ export const sharedWatchlists = mysqlTable(
     token: varchar("token", { length: 64 }).notNull(),
     title: varchar("title", { length: 255 }).notNull().default("My Watchlist"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
+    expiresAt: timestamp("expiresAt"),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   (table) => [
     uniqueIndex("shared_watchlists_token_unique").on(table.token),
     index("idx_shared_watchlists_owner").on(table.ownerId),
+    index("idx_shared_watchlists_expires").on(table.expiresAt),
   ],
 );
 

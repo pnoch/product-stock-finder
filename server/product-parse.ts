@@ -1,4 +1,5 @@
 import { invokeLLM, type InvokeParams } from "./_core/llm";
+import * as cheerio from "cheerio";
 
 export interface ParsedProduct {
   name: string;
@@ -6,6 +7,77 @@ export interface ParsedProduct {
   brand: string;
   category: string;
   description: string;
+}
+
+function isUrlLike(raw: string): boolean {
+  const trimmed = raw.trim();
+  return /^https?:\/\/\S+/i.test(trimmed);
+}
+
+function parseFromHtml(html: string, url: string): ParsedProduct | null {
+  try {
+    const $ = cheerio.load(html);
+    const title =
+      $('meta[property="og:title"]').attr("content")?.trim() ||
+      $("title").first().text().trim() ||
+      $("h1").first().text().trim() ||
+      "";
+    const rawTitle = title.slice(0, 200);
+    if (!rawTitle) return null;
+    const description =
+      $('meta[property="og:description"]').attr("content")?.trim() ||
+      $('meta[name="description"]').attr("content")?.trim() ||
+      $("p").first().text().trim().slice(0, 1000) ||
+      "";
+    const host = (() => {
+      try {
+        return new URL(url).hostname.replace(/^www\./, "");
+      } catch {
+        return "";
+      }
+    })();
+    const brandGuess = host ? host.split(".")[0] : "";
+    const brand = brandGuess
+      ? brandGuess.charAt(0).toUpperCase() + brandGuess.slice(1)
+      : "";
+    // Try to extract a model-like token from title or URL.
+    const modelMatch =
+      title.match(/[A-Z0-9][A-Za-z0-9._-]{3,}/) ||
+      url.match(/\/([A-Za-z0-9_-]{4,})\/?(?:\?|$)/);
+    const modelNumber = modelMatch ? modelMatch[0].replace(/^\/|\/$/g, "").slice(0, 100) : rawTitle.split(/\s+/).slice(0, 3).join("-").slice(0, 100);
+    return {
+      name: rawTitle,
+      modelNumber: modelNumber || rawTitle.slice(0, 100),
+      brand,
+      category: "Other",
+      description: description.slice(0, 1000),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function tryParseUrl(raw: string): Promise<ParsedProduct | null> {
+  const url = raw.trim();
+  if (!isUrlLike(url)) return null;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; ProductStockFinder/1.0)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const html = await res.text();
+    if (!html || html.length < 200) return null;
+    return parseFromHtml(html, url);
+  } catch {
+    return null;
+  }
 }
 
 type LlmInvoke = (params: InvokeParams) => Promise<{
@@ -27,11 +99,13 @@ function clean(value: unknown, max: number): string {
 
 // Extracts a product template from messy free text. Returns null when the
 // LLM is unavailable or its output is unusable — callers fall back to manual
-// entry.
+// entry. If raw is a URL, tries deterministic fetch+scrape before LLM.
 export async function parseProductText(
   raw: string,
   invoke: LlmInvoke = invokeLLM,
 ): Promise<ParsedProduct | null> {
+  const urlResult = await tryParseUrl(raw);
+  if (urlResult) return urlResult;
   try {
     const result = await invoke({
       messages: [

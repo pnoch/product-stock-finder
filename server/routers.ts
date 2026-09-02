@@ -389,13 +389,15 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const token = randomUUID();
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
         await db.insert(sharedWatchlists).values({
           ownerId: ctx.user.id,
           token,
           title: input.title ?? "My Watchlist",
+          expiresAt,
         });
         const origin = getOrigin(ctx.req as unknown as { headers: Record<string, unknown> });
-        return { token, shareUrl: `${origin}/w/${token}` } as const;
+        return { token, shareUrl: `${origin}/w/${token}`, expiresAt: expiresAt.toISOString() } as const;
       }),
     get: publicProcedure
       .input(z.object({ token: z.string().min(1).max(64) }))
@@ -407,8 +409,12 @@ export const appRouter = router({
           .from(sharedWatchlists)
           .where(eq(sharedWatchlists.token, input.token))
           .limit(1);
-        const row = rows[0];
+        const row = rows[0] as unknown as { ownerId: number; token: string; title: string; createdAt: Date; expiresAt: Date | null; updatedAt?: Date } | undefined;
         if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
+        if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) {
+          await db.delete(sharedWatchlists).where(eq(sharedWatchlists.token, input.token));
+          throw new TRPCError({ code: "NOT_FOUND", message: "Share expired" });
+        }
         const items = await db
           .select()
           .from(watchlistItems)
@@ -417,7 +423,7 @@ export const appRouter = router({
           .filter((r) => r.deletedAtMs === null || r.deletedAtMs === undefined)
           .map((r) => r.data)
           .filter(Boolean);
-        return { title: row.title, token: row.token, products } as const;
+        return { title: row.title, token: row.token, products, createdAt: row.createdAt?.toISOString?.() ?? null, expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null } as const;
       }),
     revoke: protectedProcedure
       .input(z.object({ token: z.string().min(1).max(64) }))

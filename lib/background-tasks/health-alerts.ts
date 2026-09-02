@@ -9,6 +9,7 @@ import {
   scheduleHealthAlert,
   scheduleHealthRecovery,
 } from "../notifications";
+import { isInQuietHours } from "../quiet-hours";
 import { healthService } from "./instances";
 
 export async function checkHealthAlerts(
@@ -17,6 +18,7 @@ export async function checkHealthAlerts(
   try {
     const settings = await getSettings();
     if (!settings.notificationsEnabled || !settings.healthAlerts) return;
+    if (isInQuietHours(settings)) return;
     const history = await service.getHealthHistory();
     for (const [distributorId, samples] of Object.entries(history)) {
       const distributor = getDistributorById(distributorId);

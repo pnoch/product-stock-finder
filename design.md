@@ -2,7 +2,7 @@
 
 ## App Overview
 
-A professional mobile app for tracking product availability and prices across 25 global electronics distributors. Target users are IT professionals, procurement teams, and electronics enthusiasts who need to monitor hard-to-find products globally.
+A professional mobile app for tracking product availability and prices across 25 global electronics distributors (15 live parsers + 10 degraded/JS-heavy — health dashboard/classifyFetchStatus surfaces live status; resilientFetch escalates plain→browser with circuit breakers). Target users are IT professionals, procurement teams, and electronics enthusiasts who need to monitor hard-to-find products globally.
 
 ## Brand Identity
 
@@ -45,7 +45,8 @@ A professional mobile app for tracking product availability and prices across 25
 
 - Search by model number or product name
 - Pre-loaded catalog of popular networking/electronics products
-- Manual add with URL
+- Manual add via AI paste (URL, model number, or free-text paragraph — `ManualAddSheet` + `products.parse` LLM extraction, then `discoverListings` live price discovery)
+- Bulk import (CSV/paste)
 - Recent searches
 
 ### 5. Alerts (alerts)
@@ -85,12 +86,13 @@ Product Detail → Scroll to price chart → View 7/30/90 day history → Identi
 
 ## Navigation Structure
 
-Bottom Tab Bar (4 tabs):
+Bottom Tab Bar (5 tabs):
 
 1. **Home** (house icon) — Dashboard
 2. **Watchlist** (list icon) — All tracked products
 3. **Alerts** (bell icon) — Notifications & alerts
-4. **Settings** (gear icon) — App settings
+4. **Rates** (dollarsign icon) — FX rates history
+5. **Settings** (gear icon) — App settings
 
 ## Component Design
 

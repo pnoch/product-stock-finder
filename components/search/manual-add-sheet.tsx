@@ -78,12 +78,16 @@ export function ManualAddSheet({
 }) {
   const colors = useColors();
   const [raw, setRaw] = useState(initialText ?? "");
+  const [urlInput, setUrlInput] = useState("");
+  const [urlParsing, setUrlParsing] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [parsing, setParsing] = useState(false);
   const [adding, setAdding] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [aiFailed, setAiFailed] = useState(false);
   const activeRef = useRef(true);
+
+  const isUrlLike = (s: string) => /^https?:\/\/\S+/i.test(s.trim());
 
   useEffect(() => {
     activeRef.current = true;
@@ -95,21 +99,24 @@ export function ManualAddSheet({
   useEffect(() => {
     if (visible) {
       setRaw(initialText ?? "");
+      setUrlInput("");
       setDraft(null);
     }
   }, [visible, initialText]);
 
   const reset = () => {
     setRaw(initialText ?? "");
+    setUrlInput("");
     setDraft(null);
     setParsing(false);
+    setUrlParsing(false);
     setAdding(false);
     setProgress(null);
     setAiFailed(false);
   };
 
   const handleClose = () => {
-    if (parsing || adding) return;
+    if (parsing || urlParsing || adding) return;
     reset();
     onClose();
   };
@@ -140,6 +147,29 @@ export function ManualAddSheet({
       setAiFailed(true);
     } finally {
       setParsing(false);
+    }
+  };
+
+  const handleUrlParse = async () => {
+    const text = urlInput.trim();
+    if (!text || urlParsing || !isUrlLike(text)) return;
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setUrlParsing(true);
+    try {
+      const parsed = await fetchParsedProduct(text);
+      if (parsed) {
+        setDraft(parsed);
+        setAiFailed(false);
+      } else {
+        setDraft({ ...EMPTY_DRAFT, name: text.slice(0, 200) });
+        setAiFailed(true);
+      }
+    } catch {
+      setDraft({ ...EMPTY_DRAFT, name: text.slice(0, 200) });
+      setAiFailed(true);
+    } finally {
+      setUrlParsing(false);
     }
   };
 
@@ -328,6 +358,60 @@ export function ManualAddSheet({
                       style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
                     >
                       Clean up with AI
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginVertical: 14 }}>
+                <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+                <Text style={{ color: colors.muted, fontSize: 12 }}>or</Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+              </View>
+              <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 8, fontWeight: "600" }}>
+                Paste distributor URL
+              </Text>
+              <TextInput
+                value={urlInput}
+                onChangeText={setUrlInput}
+                autoCorrect={false}
+                autoCapitalize="none"
+                keyboardType="url"
+                placeholder="https://distributor.com/product/..."
+                placeholderTextColor={colors.muted}
+                style={{
+                  ...fieldStyle(colors),
+                  marginBottom: 12,
+                }}
+              />
+              <TouchableOpacity activeOpacity={0.85}
+                onPress={handleUrlParse}
+                disabled={urlParsing || !isUrlLike(urlInput)}
+                style={{
+                  backgroundColor:
+                    isUrlLike(urlInput) && !urlParsing
+                      ? colors.primary
+                      : colors.border,
+                  opacity: isUrlLike(urlInput) && !urlParsing ? 1 : 0.5,
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+                accessibilityLabel="Fetch from URL"
+                accessibilityRole="button"
+                accessibilityState={{ disabled: urlParsing || !isUrlLike(urlInput) }}
+              >
+                {urlParsing ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <IconSymbol name="link" size={18} color="#fff" />
+                    <Text
+                      style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
+                    >
+                      Fetch from URL
                     </Text>
                   </>
                 )}

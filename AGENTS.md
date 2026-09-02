@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository. Read this before touch
 
 ## Project Overview
 
-**Product Stock Finder** (formerly "Stock Tracker Pro") is an Expo/React Native mobile + web app for tracking product availability and prices across 25 global electronics distributors (MikroTik, Ubiquiti networking gear focus). Users maintain a watchlist, set price alerts, schedule back-order reminders, watch for restocks, and compare price history across distributors.
+**Product Stock Finder** (formerly "Stock Tracker Pro") is an Expo/React Native mobile + web app for tracking product availability and prices across 25 global electronics distributors (15 live parsers + 10 degraded/JS-heavy — health dashboard/classifyFetchStatus shows live status; MikroTik/Ubiquiti focus). Users maintain a watchlist, set price alerts, schedule back-order reminders, watch for restocks, and compare price history across distributors.
 
 - **App name in UI:** "Product Stock Finder" (see git log — was renamed from "Stock Tracker Pro"; do not revert)
 - **Bundle ID:** `com.app.stock_tracker_pro`
@@ -72,7 +72,7 @@ lib/                   App logic
                        browser.ts = node Playwright escalation; browser.web.ts = web stub with the
                        same export surface (keeps playwright out of the web bundle — guarded by
                        tests/scrapers/browser-web.test.ts)
-  distributors.ts      Static distributor database (25 entries)
+  distributors.ts      Static distributor database (25 entries — 15 live parsers + 10 degraded/JS-heavy; health UI shows live status via classifyFetchStatus)
   catalog.ts           Pre-loaded product catalog
   sample-data.ts       Seeded 10-point 90-day price history per distributor (CRS804, CRS326)
   currency.ts          Static exchange rates, convertPrice, formatPrice, getBestPrice

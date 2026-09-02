@@ -107,14 +107,30 @@ export default function WatchlistScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerCollapse = scrollY.interpolate({ inputRange: [0, 80], outputRange: [1, 0], extrapolate: "clamp" });
 
+  const hasLoadedSettingsRef = useRef(false);
   const loadData = useCallback(async () => {
     const settings = await getSettings();
     setDisplayCurrency(settings?.displayCurrency ?? "USD");
     setSortMode(settings?.watchlistSort ?? "recent");
     setGroupMode(settings?.watchlistGroup ?? "off");
+    const storedInStock = settings?.watchlistInStockOnly ?? false;
+    setInStockOnly(storedInStock);
+    const storedRange = settings?.watchlistPriceRange ?? null;
+    if (storedRange && Array.isArray(storedRange) && storedRange.length === 2) {
+      const [min, max] = storedRange;
+      const isMaxFinite = Number.isFinite(max) && max !== Number.MAX_SAFE_INTEGER;
+      setPriceRange([min, max]);
+      setPriceMinInput(min === 0 ? "" : String(min));
+      setPriceMaxInput(isMaxFinite ? String(max) : "");
+    } else {
+      setPriceRange(undefined);
+      setPriceMinInput("");
+      setPriceMaxInput("");
+    }
     const defs = await getTagDefinitions();
     setTagDefinitions(defs);
     setSelectedTagIds((prev) => prev.filter((id) => Object.prototype.hasOwnProperty.call(defs, id)));
+    hasLoadedSettingsRef.current = true;
   }, []);
 
   useFocusEffect(

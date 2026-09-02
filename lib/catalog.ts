@@ -423,6 +423,14 @@ export async function getAllCatalog() {
   return [...PRODUCT_CATALOG, ...discovered];
 }
 
+export function getAllCategories(): string[] {
+  return [...new Set(PRODUCT_CATALOG.map((p) => p.category))].sort();
+}
+
+export function getAllBrands(): string[] {
+  return [...new Set(PRODUCT_CATALOG.map((p) => p.brand))].sort();
+}
+
 export async function searchCatalogAsync(query: string) {
   const catalog = await getAllCatalog();
   const fuseInstance = new Fuse(catalog, {

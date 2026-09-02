@@ -151,6 +151,9 @@ export interface AppSettings {
   llmApiKey?: string;
   llmModel?: string;
   llmOllamaUrl?: string;
+  quietHours?: { start: string; end: string };
+  watchlistPriceRange?: [number, number] | null;
+  watchlistInStockOnly?: boolean;
 }
 
 export type Collection = "watchlist" | "alerts" | "reminders" | "settings";

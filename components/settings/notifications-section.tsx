@@ -217,6 +217,30 @@ export function NotificationsSection({
             />
           )}
         </View>
+        <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
+          <PillPicker
+            icon="moon.fill"
+            label="Quiet Hours"
+            options={["Off", "22:00–07:00", "23:00–07:00", "00:00–08:00"]}
+            value={
+              !settings.quietHours
+                ? "Off"
+                : `${settings.quietHours.start}–${settings.quietHours.end}`
+            }
+            onSelect={(v) => {
+              if (v === "Off") updateSetting("quietHours", undefined);
+              else {
+                const [start, end] = v.split("–");
+                updateSetting("quietHours", { start, end } as { start: string; end: string });
+              }
+            }}
+          />
+          {settings.quietHours && (
+            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }}>
+              Health alerts and digests are muted during quiet hours.
+            </Text>
+          )}
+        </View>
         {/* Test Notification — useful for verifying permissions on device */}
         <TouchableOpacity activeOpacity={0.7}
           onPress={onTestNotification}

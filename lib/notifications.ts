@@ -1,8 +1,9 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { HEALTH_ALERT_THRESHOLD, HealthStatus } from "./scrapers/health";
-import { recordDisplayedEventId, recordNotificationEvent } from "./storage";
+import { recordDisplayedEventId, recordNotificationEvent, getSettings } from "./storage";
 import { getDistributorById } from "./distributors";
+import { isInQuietHours } from "./quiet-hours";
 
 // ─── Notification Handler ─────────────────────────────────────────────────────
 // Must be called at module level (outside any component) so it's set before
@@ -88,6 +89,10 @@ export async function scheduleHealthAlert(
   status: HealthStatus,
   reason?: string,
 ): Promise<string | null> {
+  try {
+    const settings = await getSettings();
+    if (isInQuietHours(settings)) return null;
+  } catch {}
   const displayName = getDistributorById(distributorId)?.name ?? distributorId;
   const title =
     status === "blocked" ? "🟠 Distributor Blocked" : "🔴 Distributor Down";
@@ -134,6 +139,10 @@ export async function scheduleHealthRecovery(
   distributorId: string,
   status: HealthStatus,
 ): Promise<string | null> {
+  try {
+    const settings = await getSettings();
+    if (isInQuietHours(settings)) return null;
+  } catch {}
   const displayName = getDistributorById(distributorId)?.name ?? distributorId;
   const title = "🟢 Distributor Recovered";
   const body = `${displayName} is back online after being ${status}`;
@@ -265,6 +274,10 @@ export async function sendPriceDigestNotification(
   title: string,
   body: string,
 ): Promise<void> {
+  try {
+    const settings = await getSettings();
+    if (isInQuietHours(settings)) return;
+  } catch {}
   if (Platform.OS === "web") return;
   const granted = await requestNotificationPermissions();
   if (!granted) return;
