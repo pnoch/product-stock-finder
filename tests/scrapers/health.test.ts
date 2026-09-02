@@ -475,8 +475,8 @@ describe("timelineSegments", () => {
       sample("working", "2026-08-01T05:00:00Z"),
     ]);
     const total = segments.reduce((sum, s) => sum + s.weight, 0);
-    // spans 2h,1h,2h total 5h -> weights 2/5,1/5,2/5,2/5 sum 1.4
-    expect(total).toBeCloseTo(1.4, 5);
+    // spans 2h,1h,2h total 5h -> weights 2/5,1/5,2/5,0 sum 1
+    expect(total).toBeCloseTo(1, 5);
   });
 });
 
