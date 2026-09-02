@@ -9,6 +9,9 @@ import {
   TrendingDown,
   Minus,
   Search,
+  Tag as TagIcon,
+  Settings2,
+  X,
 } from "lucide-react";
 import { useWatchlist, useSettings } from "../hooks/use-storage";
 import { storage } from "../storage";
@@ -95,6 +98,14 @@ export function Watchlist() {
   };
   const regions = useMemo(() => getAllRegions(), []);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Collapsing header: desktop equivalent of mobile Animated headerCollapse
+  const [collapsed, setCollapsed] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState("#0F52BA");
+  const [editingTagId, setEditingTagId] = useState<string | null>(null);
+  const [editingTagName, setEditingTagName] = useState("");
+  const [editingTagColor, setEditingTagColor] = useState("#0F52BA");
 
   const displayCurrency = settings?.displayCurrency ?? "USD";
 
@@ -105,6 +116,14 @@ export function Watchlist() {
       setSelectedTagIds((prev) => prev.filter((id) => id in defs));
     });
   }, [settings]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => setCollapsed(el.scrollTop > 40);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [loading]);
 
   const toggleTagFilter = (tagId: string) => {
     setSelectedTagIds((prev) =>
@@ -303,6 +322,49 @@ export function Watchlist() {
     );
   }
 
+  // Tag manager helpers
+  const handleCreateTag = async () => {
+    const name = newTagName.trim();
+    if (!name) return;
+    const id = name.toLowerCase().replace(/\s+/g, "-") + "-" + Date.now().toString(36);
+    const def: TagDefinition = { id, name, color: newTagColor };
+    const next = { ...tagDefinitions, [id]: def };
+    setTagDefinitions(next);
+    const s = await storage.getSettings();
+    await storage.saveSettings({ ...s, tagDefinitions: next } as never);
+    setNewTagName("");
+    showToast(`Tag "${name}" created`);
+  };
+  const handleUpdateTag = async () => {
+    if (!editingTagId) return;
+    const name = editingTagName.trim();
+    if (!name) return;
+    const next = { ...tagDefinitions, [editingTagId]: { id: editingTagId, name, color: editingTagColor } };
+    setTagDefinitions(next);
+    const s = await storage.getSettings();
+    await storage.saveSettings({ ...s, tagDefinitions: next } as never);
+    setEditingTagId(null);
+    showToast("Tag updated");
+  };
+  const handleDeleteTag = async (id: string) => {
+    if (!window.confirm("Delete this tag? It will be removed from all products.")) return;
+    const next = { ...tagDefinitions };
+    delete next[id];
+    setTagDefinitions(next);
+    setSelectedTagIds((prev) => prev.filter((x) => x !== id));
+    const s = await storage.getSettings();
+    await storage.saveSettings({ ...s, tagDefinitions: next } as never);
+    // remove tag id from watchlist products
+    const watchlist = await storage.getWatchlist();
+    for (const p of watchlist) {
+      if (p.tags?.includes(id)) {
+        await storage.addToWatchlist({ ...p, tags: p.tags.filter((t) => t !== id) });
+      }
+    }
+    await refresh();
+    showToast("Tag deleted");
+  };
+
   return (
     <div className="p-6 space-y-4">
       {toast && (
@@ -310,6 +372,30 @@ export function Watchlist() {
           {toast}
         </div>
       )}
+      {/* WatchlistHeader — collapsing animation matching mobile headerCollapse */}
+      <div
+        className={`sticky top-0 z-10 -mx-6 -mt-6 px-6 pt-6 pb-3 bg-[#F8FAFC] dark:bg-[#0A0E1A] border-b transition-all duration-200 ${collapsed ? "shadow-sm py-3" : "border-transparent"}`}
+        style={{ opacity: collapsed ? 0.97 : 1, transform: collapsed ? "translateY(-1px)" : "translateY(0)" }}
+      >
+        <div className="flex items-center justify-between">
+          <div className={collapsed ? "transition-all duration-200 scale-[0.96] origin-left" : "transition-all duration-200"}>
+            <h1 className={`font-bold transition-all duration-200 ${collapsed ? "text-lg" : "text-2xl"}`}>Watchlist</h1>
+            <p className={`text-gray-500 dark:text-gray-400 transition-all duration-200 ${collapsed ? "text-xs" : "text-sm"}`}>
+              {products.length} product{products.length !== 1 ? "s" : ""} tracked
+              {filtered.length !== products.length ? ` · ${filtered.length} shown` : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setManageOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800"
+              aria-label="Manage tags"
+            >
+              <Settings2 className="w-4 h-4" /> Manage Tags
+            </button>
+          </div>
+        </div>
+      </div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Watchlist</h1>
         <div className="flex items-center gap-2">
