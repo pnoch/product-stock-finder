@@ -196,11 +196,11 @@ export function ProductDetail() {
       return;
     }
     setAlertError(null);
-    const distributorId = bestListing?.distributorId ?? visibleListings[0]?.distributorId ?? "";
-    if (!distributorId) {
+    if (!bestListing) {
       showToast("No distributor available");
       return;
     }
+    const distributorId = bestListing.distributorId;
     const direction: "drop" | "rise" = "drop";
 
     await storage.addAlert({
