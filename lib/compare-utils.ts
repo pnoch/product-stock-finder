@@ -1,14 +1,12 @@
 import { PricePoint, DistributorListing } from "@/lib/types";
 import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
-import { ThemeColors } from "@/lib/_core/theme";
-
 // ─── Chart colors for up to 5 distributors ───────────────────────────────────
 export const CHART_COLORS = [
-  ThemeColors.primary.light,
-  ThemeColors.success.light,
-  ThemeColors.warning.light,
-  ThemeColors.error.light,
+  "#0F52BA",
+  "#00C896",
+  "#F59E0B",
+  "#EF4444",
   "#8B5CF6",
 ];
 
