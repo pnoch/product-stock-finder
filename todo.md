@@ -902,3 +902,12 @@
 - [x] Mikrotikstore parser live-site fix: two-hop search, .price-tag, German format
 - [x] FX history sparse write guard + jitter ±5m
 - [x] 5 regression suites (currency, trending tRPC, price stability, GB→GBP, watchlist sort)
+
+## Phase 110: v5.2.1 — E2E + audit 5 remainder
+
+- [x] FX history: gap vs flat, duplicate ts dedup, jitter ±5m (8217171)
+- [x] Sync/server: COALESCE legacy IS NULL accept, accepted via ROW_COUNT, pool string form, watchlist union, PRICE_TTL guard, decimal(12,4)
+- [x] Scrapers: resilient skipped→promise share, browser pool mutex outside launch, mikrotikstore URL thread + German format
+- [x] Tauri: parse_query_params whitespace split + 120s timeout, storage split-brain filing, price-drop snooze + blocked
+- [x] E2E: endpoint drift (fetchTrending/discoverProduct → tRPC superjson), desktop build aliases + RN/expo/playwright stubs (cargo check + expo export)
+- [x] Version sync: 5.2.1 → package/app.config/desktop/Cargo/tauri.conf
