@@ -10,7 +10,10 @@ import {
   Platform,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { getApiBaseUrl } from "@/constants/oauth";
+import { getApiBaseUrl, getOAuthUrl } from "@/constants/oauth";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 
 export function LoginModal({
   visible,
@@ -38,6 +41,7 @@ export function LoginModal({
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotError, setForgotError] = useState<string | null>(null);
   const [forgotSent, setForgotSent] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
 
   const handleSubmit = async () => {
     if (!email || !password) {
@@ -102,6 +106,33 @@ export function LoginModal({
       setForgotError(err instanceof Error ? err.message : "Failed");
     } finally {
       setForgotLoading(false);
+    }
+  };
+
+  const handleOAuth = async (provider: "google" | "apple") => {
+    setError(null);
+    setOauthLoading(provider);
+    try {
+      const url = await getOAuthUrl(provider);
+      if (!url) {
+        setError("OAuth not configured. Set GOOGLE_CLIENT_ID / APPLE_CLIENT_ID on the server or configure API base URL.");
+        return;
+      }
+      if (Platform.OS === "web") {
+        window.location.href = url;
+        return;
+      }
+      const result = await WebBrowser.openAuthSessionAsync(url, "productstockfinder:/oauth/callback");
+      if (result.type === "cancel" || result.type === "dismiss") return;
+      // If the provider redirects back with a session cookie, the web fallback will handle it;
+      // for native the OAuth callback route will exchange the code and the auth state will refresh on next focus.
+      if (result.type === "success" && result.url) {
+        await Linking.openURL(result.url);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "OAuth failed");
+    } finally {
+      setOauthLoading(null);
     }
   };
 
@@ -397,7 +428,71 @@ export function LoginModal({
                   </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={{ alignItems: "center", marginTop: 16 }} accessibilityLabel="Dismiss" accessibilityRole="button" accessibilityHint="Dismisses the login dialog">
+                <View style={{ flexDirection: "row", alignItems: "center", marginVertical: 16, gap: 12 }}>
+                  <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+                  <Text style={{ color: colors.muted, fontSize: 12 }}>or</Text>
+                  <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+                </View>
+
+                <TouchableOpacity activeOpacity={0.85}
+                  onPress={() => handleOAuth("google")}
+                  disabled={!!oauthLoading}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    backgroundColor: colors.background,
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    marginBottom: 10,
+                    opacity: oauthLoading ? 0.6 : 1,
+                  }}
+                  accessibilityLabel="Continue with Google"
+                  accessibilityRole="button"
+                >
+                  {oauthLoading === "google" ? (
+                    <ActivityIndicator size="small" color={colors.foreground} />
+                  ) : (
+                    <>
+                      <IconSymbol name="globe" size={18} color={colors.foreground} />
+                      <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>Continue with Google</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity activeOpacity={0.85}
+                  onPress={() => handleOAuth("apple")}
+                  disabled={!!oauthLoading}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    backgroundColor: colors.foreground,
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    borderWidth: 1,
+                    borderColor: colors.foreground,
+                    marginBottom: 12,
+                    opacity: oauthLoading ? 0.6 : 1,
+                  }}
+                  accessibilityLabel="Continue with Apple"
+                  accessibilityRole="button"
+                >
+                  {oauthLoading === "apple" ? (
+                    <ActivityIndicator size="small" color={colors.background} />
+                  ) : (
+                    <>
+                      <IconSymbol name="globe" size={18} color={colors.background} />
+                      <Text style={{ color: colors.background, fontSize: 14, fontWeight: "600" }}>Continue with Apple</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={{ alignItems: "center", marginTop: 4 }} accessibilityLabel="Dismiss" accessibilityRole="button" accessibilityHint="Dismisses the login dialog">
                   <Text style={{ color: colors.foreground, fontSize: 14 }}>Cancel</Text>
                 </TouchableOpacity>
               </>

@@ -61,6 +61,7 @@ describe.skipIf(!runDbTests)("sync e2e", () => {
       loginMethod: "email",
       passwordHash: null,
       role: "user" as const,
+      emailVerified: 0 as const,
       createdAt: new Date(),
       updatedAt: new Date(),
       lastSignedIn: new Date(),

@@ -143,6 +143,21 @@ export async function updateUserPasswordHashById(id: number, passwordHash: strin
   await db.update(users).set({ passwordHash } as any).where(eq(users.id, id));
 }
 
+export async function deleteUserById(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  // Cascade deletes watchlist_items, price_alerts, back_order_reminders, app_settings,
+  // device_notification_configs, notification_events, device_push_tokens, password_reset_tokens,
+  // shared_watchlists via FK onDelete cascade. Clean up tables without FK.
+  try {
+    const { revokedDevices } = await import("../drizzle/schema");
+    try {
+      await db.delete(revokedDevices).where(eq(revokedDevices.userId, id));
+    } catch {}
+  } catch {}
+  await db.delete(users).where(eq(users.id, id));
+}
+
 // ─── Password reset tokens (in-memory fallback when DB unavailable) ─────────
 const memTokens = new Map<string, { userId: number; token: string; expiresAt: number; usedAt: number | null }>();
 

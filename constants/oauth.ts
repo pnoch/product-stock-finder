@@ -40,6 +40,34 @@ export async function getLoginUrl(): Promise<string> {
   return `${getApiBaseUrl()}/api/auth/login`;
 }
 
-export async function startOAuthLogin(): Promise<string | null> {
-  return null;
+export type OAuthProvider = "google" | "apple";
+
+export async function getOAuthUrl(provider: OAuthProvider): Promise<string | null> {
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) return null;
+  try {
+    let deviceId: string | undefined;
+    try {
+      const { getDeviceId } = await import("@/lib/device-id");
+      deviceId = await getDeviceId();
+    } catch {
+      deviceId = undefined;
+    }
+    const redirectUri = getRedirectUri();
+    const params = new URLSearchParams({ provider });
+    if (redirectUri) params.set("redirectUri", redirectUri);
+    if (deviceId) params.set("deviceId", deviceId);
+    const res = await fetch(`${baseUrl}/api/auth/oauth/start?${params.toString()}`, {
+      headers: deviceId ? { "X-Device-Id": deviceId } : undefined,
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { url?: string };
+    return data.url ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function startOAuthLogin(provider: OAuthProvider = "google"): Promise<string | null> {
+  return getOAuthUrl(provider);
 }

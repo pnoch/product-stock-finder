@@ -94,6 +94,13 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+    deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
+      const { deleteUserById } = await import("./db.js");
+      await deleteUserById(ctx.user.id);
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      return { success: true } as const;
+    }),
   }),
 
   sync: router({

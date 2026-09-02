@@ -52,7 +52,7 @@ class SDKServer {
       name: req.name || normalizedEmail.split("@")[0],
       loginMethod: "email",
       lastSignedIn: new Date(),
-    });
+    } as any);
 
     await db.updateUserPasswordHash(openId, passwordHash);
 
@@ -65,7 +65,7 @@ class SDKServer {
     });
 
     return {
-      user: { id: user.id, email: normalizedEmail, name: user.name, openId },
+      user: { id: user.id, email: normalizedEmail, name: user.name, openId, emailVerified: (user as any).emailVerified ? true : false } as any,
       sessionToken,
     };
   }

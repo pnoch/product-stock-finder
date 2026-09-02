@@ -63,6 +63,8 @@ function makeAuth(isAuthenticated: boolean) {
     register: vi.fn(async () => {}),
     forgotPassword: vi.fn(async () => {}),
     resetPassword: vi.fn(async () => {}),
+    changePassword: vi.fn(async () => {}),
+    deleteAccount: vi.fn(async () => {}),
   };
 }
 

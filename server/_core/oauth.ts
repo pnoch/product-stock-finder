@@ -5,6 +5,7 @@ import { getSessionCookieOptions } from "./cookies";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import * as db from "../db";
+import { encodeOAuthState } from "../../shared/oauth-state.js";
 
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
 function sendPasswordResetEmail(email: string, token: string) {
@@ -47,7 +48,7 @@ function getClientIp(req: Request): string {
   return forwarded ?? req.ip ?? "unknown";
 }
 
-function buildUserResponse(user: { id?: number | null; openId?: string | null; name?: string | null; email?: string | null; loginMethod?: string | null; lastSignedIn?: Date | null }) {
+function buildUserResponse(user: { id?: number | null; openId?: string | null; name?: string | null; email?: string | null; loginMethod?: string | null; lastSignedIn?: Date | null; emailVerified?: number | boolean | null }) {
   return {
     id: user?.id ?? null,
     openId: user?.openId ?? null,
@@ -55,6 +56,7 @@ function buildUserResponse(user: { id?: number | null; openId?: string | null; n
     email: user?.email ?? null,
     loginMethod: user?.loginMethod ?? null,
     lastSignedIn: (user?.lastSignedIn ?? new Date()).toISOString(),
+    emailVerified: Boolean((user as any)?.emailVerified),
   };
 }
 
@@ -135,6 +137,80 @@ export function registerOAuthRoutes(app: Express) {
     res.redirect(302, "/");
   });
 
+  app.get("/api/auth/oauth/start", (req: Request, res: Response) => {
+    const provider = String(req.query.provider ?? "").toLowerCase();
+    if (!["google", "apple"].includes(provider)) {
+      res.status(400).json({ error: "invalid provider; expected google or apple" });
+      return;
+    }
+    const redirectUri =
+      typeof req.query.redirectUri === "string" && req.query.redirectUri
+        ? String(req.query.redirectUri)
+        : undefined;
+    const deviceId =
+      typeof req.query.deviceId === "string" && req.query.deviceId
+        ? String(req.query.deviceId)
+        : typeof req.headers["x-device-id"] === "string"
+          ? String(req.headers["x-device-id"])
+          : undefined;
+    const state = encodeOAuthState(redirectUri ?? "", deviceId);
+    const apiBase =
+      process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
+    const webBase =
+      process.env.EXPO_PUBLIC_WEB_URL?.replace(/\/$/, "") ?? apiBase;
+
+    const googleClientId = process.env.GOOGLE_CLIENT_ID ?? process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+    const appleClientId = process.env.APPLE_CLIENT_ID ?? process.env.EXPO_PUBLIC_APPLE_CLIENT_ID ?? "";
+
+    let url: string;
+    if (provider === "google" && googleClientId) {
+      const oauthRedirect = `${apiBase || webBase}/api/oauth/callback`;
+      const params = new URLSearchParams({
+        client_id: googleClientId,
+        redirect_uri: oauthRedirect,
+        response_type: "code",
+        scope: "openid email profile",
+        state,
+        prompt: "select_account",
+      });
+      url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    } else if (provider === "apple" && appleClientId) {
+      const oauthRedirect = `${apiBase || webBase}/api/oauth/callback`;
+      const params = new URLSearchParams({
+        client_id: appleClientId,
+        redirect_uri: oauthRedirect,
+        response_type: "code",
+        scope: "name email",
+        state,
+        response_mode: "form_post",
+      });
+      url = `https://appleid.apple.com/auth/authorize?${params.toString()}`;
+    } else {
+      const base = apiBase || webBase;
+      if (base) {
+        url = `${base}/api/oauth/authorize?provider=${encodeURIComponent(provider)}&state=${encodeURIComponent(state)}`;
+      } else {
+        url = `/api/oauth/authorize?provider=${encodeURIComponent(provider)}&state=${encodeURIComponent(state)}`;
+      }
+    }
+    res.json({ url });
+  });
+
+  app.delete("/api/auth/account", async (req: Request, res: Response) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      await db.deleteUserById(user.id);
+      const cookieOptions = getSessionCookieOptions(req);
+      res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      res.json({ success: true });
+    } catch (e: unknown) {
+      console.error("[Auth] delete account failed", e);
+      const message = e instanceof Error ? e.message : String(e);
+      const status = message.includes("Invalid session") || message.includes("User not found") ? 401 : 400;
+      res.status(status).json({ error: message || "Failed to delete account" });
+    }
+  });
+
   app.post("/api/auth/forgot", async (req: Request, res: Response) => {
     try {
       const { email } = req.body ?? {};
@@ -182,6 +258,69 @@ export function registerOAuthRoutes(app: Express) {
     } catch (e: unknown) {
       console.error("[Auth] reset failed", e);
       res.status(400).json({ error: String(e) });
+    }
+  });
+
+  app.post("/api/auth/change-password", async (req: Request, res: Response) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      const { currentPassword, newPassword } = req.body ?? {};
+      if (!currentPassword || typeof currentPassword !== "string" || !currentPassword.trim()) {
+        res.status(400).json({ error: "currentPassword is required" });
+        return;
+      }
+      if (!newPassword || typeof newPassword !== "string" || newPassword.length < 6) {
+        res.status(400).json({ error: "password must be at least 6 characters" });
+        return;
+      }
+      const full = await db.getUserById(user.id);
+      if (!full || !full.passwordHash) {
+        res.status(400).json({ error: "No password set for this account" });
+        return;
+      }
+      const compareFn = (bcrypt as unknown as { compare?: (p: string, h: string) => Promise<boolean>; default?: { compare: (p: string, h: string) => Promise<boolean> } }).compare
+        ?? (bcrypt as unknown as { default?: { compare: (p: string, h: string) => Promise<boolean> } }).default?.compare;
+      const valid = compareFn ? await compareFn(currentPassword, full.passwordHash) : await (bcrypt as unknown as { compare: (p: string, h: string) => Promise<boolean> }).compare(currentPassword, full.passwordHash);
+      if (!valid) {
+        res.status(401).json({ error: "Current password is incorrect" });
+        return;
+      }
+      const hashFn = (bcrypt as unknown as { hash?: (p: string, r: number) => Promise<string>; default?: { hash: (p: string, r: number) => Promise<string> } }).hash
+        ?? (bcrypt as unknown as { default?: { hash: (p: string, r: number) => Promise<string> } }).default?.hash;
+      const hashed = hashFn ? await hashFn(newPassword, 10) : await (bcrypt as unknown as { hash: (p: string, r: number) => Promise<string> }).hash(newPassword, 10);
+      await db.updateUserPasswordHashById(user.id, hashed);
+      res.json({ success: true });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("Invalid session") || msg.includes("User not found")) {
+        res.status(401).json({ error: "Not authenticated" });
+        return;
+      }
+      console.error("[Auth] change-password failed", e);
+      res.status(400).json({ error: msg });
+    }
+  });
+
+  app.post("/api/auth/delete-account", async (req: Request, res: Response) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      const { confirm } = req.body ?? {};
+      if (confirm !== "DELETE") {
+        res.status(400).json({ error: 'confirm must be "DELETE"' });
+        return;
+      }
+      await db.deleteUserById(user.id);
+      const cookieOptions = getSessionCookieOptions(req);
+      res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      res.json({ success: true });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("Invalid session") || msg.includes("User not found")) {
+        res.status(401).json({ error: "Not authenticated" });
+        return;
+      }
+      console.error("[Auth] delete-account failed", e);
+      res.status(400).json({ error: msg });
     }
   });
 }

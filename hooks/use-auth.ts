@@ -38,6 +38,7 @@ export function useAuth(options?: UseAuthOptions) {
             email: apiUser.email,
             loginMethod: apiUser.loginMethod,
             lastSignedIn: new Date(apiUser.lastSignedIn),
+            emailVerified: (apiUser as any).emailVerified ?? false,
           };
           setUser(userInfo);
           // Cache user info in localStorage for faster subsequent loads
@@ -125,6 +126,7 @@ export function useAuth(options?: UseAuthOptions) {
           email: data.user.email,
           loginMethod: "email",
           lastSignedIn: new Date(),
+          emailVerified: data.user.emailVerified ?? false,
         };
         await Auth.setUserInfo(userInfo);
         setUser(userInfo);
@@ -159,6 +161,7 @@ export function useAuth(options?: UseAuthOptions) {
           email: data.user.email,
           loginMethod: "email",
           lastSignedIn: new Date(),
+          emailVerified: data.user.emailVerified ?? false,
         };
         await Auth.setUserInfo(userInfo);
         setUser(userInfo);
@@ -195,6 +198,49 @@ export function useAuth(options?: UseAuthOptions) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Password reset failed");
     }
+    return res.json();
+  }, []);
+
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    const baseUrl = getApiBaseUrl();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (Platform.OS !== "web") {
+      const token = await Auth.getSessionToken();
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+    }
+    const res = await fetch(`${baseUrl}/api/auth/change-password`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ currentPassword, newPassword }),
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Change password failed");
+    }
+    return res.json();
+  }, []);
+
+  const deleteAccount = useCallback(async (confirm: string = "DELETE") => {
+    const baseUrl = getApiBaseUrl();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (Platform.OS !== "web") {
+      const token = await Auth.getSessionToken();
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+    }
+    const res = await fetch(`${baseUrl}/api/auth/delete-account`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ confirm }),
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Delete account failed");
+    }
+    await Auth.removeSessionToken();
+    await Auth.clearUserInfo();
+    setUser(null);
     return res.json();
   }, []);
 
@@ -253,5 +299,7 @@ export function useAuth(options?: UseAuthOptions) {
     register,
     forgotPassword,
     resetPassword,
+    changePassword,
+    deleteAccount,
   };
 }
