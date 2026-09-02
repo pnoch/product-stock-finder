@@ -28,6 +28,52 @@ function recordRecent(q: string): string[] {
   const upd = [t, ...filtered].slice(0, 8); saveRecent(upd); return upd;
 }
 
+type CatalogSort = "relevance" | "name" | "brand" | "price";
+const CATALOG_SORT_OPTIONS: { key: CatalogSort; label: string }[] = [
+  { key: "relevance", label: "Relevance" },
+  { key: "name", label: "Name" },
+  { key: "brand", label: "Brand" },
+  { key: "price", label: "Price" },
+];
+
+function PillFilterRow({
+  label,
+  options,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  options: string[];
+  selected: string | null;
+  onSelect: (v: string | null) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mr-1">{label}</span>
+      <button
+        onClick={() => onSelect(null)}
+        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${selected === null ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+        aria-label={`${label} All`}
+      >
+        All
+      </button>
+      {options.map((opt) => {
+        const active = selected === opt;
+        return (
+          <button
+            key={opt}
+            onClick={() => onSelect(active ? null : opt)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${active ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+            aria-label={`${label} ${opt}`}
+          >
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Search() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
@@ -49,6 +95,9 @@ export function Search() {
   const [manualCategory, setManualCategory] = useState("");
   const [searchTagIds, setSearchTagIds] = useState<string[]>([]);
   const [searchTagMode, setSearchTagMode] = useState<"any" | "all">("any");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [catalogSort, setCatalogSort] = useState<CatalogSort>("relevance");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -93,6 +142,28 @@ export function Search() {
 
   const categories = useMemo(() => getAllCategories(), []);
   const brands = useMemo(() => getAllBrands(), []);
+
+  const categoryBrandFiltered = useMemo(() => {
+    let out = results;
+    if (selectedCategory) out = out.filter((p) => p.category === selectedCategory);
+    if (selectedBrand) out = out.filter((p) => p.brand === selectedBrand);
+    return out;
+  }, [results, selectedCategory, selectedBrand]);
+
+  const sortedResults = useMemo(() => {
+    if (catalogSort === "relevance") return categoryBrandFiltered;
+    const copy = [...categoryBrandFiltered];
+    switch (catalogSort) {
+      case "name":
+        return copy.sort((a, b) => a.name.localeCompare(b.name));
+      case "brand":
+        return copy.sort((a, b) => a.brand.localeCompare(b.brand) || a.name.localeCompare(b.name));
+      case "price":
+        return copy.sort((a, b) => a.name.localeCompare(b.name));
+      default:
+        return copy;
+    }
+  }, [categoryBrandFiltered, catalogSort]);
 
   const handleAdd = async (product: (typeof PRODUCT_CATALOG)[number]) => {
     const tags = pendingTags[product.id] ?? [];
@@ -177,13 +248,36 @@ export function Search() {
         />
       )}
 
+      <PillFilterRow label="Category" options={categories} selected={selectedCategory} onSelect={setSelectedCategory} />
+      <PillFilterRow label="Brand" options={brands} selected={selectedBrand} onSelect={setSelectedBrand} />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Sort</span>
+        {CATALOG_SORT_OPTIONS.map((opt) => {
+          const active = catalogSort === opt.key;
+          return (
+            <button
+              key={opt.key}
+              onClick={() => setCatalogSort(opt.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${active ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+              aria-label={`Sort by ${opt.label}`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+        {(selectedCategory || selectedBrand) && (
+          <button onClick={() => { setSelectedCategory(null); setSelectedBrand(null); }} className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 ml-1">Clear</button>
+        )}
+      </div>
+
       <div className="flex items-center gap-2 text-xs text-gray-500">
-        <span>{results.length} result{results.length !== 1 ? "s" : ""}</span>
+        <span>{sortedResults.length} result{sortedResults.length !== 1 ? "s" : ""}</span>
         {query.trim() && <span className="px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-600">{query}</span>}
       </div>
 
       <div className="space-y-2">
-        {results.map((product) => {
+        {sortedResults.map((product) => {
           const isTracked = trackedIds.has(product.id);
           const pending = pendingTags[product.id] ?? [];
           return (
@@ -203,7 +297,7 @@ export function Search() {
             </div>
           );
         })}
-        {results.length === 0 && (
+        {sortedResults.length === 0 && (
           <div className="text-center py-12">
             <p className="text-sm text-gray-500 mb-4">No products found.</p>
             {query.trim() && !discovering && <button onClick={handleDiscover} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-brand-500/30 bg-brand-500/10 text-brand-600 text-sm font-medium"><Wand2 className="w-4 h-4" /> Discover with AI</button>}

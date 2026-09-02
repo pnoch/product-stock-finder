@@ -26,7 +26,7 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ProductImage } from "../components/ProductImage";
 import { TagFilterRow } from "../components/TagFilterRow";
 import { countTagMatches } from "../../../lib/watchlist-org";
-import { matchesTagFilterMode } from "../../../lib/tags";
+import { matchesTagFilterMode, TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import type { Product, StockStatus, TagDefinition } from "../../../lib/types";
 
 type SortKey = "name" | "price" | "trend" | "lastUpdated";
@@ -102,10 +102,17 @@ export function Watchlist() {
   const [collapsed, setCollapsed] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const [newTagName, setNewTagName] = useState("");
-  const [newTagColor, setNewTagColor] = useState("#0F52BA");
+  const [newTagColor, setNewTagColor] = useState(TAG_PALETTE[0]);
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
   const [editingTagName, setEditingTagName] = useState("");
-  const [editingTagColor, setEditingTagColor] = useState("#0F52BA");
+  const [editingTagColor, setEditingTagColor] = useState(TAG_PALETTE[0]);
+  const [manageError, setManageError] = useState<string | null>(null);
+  // BulkTagSheet — desktop Tailwind port of components/bulk-tag-sheet.tsx
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkSelectedTagIds, setBulkSelectedTagIds] = useState<string[]>([]);
+  const [bulkNewTagName, setBulkNewTagName] = useState("");
+  const [bulkNewTagColor, setBulkNewTagColor] = useState(TAG_PALETTE[0]);
+  const [bulkError, setBulkError] = useState<string | null>(null);
 
   const displayCurrency = settings?.displayCurrency ?? "USD";
 
@@ -322,47 +329,111 @@ export function Watchlist() {
     );
   }
 
-  // Tag manager helpers
+  // TagManageSheet — desktop Tailwind port of components/tag-manage-sheet.tsx (create/edit color+name/delete with cascade)
+  const refreshTagDefs = async () => {
+    const defs = await storage.getTagDefinitions();
+    setTagDefinitions(defs as Record<string, TagDefinition>);
+    setSelectedTagIds((prev) => prev.filter((id) => id in defs));
+  };
   const handleCreateTag = async () => {
     const name = newTagName.trim();
     if (!name) return;
-    const id = name.toLowerCase().replace(/\s+/g, "-") + "-" + Date.now().toString(36);
-    const def: TagDefinition = { id, name, color: newTagColor };
-    const next = { ...tagDefinitions, [id]: def };
-    setTagDefinitions(next);
-    const s = await storage.getSettings();
-    await storage.saveSettings({ ...s, tagDefinitions: next } as never);
-    setNewTagName("");
-    showToast(`Tag "${name}" created`);
+    setManageError(null);
+    try {
+      await storage.createTag(name, newTagColor);
+      await refreshTagDefs();
+      setNewTagName("");
+      setNewTagColor(nextTagColor(await storage.getTagDefinitions()));
+      showToast(`Tag "${name}" created`);
+    } catch (e) {
+      setManageError(e instanceof Error ? e.message : "Could not create tag");
+    }
   };
   const handleUpdateTag = async () => {
     if (!editingTagId) return;
     const name = editingTagName.trim();
     if (!name) return;
-    const next = { ...tagDefinitions, [editingTagId]: { id: editingTagId, name, color: editingTagColor } };
-    setTagDefinitions(next);
-    const s = await storage.getSettings();
-    await storage.saveSettings({ ...s, tagDefinitions: next } as never);
-    setEditingTagId(null);
-    showToast("Tag updated");
+    setManageError(null);
+    try {
+      await storage.renameTag(editingTagId, name);
+      if (editingTagColor !== tagDefinitions[editingTagId]?.color) {
+        await storage.setTagColor(editingTagId, editingTagColor);
+      }
+      await refreshTagDefs();
+      setEditingTagId(null);
+      showToast("Tag updated");
+    } catch (e) {
+      setManageError(e instanceof Error ? e.message : "Could not update tag");
+    }
+  };
+  const handleRecolorTag = async (id: string, color: string) => {
+    try {
+      await storage.setTagColor(id, color);
+      await refreshTagDefs();
+    } catch (e) {
+      setManageError(e instanceof Error ? e.message : "Could not recolor tag");
+    }
   };
   const handleDeleteTag = async (id: string) => {
-    if (!window.confirm("Delete this tag? It will be removed from all products.")) return;
-    const next = { ...tagDefinitions };
-    delete next[id];
-    setTagDefinitions(next);
-    setSelectedTagIds((prev) => prev.filter((x) => x !== id));
-    const s = await storage.getSettings();
-    await storage.saveSettings({ ...s, tagDefinitions: next } as never);
-    // remove tag id from watchlist products
-    const watchlist = await storage.getWatchlist();
-    for (const p of watchlist) {
-      if (p.tags?.includes(id)) {
-        await storage.addToWatchlist({ ...p, tags: p.tags.filter((t) => t !== id) });
-      }
+    const def = tagDefinitions[id];
+    if (!def) return;
+    if (!window.confirm(`Delete "${def.name}"? It will be removed from all products.`)) return;
+    setManageError(null);
+    try {
+      await storage.deleteTag(id);
+      await refreshTagDefs();
+      await refresh();
+      showToast("Tag deleted");
+    } catch (e) {
+      setManageError(e instanceof Error ? e.message : "Could not delete tag");
     }
-    await refresh();
-    showToast("Tag deleted");
+  };
+
+  // BulkTagSheet — desktop Tailwind port of components/bulk-tag-sheet.tsx (assign tags to selection)
+  const toggleBulkTag = (tagId: string) => {
+    setBulkSelectedTagIds((prev) => (prev.includes(tagId) ? prev.filter((i) => i !== tagId) : [...prev, tagId]));
+  };
+  const handleBulkCreateTag = async () => {
+    const name = bulkNewTagName.trim();
+    if (!name) return;
+    setBulkError(null);
+    try {
+      const current = await storage.getTagDefinitions();
+      const tag = await storage.createTag(name, bulkNewTagColor);
+      setTagDefinitions((prev) => ({ ...prev, [tag.id]: tag }));
+      setBulkSelectedTagIds((prev) => [...prev, tag.id]);
+      setBulkNewTagName("");
+      setBulkNewTagColor(nextTagColor({ ...current, [tag.id]: tag }));
+    } catch (e) {
+      setBulkError(e instanceof Error ? e.message : "Could not create tag");
+    }
+  };
+  const handleBulkApply = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0 || bulkSelectedTagIds.length === 0) return;
+    setBulkError(null);
+    try {
+      await storage.addTagsToProducts(ids, bulkSelectedTagIds);
+      await refresh();
+      await refreshTagDefs();
+      setBulkOpen(false);
+      setBulkSelectedTagIds([]);
+      exitSelection();
+      showToast(`Added ${bulkSelectedTagIds.length} tag${bulkSelectedTagIds.length !== 1 ? "s" : ""} to ${ids.length} product${ids.length !== 1 ? "s" : ""}`);
+    } catch (e) {
+      setBulkError(e instanceof Error ? e.message : "Could not apply tags");
+    }
+  };
+  const openBulkTagSheet = async () => {
+    try {
+      const defs = await storage.getTagDefinitions();
+      setTagDefinitions(defs as Record<string, TagDefinition>);
+    } catch {}
+    setBulkSelectedTagIds([]);
+    setBulkNewTagName("");
+    setBulkError(null);
+    setBulkNewTagColor(nextTagColor(tagDefinitions));
+    setBulkOpen(true);
   };
 
   return (
@@ -410,6 +481,9 @@ export function Watchlist() {
           ) : (
             <>
               <span className="text-sm text-gray-600 dark:text-gray-300">{selectedIds.size} selected</span>
+              <button onClick={openBulkTagSheet} disabled={selectedIds.size === 0} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-50">
+                <TagIcon className="w-3.5 h-3.5" /> Tag
+              </button>
               <button onClick={handleBulkDelete} disabled={selectedIds.size === 0} className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-medium disabled:opacity-50">Delete</button>
               <button onClick={exitSelection} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">Cancel</button>
             </>
@@ -739,44 +813,112 @@ export function Watchlist() {
         </div>
       )}
       {manageOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setManageOpen(false); setEditingTagId(null); }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setManageOpen(false); setEditingTagId(null); setManageError(null); }}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold flex items-center gap-2"><TagIcon className="w-4 h-4" /> Manage Tags</h3>
-              <button onClick={() => { setManageOpen(false); setEditingTagId(null); }} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
+              <button onClick={() => { setManageOpen(false); setEditingTagId(null); setManageError(null); }} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
             </div>
-            <div className="space-y-2 mb-4">
+            {manageError && <p className="text-xs text-red-600 dark:text-red-400 mb-3">{manageError}</p>}
+            <div className="space-y-3 mb-4 max-h-[360px] overflow-y-auto pr-1">
               {Object.values(tagDefinitions).map((def) => (
-                <div key={def.id} className="flex items-center gap-2 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div key={def.id} className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                   {editingTagId === def.id ? (
-                    <>
-                      <input type="color" value={editingTagColor} onChange={(e) => setEditingTagColor(e.target.value)} className="w-8 h-8 rounded border" aria-label="Tag color" />
-                      <input value={editingTagName} onChange={(e) => setEditingTagName(e.target.value)} className="flex-1 px-2 py-1 rounded border text-sm" placeholder="Tag name" />
-                      <button onClick={handleUpdateTag} className="px-2 py-1 rounded bg-brand-600 text-white text-xs">Save</button>
-                      <button onClick={() => setEditingTagId(null)} className="px-2 py-1 rounded border text-xs">Cancel</button>
-                    </>
+                    <div className="flex items-center gap-2 mb-2">
+                      <input type="color" value={editingTagColor} onChange={(e) => setEditingTagColor(e.target.value)} className="w-8 h-8 rounded border shrink-0" aria-label="Tag color" />
+                      <input value={editingTagName} maxLength={24} onChange={(e) => setEditingTagName(e.target.value)} className="flex-1 px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" placeholder="Tag name" />
+                      <button onClick={handleUpdateTag} className="px-2.5 py-1 rounded bg-brand-600 text-white text-xs font-medium">Save</button>
+                      <button onClick={() => { setEditingTagId(null); setManageError(null); }} className="px-2.5 py-1 rounded border border-gray-200 dark:border-gray-700 text-xs">Cancel</button>
+                    </div>
                   ) : (
-                    <>
+                    <div className="flex items-center gap-2 mb-2">
                       <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: def.color }} />
-                      <span className="flex-1 text-sm font-medium">{def.name}</span>
-                      <button onClick={() => { setEditingTagId(def.id); setEditingTagName(def.name); setEditingTagColor(def.color); }} className="text-xs text-brand-600 hover:underline">Edit</button>
-                      <button onClick={() => handleDeleteTag(def.id)} className="text-xs text-red-600 hover:underline">Delete</button>
-                    </>
+                      <span className="flex-1 text-sm font-medium truncate">{def.name}</span>
+                      <button onClick={() => { setEditingTagId(def.id); setEditingTagName(def.name); setEditingTagColor(def.color); setManageError(null); }} className="text-xs font-medium text-brand-600 hover:underline">Edit</button>
+                      <button onClick={() => handleDeleteTag(def.id)} className="text-xs font-medium text-red-600 hover:underline">Delete</button>
+                    </div>
                   )}
+                  <div className="flex flex-wrap gap-1.5">
+                    {TAG_PALETTE.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => {
+                          if (editingTagId === def.id) setEditingTagColor(color);
+                          else void handleRecolorTag(def.id, color);
+                        }}
+                        className={`w-6 h-6 rounded-full border-2 ${ (editingTagId === def.id ? editingTagColor : def.color) === color ? "border-gray-900 dark:border-white" : "border-transparent"}`}
+                        style={{ backgroundColor: color }}
+                        aria-label={`Set color to ${color}`}
+                      />
+                    ))}
+                  </div>
                 </div>
               ))}
               {Object.keys(tagDefinitions).length === 0 && <p className="text-sm text-gray-500">No tags yet. Create one below.</p>}
             </div>
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
               <p className="text-xs font-semibold mb-2">Create new tag</p>
-              <div className="flex items-center gap-2">
-                <input type="color" value={newTagColor} onChange={(e) => setNewTagColor(e.target.value)} className="w-8 h-8 rounded border" aria-label="New tag color" />
-                <input value={newTagName} onChange={(e) => setNewTagName(e.target.value)} placeholder="Tag name" className="flex-1 px-3 py-2 rounded-lg border text-sm" />
+              <div className="flex items-center gap-2 mb-2">
+                <input type="color" value={newTagColor} onChange={(e) => setNewTagColor(e.target.value)} className="w-8 h-8 rounded border shrink-0" aria-label="New tag color" />
+                <input value={newTagName} maxLength={24} onChange={(e) => setNewTagName(e.target.value)} placeholder="Tag name" className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" />
                 <button onClick={handleCreateTag} disabled={!newTagName.trim()} className="px-3 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-50">Add</button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {TAG_PALETTE.map((c) => (
+                  <button key={c} onClick={() => setNewTagColor(c)} className={`w-6 h-6 rounded-full border-2 ${newTagColor === c ? "border-gray-900 dark:border-white" : "border-transparent"}`} style={{ backgroundColor: c }} aria-label={`Pick color ${c}`} />
+                ))}
               </div>
             </div>
             <div className="flex justify-end mt-4">
-              <button onClick={() => { setManageOpen(false); setEditingTagId(null); }} className="px-4 py-2 rounded-lg border text-sm">Close</button>
+              <button onClick={() => { setManageOpen(false); setEditingTagId(null); setManageError(null); }} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* BulkTagSheet — assign tags to selection */}
+      {bulkOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setBulkOpen(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-semibold flex items-center gap-2"><TagIcon className="w-4 h-4" /> Add Tags</h3>
+              <button onClick={() => setBulkOpen(false)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Apply to {selectedIds.size} product{selectedIds.size !== 1 ? "s" : ""}</p>
+            {bulkError && <p className="text-xs text-red-600 dark:text-red-400 mb-2">{bulkError}</p>}
+            <div className="space-y-1 mb-4 max-h-[260px] overflow-y-auto">
+              {Object.keys(tagDefinitions).length === 0 && <p className="text-sm text-gray-500">No tags yet — create one below.</p>}
+              {Object.values(tagDefinitions).map((tag) => {
+                const active = bulkSelectedTagIds.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => toggleBulkTag(tag.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg border text-left ${active ? "bg-brand-50 dark:bg-brand-900/20 border-brand-200 dark:border-brand-800" : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40"}`}
+                  >
+                    <span className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${active ? "bg-brand-600 border-brand-600 text-white" : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"}`}>{active ? "✓" : ""}</span>
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                    <span className="text-sm font-medium truncate">{tag.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <input type="color" value={bulkNewTagColor} onChange={(e) => setBulkNewTagColor(e.target.value)} className="w-8 h-8 rounded border shrink-0" aria-label="New tag color" />
+                <input value={bulkNewTagName} maxLength={24} onChange={(e) => setBulkNewTagName(e.target.value)} placeholder="New tag name" className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" />
+                <button onClick={handleBulkCreateTag} disabled={!bulkNewTagName.trim()} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium disabled:opacity-50">Create</button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {TAG_PALETTE.map((c) => (
+                  <button key={c} onClick={() => setBulkNewTagColor(c)} className={`w-5 h-5 rounded-full border-2 ${bulkNewTagColor === c ? "border-gray-900 dark:border-white" : "border-transparent"}`} style={{ backgroundColor: c }} aria-label={`Pick ${c}`} />
+                ))}
+              </div>
+              <button onClick={handleBulkApply} disabled={bulkSelectedTagIds.length === 0} className="w-full mt-2 px-4 py-2.5 rounded-lg bg-brand-600 text-white text-sm font-semibold disabled:opacity-50">
+                Add {bulkSelectedTagIds.length > 0 ? `${bulkSelectedTagIds.length} tag${bulkSelectedTagIds.length !== 1 ? "s" : ""} ` : ""}to selected
+              </button>
+            </div>
+            <div className="flex justify-center mt-3">
+              <button onClick={() => setBulkOpen(false)} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">Cancel</button>
             </div>
           </div>
         </div>

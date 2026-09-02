@@ -32,6 +32,50 @@ function recordRecent(query: string): string[] {
   return updated;
 }
 
+type CatalogSort = "relevance" | "name" | "brand" | "price";
+const CATALOG_SORT_OPTIONS: { key: CatalogSort; label: string }[] = [
+  { key: "relevance", label: "Relevance" },
+  { key: "name", label: "Name" },
+  { key: "brand", label: "Brand" },
+  { key: "price", label: "Price" },
+];
+
+function PillFilterRow({
+  label,
+  options,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  options: string[];
+  selected: string | null;
+  onSelect: (v: string | null) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mr-1">{label}</span>
+      <button
+        onClick={() => onSelect(null)}
+        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${selected === null ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+      >
+        All
+      </button>
+      {options.map((opt) => {
+        const active = selected === opt;
+        return (
+          <button
+            key={opt}
+            onClick={() => onSelect(active ? null : opt)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${active ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+          >
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function SearchModal({
   open,
   onClose,
@@ -56,6 +100,9 @@ export function SearchModal({
   const [manualModel, setManualModel] = useState("");
   const [manualBrand, setManualBrand] = useState("");
   const [manualCategory, setManualCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [catalogSort, setCatalogSort] = useState<CatalogSort>("relevance");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -102,6 +149,28 @@ export function SearchModal({
 
   const categories = useMemo(() => getAllCategories(), []);
   const brands = useMemo(() => getAllBrands(), []);
+
+  const categoryBrandFiltered = useMemo(() => {
+    let out = results;
+    if (selectedCategory) out = out.filter((p) => p.category === selectedCategory);
+    if (selectedBrand) out = out.filter((p) => p.brand === selectedBrand);
+    return out;
+  }, [results, selectedCategory, selectedBrand]);
+
+  const sortedResults = useMemo(() => {
+    if (catalogSort === "relevance") return categoryBrandFiltered;
+    const copy = [...categoryBrandFiltered];
+    switch (catalogSort) {
+      case "name":
+        return copy.sort((a, b) => a.name.localeCompare(b.name));
+      case "brand":
+        return copy.sort((a, b) => a.brand.localeCompare(b.brand) || a.name.localeCompare(b.name));
+      case "price":
+        return copy.sort((a, b) => a.name.localeCompare(b.name));
+      default:
+        return copy;
+    }
+  }, [categoryBrandFiltered, catalogSort]);
 
   const handleAdd = async (product: (typeof PRODUCT_CATALOG)[number]) => {
     try {
@@ -226,8 +295,31 @@ export function SearchModal({
         {discoveredProducts.length > 0 && (
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{discoveredProducts.length} discovered products included · up to 50</p>
         )}
+        <div className="flex flex-col gap-2 mb-3">
+          <PillFilterRow label="Category" options={categories} selected={selectedCategory} onSelect={setSelectedCategory} />
+          <PillFilterRow label="Brand" options={brands} selected={selectedBrand} onSelect={setSelectedBrand} />
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Sort</span>
+            {CATALOG_SORT_OPTIONS.map((opt) => {
+              const active = catalogSort === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => setCatalogSort(opt.key)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${active ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+            {(selectedCategory || selectedBrand) && (
+              <button onClick={() => { setSelectedCategory(null); setSelectedBrand(null); }} className="text-xs text-gray-500 ml-1">Clear</button>
+            )}
+          </div>
+        </div>
+        <div className="text-xs text-gray-500 mb-2">{sortedResults.length} result{sortedResults.length !== 1 ? "s" : ""}</div>
         <div className="space-y-2 max-h-96 overflow-y-auto">
-          {results.map((product) => {
+          {sortedResults.map((product) => {
             const isTracked = trackedIds.has(product.id);
             const pending = pendingTags[product.id] ?? [];
             return (
@@ -274,7 +366,7 @@ export function SearchModal({
               </div>
             );
           })}
-          {results.length === 0 && (
+          {sortedResults.length === 0 && (
             <div className="text-center py-8">
               <p className="text-gray-500 dark:text-gray-400 text-sm">
                 No products found.

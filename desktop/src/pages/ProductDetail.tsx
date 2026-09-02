@@ -10,6 +10,9 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  Share2,
+  Calendar,
+  Copy,
 } from "lucide-react";
 import { storage } from "../storage";
 import { getApiBaseUrl } from "../lib/api-base";
@@ -29,6 +32,7 @@ import {
 } from "../../../lib/region-filter";
 import type { Product } from "../../../lib/types";
 import { findBestDeal } from "../../../lib/best-deal";
+import { buildShareText } from "../../../lib/price-share";
 import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
 import { ProductImage } from "../components/ProductImage";
@@ -100,6 +104,20 @@ export function ProductDetail() {
   const [perListingAlertId, setPerListingAlertId] = useState<string | null>(null);
   const [perListingAlertPrice, setPerListingAlertPrice] = useState("");
   const [perListingAlertCurrency, setPerListingAlertCurrency] = useState("USD");
+  const [perListingAlertDirection, setPerListingAlertDirection] = useState<"drop" | "rise">("drop");
+  const [alertDirection, setAlertDirection] = useState<"drop" | "rise">("drop");
+  const [alertDistributorId, setAlertDistributorId] = useState<string | null>(null);
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const [reminderDateInput, setReminderDateInput] = useState(() => new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
+  const [reminderDistributorId, setReminderDistributorId] = useState<string | null>(null);
+  const [reminderError, setReminderError] = useState<string | null>(null);
+  const [inlineAlertPrice, setInlineAlertPrice] = useState("");
+  const [inlineAlertCurrency, setInlineAlertCurrency] = useState("USD");
+  const [inlineAlertDirection, setInlineAlertDirection] = useState<"drop" | "rise">("drop");
+  const [inlineAlertDistributorId, setInlineAlertDistributorId] = useState<string | null>(null);
+  const [inlineReminderDate, setInlineReminderDate] = useState(() => new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
+  const [inlineReminderDistributorId, setInlineReminderDistributorId] = useState<string | null>(null);
+  const [inlineReminderError, setInlineReminderError] = useState<string | null>(null);
   const { isDark } = useTheme();
 
   useEffect(() => {
@@ -119,6 +137,7 @@ export function ProductDetail() {
         setDisplayCurrency(settings.displayCurrency ?? "USD");
         setShippingRegion(settings.shippingRegion ?? "Asia-Pacific");
         setPerListingAlertCurrency(settings.displayCurrency ?? "USD");
+        setInlineAlertCurrency(settings.displayCurrency ?? "USD");
       }
       const watches = await storage.getStockWatches();
       if (!cancelled) {
@@ -208,12 +227,12 @@ export function ProductDetail() {
       return;
     }
     setAlertError(null);
-    if (!bestListing) {
+    const distributorId = alertDistributorId ?? bestListing?.distributorId;
+    if (!distributorId) {
       showToast("No distributor available");
       return;
     }
-    const distributorId = bestListing.distributorId;
-    const direction: "drop" | "rise" = "drop";
+    const direction = alertDirection;
 
     await storage.addAlert({
       id: `alert-${Date.now()}`,
@@ -235,25 +254,151 @@ export function ProductDetail() {
     }, 1200);
   };
 
-  const handleRemindMe = async () => {
-    if (!product) return;
-    if (!bestListing) {
+  const handleRemindMe = () => {
+    if (!product || !bestListing) {
       showToast("No distributor available");
       return;
     }
-    const date = new Date();
-    date.setDate(date.getDate() + 7);
+    setReminderDistributorId(bestListing.distributorId);
+    setReminderDateInput(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
+    setReminderError(null);
+    setReminderOpen(true);
+  };
+
+  const handleSetReminder = async () => {
+    if (!product) return;
+    const distributorId = reminderDistributorId ?? bestListing?.distributorId;
+    if (!distributorId) {
+      showToast("No distributor available");
+      return;
+    }
+    const picked = new Date(reminderDateInput + "T12:00:00");
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    if (isNaN(picked.getTime()) || picked.getTime() < startOfToday.getTime()) {
+      setReminderError("Please select today or a future date.");
+      return;
+    }
+    const granted = await checkNotificationPermission();
+    if (!granted) {
+      setReminderError("Enable notifications to set reminders.");
+      return;
+    }
+    const dist = DISTRIBUTORS.find((d) => d.id === distributorId);
     await storage.addBackOrderReminder({
       id: `reminder-${Date.now()}`,
       productId: product.id,
       productName: product.name,
-      distributorId: bestListing.distributorId,
-      distributorName: bestDistributor?.name ?? "Unknown",
-      reminderDate: date.toISOString(),
+      distributorId,
+      distributorName: dist?.name ?? distributorId,
+      reminderDate: picked.toISOString(),
       createdAt: new Date().toISOString(),
       reminderType: "date",
     });
-    showToast(`Reminder set for ${date.toLocaleDateString()}`);
+    setReminderOpen(false);
+    setReminderError(null);
+    showToast(`Reminder set for ${picked.toLocaleDateString()}`);
+  };
+
+  const handleInlineAlert = async () => {
+    if (!product) return;
+    const price = parseFloat(inlineAlertPrice);
+    if (isNaN(price) || price <= 0) {
+      showToast("Enter a valid target price");
+      return;
+    }
+    const distributorId = inlineAlertDistributorId ?? bestListing?.distributorId;
+    if (!distributorId) {
+      showToast("No distributor available");
+      return;
+    }
+    const granted = await checkNotificationPermission();
+    if (!granted) {
+      showToast("Enable notifications to receive alerts");
+      return;
+    }
+    await storage.addAlert({
+      id: `alert-${Date.now()}`,
+      productId: product.id,
+      direction: inlineAlertDirection,
+      distributorId,
+      targetPrice: price,
+      currency: inlineAlertCurrency,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    });
+    setInlineAlertPrice("");
+    showToast("Alert created");
+  };
+
+  const handleInlineReminder = async () => {
+    if (!product) return;
+    const distributorId = inlineReminderDistributorId ?? bestListing?.distributorId;
+    if (!distributorId) {
+      showToast("No distributor available");
+      return;
+    }
+    const picked = new Date(inlineReminderDate + "T12:00:00");
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    if (isNaN(picked.getTime()) || picked.getTime() < startOfToday.getTime()) {
+      setInlineReminderError("Please select today or a future date.");
+      return;
+    }
+    const granted = await checkNotificationPermission();
+    if (!granted) {
+      setInlineReminderError("Enable notifications to set reminders.");
+      return;
+    }
+    const dist = DISTRIBUTORS.find((d) => d.id === distributorId);
+    await storage.addBackOrderReminder({
+      id: `reminder-${Date.now()}`,
+      productId: product.id,
+      productName: product.name,
+      distributorId,
+      distributorName: dist?.name ?? distributorId,
+      reminderDate: picked.toISOString(),
+      createdAt: new Date().toISOString(),
+      reminderType: "date",
+    });
+    setInlineReminderError(null);
+    showToast(`Reminder set for ${picked.toLocaleDateString()}`);
+  };
+
+  const handleShare = async () => {
+    if (!product) return;
+    const deepLink = `${window.location.origin}/#/product/${product.id}`;
+    const shareText = buildShareText({
+      product,
+      listings: visibleListings,
+      displayCurrency,
+      limit: 5,
+    });
+    const message = `${shareText}\n\n${deepLink}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: product.name, text: message, url: deepLink });
+        showToast("Shared");
+        return;
+      }
+    } catch {}
+    try {
+      await navigator.clipboard.writeText(message);
+      showToast("Link copied to clipboard");
+    } catch {
+      showToast(deepLink);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!product) return;
+    const deepLink = `${window.location.origin}/#/product/${product.id}`;
+    try {
+      await navigator.clipboard.writeText(deepLink);
+      showToast("Link copied");
+    } catch {
+      showToast(deepLink);
+    }
   };
 
   const handleWatchRestock = async () => {
@@ -316,7 +461,7 @@ export function ProductDetail() {
     await storage.addAlert({
       id: `alert-${Date.now()}`,
       productId: product.id,
-      direction: "drop",
+      direction: perListingAlertDirection,
       distributorId: perListingAlertId,
       targetPrice: price,
       currency: perListingAlertCurrency,
@@ -474,7 +619,10 @@ export function ProductDetail() {
       {/* Action Buttons */}
       <div className="flex items-center gap-2 flex-wrap transition-opacity duration-200">
         <button
-          onClick={() => setAlertOpen(true)}
+          onClick={() => {
+            setAlertDistributorId(bestListing?.distributorId ?? null);
+            setAlertOpen(true);
+          }}
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
           aria-label="Set price alert"
         >
@@ -493,6 +641,20 @@ export function ProductDetail() {
           aria-label="Watch for restock"
         >
           <Star className="w-4 h-4" /> Watch for Restock
+        </button>
+        <button
+          onClick={handleShare}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+          aria-label="Share product"
+        >
+          <Share2 className="w-4 h-4" /> Share
+        </button>
+        <button
+          onClick={handleCopyLink}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+          aria-label="Copy product link"
+        >
+          <Copy className="w-4 h-4" /> Copy Link
         </button>
         <Link
           to={`/compare/${product.id}`}
@@ -772,21 +934,52 @@ export function ProductDetail() {
               Alert saved!
             </div>
             <p className="text-sm text-gray-500">
-              You'll be notified when the price drops below your target.
+              You'll be notified when the price {alertDirection === "drop" ? "drops below" : "rises above"} your target.
             </p>
           </div>
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-gray-600 dark:text-gray-300">
               Get notified when{" "}
-              <span className="font-medium">{product.name}</span> drops below
-              your target price.
+              <span className="font-medium">{product.name}</span> {alertDirection === "drop" ? "drops below" : "rises above"}
+              {" "}your target price.
             </p>
             {alertError && (
               <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
                 {alertError}
               </div>
             )}
+            <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {(["drop", "rise"] as const).map((dir) => (
+                <button
+                  key={dir}
+                  onClick={() => setAlertDirection(dir)}
+                  className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${alertDirection === dir ? "bg-brand-600 text-white" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+                  aria-label={dir === "drop" ? "Drops below" : "Rises above"}
+                >
+                  {dir === "drop" ? "▼ Drops below" : "▲ Rises above"}
+                </button>
+              ))}
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Distributor</label>
+              <select
+                value={alertDistributorId ?? ""}
+                onChange={(e) => setAlertDistributorId(e.target.value || null)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                aria-label="Alert distributor"
+              >
+                <option value="">Best available</option>
+                {visibleListings.map((l) => {
+                  const d = DISTRIBUTORS.find((x) => x.id === l.distributorId);
+                  return (
+                    <option key={l.distributorId} value={l.distributorId}>
+                      {d?.countryFlag} {d?.name ?? l.distributorId} · {formatPrice(l.price, l.currency)}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium mb-1">
                 Target Price
@@ -857,8 +1050,19 @@ export function ProductDetail() {
             <span className="font-medium">
               {DISTRIBUTORS.find((d) => d.id === perListingAlertId)?.name ?? perListingAlertId}
             </span>{" "}
-            drops below your target.
+            {perListingAlertDirection === "drop" ? "drops below" : "rises above"} your target.
           </p>
+          <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {(["drop", "rise"] as const).map((dir) => (
+              <button
+                key={dir}
+                onClick={() => setPerListingAlertDirection(dir)}
+                className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${perListingAlertDirection === dir ? "bg-brand-600 text-white" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+              >
+                {dir === "drop" ? "▼ Drops below" : "▲ Rises above"}
+              </button>
+            ))}
+          </div>
           <div>
             <label className="block text-sm font-medium mb-1">Target Price</label>
             <input
@@ -909,6 +1113,195 @@ export function ProductDetail() {
           </div>
         </div>
       </Modal>
+
+      {/* Reminder Date Picker Modal */}
+      <Modal
+        open={reminderOpen}
+        onClose={() => {
+          setReminderOpen(false);
+          setReminderError(null);
+        }}
+        title="Set Reminder"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Pick a date to be reminded to check{" "}
+            <span className="font-medium">
+              {DISTRIBUTORS.find((d) => d.id === reminderDistributorId)?.name ?? reminderDistributorId}
+            </span>{" "}
+            for {product.name}.
+          </p>
+          <div>
+            <label className="block text-sm font-medium mb-1">Distributor</label>
+            <select
+              value={reminderDistributorId ?? ""}
+              onChange={(e) => setReminderDistributorId(e.target.value || null)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              {visibleListings.map((l) => {
+                const d = DISTRIBUTORS.find((x) => x.id === l.distributorId);
+                return (
+                  <option key={l.distributorId} value={l.distributorId}>
+                    {d?.countryFlag} {d?.name ?? l.distributorId}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+          <button
+            onClick={() => {
+              const input = document.getElementById("reminder-date-picker") as HTMLInputElement | null;
+              input?.showPicker?.();
+              input?.focus();
+            }}
+            className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 text-left"
+          >
+            <span className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-brand-600" />
+              <span className="text-sm font-semibold">
+                {new Date(reminderDateInput + "T12:00:00").toLocaleDateString(undefined, {
+                  weekday: "short",
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </span>
+            </span>
+            <span className="text-gray-400">▾</span>
+          </button>
+          <input
+            id="reminder-date-picker"
+            type="date"
+            value={reminderDateInput}
+            onChange={(e) => setReminderDateInput(e.target.value)}
+            min={new Date().toISOString().slice(0, 10)}
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            aria-label="Reminder date"
+          />
+          {reminderError && <p className="text-xs text-amber-600 dark:text-amber-400">{reminderError}</p>}
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={() => {
+                setReminderOpen(false);
+                setReminderError(null);
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSetReminder}
+              className="px-4 py-2 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+            >
+              Set Reminder
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Inline AlertSection / ReminderSection — desktop ports of mobile components */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <h3 className="text-sm font-semibold mb-1">Price Alert</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Create an alert for this product.</p>
+          <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden mb-3">
+            {(["drop", "rise"] as const).map((dir) => (
+              <button
+                key={dir}
+                onClick={() => setInlineAlertDirection(dir)}
+                className={`flex-1 px-3 py-2 text-xs font-semibold transition-colors ${inlineAlertDirection === dir ? "bg-brand-600 text-white" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"}`}
+              >
+                {dir === "drop" ? "▼ Drops below" : "▲ Rises above"}
+              </button>
+            ))}
+          </div>
+          <div className="space-y-2 mb-3">
+            <select
+              value={inlineAlertDistributorId ?? ""}
+              onChange={(e) => setInlineAlertDistributorId(e.target.value || null)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+              aria-label="Inline alert distributor"
+            >
+              <option value="">Best available</option>
+              {visibleListings.map((l) => {
+                const d = DISTRIBUTORS.find((x) => x.id === l.distributorId);
+                return (
+                  <option key={l.distributorId} value={l.distributorId}>
+                    {d?.countryFlag} {d?.name ?? l.distributorId}
+                  </option>
+                );
+              })}
+            </select>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={inlineAlertPrice}
+                onChange={(e) => setInlineAlertPrice(e.target.value)}
+                placeholder="Target price"
+                min="0"
+                step="0.01"
+                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                aria-label="Inline alert price"
+              />
+              <select
+                value={inlineAlertCurrency}
+                onChange={(e) => setInlineAlertCurrency(e.target.value)}
+                className="w-24 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                aria-label="Inline alert currency"
+              >
+                {Object.keys(EXCHANGE_RATES).map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <button
+            onClick={handleInlineAlert}
+            disabled={!inlineAlertPrice || parseFloat(inlineAlertPrice) <= 0}
+            className="w-full px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 disabled:opacity-50"
+          >
+            Add Alert
+          </button>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <h3 className="text-sm font-semibold mb-1">Back-order Reminder</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Get reminded to check for restock.</p>
+          <div className="space-y-2 mb-3">
+            <select
+              value={inlineReminderDistributorId ?? ""}
+              onChange={(e) => setInlineReminderDistributorId(e.target.value || null)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+              aria-label="Inline reminder distributor"
+            >
+              <option value="">Select distributor</option>
+              {visibleListings.map((l) => {
+                const d = DISTRIBUTORS.find((x) => x.id === l.distributorId);
+                return (
+                  <option key={l.distributorId} value={l.distributorId}>
+                    {d?.countryFlag} {d?.name ?? l.distributorId}
+                  </option>
+                );
+              })}
+            </select>
+            <input
+              type="date"
+              value={inlineReminderDate}
+              onChange={(e) => setInlineReminderDate(e.target.value)}
+              min={new Date().toISOString().slice(0, 10)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+              aria-label="Inline reminder date"
+            />
+            {inlineReminderError && <p className="text-xs text-amber-600">{inlineReminderError}</p>}
+          </div>
+          <button
+            onClick={handleInlineReminder}
+            className="w-full px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700"
+          >
+            Remind Me
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   Bell,
+  BellRing,
   Calendar,
   Clock,
   Trash2,
@@ -9,17 +10,28 @@ import {
   ToggleLeft,
   ToggleRight,
   Pause,
+  Pencil,
   X,
 } from "lucide-react";
 import { useAlerts } from "../hooks/use-storage";
 import { storage } from "../storage";
-import { formatPrice, convertPrice } from "@shared/currency";
+import {
+  formatPrice,
+  convertPrice,
+  EXCHANGE_RATES,
+} from "@shared/currency";
+import { getDistributorById } from "@shared/distributors";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
-import type { BackOrderReminder } from "../../../lib/types";
+import type {
+  BackOrderReminder,
+  NotificationHistoryEntry,
+  Product,
+  PriceAlert,
+} from "../../../lib/types";
 
-type Tab = "alerts" | "reminders";
+type Tab = "alerts" | "reminders" | "notifications";
 
 export function Alerts() {
   const navigate = useNavigate();
@@ -40,6 +52,17 @@ export function Alerts() {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
   };
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [notifications, setNotifications] = useState<NotificationHistoryEntry[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [watchlistProducts, setWatchlistProducts] = useState<Product[]>([]);
+  // Edit modal — desktop port of components/product/price-alert-modal.tsx (price/currency/direction/distributor)
+  const [editingAlert, setEditingAlert] = useState<PriceAlert | null>(null);
+  const [editPrice, setEditPrice] = useState("");
+  const [editCurrency, setEditCurrency] = useState("USD");
+  const [editDirection, setEditDirection] = useState<"drop" | "rise">("drop");
+  const [editDistributorId, setEditDistributorId] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
 
   // RescheduleModal — desktop port of components/alerts/reschedule-modal.tsx
   const [rescheduleTarget, setRescheduleTarget] = useState<BackOrderReminder | null>(null);
@@ -89,7 +112,21 @@ export function Alerts() {
   useEffect(() => {
     storage.getWatchlist().then((w) => {
       setProductNames(new Map(w.map((p) => [p.id, p.name])));
+      setWatchlistProducts(w);
     });
+    storage.getSettings().then((s) => {
+      if (s?.displayCurrency) setDisplayCurrency(s.displayCurrency);
+    });
+    (async () => {
+      try {
+        const [history, unread] = await Promise.all([
+          storage.getNotificationHistory?.() as Promise<NotificationHistoryEntry[]> | undefined,
+          storage.getUnreadNotificationCount?.() as Promise<number> | undefined,
+        ]);
+        if (history) setNotifications(history);
+        if (typeof unread === "number") setUnreadCount(unread);
+      } catch {}
+    })();
   }, []);
 
   const loading = alertsLoading || remindersLoading;
@@ -118,6 +155,52 @@ export function Alerts() {
     await storage.snoozeAlert(id, days);
     showToast(days === 0 ? "Alert resumed" : `Snoozed for ${days} day${days !== 1 ? "s" : ""}`);
     refreshAlerts();
+  };
+
+  const handleEditAlert = (alert: PriceAlert) => {
+    setEditingAlert(alert);
+    setEditPrice(String(alert.targetPrice));
+    setEditCurrency(alert.currency);
+    setEditDirection(alert.direction ?? "drop");
+    setEditDistributorId(alert.distributorId ?? null);
+    setEditError(null);
+  };
+  const editDistributors = useMemo(() => {
+    if (!editingAlert) return [];
+    const productId = editingAlert.productId;
+    return (
+      watchlistProducts
+        .find((p) => p.id === productId)
+        ?.listings.map((l) => {
+          const d = getDistributorById(l.distributorId);
+          return { id: l.distributorId, name: d?.name ?? l.distributorId, countryFlag: d?.countryFlag ?? "" };
+        }) ?? []
+    );
+  }, [editingAlert, watchlistProducts]);
+  const handleSaveEdit = async () => {
+    if (!editingAlert) return;
+    const price = parseFloat(editPrice);
+    if (!Number.isFinite(price) || price <= 0) {
+      setEditError("Please enter a valid target price.");
+      return;
+    }
+    setEditError(null);
+    await storage.updateAlert(editingAlert.id, {
+      targetPrice: price,
+      currency: editCurrency,
+      direction: editDirection,
+      distributorId: editDistributorId,
+    });
+    setEditingAlert(null);
+    showToast("Alert updated");
+    refreshAlerts();
+  };
+  const handleMarkAllRead = async () => {
+    try {
+      await (storage.markAllNotificationsRead as unknown as () => Promise<void>)?.();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch {}
   };
 
   const handleDeleteReminder = async (id: string) => {
@@ -150,7 +233,7 @@ export function Alerts() {
         </button>
       </div>
 
-      {/* Tab bar */}
+      {/* Tab bar — 3 tabs including Notifications (desktop routes to system tray) */}
       <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg w-fit">
         <button
           onClick={() => setTab("alerts")}
@@ -176,17 +259,66 @@ export function Alerts() {
           <Clock className="w-4 h-4 inline-block mr-1.5" />
           Reminders
         </button>
+        <button
+          onClick={() => setTab("notifications")}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            tab === "notifications"
+              ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
+              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+          }`}
+          aria-label="Show notifications"
+        >
+          <BellRing className="w-4 h-4 inline-block mr-1.5" />
+          Notifications{unreadCount > 0 ? ` (${unreadCount})` : ""}
+        </button>
       </div>
 
       {tab === "alerts" ? (
         <AlertsTab
           alerts={alerts}
           productNames={productNames}
+          displayCurrency={displayCurrency}
           onToggle={handleToggle}
           onDelete={handleDeleteAlert}
           onRearm={handleRearm}
           onSnooze={handleSnoozeAlert}
+          onEdit={handleEditAlert}
         />
+      ) : tab === "notifications" ? (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">On desktop, notifications route to system tray</p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">Alerts, restocks, and reminders appear as native OS notifications when the app is running.</p>
+            </div>
+            <Link to="/settings" className="shrink-0 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-700 text-xs font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/40">Settings</Link>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500 dark:text-gray-400">{unreadCount > 0 ? `${unreadCount} unread` : notifications.length > 0 ? "All caught up" : "No notifications yet"}</p>
+            {unreadCount > 0 && (
+              <button onClick={handleMarkAllRead} className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline">Mark all read</button>
+            )}
+          </div>
+          {notifications.length === 0 ? (
+            <EmptyState icon={<BellRing className="w-12 h-12" />} title="No notifications yet" description="Price alerts and restock updates will appear here and in your system tray." />
+          ) : (
+            <div className="space-y-2">
+              {notifications.map((n) => (
+                <div key={n.id} className={`flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border ${n.read ? "border-gray-200 dark:border-gray-700" : "border-brand-200 dark:border-brand-800 bg-brand-50/40 dark:bg-brand-900/10"} `}>
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${n.type === "health" ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400" : n.type === "reminder" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"}`}>
+                    <Bell className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{n.title}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{n.body}</p>
+                    <p className="text-[11px] text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                  </div>
+                  {!n.read && <span className="w-2.5 h-2.5 rounded-full bg-brand-600 shrink-0" aria-label="Unread" />}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       ) : (
         <RemindersTab
           reminders={reminders}
@@ -272,6 +404,45 @@ export function Alerts() {
           </div>
         </div>
       )}
+      {/* Edit Alert Modal — desktop Tailwind port of components/product/price-alert-modal.tsx */}
+      {editingAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditingAlert(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold text-lg">Edit Alert</h3>
+              <button onClick={() => setEditingAlert(null)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close edit modal"><X className="w-4 h-4" /></button>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Get notified when {productNames.get(editingAlert.productId) ?? "this product"} {editDirection === "rise" ? "rises above" : "drops below"} your target.</p>
+            {editError && <p className="text-xs text-red-600 dark:text-red-400 mb-3">{editError}</p>}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {Object.keys(EXCHANGE_RATES).map((c) => (
+                <button key={c} onClick={() => setEditCurrency(c)} className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${editCurrency === c ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200"}`}>{c}</button>
+              ))}
+            </div>
+            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg w-fit mb-4">
+              {(["drop", "rise"] as const).map((d) => (
+                <button key={d} onClick={() => setEditDirection(d)} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${editDirection === d ? "bg-white dark:bg-gray-600 shadow-sm" : "text-gray-500 dark:text-gray-400"}`}>{d === "drop" ? "▼ Drops below" : "▲ Rises above"}</button>
+              ))}
+            </div>
+            {editDistributors.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button onClick={() => setEditDistributorId(null)} className={`px-3 py-1 rounded-full text-xs font-semibold border ${editDistributorId == null ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"}`}>All distributors</button>
+                {editDistributors.map((d) => (
+                  <button key={d.id} onClick={() => setEditDistributorId(d.id)} className={`px-3 py-1 rounded-full text-xs font-semibold border ${editDistributorId === d.id ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"}`}>{d.countryFlag} {d.name}</button>
+                ))}
+              </div>
+            )}
+            <div className="mb-4">
+              <label className="block text-xs font-semibold mb-1">Target price ({editCurrency})</label>
+              <input type="number" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} placeholder={`Target price in ${editCurrency}`} min="0" step="0.01" className="w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setEditingAlert(null)} className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-semibold">Cancel</button>
+              <button onClick={handleSaveEdit} className="flex-1 px-4 py-2.5 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -279,31 +450,36 @@ export function Alerts() {
 function AlertsTab({
   alerts,
   productNames,
+  displayCurrency,
   onToggle,
   onDelete,
   onRearm,
   onSnooze,
+  onEdit,
 }: {
   alerts: ReturnType<typeof useAlerts>["alerts"];
   productNames: Map<string, string>;
+  displayCurrency: string;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onRearm: (id: string) => void;
   onSnooze: (id: string, days: number) => void;
+  onEdit: (alert: PriceAlert) => void;
 }) {
   const navigate = useNavigate();
   const triggeredAlerts = useMemo(() => alerts.filter((a) => a.triggeredAt), [alerts]);
   const totalSaved = useMemo(() => {
     return triggeredAlerts.reduce((sum, a) => {
       if (a.triggeredPrice != null) {
-        const saved = Math.max(0, a.targetPrice - a.triggeredPrice);
-        const usd = convertPrice(saved, a.currency, "USD");
-        if (usd === null) return sum;
-        return sum + usd;
+        const delta = a.direction === "rise" ? a.triggeredPrice - a.targetPrice : a.targetPrice - a.triggeredPrice;
+        const saved = Math.max(0, delta);
+        const converted = convertPrice(saved, a.currency, displayCurrency);
+        if (converted === null) return sum;
+        return sum + converted;
       }
       return sum;
     }, 0);
-  }, [triggeredAlerts]);
+  }, [triggeredAlerts, displayCurrency]);
 
   if (alerts.length === 0 && triggeredAlerts.length === 0) {
     return (
@@ -339,6 +515,7 @@ function AlertsTab({
             onDelete={onDelete}
             onRearm={onRearm}
             onSnooze={onSnooze}
+            onEdit={onEdit}
           />
         </div>
       ))}
@@ -350,7 +527,7 @@ function AlertsTab({
               <span className="text-2xl">🎉</span>
               <div className="flex-1">
                 <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
-                  Total Saved: {formatPrice(totalSaved, "USD")}
+                  Total Saved: {formatPrice(totalSaved, displayCurrency)}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Across {triggeredAlerts.filter((a) => a.triggeredPrice != null).length} triggered alert
@@ -376,6 +553,7 @@ function AlertsTab({
                 onDelete={onDelete}
                 onRearm={onRearm}
                 onSnooze={onSnooze}
+                onEdit={onEdit}
               />
             </div>
           ))}
@@ -392,6 +570,7 @@ function AlertRow({
   onDelete,
   onRearm,
   onSnooze,
+  onEdit,
 }: {
   alert: ReturnType<typeof useAlerts>["alerts"][number];
   productName?: string;
@@ -399,6 +578,7 @@ function AlertRow({
   onDelete: (id: string) => void;
   onRearm: (id: string) => void;
   onSnooze: (id: string, days: number) => void;
+  onEdit: (alert: PriceAlert) => void;
 }) {
   const isTriggered = !alert.isActive && alert.triggeredAt;
   const isSnoozed = !!alert.snoozedUntil && new Date(alert.snoozedUntil).getTime() > Date.now();
@@ -467,6 +647,14 @@ function AlertRow({
         </button>
       ) : (
         <>
+          <button
+            onClick={() => onEdit(alert)}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors"
+            title="Edit alert (price/currency/direction/distributor)"
+            aria-label="Edit price alert"
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
           <div className="relative">
             <button
               onClick={() => setShowSnooze((v) => !v)}

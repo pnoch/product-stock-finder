@@ -11,6 +11,11 @@ import {
   Activity,
   Globe,
   UserCircle,
+  MonitorSmartphone,
+  Share2,
+  Pencil,
+  LogOut,
+  X,
 } from "lucide-react";
 import { useSettings } from "../hooks/use-storage";
 import { storage } from "../storage";
@@ -23,6 +28,8 @@ import {
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useAuth, buildLoginUrl } from "../hooks/use-auth";
 import { getApiBaseUrl } from "../lib/api-base";
+import { trpc } from "../lib/trpc";
+import { getDesktopDeviceId } from "../lib/device-id";
 
 export function Settings() {
   const { settings, loading, update } = useSettings();
@@ -82,6 +89,97 @@ export function Settings() {
     await login(buildLoginUrl());
   };
 
+  // Device management — desktop port of mobile DeviceManagementSection
+  const [devices, setDevices] = useState<{ deviceId: string; label: string | null; lastActiveAt: string | null }[] | null>(null);
+  const [devicesLoading, setDevicesLoading] = useState(false);
+  const [devicesError, setDevicesError] = useState<string | null>(null);
+  const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
+  const [renameTarget, setRenameTarget] = useState<{ deviceId: string; label: string | null } | null>(null);
+  const [renameLabel, setRenameLabel] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
+  const trpcClient = trpc as any;
+
+  const loadDevices = async () => {
+    if (!isAuthenticated) return;
+    setDevicesLoading(true);
+    setDevicesError(null);
+    try {
+      const [devRes, curId] = await Promise.all([
+        (trpcClient.devices?.list ? trpcClient.devices.list.query() : (await import("../lib/trpc")).createTRPCClient().devices.list.query()) as Promise<{ devices: { deviceId: string; label: string | null; lastActiveAt: string | null }[] }>,
+        getDesktopDeviceId(),
+      ]);
+      setDevices(devRes?.devices ?? []);
+      setCurrentDeviceId(curId);
+    } catch (e) {
+      setDevicesError(e instanceof Error ? e.message : String(e));
+      setDevices(null);
+    } finally {
+      setDevicesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void loadDevices();
+  }, [isAuthenticated]);
+
+  const handleRename = async () => {
+    if (!renameTarget) return;
+    const label = renameLabel.trim();
+    if (!label) return;
+    setRenaming(true);
+    try {
+      const client = (await import("../lib/trpc")).createTRPCClient();
+      await client.devices.rename.mutate({ deviceId: renameTarget.deviceId, label });
+      setRenameTarget(null);
+      setRenameLabel("");
+      await loadDevices();
+      showToast("Device renamed");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Rename failed");
+    } finally {
+      setRenaming(false);
+    }
+  };
+
+  const handleSignOutDevice = async (deviceId: string) => {
+    if (!confirm("Sign out this device and remove it from your account?")) return;
+    try {
+      const client = (await import("../lib/trpc")).createTRPCClient();
+      await client.devices.signOut.mutate({ deviceId });
+      await loadDevices();
+      showToast("Device signed out");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Sign out failed");
+    }
+  };
+
+  const handleShareWatchlist = async () => {
+    if (sharing) return;
+    setSharing(true);
+    setShareError(null);
+    try {
+      const client = (await import("../lib/trpc")).createTRPCClient();
+      const res = await client.sharedWatchlists.create.mutate({});
+      setShareUrl(res.shareUrl);
+      try {
+        await navigator.clipboard.writeText(res.shareUrl);
+        showToast("Share link copied");
+      } catch {
+        showToast("Share link created");
+      }
+    } catch (e) {
+      setShareError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSharing(false);
+    }
+  };
+
   if (loading || !settings) return <LoadingSpinner />;
 
   const currencies = Object.keys(EXCHANGE_RATES);
@@ -113,6 +211,7 @@ export function Settings() {
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
+      {toast && <div className="fixed bottom-6 right-6 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-[60]">{toast}</div>}
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
         <div className="flex items-center gap-3 mb-4">
@@ -170,6 +269,93 @@ export function Settings() {
           </span>
         </span>
       </button>
+
+      {/* Device Management Section — desktop port */}
+      {isAuthenticated && user && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <MonitorSmartphone className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+            <h2 className="text-lg font-semibold">Device Management</h2>
+            <button onClick={loadDevices} className="ml-auto text-xs text-brand-600 hover:underline" aria-label="Reload devices">Refresh</button>
+          </div>
+          {!devices && devicesLoading ? (
+            <p className="text-sm text-gray-500">Loading devices…</p>
+          ) : devicesError ? (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-amber-600">{devicesError}</p>
+              <button onClick={loadDevices} className="text-sm text-brand-600 font-medium hover:underline">Retry</button>
+            </div>
+          ) : devices && devices.length === 0 ? (
+            <p className="text-sm text-gray-500">No other devices bound to your account.</p>
+          ) : devices ? (
+            <div className="space-y-2">
+              {devices.map((d) => {
+                const isCurrent = d.deviceId === currentDeviceId;
+                return (
+                  <div key={d.deviceId} className={`flex items-center justify-between p-3 rounded-lg border ${isCurrent ? "border-brand-200 bg-brand-50 dark:bg-brand-900/10 dark:border-brand-800" : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30"}`}>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{d.label ?? `${d.deviceId.slice(0, 12)}…`}{isCurrent && " (current)"}</p>
+                      <p className="text-xs text-gray-500 truncate">{d.deviceId}</p>
+                      {d.lastActiveAt && <p className="text-xs text-gray-400">Active {new Date(d.lastActiveAt).toLocaleDateString()}</p>}
+                    </div>
+                    <div className="flex items-center gap-1 ml-2">
+                      <button onClick={() => { setRenameTarget(d); setRenameLabel(d.label ?? ""); }} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-600" aria-label={`Rename ${d.label ?? d.deviceId}`} title="Rename">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      {!isCurrent && (
+                        <button onClick={() => handleSignOutDevice(d.deviceId)} className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20" aria-label={`Sign out ${d.label ?? d.deviceId}`} title="Sign out">
+                          <LogOut className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+          {renameTarget && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setRenameTarget(null)}>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-sm">Rename device</h3>
+                  <button onClick={() => setRenameTarget(null)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
+                </div>
+                <input value={renameLabel} onChange={(e) => setRenameLabel(e.target.value)} placeholder="Device label" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm mb-3" />
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setRenameTarget(null)} className="px-3 py-2 rounded-lg border text-sm">Cancel</button>
+                  <button onClick={handleRename} disabled={renaming || !renameLabel.trim()} className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm disabled:opacity-50">{renaming ? "Saving…" : "Save"}</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Share Watchlist — desktop port of mobile SharedWatchlists */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div className="flex items-center gap-3 mb-3">
+          <Share2 className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+          <h2 className="text-lg font-semibold">Share Watchlist</h2>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Create a read-only public link to your watchlist. Anyone with the link can view it.</p>
+        {!isAuthenticated ? (
+          <p className="text-sm text-gray-500">Sign in to share your watchlist.</p>
+        ) : (
+          <>
+            <button onClick={handleShareWatchlist} disabled={sharing} className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50" aria-label="Create share link">
+              {sharing ? "Creating link…" : "Share watchlist"}
+            </button>
+            {shareUrl && (
+              <div className="mt-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 break-all">
+                <p className="text-xs text-gray-500 mb-1">Share link (expires in 30 days):</p>
+                <a href={shareUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-brand-600 hover:underline break-all">{shareUrl}</a>
+                <button onClick={() => { navigator.clipboard.writeText(shareUrl).then(() => showToast("Copied")).catch(() => {}); }} className="ml-2 text-xs px-2 py-1 rounded border bg-white dark:bg-gray-800">Copy</button>
+              </div>
+            )}
+            {shareError && <p className="text-sm text-amber-600 mt-2">{shareError}</p>}
+          </>
+        )}
+      </div>
 
       {/* Theme Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
