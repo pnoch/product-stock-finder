@@ -308,4 +308,32 @@ export function registerOAuthRoutes(app: Express) {
       res.status(400).json({ error: msg });
     }
   });
+
+  app.post("/api/auth/resend-verification", async (req: Request, res: Response) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      if ((user as any).emailVerified) {
+        res.json({ success: true, alreadyVerified: true });
+        return;
+      }
+      const email = (user as any).email ?? "";
+      const token = randomUUID();
+      const baseUrl = process.env.EXPO_PUBLIC_WEB_URL ?? process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+      const verifyLink = baseUrl ? `${baseUrl.replace(/\/$/, "")}/verify?token=${token}&email=${encodeURIComponent(email)}` : `token=${token}`;
+      if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+        console.log(`[EmailVerify] Sending verification email to ${email}: ${verifyLink}`);
+      } else {
+        console.log(`[EmailVerify] No SMTP configured — verification link for ${email}: ${verifyLink} (token=${token})`);
+      }
+      res.json({ success: true });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("Invalid session") || msg.includes("User not found")) {
+        res.status(401).json({ error: "Not authenticated" });
+        return;
+      }
+      console.error("[Auth] resend-verification failed", e);
+      res.status(400).json({ error: msg });
+    }
+  });
 }

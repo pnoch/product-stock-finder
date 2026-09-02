@@ -244,6 +244,26 @@ export function useAuth(options?: UseAuthOptions) {
     return res.json();
   }, []);
 
+  const resendVerification = useCallback(async () => {
+    const baseUrl = getApiBaseUrl();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (Platform.OS !== "web") {
+      const token = await Auth.getSessionToken();
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+    }
+    const res = await fetch(`${baseUrl}/api/auth/resend-verification`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({}),
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to resend verification email");
+    }
+    return res.json();
+  }, []);
+
   const isAuthenticated = useMemo(() => Boolean(user), [user]);
 
   useEffect(() => {
@@ -301,5 +321,6 @@ export function useAuth(options?: UseAuthOptions) {
     resetPassword,
     changePassword,
     deleteAccount,
+    resendVerification,
   };
 }

@@ -16,10 +16,9 @@ import { useColors } from "@/hooks/use-colors";
 import { SettingRow } from "@/components/settings/setting-row";
 import { SectionHeader } from "@/components/settings/section-header";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { getApiBaseUrl, getOAuthUrl } from "@/constants/oauth";
+import { getOAuthUrl } from "@/constants/oauth";
 import type { SyncMeta } from "@/lib/types";
 import type { User } from "@/lib/_core/auth";
-import * as Auth from "@/lib/_core/auth";
 import { useAuth } from "@/hooks/use-auth";
 import { clearAllData } from "@/lib/storage";
 import { showAlert } from "@/lib/alert";
@@ -45,7 +44,7 @@ export function AccountSection({
 }) {
   const colors = useColors();
   const router = useRouter();
-  const { changePassword, deleteAccount } = useAuth({ autoFetch: false });
+  const { changePassword, deleteAccount, resendVerification } = useAuth({ autoFetch: false });
 
   // ─── Change Password state ─────────────────────────────────────────────
   const [showChangePw, setShowChangePw] = useState(false);
@@ -62,9 +61,23 @@ export function AccountSection({
   const [deleting, setDeleting] = useState(false);
   const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
   const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
+  const [resending, setResending] = useState(false);
 
   const emailVerified = (user as any)?.emailVerified ?? false;
   const showVerificationBadge = Boolean(isAuthenticated && user?.email);
+  const needsVerification = Boolean(isAuthenticated && user?.email && !emailVerified);
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      await resendVerification();
+      showAlert("Verification email sent", "Check your inbox — we sent a new verification link.");
+    } catch (e) {
+      showAlert("Resend failed", e instanceof Error ? e.message : String(e));
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleChangePassword = async () => {
     setChangeError(null);
@@ -218,6 +231,52 @@ export function AccountSection({
               </TouchableOpacity>
             }
           />
+        )}
+        {needsVerification && (
+          <>
+            <View style={{ height: 1, backgroundColor: colors.border }} />
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                backgroundColor: colors.warning + "14",
+                borderWidth: 1,
+                borderColor: colors.warning + "30",
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                marginHorizontal: 12,
+                marginVertical: 8,
+              }}
+              accessibilityLabel="Email verification banner"
+            >
+              <IconSymbol name="exclamationmark.triangle.fill" size={16} color={colors.warning} />
+              <Text style={{ flex: 1, color: colors.foreground, fontSize: 13, fontWeight: "500" }}>
+                Verify your email — check your inbox
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleResendVerification}
+                disabled={resending}
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                  backgroundColor: colors.warning,
+                  opacity: resending ? 0.6 : 1,
+                }}
+                accessibilityLabel="Resend verification email"
+                accessibilityRole="button"
+              >
+                {resending ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>Resend</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </>
         )}
         {!isAuthenticated && (
           <>

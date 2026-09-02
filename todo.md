@@ -922,3 +922,10 @@
 - [x] `desktop/src/pages/Watchlist.tsx`: selectedIds + selectionMode + checkbox + undoProduct 5s (a07a041)
 - [x] `vitest.config.ts`: `@shared → shared/src` so lib shims resolve in tests (5a87dfc)
 - [x] Version sync: 5.3.0 → package/app.config/desktop/Cargo/tauri.conf
+
+## Phase 112: P1 Auth + Sync Docs Sync (v5.4 docs)
+
+- [x] GAP-01 — design.md: 5-tab nav verified + Rates (`app/(tabs)/rates.tsx` `FxRateGrid` + `FxSparklineCard`, pull-to-refresh `refreshFxRates`, `formatLastRefreshed`), Stats (`app/stats.tsx` 7 cards: Movers/Basket/StockHealth/Freshness/Digest/Insights/DropCalendar), Health (`app/health.tsx` + `app/health/[id].tsx`, `HEALTH_PROBE_TASK` scheduling on `checkInterval`, `resilientFetch` circuit breaker + `classifyFetchStatus`/`BLOCKED_MARKERS`)
+- [x] GAP-02 — AGENTS.md: Directory Layout lists 5 tabs (index/home, watchlist, alerts, rates, settings); Server section documents device binding (session JWT `deviceId` claim → `x-device-id` header, `assertDeviceAccess` per-user ownership, unrevoke on login, 30-day idle `cleanupStaleDevices`, `revokedDevices` user-scoped composite keys)
+- [x] GAP-03 — todo.md: gaps marked addressed via this Phase 112 follow-up
+- [x] GAP-04/P1 — `components/settings/account-section.tsx`: `emailVerified:false` shows "Verify your email — check your inbox" banner with Resend CTA (`POST /api/auth/resend-verification`, `hooks/use-auth.ts:resendVerification`)

@@ -65,6 +65,7 @@ function makeAuth(isAuthenticated: boolean) {
     resetPassword: vi.fn(async () => {}),
     changePassword: vi.fn(async () => {}),
     deleteAccount: vi.fn(async () => {}),
+    resendVerification: vi.fn(async () => {}),
   };
 }
 
