@@ -9,6 +9,9 @@ import { AlertSection } from "@/components/product/alert-section";
 import { ReminderSection } from "@/components/product/reminder-section";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveProduct } from "@/hooks/use-live-prices";
+import { buildShareText } from "@/lib/price-share";
+import * as Linking from "expo-linking";
+import { captureAndShareImage } from "@/lib/share-image";
 import { getSettings, getStockWatches, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch } from "@/lib/storage";
 import { convertPrice, formatPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
@@ -233,8 +236,10 @@ export default function ProductDetailScreen() {
     }
   }, [id, product, reminderListing, reminderDate, showToast]);
 
+  const shareRef = useRef<View>(null);
+
   const handleShare = useCallback(async () => {
-    if (!product) return;
+    if (!product || !id) return;
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       Animated.sequence([
@@ -242,14 +247,29 @@ export default function ProductDetailScreen() {
         Animated.spring(shareScale, { toValue: 1, useNativeDriver: true, speed: 22, bounciness: 8 }),
       ]).start();
     }
+    const shareText = buildShareText({
+      product,
+      listings: sortedListings,
+      displayCurrency: effectiveCurrency,
+      limit: 5,
+    });
+    const deepLink = Linking.createURL(`/product/${id}`, { scheme: "productstockfinder" });
+    const message = `${shareText}\n\n${deepLink}`;
     try {
-      const result = await Share.share({ message: `${product.name} — ${product.brand} ${product.modelNumber}`, title: product.name });
+      const imageShared = await captureAndShareImage(shareRef as React.RefObject<View | null>, `product-${id}`);
+      if (imageShared) {
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        return;
+      }
+    } catch {}
+    try {
+      const result = await Share.share({ message, title: product.name });
       if ((result as unknown as { action: string })?.action === Share.dismissedAction) return;
     } catch {
       return;
     }
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, [product, shareScale, showToast]);
+  }, [product, id, sortedListings, effectiveCurrency, shareScale]);
 
   if (!loaded || !isSettingsLoaded) {
     return (

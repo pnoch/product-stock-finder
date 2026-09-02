@@ -168,6 +168,36 @@ export function useAuth(options?: UseAuthOptions) {
     }
   }, []);
 
+  const forgotPassword = useCallback(async (email: string) => {
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/api/auth/forgot`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to send reset email");
+    }
+    return res.json();
+  }, []);
+
+  const resetPassword = useCallback(async (token: string, newPassword: string) => {
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/api/auth/reset`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, newPassword }),
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Password reset failed");
+    }
+    return res.json();
+  }, []);
+
   const isAuthenticated = useMemo(() => Boolean(user), [user]);
 
   useEffect(() => {
@@ -221,5 +251,7 @@ export function useAuth(options?: UseAuthOptions) {
     logout,
     login,
     register,
+    forgotPassword,
+    resetPassword,
   };
 }

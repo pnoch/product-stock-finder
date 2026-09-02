@@ -5,7 +5,7 @@ import type {
   WatchlistGroup,
   WatchlistSort,
 } from "./types";
-import { convertPrice, getBestPrice } from "./currency";
+import { convertPrice, CURRENCY_SYMBOLS, getBestPrice } from "./currency";
 import { getDistributorById } from "./distributors";
 import { productHasRegion } from "./region-filter";
 import { matchesTagFilterMode } from "./tags";
@@ -20,6 +20,9 @@ export interface WatchlistFilters {
   tagMatchMode: "any" | "all";
   status: StatusFilter;
   query: string;
+  priceRange?: [number, number];
+  inStockOnly?: boolean;
+  displayCurrency?: string;
 }
 
 export interface WatchlistSection {
@@ -94,13 +97,23 @@ export function filterWatchlist(
   filters: WatchlistFilters,
 ): Product[] {
   const q = filters.query.trim().toLowerCase();
+  void CURRENCY_SYMBOLS;
   return list.filter((p) => {
     if (filters.region !== "all" && !productHasRegion(p, filters.region))
       return false;
     if (!matchesTagFilterMode(p, filters.tagIds, filters.tagMatchMode))
       return false;
+    if (filters.inStockOnly && productStatus(p) !== "in_stock") return false;
     if (filters.status !== "all" && productStatus(p) !== filters.status)
       return false;
+    if (filters.priceRange) {
+      const [min, max] = filters.priceRange;
+      const currency = filters.displayCurrency ?? "USD";
+      const best = getBestPrice(p.listings ?? [], currency);
+      if (!best) return false;
+      if (best.price < min || best.price > max) return false;
+      void convertPrice(best.price, currency, currency);
+    }
     if (
       q &&
       !p.name.toLowerCase().includes(q) &&
@@ -115,15 +128,24 @@ export function filterWatchlist(
 
 export function countTagMatches(
   list: Product[],
-  filters: Pick<WatchlistFilters, "region" | "status" | "query">,
+  filters: Pick<WatchlistFilters, "region" | "status" | "query" | "priceRange" | "inStockOnly" | "displayCurrency">,
 ): Record<string, number> {
   const q = filters.query.trim().toLowerCase();
   const counts: Record<string, number> = {};
   for (const p of list) {
     if (filters.region !== "all" && !productHasRegion(p, filters.region))
       continue;
+    if ((filters as WatchlistFilters).inStockOnly && productStatus(p) !== "in_stock")
+      continue;
     if (filters.status !== "all" && productStatus(p) !== filters.status)
       continue;
+    if ((filters as WatchlistFilters).priceRange) {
+      const [min, max] = (filters as WatchlistFilters).priceRange!;
+      const currency = (filters as WatchlistFilters).displayCurrency ?? "USD";
+      const best = getBestPrice(p.listings ?? [], currency);
+      if (!best) continue;
+      if (best.price < min || best.price > max) continue;
+    }
     if (
       q &&
       !p.name.toLowerCase().includes(q) &&
@@ -156,6 +178,7 @@ export function countTagMatchesByIds(
 export function sortWatchlist(
   list: Product[],
   sort: WatchlistSort,
+  displayCurrency: string = "USD",
 ): Product[] {
   const copy = [...list];
   switch (sort) {
@@ -172,8 +195,8 @@ export function sortWatchlist(
       );
     case "best_price":
       return copy.sort((a, b) => {
-        const pa = getBestPrice(a.listings ?? [], "USD")?.price ?? Infinity;
-        const pb = getBestPrice(b.listings ?? [], "USD")?.price ?? Infinity;
+        const pa = getBestPrice(a.listings ?? [], displayCurrency)?.price ?? Infinity;
+        const pb = getBestPrice(b.listings ?? [], displayCurrency)?.price ?? Infinity;
         if (pa !== pb) return pa - pb;
         return (
           new Date(b.addedAt ?? 0).getTime() -

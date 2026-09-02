@@ -3,10 +3,12 @@ import { convertPrice, hasExchangeRate, formatPrice } from "./currency";
 import { getDistributorById } from "./distributors";
 
 export interface PriceShareInput {
-  productName: string;
-  modelNumber: string;
+  productName?: string;
+  modelNumber?: string;
+  product?: { name: string; modelNumber: string };
   listings: DistributorListing[];
   displayCurrency: string;
+  limit?: number;
 }
 
 const MAX_ROWS = 5;
@@ -100,15 +102,19 @@ export function buildShareRows(
 }
 
 export function buildShareText(input: PriceShareInput): string {
-  const { productName, modelNumber, listings, displayCurrency } = input;
+  const rawName = input.productName ?? input.product?.name ?? "Product";
+  const rawModel = input.modelNumber ?? input.product?.modelNumber ?? "";
+  const { listings, displayCurrency } = input;
+  const limit = input.limit;
+  const productName = rawName;
+  const modelNumber = rawModel;
   const lines: string[] = [
-    `${productName} (${modelNumber}) — price comparison`,
+    rawModel ? `${productName} (${modelNumber}) — price comparison` : `${productName} — price comparison`,
     "",
   ];
-  const { rows, bestUrl, allOutOfStock, fallbackPrice } = buildShareRows(
-    listings,
-    displayCurrency,
-  );
+  const shareRows = buildShareRows(listings, displayCurrency);
+  const rows = typeof limit === "number" ? shareRows.rows.slice(0, limit) : shareRows.rows;
+  const { bestUrl, allOutOfStock, fallbackPrice } = shareRows;
 
   if (allOutOfStock && fallbackPrice) {
     lines.push(`All out of stock — best listed price ${fallbackPrice}`);

@@ -1,0 +1,15 @@
+{
+  "name": "Product Stock Finder",
+  "short_name": "Stock Finder",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0F52BA",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

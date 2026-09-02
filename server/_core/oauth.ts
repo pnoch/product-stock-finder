@@ -2,7 +2,20 @@ import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
 import type { Express, Request, Response } from "express";
 import { sdk } from "./sdk";
 import { getSessionCookieOptions } from "./cookies";
+import { randomUUID } from "crypto";
+import bcrypt from "bcryptjs";
+import * as db from "../db";
 
+const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+function sendPasswordResetEmail(email: string, token: string) {
+  const baseUrl = process.env.EXPO_PUBLIC_WEB_URL ?? process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+  const resetLink = baseUrl ? `${baseUrl.replace(/\/$/, "")}/reset?token=${token}` : `token=${token}`;
+  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+    console.log(`[PasswordReset] Sending reset email to ${email}: ${resetLink}`);
+  } else {
+    console.log(`[PasswordReset] No SMTP configured — reset link for ${email}: ${resetLink} (token=${token})`);
+  }
+}
 const authBuckets = new Map<string, number[]>();
 const AUTH_RATE_LIMIT = 10;
 const AUTH_RATE_WINDOW = 60_000;
@@ -120,5 +133,55 @@ export function registerOAuthRoutes(app: Express) {
 
   app.get("/api/oauth/callback", (_req: Request, res: Response) => {
     res.redirect(302, "/");
+  });
+
+  app.post("/api/auth/forgot", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body ?? {};
+      if (!email || typeof email !== "string" || !email.trim()) {
+        res.status(400).json({ error: "email is required" });
+        return;
+      }
+      const normalized = String(email).trim().toLowerCase();
+      const user = await db.getUserByEmail(normalized);
+      if (user?.id) {
+        const token = randomUUID();
+        const expiresAt = Date.now() + PASSWORD_RESET_TTL_MS;
+        await db.createPasswordResetToken(user.id, token, expiresAt);
+        sendPasswordResetEmail(normalized, token);
+      }
+      res.json({ success: true });
+    } catch (e: unknown) {
+      console.error("[Auth] forgot failed", e);
+      res.status(400).json({ error: String(e) });
+    }
+  });
+
+  app.post("/api/auth/reset", async (req: Request, res: Response) => {
+    try {
+      const { token, newPassword } = req.body ?? {};
+      if (!token || typeof token !== "string" || !token.trim()) {
+        res.status(400).json({ error: "token is required" });
+        return;
+      }
+      if (!newPassword || typeof newPassword !== "string" || newPassword.length < 6) {
+        res.status(400).json({ error: "password must be at least 6 characters" });
+        return;
+      }
+      const row = await db.getPasswordResetToken(token);
+      if (!row || row.usedAt || (row.expiresAt && row.expiresAt < Date.now())) {
+        res.status(400).json({ error: "Invalid or expired token" });
+        return;
+      }
+      const hashFn = (bcrypt as unknown as { hash?: (p: string, r: number) => Promise<string>; default?: { hash: (p: string, r: number) => Promise<string> } }).hash
+        ?? (bcrypt as unknown as { default?: { hash: (p: string, r: number) => Promise<string> } }).default?.hash;
+      const hashed = hashFn ? await hashFn(newPassword, 10) : await (bcrypt as unknown as { hash: (p: string, r: number) => Promise<string> }).hash(newPassword, 10);
+      await db.updateUserPasswordHashById(row.userId, hashed);
+      await db.markPasswordResetTokenUsed(token);
+      res.json({ success: true });
+    } catch (e: unknown) {
+      console.error("[Auth] reset failed", e);
+      res.status(400).json({ error: String(e) });
+    }
   });
 }

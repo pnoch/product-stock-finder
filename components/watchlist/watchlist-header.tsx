@@ -18,6 +18,7 @@ type WatchlistHeaderProps = {
   onBulkDelete: () => void;
   onBulkTag: () => void;
   onExitSelection: () => void;
+  onShare?: () => void;
 };
 
 export function WatchlistHeader({
@@ -35,6 +36,7 @@ export function WatchlistHeader({
   onBulkDelete,
   onBulkTag,
   onExitSelection,
+  onShare,
 }: WatchlistHeaderProps) {
   const colors = useColors();
   const { width } = useWindowDimensions();
@@ -236,6 +238,27 @@ export function WatchlistHeader({
                 : "Check Now"}
             </Text>
           )}
+        </TouchableOpacity>
+          <TouchableOpacity activeOpacity={0.85}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 20,
+              width: 40,
+              minHeight: 40,
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+            onPress={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onShare?.();
+            }}
+            accessibilityLabel="Share watchlist"
+            accessibilityRole="button"
+          >
+          <IconSymbol name="square.and.arrow.up" size={18} color={colors.primary} />
         </TouchableOpacity>
           <TouchableOpacity activeOpacity={0.85}
             style={{

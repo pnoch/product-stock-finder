@@ -1,3 +1,14 @@
+const PRECACHE = "precache-v1";
+const PRECACHE_URLS = ["/index.html", "/manifest.json"];
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(PRECACHE).then((cache) => cache.addAll(PRECACHE_URLS)));
+});
+self.addEventListener("activate", (event) => {
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== PRECACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+});
+self.addEventListener("fetch", (event) => {
+  event.respondWith(caches.match(event.request).then((cached) => cached ?? fetch(event.request)));
+});
 self.addEventListener("push", (event) => {
   let data = {};
   try {

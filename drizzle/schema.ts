@@ -280,6 +280,19 @@ export const revokedDevices = mysqlTable(
 export type RevokedDeviceRow = typeof revokedDevices.$inferSelect;
 export type InsertRevokedDeviceRow = typeof revokedDevices.$inferInsert;
 
+export const passwordResetTokens = mysqlTable("password_reset_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  expiresAt: bigint("expiresAt", { mode: "number" }).notNull(),
+  usedAt: bigint("usedAt", { mode: "number" }),
+});
+
+export type PasswordResetTokenRow = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetTokenRow = typeof passwordResetTokens.$inferInsert;
+
 export const trendingProducts = mysqlTable("trendingProducts", {
   id: varchar("id", { length: 36 }).notNull().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -295,3 +308,23 @@ export const trendingProducts = mysqlTable("trendingProducts", {
 
 export type TrendingProductRow = typeof trendingProducts.$inferSelect;
 export type InsertTrendingProductRow = typeof trendingProducts.$inferInsert;
+
+export const sharedWatchlists = mysqlTable(
+  "shared_watchlists",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerId: int("ownerId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: varchar("token", { length: 64 }).notNull(),
+    title: varchar("title", { length: 255 }).notNull().default("My Watchlist"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("shared_watchlists_token_unique").on(table.token),
+    index("idx_shared_watchlists_owner").on(table.ownerId),
+  ],
+);
+
+export type SharedWatchlistRow = typeof sharedWatchlists.$inferSelect;
+export type InsertSharedWatchlistRow = typeof sharedWatchlists.$inferInsert;

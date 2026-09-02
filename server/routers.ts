@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { and, eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -11,6 +13,33 @@ import {
   TOMBSTONE_PURGE_WINDOW_MS,
   upsertSyncItem,
 } from "./sync-db";
+import { sharedWatchlists, watchlistItems } from "../drizzle/schema";
+
+function getOrigin(req?: { headers: Record<string, unknown> }): string {
+  const envWeb = process.env.EXPO_PUBLIC_WEB_URL?.replace(/\/$/, "");
+  if (envWeb) return envWeb;
+  const envApi = process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "");
+  if (envApi) {
+    try {
+      const u = new URL(envApi);
+      if (u.port === "3000") u.port = "8081";
+      return `${u.protocol}//${u.host}`;
+    } catch {
+      return envApi;
+    }
+  }
+  const h = req?.headers as Record<string, string | undefined> | undefined;
+  const origin = h?.origin ?? h?.referer;
+  if (origin) {
+    try {
+      const u = new URL(origin);
+      return `${u.protocol}//${u.host}`;
+    } catch {
+      return origin.replace(/\/$/, "");
+    }
+  }
+  return "http://localhost:8081";
+}
 
 let lastTombstonePurgeAt = 0;
 const TOMBSTONE_PURGE_INTERVAL_MS = 60 * 60 * 1000;
@@ -343,6 +372,57 @@ export const appRouter = router({
       );
       return { removed };
     }),
+  }),
+
+  sharedWatchlists: router({
+    create: protectedProcedure
+      .input(z.object({ title: z.string().min(1).max(255).optional() }))
+      .mutation(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "sharedWatchlists.create", 10, 60_000);
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const token = randomUUID();
+        await db.insert(sharedWatchlists).values({
+          ownerId: ctx.user.id,
+          token,
+          title: input.title ?? "My Watchlist",
+        });
+        const origin = getOrigin(ctx.req as unknown as { headers: Record<string, unknown> });
+        return { token, shareUrl: `${origin}/w/${token}` } as const;
+      }),
+    get: publicProcedure
+      .input(z.object({ token: z.string().min(1).max(64) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const rows = await db
+          .select()
+          .from(sharedWatchlists)
+          .where(eq(sharedWatchlists.token, input.token))
+          .limit(1);
+        const row = rows[0];
+        if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
+        const items = await db
+          .select()
+          .from(watchlistItems)
+          .where(eq(watchlistItems.userId, row.ownerId));
+        const products = items
+          .filter((r) => r.deletedAtMs === null || r.deletedAtMs === undefined)
+          .map((r) => r.data)
+          .filter(Boolean);
+        return { title: row.title, token: row.token, products } as const;
+      }),
+    revoke: protectedProcedure
+      .input(z.object({ token: z.string().min(1).max(64) }))
+      .mutation(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "sharedWatchlists.revoke", 10, 60_000);
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        await db
+          .delete(sharedWatchlists)
+          .where(and(eq(sharedWatchlists.token, input.token), eq(sharedWatchlists.ownerId, ctx.user.id)));
+        return { revoked: true } as const;
+      }),
   }),
 });
 

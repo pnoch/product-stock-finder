@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, passwordResetTokens, users } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _pool: ReturnType<typeof mysql.createPool> | null = null;
@@ -128,6 +128,67 @@ export async function updateUserPasswordHash(openId: string, passwordHash: strin
   const db = await getDb();
   if (!db) return;
   await db.update(users).set({ passwordHash } as any).where(eq(users.openId, openId));
+}
+
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function updateUserPasswordHashById(id: number, passwordHash: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ passwordHash } as any).where(eq(users.id, id));
+}
+
+// ─── Password reset tokens (in-memory fallback when DB unavailable) ─────────
+const memTokens = new Map<string, { userId: number; token: string; expiresAt: number; usedAt: number | null }>();
+
+export async function createPasswordResetToken(userId: number, token: string, expiresAt: number) {
+  const db = await getDb();
+  if (!db) {
+    memTokens.set(token, { userId, token, expiresAt, usedAt: null });
+    return { id: Date.now(), userId, token, expiresAt, usedAt: null } as unknown;
+  }
+  try {
+    await db.insert(passwordResetTokens).values({ userId, token, expiresAt });
+    return { userId, token, expiresAt } as unknown;
+  } catch {
+    memTokens.set(token, { userId, token, expiresAt, usedAt: null });
+    return { userId, token, expiresAt } as unknown;
+  }
+}
+
+export async function getPasswordResetToken(token: string) {
+  const db = await getDb();
+  if (!db) return memTokens.get(token) ?? null;
+  try {
+    const rows = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token)).limit(1);
+    if (rows[0]) return rows[0] as unknown as { userId: number; token: string; expiresAt: number; usedAt: number | null };
+    return memTokens.get(token) ?? null;
+  } catch {
+    return memTokens.get(token) ?? null;
+  }
+}
+
+export async function markPasswordResetTokenUsed(token: string) {
+  const db = await getDb();
+  const now = Date.now();
+  if (memTokens.has(token)) {
+    const row = memTokens.get(token)!;
+    row.usedAt = now;
+    memTokens.set(token, row);
+  }
+  if (!db) return;
+  try {
+    await db.update(passwordResetTokens).set({ usedAt: now } as any).where(eq(passwordResetTokens.token, token));
+  } catch {}
+}
+
+export function __clearPasswordResetTokensForTest() {
+  memTokens.clear();
 }
 
 // TODO: add feature queries here as your schema grows.

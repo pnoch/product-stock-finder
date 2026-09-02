@@ -3,11 +3,14 @@ import {
   Animated,
   SectionList,
   Text,
+  TextInput,
   View,
   RefreshControl,
   Alert,
   Platform,
   TouchableOpacity,
+  Switch,
+  Share,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -17,6 +20,7 @@ import { showAlert } from "@/lib/alert";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveWatchlist } from "@/hooks/use-live-prices";
+import { buildWatchlistShareText } from "@/lib/watchlist-share";
 import {
   getSettings,
   saveSettings,
@@ -45,6 +49,7 @@ import {
   countTagMatches,
   type StatusFilter,
 } from "@/lib/watchlist-org";
+import { CURRENCY_SYMBOLS } from "@/lib/currency";
 import { ProductCard } from "@/components/watchlist/product-card";
 import { SwipeableCard } from "@/components/watchlist/swipeable-card";
 import { SummaryCard } from "@/components/watchlist/summary-card";
@@ -81,6 +86,10 @@ export default function WatchlistScreen() {
   } | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [regionFilter, setRegionFilter] = useState<string>("all");
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [priceRange, setPriceRange] = useState<[number, number] | undefined>(undefined);
+  const [priceMinInput, setPriceMinInput] = useState("");
+  const [priceMaxInput, setPriceMaxInput] = useState("");
   const [tagDefinitions, setTagDefinitions] = useState<
     Record<string, TagDefinition>
   >({});
@@ -123,8 +132,11 @@ export default function WatchlistScreen() {
         tagMatchMode,
         status: statusFilter,
         query,
+        priceRange,
+        inStockOnly,
+        displayCurrency,
       }),
-    [watchlist, regionFilter, selectedTagIds, tagMatchMode, statusFilter, query],
+    [watchlist, regionFilter, selectedTagIds, tagMatchMode, statusFilter, query, priceRange, inStockOnly, displayCurrency],
   );
 
   const tagCounts = useMemo(
@@ -133,18 +145,21 @@ export default function WatchlistScreen() {
         region: regionFilter,
         status: statusFilter,
         query,
+        priceRange,
+        inStockOnly,
+        displayCurrency,
       }),
-    [watchlist, regionFilter, statusFilter, query],
+    [watchlist, regionFilter, statusFilter, query, priceRange, inStockOnly, displayCurrency],
   );
 
   const sections = useMemo(
     () =>
       groupWatchlist(
-        sortWatchlist(filteredWatchlist, sortMode),
+        sortWatchlist(filteredWatchlist, sortMode, displayCurrency),
         groupMode,
         tagDefinitions,
       ),
-    [filteredWatchlist, sortMode, groupMode, tagDefinitions],
+    [filteredWatchlist, sortMode, groupMode, tagDefinitions, displayCurrency],
   );
 
   const summary = useMemo(
@@ -331,6 +346,14 @@ export default function WatchlistScreen() {
     }
   }, [watchlist.length, reload, refreshAll, loadData]);
 
+  const handleShareWatchlist = useCallback(async () => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      const message = buildWatchlistShareText({ watchlist, displayCurrency, days: 30, now: Date.now() });
+      await Share.share({ message, title: "My Watchlist" });
+    } catch {}
+  }, [watchlist, displayCurrency]);
+
   const persistChainRef = useRef(Promise.resolve<void>(undefined));
   const sortModeRef = useRef(sortMode);
   const groupModeRef = useRef(groupMode);
@@ -439,6 +462,7 @@ export default function WatchlistScreen() {
           onBulkDelete={handleBulkDelete}
           onBulkTag={() => setBulkTagVisible(true)}
           onExitSelection={exitSelection}
+          onShare={handleShareWatchlist}
         />
       </Animated.View>
 
@@ -487,6 +511,59 @@ export default function WatchlistScreen() {
           regionFilter={regionFilter}
           onRegionChange={setRegionFilter}
         />
+      )}
+
+      {watchlist.length > 0 && (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingVertical: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>In stock only</Text>
+            <Switch
+              value={inStockOnly}
+              onValueChange={setInStockOnly}
+              trackColor={{ true: colors.primary, false: colors.border }}
+            />
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
+            <Text style={{ color: colors.muted, fontSize: 12 }}>{CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency}</Text>
+            <TextInput
+              placeholder="Min"
+              value={priceMinInput}
+              onChangeText={setPriceMinInput}
+              keyboardType="numeric"
+              style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, minWidth: 60, color: colors.foreground, fontSize: 12 }}
+              placeholderTextColor={colors.muted}
+            />
+            <Text style={{ color: colors.muted }}>—</Text>
+            <TextInput
+              placeholder="Max"
+              value={priceMaxInput}
+              onChangeText={setPriceMaxInput}
+              keyboardType="numeric"
+              style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, minWidth: 60, color: colors.foreground, fontSize: 12 }}
+              placeholderTextColor={colors.muted}
+            />
+            <TouchableOpacity
+              onPress={() => {
+                const min = priceMinInput.trim() === "" ? 0 : Number(priceMinInput);
+                const max = priceMaxInput.trim() === "" ? Infinity : Number(priceMaxInput);
+                if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < 0 || min > max) {
+                  showAlert("Invalid range", "Enter a valid min/max price.");
+                  return;
+                }
+                if (priceMinInput.trim() === "" && priceMaxInput.trim() === "") setPriceRange(undefined);
+                else setPriceRange([min, max === Infinity ? Number.MAX_SAFE_INTEGER : max]);
+              }}
+              style={{ backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
+            >
+              <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>Apply</Text>
+            </TouchableOpacity>
+            {priceRange && (
+              <TouchableOpacity onPress={() => { setPriceRange(undefined); setPriceMinInput(""); setPriceMaxInput(""); }}>
+                <Text style={{ color: colors.muted, fontSize: 12 }}>Clear</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
       )}
 
       <TagFilterRow
@@ -538,6 +615,10 @@ export default function WatchlistScreen() {
               setRegionFilter("all");
               setSelectedTagIds([]);
               setStatusFilter("all");
+              setInStockOnly(false);
+              setPriceRange(undefined);
+              setPriceMinInput("");
+              setPriceMaxInput("");
               setQuery("");
             }}
             onAddProduct={() => router.push("/search")}

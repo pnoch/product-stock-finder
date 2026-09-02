@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, View, Platform, ActivityIndicator } from "react-native";
+import { ScrollView, Text, View, Platform, ActivityIndicator, Share, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
+import { trpc } from "@/lib/trpc";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/hooks/use-auth";
@@ -33,6 +34,41 @@ import { LoginModal } from "@/components/settings/login-modal";
 import { PillPicker } from "@/components/settings/pill-picker";
 import { RadioPicker } from "@/components/settings/radio-picker";
 import { SectionHeader } from "@/components/settings/section-header";
+
+function ShareWatchlistButton() {
+  const colors = useColors();
+  const createMutation = trpc.sharedWatchlists.create.useMutation();
+  const [sharing, setSharing] = useState(false);
+  const handleShare = useCallback(async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const res = await createMutation.mutateAsync({});
+      await Share.share({ message: res.shareUrl });
+    } catch (e) {
+      showAlert("Share failed", e instanceof Error ? e.message : String(e));
+    } finally {
+      setSharing(false);
+    }
+  }, [sharing, createMutation]);
+  return (
+    <TouchableOpacity
+      onPress={handleShare}
+      disabled={sharing || createMutation.isPending}
+      style={{
+        backgroundColor: colors.primary,
+        borderRadius: 12,
+        paddingVertical: 12,
+        alignItems: "center",
+        opacity: sharing || createMutation.isPending ? 0.6 : 1,
+      }}
+    >
+      <Text style={{ color: "#fff", fontWeight: "700" }}>
+        {sharing || createMutation.isPending ? "Creating link…" : "Share watchlist"}
+      </Text>
+    </TouchableOpacity>
+  );
+}
 
 export default function SettingsScreen() {
   const colors = useColors();
@@ -363,6 +399,26 @@ export default function SettingsScreen() {
         />
 
         <LlmSettingsSection settings={settings} onUpdate={updateSetting} />
+
+        <SectionHeader title="Collaborative Watchlist" />
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            overflow: "hidden",
+            padding: 16,
+            gap: 8,
+          }}
+        >
+          <Text style={{ color: colors.foreground, fontWeight: "600" }}>Share watchlist</Text>
+          <Text style={{ color: colors.muted, fontSize: 13 }}>
+            Create a read-only public link to your watchlist. Anyone with the link can view it.
+          </Text>
+          <ShareWatchlistButton />
+        </View>
 
         <AboutSection />
       </ScrollView>
