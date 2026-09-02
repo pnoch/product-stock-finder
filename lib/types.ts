@@ -154,6 +154,7 @@ export interface AppSettings {
   quietHours?: { start: string; end: string };
   watchlistPriceRange?: [number, number] | null;
   watchlistInStockOnly?: boolean;
+  retentionDays?: number;
 }
 
 export type Collection = "watchlist" | "alerts" | "reminders" | "settings";

@@ -3,13 +3,18 @@ import {
   View,
   TouchableOpacity,
   Modal,
+  ScrollView,
+  Share,
+  Platform,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { PriceHistoryChart } from "@/components/price-history-chart";
+import { priceHistoryToCsv } from "@/lib/csv";
 
 interface PriceChartModalProps {
   visible: boolean;
@@ -27,6 +32,35 @@ export function PriceChartModal({
   chartHeight,
 }: PriceChartModalProps) {
   const colors = useColors();
+
+  const handleExport = async () => {
+    if (!chartListing?.priceHistory?.length) return;
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const distributor = getDistributorById(chartListing.distributorId);
+    const csv = priceHistoryToCsv(chartListing.priceHistory, {
+      name: distributor?.name ?? chartListing.distributorId,
+      modelNumber: chartListing.productId,
+    });
+    try {
+      if (Platform.OS === "web") {
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `${chartListing.productId}-${chartListing.distributorId}-history.csv`;
+        anchor.style.display = "none";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+      } else {
+        await Share.share({
+          message: csv,
+          title: `Price history — ${chartListing.productId}`,
+        });
+      }
+    } catch {}
+  };
 
   return (
     <Modal
@@ -190,6 +224,64 @@ export function PriceChartModal({
                     );
                   })()}
               </View>
+              {chartListing?.priceHistory && chartListing.priceHistory.length >= 1 && (
+                <>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={handleExport}
+                    style={{
+                      marginTop: 16,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      backgroundColor: colors.surface,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: 12,
+                      paddingVertical: 10,
+                      paddingHorizontal: 16,
+                    }}
+                    accessibilityLabel="Export price history as CSV"
+                    accessibilityRole="button"
+                  >
+                    <IconSymbol name="square.and.arrow.up" size={16} color={colors.primary} />
+                    <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>Export History (CSV)</Text>
+                  </TouchableOpacity>
+                  <View style={{ marginTop: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 12, overflow: "hidden" }}>
+                    <View style={{ flexDirection: "row", backgroundColor: colors.border + "55", paddingVertical: 6, paddingHorizontal: 8 }}>
+                      <Text style={{ flex: 1.2, color: colors.muted, fontSize: 10, fontWeight: "700" }}>DATE</Text>
+                      <Text style={{ flex: 0.8, color: colors.muted, fontSize: 10, fontWeight: "700", textAlign: "right" }}>PRICE</Text>
+                      <Text style={{ flex: 1, color: colors.muted, fontSize: 10, fontWeight: "700", textAlign: "right" }}>STATUS</Text>
+                    </View>
+                    <ScrollView style={{ maxHeight: 140 }} showsVerticalScrollIndicator>
+                      {[...chartListing.priceHistory]
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .map((pt, idx) => (
+                          <View
+                            key={`${pt.date}-${idx}`}
+                            style={{
+                              flexDirection: "row",
+                              paddingVertical: 6,
+                              paddingHorizontal: 8,
+                              borderTopWidth: idx === 0 ? 0 : 1,
+                              borderTopColor: colors.border,
+                              backgroundColor: idx % 2 === 0 ? colors.surface : colors.background,
+                            }}
+                          >
+                            <Text style={{ flex: 1.2, color: colors.foreground, fontSize: 11 }}>
+                              {new Date(pt.date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                            </Text>
+                            <Text style={{ flex: 0.8, color: colors.foreground, fontSize: 11, textAlign: "right", fontWeight: "600" }}>
+                              {formatPrice(pt.price, pt.currency)}
+                            </Text>
+                            <Text style={{ flex: 1, color: colors.muted, fontSize: 11, textAlign: "right" }}>{pt.stockStatus}</Text>
+                          </View>
+                        ))}
+                    </ScrollView>
+                  </View>
+                </>
+              )}
             </>
           )}
         </View>

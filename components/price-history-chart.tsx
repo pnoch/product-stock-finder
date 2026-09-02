@@ -5,6 +5,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { PricePoint } from "@/lib/types";
 import { formatPrice } from "@/lib/currency";
 import { indexForLocationX } from "@/lib/price-chart";
+import { detectPriceEvents, getEventColor } from "@/lib/price-events";
 import Svg, {
   Polyline,
   Circle,
@@ -47,11 +48,12 @@ export function PriceHistoryChart({
     const coords = sorted.map((p, i) => {
       const x = padL + (i / (sorted.length - 1)) * usableW;
       const y = padT + (1 - (p.price - minP) / range) * usableH;
-      return { x, y, price: p.price, date: p.date };
+      return { x, y, price: p.price, date: p.date, stockStatus: p.stockStatus };
     });
     const polylineStr = coords.map((c) => `${c.x},${c.y}`).join(" ");
     const trend =
       coords[coords.length - 1].price >= coords[0].price ? "up" : "down";
+    const events = detectPriceEvents(sorted);
     return {
       coords,
       polylineStr,
@@ -63,6 +65,7 @@ export function PriceHistoryChart({
       padT,
       padB,
       usableH,
+      events,
     };
   }, [data, width, height]);
 
@@ -174,6 +177,22 @@ export function PriceHistoryChart({
         {coords.map((c, i) => (
           <Circle key={i} cx={c.x} cy={c.y} r={3} fill={lineColor} />
         ))}
+        {points.events.map((ev) => {
+          const coord = coords[ev.index];
+          if (!coord) return null;
+          const color = getEventColor(ev.type, colors);
+          return (
+            <Circle
+              key={`event-${ev.type}-${ev.index}`}
+              cx={coord.x}
+              cy={coord.y}
+              r={6}
+              fill={color}
+              stroke={colors.surface}
+              strokeWidth={2}
+            />
+          );
+        })}
         {[0, Math.floor((coords.length - 1) / 2), coords.length - 1].map(
           (idx) => {
             const c = coords[idx];
@@ -288,6 +307,27 @@ export function PriceHistoryChart({
           </>
         )}
       </Svg>
+      {points.events.length > 0 && (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 8, justifyContent: "center" }}>
+          {Array.from(new Set(points.events.map((e) => e.type))).map((type) => (
+            <View key={type} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: getEventColor(type as never, colors),
+                  borderWidth: 1,
+                  borderColor: colors.surface,
+                }}
+              />
+              <Text style={{ color: colors.muted, fontSize: 10, fontWeight: "600", textTransform: "capitalize" }}>
+                {type === "restock" ? "Restock" : type === "price_drop" ? "Price drop" : "Price rise"}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 }

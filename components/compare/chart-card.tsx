@@ -55,7 +55,7 @@ export function ChartCard({
         >
           Price History ({displayCurrency})
         </Text>
-        <View style={{ flexDirection: "row", gap: 4 }}>
+        <View style={{ flexDirection: "row", gap: 4, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 220 }}>
           {TIME_RANGES.map((r) => {
             const active = r === timeRange;
             return (
@@ -89,10 +89,20 @@ export function ChartCard({
         </View>
       </View>
       <Text
-        style={{ color: colors.muted, fontSize: 12, marginBottom: 12 }}
+        style={{ color: colors.muted, fontSize: 12, marginBottom: 4 }}
       >
         Select up to 5 distributors to overlay
       </Text>
+      {(timeRange === "6M" || timeRange === "1Y") && (
+        <Text style={{ color: colors.muted, fontSize: 10, marginBottom: 8, fontStyle: "italic" }}>
+          Showing all available history — up to 1Y retained (older points may be limited)
+        </Text>
+      )}
+      {timeRange === "All" && (
+        <Text style={{ color: colors.muted, fontSize: 10, marginBottom: 8, fontStyle: "italic" }}>
+          Showing all available history
+        </Text>
+      )}
       {chartSeries.length >= 2 ? (
         <MultiLineChart
           series={chartSeries}

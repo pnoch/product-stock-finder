@@ -11,13 +11,15 @@ export const CHART_COLORS = [
 ];
 
 // ─── Time range options ───────────────────────────────────────────────────────
-export type TimeRange = "1W" | "1M" | "3M" | "All";
-export const TIME_RANGES: TimeRange[] = ["1W", "1M", "3M", "All"];
+export type TimeRange = "1W" | "1M" | "3M" | "6M" | "1Y" | "All";
+export const TIME_RANGES: TimeRange[] = ["1W", "1M", "3M", "6M", "1Y", "All"];
 export type SortBy = "trend" | "price" | "name";
 export const TIME_RANGE_DAYS: Record<TimeRange, number> = {
   "1W": 7,
   "1M": 30,
   "3M": 90,
+  "6M": 180,
+  "1Y": 365,
   All: 9999,
 };
 

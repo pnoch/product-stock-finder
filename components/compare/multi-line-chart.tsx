@@ -12,6 +12,7 @@ import { useColors } from "@/hooks/use-colors";
 import { PricePoint } from "@/lib/types";
 import { convertPrice, formatPrice } from "@/lib/currency";
 import { nearestByX } from "@/lib/price-chart";
+import { detectPriceEvents, getEventColor } from "@/lib/price-events";
 
 export function MultiLineChart({
   series,
@@ -89,13 +90,23 @@ export function MultiLineChart({
           const y = isFlat
             ? padT + usableH / 2
             : padT + (1 - (converted - globalMin) / range) * usableH;
-          return { x, y, price: p.price, converted, date: p.date };
+          return { x, y, price: p.price, converted, date: p.date, stockStatus: p.stockStatus };
         })
         .filter((c): c is NonNullable<typeof c> => c !== null);
+      const events = detectPriceEvents(sorted);
+      const eventCoords = events
+        .map((ev) => {
+          const targetDate = sorted[ev.index]?.date;
+          const coordIdx = coords.findIndex((c) => c.date === targetDate);
+          if (coordIdx < 0) return null;
+          return { ev, coord: coords[coordIdx] };
+        })
+        .filter((v): v is NonNullable<typeof v> => v !== null);
       return {
         ...s,
         coords,
         polylineStr: coords.map((c) => `${c.x},${c.y}`).join(" "),
+        eventCoords,
       };
     });
 
@@ -212,6 +223,17 @@ export function MultiLineChart({
               cy={c.y}
               r={3}
               fill={s.color}
+            />
+          ))}
+          {s.eventCoords.map(({ ev, coord }) => (
+            <Circle
+              key={`event-${s.label}-${ev.type}-${coord.date}`}
+              cx={coord.x}
+              cy={coord.y}
+              r={5}
+              fill={getEventColor(ev.type, colors)}
+              stroke={colors.surface}
+              strokeWidth={1.5}
             />
           ))}
         </Fragment>
