@@ -643,7 +643,7 @@ export function ProductDetail() {
                   Last Checked
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Link
+                  Actions
                 </th>
               </tr>
             </thead>
@@ -656,11 +656,15 @@ export function ProductDetail() {
                   bestListing &&
                   listing.distributorId === bestListing.distributorId &&
                   listing.currency === bestListing.currency;
+                const isWatching = !!stockWatches[listing.distributorId];
+                const canWatch =
+                  listing.stockStatus === "back_order" ||
+                  listing.stockStatus === "out_of_stock";
 
                 return (
                   <tr
                     key={`${listing.distributorId}-${listing.currency}`}
-                    className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 transition-colors duration-200 ${isBest ? "bg-emerald-50/50 dark:bg-emerald-900/10 border-l-2 border-l-emerald-400" : "hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer"}`}
+                    className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 transition-colors duration-200 ${isBest ? "bg-emerald-50/50 dark:bg-emerald-900/10 border-l-2 border-l-emerald-400" : "hover:bg-gray-50 dark:hover:bg-gray-700/30"}`}
                   >
                     <td className="px-4 py-3">
                       <div>
@@ -700,16 +704,41 @@ export function ProductDetail() {
                     <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
                       {formatLastRefreshed(listing.lastChecked)}
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <a
-                        href={listing.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm hover:underline"
-                        aria-label={`Visit ${dist?.name ?? listing.distributorId}`}
-                      >
-                        Visit <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        {canWatch && (
+                          <button
+                            onClick={() => handleToggleListingWatch(listing)}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${isWatching ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300" : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+                            aria-label={isWatching ? "Stop watching for restock" : "Watch for restock"}
+                            title={isWatching ? "Watching — click to stop" : "Watch for restock"}
+                          >
+                            {isWatching ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            {isWatching ? "Watching" : "Watch"}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setPerListingAlertId(listing.distributorId);
+                            setPerListingAlertPrice(String(listing.price));
+                            setPerListingAlertCurrency(listing.currency);
+                          }}
+                          className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          aria-label={`Set alert for ${dist?.name ?? listing.distributorId}`}
+                          title="Set price alert for this distributor"
+                        >
+                          <Bell className="w-3.5 h-3.5" />
+                        </button>
+                        <a
+                          href={listing.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm hover:underline px-1.5 py-1"
+                          aria-label={`Visit ${dist?.name ?? listing.distributorId}`}
+                        >
+                          Visit <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -810,6 +839,75 @@ export function ProductDetail() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Per-listing Alert Modal — mirrors mobile DistributorListingCard Watch for Restock + alert flow */}
+      <Modal
+        open={!!perListingAlertId}
+        onClose={() => {
+          setPerListingAlertId(null);
+          setPerListingAlertPrice("");
+        }}
+        title="Set Distributor Alert"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Get notified when{" "}
+            <span className="font-medium">{product.name}</span> at{" "}
+            <span className="font-medium">
+              {DISTRIBUTORS.find((d) => d.id === perListingAlertId)?.name ?? perListingAlertId}
+            </span>{" "}
+            drops below your target.
+          </p>
+          <div>
+            <label className="block text-sm font-medium mb-1">Target Price</label>
+            <input
+              type="number"
+              value={perListingAlertPrice}
+              onChange={(e) => setPerListingAlertPrice(e.target.value)}
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              aria-label="Distributor target price"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Currency</label>
+            <select
+              value={perListingAlertCurrency}
+              onChange={(e) => setPerListingAlertCurrency(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              aria-label="Distributor alert currency"
+            >
+              {Object.keys(EXCHANGE_RATES).map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={() => {
+                setPerListingAlertId(null);
+                setPerListingAlertPrice("");
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              aria-label="Cancel distributor alert"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handlePerListingAlert}
+              disabled={!perListingAlertPrice || parseFloat(perListingAlertPrice) <= 0}
+              className="px-4 py-2 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
+              aria-label="Save distributor alert"
+            >
+              Save Alert
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

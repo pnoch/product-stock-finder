@@ -2,12 +2,14 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   Bell,
+  Calendar,
   Clock,
   Trash2,
   RotateCcw,
   ToggleLeft,
   ToggleRight,
   Pause,
+  X,
 } from "lucide-react";
 import { useAlerts } from "../hooks/use-storage";
 import { storage } from "../storage";
@@ -37,6 +39,39 @@ export function Alerts() {
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
+  };
+
+  // RescheduleModal — desktop port of components/alerts/reschedule-modal.tsx
+  const [rescheduleTarget, setRescheduleTarget] = useState<BackOrderReminder | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState<string>(() => new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
+
+  const openReschedule = (r: BackOrderReminder) => {
+    setRescheduleTarget(r);
+    const d = new Date(r.reminderDate);
+    const iso = isNaN(d.getTime()) ? new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10) : d.toISOString().slice(0, 10);
+    setRescheduleDate(iso);
+    setRescheduleError(null);
+  };
+  const handleReschedule = async () => {
+    if (!rescheduleTarget) return;
+    const picked = new Date(rescheduleDate + "T12:00:00");
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    if (isNaN(picked.getTime()) || picked.getTime() < startOfToday.getTime()) {
+      setRescheduleError("Please select today or a future date.");
+      return;
+    }
+    await storage.addBackOrderReminder({
+      ...rescheduleTarget,
+      reminderDate: picked.toISOString(),
+    });
+    const updated = await storage.getBackOrderReminders();
+    setReminders(updated);
+    const label = picked.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+    setRescheduleTarget(null);
+    setRescheduleError(null);
+    showToast(`Rescheduled to ${label}`);
   };
 
   useEffect(() => {
@@ -158,7 +193,84 @@ export function Alerts() {
           watches={watches}
           onDeleteReminder={handleDeleteReminder}
           onDeleteWatch={handleDeleteWatch}
+          onReschedule={openReschedule}
         />
+      )}
+
+      {/* RescheduleModal — desktop port */}
+      {rescheduleTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setRescheduleTarget(null)}>
+          <div
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Calendar className="w-4 h-4" /> Reschedule Reminder
+              </h3>
+              <button
+                onClick={() => setRescheduleTarget(null)}
+                className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                aria-label="Close reschedule modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 truncate">
+              Choose a new date for <span className="font-semibold text-gray-900 dark:text-gray-100">{rescheduleTarget.distributorName}</span> · {rescheduleTarget.productName}
+            </p>
+            <button
+              onClick={() => {
+                const input = document.getElementById("reschedule-date") as HTMLInputElement | null;
+                input?.showPicker?.();
+                input?.focus();
+              }}
+              className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 mb-3 text-left"
+              aria-label="Select date"
+            >
+              <span className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-brand-600" />
+                <span className="text-sm font-semibold">
+                  {new Date(rescheduleDate + "T12:00:00").toLocaleDateString(undefined, {
+                    weekday: "short",
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
+              </span>
+              <span className="text-gray-400">▾</span>
+            </button>
+            <input
+              id="reschedule-date"
+              type="date"
+              value={rescheduleDate}
+              onChange={(e) => setRescheduleDate(e.target.value)}
+              min={new Date().toISOString().slice(0, 10)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              aria-label="Reminder date"
+            />
+            {rescheduleError && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">{rescheduleError}</p>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setRescheduleTarget(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700"
+                aria-label="Cancel reschedule"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReschedule}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700"
+                aria-label="Confirm reschedule"
+              >
+                Reschedule
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -405,11 +517,13 @@ function RemindersTab({
   watches,
   onDeleteReminder,
   onDeleteWatch,
+  onReschedule,
 }: {
   reminders: BackOrderReminder[];
   watches: BackOrderReminder[];
   onDeleteReminder: (id: string) => void;
   onDeleteWatch: (id: string) => void;
+  onReschedule: (r: BackOrderReminder) => void;
 }) {
   const hasItems = reminders.length > 0 || watches.length > 0;
 
@@ -447,6 +561,14 @@ function RemindersTab({
                     {new Date(r.reminderDate).toLocaleDateString()}
                   </p>
                 </div>
+                <button
+                  onClick={() => onReschedule(r)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700"
+                  aria-label={`Reschedule reminder for ${r.productName}`}
+                  title="Reschedule"
+                >
+                  <Calendar className="w-3.5 h-3.5" /> Reschedule
+                </button>
                 <button
                   onClick={() => onDeleteReminder(r.id)}
                   className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router";
-import { Search as SearchIcon, Check, Plus, Wand2, Loader2, Upload, PenLine, X, Tag as TagIcon } from "lucide-react";
+import { Search as SearchIcon, Check, Plus, Wand2, Loader2, Upload, PenLine, X } from "lucide-react";
 import { PRODUCT_CATALOG, getAllCategories, getAllBrands } from "@shared/catalog";
 import Fuse from "fuse.js";
 import { storage } from "../storage";
@@ -9,7 +9,6 @@ import { discoverProduct } from "../../../lib/llm-discovery";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import type { TagDefinition } from "../../../lib/types";
 import { TagFilterRow } from "../components/TagFilterRow";
-import { countTagMatches } from "../../../lib/watchlist-org";
 import { matchesTagFilterMode } from "../../../lib/tags";
 
 const RECENT_KEY = "recent_searches";
