@@ -19,6 +19,7 @@ import { BulkImportModal } from "@/components/search/bulk-import-modal";
 import { ManualAddSheet } from "@/components/search/manual-add-sheet";
 import { useColors } from "@/hooks/use-colors";
 import { searchCatalog, getAllCatalog, PRODUCT_CATALOG, getAllCategories, getAllBrands } from "@/lib/catalog";
+import { SAMPLE_LISTINGS } from "@/lib/sample-data";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
 import { RecentSearches } from "@/components/search/recent-searches";
 import {
@@ -36,6 +37,20 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TagFilterRow } from "@/components/tag-filter-row";
 import { countTagMatches, filterWatchlist } from "@/lib/watchlist-org";
 import Fuse from "fuse.js";
+
+const PREVIEW_LIMIT = 10;
+
+function previewStockScore(productId: string): number {
+  const listings = SAMPLE_LISTINGS[productId] ?? [];
+  if (listings.length === 0) return 0;
+  const inStock = listings.filter((l) => l.stockStatus === "in_stock").length;
+  // Weight in-stock heavily, then total listings
+  return inStock * 10 + listings.length;
+}
+
+function sortPreviewByStock<T extends { id: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => previewStockScore(b.id) - previewStockScore(a.id));
+}
 
 type CatalogSort = "relevance" | "name" | "price" | "brand";
 
@@ -204,12 +219,11 @@ export default function SearchScreen() {
 
   const results = useMemo(() => {
     if (discoveredProducts.length === 0) {
-      return deferredQuery.trim().length > 0
-        ? searchCatalog(deferredQuery)
-        : PRODUCT_CATALOG;
+      if (deferredQuery.trim().length > 0) return searchCatalog(deferredQuery);
+      return sortPreviewByStock(PRODUCT_CATALOG).slice(0, PREVIEW_LIMIT);
     }
     const combined = [...PRODUCT_CATALOG, ...discoveredProducts];
-    if (deferredQuery.trim().length === 0) return combined;
+    if (deferredQuery.trim().length === 0) return sortPreviewByStock(combined).slice(0, PREVIEW_LIMIT);
     const fuse = new Fuse(combined, {
       keys: [
         { name: "modelNumber", weight: 0.4 },

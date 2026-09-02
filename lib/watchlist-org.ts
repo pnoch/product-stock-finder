@@ -78,15 +78,15 @@ export function productRegion(product: Product): string {
   return "Unknown";
 }
 
-export function priceDropPercent(product: Product): number | null {
-  const best = getBestPrice(product.listings ?? [], "USD");
+export function priceDropPercent(product: Product, displayCurrency: string = "USD"): number | null {
+  const best = getBestPrice(product.listings ?? [], displayCurrency);
   if (!best || best.price <= 0) return null;
   const history = (product.listings ?? []).flatMap((l) => l.priceHistory ?? []);
   let max = 0;
   for (const point of history) {
-    const usd = convertPrice(point.price, point.currency, "USD");
-    if (usd === null) continue;
-    if (usd > max) max = usd;
+    const converted = convertPrice(point.price, point.currency, displayCurrency);
+    if (converted === null) continue;
+    if (converted > max) max = converted;
   }
   if (max <= 0) return null;
   return ((max - best.price) / max) * 100;
@@ -203,8 +203,8 @@ export function sortWatchlist(
       });
     case "price_drop":
       return copy.sort((a, b) => {
-        const da = priceDropPercent(a) ?? -Infinity;
-        const db = priceDropPercent(b) ?? -Infinity;
+        const da = priceDropPercent(a, displayCurrency) ?? -Infinity;
+        const db = priceDropPercent(b, displayCurrency) ?? -Infinity;
         return db - da;
       });
     case "status":

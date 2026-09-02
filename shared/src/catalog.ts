@@ -417,6 +417,14 @@ export function searchCatalog(query: string): typeof PRODUCT_CATALOG {
   return buildFuse(PRODUCT_CATALOG).search(query).map((result) => result.item);
 }
 
+export function searchCatalogFuzzy(query: string, limit?: number): typeof PRODUCT_CATALOG {
+  if (!query.trim()) {
+    return typeof limit === "number" ? PRODUCT_CATALOG.slice(0, limit) : PRODUCT_CATALOG;
+  }
+  const results = buildFuse(PRODUCT_CATALOG).search(query).map((result) => result.item);
+  return typeof limit === "number" ? results.slice(0, limit) : results;
+}
+
 export async function getAllCatalog() {
   return [...PRODUCT_CATALOG];
 }

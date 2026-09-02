@@ -50,6 +50,39 @@ export function AboutSection() {
     }
   };
 
+  const handleRateApp = async () => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const androidUrl = "market://details?id=com.app.stock_tracker_pro";
+    const iosUrl = "itms-apps://itunes.apple.com/app/idcom.app.stock_tracker_pro";
+    const webFallback = "https://play.google.com/store/apps/details?id=com.app.stock_tracker_pro";
+    try {
+      if (Platform.OS === "ios") {
+        const canOpen = await Linking.canOpenURL(iosUrl);
+        if (canOpen) {
+          await Linking.openURL(iosUrl);
+          return;
+        }
+        await Linking.openURL(webFallback);
+        return;
+      }
+      if (Platform.OS === "android") {
+        const canOpen = await Linking.canOpenURL(androidUrl);
+        if (canOpen) {
+          await Linking.openURL(androidUrl);
+          return;
+        }
+        await Linking.openURL(webFallback);
+        return;
+      }
+      await Linking.openURL(webFallback);
+    } catch (e) {
+      console.warn("[AboutSection] rate app failed", e);
+      try {
+        await Linking.openURL(webFallback);
+      } catch {}
+    }
+  };
+
   const handleDeleteMyData = () => {
     showAlert(
       "Delete My Data?",
@@ -132,6 +165,24 @@ export function AboutSection() {
           <SettingRow
             icon="eye.fill"
             label="Privacy Policy"
+            right={
+              <IconSymbol
+                name="chevron.right"
+                size={16}
+                color={colors.muted}
+              />
+            }
+          />
+        </TouchableOpacity>
+        <TouchableOpacity activeOpacity={0.7}
+          onPress={handleRateApp}
+          accessibilityLabel="Rate the app"
+          accessibilityRole="link"
+        >
+          <SettingRow
+            icon="star.fill"
+            label="Rate the App"
+            description="Love the app? Leave a review"
             right={
               <IconSymbol
                 name="chevron.right"

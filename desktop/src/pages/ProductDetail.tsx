@@ -8,6 +8,8 @@ import {
   Star,
   BarChart3,
   Loader2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { storage } from "../storage";
 import { getApiBaseUrl } from "../lib/api-base";
@@ -94,6 +96,10 @@ export function ProductDetail() {
   const [insight, setInsight] = useState<string | null>(null);
   const [buyNowLoading] = useState(false);
   const [livePriceLoading, setLivePriceLoading] = useState(false);
+  const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
+  const [perListingAlertId, setPerListingAlertId] = useState<string | null>(null);
+  const [perListingAlertPrice, setPerListingAlertPrice] = useState("");
+  const [perListingAlertCurrency, setPerListingAlertCurrency] = useState("USD");
   const { isDark } = useTheme();
 
   useEffect(() => {
@@ -112,6 +118,13 @@ export function ProductDetail() {
       if (!cancelled) {
         setDisplayCurrency(settings.displayCurrency ?? "USD");
         setShippingRegion(settings.shippingRegion ?? "Asia-Pacific");
+        setPerListingAlertCurrency(settings.displayCurrency ?? "USD");
+      }
+      const watches = await storage.getStockWatches();
+      if (!cancelled) {
+        const map: Record<string, boolean> = {};
+        for (const w of watches) if (w.productId === id) map[w.distributorId] = true;
+        setStockWatches(map);
       }
       if (!cancelled) {
         setLoading(false);
@@ -256,6 +269,63 @@ export function ProductDetail() {
       reminderType: "back_in_stock",
       lastKnownStatus: bestListing.stockStatus,
     });
+    setStockWatches((prev) => ({ ...prev, [bestListing.distributorId]: true }));
+    showToast("Watching for restock");
+  };
+
+  const handleToggleListingWatch = async (listing: (typeof visibleListings)[number]) => {
+    if (!product) return;
+    const isWatching = !!stockWatches[listing.distributorId];
+    const dist = DISTRIBUTORS.find((d) => d.id === listing.distributorId);
+    if (isWatching) {
+      const watches = await storage.getStockWatches();
+      const target = watches.find((w) => w.productId === product.id && w.distributorId === listing.distributorId);
+      if (target) await storage.removeStockWatch(target.id);
+      setStockWatches((prev) => {
+        const n = { ...prev };
+        delete n[listing.distributorId];
+        return n;
+      });
+      showToast("Stopped watching");
+    } else {
+      await storage.addStockWatch({
+        id: `watch-${Date.now()}`,
+        productId: product.id,
+        productName: product.name,
+        distributorId: listing.distributorId,
+        distributorName: dist?.name ?? listing.distributorId,
+        reminderDate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        reminderType: "back_in_stock",
+        lastKnownStatus: listing.stockStatus,
+      });
+      setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
+      showToast(`Watching ${dist?.name ?? listing.distributorId} for restock`);
+    }
+  };
+
+  const handlePerListingAlert = async () => {
+    if (!product || !perListingAlertId) return;
+    const price = parseFloat(perListingAlertPrice);
+    if (isNaN(price) || price <= 0) return;
+    const granted = await checkNotificationPermission();
+    if (!granted) {
+      showToast("Enable notifications to receive alerts");
+      return;
+    }
+    await storage.addAlert({
+      id: `alert-${Date.now()}`,
+      productId: product.id,
+      direction: "drop",
+      distributorId: perListingAlertId,
+      targetPrice: price,
+      currency: perListingAlertCurrency,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    });
+    setPerListingAlertId(null);
+    setPerListingAlertPrice("");
+    showToast("Alert set for distributor");
   };
 
   if (loading)

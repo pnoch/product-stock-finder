@@ -66,6 +66,29 @@ A professional mobile app for tracking product availability and prices across 25
 - Rate the app
 - Privacy policy
 
+### 7. Rates — FX Rates (`app/(tabs)/rates.tsx`)
+
+- `FxRateGrid` — 2-column grid of `FxSparklineCard` per currency (flag + current rate + % change + sparkline from `history`).
+- Data: `getFxHistory()` (AsyncStorage `fx_rates` history), `EXCHANGE_RATES` fallback, `getFxChange(history)` for 24h delta; pull-to-refresh calls `refreshFxRates()` then reloads history.
+- Header shows `Last updated …` via `formatLastRefreshed`; empty state "No data yet — rates update hourly".
+- Live FX: server `fx.get` (1h TTL, single-flight) → `loadFxRates`/`maybeRefreshFxRates` at launch + Settings refresh; `setExchangeRates` overlay.
+
+### 8. Statistics (`app/stats.tsx`)
+
+- Entry: "View statistics" from Watchlist `SummaryCard`; back button + share (Text/Image via `StatsShareCard` capture).
+- 7 cards: `MoversCard` (top 5 drops/gainers by |%|, window 7/30/All via `computeMovers`), `BasketValueCard` (sum of cheapest in-stock per product in display currency, `basketAlertThreshold` + `BasketAlertSheet`), `StockHealthCard` (`inStockPct`, fully out-of-stock / back-order-only counts), `DataFreshnessCard` (avg history points, stale >7d, never-checked, oldest check), `DigestCard` (weekly/daily `computeDigest` — value delta, movers, new/removed), `InsightsCard` (`computeProductInsights` — all-time lows, streaks, volatility), `DropCalendarCard` (30-day heatmap via `computeDropCalendar`).
+- States: loading spinner, `loadError` retry, empty watchlist CTA to `/search`.
+- FX-aware: all price math converts via `convertPrice` (skips when FX missing).
+
+### 9. Health (`app/(tabs)/health.tsx` + `app/health/[id].tsx`)
+
+- Dashboard (`health.tsx`): filter chips (All/Working/Blocked/Error), `Test All` (concurrency 3, progress bar), rows show `uptime%`, trend glyph `▲/▼/–`, and status sparkline (`computeHealthStats` over capped `distributor_health_history`); tappable → drill-down.
+- Drill-down (`health/[id].tsx`): summary card (count, first/last probe `computeHealthSummary`, avg response time, timeline strip `timelineSegments`), day-grouped sample list (`groupSamplesByDay` — newest day first, per-day working %).
+- Probe scheduling: `HEALTH_PROBE_TASK` (expo-background-task) on `checkInterval` (hourly/daily, manual unregisters) via `registerHealthProbeTask` / `syncBackgroundTasks`; `testAllDistributors` upgraded to `resilientFetch` with shared `createStorageBreakerStore` (`distributor_breaker`).
+- Circuit breaker: `resilientFetch` (retry/backoff, plain→browser escalation, `BrowserUnavailableError` fast-fail, blocked cooldown 30m×1.5ⁿ capped 2h, transient cooldown after 3 failures; `classifyFetchStatus`/`BLOCKED_MARKERS` single source); `classifyResult` → `classifyFetchStatus`, `classifyProbeOutcome` maps `FetchOutcome` (ok/blocked/skipped/error) → `HealthStatus` (working/blocked/error).
+- History: rolling 30-day / 720-sample cap (`pruneHealthHistory`), per-distributor probe model (`CRS804-4DDQ-hRM` / `CRS326-24S+2Q+RM` via `getProbeModel`).
+- Alerts: `detectHealthAlert` (3× non-working after working) + `detectHealthRecovery` (working after 3× non-working) → `scheduleHealthAlert`/`scheduleHealthRecovery` (local + web + history `notification_history`, server mirrored via `PENDING_HEALTH_EVENTS`); gated by `healthAlerts` setting + in-app Notification Center (health type) + web push.
+
 ## Key User Flows
 
 ### Flow 1: Add a Product to Watchlist
@@ -90,9 +113,11 @@ Bottom Tab Bar (5 tabs):
 
 1. **Home** (house icon) — Dashboard
 2. **Watchlist** (list icon) — All tracked products
-3. **Alerts** (bell icon) — Notifications & alerts
-4. **Rates** (dollarsign icon) — FX rates history
+3. **Alerts** (bell icon) — Notifications & alerts (Alerts / Reminders / Notifications)
+4. **Rates** (dollarsign icon) — FX rates history (`FxRateGrid`)
 5. **Settings** (gear icon) — App settings
+
+Stack screens (outside tabs): `product/[id]` (detail), `compare/[id]` (multi-distributor chart), `search` (add product + bulk/manual), `stats` (Statistics — 7 cards), `health` (Health dashboard) + `health/[id]` drill-down, `oauth/callback`, `dev/theme-lab`.
 
 ## Component Design
 

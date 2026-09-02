@@ -53,10 +53,12 @@ app/                    Expo Router routes (file-based)
                         background price-check task, sync engine (setupSync), push-token
                         registration, server notification pull, fx rate loading, device
                         cleanup, tRPC/QueryClient providers
-  (tabs)/               Bottom-tab screens: index (Home), watchlist, alerts, settings
+  (tabs)/               Bottom-tab screens: index (Home), watchlist, alerts, rates, settings (5 tabs)
   product/[id].tsx      Product detail (largest screen — ~1187 lines)
   compare/[id].tsx      Multi-distributor price history comparison chart
   search.tsx            Add-product search
+  stats.tsx             Statistics — 7 cards (Movers/Basket/StockHealth/Freshness/Digest/Insights/DropCalendar)
+  health/[id].tsx       Health drill-down (timeline strip, day-grouped samples); health dashboard at app/health.tsx
   oauth/callback.tsx    Auth callback redirect
   dev/theme-lab.tsx     Theme dev playground
 components/             Reusable UI (PriceSparkline, ScreenContainer, HapticTab, IconSymbol,
@@ -107,7 +109,7 @@ server/                Express + tRPC backend (see server/README.md)
   price-cache.ts, price-history.ts, price-insights.ts, product-images.ts
   fx.ts                Live FX rate source
   notifications.ts, push-notifications.ts   Server notification scheduling + push tokens
-  devices.ts           Device binding, labels, sign-out, stale cleanup
+  devices.ts           Device binding, labels, sign-out, stale cleanup (deviceId from session JWT claim → x-device-id header; per-user ownership via assertDeviceAccess; unrevoke on login; 30-day idle cleanup; revokedDevices with user-scoped composite keys)
   catalog-warmer.ts    Full-catalog background warmer
   storage.ts           S3 helpers
 drizzle/              MySQL schema — 15 tables: users, watchlistItems, priceAlerts,

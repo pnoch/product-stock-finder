@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router";
-import { Search as SearchIcon, Check, Plus, Wand2, Loader2, Upload, PenLine, X } from "lucide-react";
+import { Search as SearchIcon, Check, Plus, Wand2, Loader2, Upload, PenLine, X, Tag as TagIcon } from "lucide-react";
 import { PRODUCT_CATALOG, getAllCategories, getAllBrands } from "@shared/catalog";
 import Fuse from "fuse.js";
 import { storage } from "../storage";
@@ -8,6 +8,9 @@ import { ProductImage } from "../components/ProductImage";
 import { discoverProduct } from "../../../lib/llm-discovery";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import type { TagDefinition } from "../../../lib/types";
+import { TagFilterRow } from "../components/TagFilterRow";
+import { countTagMatches } from "../../../lib/watchlist-org";
+import { matchesTagFilterMode } from "../../../lib/tags";
 
 const RECENT_KEY = "recent_searches";
 function loadRecent(): string[] {
@@ -45,6 +48,8 @@ export function Search() {
   const [manualModel, setManualModel] = useState("");
   const [manualBrand, setManualBrand] = useState("");
   const [manualCategory, setManualCategory] = useState("");
+  const [searchTagIds, setSearchTagIds] = useState<string[]>([]);
+  const [searchTagMode, setSearchTagMode] = useState<"any" | "all">("any");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -66,13 +71,26 @@ export function Search() {
   }, [discoveredProducts]);
 
   const results = useMemo(() => {
-    if (!query.trim()) return combinedCatalog;
-    const fuse = new Fuse(combinedCatalog, {
-      keys: [{ name: "modelNumber", weight: 0.4 }, { name: "name", weight: 0.3 }, { name: "brand", weight: 0.15 }, { name: "category", weight: 0.1 }, { name: "description", weight: 0.05 }],
-      threshold: 0.4, includeScore: true, minMatchCharLength: 2, ignoreLocation: true,
-    });
-    return fuse.search(query).map((r) => r.item);
-  }, [query, combinedCatalog]);
+    let base: typeof combinedCatalog;
+    if (!query.trim()) base = combinedCatalog;
+    else {
+      const fuse = new Fuse(combinedCatalog, {
+        keys: [{ name: "modelNumber", weight: 0.4 }, { name: "name", weight: 0.3 }, { name: "brand", weight: 0.15 }, { name: "category", weight: 0.1 }, { name: "description", weight: 0.05 }],
+        threshold: 0.4, includeScore: true, minMatchCharLength: 2, ignoreLocation: true,
+      });
+      base = fuse.search(query).map((r) => r.item);
+    }
+    if (searchTagIds.length > 0) {
+      // For catalog search, filter to products whose pending tags match selection
+      base = base.filter((p) => {
+        const pending = pendingTags[p.id] ?? [];
+        if (pending.length === 0) return false;
+        const fake = { tags: pending } as never;
+        return matchesTagFilterMode(fake, searchTagIds, searchTagMode);
+      });
+    }
+    return base;
+  }, [query, combinedCatalog, searchTagIds, searchTagMode, pendingTags]);
 
   const categories = useMemo(() => getAllCategories(), []);
   const brands = useMemo(() => getAllBrands(), []);
@@ -148,6 +166,18 @@ export function Search() {
 
       {discoveredProducts.length > 0 && <p className="text-xs text-gray-500">{discoveredProducts.length} discovered products included</p>}
 
+      {Object.keys(tagDefinitions).length > 0 && (
+        <TagFilterRow
+          tagDefinitions={tagDefinitions}
+          selectedTagIds={searchTagIds}
+          tagMatchMode={searchTagMode}
+          counts={{}}
+          onToggleTag={(id) => setSearchTagIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])}
+          onChangeMode={setSearchTagMode}
+          onClearAll={() => setSearchTagIds([])}
+        />
+      )}
+
       <div className="flex items-center gap-2 text-xs text-gray-500">
         <span>{results.length} result{results.length !== 1 ? "s" : ""}</span>
         {query.trim() && <span className="px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-600">{query}</span>}
@@ -204,9 +234,17 @@ export function Search() {
       {bulkOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setBulkOpen(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-semibold mb-2">Bulk Import</h3>
+            <h3 className="font-semibold mb-2 flex items-center gap-2"><Upload className="w-4 h-4" /> Bulk Import</h3>
+            <p className="text-xs text-gray-500 mb-2">Paste model numbers (e.g. CRS326-24S) — one per line or comma-separated.</p>
             <textarea value={bulkText} onChange={(e) => setBulkText(e.target.value)} rows={6} placeholder="CRS804-4DDQ-hRM\nCCR2216-1G-12XS-2XQ" className="w-full p-3 rounded-lg border text-sm mb-3" />
-            {bulkText.trim() && <p className="text-xs text-gray-600 mb-3">{bulkPreview.matched.length} matched · {bulkPreview.unmatched.length} not found · {bulkNew.length} new</p>}
+            {bulkText.trim() && (
+              <div className="mb-3 space-y-1">
+                <p className="text-xs font-semibold">{bulkPreview.matched.length} matched · {bulkPreview.unmatched.length} not found · {bulkNew.length} new{bulkPreview.matched.length - bulkNew.length > 0 ? ` · ${bulkPreview.matched.length - bulkNew.length} already tracked` : ""}</p>
+                {bulkPreview.unmatched.slice(0, 5).map((m) => <p key={m} className="text-xs text-red-600">Not found: {m}</p>)}
+                {bulkPreview.unmatched.length > 5 && <p className="text-xs text-gray-500">+{bulkPreview.unmatched.length - 5} more not found</p>}
+                {bulkPreview.matched.length - bulkNew.length > 0 && <p className="text-xs text-gray-500">{bulkPreview.matched.length - bulkNew.length} already in watchlist</p>}
+              </div>
+            )}
             <div className="flex justify-end gap-2"><button onClick={() => setBulkOpen(false)} className="px-3 py-2 rounded-lg border text-sm">Cancel</button><button onClick={handleBulkImport} disabled={bulkNew.length === 0 || bulkImporting} className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm disabled:opacity-50">{bulkImporting ? "Importing…" : `Import ${bulkNew.length}`}</button></div>
           </div>
         </div>

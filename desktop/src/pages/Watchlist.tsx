@@ -504,15 +504,28 @@ export function Watchlist() {
         ))}
       </div>
 
-      <TagFilterRow
-        tagDefinitions={tagDefinitions}
-        selectedTagIds={selectedTagIds}
-        tagMatchMode={tagMatchMode}
-        counts={tagCounts}
-        onToggleTag={toggleTagFilter}
-        onChangeMode={setTagMatchMode}
-        onClearAll={() => setSelectedTagIds([])}
-      />
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <TagFilterRow
+            tagDefinitions={tagDefinitions}
+            selectedTagIds={selectedTagIds}
+            tagMatchMode={tagMatchMode}
+            counts={tagCounts}
+            onToggleTag={toggleTagFilter}
+            onChangeMode={setTagMatchMode}
+            onClearAll={() => setSelectedTagIds([])}
+          />
+        </div>
+        {Object.keys(tagDefinitions).length > 0 && (
+          <button
+            onClick={() => setManageOpen(true)}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 shrink-0"
+            aria-label="Manage tags"
+          >
+            <TagIcon className="w-3 h-3" /> Manage
+          </button>
+        )}
+      </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -528,7 +541,7 @@ export function Watchlist() {
 
       <div
         ref={scrollRef}
-        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[60vh] overflow-y-auto"
       >
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -723,6 +736,49 @@ export function Watchlist() {
           <span>Removed {undoProduct.name}</span>
           <button onClick={handleUndo} className="px-3 py-1 rounded-lg bg-white text-gray-900 text-xs font-semibold hover:bg-gray-100">Undo</button>
           <button onClick={() => setUndoProduct(null)} className="p-1 rounded hover:bg-white/10" aria-label="Dismiss undo">×</button>
+        </div>
+      )}
+      {manageOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setManageOpen(false); setEditingTagId(null); }}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold flex items-center gap-2"><TagIcon className="w-4 h-4" /> Manage Tags</h3>
+              <button onClick={() => { setManageOpen(false); setEditingTagId(null); }} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="space-y-2 mb-4">
+              {Object.values(tagDefinitions).map((def) => (
+                <div key={def.id} className="flex items-center gap-2 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                  {editingTagId === def.id ? (
+                    <>
+                      <input type="color" value={editingTagColor} onChange={(e) => setEditingTagColor(e.target.value)} className="w-8 h-8 rounded border" aria-label="Tag color" />
+                      <input value={editingTagName} onChange={(e) => setEditingTagName(e.target.value)} className="flex-1 px-2 py-1 rounded border text-sm" placeholder="Tag name" />
+                      <button onClick={handleUpdateTag} className="px-2 py-1 rounded bg-brand-600 text-white text-xs">Save</button>
+                      <button onClick={() => setEditingTagId(null)} className="px-2 py-1 rounded border text-xs">Cancel</button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: def.color }} />
+                      <span className="flex-1 text-sm font-medium">{def.name}</span>
+                      <button onClick={() => { setEditingTagId(def.id); setEditingTagName(def.name); setEditingTagColor(def.color); }} className="text-xs text-brand-600 hover:underline">Edit</button>
+                      <button onClick={() => handleDeleteTag(def.id)} className="text-xs text-red-600 hover:underline">Delete</button>
+                    </>
+                  )}
+                </div>
+              ))}
+              {Object.keys(tagDefinitions).length === 0 && <p className="text-sm text-gray-500">No tags yet. Create one below.</p>}
+            </div>
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <p className="text-xs font-semibold mb-2">Create new tag</p>
+              <div className="flex items-center gap-2">
+                <input type="color" value={newTagColor} onChange={(e) => setNewTagColor(e.target.value)} className="w-8 h-8 rounded border" aria-label="New tag color" />
+                <input value={newTagName} onChange={(e) => setNewTagName(e.target.value)} placeholder="Tag name" className="flex-1 px-3 py-2 rounded-lg border text-sm" />
+                <button onClick={handleCreateTag} disabled={!newTagName.trim()} className="px-3 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-50">Add</button>
+              </div>
+            </div>
+            <div className="flex justify-end mt-4">
+              <button onClick={() => { setManageOpen(false); setEditingTagId(null); }} className="px-4 py-2 rounded-lg border text-sm">Close</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
