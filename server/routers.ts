@@ -13,7 +13,7 @@ import {
   TOMBSTONE_PURGE_WINDOW_MS,
   upsertSyncItem,
 } from "./sync-db";
-import { sharedWatchlists, watchlistItems } from "../drizzle/schema";
+import { sharedWatchlists, sharedWatchlistMembers, watchlistItems } from "../drizzle/schema";
 
 function getOrigin(req?: { headers: Record<string, unknown> }): string {
   const envWeb = process.env.EXPO_PUBLIC_WEB_URL?.replace(/\/$/, "");
@@ -388,14 +388,25 @@ export const appRouter = router({
         checkRateLimit(ctx, "sharedWatchlists.create", 10, 60_000);
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-        const token = randomUUID();
         const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-        await db.insert(sharedWatchlists).values({
-          ownerId: ctx.user.id,
-          token,
-          title: input.title ?? "My Watchlist",
-          expiresAt,
-        });
+        let token = randomUUID();
+        let inserted = false;
+        for (let attempt = 0; attempt < 3 && !inserted; attempt++) {
+          try {
+            await db.insert(sharedWatchlists).values({
+              ownerId: ctx.user.id,
+              token,
+              title: input.title ?? "My Watchlist",
+              expiresAt,
+            });
+            inserted = true;
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            const isDup = msg.includes("Duplicate entry") || msg.includes("UNIQUE") || msg.includes("unique");
+            if (isDup && attempt < 2) { token = randomUUID(); continue; }
+            throw e;
+          }
+        }
         const origin = getOrigin(ctx.req as unknown as { headers: Record<string, unknown> });
         return { token, shareUrl: `${origin}/w/${token}`, expiresAt: expiresAt.toISOString() } as const;
       }),
@@ -435,6 +446,52 @@ export const appRouter = router({
           .delete(sharedWatchlists)
           .where(and(eq(sharedWatchlists.token, input.token), eq(sharedWatchlists.ownerId, ctx.user.id)));
         return { revoked: true } as const;
+      }),
+    invite: protectedProcedure
+      .input(z.object({ token: z.string().min(1).max(64), userId: z.number().int().positive(), role: z.enum(["viewer", "editor"]).default("viewer") }))
+      .mutation(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "sharedWatchlists.invite", 20, 60_000);
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
+        const row = rows[0] as unknown as { ownerId: number } | undefined;
+        if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
+        if (row.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN", message: "Only owner can invite" });
+        await db.insert(sharedWatchlistMembers).values({ token: input.token, userId: input.userId, role: input.role }).onDuplicateKeyUpdate({ set: { role: input.role } });
+        return { invited: true } as const;
+      }),
+    members: protectedProcedure
+      .input(z.object({ token: z.string().min(1).max(64) }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
+        const row = rows[0] as unknown as { ownerId: number } | undefined;
+        if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
+        const isOwner = row.ownerId === ctx.user.id;
+        const memberRows = await db.select().from(sharedWatchlistMembers).where(eq(sharedWatchlistMembers.token, input.token));
+        const isMember = memberRows.some((m) => m.userId === ctx.user.id);
+        if (!isOwner && !isMember) throw new TRPCError({ code: "FORBIDDEN", message: "Not a member" });
+        return { members: memberRows } as const;
+      }),
+    join: protectedProcedure
+      .input(z.object({ token: z.string().min(1).max(64) }))
+      .mutation(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "sharedWatchlists.join", 20, 60_000);
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
+        if (!rows[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
+        await db.insert(sharedWatchlistMembers).values({ token: input.token, userId: ctx.user.id, role: "viewer" }).onDuplicateKeyUpdate({ set: { role: "viewer" } });
+        return { joined: true } as const;
+      }),
+    leave: protectedProcedure
+      .input(z.object({ token: z.string().min(1).max(64) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        await db.delete(sharedWatchlistMembers).where(and(eq(sharedWatchlistMembers.token, input.token), eq(sharedWatchlistMembers.userId, ctx.user.id)));
+        return { left: true } as const;
       }),
   }),
 });

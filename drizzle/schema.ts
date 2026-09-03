@@ -330,5 +330,27 @@ export const sharedWatchlists = mysqlTable(
   ],
 );
 
+export const sharedWatchlistMembers = mysqlTable(
+  "shared_watchlist_members",
+  {
+    token: varchar("token", { length: 64 })
+      .notNull()
+      .references(() => sharedWatchlists.token, { onDelete: "cascade" }),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: mysqlEnum("role", ["viewer", "editor"]).default("viewer").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.token, table.userId] }),
+    index("idx_shared_members_token").on(table.token),
+    index("idx_shared_members_user").on(table.userId),
+  ],
+);
+
+export type SharedWatchlistMemberRow = typeof sharedWatchlistMembers.$inferSelect;
+export type InsertSharedWatchlistMemberRow = typeof sharedWatchlistMembers.$inferInsert;
+
 export type SharedWatchlistRow = typeof sharedWatchlists.$inferSelect;
 export type InsertSharedWatchlistRow = typeof sharedWatchlists.$inferInsert;
