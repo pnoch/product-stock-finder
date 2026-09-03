@@ -22,6 +22,7 @@ import {
   HealthStatus,
 } from "@/lib/scrapers/health";
 import { getDistributorById } from "@/lib/distributors";
+import { classifyFetchStatus } from "@/lib/scrapers/resilient";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 
@@ -76,6 +77,12 @@ export default function HealthScreen() {
     blocked: colors.warning,
     error: colors.error,
   };
+
+  function resolveStatusColor(h: DistributorHealth): string {
+    if (h.status === "blocked") return colors.warning;
+    if (h.reason && classifyFetchStatus(h.reason) === "blocked") return colors.warning;
+    return statusColors[h.status];
+  }
 
   const loadHealth = useCallback(async () => {
     try {
@@ -267,7 +274,7 @@ export default function HealthScreen() {
                   width: 10,
                   height: 10,
                   borderRadius: 5,
-                  backgroundColor: statusColors[h.status],
+                  backgroundColor: resolveStatusColor(h),
                   marginRight: 10,
                 }}
               />
@@ -294,7 +301,7 @@ export default function HealthScreen() {
                   <>
                     <Text
                       style={{
-                        color: statusColors[h.status],
+                        color: resolveStatusColor(h),
                         fontSize: 12,
                         fontWeight: "700",
                         marginTop: 2,
@@ -309,7 +316,7 @@ export default function HealthScreen() {
                     </Text>
                     <HealthSparkline
                       data={stats[h.distributorId].sparkline}
-                      color={statusColors[h.status]}
+                      color={resolveStatusColor(h)}
                     />
                   </>
                 ) : (

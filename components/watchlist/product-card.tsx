@@ -351,6 +351,8 @@ export const ProductCard = memo(function ProductCard({
                   paddingVertical: 3,
                   borderWidth: 1,
                   borderColor: colors.border,
+                  flexShrink: 1,
+                  minWidth: 0,
                 }}
               >
                 <View
@@ -362,9 +364,11 @@ export const ProductCard = memo(function ProductCard({
                     marginRight: 5,
                   }}
                 />
-                <Text style={{ color: colors.muted, fontSize: 11 }} numberOfLines={1} ellipsizeMode="tail">
-                  {tag.name}
-                </Text>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ color: colors.muted, fontSize: 11 }} numberOfLines={1} ellipsizeMode="tail">
+                    {tag.name}
+                  </Text>
+                </View>
               </View>
             );
           })}

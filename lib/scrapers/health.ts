@@ -199,7 +199,7 @@ export function timelineSegments(samples: HealthSample[]): TimelineSegment[] {
   }
   return sorted.map((s, i) => ({
     status: s.status,
-    weight: i < spans.length ? spans[i] / total : 0,
+    weight: i < spans.length ? Math.min(Math.max(spans[i] / total, 0), 1) : 0,
   }));
 }
 

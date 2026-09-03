@@ -281,6 +281,12 @@ fn read_watchlist(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
+fn write_watchlist(app: tauri::AppHandle, value: serde_json::Value) -> Result<(), String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    write_json_file(&data_dir, "watchlist_products", &value)
+}
+
+#[tauri::command]
 fn export_watchlist(
     app: tauri::AppHandle,
     format: String,
@@ -1364,6 +1370,7 @@ pub fn run() {
             send_notification,
             get_app_data_dir,
             read_watchlist,
+            write_watchlist,
             export_watchlist,
             import_watchlist,
             start_price_poller,

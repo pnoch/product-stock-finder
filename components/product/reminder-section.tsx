@@ -6,7 +6,19 @@ import { showAlert } from "@/lib/alert";
 import { useToast } from "@/components/ui/toast";
 import { useColors } from "@/hooks/use-colors";
 
-export function ReminderSection({ productId, distributorId, productName, distributorName }: { productId: string; distributorId?: string; productName?: string; distributorName?: string }) {
+export function ReminderSection({
+  productId,
+  distributorId,
+  productName,
+  distributorName,
+  onRemind,
+}: {
+  productId: string;
+  distributorId?: string;
+  productName?: string;
+  distributorName?: string;
+  onRemind?: () => void;
+}) {
   const colors = useColors();
   const { showToast } = useToast();
   if (!distributorId) {
@@ -17,6 +29,11 @@ export function ReminderSection({ productId, distributorId, productName, distrib
     );
   }
   const onSet = async () => {
+    if (onRemind) {
+      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onRemind();
+      return;
+    }
     const granted = await requestNotificationPermissions();
     if (!granted) {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

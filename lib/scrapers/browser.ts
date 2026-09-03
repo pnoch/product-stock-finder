@@ -167,7 +167,13 @@ class BrowserPool {
   async release(browser: Browser): Promise<void> {
     await this.mutex.runExclusive(async () => {
       this.checkedOut = Math.max(0, this.checkedOut - 1);
-      if (browser.isConnected()) {
+      let connected = false;
+      try {
+        connected = browser.isConnected();
+      } catch {
+        connected = false;
+      }
+      if (connected) {
         this.browsers.push(browser);
       }
     });

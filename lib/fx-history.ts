@@ -25,7 +25,7 @@ export function appendFxHistory(
   ]);
 
   for (const code of allCodes) {
-    const prev = existing.rates[code] ?? [];
+    const prev = existing?.rates[code] ?? [];
     const hasIncoming = code in rates;
     const rawVal = rates[code];
     const incomingValid =
@@ -94,18 +94,19 @@ export function appendFxHistory(
 
 export function getFxChange(
   history: FxHistory,
-): Record<string, number> {
-  const change: Record<string, number> = {};
+): Record<string, number | null> {
+  const change: Record<string, number | null> = {};
   for (const [code, rates] of Object.entries(history.rates)) {
-    if (rates.length < 2) {
-      change[code] = 0;
+    const safeRates = (history?.rates[code] ?? []) as (number | null)[];
+    if (safeRates.length < 2) {
+      change[code] = null;
     } else {
-      const prev = rates[rates.length - 2];
-      const curr = rates[rates.length - 1];
-      if (prev === null || curr === null || !Number.isFinite(prev) || !Number.isFinite(curr)) {
-        change[code] = 0;
+      const prev = safeRates[safeRates.length - 2];
+      const curr = safeRates[safeRates.length - 1];
+      if (prev === null || curr === null || !Number.isFinite(prev as number) || !Number.isFinite(curr as number)) {
+        change[code] = null;
       } else {
-        change[code] = prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : 0;
+        change[code] = (prev as number) !== 0 ? (((curr as number) - (prev as number)) / Math.abs(prev as number)) * 100 : 0;
       }
     }
   }

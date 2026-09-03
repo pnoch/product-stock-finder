@@ -162,6 +162,12 @@ export default function HomeScreen() {
     }
   }, []);
 
+  // Invalidate cached watchlist preview when watchlist mutates so home never shows stale data
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+    void queryClient.invalidateQueries({ queryKey: ["watchlist_preview"] });
+  }, [watchlist, queryClient]);
+
   // Reload whenever the tab is focused so seed/backfill changes are reflected immediately
   useFocusEffect(
     useCallback(() => {

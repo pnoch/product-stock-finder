@@ -292,7 +292,7 @@ export function useAlertsData() {
   );
 
   const tabCount = {
-    alerts: alerts.length,
+    alerts: alerts.filter((a) => a.isActive && !a.triggeredAt && (!a.snoozedUntil || new Date(a.snoozedUntil).getTime() <= Date.now())).length,
     reminders: reminders.length + stockWatches.length,
     notifications: unreadNotifications,
   };

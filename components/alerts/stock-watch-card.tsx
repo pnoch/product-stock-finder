@@ -121,6 +121,7 @@ export const StockWatchCard = memo(function StockWatchCard({
           <TouchableOpacity activeOpacity={0.7}
             onPress={() => onDelete(watch)}
             style={{ padding: 4 }}
+            hitSlop={44}
             accessibilityLabel={`Delete stock watch for ${watch.productName}`}
             accessibilityRole="button"
             accessibilityHint="Double tap to delete"

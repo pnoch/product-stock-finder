@@ -17,12 +17,9 @@ function ratesEqual(a: Record<string, number>, b: Record<string, number>): boole
   const aKeys = Object.keys(a);
   const bKeys = Object.keys(b);
   if (aKeys.length !== bKeys.length) return false;
-  const EPSILON = 1e-9;
   for (const k of aKeys) {
     if (!(k in b)) return false;
-    const diff = Math.abs(a[k] - b[k]);
-    const maxAbs = Math.max(1, Math.abs(a[k]), Math.abs(b[k]));
-    if (diff > EPSILON * maxAbs) return false;
+    if (Math.abs(a[k] - b[k]) >= 1e-6) return false;
   }
   return true;
 }

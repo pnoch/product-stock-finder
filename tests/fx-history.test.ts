@@ -86,13 +86,13 @@ describe("getFxChange", () => {
     expect(change.EUR).toBeCloseTo(1.087, 1);
   });
 
-  it("returns 0 for single data point", async () => {
+  it("returns null for single data point", async () => {
     const { getFxChange } = await import("@/lib/fx-history");
     const history = {
       rates: { EUR: [0.92] },
       timestamps: [1000],
     };
     const change = getFxChange(history);
-    expect(change.EUR).toBe(0);
+    expect(change.EUR).toBeNull();
   });
 });

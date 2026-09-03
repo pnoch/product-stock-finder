@@ -122,6 +122,7 @@ export const ReminderCard = memo(function ReminderCard({
               onReschedule(reminder);
             }}
             style={{ padding: 4 }}
+            hitSlop={44}
             accessibilityLabel={`Reschedule reminder for ${reminder.productName}`}
             accessibilityRole="button"
           >
@@ -130,6 +131,7 @@ export const ReminderCard = memo(function ReminderCard({
           <TouchableOpacity activeOpacity={0.7}
             onPress={() => onDelete(reminder)}
             style={{ padding: 4 }}
+            hitSlop={44}
             accessibilityLabel={`Delete reminder for ${reminder.productName}`}
             accessibilityRole="button"
             accessibilityHint="Double tap to delete"

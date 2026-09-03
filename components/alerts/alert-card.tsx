@@ -143,7 +143,7 @@ export const AlertCard = memo(function AlertCard({
             <TouchableOpacity activeOpacity={0.7}
               onPress={handleEdit}
               style={{ padding: 10 }}
-              hitSlop={8}
+              hitSlop={44}
               accessibilityLabel={`Edit alert for ${productName}`}
               accessibilityRole="button"
             >
@@ -154,7 +154,7 @@ export const AlertCard = memo(function AlertCard({
             <TouchableOpacity activeOpacity={0.7}
               onPress={handleSnooze}
               style={{ padding: 10 }}
-              hitSlop={8}
+              hitSlop={44}
               accessibilityLabel={`Snooze alert for ${productName}`}
               accessibilityRole="button"
             >
@@ -168,7 +168,7 @@ export const AlertCard = memo(function AlertCard({
           <TouchableOpacity activeOpacity={0.7}
             onPress={handleDelete}
             style={{ padding: 10 }}
-            hitSlop={8}
+            hitSlop={44}
             accessibilityLabel={`Delete alert for ${productName}`}
             accessibilityRole="button"
             accessibilityHint="Double tap to delete"

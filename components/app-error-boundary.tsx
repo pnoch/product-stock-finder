@@ -124,12 +124,12 @@ export class AppErrorBoundary extends React.Component<
         | undefined;
       if (Segmenter) {
         const seg = new Segmenter(undefined, { granularity: "grapheme" });
-        safeMessage = [...seg.segment(raw)].slice(0, 120).map((s) => s.segment).join("");
+        safeMessage = [...seg.segment(raw)].slice(0, 160).map((s) => s.segment).join("");
       } else {
-        safeMessage = Array.from(raw).slice(0, 120).join("");
+        safeMessage = Array.from(raw).slice(0, 160).join("");
       }
     } catch {
-      safeMessage = raw.slice(0, 120);
+      safeMessage = Array.from(raw).slice(0, 160).join("");
     }
     return { hasError: true, message: safeMessage };
   }

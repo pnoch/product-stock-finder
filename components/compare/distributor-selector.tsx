@@ -8,6 +8,12 @@ import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CHART_COLORS, SortBy } from "@/lib/compare-utils";
 
+function hashId(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
 interface DistributorSelectorProps {
   sortedListings: DistributorListing[];
   selected: Set<string>;
@@ -36,6 +42,8 @@ export const DistributorSelector = memo(function DistributorSelector({
         .sort(),
     [sortedListings],
   );
+
+  void allDistributorIds;
 
   const handleSort = useCallback(
     (s: SortBy) => {
@@ -111,10 +119,8 @@ export const DistributorSelector = memo(function DistributorSelector({
         const distributor = getDistributorById(l.distributorId);
         const isSelected = selected.has(l.distributorId);
         const hasHistory = l.priceHistory && l.priceHistory.length >= 2;
-        const colorIdx = allDistributorIds.indexOf(l.distributorId);
-        const safeIdx = colorIdx === -1 ? 0 : colorIdx % CHART_COLORS.length;
         const chipColor = isSelected
-          ? CHART_COLORS[safeIdx]
+          ? CHART_COLORS[hashId(l.distributorId) % CHART_COLORS.length]
           : colors.border;
         const trend = priceTrends.get(l.distributorId);
         return (

@@ -37,11 +37,34 @@ const tauriAwareAdapter = {
   },
   setItem: async (key: string, value: string) => {
     localStorage.setItem(key, value);
-    // Best-effort mirror to file is handled by Rust commands (import/export)
-    // which read the same JSON file; no extra invoke needed for now.
+    if (isTauri && key === "watchlist_products") {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const parsed = JSON.parse(value);
+        await invoke("write_watchlist", { value: parsed });
+      } catch {
+        // best-effort — localStorage still updated
+      }
+    }
   },
-  removeItem: async (key: string) => localStorage.removeItem(key),
-  multiRemove: async (keys: string[]) => keys.forEach((k) => localStorage.removeItem(k)),
+  removeItem: async (key: string) => {
+    localStorage.removeItem(key);
+    if (isTauri && key === "watchlist_products") {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("write_watchlist", { value: [] });
+      } catch {}
+    }
+  },
+  multiRemove: async (keys: string[]) => {
+    keys.forEach((k) => localStorage.removeItem(k));
+    if (isTauri && keys.includes("watchlist_products")) {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("write_watchlist", { value: [] });
+      } catch {}
+    }
+  },
 };
 
 export const storage = createStorage(isTauri ? tauriAwareAdapter : localStorageAdapter);
