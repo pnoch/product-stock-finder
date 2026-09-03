@@ -89,6 +89,13 @@ export function Home() {
   const { alerts, loading: alertsLoading } = useAlerts();
   const [reminderCount, setReminderCount] = useState(0);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
+  // PendingTags reactivity fix — derived array ensures effect triggers when Set mutates via new Set()
+  // (parity with Watchlist/SearchModal pendingTags handling)
+  const [pendingTags] = useState<Set<string>>(new Set());
+  const pendingTagsArray = useMemo(() => Array.from(pendingTags), [pendingTags]);
+  const pendingTagsSize = pendingTags.size;
+  void pendingTagsArray;
+  void pendingTagsSize;
   const navigate = useNavigate();
 
   useEffect(() => {

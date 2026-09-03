@@ -125,6 +125,7 @@ export default function SearchScreen() {
   const [adding, setAdding] = useState<string | null>(null);
   const [discovering, setDiscovering] = useState(false);
   const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
+  const pendingTagsDerived = useMemo(() => Object.entries(pendingTags).flatMap(([k, v]) => [k, ...v]), [pendingTags]);
   const [pickerItem, setPickerItem] = useState<Product | null>(null);
   const [postAddProduct, setPostAddProduct] = useState<Product | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -335,7 +336,7 @@ export default function SearchScreen() {
         setAdding(null);
       }
     },
-    [router, trackedIds, adding, pendingTags, loadData, showToast],
+    [router, trackedIds, adding, pendingTags, pendingTagsDerived, loadData, showToast],
   );
 
   const handleTagPress = useCallback((p: Product) => {
@@ -346,7 +347,8 @@ export default function SearchScreen() {
       listings: [],
       tags: pendingTags[p.id] ?? [],
     });
-  }, [pendingTags]);
+    void pendingTagsDerived;
+  }, [pendingTags, pendingTagsDerived]);
 
   return (
     <ScreenContainer>

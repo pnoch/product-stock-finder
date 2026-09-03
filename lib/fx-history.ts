@@ -73,17 +73,20 @@ export function appendFxHistory(
     : [...existing.timestamps, timestamp];
   const trimmedTimestamps = newTimestamps.slice(-MAX_POINTS);
   for (const code of Object.keys(newRates)) {
-    let arr = newRates[code];
-    if (arr.length > trimmedTimestamps.length) {
-      arr = arr.slice(-MAX_POINTS);
-    } else if (arr.length < trimmedTimestamps.length) {
-      while (arr.length < trimmedTimestamps.length) {
-        arr.unshift(null);
-      }
-    } else if (arr.length > MAX_POINTS) {
-      arr = arr.slice(-MAX_POINTS);
+    let arr = newRates[code].slice(-trimmedTimestamps.length);
+    if (arr.length < trimmedTimestamps.length) {
+      const pad = trimmedTimestamps.length - arr.length;
+      arr = [...Array(pad).fill(null), ...arr];
     }
-    if (arr.length > MAX_POINTS) arr = arr.slice(-MAX_POINTS);
+    console.assert(
+      arr.length === trimmedTimestamps.length,
+      `FX invariant violated for ${code}: rates length ${arr.length} !== timestamps length ${trimmedTimestamps.length}`,
+    );
+    if (arr.length !== trimmedTimestamps.length) {
+      throw new Error(
+        `FX history invariant violated for ${code}: rates length ${arr.length} !== timestamps length ${trimmedTimestamps.length}`,
+      );
+    }
     newRates[code] = arr;
   }
   return {
@@ -96,7 +99,7 @@ export function getFxChange(
   history: FxHistory,
 ): Record<string, number | null> {
   const change: Record<string, number | null> = {};
-  for (const [code, rates] of Object.entries(history.rates)) {
+  for (const [code] of Object.entries(history.rates)) {
     const safeRates = (history?.rates[code] ?? []) as (number | null)[];
     if (safeRates.length < 2) {
       change[code] = null;

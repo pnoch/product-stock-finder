@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Animated, View, ViewStyle } from "react-native";
+import { AccessibilityInfo, Animated, View, ViewStyle } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import { useColors } from "@/hooks/use-colors";
 
 export function SkeletonBox({
@@ -15,25 +16,52 @@ export function SkeletonBox({
 }) {
   const colors = useColors();
   const opacity = useRef(new Animated.Value(0.35)).current;
+  const reduceMotionEnabled = useReducedMotion();
 
   useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.7,
-          duration: 700,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.35,
-          duration: 700,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [opacity]);
+    if (reduceMotionEnabled) {
+      opacity.setValue(0.6);
+      return;
+    }
+    // Fallback to AccessibilityInfo when reanimated hook is unavailable / web sync check
+    let anim: Animated.CompositeAnimation | null = null;
+    let cancelled = false;
+    const startLoop = () => {
+      if (cancelled) return;
+      anim = Animated.loop(
+        Animated.sequence([
+          Animated.timing(opacity, {
+            toValue: 0.7,
+            duration: 700,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacity, {
+            toValue: 0.35,
+            duration: 700,
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      anim.start();
+    };
+    if (AccessibilityInfo?.isReduceMotionEnabled) {
+      AccessibilityInfo.isReduceMotionEnabled()
+        .then((enabled) => {
+          if (enabled) {
+            opacity.setValue(0.6);
+            return;
+          }
+          startLoop();
+        })
+        .catch(() => startLoop());
+      return () => {
+        cancelled = true;
+        anim?.stop();
+      };
+    }
+    startLoop();
+    return () => anim?.stop();
+  }, [opacity, reduceMotionEnabled]);
 
   return (
     <Animated.View

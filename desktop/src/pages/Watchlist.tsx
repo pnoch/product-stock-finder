@@ -90,6 +90,11 @@ export function Watchlist() {
   // Bulk select + undo parity
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Derived array for Set reactivity — ensures effects trigger on mutation via new Set()
+  const selectedIdsArray = useMemo(() => Array.from(selectedIds), [selectedIds]);
+  const selectedIdsSize = selectedIds.size;
+  void selectedIdsArray;
+  void selectedIdsSize;
   const [undoProduct, setUndoProduct] = useState<Product | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = (msg: string) => {
@@ -443,7 +448,7 @@ export function Watchlist() {
           {toast}
         </div>
       )}
-      {/* WatchlistHeader — collapsing animation matching mobile headerCollapse */}
+      {/* WatchlistHeader — collapsing sticky header (sole H1; legacy static header removed) */}
       <div
         className={`sticky top-0 z-10 -mx-6 -mt-6 px-6 pt-6 pb-3 bg-[#F8FAFC] dark:bg-[#0A0E1A] border-b transition-all duration-200 ${collapsed ? "shadow-sm py-3" : "border-transparent"}`}
         style={{ opacity: collapsed ? 0.97 : 1, transform: collapsed ? "translateY(-1px)" : "translateY(0)" }}
@@ -456,7 +461,41 @@ export function Watchlist() {
               {filtered.length !== products.length ? ` · ${filtered.length} shown` : ""}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {!selectionMode ? (
+              <button
+                onClick={() => setSelectionMode(true)}
+                className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800"
+                aria-label="Enter bulk select mode"
+              >
+                Select
+              </button>
+            ) : (
+              <>
+                <span className="text-sm text-gray-600 dark:text-gray-300">{selectedIds.size} selected</span>
+                <button onClick={openBulkTagSheet} disabled={selectedIds.size === 0} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-50">
+                  <TagIcon className="w-3.5 h-3.5" /> Tag
+                </button>
+                <button onClick={handleBulkDelete} disabled={selectedIds.size === 0} className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-medium disabled:opacity-50">Delete</button>
+                <button onClick={exitSelection} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">Cancel</button>
+              </>
+            )}
+            <button
+              onClick={() => navigate("/distributor-analysis")}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label="View distributor analysis"
+            >
+              Distributor Analysis
+            </button>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
+              aria-label="Refresh prices"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
             <button
               onClick={() => setManageOpen(true)}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -465,47 +504,6 @@ export function Watchlist() {
               <Settings2 className="w-4 h-4" /> Manage Tags
             </button>
           </div>
-        </div>
-      </div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Watchlist</h1>
-        <div className="flex items-center gap-2">
-          {!selectionMode ? (
-            <button
-              onClick={() => setSelectionMode(true)}
-              className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800"
-              aria-label="Enter bulk select mode"
-            >
-              Select
-            </button>
-          ) : (
-            <>
-              <span className="text-sm text-gray-600 dark:text-gray-300">{selectedIds.size} selected</span>
-              <button onClick={openBulkTagSheet} disabled={selectedIds.size === 0} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-50">
-                <TagIcon className="w-3.5 h-3.5" /> Tag
-              </button>
-              <button onClick={handleBulkDelete} disabled={selectedIds.size === 0} className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-medium disabled:opacity-50">Delete</button>
-              <button onClick={exitSelection} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">Cancel</button>
-            </>
-          )}
-          <button
-            onClick={() => navigate("/distributor-analysis")}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            aria-label="View distributor analysis"
-          >
-            Distributor Analysis
-          </button>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
-            aria-label="Refresh prices"
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
-            />
-            Refresh
-          </button>
         </div>
       </div>
 

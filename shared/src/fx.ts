@@ -45,8 +45,13 @@ export function refreshFxRates(): Promise<void> {
   return promise;
 }
 
+function deterministicJitter(fetchedAt: number): number {
+  const hash = (fetchedAt * 9301 + 49297) % 600_000;
+  return hash;
+}
+
 export async function maybeRefreshFxRates(): Promise<void> {
-  const jitter = Math.floor(Math.random() * 600_000);
+  const jitter = lastFetchedAt !== null ? deterministicJitter(lastFetchedAt) : 0;
   const fresh =
     lastFetchedAt !== null &&
     lastFetchedAt > 0 &&

@@ -52,9 +52,16 @@ export function refreshFxRates(storage: Storage = defaultStorage): Promise<void>
   return promise;
 }
 
+function deterministicJitter(fetchedAt: number): number {
+  // Deterministic hash seeded by fetchedAt so TTL window is stable per fetch.
+  // Uses Knuth multiplicative hash variant to spread across [-300k, +300k).
+  const hash = (fetchedAt * 9301 + 49297) % 600_000;
+  return hash - 300_000;
+}
+
 export async function maybeRefreshFxRates(storage: Storage = defaultStorage): Promise<void> {
   const stored = await storage.getFxRates();
-  const jitter = Math.floor(Math.random() * 600_000) - 300_000;
+  const jitter = stored ? deterministicJitter(stored.fetchedAt) : 0;
   const fresh =
     stored !== null && stored.fetchedAt > 0 && Date.now() - stored.fetchedAt < FX_TTL_MS + jitter;
   if (!fresh) await refreshFxRates(storage);

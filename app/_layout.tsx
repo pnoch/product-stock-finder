@@ -6,7 +6,13 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-import { AppState, Platform, View, useColorScheme } from "react-native";
+import {
+  ActivityIndicator,
+  AppState,
+  Platform,
+  View,
+  useColorScheme,
+} from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { AppErrorBoundary } from "@/components/app-error-boundary";
@@ -344,7 +350,20 @@ export default function RootLayout() {
   if (onboardingState === "checking") {
     return (
       <ThemeProvider>
-        <View style={{ flex: 1, backgroundColor: Colors[systemColorScheme].background }} />
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: Colors[systemColorScheme].background,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ActivityIndicator
+            accessibilityLabel="Loading"
+            size="large"
+            color={Colors[systemColorScheme].primary}
+          />
+        </View>
       </ThemeProvider>
     );
   }

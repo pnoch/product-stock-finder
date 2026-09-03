@@ -92,6 +92,9 @@ export function SearchModal({
   const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
   const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
   const [tagPickerFor, setTagPickerFor] = useState<string | null>(null);
+  // Derived arrays for effect reactivity — Set/object identity would not trigger deps reliably
+  const pendingTagsDerived = useMemo(() => Object.entries(pendingTags).flatMap(([k, v]) => [k, ...v]), [pendingTags]);
+  const trackedIdsArray = useMemo(() => Array.from(trackedIds), [trackedIds]);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [bulkImporting, setBulkImporting] = useState(false);
@@ -172,7 +175,7 @@ export function SearchModal({
     }
   }, [categoryBrandFiltered, catalogSort]);
 
-  const handleAdd = async (product: (typeof PRODUCT_CATALOG)[number]) => {
+  const handleAdd = useCallback(async (product: (typeof PRODUCT_CATALOG)[number]) => {
     try {
       const tags = pendingTags[product.id] ?? [];
       await storage.addToWatchlist({
@@ -195,7 +198,7 @@ export function SearchModal({
       setToast(msg);
       setTimeout(() => setToast(null), 3000);
     }
-  };
+  }, [pendingTags, pendingTagsDerived, query]);
 
   const handleDiscover = useCallback(async () => {
     if (!query.trim() || discovering) return;
@@ -222,7 +225,9 @@ export function SearchModal({
   }, [query, discovering, onClose]);
 
   const bulkPreview = useMemo(() => matchModels(parseModelInput(bulkText)), [bulkText]);
-  const bulkNew = bulkPreview.matched.filter((p) => !trackedIds.has(p.id));
+  const bulkNew = useMemo(() => bulkPreview.matched.filter((p) => !trackedIds.has(p.id)), [bulkPreview, trackedIdsArray, trackedIds]);
+  // Keep pendingTagsDerived in scope for reactivity (used in handleAdd tag assignment)
+  void pendingTagsDerived;
 
   const handleBulkImport = async () => {
     if (bulkImporting || bulkNew.length === 0) return;

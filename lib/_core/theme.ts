@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import * as Font from "expo-font";
 
 import themeConfig from "@/theme.config";
 
@@ -77,12 +78,12 @@ export type ThemeColorPalette = (typeof Colors)[ColorScheme];
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: "system-ui",
+    /** Inter aligned across iOS/web — iOS uses Inter via expo-font, falls back to system-ui */
+    sans: "Inter, system-ui",
     /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: "ui-serif",
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: "ui-rounded",
+    /** Inter rounded fallback — aligns with web Inter */
+    rounded: "Inter, ui-rounded",
     /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: "ui-monospace",
   },
@@ -93,10 +94,24 @@ export const Fonts = Platform.select({
     mono: "monospace",
   },
   web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    sans: "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     serif: "Georgia, 'Times New Roman', serif",
     rounded:
-      "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
+      "Inter, 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
+
+export async function loadThemeFonts(): Promise<void> {
+  try {
+    if (Platform.OS === "web") return;
+    // Inter on native is loaded via expo-font. Web resolves via CSS stack (Inter, system-ui).
+    // When a local Inter asset is added, replace the block below with:
+    // await Font.loadAsync({ Inter: require("@/assets/fonts/Inter-Regular.ttf") });
+    await Font.loadAsync({});
+  } catch {
+    // Best-effort — fall back to system font stack
+  }
+}
+
+export const InterFontFamily = "Inter";

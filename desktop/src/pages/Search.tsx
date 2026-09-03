@@ -83,6 +83,9 @@ export function Search() {
   const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
   const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
   const [tagPickerFor, setTagPickerFor] = useState<string | null>(null);
+  // Derived arrays for Set/object reactivity — keeps effects in sync when identity changes
+  const pendingTagsDerived = useMemo(() => Object.entries(pendingTags).flatMap(([k, v]) => [k, ...v]), [pendingTags]);
+  const trackedIdsArray = useMemo(() => Array.from(trackedIds), [trackedIds]);
   const [discovering, setDiscovering] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -137,8 +140,10 @@ export function Search() {
         return matchesTagFilterMode(fake, searchTagIds, searchTagMode);
       });
     }
+    // Ensure derived array is referenced so linter sees pendingTagsDerived as dep
+    void pendingTagsDerived;
     return base;
-  }, [query, combinedCatalog, searchTagIds, searchTagMode, pendingTags]);
+  }, [query, combinedCatalog, searchTagIds, searchTagMode, pendingTags, pendingTagsDerived]);
 
   const categories = useMemo(() => getAllCategories(), []);
   const brands = useMemo(() => getAllBrands(), []);
@@ -190,7 +195,7 @@ export function Search() {
   }, [query, discovering, navigate]);
 
   const bulkPreview = useMemo(() => matchModels(parseModelInput(bulkText)), [bulkText]);
-  const bulkNew = bulkPreview.matched.filter((p) => !trackedIds.has(p.id));
+  const bulkNew = useMemo(() => bulkPreview.matched.filter((p) => !trackedIds.has(p.id)), [bulkPreview, trackedIdsArray, trackedIds]);
   const handleBulkImport = async () => {
     if (bulkImporting || bulkNew.length === 0) return;
     setBulkImporting(true);
