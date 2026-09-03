@@ -276,11 +276,15 @@ export function groupWatchlist(
     .map((region) => ({
       key: `region-${region}`,
       title: region,
-      products: list.filter((p) =>
-        region === "Unknown"
-          ? productRegion(p) === "Unknown"
-          : productHasRegion(p, region),
-      ),
+      products: list.filter((p) => {
+        if (region === "Unknown") {
+          const hasAnyRegion = (p.listings ?? []).some(
+            (l) => !!getDistributorById(l.distributorId)?.region,
+          );
+          return !hasAnyRegion;
+        }
+        return productHasRegion(p, region);
+      }),
     }))
     .filter((s) => s.products.length > 0);
 }

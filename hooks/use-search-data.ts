@@ -21,7 +21,9 @@ export function useSearchData() {
     getTagDefinitions()
       .then((defs) => {
         setTagDefinitions(defs);
-        setSelectedTagIds((prev) => prev.filter((id) => id in defs));
+        setSelectedTagIds((prev) =>
+          prev.filter((id) => Object.prototype.hasOwnProperty.call(defs, id)),
+        );
       })
       .catch(() => {});
   }, []);
