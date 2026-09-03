@@ -5,6 +5,12 @@ import { formatPrice, convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { CHART_COLORS } from "@/lib/compare-utils";
 
+function hashId(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
 interface Props {
   listings: DistributorListing[];
   selected: Set<string>;
@@ -43,10 +49,6 @@ export function CurrentPricesTable({ listings, selected, displayCurrency = "USD"
   const selectedListings = listings.filter((l) =>
     selected.has(l.distributorId),
   );
-  const stableIds = listings
-    .filter((l) => l.priceHistory && l.priceHistory.length >= 2)
-    .map((l) => l.distributorId)
-    .sort();
 
   return (
     <View
@@ -73,8 +75,7 @@ export function CurrentPricesTable({ listings, selected, displayCurrency = "USD"
       {selectedListings.map((l, i) => {
         const distributor = getDistributorById(l.distributorId);
         const converted = convertPrice(l.price, l.currency, displayCurrency);
-        const colorIdx = stableIds.indexOf(l.distributorId);
-        const color = CHART_COLORS[(colorIdx >= 0 ? colorIdx : 0) % CHART_COLORS.length];
+        const color = CHART_COLORS[hashId(l.distributorId) % CHART_COLORS.length];
         const label = stockLabel[l.stockStatus] ?? l.stockStatus;
         const isUnknown = l.stockStatus === "unknown";
         const isPositive = l.stockStatus === "in_stock";

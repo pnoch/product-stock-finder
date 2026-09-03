@@ -10,7 +10,14 @@ import {
   View,
   Platform,
   useWindowDimensions,
+  Text,
+  TouchableOpacity,
+  Share,
+  Animated,
 } from "react-native";
+import * as Linking from "expo-linking";
+import { buildShareText } from "@/lib/price-share";
+import { captureAndShareImage } from "@/lib/share-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { showAlert } from "@/lib/alert";
@@ -35,12 +42,21 @@ import { PRODUCT_CATALOG } from "@/lib/catalog";
 import { SkeletonChart, SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
+import { useColors } from "@/hooks/use-colors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import {
   CHART_COLORS,
   TimeRange,
   SortBy,
   filterByRange,
 } from "@/lib/compare-utils";
+
+function hashId(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
 
 // ─── Compare Screen ───────────────────────────────────────────────────────────
 export default function CompareScreen() {
@@ -220,11 +236,41 @@ export default function CompareScreen() {
     });
   }, [listings, sortBy, priceTrends, displayCurrency]);
 
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const stickyOpacity = scrollY.interpolate({ inputRange: [80, 140], outputRange: [0, 1], extrapolate: "clamp" });
+  const shareScale = useRef(new Animated.Value(1)).current;
+  const shareRef = useRef<View>(null);
+  const handleShare = useCallback(async () => {
+    if (!product || !id) return;
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Animated.sequence([
+        Animated.timing(shareScale, { toValue: 0.85, duration: 90, useNativeDriver: true }),
+        Animated.spring(shareScale, { toValue: 1, useNativeDriver: true, speed: 22, bounciness: 8 }),
+      ]).start();
+    }
+    const shareText = buildShareText({ product, listings, displayCurrency, limit: 5 });
+    const deepLink = Linking.createURL(`/product/${id}`, { scheme: "productstockfinder" });
+    const message = `${shareText}\n\n${deepLink}`;
+    try {
+      const imageShared = await captureAndShareImage(shareRef as React.RefObject<View | null>, `compare-${id}`);
+      if (imageShared) {
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        return;
+      }
+    } catch {}
+    try {
+      const result = await Share.share({ message, title: product.name });
+      if ((result as unknown as { action: string })?.action === Share.dismissedAction) return;
+    } catch {
+      return;
+    }
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [product, listings, displayCurrency, id, shareScale]);
+
   const chartSeries = useMemo(() => {
-    const stableIds = listings
-      .filter((l) => l.priceHistory && l.priceHistory.length >= 2)
-      .map((l) => l.distributorId)
-      .sort();
     const selectedListings = listings.filter(
       (l) =>
         selected.has(l.distributorId) &&
@@ -234,10 +280,9 @@ export default function CompareScreen() {
     return selectedListings.map((l) => {
       const distributor = getDistributorById(l.distributorId);
       const filtered = filterByRange(l.priceHistory!, timeRange);
-      const colorIdx = stableIds.indexOf(l.distributorId);
       return {
         label: distributor?.name ?? l.distributorId,
-        color: CHART_COLORS[colorIdx % CHART_COLORS.length],
+        color: CHART_COLORS[hashId(l.distributorId) % CHART_COLORS.length],
         data: filtered,
         currency: l.currency,
       };
@@ -266,46 +311,87 @@ export default function CompareScreen() {
           onSecondaryPress={() => router.back()}
         />
       ) : (
-        <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 40 }}>
-          {/* Header */}
-          <CompareHeader
-            productName={productName}
-            isRefreshing={isRefreshingAny}
-            onRefresh={refresh}
-            onBack={() => router.back()}
-          />
-
-          <View
-            onLayout={(e) => {
-              const w = e.nativeEvent.layout.width;
-              if (w > 0) setChartWidth(w - 32);
+        <>
+          <Animated.View
+            pointerEvents="box-none"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 10,
+              backgroundColor: colors.surface,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border,
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              paddingTop: insets.top + 10,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              opacity: stickyOpacity,
             }}
           >
-            <ChartCard
-              timeRange={timeRange}
-              onRangeChange={setRange}
-              chartSeries={chartSeries}
-              chartWidth={chartWidth}
-              displayCurrency={displayCurrency}
+            <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14, flex: 1 }} numberOfLines={1}>
+              {productName}
+            </Text>
+            <View pointerEvents="auto">
+              <TouchableOpacity activeOpacity={0.7} onPress={handleShare} style={{ padding: 4, marginLeft: 8 }} accessibilityLabel="Share comparison" accessibilityRole="button">
+                <IconSymbol name="square.and.arrow.up" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+          <Animated.ScrollView
+            onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+            scrollEventThrottle={16}
+            showsVerticalScrollIndicator={true}
+            contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
+          >
+            {/* Header */}
+            <CompareHeader
+              productName={productName}
+              isRefreshing={isRefreshingAny}
+              onRefresh={refresh}
+              onBack={() => router.back()}
             />
-          </View>
 
-          {/* Cheapest Region summary */}
-          <CheapestRegionCard listings={listings} displayCurrency={displayCurrency} />
+            <View
+              ref={shareRef}
+              collapsable={false}
+              pointerEvents="box-none"
+              onLayout={(e) => {
+                const w = e.nativeEvent.layout.width;
+                if (w > 0) setChartWidth(w - 32);
+              }}
+            >
+              <View pointerEvents="auto">
+                <ChartCard
+                  timeRange={timeRange}
+                  onRangeChange={setRange}
+                  chartSeries={chartSeries}
+                  chartWidth={chartWidth}
+                  displayCurrency={displayCurrency}
+                />
+              </View>
+            </View>
 
-          <CrossAlertCTA listings={listings} displayCurrency={displayCurrency} onPress={handleCrossAlert} />
+            {/* Cheapest Region summary */}
+            <CheapestRegionCard listings={listings} displayCurrency={displayCurrency} />
 
-          <CurrentPricesTable listings={listings} selected={selected} displayCurrency={displayCurrency} />
+            <CrossAlertCTA listings={listings} displayCurrency={displayCurrency} onPress={handleCrossAlert} />
 
-          <DistributorSelector
-            sortedListings={sortedListings}
-            selected={selected}
-            sortBy={sortBy}
-            onSortChange={setSortByMode}
-            onToggle={toggleSelect}
-            priceTrends={priceTrends}
-          />
-        </ScrollView>
+            <CurrentPricesTable listings={listings} selected={selected} displayCurrency={displayCurrency} />
+
+            <DistributorSelector
+              sortedListings={sortedListings}
+              selected={selected}
+              sortBy={sortBy}
+              onSortChange={setSortByMode}
+              onToggle={toggleSelect}
+              priceTrends={priceTrends}
+            />
+          </Animated.ScrollView>
+        </>
       )}
     </ScreenContainer>
   );
