@@ -22,6 +22,7 @@ import { searchCatalog, getAllCatalog, PRODUCT_CATALOG, getAllCategories, getAll
 import { SAMPLE_LISTINGS } from "@/lib/sample-data";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
 import { RecentSearches } from "@/components/search/recent-searches";
+import { DiscoveryAuthError, DiscoveryError } from "@/lib/llm-discovery";
 import {
   clearRecentSearches,
   getRecentSearches,
@@ -188,9 +189,33 @@ export default function SearchScreen() {
           "We couldn't find that product. Try a more specific model number or brand name.",
         );
       }
-    } catch {
+    } catch (e) {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showAlert("Discovery Failed", "We couldn't find that product. Try again.");
+      if (e instanceof DiscoveryAuthError) {
+        showAlert("Sign-in Required", "Please sign in to use AI discovery.", [
+          { text: "OK" },
+        ]);
+      } else if (e instanceof DiscoveryError) {
+        const detail =
+          e.kind === "timeout"
+            ? "Discovery timed out. Check your connection and try again."
+            : e.kind === "network"
+              ? `Network error: ${e.message}`
+              : e.kind === "server"
+                ? e.status
+                  ? `Server error (${e.status}). Try again in a moment.`
+                  : e.message
+                : "We couldn't parse the discovery response. Try again.";
+        showAlert("Discovery Failed", detail, [
+          { text: "Retry", onPress: () => void handleDiscover() },
+          { text: "Cancel", style: "cancel" },
+        ]);
+      } else {
+        showAlert("Discovery Failed", "We couldn't find that product. Try again.", [
+          { text: "Retry", onPress: () => void handleDiscover() },
+          { text: "Cancel", style: "cancel" },
+        ]);
+      }
     } finally {
       setDiscovering(false);
     }

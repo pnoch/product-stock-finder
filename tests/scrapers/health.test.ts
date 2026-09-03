@@ -442,20 +442,20 @@ describe("timelineSegments", () => {
       sample("blocked", "2026-08-01T01:00:00Z"),
       sample("error", "2026-08-01T03:00:00Z"),
     ]);
-    // spans: 1h, 2h -> total 3h -> weights 1/3, 2/3, 0 (last has no following span)
-    expect(segments[0].weight).toBeCloseTo(1 / 3, 5);
-    expect(segments[1].weight).toBeCloseTo(2 / 3, 5);
-    expect(segments[2].weight).toBeCloseTo(0, 5);
+    // spans: 1h, 2h, avg 1.5h -> extended total 4.5h -> weights 1/4.5, 2/4.5, 1.5/4.5 (equal-duration fallback for last)
+    expect(segments[0].weight).toBeCloseTo(1 / 4.5, 5);
+    expect(segments[1].weight).toBeCloseTo(2 / 4.5, 5);
+    expect(segments[2].weight).toBeCloseTo(1.5 / 4.5, 5);
   });
 
-  it("last segment has zero weight when no following span", () => {
+  it("last segment has equal-duration fallback weight when no following span", () => {
     const segments = timelineSegments([
       sample("working", "2026-08-01T00:00:00Z"),
       sample("blocked", "2026-08-01T01:00:00Z"),
     ]);
-    // spans: 1h -> total 1h -> weights 1, 0
-    expect(segments[0].weight).toBeCloseTo(1, 5);
-    expect(segments[1].weight).toBeCloseTo(0, 5);
+    // spans: 1h -> avg 1h -> extended total 2h -> weights 0.5, 0.5
+    expect(segments[0].weight).toBeCloseTo(0.5, 5);
+    expect(segments[1].weight).toBeCloseTo(0.5, 5);
   });
 
   it("equal weights when all timestamps identical", () => {

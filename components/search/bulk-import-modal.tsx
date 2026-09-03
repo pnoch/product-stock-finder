@@ -161,6 +161,17 @@ export function BulkImportModal({
                 {preview.matched.length} matched · {preview.unmatched.length} not
                 found
               </Text>
+              {preview.confidences
+                .filter((c) => c.score > 0 && c.score <= 0.15)
+                .slice(0, PREVIEW_LIMIT)
+                .map((c) => {
+                  const p = preview.matched.find((m) => m.id === c.productId);
+                  return (
+                    <Text key={`${c.input}-${c.productId}`} style={{ color: colors.warning, fontSize: 12, marginTop: 2 }}>
+                      Fuzzy: “{c.input}” → {p?.modelNumber ?? c.productId} ({Math.round(c.confidence * 100)}% · score {c.score.toFixed(3)})
+                    </Text>
+                  );
+                })}
               {preview.unmatched.slice(0, PREVIEW_LIMIT).map((m) => (
                 <Text
                   key={m}

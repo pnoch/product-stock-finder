@@ -100,6 +100,11 @@ export default function StatsScreen() {
     return computeDigest(digestSnapshot, watchlist, settings, alerts);
   }, [digestSnapshot, watchlist, settings, alerts, digestFrequency]);
 
+  const showDigestPlaceholder = useMemo(
+    () => digestFrequency === "off" && watchlist.length > 0,
+    [digestFrequency, watchlist.length],
+  );
+
   const handleSaveBasketAlert = useCallback(
     async (threshold: number | null) => {
       setBasketThreshold(threshold);
@@ -236,7 +241,7 @@ export default function StatsScreen() {
         />
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-          {digest && (
+          {digest ? (
             <DigestCard
               result={digest}
               periodLabel={
@@ -244,7 +249,31 @@ export default function StatsScreen() {
               }
               displayCurrency={displayCurrency}
             />
-          )}
+          ) : showDigestPlaceholder ? (
+            <View
+              style={{
+                marginHorizontal: 16,
+                marginBottom: 12,
+                padding: 12,
+                borderRadius: 16,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <EmptyStateView
+                compact
+                icon="mail"
+                title="Digest off"
+                subtitle="Enable daily or weekly price digests to see changes here."
+                ctaLabel="Go to Settings"
+                onCtaPress={() => {
+                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/settings");
+                }}
+              />
+            </View>
+          ) : null}
           <MoversCard movers={movers} days={days} onDaysChange={setDays} />
           <InsightsCard result={insights} />
           <DropCalendarCard

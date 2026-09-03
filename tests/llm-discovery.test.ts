@@ -70,10 +70,9 @@ describe("discoverProduct", () => {
     expect(result!.retailers[0].name).toBe("Amazon");
   });
 
-  it("returns null on fetch failure", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false });
-    const result = await discoverProduct("nonexistent");
-    expect(result).toBeNull();
+  it("throws typed DiscoveryError on fetch failure", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+    await expect(discoverProduct("nonexistent")).rejects.toMatchObject({ name: "DiscoveryError", kind: "server" });
   });
 
   it("returns null on invalid JSON response", async () => {
@@ -85,10 +84,9 @@ describe("discoverProduct", () => {
     expect(result).toBeNull();
   });
 
-  it("returns null when getApiBaseUrl returns empty string", async () => {
+  it("throws typed DiscoveryError when getApiBaseUrl returns empty string", async () => {
     const { getApiBaseUrl } = await import("../constants/oauth");
     vi.mocked(getApiBaseUrl).mockReturnValueOnce("");
-    const result = await discoverProduct("test");
-    expect(result).toBeNull();
+    await expect(discoverProduct("test")).rejects.toMatchObject({ name: "DiscoveryError", kind: "server" });
   });
 });
