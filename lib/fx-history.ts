@@ -48,7 +48,16 @@ export function appendFxHistory(
       }
       newRates[code] = [...base, newVal];
     } else {
-      if (!(code in rates)) continue;
+      if (!(code in rates)) {
+        let base: (number | null)[] = [...prev];
+        if (base.length < existing.timestamps.length) {
+          const pad = existing.timestamps.length - base.length;
+          for (let i = 0; i < pad; i++) base.push(null);
+        }
+        newRates[code] =
+          base.length === 0 ? [null] : [...base, null];
+        continue;
+      }
       let base: (number | null)[] = [...prev];
       if (base.length < existing.timestamps.length) {
         const pad = existing.timestamps.length - base.length;
