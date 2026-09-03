@@ -402,7 +402,10 @@ export function ProductDetail() {
   };
 
   const handleWatchRestock = async () => {
-    if (!product || !bestListing) return;
+    if (!product || !bestListing) {
+      showToast("No distributor available");
+      return;
+    }
     await storage.addStockWatch({
       id: `watch-${Date.now()}`,
       productId: product.id,
