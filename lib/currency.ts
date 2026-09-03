@@ -23,7 +23,7 @@ function effectiveRates(): Record<string, number> {
 }
 
 export function convertPrice(amount: number, fromCurrency: string, toCurrency: string): number | null {
-  if (!Number.isFinite(amount) || amount <= 0) return null;
+  if (!Number.isFinite(amount) || amount < 0) return null;
   const rates = effectiveRates();
   if (!(fromCurrency in rates) || !(toCurrency in rates)) return null;
   const fromRate = rates[fromCurrency];

@@ -40,7 +40,7 @@ export function convertPrice(
   fromCurrency: string,
   toCurrency: string,
 ): number | null {
-  if (!Number.isFinite(amount) || amount <= 0) return null;
+  if (!Number.isFinite(amount) || amount < 0) return null;
   if (!(fromCurrency in EXCHANGE_RATES) || !(toCurrency in EXCHANGE_RATES)) return null;
   const fromRate = EXCHANGE_RATES[fromCurrency];
   const toRate = EXCHANGE_RATES[toCurrency];
