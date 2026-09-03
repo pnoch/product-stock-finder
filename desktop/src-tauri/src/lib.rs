@@ -274,6 +274,11 @@ fn validate_import_schema(data: &ExportData) -> Result<(), String> {
 // `tauri-plugin-store` for a single shared store, or keep the frontend in sync
 // by reading through the `read_watchlist` invoke exposed below (which reads the
 // same JSON file the Rust side owns).
+//
+// Fix (93c5a24 revert): use string key "watchlist_products" (not object key
+// `{ key: "watchlist" }`) and snake_case `set_value_for_key` for Tauri store
+// API (was `setValueForKey`). Server DB pool uses `mysql.createPool(url)`
+// string form (not `{ uri: url }` object form) — see `server/db.ts`.
 #[tauri::command]
 fn read_watchlist(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
@@ -284,6 +289,16 @@ fn read_watchlist(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
 fn write_watchlist(app: tauri::AppHandle, value: serde_json::Value) -> Result<(), String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     write_json_file(&data_dir, "watchlist_products", &value)
+}
+
+// Tauri store-compatible filing helper — snake_case required by Tauri API.
+// Previously `setValueForKey` (camelCase) which Tauri does not expose; corrected
+// to `set_value_for_key`. Uses string key directly (not object wrapper).
+#[tauri::command]
+fn set_value_for_key(app: tauri::AppHandle, key: String, value: serde_json::Value) -> Result<(), String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    // key is a plain string (e.g. "watchlist_products"), not an object like `{ key: "..." }`
+    write_json_file(&data_dir, &key, &value)
 }
 
 #[tauri::command]
@@ -1371,6 +1386,7 @@ pub fn run() {
             get_app_data_dir,
             read_watchlist,
             write_watchlist,
+            set_value_for_key,
             export_watchlist,
             import_watchlist,
             start_price_poller,

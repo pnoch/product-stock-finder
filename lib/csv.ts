@@ -290,7 +290,6 @@ export function parseWatchlistCsv(csv: string): Product[] {
     const key = model || name;
     if (!key || seen.has(key)) continue;
     seen.add(key);
-    void VALID_STOCK;
     out.push({
       id: key,
       name: name || key,
