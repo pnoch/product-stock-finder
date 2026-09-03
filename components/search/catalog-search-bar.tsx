@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Platform, View, TouchableOpacity, TextInput, Keyboard } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Platform, View, TouchableOpacity, TextInput, Keyboard, Animated } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
@@ -16,9 +16,23 @@ export function CatalogSearchBar({
 }: CatalogSearchBarProps) {
   const colors = useColors();
   const [focused, setFocused] = useState(false);
+  const borderAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(borderAnim, {
+      toValue: focused ? 1 : 0,
+      duration: 150,
+      useNativeDriver: false,
+    }).start();
+  }, [focused, borderAnim]);
+
+  const borderColor = borderAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.border, colors.primary],
+  });
 
   return (
-    <View
+    <Animated.View
       style={{
         marginHorizontal: 16,
         marginBottom: 16,
@@ -27,7 +41,7 @@ export function CatalogSearchBar({
         backgroundColor: colors.surface,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: focused ? colors.primary : colors.border,
+        borderColor,
         paddingHorizontal: 12,
         paddingVertical: 10,
         gap: 8,
@@ -58,6 +72,6 @@ export function CatalogSearchBar({
           />
         </TouchableOpacity>
       )}
-    </View>
+    </Animated.View>
   );
 }

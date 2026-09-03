@@ -27,9 +27,17 @@ export function parseModelInput(text: string): string[] {
   return result;
 }
 
+export interface MatchConfidence {
+  input: string;
+  productId: string;
+  score: number;
+  confidence: number;
+}
+
 export interface MatchResult {
   matched: CatalogProduct[];
   unmatched: string[];
+  confidences: MatchConfidence[];
 }
 
 export function matchModels(
@@ -45,6 +53,7 @@ export function matchModels(
   const matched: CatalogProduct[] = [];
   const matchedKeys = new Set<string>();
   const unmatched: string[] = [];
+  const confidences: MatchConfidence[] = [];
   const byExact = new Map(
     catalog.map((p) => [p.modelNumber.toLowerCase(), p] as const),
   );
@@ -56,19 +65,25 @@ export function matchModels(
         matchedKeys.add(key);
         matched.push(exact);
       }
+      confidences.push({ input: model, productId: exact.id, score: 0, confidence: 1 });
       continue;
     }
     const results = fuse.search(model);
     const hit = results[0]?.item;
-    if (hit && results[0].score !== undefined && results[0].score <= 0.3) {
+    const score = results[0]?.score;
+    if (hit && score !== undefined && score <= 0.15) {
       const key = hit.id;
       if (!matchedKeys.has(key)) {
         matchedKeys.add(key);
         matched.push(hit);
       }
+      confidences.push({ input: model, productId: hit.id, score, confidence: Math.max(0, 1 - score) });
     } else {
       unmatched.push(model);
+      if (hit && score !== undefined) {
+        confidences.push({ input: model, productId: hit.id, score, confidence: Math.max(0, 1 - score) });
+      }
     }
   }
-  return { matched, unmatched };
+  return { matched, unmatched, confidences };
 }

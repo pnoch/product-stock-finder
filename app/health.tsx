@@ -41,16 +41,29 @@ function HealthSparkline({ data, color }: { data: number[]; color: string }) {
     return `${x},${y}`;
   });
   return (
-    <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      <Polyline
-        points={coords.join(" ")}
-        fill="none"
-        stroke={color}
-        strokeWidth={1.5}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </Svg>
+    <View
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      <Svg
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Polyline
+          points={coords.join(" ")}
+          fill="none"
+          stroke={color}
+          strokeWidth={1.5}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      </Svg>
+    </View>
   );
 }
 

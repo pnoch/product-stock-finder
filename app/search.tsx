@@ -75,10 +75,17 @@ function PillFilterRow({
   colors: ReturnType<typeof useColors>;
 }) {
   return (
-    <View style={{ flexDirection: "row", paddingHorizontal: 16, marginBottom: 8, flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+    <View
+      style={{ flexDirection: "row", paddingHorizontal: 16, marginBottom: 8, flexWrap: "wrap", gap: 8, alignItems: "center" }}
+      accessibilityRole="radiogroup"
+      accessibilityLabel={`${label} filter`}
+    >
       <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginRight: 4 }}>{label}</Text>
       <TouchableOpacity activeOpacity={0.85}
-        onPress={() => onSelect(null)}
+        onPress={() => {
+          if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onSelect(null);
+        }}
         style={{
           paddingHorizontal: 12,
           paddingVertical: 6,
@@ -97,7 +104,10 @@ function PillFilterRow({
         return (
           <TouchableOpacity activeOpacity={0.85}
             key={opt}
-            onPress={() => onSelect(active ? null : opt)}
+            onPress={() => {
+              if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onSelect(active ? null : opt);
+            }}
             style={{
               paddingHorizontal: 12,
               paddingVertical: 6,

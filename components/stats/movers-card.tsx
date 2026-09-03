@@ -3,6 +3,7 @@ import { Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@/lib/currency";
+import { EmptyStateView } from "@/components/ui/empty-state-view";
 import type {
   MoversResult,
   MoversWindow,
@@ -131,9 +132,12 @@ export const MoversCard = memo(function MoversCard({
         </View>
       </View>
       {empty ? (
-        <Text style={{ color: colors.muted, fontSize: 13 }}>
-          Not enough price history yet.
-        </Text>
+        <EmptyStateView
+          compact
+          icon="chart.line.downtrend.xyaxis"
+          title="No movers yet"
+          subtitle="Not enough price history yet."
+        />
       ) : (
         <>
           {movers.drops.length > 0 && (

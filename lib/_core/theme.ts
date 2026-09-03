@@ -94,7 +94,7 @@ export const Fonts = Platform.select({
     mono: "monospace",
   },
   web: {
-    sans: "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    sans: "Inter, system-ui",
     serif: "Georgia, 'Times New Roman', serif",
     rounded:
       "Inter, 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",

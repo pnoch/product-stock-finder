@@ -12,6 +12,7 @@ export function EmptyStateView({
   onCtaPress,
   secondaryLabel,
   onSecondaryPress,
+  compact,
 }: {
   icon: string;
   iconColor?: string;
@@ -21,17 +22,25 @@ export function EmptyStateView({
   onCtaPress?: () => void;
   secondaryLabel?: string;
   onSecondaryPress?: () => void;
+  compact?: boolean;
 }) {
   const colors = useColors();
   const primaryIconColor = iconColor ?? colors.primary;
 
   return (
-    <View style={{ alignItems: "center", paddingHorizontal: 32, marginTop: 48 }}>
+    <View
+      style={{
+        alignItems: "center",
+        paddingHorizontal: compact ? 16 : 32,
+        marginTop: compact ? 8 : 48,
+        paddingVertical: compact ? 8 : 0,
+      }}
+    >
       <View
         style={{
-          width: 72,
-          height: 72,
-          borderRadius: 36,
+          width: compact ? 48 : 72,
+          height: compact ? 48 : 72,
+          borderRadius: compact ? 24 : 36,
           backgroundColor: primaryIconColor + "14",
           alignItems: "center",
           justifyContent: "center",
@@ -39,26 +48,55 @@ export function EmptyStateView({
           borderColor: primaryIconColor + "22",
         }}
       >
-        <IconSymbol name={icon as never} size={30} color={primaryIconColor} />
+        <IconSymbol
+          name={icon as never}
+          size={compact ? 22 : 30}
+          color={primaryIconColor}
+        />
       </View>
-      <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16, marginTop: 16, textAlign: "center" }}>
+      <Text
+        style={{
+          color: colors.foreground,
+          fontWeight: "700",
+          fontSize: compact ? 14 : 16,
+          marginTop: compact ? 10 : 16,
+          textAlign: "center",
+        }}
+      >
         {title}
       </Text>
-      <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
+      <Text
+        style={{
+          color: colors.muted,
+          fontSize: compact ? 13 : 14,
+          textAlign: "center",
+          marginTop: compact ? 4 : 8,
+          lineHeight: compact ? 18 : 20,
+        }}
+      >
         {subtitle}
       </Text>
       {ctaLabel && onCtaPress && (
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={() => {
-            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (Platform.OS !== "web")
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onCtaPress();
           }}
           accessibilityLabel={ctaLabel}
           accessibilityRole="button"
-          style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 24, paddingVertical: 12, marginTop: 20 }}
+          style={{
+            backgroundColor: colors.primary,
+            borderRadius: 20,
+            paddingHorizontal: compact ? 18 : 24,
+            paddingVertical: compact ? 8 : 12,
+            marginTop: compact ? 12 : 20,
+          }}
         >
-          <Text style={{ color: "#fff", fontWeight: "600" }}>{ctaLabel}</Text>
+          <Text style={{ color: "#fff", fontWeight: "600", fontSize: compact ? 13 : 14 }}>
+            {ctaLabel}
+          </Text>
         </TouchableOpacity>
       )}
       {secondaryLabel && onSecondaryPress && (

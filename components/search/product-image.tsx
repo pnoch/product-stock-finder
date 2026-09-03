@@ -18,6 +18,39 @@ function setImageCache(key: string, value: string | null) {
 
 const PLACEHOLDER_SIZE = 48;
 
+// ─── Concurrency-limited loader (max 3 in-flight) with idle deferral ───
+const MAX_CONCURRENT_IMAGE_FETCHES = 3;
+let activeImageFetches = 0;
+type QueuedTask = () => void;
+const imageQueue: QueuedTask[] = [];
+
+function scheduleIdle(cb: () => void) {
+  const g = globalThis as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number };
+  if (typeof g.requestIdleCallback === "function") {
+    g.requestIdleCallback(cb, { timeout: 800 });
+  } else {
+    setTimeout(cb, 32);
+  }
+}
+
+function drainImageQueue() {
+  while (activeImageFetches < MAX_CONCURRENT_IMAGE_FETCHES && imageQueue.length > 0) {
+    const task = imageQueue.shift()!;
+    activeImageFetches += 1;
+    scheduleIdle(task);
+  }
+}
+
+function enqueueImageFetch(task: QueuedTask) {
+  imageQueue.push(task);
+  drainImageQueue();
+}
+
+function dequeueImageFetchOnComplete() {
+  activeImageFetches = Math.max(0, activeImageFetches - 1);
+  drainImageQueue();
+}
+
 function ImagePlaceholder({ colors }: { colors: ReturnType<typeof useColors> }) {
   return (
     <View
@@ -50,6 +83,8 @@ export function ProductImage({ productId, size = 48 }: { productId: string; size
 
   useEffect(() => {
     let active = true;
+    let queued = false;
+    let taskRef: QueuedTask | null = null;
     setImageError(false);
     setLoaded(false);
     opacity.setValue(0);
@@ -59,13 +94,40 @@ export function ProductImage({ productId, size = 48 }: { productId: string; size
         active = false;
       };
     }
-    fetchProductImage(productId).then((res) => {
-      const url = res?.imageUrl ?? null;
-      setImageCache(productId, url);
-      if (active) setImageUrl(url);
-    });
+    const run = () => {
+      queued = false;
+      if (!active) {
+        dequeueImageFetchOnComplete();
+        return;
+      }
+      fetchProductImage(productId)
+        .then((res) => {
+          const url = res?.imageUrl ?? null;
+          setImageCache(productId, url);
+          if (active) setImageUrl(url);
+        })
+        .catch(() => {
+          if (active) setImageCache(productId, null);
+        })
+        .finally(() => {
+          dequeueImageFetchOnComplete();
+        });
+    };
+    taskRef = run;
+    if (activeImageFetches < MAX_CONCURRENT_IMAGE_FETCHES) {
+      activeImageFetches += 1;
+      scheduleIdle(run);
+      queued = true;
+    } else {
+      enqueueImageFetch(run);
+      queued = true;
+    }
     return () => {
       active = false;
+      if (queued && taskRef) {
+        const idx = imageQueue.indexOf(taskRef);
+        if (idx !== -1) imageQueue.splice(idx, 1);
+      }
     };
   }, [productId, opacity]);
 

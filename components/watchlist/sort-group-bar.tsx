@@ -1,4 +1,4 @@
-import { Text, View, TouchableOpacity, Pressable, Platform } from "react-native";
+import { Text, View, TouchableOpacity, Pressable, Modal, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -36,7 +36,7 @@ export function SortGroupBar({
   }, []);
 
   return (
-    <View style={{ position: "relative", zIndex: 10, paddingHorizontal: 16, paddingBottom: 10 }}>
+    <View style={{ position: "relative", zIndex: 20, elevation: 4, paddingHorizontal: 16, paddingBottom: 10 }}>
       <View
         style={{
           flexDirection: "row",
@@ -108,18 +108,18 @@ export function SortGroupBar({
 
       {sortMenuOpen && (
         <>
-          <Pressable
-            onPress={onSortMenuToggle}
-            style={{
-              position: "absolute",
-              top: -1000,
-              left: -1000,
-              right: -1000,
-              bottom: -1000,
-              zIndex: 5,
-            }}
-            accessibilityLabel="Dismiss sort menu"
-          />
+          <Modal
+            transparent
+            visible={sortMenuOpen}
+            animationType="fade"
+            onRequestClose={onSortMenuToggle}
+          >
+            <Pressable
+              onPress={onSortMenuToggle}
+              style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.32)" }}
+              accessibilityLabel="Dismiss sort menu"
+            />
+          </Modal>
           <View
             style={{
               position: "absolute",
@@ -131,7 +131,7 @@ export function SortGroupBar({
               borderWidth: 1,
               borderColor: colors.border,
               overflow: "hidden",
-              zIndex: 10,
+              zIndex: 30,
               elevation: 8,
               shadowColor: "#000",
               shadowOpacity: 0.15,
