@@ -130,9 +130,16 @@ export function createAlertsStorage(ctx: StorageContext) {
   async function deactivateAlert(
     alertId: string,
     triggeredPrice: number,
-  ): Promise<void> {
+  ): Promise<boolean> {
+    let transitioned = false;
     await enqueue(KEYS.ALERTS, async () => {
       const alerts = await getAlerts();
+      const target = alerts.find((a) => a.id === alertId);
+      // Compare-and-set: only the first runner to observe an untriggered
+      // alert transitions it. Concurrent runners (foreground check vs
+      // background task, separate isolates) see triggeredAt set and skip
+      // their notification instead of double-firing.
+      if (!target || target.triggeredAt) return;
       const updated = alerts.map((a) =>
         a.id === alertId
           ? {
@@ -144,8 +151,10 @@ export function createAlertsStorage(ctx: StorageContext) {
           : a,
       );
       await persistAlerts(updated);
+      transitioned = true;
       notify("alerts", alertId);
     });
+    return transitioned;
   }
 
   return {

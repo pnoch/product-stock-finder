@@ -39,6 +39,7 @@ vi.mock("../lib/storage", () => ({
           }
         : a,
     );
+    return true;
   }),
   updateProductListings: vi.fn(async () => {}),
   getPriceDigestSnapshot: vi.fn(async () => null),
@@ -95,6 +96,7 @@ import {
   registerHealthProbeTask,
   syncBackgroundTasks,
 } from "../lib/background-price-check";
+import { deactivateAlert } from "../lib/storage";
 import {
   createHealthService,
   HealthSample,
@@ -224,6 +226,21 @@ describe("checkPriceDropsNow", () => {
         listings: [makeListing(50, "USD", "in_stock")],
       } as unknown as Product,
     ];
+    await checkPriceDropsNow();
+    expect(state.scheduledNotifications).toHaveLength(0);
+  });
+
+  it("does not notify when it loses the deactivate race", async () => {
+    state.alertsStore.push(makeAlert({ targetPrice: 100 }));
+    state.watchlistStore = [
+      {
+        id: "p1",
+        listings: [makeListing(90, "USD", "in_stock")],
+      } as unknown as Product,
+    ];
+    // Another runner (background task vs foreground check) won the race and
+    // transitioned the alert first.
+    vi.mocked(deactivateAlert).mockResolvedValueOnce(false);
     await checkPriceDropsNow();
     expect(state.scheduledNotifications).toHaveLength(0);
   });

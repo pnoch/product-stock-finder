@@ -38,6 +38,7 @@ import {
   removeAlert,
   toggleAlert,
   rearmAlert,
+  deactivateAlert,
   getSettings,
   saveSettings,
   getBackOrderReminders,
@@ -239,6 +240,33 @@ describe("alerts", () => {
     expect(alert.isActive).toBe(true);
     expect(alert.triggeredAt).toBeUndefined();
     expect(alert.triggeredPrice).toBeUndefined();
+  });
+
+  it("deactivateAlert transitions exactly once under concurrent calls", async () => {
+    const { createStorage } = await import("../lib/storage");
+    const store = new Map<string, string>();
+    const storage = createStorage({
+      getItem: async (key: string) => store.get(key) ?? null,
+      setItem: async (key: string, value: string) => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        store.set(key, value);
+      },
+      removeItem: async (key: string) => {
+        store.delete(key);
+      },
+      multiRemove: async (keys: string[]) => {
+        keys.forEach((key) => store.delete(key));
+      },
+    });
+    await storage.saveAlerts([makeAlert("a1")]);
+    const results = await Promise.all([
+      storage.deactivateAlert("a1", 90),
+      storage.deactivateAlert("a1", 90),
+    ]);
+    expect(results.filter(Boolean)).toHaveLength(1);
+    const alert = (await storage.getAlerts())[0]!;
+    expect(alert.isActive).toBe(false);
+    expect(alert.triggeredAt).toBeDefined();
   });
 
   it("serializes concurrent saveAlerts in call order", async () => {

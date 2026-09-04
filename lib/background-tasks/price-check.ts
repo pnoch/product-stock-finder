@@ -4,6 +4,7 @@ import {
   getSettings,
   getWatchlist,
   deactivateAlert,
+  rearmAlert,
   updateProductListings,
   getPriceDigestSnapshot,
   savePriceDigestSnapshot,
@@ -158,18 +159,27 @@ export async function runPriceCheckCore(opts?: {
       // Price crossed target — fire notification and deactivate alert
       const granted = await requestNotificationPermissions();
       if (!granted) continue;
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: isRise ? "📈 Price Increase Alert!" : "💸 Price Drop Alert!",
-          body: `${product.name} is now ${formatPrice(bestPrice, alert.currency)} — ${
-            isRise ? "above" : "below"
-          } your target of ${formatPrice(alert.targetPrice, alert.currency)}!`,
-          sound: true,
-        },
-        trigger: null,
-      });
-      // Deactivate the alert so it doesn't fire repeatedly
-      await deactivateAlert(alert.id, bestPrice);
+      // Claim the transition first: a concurrent runner (foreground check
+      // vs background task) that already triggered this alert makes
+      // deactivateAlert return false, in which case we must not notify.
+      if (!(await deactivateAlert(alert.id, bestPrice))) continue;
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: isRise ? "📈 Price Increase Alert!" : "💸 Price Drop Alert!",
+            body: `${product.name} is now ${formatPrice(bestPrice, alert.currency)} — ${
+              isRise ? "above" : "below"
+            } your target of ${formatPrice(alert.targetPrice, alert.currency)}!`,
+            sound: true,
+          },
+          trigger: null,
+        });
+      } catch {
+        // Scheduling failed after a successful claim: re-arm so a later run
+        // retries instead of dropping the alert silently. Safe from
+        // double-fire — only the claiming runner can re-arm this path.
+        await rearmAlert(alert.id);
+      }
     }
   }
 }
