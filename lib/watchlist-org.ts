@@ -263,28 +263,12 @@ export function groupWatchlist(
       products: list.filter((p) => productStatus(p) === status),
     })).filter((s) => s.products.length > 0);
   }
-  const regionSet = new Set<string>();
-  for (const p of list) {
-    const listingRegions = (p.listings ?? [])
-      .map((l) => getDistributorById(l.distributorId)?.region)
-      .filter((r): r is string => Boolean(r));
-    if (listingRegions.length === 0) regionSet.add("Unknown");
-    else listingRegions.forEach((r) => regionSet.add(r));
-  }
-  const regions = Array.from(regionSet).sort();
+  const regions = Array.from(new Set(list.map(productRegion))).sort();
   return regions
     .map((region) => ({
       key: `region-${region}`,
       title: region,
-      products: list.filter((p) => {
-        if (region === "Unknown") {
-          const hasAnyRegion = (p.listings ?? []).some(
-            (l) => !!getDistributorById(l.distributorId)?.region,
-          );
-          return !hasAnyRegion;
-        }
-        return productHasRegion(p, region);
-      }),
+      products: list.filter((p) => productRegion(p) === region),
     }))
     .filter((s) => s.products.length > 0);
 }
