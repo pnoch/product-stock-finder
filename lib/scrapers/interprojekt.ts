@@ -37,7 +37,7 @@ export const interprojektParser: DistributorParser = {
   baseUrl: "https://interprojekt.pl",
   buildSearchUrl: (model) =>
     `https://interprojekt.pl/en/catalogsearch/result/?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseHtml(html, "https://interprojekt.pl", model),
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://interprojekt.pl", model),
   rateLimitMs: 3000,
 };
 

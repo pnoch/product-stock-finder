@@ -39,8 +39,8 @@ export const duxtelParser: DistributorParser = {
   baseUrl: "https://store.duxtel.com",
   buildSearchUrl: (model) =>
     `https://store.duxtel.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) =>
-    parseHtml(html, "https://store.duxtel.com", model),
+  parsePrice: (html, model, url) =>
+    parseHtml(html, url ?? "https://store.duxtel.com", model),
   rateLimitMs: 3000,
 };
 

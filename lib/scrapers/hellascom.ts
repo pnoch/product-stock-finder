@@ -39,7 +39,7 @@ export const hellascomParser: DistributorParser = {
   baseUrl: "https://hellascom.gr",
   buildSearchUrl: (model) =>
     `https://hellascom.gr/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseHtml(html, "https://hellascom.gr", model),
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://hellascom.gr", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {

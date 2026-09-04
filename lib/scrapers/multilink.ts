@@ -41,7 +41,7 @@ export const multilinkParser: DistributorParser = {
   baseUrl: "https://multilink.us",
   buildSearchUrl: (model) =>
     `https://multilink.us/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseHtml(html, "https://multilink.us", model),
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://multilink.us", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {

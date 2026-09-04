@@ -5,6 +5,7 @@ import { getSessionCookieOptions } from "./cookies";
 import { randomUUID, createHash, createHmac } from "crypto";
 import bcrypt from "bcryptjs";
 import * as db from "../db";
+import { isDeviceRevoked, unrevokeDevice } from "../devices";
 
 // ─── Signed OAuth state + single-use tickets ────────────────────────────────
 // The client must never accept a raw session token from a URL (login CSRF /
@@ -133,13 +134,11 @@ function redeemOAuthTicket(
 }
 
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
-function sendPasswordResetEmail(email: string, token: string) {
-  const baseUrl = process.env.EXPO_PUBLIC_WEB_URL ?? process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
-  const resetLink = baseUrl ? `${baseUrl.replace(/\/$/, "")}/reset?token=${token}` : `token=${token}`;
+function sendPasswordResetEmail(email: string) {
   if (process.env.SMTP_HOST && process.env.SMTP_USER) {
-    console.log(`[PasswordReset] Sending reset email to ${email}: ${resetLink}`);
+    console.log(`[PasswordReset] Sending reset email to ${email}`);
   } else {
-    console.log(`[PasswordReset] No SMTP configured — reset link for ${email}: ${resetLink} (token=${token})`);
+    console.log(`[PasswordReset] No SMTP configured — reset link generated for ${email}`);
   }
 }
 const authBuckets = new Map<string, number[]>();
@@ -183,6 +182,26 @@ function hashToken(token: string): string {
   return createHash("sha256").update(token, "utf8").digest("hex");
 }
 
+function deviceIdFromReq(req: Request): string | null {
+  const raw = req.headers["x-device-id"];
+  return typeof raw === "string" && raw ? raw : null;
+}
+
+// Revoked devices must not reach account mutations even though they present
+// a technically valid session (tRPC checks this in createContext; REST must
+// check it here).
+async function assertDeviceAllowed(
+  res: Response,
+  userId: number,
+  deviceId: string | null,
+): Promise<boolean> {
+  if (deviceId && (await isDeviceRevoked(userId, deviceId))) {
+    res.status(403).json({ error: "Device revoked" });
+    return false;
+  }
+  return true;
+}
+
 function buildUserResponse(user: { id?: number | null; openId?: string | null; name?: string | null; email?: string | null; loginMethod?: string | null; lastSignedIn?: Date | null; emailVerified?: number | boolean | null }) {
   return {
     id: user?.id ?? null,
@@ -214,6 +233,11 @@ export function registerOAuthRoutes(app: Express) {
       }
 
       const result = await sdk.register({ email, password, name });
+      // A fresh login from a previously signed-out device re-authorizes it.
+      const registerDeviceId = deviceIdFromReq(req);
+      if (registerDeviceId) {
+        await unrevokeDevice(result.user.id, registerDeviceId);
+      }
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, result.sessionToken, {
         ...cookieOptions,
@@ -240,6 +264,11 @@ export function registerOAuthRoutes(app: Express) {
       }
 
       const result = await sdk.login({ email, password });
+      // A fresh login from a previously signed-out device re-authorizes it.
+      const loginDeviceId = deviceIdFromReq(req);
+      if (loginDeviceId) {
+        await unrevokeDevice(result.user.id, loginDeviceId);
+      }
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, result.sessionToken, {
         ...cookieOptions,
@@ -421,6 +450,11 @@ export function registerOAuthRoutes(app: Express) {
 
   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
     try {
+      const ip = getClientIp(req);
+      if (!checkAuthRateLimit(ip)) {
+        errorRedirect(res, "rate_limited");
+        return;
+      }
       const providerError =
         typeof req.query.error === "string" ? req.query.error : undefined;
       const rawState = typeof req.query.state === "string" ? req.query.state : "";
@@ -484,6 +518,11 @@ export function registerOAuthRoutes(app: Express) {
 
   app.post("/api/auth/oauth/consume", async (req: Request, res: Response) => {
     try {
+      const ip = getClientIp(req);
+      if (!checkAuthRateLimit(ip)) {
+        res.status(429).json({ error: "Too many requests. Try again shortly." });
+        return;
+      }
       const { ticket, deviceId } = req.body ?? {};
       if (typeof ticket !== "string" || !ticket) {
         res.status(400).json({ error: "ticket is required" });
@@ -513,7 +552,11 @@ export function registerOAuthRoutes(app: Express) {
     }
   });
 
-  app.get("/api/auth/oauth/providers", (_req: Request, res: Response) => {
+  app.get("/api/auth/oauth/providers", (req: Request, res: Response) => {
+    if (!checkAuthRateLimit(getClientIp(req))) {
+      res.status(429).json({ error: "Too many requests. Try again shortly." });
+      return;
+    }
     res.json({
       google: googleOAuthConfig().configured,
       apple: appleOAuthConfig().configured,
@@ -521,15 +564,25 @@ export function registerOAuthRoutes(app: Express) {
   });
 
   app.get("/api/auth/oauth/start", (req: Request, res: Response) => {
+    const ip = getClientIp(req);
+    if (!checkAuthRateLimit(ip)) {
+      res.status(429).json({ error: "Too many requests. Try again shortly." });
+      return;
+    }
     const provider = String(req.query.provider ?? "").toLowerCase();
     if (!["google", "apple"].includes(provider)) {
       res.status(400).json({ error: "invalid provider; expected google or apple" });
       return;
     }
-    const redirectUri =
+    const { webBase } = oauthBases();
+    // Sanitize before signing: the state envelope must never carry an
+    // attacker-controlled redirect target, even though the callback
+    // re-validates on use (defense in depth).
+    const rawRedirectUri =
       typeof req.query.redirectUri === "string" && req.query.redirectUri
         ? String(req.query.redirectUri)
-        : undefined;
+        : "";
+    const redirectUri = resolveSafeRedirectUri(rawRedirectUri, webBase);
     const deviceId =
       typeof req.query.deviceId === "string" && req.query.deviceId
         ? String(req.query.deviceId)
@@ -537,11 +590,11 @@ export function registerOAuthRoutes(app: Express) {
           ? String(req.headers["x-device-id"])
           : undefined;
     const state = signOAuthState({
-      redirectUri: redirectUri ?? "",
+      redirectUri,
       deviceId,
       provider,
     });
-    const { apiBase, webBase, oauthRedirect } = oauthBases();
+    const { apiBase, oauthRedirect } = oauthBases();
 
     const googleClientId = process.env.GOOGLE_CLIENT_ID ?? process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? "";
     const appleClientId = process.env.APPLE_CLIENT_ID ?? process.env.EXPO_PUBLIC_APPLE_CLIENT_ID ?? "";
@@ -596,7 +649,7 @@ export function registerOAuthRoutes(app: Express) {
         const token = randomUUID();
         const expiresAt = Date.now() + PASSWORD_RESET_TTL_MS;
         await db.createPasswordResetToken(user.id, hashToken(token), expiresAt);
-        sendPasswordResetEmail(normalized, token);
+        sendPasswordResetEmail(normalized);
       }
       res.json({ success: true });
     } catch (e: unknown) {
@@ -622,8 +675,8 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       const tokenHash = hashToken(token.trim());
-      const row = await db.getPasswordResetToken(tokenHash);
-      if (!row || row.usedAt || (row.expiresAt && row.expiresAt < Date.now())) {
+      const row = await db.consumePasswordResetToken(tokenHash);
+      if (!row) {
         res.status(400).json({ error: "Invalid or expired token" });
         return;
       }
@@ -631,7 +684,6 @@ export function registerOAuthRoutes(app: Express) {
         ?? (bcrypt as unknown as { default?: { hash: (p: string, r: number) => Promise<string> } }).default?.hash;
       const hashed = hashFn ? await hashFn(newPassword, 10) : await (bcrypt as unknown as { hash: (p: string, r: number) => Promise<string> }).hash(newPassword, 10);
       await db.updateUserPasswordHashById(row.userId, hashed);
-      await db.markPasswordResetTokenUsed(tokenHash);
       res.json({ success: true });
     } catch (e: unknown) {
       console.error("[Auth] reset failed", e);
@@ -642,6 +694,7 @@ export function registerOAuthRoutes(app: Express) {
   app.post("/api/auth/change-password", async (req: Request, res: Response) => {
     try {
       const user = await sdk.authenticateRequest(req);
+      if (!(await assertDeviceAllowed(res, user.id, deviceIdFromReq(req)))) return;
       const { currentPassword, newPassword } = req.body ?? {};
       if (!currentPassword || typeof currentPassword !== "string" || !currentPassword.trim()) {
         res.status(400).json({ error: "currentPassword is required" });
@@ -682,6 +735,7 @@ export function registerOAuthRoutes(app: Express) {
   app.post("/api/auth/delete-account", async (req: Request, res: Response) => {
     try {
       const user = await sdk.authenticateRequest(req);
+      if (!(await assertDeviceAllowed(res, user.id, deviceIdFromReq(req)))) return;
       const { confirm } = req.body ?? {};
       if (confirm !== "DELETE") {
         res.status(400).json({ error: 'confirm must be "DELETE"' });
@@ -710,6 +764,7 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       const user = await sdk.authenticateRequest(req);
+      if (!(await assertDeviceAllowed(res, user.id, deviceIdFromReq(req)))) return;
       if ((user as any).emailVerified) {
         res.json({ success: true, alreadyVerified: true });
         return;
@@ -718,13 +773,9 @@ export function registerOAuthRoutes(app: Express) {
       const token = randomUUID();
       const expiresAt = Date.now() + PASSWORD_RESET_TTL_MS;
       await db.createEmailVerificationToken(user.id, hashToken(token), expiresAt);
-      const baseUrl = process.env.EXPO_PUBLIC_WEB_URL ?? process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
-      const verifyLink = baseUrl ? `${baseUrl.replace(/\/$/, "")}/verify?token=${token}&email=${encodeURIComponent(email)}` : `token=${token}`;
-      if (process.env.SMTP_HOST && process.env.SMTP_USER) {
-        console.log(`[EmailVerify] Sending verification email to ${email}: ${verifyLink}`);
-      } else {
-        console.log(`[EmailVerify] No SMTP configured — verification link for ${email}: ${verifyLink} (token=${token})`);
-      }
+      // NOTE: no SMTP sender is wired up yet — the token is stored (hashed)
+      // so verification works end to end once delivery exists. Never log it.
+      console.log(`[EmailVerify] Verification token issued for ${email}`);
       res.json({ success: true });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -750,13 +801,12 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       const tokenHash = hashToken(token.trim());
-      const row = await db.getEmailVerificationToken(tokenHash);
-      if (!row || row.usedAt || (row.expiresAt && row.expiresAt < Date.now())) {
+      const row = await db.consumeEmailVerificationToken(tokenHash);
+      if (!row) {
         res.status(400).json({ error: "Invalid or expired token" });
         return;
       }
       await db.setUserEmailVerified(row.userId);
-      await db.markEmailVerificationTokenUsed(tokenHash);
       res.json({ success: true });
     } catch (e: unknown) {
       console.error("[Auth] verify failed", e);

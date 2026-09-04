@@ -39,7 +39,7 @@ export const linktechsParser: DistributorParser = {
   baseUrl: "https://linktechs.com",
   buildSearchUrl: (model) =>
     `https://linktechs.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseHtml(html, "https://linktechs.com", model),
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://linktechs.com", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {

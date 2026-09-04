@@ -1,6 +1,7 @@
 import type { AppSettings, TagDefinition } from "../types";
 import { generateTagId } from "../tags";
 import type { StorageContext } from "./context";
+import { quarantinePayload } from "./context";
 import type { createWatchlistStorage } from "./watchlist";
 
 type WatchlistReader = Pick<
@@ -32,12 +33,23 @@ export function createSettingsStorage(
   // ─── Settings ───────────────────────────────────────────────────────────────
 
   async function getSettings(): Promise<AppSettings> {
+    let raw: string | null;
     try {
-      const raw = await adapter.getItem(KEYS.SETTINGS);
-      return raw
-        ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
-        : DEFAULT_SETTINGS;
+      raw = await adapter.getItem(KEYS.SETTINGS);
+    } catch (error) {
+      console.warn("[storage] read failed for app_settings", error);
+      throw error;
+    }
+    if (!raw) return DEFAULT_SETTINGS;
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("settings payload must be an object");
+      }
+      return { ...DEFAULT_SETTINGS, ...(parsed as Partial<AppSettings>) };
     } catch {
+      await quarantinePayload(adapter, KEYS.SETTINGS, raw);
+      console.warn("[storage] quarantined corrupt payload for app_settings");
       return DEFAULT_SETTINGS;
     }
   }
@@ -156,14 +168,15 @@ export function createSettingsStorage(
       return rest;
     });
     if (!deleted) return;
+    const touched: string[] = [];
     await updateWatchlist((list) =>
-      list.map((p) =>
-        p.tags?.includes(id)
-          ? { ...p, tags: (p.tags ?? []).filter((t) => t !== id) }
-          : p,
-      ),
+      list.map((p) => {
+        if (!p.tags?.includes(id)) return p;
+        touched.push(p.id);
+        return { ...p, tags: (p.tags ?? []).filter((t) => t !== id) };
+      }),
     );
-    for (const p of await getWatchlist()) notify("watchlist", p.id);
+    for (const productId of touched) notify("watchlist", productId);
   }
 
   return {

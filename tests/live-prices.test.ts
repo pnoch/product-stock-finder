@@ -172,6 +172,28 @@ describe("applyServerPrice", () => {
     expect(result.price).toBe(100);
     expect(result.stockStatus).toBe("out_of_stock");
   });
+
+  it("treats a stale snapshot like an absent one (history only, no price change)", () => {
+    const l = listing({
+      priceHistory: [point("2026-08-10T09:00:00.000Z", 100)],
+    });
+    const result = applyServerPrice(
+      l,
+      serverResult({
+        snapshot: {
+          price: 90,
+          currency: "USD",
+          stockStatus: "in_stock",
+          url: "https://example.com",
+          fetchedAt: Date.now() - 3 * 60 * 60 * 1000,
+        },
+        history: [point("2026-08-11T09:00:00.000Z", 95)],
+      }),
+    );
+    expect(result.price).toBe(100);
+    expect(result.stockStatus).toBe("out_of_stock");
+    expect(result.priceHistory).toHaveLength(2);
+  });
 });
 
 describe("composeLiveListings", () => {

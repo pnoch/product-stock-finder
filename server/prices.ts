@@ -14,8 +14,9 @@ import { buildCatalogPairs, pickPairsToWarm } from "./catalog-warmer";
 import { getAllFetchedAt } from "./price-cache";
 import { getProductImage, listProductsMissingImage } from "./product-images";
 import { evaluateNotifications } from "./notifications";
+import { PRICE_SNAPSHOT_TTL_MS } from "../shared/const";
 
-export const PRICE_TTL_MS = 60 * 60 * 1000; // 1 hour
+export const PRICE_TTL_MS = PRICE_SNAPSHOT_TTL_MS; // 1 hour
 const WARMER_INTERVAL_MS = 5 * 60 * 1000; // every 5 min
 const WARMER_LEAD_MS = 10 * 60 * 1000; // refresh 10 min before expiry
 const CATALOG_WARM_PER_TICK = 3;

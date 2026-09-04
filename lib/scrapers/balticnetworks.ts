@@ -39,7 +39,7 @@ export const balticnetworksParser: DistributorParser = {
   baseUrl: "https://balticnetworks.com",
   buildSearchUrl: (model) =>
     `https://balticnetworks.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseHtml(html, "https://balticnetworks.com", model),
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://balticnetworks.com", model),
   rateLimitMs: 3000,
 };
 

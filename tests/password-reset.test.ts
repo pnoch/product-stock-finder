@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createHash } from "node:crypto";
+
+const sha256 = (s: string) => createHash("sha256").update(s, "utf8").digest("hex");
 
 vi.mock("../server/db", () => {
   const store = new Map<string, { userId: number; token: string; expiresAt: number; usedAt: number | null }>();
@@ -13,9 +16,17 @@ vi.mock("../server/db", () => {
       const r = store.get(token);
       if (r) r.usedAt = Date.now();
     }),
+    consumePasswordResetToken: vi.fn(async (token: string) => {
+      const r = store.get(token);
+      if (!r || r.usedAt !== null || r.expiresAt <= Date.now()) return null;
+      r.usedAt = Date.now();
+      store.set(token, r);
+      return r;
+    }),
     updateUserPasswordHashById: vi.fn(),
     getUserByOpenId: vi.fn(),
     __clearPasswordResetTokensForTest: vi.fn(() => store.clear()),
+    __testStore: store,
   };
 });
 
@@ -144,21 +155,24 @@ describe("POST /api/auth/forgot", () => {
 describe("POST /api/auth/reset", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("validates token, hashes password, marks used", async () => {
+  it("validates token, hashes password, consumes atomically", async () => {
     const handler = makeApp();
     const token = "tok-123";
-    vi.mocked(db.getPasswordResetToken).mockResolvedValue({ userId: 42, token, expiresAt: Date.now() + 10000, usedAt: null } as any);
+    const store = (db as unknown as { __testStore: Map<string, { userId: number; token: string; expiresAt: number; usedAt: number | null }> }).__testStore;
+    store.set(sha256(token), { userId: 42, token: sha256(token), expiresAt: Date.now() + 10000, usedAt: null });
     const res = makeRes();
     await handler("POST", "/api/auth/reset")(makeReq({ token, newPassword: "newpass123" }), res);
     expect(bcrypt.hash).toHaveBeenCalled();
     expect(db.updateUserPasswordHashById).toHaveBeenCalledWith(42, "hashed");
-    expect(vi.mocked(db.markPasswordResetTokenUsed).mock.calls[0][0]).toMatch(/^[0-9a-f]{64}$/);
     expect(res.json).toHaveBeenCalledWith({ success: true });
+    // Consumed: a second use must fail.
+    const res2 = makeRes();
+    await handler("POST", "/api/auth/reset")(makeReq({ token, newPassword: "newpass123" }), res2);
+    expect(res2.status).toHaveBeenCalledWith(400);
   });
 
   it("rejects invalid or expired token", async () => {
     const handler = makeApp();
-    vi.mocked(db.getPasswordResetToken).mockResolvedValue(null as any);
     const res = makeRes();
     await handler("POST", "/api/auth/reset")(makeReq({ token: "bad", newPassword: "newpass123" }), res);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -167,7 +181,8 @@ describe("POST /api/auth/reset", () => {
 
   it("rejects used token", async () => {
     const handler = makeApp();
-    vi.mocked(db.getPasswordResetToken).mockResolvedValue({ userId: 42, token: "t", expiresAt: Date.now() + 10000, usedAt: Date.now() } as any);
+    const store = (db as unknown as { __testStore: Map<string, { userId: number; token: string; expiresAt: number; usedAt: number | null }> }).__testStore;
+    store.set(sha256("t"), { userId: 42, token: sha256("t"), expiresAt: Date.now() + 10000, usedAt: Date.now() });
     const res = makeRes();
     await handler("POST", "/api/auth/reset")(makeReq({ token: "t", newPassword: "newpass123" }), res);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -202,12 +217,11 @@ describe("POST /api/auth/reset", () => {
 
   it("looks up the reset token by hash", async () => {
     const handler = makeApp();
-    vi.mocked(db.getPasswordResetToken).mockResolvedValue(null as any);
     const res = makeRes();
     await handler("POST", "/api/auth/reset")(makeReq({ token: "tok-123", newPassword: "newpass123" }), res);
-    const lookedUp = vi.mocked(db.getPasswordResetToken).mock.calls[0][0] as string;
-    expect(lookedUp).toMatch(/^[0-9a-f]{64}$/);
-    expect(lookedUp).not.toBe("tok-123");
+    const consumed = vi.mocked(db.consumePasswordResetToken).mock.calls[0][0] as string;
+    expect(consumed).toMatch(/^[0-9a-f]{64}$/);
+    expect(consumed).not.toBe("tok-123");
   });
 });
 

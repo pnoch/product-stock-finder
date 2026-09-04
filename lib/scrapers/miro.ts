@@ -41,7 +41,7 @@ export const miroParser: DistributorParser = {
   baseUrl: "https://miro.co.za",
   buildSearchUrl: (model) =>
     `https://miro.co.za/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseHtml(html, "https://miro.co.za", model),
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://miro.co.za", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {

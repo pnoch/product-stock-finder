@@ -39,8 +39,8 @@ export const networkdevicesParser: DistributorParser = {
   baseUrl: "https://networkdevices.com",
   buildSearchUrl: (model) =>
     `https://networkdevices.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) =>
-    parseHtml(html, "https://networkdevices.com", model),
+  parsePrice: (html, model, url) =>
+    parseHtml(html, url ?? "https://networkdevices.com", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {

@@ -656,6 +656,66 @@ describe("concurrency regression", () => {
       "d2",
     ]);
   });
+
+  it("caps quarantine blobs instead of growing without bound", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let now = 1_000_000;
+    const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => now++);
+    try {
+      const { createStorage } = await import("../lib/storage");
+      const store = new Map<string, string>([["watchlist_products", "{corrupt"]]);
+      const storage = createStorage({
+        getItem: async (key: string) => store.get(key) ?? null,
+        setItem: async (key: string, value: string) => {
+          store.set(key, value);
+        },
+        removeItem: async (key: string) => {
+          store.delete(key);
+        },
+        multiRemove: async (keys: string[]) => {
+          keys.forEach((key) => store.delete(key));
+        },
+      });
+      for (let i = 0; i < 10; i++) {
+        expect(await storage.getWatchlist()).toEqual([]);
+      }
+      const quarantineKeys = [...store.keys()].filter((k) =>
+        k.startsWith("watchlist_products.corrupt-"),
+      );
+      expect(quarantineKeys.length).toBeLessThanOrEqual(3);
+    } finally {
+      warn.mockRestore();
+      nowSpy.mockRestore();
+    }
+  });
+
+  it("quarantines corrupt settings instead of falling back silently", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const { createStorage } = await import("../lib/storage");
+      const store = new Map<string, string>([["app_settings", "{corrupt"]]);
+      const storage = createStorage({
+        getItem: async (key: string) => store.get(key) ?? null,
+        setItem: async (key: string, value: string) => {
+          store.set(key, value);
+        },
+        removeItem: async (key: string) => {
+          store.delete(key);
+        },
+        multiRemove: async (keys: string[]) => {
+          keys.forEach((key) => store.delete(key));
+        },
+      });
+      const settings = await storage.getSettings();
+      expect(settings.theme).toBe("auto");
+      expect(
+        [...store.keys()].some((k) => k.startsWith("app_settings.corrupt-")),
+      ).toBe(true);
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
 });
 
 describe("displayed event ids", () => {

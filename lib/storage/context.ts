@@ -31,6 +31,36 @@ export interface StorageContext {
   readList<T>(key: string): Promise<T[]>;
 }
 
+// Quarantine blobs are capped per base key so a persistently corrupt key
+// cannot exhaust storage quota. Tracked in module memory; evicting a key
+// that no longer exists is a harmless no-op removeItem.
+const MAX_QUARANTINE_PER_KEY = 3;
+const quarantineKeys = new Map<string, string[]>();
+
+export async function quarantinePayload(
+  adapter: StorageAdapter,
+  key: string,
+  raw: string,
+): Promise<void> {
+  const name = `${key}.corrupt-${Date.now()}`;
+  try {
+    await adapter.setItem(name, raw.slice(0, 100_000));
+  } catch {
+    return;
+  }
+  const keys = quarantineKeys.get(key) ?? [];
+  keys.push(name);
+  while (keys.length > MAX_QUARANTINE_PER_KEY) {
+    const oldest = keys.shift()!;
+    try {
+      await adapter.removeItem(oldest);
+    } catch {
+      // best effort
+    }
+  }
+  quarantineKeys.set(key, keys);
+}
+
 export function createContext(adapter: StorageAdapter): StorageContext {
   let onChange: ((collection: Collection, itemId: string) => void) | null =
     null;
@@ -53,7 +83,6 @@ export function createContext(adapter: StorageAdapter): StorageContext {
   // Serializes read-modify-write operations per key to prevent lost updates
   // when concurrent batches (e.g. background price checks) mutate the same list.
   const writeQueues = new Map<string, Promise<unknown>>();
-
   function enqueue<T>(key: string, fn: () => Promise<T>): Promise<T> {
     const prev = writeQueues.get(key) ?? Promise.resolve();
     const next = prev.then(fn, fn);
@@ -88,14 +117,7 @@ export function createContext(adapter: StorageAdapter): StorageContext {
       // Corrupt payload: quarantine the raw value for forensics instead of
       // silently dropping it — returning [] here would let the next write
       // overwrite whatever the corrupt payload used to hold.
-      try {
-        await adapter.setItem(
-          `${key}.corrupt-${Date.now()}`,
-          raw.slice(0, 100_000),
-        );
-      } catch {
-        // best effort; the original key is left untouched
-      }
+      await quarantinePayload(adapter, key, raw);
       console.warn(`[storage] quarantined corrupt payload for ${key}`);
       return [];
     }

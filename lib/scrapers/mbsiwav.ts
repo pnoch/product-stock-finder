@@ -37,7 +37,7 @@ export const mbsiwavParser: DistributorParser = {
   baseUrl: "https://mbsiwav.com",
   buildSearchUrl: (model) =>
     `https://mbsiwav.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseHtml(html, "https://mbsiwav.com", model),
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://mbsiwav.com", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {

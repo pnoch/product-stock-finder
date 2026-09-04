@@ -1,5 +1,6 @@
 import type { Collection, SyncMeta } from "../types";
 import type { StorageContext } from "./context";
+import { quarantinePayload } from "./context";
 
 export function createSyncMetaStorage(ctx: StorageContext) {
   const { adapter, KEYS, enqueue } = ctx;
@@ -7,25 +8,40 @@ export function createSyncMetaStorage(ctx: StorageContext) {
   // ─── Sync Meta ─────────────────────────────────────────────────────────────
 
   async function getSyncMeta(): Promise<SyncMeta> {
+    let raw: string | null;
     try {
-      const raw = await adapter.getItem(KEYS.SYNC_META);
-      if (!raw) return { lastSyncedAt: 0, items: {} };
-      const parsed = JSON.parse(raw);
+      raw = await adapter.getItem(KEYS.SYNC_META);
+    } catch (error) {
+      console.warn("[storage] read failed for sync_meta", error);
+      throw error;
+    }
+    if (!raw) return { lastSyncedAt: 0, items: {} };
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("sync meta payload must be an object");
+      }
+      const meta = parsed as Partial<SyncMeta> & { items?: unknown };
+      if (meta.items !== undefined && (typeof meta.items !== "object" || meta.items === null || Array.isArray(meta.items))) {
+        throw new Error("sync meta items must be an object");
+      }
       return {
         lastSyncedAt:
-          typeof parsed.lastSyncedAt === "number" ? parsed.lastSyncedAt : 0,
+          typeof meta.lastSyncedAt === "number" ? meta.lastSyncedAt : 0,
         lastSyncOkAt:
-          typeof parsed.lastSyncOkAt === "number"
-            ? parsed.lastSyncOkAt
+          typeof meta.lastSyncOkAt === "number"
+            ? meta.lastSyncOkAt
             : undefined,
         lastSyncError:
-          typeof parsed.lastSyncError === "string" ||
-          parsed.lastSyncError === null
-            ? parsed.lastSyncError
+          typeof meta.lastSyncError === "string" ||
+          meta.lastSyncError === null
+            ? meta.lastSyncError
             : undefined,
-        items: parsed.items ?? {},
+        items: (meta.items ?? {}) as SyncMeta["items"],
       };
     } catch {
+      await quarantinePayload(adapter, KEYS.SYNC_META, raw);
+      console.warn("[storage] quarantined corrupt payload for sync_meta");
       return { lastSyncedAt: 0, items: {} };
     }
   }

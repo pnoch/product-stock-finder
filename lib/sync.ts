@@ -104,6 +104,11 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
   // locally-present items absent from the pull may shadow purged deletes.
   // Drop those with stale sync meta. Items with no meta entry are genuine
   // never-synced offline work and are preserved (and pushed below).
+  // Known limitation: seeds and ancient never-synced items can resurrect
+  // rows deleted + purged elsewhere (tombstone expiry is inherent to the
+  // design); the user can delete them again.
+  // Settings is excluded: the client never emits settings tombstones, so
+  // there is nothing to resurrect.
   if (pulled.fullResyncSince != null) {
     const cutoff = pulled.fullResyncSince;
     const pulledIds = new Set(pulled.items.map((i) => `${i.collection}:${i.id}`));
@@ -138,6 +143,7 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
 
   const { dirty, pendingClearMeta } = await collectDirty(storage, oldCursor, applied, pulled.lastSyncedAt);
 
+  const nextCursor = pulled.lastSyncedAt;
   if (dirty.length > 0) {
     let stamped: SyncStampedItem[] = [];
     try {
@@ -167,6 +173,12 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
       };
       metaAfter.items[item.collection] = col;
     }
+    // Single write for stamps + cursor: a crash between two saves used to
+    // leave server-stamped entries under an old cursor, causing duplicate
+    // re-pushes on the next sync.
+    metaAfter.lastSyncedAt = nextCursor;
+    metaAfter.lastSyncError = null;
+    metaAfter.lastSyncOkAt = opts.now?.() ?? Date.now();
     await storage.saveSyncMeta(metaAfter);
   }
 
@@ -174,13 +186,14 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     await storage.clearItemSyncMeta(collection, id);
   }
 
-  const nextCursor = pulled.lastSyncedAt;
-  await storage.saveSyncMeta({
-    ...(await storage.getSyncMeta()),
-    lastSyncedAt: nextCursor,
-    lastSyncError: null,
-    lastSyncOkAt: opts.now?.() ?? Date.now(),
-  });
+  if (dirty.length === 0) {
+    await storage.saveSyncMeta({
+      ...(await storage.getSyncMeta()),
+      lastSyncedAt: nextCursor,
+      lastSyncError: null,
+      lastSyncOkAt: opts.now?.() ?? Date.now(),
+    });
+  }
 }
 
 async function collectDirty(
@@ -196,6 +209,10 @@ async function collectDirty(
   const pendingSetMeta: Array<{ collection: Collection; id: string }> = [];
   const pendingClearMeta: Array<{ collection: Collection; id: string }> = [];
   const rawServerNow = await serverNow(storage);
+  // NOTE: stamps deliberately use the per-item skew-corrected estimate, not
+  // the just-observed server cursor. Flooring at the cursor would falsify
+  // edit times (claiming old edits happened at pull time) and break LWW
+  // fairness across devices; see the "server-corrected time" test.
   const freshServerNow = Math.max(rawServerNow, oldCursor + 1);
 
   for (const collection of COLLECTIONS) {

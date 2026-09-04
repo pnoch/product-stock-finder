@@ -1,4 +1,5 @@
 import { resolvePrice } from "./price-source";
+import { isFreshPriceSnapshot } from "./price-freshness";
 import { getAllParserIds } from "./scrapers/registry";
 import type { DistributorListing } from "./types";
 
@@ -46,7 +47,8 @@ export async function discoverListings(
       batch.map(async (distributorId) => {
         try {
           const result = await fetchPrice(distributorId, modelNumber);
-          if (result?.snapshot) {
+          // Stale snapshots would masquerade as fresh discoveries.
+          if (result?.snapshot && isFreshPriceSnapshot(result.snapshot, now)) {
             const iso = new Date(now).toISOString();
             found.push({
               distributorId,

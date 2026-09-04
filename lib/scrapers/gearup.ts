@@ -39,7 +39,7 @@ export const gearupParser: DistributorParser = {
   baseUrl: "https://gearup.me",
   buildSearchUrl: (model) =>
     `https://gearup.me/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseHtml(html, "https://gearup.me", model),
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://gearup.me", model),
   rateLimitMs: 3000,
 };
 

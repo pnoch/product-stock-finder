@@ -1,4 +1,5 @@
 import { fetchServerPrice, uploadServerHistory } from "../server-prices";
+import { isFreshPriceSnapshot } from "../price-freshness";
 import { getParserByDistributorId } from "../scrapers/registry";
 import { resilientFetch } from "../scrapers/resilient";
 import { appendPricePoint, mergePriceHistory } from "../price-history";
@@ -6,11 +7,6 @@ import { PRICE_HISTORY_DAYS } from "@/shared/const";
 import type { DistributorListing, PricePoint, Product } from "../types";
 import { breakerStore } from "./instances";
 import type { createHealthCollector } from "./health-collector";
-
-// Server snapshots carry their own fetchedAt: a stale-while-revalidate cache
-// entry must never be written into the watchlist as a fresh price with a
-// fresh lastChecked timestamp. Must match server/prices.ts PRICE_TTL_MS.
-const SERVER_SNAPSHOT_TTL_MS = 60 * 60 * 1000;
 
 export async function refreshListing(
   product: Product,
@@ -22,10 +18,7 @@ export async function refreshListing(
     product.modelNumber,
   );
   const snapshot = serverResult?.snapshot;
-  const snapshotFresh =
-    snapshot != null &&
-    Number.isFinite(snapshot.fetchedAt) &&
-    Date.now() - snapshot.fetchedAt < SERVER_SNAPSHOT_TTL_MS;
+  const snapshotFresh = isFreshPriceSnapshot(snapshot);
   if (snapshot && snapshotFresh) {
     healthCollector.record(listing.distributorId, "working");
     const now = new Date().toISOString();

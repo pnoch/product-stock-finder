@@ -41,7 +41,7 @@ export const neobitsParser: DistributorParser = {
   baseUrl: "https://neobits.com",
   buildSearchUrl: (model) =>
     `https://neobits.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseHtml(html, "https://neobits.com", model),
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://neobits.com", model),
   rateLimitMs: 3000,
 };
 

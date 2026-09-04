@@ -1,25 +1,31 @@
 import { createTRPCClient } from "./trpc";
 import type { PricePoint, ServerPriceResult } from "./types";
 
-const TIMEOUT_MS = 4000;
+export { isFreshPriceSnapshot } from "./price-freshness";
 
 export async function fetchServerPrice(
   distributorId: string,
   modelNumber: string,
 ): Promise<ServerPriceResult | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const client = createTRPCClient();
     const result = await Promise.race([
       client.prices.get.query({ distributorId, modelNumber }),
-      new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), TIMEOUT_MS),
-      ),
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), TIMEOUT_MS);
+      }),
     ]);
     if (!result) return null;
     if (!result.snapshot && !result.history?.length) return null;
-    return result;
+    return {
+      ...result,
+      history: result.history ?? [],
+    };
   } catch {
     return null;
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
   }
 }
 

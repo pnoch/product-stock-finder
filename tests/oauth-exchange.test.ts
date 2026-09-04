@@ -70,6 +70,60 @@ describe("OAuth state envelope", () => {
   });
 });
 
+describe("GET /api/auth/oauth/start", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("sanitizes the redirectUri before signing it into state", async () => {
+    const handler = makeApp();
+    const res = makeRes();
+    await handler("GET", "/api/auth/oauth/start")(
+      makeReq({ provider: "google", redirectUri: "https://evil.com/steal" }),
+      res,
+    );
+    const url: string = res.json.mock.calls[0][0].url;
+    const state = new URL(url, "https://app.local").searchParams.get("state")!;
+    const parsed = verifyOAuthState(state);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.redirectUri).toBe("/");
+  });
+
+  it("rate limits repeated start requests from one IP", async () => {
+    const handler = makeApp();
+    for (let i = 0; i < 10; i++) {
+      const res = makeRes();
+      await handler("GET", "/api/auth/oauth/start")(
+        makeReq({ provider: "google" }, {}, { ip: "10.9.9.31" }),
+        res,
+      );
+      expect(res.json).toHaveBeenCalled();
+    }
+    const res = makeRes();
+    await handler("GET", "/api/auth/oauth/start")(
+      makeReq({ provider: "google" }, {}, { ip: "10.9.9.31" }),
+      res,
+    );
+    expect(res.status).toHaveBeenCalledWith(429);
+  });
+
+  it("rate limits repeated consume attempts from one IP", async () => {
+    const handler = makeApp();
+    for (let i = 0; i < 10; i++) {
+      const res = makeRes();
+      await handler("POST", "/api/auth/oauth/consume")(
+        makeReq({}, { ticket: "nope", deviceId: "d" }, { ip: "10.9.9.32" }),
+        res,
+      );
+      expect(res.status).toHaveBeenCalledWith(400);
+    }
+    const res = makeRes();
+    await handler("POST", "/api/auth/oauth/consume")(
+      makeReq({}, { ticket: "nope", deviceId: "d" }, { ip: "10.9.9.32" }),
+      res,
+    );
+    expect(res.status).toHaveBeenCalledWith(429);
+  });
+});
+
 describe("GET /api/oauth/callback", () => {
   beforeEach(() => vi.clearAllMocks());
 

@@ -126,3 +126,39 @@ describe("uploadServerHistory", () => {
     ).resolves.toBeUndefined();
   });
 });
+
+describe("isFreshPriceSnapshot", () => {
+  it("accepts recent snapshots", async () => {
+    const { isFreshPriceSnapshot } = await import("../lib/server-prices");
+    const now = 1_800_000_000_000;
+    expect(
+      isFreshPriceSnapshot(
+        { price: 1, currency: "USD", stockStatus: "in_stock", url: "", fetchedAt: now - 1000 },
+        now,
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects snapshots older than the TTL", async () => {
+    const { isFreshPriceSnapshot } = await import("../lib/server-prices");
+    const now = 1_800_000_000_000;
+    expect(
+      isFreshPriceSnapshot(
+        { price: 1, currency: "USD", stockStatus: "in_stock", url: "", fetchedAt: now - 2 * 60 * 60 * 1000 },
+        now,
+      ),
+    ).toBe(false);
+  });
+
+  it("rejects missing or non-finite timestamps", async () => {
+    const { isFreshPriceSnapshot } = await import("../lib/server-prices");
+    const now = 1_800_000_000_000;
+    expect(isFreshPriceSnapshot(null, now)).toBe(false);
+    expect(
+      isFreshPriceSnapshot(
+        { price: 1, currency: "USD", stockStatus: "in_stock", url: "", fetchedAt: NaN },
+        now,
+      ),
+    ).toBe(false);
+  });
+});

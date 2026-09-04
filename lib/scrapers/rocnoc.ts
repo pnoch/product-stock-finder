@@ -39,7 +39,7 @@ export const rocnocParser: DistributorParser = {
   baseUrl: "https://rocnoc.com",
   buildSearchUrl: (model) =>
     `https://rocnoc.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseHtml(html, "https://rocnoc.com", model),
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://rocnoc.com", model),
   rateLimitMs: 3000,
 };
 

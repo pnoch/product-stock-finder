@@ -60,7 +60,7 @@ export const geticParser: DistributorParser = {
   baseUrl: "https://getic.gr",
   buildSearchUrl: (model) =>
     `https://getic.gr/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseHtml(html, "https://getic.gr", model),
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://getic.gr", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {

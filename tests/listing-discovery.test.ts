@@ -78,6 +78,20 @@ describe("discoverListings", () => {
     expect(onProgress).toHaveBeenCalledTimes(3);
   });
 
+  it("skips stale snapshots instead of presenting them as fresh finds", async () => {
+    const fetchPrice = vi.fn(async (d: string, _m: string) =>
+      d === "stale"
+        ? snapshotResult({ fetchedAt: NOW - 3 * 60 * 60 * 1000 })
+        : snapshotResult(),
+    );
+    const listings = await discoverListings("MODEL", {
+      parserIds: ["stale", "fresh"],
+      fetchPrice,
+      now: NOW,
+    });
+    expect(listings.map((l) => l.distributorId)).toEqual(["fresh"]);
+  });
+
   it("swallows fetch errors per distributor", async () => {
     const fetchPrice = vi.fn(async (d: string, _m: string) => {
       if (d === "boom") throw new Error("network");

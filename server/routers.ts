@@ -78,8 +78,8 @@ const syncItemSchema = z.object({
     },
     { message: "data too large" },
   ),
-  updatedAt: z.number().finite(),
-  deletedAt: z.number().finite().nullable(),
+  updatedAt: z.number().finite().nonnegative(),
+  deletedAt: z.number().finite().nonnegative().nullable(),
 });
 
 export const appRouter = router({

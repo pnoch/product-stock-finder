@@ -10,8 +10,7 @@ vi.mock("../lib/scrapers/registry", () => ({
 }));
 
 vi.mock("../lib/scrapers/resilient", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("../lib/scrapers/resilient")>();
+  const actual: any = await importOriginal();
   return {
     ...actual,
     resilientFetch: vi.fn(),

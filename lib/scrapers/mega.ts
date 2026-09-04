@@ -39,7 +39,7 @@ export const megaParser: DistributorParser = {
   baseUrl: "https://100mega.cz",
   buildSearchUrl: (model) =>
     `https://100mega.cz/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseHtml(html, "https://100mega.cz", model),
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://100mega.cz", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {

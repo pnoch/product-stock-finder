@@ -149,10 +149,10 @@ export async function upsertSyncItem(
   const stampedAt = Date.now();
 
   const conditionalSet = {
-    data: sql`IF(IF(clientUpdatedAtMs IS NULL, 1, VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs)), VALUES(data), data)`,
-    updatedAtMs: sql`IF(IF(clientUpdatedAtMs IS NULL, 1, VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs)), VALUES(updatedAtMs), updatedAtMs)`,
-    clientUpdatedAtMs: sql`IF(IF(clientUpdatedAtMs IS NULL, 1, VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs)), VALUES(clientUpdatedAtMs), clientUpdatedAtMs)`,
-    deletedAtMs: sql`IF(IF(clientUpdatedAtMs IS NULL, 1, VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs)), VALUES(deletedAtMs), deletedAtMs)`,
+    data: sql`IF(IF(clientUpdatedAtMs IS NULL, VALUES(clientUpdatedAtMs) > updatedAtMs, VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs)), VALUES(data), data)`,
+    updatedAtMs: sql`IF(IF(clientUpdatedAtMs IS NULL, VALUES(clientUpdatedAtMs) > updatedAtMs, VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs)), VALUES(updatedAtMs), updatedAtMs)`,
+    clientUpdatedAtMs: sql`IF(IF(clientUpdatedAtMs IS NULL, VALUES(clientUpdatedAtMs) > updatedAtMs, VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs)), VALUES(clientUpdatedAtMs), clientUpdatedAtMs)`,
+    deletedAtMs: sql`IF(IF(clientUpdatedAtMs IS NULL, VALUES(clientUpdatedAtMs) > updatedAtMs, VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs)), VALUES(deletedAtMs), deletedAtMs)`,
   };
 
   switch (item.collection) {

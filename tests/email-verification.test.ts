@@ -1,12 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("../server/db", () => ({
-  getUserByEmail: vi.fn(),
-  createEmailVerificationToken: vi.fn(),
-  getEmailVerificationToken: vi.fn(),
-  markEmailVerificationTokenUsed: vi.fn(),
-  setUserEmailVerified: vi.fn(),
-}));
+vi.mock("../server/db", () => {
+  const store = new Map<string, { userId: number; token: string; expiresAt: number; usedAt: number | null }>();
+  return {
+    getUserByEmail: vi.fn(),
+    createEmailVerificationToken: vi.fn(),
+    getEmailVerificationToken: vi.fn(async (token: string) => store.get(token) ?? null),
+    markEmailVerificationTokenUsed: vi.fn(),
+    consumeEmailVerificationToken: vi.fn(async (token: string) => {
+      const r = store.get(token);
+      if (!r || r.usedAt !== null || r.expiresAt <= Date.now()) return null;
+      r.usedAt = Date.now();
+      store.set(token, r);
+      return r;
+    }),
+    setUserEmailVerified: vi.fn(),
+    __testStore: store,
+  };
+});
 
 vi.mock("../server/_core/sdk", () => ({
   sdk: {
@@ -59,28 +70,23 @@ describe("POST /api/auth/resend-verification", () => {
 describe("POST /api/auth/verify", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("marks the email verified for a valid token", async () => {
+  it("marks the email verified for a valid token, exactly once", async () => {
     const handler = makeApp();
-    vi.mocked(db.getEmailVerificationToken).mockResolvedValue({
-      userId: 7,
-      expiresAt: Date.now() + 10000,
-      usedAt: null,
-    } as any);
+    const store = (db as unknown as { __testStore: Map<string, { userId: number; token: string; expiresAt: number; usedAt: number | null }> }).__testStore;
+    const { createHash } = await import("node:crypto");
+    const hash = createHash("sha256").update("tok-123", "utf8").digest("hex");
+    store.set(hash, { userId: 7, token: hash, expiresAt: Date.now() + 10000, usedAt: null });
     const res = makeRes();
     await handler("POST", "/api/auth/verify")(makeReq({ token: "tok-123" }), res);
-    expect(db.getEmailVerificationToken).toHaveBeenCalledWith(
-      expect.stringMatching(/^[0-9a-f]{64}$/),
-    );
     expect(db.setUserEmailVerified).toHaveBeenCalledWith(7);
-    expect(db.markEmailVerificationTokenUsed).toHaveBeenCalledWith(
-      expect.stringMatching(/^[0-9a-f]{64}$/),
-    );
     expect(res.json).toHaveBeenCalledWith({ success: true });
+    const res2 = makeRes();
+    await handler("POST", "/api/auth/verify")(makeReq({ token: "tok-123" }), res2);
+    expect(res2.status).toHaveBeenCalledWith(400);
   });
 
   it("rejects invalid or expired tokens", async () => {
     const handler = makeApp();
-    vi.mocked(db.getEmailVerificationToken).mockResolvedValue(null as any);
     const res = makeRes();
     await handler("POST", "/api/auth/verify")(makeReq({ token: "bad" }), res);
     expect(res.status).toHaveBeenCalledWith(400);

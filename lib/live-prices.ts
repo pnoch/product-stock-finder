@@ -1,6 +1,7 @@
 import { PRICE_HISTORY_DAYS } from "@/shared/const";
 import { appendPricePoint, mergePriceHistory } from "@/lib/price-history";
 import { resolvePrice } from "@/lib/price-source";
+import { isFreshPriceSnapshot } from "@/lib/price-freshness";
 import type {
   DistributorListing,
   PricePoint,
@@ -38,7 +39,9 @@ export function applyServerPrice(
     PRICE_HISTORY_DAYS,
   );
   const snapshot = serverResult.snapshot;
-  if (!snapshot) {
+  // A stale snapshot is still useful for history, but must never be
+  // presented as a just-checked price.
+  if (!isFreshPriceSnapshot(snapshot)) {
     return { ...listing, priceHistory: mergedHistory };
   }
   const snapshotPoint: PricePoint = {

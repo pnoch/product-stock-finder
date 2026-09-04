@@ -202,6 +202,44 @@ export async function markPasswordResetTokenUsed(token: string) {
   } catch {}
 }
 
+/**
+ * Atomically consumes a reset token: returns the row only if it is unused
+ * and unexpired, marking it used in the same step. Concurrent uses of the
+ * same token succeed exactly once (DB: SELECT ... FOR UPDATE inside a
+ * transaction; mem fallback: synchronous check-and-set).
+ */
+export async function consumePasswordResetToken(token: string) {
+  type Row = { userId: number; token: string; expiresAt: number; usedAt: number | null };
+  const now = Date.now();
+  const db = await getDb();
+  if (!db) {
+    const row = memTokens.get(token);
+    if (!row || row.usedAt !== null || row.expiresAt <= now) return null;
+    row.usedAt = now;
+    memTokens.set(token, row);
+    return row as Row;
+  }
+  try {
+    return await db.transaction(async (tx) => {
+      const rows = await tx
+        .select()
+        .from(passwordResetTokens)
+        .where(eq(passwordResetTokens.token, token))
+        .limit(1)
+        .for("update");
+      const row = rows[0] as unknown as Row | undefined;
+      if (!row || row.usedAt !== null || row.expiresAt <= now) return null;
+      await tx
+        .update(passwordResetTokens)
+        .set({ usedAt: now } as any)
+        .where(eq(passwordResetTokens.token, token));
+      return row;
+    });
+  } catch {
+    return null;
+  }
+}
+
 export function __clearPasswordResetTokensForTest() {
   memTokens.clear();
 }
@@ -248,6 +286,41 @@ export async function markEmailVerificationTokenUsed(token: string) {
   try {
     await db.update(emailVerificationTokens).set({ usedAt: now } as any).where(eq(emailVerificationTokens.token, token));
   } catch {}
+}
+
+/**
+ * Atomically consumes a verification token (see consumePasswordResetToken).
+ */
+export async function consumeEmailVerificationToken(token: string) {
+  type Row = { userId: number; token: string; expiresAt: number; usedAt: number | null };
+  const now = Date.now();
+  const db = await getDb();
+  if (!db) {
+    const row = memVerifyTokens.get(token);
+    if (!row || row.usedAt !== null || row.expiresAt <= now) return null;
+    row.usedAt = now;
+    memVerifyTokens.set(token, row);
+    return row as Row;
+  }
+  try {
+    return await db.transaction(async (tx) => {
+      const rows = await tx
+        .select()
+        .from(emailVerificationTokens)
+        .where(eq(emailVerificationTokens.token, token))
+        .limit(1)
+        .for("update");
+      const row = rows[0] as unknown as Row | undefined;
+      if (!row || row.usedAt !== null || row.expiresAt <= now) return null;
+      await tx
+        .update(emailVerificationTokens)
+        .set({ usedAt: now } as any)
+        .where(eq(emailVerificationTokens.token, token));
+      return row;
+    });
+  } catch {
+    return null;
+  }
 }
 
 export async function setUserEmailVerified(id: number) {

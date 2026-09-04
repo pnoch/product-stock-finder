@@ -41,7 +41,7 @@ export const flytecParser: DistributorParser = {
   baseUrl: "https://flytechelectronics.com",
   buildSearchUrl: (model) =>
     `https://flytechelectronics.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseHtml(html, "https://flytechelectronics.com", model),
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://flytechelectronics.com", model),
   rateLimitMs: 3000,
 };
 

@@ -39,7 +39,7 @@ export const nasstoreParser: DistributorParser = {
   baseUrl: "https://nasstore.eu",
   buildSearchUrl: (model) =>
     `https://nasstore.eu/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model) => parseHtml(html, "https://nasstore.eu", model),
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://nasstore.eu", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {

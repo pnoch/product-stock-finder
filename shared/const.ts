@@ -7,3 +7,6 @@ export const NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
 export const DEVICE_REVOKED_ERR_MSG = "This device was signed out (10003)";
 export const PRICE_HISTORY_SYNC_DAYS = 30;
 export const PRICE_HISTORY_DAYS = 365;
+// How long a server price snapshot counts as fresh. Shared by the server
+// cache (server/prices.ts) and every client consumer so the TTL cannot drift.
+export const PRICE_SNAPSHOT_TTL_MS = 60 * 60 * 1000;

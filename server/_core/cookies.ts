@@ -10,6 +10,13 @@ function isIpAddress(host: string) {
 function isSecureRequest(req: Request) {
   if (req.protocol === "https") return true;
 
+  // Only trust X-Forwarded-Proto when Express trust proxy is enabled;
+  // otherwise an off-path attacker over HTTP can force or strip Secure.
+  const trustProxy = (
+    req as unknown as { app?: { get?: (k: string) => unknown } }
+  ).app?.get?.("trust proxy");
+  if (!trustProxy) return false;
+
   const forwardedProto = req.headers["x-forwarded-proto"];
   if (!forwardedProto) return false;
 
