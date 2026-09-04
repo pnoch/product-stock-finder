@@ -148,6 +148,13 @@
       "when": 1788503771000,
       "tag": "0020_shared_watchlists",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1788503771000,
+      "tag": "0021_email_verification_tokens",
+      "breakpoints": true
     }
   ]
 }

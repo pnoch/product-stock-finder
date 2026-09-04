@@ -332,6 +332,11 @@ export function registerOAuthRoutes(app: Express) {
 
   app.post("/api/auth/resend-verification", async (req: Request, res: Response) => {
     try {
+      const ip = getClientIp(req);
+      if (!checkAuthRateLimit(ip)) {
+        res.status(429).json({ error: "Too many requests. Try again shortly." });
+        return;
+      }
       const user = await sdk.authenticateRequest(req);
       if ((user as any).emailVerified) {
         res.json({ success: true, alreadyVerified: true });
@@ -339,6 +344,8 @@ export function registerOAuthRoutes(app: Express) {
       }
       const email = (user as any).email ?? "";
       const token = randomUUID();
+      const expiresAt = Date.now() + PASSWORD_RESET_TTL_MS;
+      await db.createEmailVerificationToken(user.id, hashToken(token), expiresAt);
       const baseUrl = process.env.EXPO_PUBLIC_WEB_URL ?? process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
       const verifyLink = baseUrl ? `${baseUrl.replace(/\/$/, "")}/verify?token=${token}&email=${encodeURIComponent(email)}` : `token=${token}`;
       if (process.env.SMTP_HOST && process.env.SMTP_USER) {
@@ -355,6 +362,33 @@ export function registerOAuthRoutes(app: Express) {
       }
       console.error("[Auth] resend-verification failed", e);
       res.status(400).json({ error: msg });
+    }
+  });
+
+  app.post("/api/auth/verify", async (req: Request, res: Response) => {
+    try {
+      const ip = getClientIp(req);
+      if (!checkAuthRateLimit(ip)) {
+        res.status(429).json({ error: "Too many requests. Try again shortly." });
+        return;
+      }
+      const { token } = req.body ?? {};
+      if (!token || typeof token !== "string" || !token.trim()) {
+        res.status(400).json({ error: "token is required" });
+        return;
+      }
+      const tokenHash = hashToken(token.trim());
+      const row = await db.getEmailVerificationToken(tokenHash);
+      if (!row || row.usedAt || (row.expiresAt && row.expiresAt < Date.now())) {
+        res.status(400).json({ error: "Invalid or expired token" });
+        return;
+      }
+      await db.setUserEmailVerified(row.userId);
+      await db.markEmailVerificationTokenUsed(tokenHash);
+      res.json({ success: true });
+    } catch (e: unknown) {
+      console.error("[Auth] verify failed", e);
+      res.status(400).json({ error: String(e) });
     }
   });
 }

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { InsertUser, passwordResetTokens, users } from "../drizzle/schema";
+import { InsertUser, emailVerificationTokens, passwordResetTokens, users } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _pool: ReturnType<typeof mysql.createPool> | null = null;
@@ -204,6 +204,60 @@ export async function markPasswordResetTokenUsed(token: string) {
 
 export function __clearPasswordResetTokensForTest() {
   memTokens.clear();
+}
+
+// ─── Email verification tokens (in-memory fallback when DB unavailable) ─────
+const memVerifyTokens = new Map<string, { userId: number; token: string; expiresAt: number; usedAt: number | null }>();
+
+export async function createEmailVerificationToken(userId: number, token: string, expiresAt: number) {
+  const db = await getDb();
+  if (!db) {
+    memVerifyTokens.set(token, { userId, token, expiresAt, usedAt: null });
+    return { id: Date.now(), userId, token, expiresAt, usedAt: null } as unknown;
+  }
+  try {
+    await db.insert(emailVerificationTokens).values({ userId, token, expiresAt });
+    return { userId, token, expiresAt } as unknown;
+  } catch {
+    memVerifyTokens.set(token, { userId, token, expiresAt, usedAt: null });
+    return { userId, token, expiresAt } as unknown;
+  }
+}
+
+export async function getEmailVerificationToken(token: string) {
+  const db = await getDb();
+  if (!db) return memVerifyTokens.get(token) ?? null;
+  try {
+    const rows = await db.select().from(emailVerificationTokens).where(eq(emailVerificationTokens.token, token)).limit(1);
+    if (rows[0]) return rows[0] as unknown as { userId: number; token: string; expiresAt: number; usedAt: number | null };
+    return memVerifyTokens.get(token) ?? null;
+  } catch {
+    return memVerifyTokens.get(token) ?? null;
+  }
+}
+
+export async function markEmailVerificationTokenUsed(token: string) {
+  const db = await getDb();
+  const now = Date.now();
+  if (memVerifyTokens.has(token)) {
+    const row = memVerifyTokens.get(token)!;
+    row.usedAt = now;
+    memVerifyTokens.set(token, row);
+  }
+  if (!db) return;
+  try {
+    await db.update(emailVerificationTokens).set({ usedAt: now } as any).where(eq(emailVerificationTokens.token, token));
+  } catch {}
+}
+
+export async function setUserEmailVerified(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ emailVerified: 1 } as any).where(eq(users.id, id));
+}
+
+export function __clearEmailVerificationTokensForTest() {
+  memVerifyTokens.clear();
 }
 
 // TODO: add feature queries here as your schema grows.

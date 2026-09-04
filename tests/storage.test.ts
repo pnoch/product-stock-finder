@@ -265,6 +265,32 @@ describe("settings", () => {
     expect(s.displayCurrency).toBe("EUR");
     expect(s.checkInterval).toBe("hourly");
   });
+
+  it("serializes concurrent saveSettings in call order", async () => {
+    const { createStorage } = await import("../lib/storage");
+    const store = new Map<string, string>();
+    let writes = 0;
+    const storage = createStorage({
+      getItem: async (key: string) => store.get(key) ?? null,
+      setItem: async (key: string, value: string) => {
+        writes += 1;
+        await new Promise((resolve) => setTimeout(resolve, writes === 1 ? 20 : 0));
+        store.set(key, value);
+      },
+      removeItem: async (key: string) => {
+        store.delete(key);
+      },
+      multiRemove: async (keys: string[]) => {
+        keys.forEach((key) => store.delete(key));
+      },
+    });
+    const base = await storage.getSettings();
+    const first = storage.saveSettings({ ...base, theme: "dark" });
+    const second = storage.saveSettings({ ...base, theme: "light" });
+    await Promise.all([first, second]);
+    const saved = JSON.parse(store.get("app_settings") ?? "{}");
+    expect(saved.theme).toBe("light");
+  });
 });
 
 describe("reminders & stock watches", () => {

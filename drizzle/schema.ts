@@ -294,6 +294,19 @@ export const passwordResetTokens = mysqlTable("password_reset_tokens", {
 export type PasswordResetTokenRow = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetTokenRow = typeof passwordResetTokens.$inferInsert;
 
+export const emailVerificationTokens = mysqlTable("email_verification_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  expiresAt: bigint("expiresAt", { mode: "number" }).notNull(),
+  usedAt: bigint("usedAt", { mode: "number" }),
+});
+
+export type EmailVerificationTokenRow = typeof emailVerificationTokens.$inferSelect;
+export type InsertEmailVerificationTokenRow = typeof emailVerificationTokens.$inferInsert;
+
 export const trendingProducts = mysqlTable("trendingProducts", {
   id: varchar("id", { length: 36 }).notNull().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),

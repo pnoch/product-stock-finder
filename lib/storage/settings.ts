@@ -12,7 +12,7 @@ export function createSettingsStorage(
   ctx: StorageContext,
   watchlist: WatchlistReader,
 ) {
-  const { adapter, KEYS, notify } = ctx;
+  const { adapter, KEYS, notify, enqueue } = ctx;
   const { getWatchlist, updateWatchlist } = watchlist;
 
   const DEFAULT_SETTINGS: AppSettings = {
@@ -43,7 +43,9 @@ export function createSettingsStorage(
   }
 
   async function saveSettings(settings: AppSettings): Promise<void> {
-    await adapter.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+    await enqueue(KEYS.SETTINGS, async () => {
+      await adapter.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+    });
     notify("settings", "settings");
   }
 
