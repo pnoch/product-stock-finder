@@ -197,12 +197,12 @@ export function timelineSegments(samples: HealthSample[]): TimelineSegment[] {
   if (total <= 0) {
     return sorted.map((s) => ({ status: s.status, weight: 1 / sorted.length }));
   }
-  const avgSpan = total / spans.length;
-  const extendedSpans = [...spans, avgSpan];
-  const extendedTotal = total + avgSpan;
   return sorted.map((s, i) => ({
     status: s.status,
-    weight: Math.min(Math.max(extendedSpans[i] / extendedTotal, 0), 1),
+    weight:
+      i < spans.length
+        ? Math.min(Math.max(spans[i] / total, 0), 1)
+        : Math.min(Math.max(spans[spans.length - 1] / total, 0), 1),
   }));
 }
 
