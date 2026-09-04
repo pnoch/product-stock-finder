@@ -110,13 +110,20 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) {
           console.warn("[Sync] Database not available; returning empty pull");
-          return { lastSyncedAt: input.since ?? 0, items: [] };
+          return { lastSyncedAt: input.since ?? 0, items: [], fullResyncSince: null as number | null };
         }
         // Capture the cursor before the SELECT so writes committed during
         // the query are not missed on the next pull.
         const lastSyncedAt = Date.now();
         const items = await listChangedItems(ctx.user.id, input.since);
-        return { lastSyncedAt, items };
+        // Tombstones older than the retention window are purged, so a client
+        // whose cursor predates the window cannot distinguish "deleted long
+        // ago" from "never existed". Signal a full resync so it drops stale
+        // local items instead of resurrecting them via push.
+        const cutoff = lastSyncedAt - TOMBSTONE_PURGE_WINDOW_MS;
+        const fullResyncSince =
+          input.since != null && input.since < cutoff ? cutoff : null;
+        return { lastSyncedAt, items, fullResyncSince };
       }),
     push: protectedProcedure
       .input(z.object({ items: z.array(syncItemSchema).max(500) }))

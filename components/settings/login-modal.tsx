@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -42,6 +42,32 @@ export function LoginModal({
   const [forgotError, setForgotError] = useState<string | null>(null);
   const [forgotSent, setForgotSent] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
+  const [oauthProviders, setOauthProviders] = useState<{ google: boolean; apple: boolean } | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    let active = true;
+    const baseUrl = getApiBaseUrl();
+    if (!baseUrl) {
+      setOauthProviders({ google: false, apple: false });
+      return;
+    }
+    fetch(`${baseUrl}/api/auth/oauth/providers`)
+      .then((res) => (res.ok ? res.json() : { google: false, apple: false }))
+      .then((data) => {
+        if (!active) return;
+        setOauthProviders({
+          google: data.google === true,
+          apple: data.apple === true,
+        });
+      })
+      .catch(() => {
+        if (active) setOauthProviders({ google: false, apple: false });
+      });
+    return () => {
+      active = false;
+    };
+  }, [visible]);
 
   const handleSubmit = async () => {
     if (!email || !password) {
@@ -428,12 +454,16 @@ export function LoginModal({
                   </Text>
                 </TouchableOpacity>
 
-                <View style={{ flexDirection: "row", alignItems: "center", marginVertical: 16, gap: 12 }}>
-                  <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-                  <Text style={{ color: colors.muted, fontSize: 12 }}>or</Text>
-                  <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-                </View>
+                {oauthProviders !== null &&
+                  (oauthProviders.google || oauthProviders.apple) && (
+                    <View style={{ flexDirection: "row", alignItems: "center", marginVertical: 16, gap: 12 }}>
+                      <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+                      <Text style={{ color: colors.muted, fontSize: 12 }}>or</Text>
+                      <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+                    </View>
+                  )}
 
+                {oauthProviders?.google === true && (
                 <TouchableOpacity activeOpacity={0.85}
                   onPress={() => handleOAuth("google")}
                   disabled={!!oauthLoading}
@@ -462,7 +492,9 @@ export function LoginModal({
                     </>
                   )}
                 </TouchableOpacity>
+                )}
 
+                {oauthProviders?.apple === true && (
                 <TouchableOpacity activeOpacity={0.85}
                   onPress={() => handleOAuth("apple")}
                   disabled={!!oauthLoading}
@@ -491,6 +523,7 @@ export function LoginModal({
                     </>
                   )}
                 </TouchableOpacity>
+                )}
 
                 <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={{ alignItems: "center", marginTop: 4 }} accessibilityLabel="Dismiss" accessibilityRole="button" accessibilityHint="Dismisses the login dialog">
                   <Text style={{ color: colors.foreground, fontSize: 14 }}>Cancel</Text>

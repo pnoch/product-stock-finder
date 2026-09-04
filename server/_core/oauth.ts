@@ -143,8 +143,23 @@ export function registerOAuthRoutes(app: Express) {
     }
   });
 
-  app.get("/api/oauth/callback", (_req: Request, res: Response) => {
-    res.redirect(302, "/");
+  app.get("/api/oauth/callback", (req: Request, res: Response) => {
+    // Never drop the provider response: forward code/state/error to the
+    // client callback route so the app can complete or surface the flow.
+    // (Full server-side code exchange is a follow-up; see oauth TODO.)
+    const params = new URLSearchParams();
+    for (const key of ["code", "state", "error", "error_description"] as const) {
+      const value = req.query[key];
+      if (typeof value === "string" && value) params.set(key, value);
+    }
+    const suffix = params.size > 0 ? `?${params.toString()}` : "";
+    res.redirect(302, `/oauth/callback${suffix}`);
+  });
+
+  app.get("/api/auth/oauth/providers", (_req: Request, res: Response) => {
+    const googleClientId = process.env.GOOGLE_CLIENT_ID ?? process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+    const appleClientId = process.env.APPLE_CLIENT_ID ?? process.env.EXPO_PUBLIC_APPLE_CLIENT_ID ?? "";
+    res.json({ google: googleClientId.trim().length > 0, apple: appleClientId.trim().length > 0 });
   });
 
   app.get("/api/auth/oauth/start", (req: Request, res: Response) => {

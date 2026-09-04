@@ -123,6 +123,56 @@ describe("syncNow", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  it("drops stale local items on full resync instead of resurrecting them", async () => {
+    const storage = makeStorage();
+    await storage.addToWatchlist(makeProduct("old"));
+    // Simulate an item synced long ago (stale meta, older than retention).
+    await storage.setItemSyncMeta("watchlist", "old", 1000);
+    const pull = vi.fn(
+      async (): Promise<{
+        lastSyncedAt: number;
+        items: SyncItem[];
+        fullResyncSince?: number | null;
+      }> => ({ lastSyncedAt: 5000, items: [], fullResyncSince: 4000 }),
+    );
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 6000,
+    });
+    expect(await storage.getWatchlist()).toEqual([]);
+    const pushedIds = push.mock.calls.flatMap(([items]: SyncItem[][]) =>
+      items.map((i) => i.id),
+    );
+    expect(pushedIds).not.toContain("old");
+  });
+
+  it("preserves never-synced local items on full resync", async () => {
+    const storage = makeStorage();
+    await storage.addToWatchlist(makeProduct("fresh"));
+    // Never synced: no meta entry -> genuine offline work, must be kept.
+    await storage.clearItemSyncMeta("watchlist", "fresh");
+    const pull = vi.fn(
+      async (): Promise<{
+        lastSyncedAt: number;
+        items: SyncItem[];
+        fullResyncSince?: number | null;
+      }> => ({ lastSyncedAt: 5000, items: [], fullResyncSince: 4000 }),
+    );
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 6000,
+    });
+    expect((await storage.getWatchlist()).map((p) => p.id)).toEqual(["fresh"]);
+  });
+
   it("pulls and merges server items on first sync without re-pushing them", async () => {
     const storage = makeStorage();
     const serverProduct = makeProduct("p1", [listing("d1", 100, "in_stock")]);

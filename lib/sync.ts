@@ -17,7 +17,11 @@ export interface SyncNowOptions {
   isSignedIn: () => boolean;
   pull: (
     since: number | null,
-  ) => Promise<{ lastSyncedAt: number; items: SyncItem[] }>;
+  ) => Promise<{
+    lastSyncedAt: number;
+    items: SyncItem[];
+    fullResyncSince?: number | null;
+  }>;
   push: (
     items: SyncItem[],
   ) => Promise<{ accepted: number; stamped: SyncStampedItem[] }>;
@@ -56,7 +60,11 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
   const oldCursor = meta.lastSyncedAt || 0;
   const since = meta.lastSyncedAt || null;
 
-  let pulled: { lastSyncedAt: number; items: SyncItem[] };
+  let pulled: {
+    lastSyncedAt: number;
+    items: SyncItem[];
+    fullResyncSince?: number | null;
+  };
   try {
     pulled = await opts.pull(since);
   } catch (error) {
@@ -90,6 +98,42 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     }
   } finally {
     storage.setChangeSuppressed(false);
+  }
+
+  // Full resync: the server's tombstone window has moved past our cursor, so
+  // locally-present items absent from the pull may shadow purged deletes.
+  // Drop those with stale sync meta. Items with no meta entry are genuine
+  // never-synced offline work and are preserved (and pushed below).
+  if (pulled.fullResyncSince != null) {
+    const cutoff = pulled.fullResyncSince;
+    const pulledIds = new Set(pulled.items.map((i) => `${i.collection}:${i.id}`));
+    const localLists: Array<{ collection: Collection; ids: string[] }> = [
+      {
+        collection: "watchlist",
+        ids: (await storage.getWatchlist()).map((p) => p.id),
+      },
+      {
+        collection: "alerts",
+        ids: (await storage.getAlerts()).map((a) => a.id),
+      },
+      {
+        collection: "reminders",
+        ids: [
+          ...(await storage.getBackOrderReminders()).map((r) => r.id),
+          ...(await storage.getStockWatches()).map((w) => w.id),
+        ],
+      },
+    ];
+    for (const { collection, ids } of localLists) {
+      for (const id of ids) {
+        if (pulledIds.has(`${collection}:${id}`)) continue;
+        const entry = meta.items[collection]?.[id];
+        if (entry && entry.updatedAt < cutoff) {
+          await removeLocalItem(storage, collection, id);
+          await storage.clearItemSyncMeta(collection, id);
+        }
+      }
+    }
   }
 
   const { dirty, pendingClearMeta } = await collectDirty(storage, oldCursor, applied, pulled.lastSyncedAt);

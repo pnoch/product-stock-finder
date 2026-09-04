@@ -9,6 +9,7 @@ vi.mock("../server/sync-db", () => ({
   upsertSyncItem: vi.fn(),
   purgeOldTombstones: vi.fn(),
   shouldAcceptSyncWrite: vi.fn(),
+  TOMBSTONE_PURGE_WINDOW_MS: 30 * 24 * 60 * 60 * 1000,
 }));
 
 import { appRouter } from "../server/routers";
