@@ -27,6 +27,7 @@ export interface StorageContext {
   ): void;
   setChangeSuppressed(flag: boolean): void;
   enqueue<T>(key: string, fn: () => Promise<T>): Promise<T>;
+  drainQueues(): Promise<void>;
   readList<T>(key: string): Promise<T[]>;
 }
 
@@ -63,6 +64,12 @@ export function createContext(adapter: StorageAdapter): StorageContext {
     return next;
   }
 
+  // Waits for all in-flight queued writes so operations like clearAllData
+  // cannot be undone by a write that was already running.
+  async function drainQueues(): Promise<void> {
+    await Promise.all([...writeQueues.values()]);
+  }
+
   async function readList<T>(key: string): Promise<T[]> {
     try {
       const raw = await adapter.getItem(key);
@@ -81,6 +88,7 @@ export function createContext(adapter: StorageAdapter): StorageContext {
     setOnChange,
     setChangeSuppressed,
     enqueue,
+    drainQueues,
     readList,
   };
 }

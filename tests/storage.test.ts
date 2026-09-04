@@ -240,6 +240,31 @@ describe("alerts", () => {
     expect(alert.triggeredAt).toBeUndefined();
     expect(alert.triggeredPrice).toBeUndefined();
   });
+
+  it("serializes concurrent saveAlerts in call order", async () => {
+    const { createStorage } = await import("../lib/storage");
+    const store = new Map<string, string>();
+    let writes = 0;
+    const storage = createStorage({
+      getItem: async (key: string) => store.get(key) ?? null,
+      setItem: async (key: string, value: string) => {
+        writes += 1;
+        await new Promise((resolve) => setTimeout(resolve, writes === 1 ? 20 : 0));
+        store.set(key, value);
+      },
+      removeItem: async (key: string) => {
+        store.delete(key);
+      },
+      multiRemove: async (keys: string[]) => {
+        keys.forEach((key) => store.delete(key));
+      },
+    });
+    const first = storage.saveAlerts([makeAlert("a1")]);
+    const second = storage.saveAlerts([makeAlert("a2")]);
+    await Promise.all([first, second]);
+    const saved = JSON.parse(store.get("price_alerts") ?? "[]");
+    expect(saved.map((a: { id: string }) => a.id)).toEqual(["a2"]);
+  });
 });
 
 describe("settings", () => {
@@ -311,6 +336,56 @@ describe("reminders & stock watches", () => {
     await addBackOrderReminder(makeReminder("r2"));
     await removeBackOrderReminder("r1");
     expect((await getBackOrderReminders()).map((r) => r.id)).toEqual(["r2"]);
+  });
+
+  it("serializes concurrent saveBackOrderReminders in call order", async () => {
+    const { createStorage } = await import("../lib/storage");
+    const store = new Map<string, string>();
+    let writes = 0;
+    const storage = createStorage({
+      getItem: async (key: string) => store.get(key) ?? null,
+      setItem: async (key: string, value: string) => {
+        writes += 1;
+        await new Promise((resolve) => setTimeout(resolve, writes === 1 ? 20 : 0));
+        store.set(key, value);
+      },
+      removeItem: async (key: string) => {
+        store.delete(key);
+      },
+      multiRemove: async (keys: string[]) => {
+        keys.forEach((key) => store.delete(key));
+      },
+    });
+    const first = storage.saveBackOrderReminders([makeReminder("r1")]);
+    const second = storage.saveBackOrderReminders([makeReminder("r2")]);
+    await Promise.all([first, second]);
+    const saved = JSON.parse(store.get("back_order_reminders") ?? "[]");
+    expect(saved.map((r: { id: string }) => r.id)).toEqual(["r2"]);
+  });
+
+  it("serializes concurrent saveStockWatches in call order", async () => {
+    const { createStorage } = await import("../lib/storage");
+    const store = new Map<string, string>();
+    let writes = 0;
+    const storage = createStorage({
+      getItem: async (key: string) => store.get(key) ?? null,
+      setItem: async (key: string, value: string) => {
+        writes += 1;
+        await new Promise((resolve) => setTimeout(resolve, writes === 1 ? 20 : 0));
+        store.set(key, value);
+      },
+      removeItem: async (key: string) => {
+        store.delete(key);
+      },
+      multiRemove: async (keys: string[]) => {
+        keys.forEach((key) => store.delete(key));
+      },
+    });
+    const first = storage.saveStockWatches([makeReminder("w1")]);
+    const second = storage.saveStockWatches([makeReminder("w2")]);
+    await Promise.all([first, second]);
+    const saved = JSON.parse(store.get("back_in_stock_watches") ?? "[]");
+    expect(saved.map((r: { id: string }) => r.id)).toEqual(["w2"]);
   });
 
   it("addStockWatch dedupes by product+distributor", async () => {
@@ -449,6 +524,30 @@ describe("clearAllData", () => {
     store.set(DISTRIBUTOR_BREAKER_KEY, JSON.stringify([{ distributorId: "d1" }]));
     await clearAllData();
     expect(store.has(DISTRIBUTOR_BREAKER_KEY)).toBe(false);
+  });
+
+  it("clearAllData drains in-flight queued writes instead of resurrecting them", async () => {
+    const { createStorage } = await import("../lib/storage");
+    const store = new Map<string, string>();
+    let writes = 0;
+    const storage = createStorage({
+      getItem: async (key: string) => store.get(key) ?? null,
+      setItem: async (key: string, value: string) => {
+        writes += 1;
+        await new Promise((resolve) => setTimeout(resolve, writes === 1 ? 20 : 0));
+        store.set(key, value);
+      },
+      removeItem: async (key: string) => {
+        store.delete(key);
+      },
+      multiRemove: async (keys: string[]) => {
+        keys.forEach((key) => store.delete(key));
+      },
+    });
+    const save = storage.saveWatchlist([makeProduct("p1")]);
+    const clear = storage.clearAllData();
+    await Promise.all([save, clear]);
+    expect(await storage.getWatchlist()).toEqual([]);
   });
 });
 

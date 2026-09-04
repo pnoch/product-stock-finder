@@ -10,10 +10,16 @@ export function createRemindersStorage(ctx: StorageContext) {
     return readList<BackOrderReminder>(KEYS.REMINDERS);
   }
 
-  async function saveBackOrderReminders(
+  async function persistBackOrderReminders(
     reminders: BackOrderReminder[],
   ): Promise<void> {
     await adapter.setItem(KEYS.REMINDERS, JSON.stringify(reminders));
+  }
+
+  async function saveBackOrderReminders(
+    reminders: BackOrderReminder[],
+  ): Promise<void> {
+    await enqueue(KEYS.REMINDERS, () => persistBackOrderReminders(reminders));
   }
 
   // Enqueued read-modify-write so concurrent callers never lose changes.
@@ -25,7 +31,7 @@ export function createRemindersStorage(ctx: StorageContext) {
     await enqueue(KEYS.REMINDERS, async () => {
       const reminders = await getBackOrderReminders();
       const next = await fn(reminders);
-      await saveBackOrderReminders(next);
+      await persistBackOrderReminders(next);
     });
   }
 
@@ -40,7 +46,7 @@ export function createRemindersStorage(ctx: StorageContext) {
       } else {
         reminders.unshift(reminder);
       }
-      await saveBackOrderReminders(reminders);
+      await persistBackOrderReminders(reminders);
       notify("reminders", reminder.id);
     });
   }
@@ -48,7 +54,7 @@ export function createRemindersStorage(ctx: StorageContext) {
   async function removeBackOrderReminder(reminderId: string): Promise<void> {
     await enqueue(KEYS.REMINDERS, async () => {
       const reminders = await getBackOrderReminders();
-      await saveBackOrderReminders(
+      await persistBackOrderReminders(
         reminders.filter((r) => r.id !== reminderId),
       );
       notify("reminders", reminderId);
@@ -61,8 +67,12 @@ export function createRemindersStorage(ctx: StorageContext) {
     return readList<BackOrderReminder>(KEYS.STOCK_WATCHES);
   }
 
-  async function saveStockWatches(watches: BackOrderReminder[]): Promise<void> {
+  async function persistStockWatches(watches: BackOrderReminder[]): Promise<void> {
     await adapter.setItem(KEYS.STOCK_WATCHES, JSON.stringify(watches));
+  }
+
+  async function saveStockWatches(watches: BackOrderReminder[]): Promise<void> {
+    await enqueue(KEYS.STOCK_WATCHES, () => persistStockWatches(watches));
   }
 
   async function updateStockWatches(
@@ -73,7 +83,7 @@ export function createRemindersStorage(ctx: StorageContext) {
     await enqueue(KEYS.STOCK_WATCHES, async () => {
       const watches = await getStockWatches();
       const next = await fn(watches);
-      await saveStockWatches(next);
+      await persistStockWatches(next);
     });
   }
 
@@ -90,7 +100,7 @@ export function createRemindersStorage(ctx: StorageContext) {
       } else {
         watches.unshift(watch);
       }
-      await saveStockWatches(watches);
+      await persistStockWatches(watches);
       notify("reminders", watch.id);
     });
   }
@@ -98,7 +108,7 @@ export function createRemindersStorage(ctx: StorageContext) {
   async function removeStockWatch(watchId: string): Promise<void> {
     await enqueue(KEYS.STOCK_WATCHES, async () => {
       const watches = await getStockWatches();
-      await saveStockWatches(watches.filter((w) => w.id !== watchId));
+      await persistStockWatches(watches.filter((w) => w.id !== watchId));
       notify("reminders", watchId);
     });
   }
@@ -118,7 +128,7 @@ export function createRemindersStorage(ctx: StorageContext) {
         }
         return w;
       });
-      await saveStockWatches(updated);
+      await persistStockWatches(updated);
       if (targetId) notify("reminders", targetId);
     });
   }

@@ -10,8 +10,12 @@ export function createAlertsStorage(ctx: StorageContext) {
     return readList<PriceAlert>(KEYS.ALERTS);
   }
 
-  async function saveAlerts(alerts: PriceAlert[]): Promise<void> {
+  async function persistAlerts(alerts: PriceAlert[]): Promise<void> {
     await adapter.setItem(KEYS.ALERTS, JSON.stringify(alerts));
+  }
+
+  async function saveAlerts(alerts: PriceAlert[]): Promise<void> {
+    await enqueue(KEYS.ALERTS, () => persistAlerts(alerts));
   }
 
   // Enqueued read-modify-write so concurrent callers never lose changes.
@@ -21,7 +25,7 @@ export function createAlertsStorage(ctx: StorageContext) {
     await enqueue(KEYS.ALERTS, async () => {
       const alerts = await getAlerts();
       const next = await fn(alerts);
-      await saveAlerts(next);
+      await persistAlerts(next);
     });
   }
 
@@ -29,7 +33,7 @@ export function createAlertsStorage(ctx: StorageContext) {
     await enqueue(KEYS.ALERTS, async () => {
       const alerts = await getAlerts();
       alerts.unshift(alert);
-      await saveAlerts(alerts);
+      await persistAlerts(alerts);
       notify("alerts", alert.id);
     });
   }
@@ -37,7 +41,7 @@ export function createAlertsStorage(ctx: StorageContext) {
   async function removeAlert(alertId: string): Promise<void> {
     await enqueue(KEYS.ALERTS, async () => {
       const alerts = await getAlerts();
-      await saveAlerts(alerts.filter((a) => a.id !== alertId));
+      await persistAlerts(alerts.filter((a) => a.id !== alertId));
       notify("alerts", alertId);
     });
   }
@@ -48,7 +52,7 @@ export function createAlertsStorage(ctx: StorageContext) {
       const updated = alerts.map((a) =>
         a.id === alertId ? { ...a, isActive: !a.isActive } : a,
       );
-      await saveAlerts(updated);
+      await persistAlerts(updated);
       notify("alerts", alertId);
     });
   }
@@ -67,7 +71,7 @@ export function createAlertsStorage(ctx: StorageContext) {
             }
           : a,
       );
-      await saveAlerts(updated);
+      await persistAlerts(updated);
       notify("alerts", alertId);
     });
   }
@@ -99,7 +103,7 @@ export function createAlertsStorage(ctx: StorageContext) {
         next.snoozedUntil = undefined;
         return next;
       });
-      await saveAlerts(updated);
+      await persistAlerts(updated);
       notify("alerts", alertId);
     });
   }
@@ -118,7 +122,7 @@ export function createAlertsStorage(ctx: StorageContext) {
             }
           : a,
       );
-      await saveAlerts(updated);
+      await persistAlerts(updated);
       notify("alerts", alertId);
     });
   }
@@ -139,7 +143,7 @@ export function createAlertsStorage(ctx: StorageContext) {
             }
           : a,
       );
-      await saveAlerts(updated);
+      await persistAlerts(updated);
       notify("alerts", alertId);
     });
   }

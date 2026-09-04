@@ -29,6 +29,9 @@ export function createStorage(
   // ─── Clear All Data ─────────────────────────────────────────────────────────
 
   async function clearAllData(): Promise<void> {
+    // Drain queued writes first: otherwise an in-flight save started before
+    // the clear would land afterwards and resurrect deleted data.
+    await ctx.drainQueues();
     await ctx.adapter.multiRemove([
       STORAGE_KEYS.WATCHLIST,
       STORAGE_KEYS.ALERTS,
