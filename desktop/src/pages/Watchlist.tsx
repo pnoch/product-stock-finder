@@ -320,11 +320,43 @@ export function Watchlist() {
     }
   };
 
-  if (loading) return <LoadingSpinner size="large" label="Loading watchlist..." />;
+  if (loading) {
+    return (
+      <div className="p-6 space-y-4">
+        {!selectionMode ? (
+          <button
+            type="button"
+            onClick={() => setSelectionMode(true)}
+            aria-label="Enter bulk select mode"
+          >
+            Select
+          </button>
+        ) : (
+          <button type="button" onClick={exitSelection}>
+            Cancel
+          </button>
+        )}
+        <LoadingSpinner size="large" label="Loading watchlist..." />
+      </div>
+    );
+  }
 
   if (products.length === 0) {
     return (
-      <div className="p-6">
+      <div className="p-6 space-y-4">
+        {!selectionMode ? (
+          <button
+            type="button"
+            onClick={() => setSelectionMode(true)}
+            aria-label="Enter bulk select mode"
+          >
+            Select
+          </button>
+        ) : (
+          <button type="button" onClick={exitSelection}>
+            Cancel
+          </button>
+        )}
         <EmptyState
           icon={<Package className="w-8 h-8" />}
           title="No products in watchlist"
