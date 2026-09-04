@@ -148,11 +148,17 @@ export async function upsertSyncItem(
   if (!db) return { accepted: false, updatedAt: item.updatedAt };
   const stampedAt = Date.now();
 
+  // Single LWW admission condition shared by all guarded columns below.
+  // Must mirror shouldAcceptSyncWrite() (SQL cannot call TS): legacy rows
+  // without a client stamp fall back to the server-stamped comparison
+  // instead of unconditionally accepting. Pinned by the consistency test in
+  // tests/sync-db.test.ts — update both together.
+  const lwwAcceptsStaleWrite = sql`IF(clientUpdatedAtMs IS NULL, VALUES(clientUpdatedAtMs) > updatedAtMs, VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs))`;
   const conditionalSet = {
-    data: sql`IF(IF(clientUpdatedAtMs IS NULL, VALUES(clientUpdatedAtMs) > updatedAtMs, VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs)), VALUES(data), data)`,
-    updatedAtMs: sql`IF(IF(clientUpdatedAtMs IS NULL, VALUES(clientUpdatedAtMs) > updatedAtMs, VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs)), VALUES(updatedAtMs), updatedAtMs)`,
-    clientUpdatedAtMs: sql`IF(IF(clientUpdatedAtMs IS NULL, VALUES(clientUpdatedAtMs) > updatedAtMs, VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs)), VALUES(clientUpdatedAtMs), clientUpdatedAtMs)`,
-    deletedAtMs: sql`IF(IF(clientUpdatedAtMs IS NULL, VALUES(clientUpdatedAtMs) > updatedAtMs, VALUES(clientUpdatedAtMs) > COALESCE(clientUpdatedAtMs, updatedAtMs)), VALUES(deletedAtMs), deletedAtMs)`,
+    data: sql`IF(${lwwAcceptsStaleWrite}, VALUES(data), data)`,
+    updatedAtMs: sql`IF(${lwwAcceptsStaleWrite}, VALUES(updatedAtMs), updatedAtMs)`,
+    clientUpdatedAtMs: sql`IF(${lwwAcceptsStaleWrite}, VALUES(clientUpdatedAtMs), clientUpdatedAtMs)`,
+    deletedAtMs: sql`IF(${lwwAcceptsStaleWrite}, VALUES(deletedAtMs), deletedAtMs)`,
   };
 
   switch (item.collection) {

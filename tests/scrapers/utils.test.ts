@@ -130,3 +130,44 @@ describe("modelMismatch", () => {
     );
   });
 });
+
+describe("findPriceElement", () => {
+  const TWO_PRODUCT_HTML = `<div class="search-results">
+    <div class="product-card">
+      <h2><a href="/p/OTHER-MODEL-X1">OTHER-MODEL-X1 Router</a></h2>
+      <span class="price">$999.00</span>
+    </div>
+    <div class="product-card">
+      <h2><a href="/p/TARGET-MODEL-9Z">TARGET-MODEL-9Z Switch</a></h2>
+      <span class="price">$1.00</span>
+    </div>
+  </div>`;
+
+  it("prefers the price whose card matches the model over document order", async () => {
+    const { findPriceElement } = await import("../../lib/scrapers/utils");
+    const $ = cheerio.load(TWO_PRODUCT_HTML);
+    const $price = findPriceElement($, ".price", "TARGET-MODEL-9Z");
+    expect($price).not.toBeNull();
+    expect($price!.text()).toContain("1.00");
+  });
+
+  it("returns null when no price context matches the model", async () => {
+    const { findPriceElement } = await import("../../lib/scrapers/utils");
+    const $ = cheerio.load(TWO_PRODUCT_HTML);
+    expect(findPriceElement($, ".price", "NOPE-NOT-HERE-0Z")).toBeNull();
+  });
+
+  it("falls back to document order when no model is given", async () => {
+    const { findPriceElement } = await import("../../lib/scrapers/utils");
+    const $ = cheerio.load(TWO_PRODUCT_HTML);
+    const $price = findPriceElement($, ".price");
+    expect($price).not.toBeNull();
+    expect($price!.text()).toContain("999.00");
+  });
+
+  it("returns null when the selector matches nothing", async () => {
+    const { findPriceElement } = await import("../../lib/scrapers/utils");
+    const $ = cheerio.load(TWO_PRODUCT_HTML);
+    expect(findPriceElement($, ".nope", "TARGET-MODEL-9Z")).toBeNull();
+  });
+});

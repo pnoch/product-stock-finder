@@ -188,4 +188,20 @@ describe("shouldAcceptSyncWrite", () => {
     expect(shouldAcceptSyncWrite(null, 5_000, 4_000)).toBe(false);
     expect(shouldAcceptSyncWrite(null, 1_000, 5_000)).toBe(true);
   });
+
+  it("stays consistent with the SQL upsert condition", async () => {
+    // server/sync-db.ts cannot call this helper (SQL runs in MySQL), so the
+    // upsert embeds the same rule. This pins the SQL text to prevent the two
+    // from silently diverging again.
+    const { readFile } = await import("node:fs/promises");
+    const source = await readFile("server/sync-db.ts", "utf8");
+    // Legacy-NULL branch must compare against the server stamp, never
+    // unconditionally accept.
+    expect(source).toContain(
+      "IF(clientUpdatedAtMs IS NULL, VALUES(clientUpdatedAtMs) > updatedAtMs",
+    );
+    expect(source).not.toMatch(/IF\(clientUpdatedAtMs IS NULL,\s*1,/);
+    // All four guarded columns must share one condition definition.
+    expect(source).toContain("lwwAcceptsStaleWrite");
+  });
 });

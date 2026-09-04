@@ -3,6 +3,7 @@ import { DistributorParser, ScrapeResult } from "./types";
 import {
   fetchWithParser,
   parsePriceFromText,
+  findPriceElement,
   inferStockStatus,
   modelMismatch,
 } from "./utils";
@@ -15,7 +16,8 @@ function parseHtml(
 ): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const $price = $(".product-link, .nobr, td a[href*='/products/'], .price").first();
+  const $price = findPriceElement($, ".product-link, .nobr, td a[href*='/products/'], .price", model);
+  if (!$price || $price.length === 0) return null;
   const price = parsePriceFromText($price.text());
   if (!price) return null;
   if (modelMismatch($price, model)) return null;

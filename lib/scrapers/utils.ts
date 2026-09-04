@@ -193,3 +193,48 @@ export function modelMismatch(
   }
   return sawContent;
 }
+
+function matchDepth(
+  $: (selector: string | Element) => Cheerio<Element>,
+  $el: Cheerio<Element>,
+  model: string,
+): number {
+  let node: Cheerio<Element> | null = $el;
+  for (let depth = 0; depth < 4 && node && node.length > 0; depth++) {
+    const { text, href } = productRowContext(node);
+    if (text.trim() || href) {
+      if (matchesModel(text, model) || matchesModel(href, model)) return depth;
+    }
+    const parent: Cheerio<Element> = node.parent();
+    node = parent.length > 0 ? parent : null;
+  }
+  return Infinity;
+}
+
+/**
+ * Selects the price element whose card context matches the model, preferring
+ * the shortest walk-up distance over document order. Without a model this is
+ * identical to `.first()`. Returns null when nothing matches anything.
+ *
+ * This fixes the wrong-product bug where `.first()` grabbed another card's
+ * price and the shared container text satisfied the model check.
+ */
+export function findPriceElement(
+  $: (selector: string | Element) => Cheerio<Element>,
+  selector: string,
+  model?: string,
+): Cheerio<Element> | null {
+  const $prices = $(selector);
+  if ($prices.length === 0) return null;
+  if (!model) return $prices.first();
+  let best: Cheerio<Element> | null = null;
+  let bestDepth = Infinity;
+  $prices.each((index, _el) => {
+    const depth = matchDepth($, $prices.eq(index), model);
+    if (depth < bestDepth) {
+      bestDepth = depth;
+      best = $prices.eq(index);
+    }
+  });
+  return bestDepth === Infinity ? null : best;
+}
