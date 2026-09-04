@@ -2,7 +2,7 @@ import type { Product, Distributor } from "../types";
 import type { StorageContext } from "./context";
 
 export function createDiscoveryStorage(ctx: StorageContext) {
-  const { adapter, KEYS, readList } = ctx;
+  const { adapter, KEYS, enqueue, readList } = ctx;
 
   // ─── Discovered Products ────────────────────────────────────────────────────
 
@@ -10,14 +10,22 @@ export function createDiscoveryStorage(ctx: StorageContext) {
     return readList<Product>(KEYS.DISCOVERED_PRODUCTS);
   }
 
-  async function saveDiscoveredProducts(products: Product[]): Promise<void> {
+  async function persistDiscoveredProducts(products: Product[]): Promise<void> {
     await adapter.setItem(KEYS.DISCOVERED_PRODUCTS, JSON.stringify(products));
   }
 
+  async function saveDiscoveredProducts(products: Product[]): Promise<void> {
+    await enqueue(KEYS.DISCOVERED_PRODUCTS, () =>
+      persistDiscoveredProducts(products),
+    );
+  }
+
   async function addDiscoveredProduct(product: Product): Promise<void> {
-    const existing = await getDiscoveredProducts();
-    if (existing.some((p) => p.id === product.id)) return;
-    await saveDiscoveredProducts([...existing, product]);
+    await enqueue(KEYS.DISCOVERED_PRODUCTS, async () => {
+      const existing = await getDiscoveredProducts();
+      if (existing.some((p) => p.id === product.id)) return;
+      await persistDiscoveredProducts([...existing, product]);
+    });
   }
 
   // ─── Discovered Distributors ────────────────────────────────────────────────
@@ -26,7 +34,7 @@ export function createDiscoveryStorage(ctx: StorageContext) {
     return readList<Distributor>(KEYS.DISCOVERED_DISTRIBUTORS);
   }
 
-  async function saveDiscoveredDistributors(
+  async function persistDiscoveredDistributors(
     distributors: Distributor[],
   ): Promise<void> {
     await adapter.setItem(
@@ -35,12 +43,22 @@ export function createDiscoveryStorage(ctx: StorageContext) {
     );
   }
 
+  async function saveDiscoveredDistributors(
+    distributors: Distributor[],
+  ): Promise<void> {
+    await enqueue(KEYS.DISCOVERED_DISTRIBUTORS, () =>
+      persistDiscoveredDistributors(distributors),
+    );
+  }
+
   async function addDiscoveredDistributor(
     distributor: Distributor,
   ): Promise<void> {
-    const existing = await getDiscoveredDistributors();
-    if (existing.some((d) => d.id === distributor.id)) return;
-    await saveDiscoveredDistributors([...existing, distributor]);
+    await enqueue(KEYS.DISCOVERED_DISTRIBUTORS, async () => {
+      const existing = await getDiscoveredDistributors();
+      if (existing.some((d) => d.id === distributor.id)) return;
+      await persistDiscoveredDistributors([...existing, distributor]);
+    });
   }
 
   return {

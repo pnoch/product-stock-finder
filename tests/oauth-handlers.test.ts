@@ -232,10 +232,13 @@ describe("GET /api/oauth/callback (legacy redirect)", () => {
     vi.restoreAllMocks();
   });
 
-  it("redirects to the client callback route (no params to forward)", async () => {
+  it("rejects callback requests without valid signed state", async () => {
     const getHandler = setupRoutes();
     const res = makeRes();
     await getHandler("GET", "/api/oauth/callback")(makeReq({}), res);
-    expect(res.redirect).toHaveBeenCalledWith(302, "/oauth/callback");
+    expect(res.redirect).toHaveBeenCalledWith(
+      302,
+      expect.stringContaining("error=invalid_state"),
+    );
   });
 });

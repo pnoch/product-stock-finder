@@ -30,25 +30,30 @@ export function createSyncMetaStorage(ctx: StorageContext) {
     }
   }
 
-  // Persists sync meta via read-modify-write. `saveSyncMeta` merges `items`
-  // into the existing meta (lastSyncedAt is taken from the argument). The
-  // merge is per collection, not per item: callers must pass the full
-  // contents of any collection they touch, since its entry replaces that
-  // collection wholesale. NOT enqueued — internal helpers call it while
-  // already inside enqueue(KEYS.SYNC_META, ...); the public `saveSyncMeta`
-  // wrapper below adds the queue for external callers.
+  // Persists sync meta via read-modify-write. `items` merges per item
+  // within each collection (never wholesale-replaces a collection), and
+  // `lastSyncedAt` only moves forward. NOT enqueued — internal helpers call
+  // it while already inside enqueue(KEYS.SYNC_META, ...); the public
+  // `saveSyncMeta` wrapper below adds the queue for external callers.
   async function persistSyncMeta(meta: SyncMeta): Promise<void> {
     const existing = await getSyncMeta();
+    const merged: SyncMeta["items"] = { ...existing.items };
+    for (const [collection, entries] of Object.entries(meta.items)) {
+      merged[collection as keyof SyncMeta["items"]] = {
+        ...(existing.items[collection as keyof SyncMeta["items"]] ?? {}),
+        ...entries,
+      } as never;
+    }
     await adapter.setItem(
       KEYS.SYNC_META,
       JSON.stringify({
-        lastSyncedAt: meta.lastSyncedAt,
+        lastSyncedAt: Math.max(existing.lastSyncedAt, meta.lastSyncedAt),
         lastSyncOkAt: meta.lastSyncOkAt ?? existing.lastSyncOkAt,
         lastSyncError:
           meta.lastSyncError !== undefined
             ? meta.lastSyncError
             : existing.lastSyncError,
-        items: { ...existing.items, ...meta.items },
+        items: merged,
       }),
     );
   }
@@ -100,7 +105,9 @@ export function createSyncMetaStorage(ctx: StorageContext) {
       const col = meta.items[collection];
       if (col && col[id]) {
         delete col[id];
-        await persistSyncMeta(meta);
+        // Write through directly instead of persistSyncMeta: the merge in
+        // persistSyncMeta would resurrect this entry from the stored copy.
+        await adapter.setItem(KEYS.SYNC_META, JSON.stringify(meta));
       }
     });
   }

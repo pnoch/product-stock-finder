@@ -118,7 +118,7 @@ describe("server-first scraping", () => {
         currency: "MYR",
         stockStatus: "in_stock",
         url: "https://server2u.com/p/1",
-        fetchedAt: 1000,
+        fetchedAt: Date.now(),
       },
       history: [
         {
@@ -279,7 +279,7 @@ describe("server-first scraping", () => {
         currency: "MYR",
         stockStatus: "in_stock",
         url: "https://server2u.com/p/1",
-        fetchedAt: 1000,
+        fetchedAt: Date.now(),
       },
       history: [],
     });

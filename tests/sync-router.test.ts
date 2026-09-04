@@ -63,6 +63,34 @@ describe("sync router", () => {
     const result = await caller.sync.push({ items: [] });
     expect(result).toEqual({ accepted: 0, stamped: [] });
   });
+
+  it("rate limits pull after the per-minute budget", async () => {
+    mockedGetDb.mockResolvedValue({} as never);
+    const ctx = { ...createAuthContext(), req: { ...createAuthContext().req, ip: "10.9.9.21" } as TrpcContext["req"] };
+    const caller = appRouter.createCaller(ctx);
+    for (let i = 0; i < 60; i++) {
+      await caller.sync.pull({ since: null });
+    }
+    await expect(caller.sync.pull({ since: null })).rejects.toThrow(/Rate limit exceeded/);
+  });
+
+  it("rejects non-finite or negative pull cursors", async () => {
+    const caller = appRouter.createCaller(createAuthContext());
+    await expect(caller.sync.pull({ since: NaN })).rejects.toThrow();
+    await expect(caller.sync.pull({ since: -5 })).rejects.toThrow();
+  });
+
+  it("rejects non-finite sync timestamps on push", async () => {
+    const caller = appRouter.createCaller(createAuthContext());
+    const item = {
+      collection: "watchlist" as const,
+      id: "p1",
+      data: { id: "p1" },
+      updatedAt: Infinity,
+      deletedAt: null,
+    };
+    await expect(caller.sync.push({ items: [item] })).rejects.toThrow();
+  });
 });
 
 describe("sync pull cursor", () => {

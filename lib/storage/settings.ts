@@ -59,8 +59,26 @@ export function createSettingsStorage(
   async function saveTagDefinitions(
     defs: Record<string, TagDefinition>,
   ): Promise<void> {
-    const settings = await getSettings();
-    await saveSettings({ ...settings, tagDefinitions: defs });
+    await updateTagDefinitions(() => defs);
+  }
+
+  // Enqueued read-modify-write so concurrent tag mutations never lose
+  // definitions. The duplicate check must run inside the queue too.
+  async function updateTagDefinitions(
+    fn: (
+      defs: Record<string, TagDefinition>,
+    ) => Record<string, TagDefinition>,
+  ): Promise<Record<string, TagDefinition>> {
+    let next: Record<string, TagDefinition> = {};
+    await enqueue(KEYS.SETTINGS, async () => {
+      const settings = await getSettings();
+      next = fn(settings.tagDefinitions ?? {});
+      await adapter.setItem(
+        KEYS.SETTINGS,
+        JSON.stringify({ ...settings, tagDefinitions: next }),
+      );
+    });
+    return next;
   }
 
   async function setProductTags(
@@ -93,43 +111,51 @@ export function createSettingsStorage(
     color: string,
   ): Promise<TagDefinition> {
     const trimmed = name.trim();
-    const defs = await getTagDefinitions();
-    const duplicate = Object.values(defs).some(
-      (d) => d.name.toLowerCase() === trimmed.toLowerCase(),
-    );
-    if (duplicate) throw new Error("A tag with that name already exists");
-    const tag: TagDefinition = { id: generateTagId(), name: trimmed, color };
-    await saveTagDefinitions({ ...defs, [tag.id]: tag });
-    return tag;
+    let created: TagDefinition | undefined;
+    await updateTagDefinitions((defs) => {
+      const duplicate = Object.values(defs).some(
+        (d) => d.name.toLowerCase() === trimmed.toLowerCase(),
+      );
+      if (duplicate) throw new Error("A tag with that name already exists");
+      created = { id: generateTagId(), name: trimmed, color };
+      return { ...defs, [created.id]: created };
+    });
+    return created!;
   }
 
   async function renameTag(id: string, name: string): Promise<void> {
     const trimmed = name.trim();
-    const defs = await getTagDefinitions();
-    const existing = defs[id];
-    if (!existing) return;
-    const duplicate = Object.values(defs).some(
-      (d) => d.id !== id && d.name.toLowerCase() === trimmed.toLowerCase(),
-    );
-    if (duplicate) throw new Error("A tag with that name already exists");
-    await saveTagDefinitions({ ...defs, [id]: { ...existing, name: trimmed } });
+    await updateTagDefinitions((defs) => {
+      const existing = defs[id];
+      if (!existing) return defs;
+      const duplicate = Object.values(defs).some(
+        (d) => d.id !== id && d.name.toLowerCase() === trimmed.toLowerCase(),
+      );
+      if (duplicate) throw new Error("A tag with that name already exists");
+      return { ...defs, [id]: { ...existing, name: trimmed } };
+    });
   }
 
   async function setTagColor(id: string, color: string): Promise<void> {
-    const defs = await getTagDefinitions();
-    const existing = defs[id];
-    if (!existing) return;
-    await saveTagDefinitions({ ...defs, [id]: { ...existing, color } });
+    await updateTagDefinitions((defs) => {
+      const existing = defs[id];
+      if (!existing) return defs;
+      return { ...defs, [id]: { ...existing, color } };
+    });
   }
 
   async function deleteTag(id: string): Promise<void> {
-    const defs = await getTagDefinitions();
-    if (!defs[id]) return;
-    const rest: Record<string, TagDefinition> = {};
-    for (const [key, value] of Object.entries(defs)) {
-      if (key !== id) rest[key] = value;
-    }
-    await saveTagDefinitions(rest);
+    let deleted = false;
+    await updateTagDefinitions((defs) => {
+      if (!defs[id]) return defs;
+      deleted = true;
+      const rest: Record<string, TagDefinition> = {};
+      for (const [key, value] of Object.entries(defs)) {
+        if (key !== id) rest[key] = value;
+      }
+      return rest;
+    });
+    if (!deleted) return;
     await updateWatchlist((list) =>
       list.map((p) =>
         p.tags?.includes(id)

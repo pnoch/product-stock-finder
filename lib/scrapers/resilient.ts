@@ -168,6 +168,7 @@ const BROWSER_UNAVAILABLE_TTL_MS = 60_000;
 async function fetchBrowser(
   parser: DistributorParser,
   url: string,
+  timeoutMs?: number,
 ): Promise<string> {
   if (browserUnavailableReason) {
     if (Date.now() - browserUnavailableAt < BROWSER_UNAVAILABLE_TTL_MS) {
@@ -185,7 +186,10 @@ async function fetchBrowser(
       cause: error,
     });
   }
-  return mod.fetchWithBrowser(url, parser.browserOptions);
+  return mod.fetchWithBrowser(url, {
+    ...parser.browserOptions,
+    ...(timeoutMs !== undefined ? { timeoutMs } : {}),
+  });
 }
 
 function blockCooldownMs(
@@ -226,7 +230,11 @@ async function attemptMethod(
     if (attempt > 0) await sleep(retryBaseMs * attempt);
     try {
       if (method === "browser") {
-        const html = await fetchBrowser(opts.parser, opts.url);
+        const html = await fetchBrowser(
+          opts.parser,
+          opts.url,
+          opts.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+        );
         const status = classifyFetchStatus(html);
         if (status === "ok") return { html, status: "ok", method };
         last = { status, method, error: "blocked by site" };

@@ -551,6 +551,113 @@ describe("clearAllData", () => {
   });
 });
 
+describe("concurrency regression", () => {
+  it("quarantines corrupt payloads instead of silently dropping them", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const { createStorage } = await import("../lib/storage");
+      const store = new Map<string, string>([["watchlist_products", "{corrupt"]]);
+      const storage = createStorage({
+        getItem: async (key: string) => store.get(key) ?? null,
+        setItem: async (key: string, value: string) => {
+          store.set(key, value);
+        },
+        removeItem: async (key: string) => {
+          store.delete(key);
+        },
+        multiRemove: async (keys: string[]) => {
+          keys.forEach((key) => store.delete(key));
+        },
+      });
+      expect(await storage.getWatchlist()).toEqual([]);
+      expect(
+        [...store.keys()].some((k) => k.startsWith("watchlist_products.corrupt-")),
+      ).toBe(true);
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("keeps both tags from concurrent createTag calls", async () => {
+    const { createStorage } = await import("../lib/storage");
+    const store = new Map<string, string>();
+    const storage = createStorage({
+      getItem: async (key: string) => store.get(key) ?? null,
+      setItem: async (key: string, value: string) => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        store.set(key, value);
+      },
+      removeItem: async (key: string) => {
+        store.delete(key);
+      },
+      multiRemove: async (keys: string[]) => {
+        keys.forEach((key) => store.delete(key));
+      },
+    });
+    const [a, b] = await Promise.all([
+      storage.createTag("Alpha", "#111111"),
+      storage.createTag("Beta", "#222222"),
+    ]);
+    const defs = await storage.getTagDefinitions();
+    expect(Object.keys(defs).sort()).toEqual([a.id, b.id].sort());
+  });
+
+  it("merges sync meta per item instead of replacing collections wholesale", async () => {
+    const { createStorage } = await import("../lib/storage");
+    const store = new Map<string, string>();
+    const storage = createStorage({
+      getItem: async (key: string) => store.get(key) ?? null,
+      setItem: async (key: string, value: string) => {
+        store.set(key, value);
+      },
+      removeItem: async (key: string) => {
+        store.delete(key);
+      },
+      multiRemove: async (keys: string[]) => {
+        keys.forEach((key) => store.delete(key));
+      },
+    });
+    await storage.saveSyncMeta({
+      lastSyncedAt: 100,
+      items: { watchlist: { a: { updatedAt: 100, deleted: false } } },
+    });
+    await storage.saveSyncMeta({
+      lastSyncedAt: 50,
+      items: { watchlist: { b: { updatedAt: 50, deleted: false } } },
+    });
+    const meta = await storage.getSyncMeta();
+    expect(Object.keys(meta.items.watchlist ?? {}).sort()).toEqual(["a", "b"]);
+    expect(meta.lastSyncedAt).toBe(100);
+  });
+
+  it("serializes concurrent discovered-product adds without losing entries", async () => {
+    const { createStorage } = await import("../lib/storage");
+    const store = new Map<string, string>();
+    const storage = createStorage({
+      getItem: async (key: string) => store.get(key) ?? null,
+      setItem: async (key: string, value: string) => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        store.set(key, value);
+      },
+      removeItem: async (key: string) => {
+        store.delete(key);
+      },
+      multiRemove: async (keys: string[]) => {
+        keys.forEach((key) => store.delete(key));
+      },
+    });
+    await Promise.all([
+      storage.addDiscoveredProduct(makeProduct("d1")),
+      storage.addDiscoveredProduct(makeProduct("d2")),
+    ]);
+    expect((await storage.getDiscoveredProducts()).map((p) => p.id).sort()).toEqual([
+      "d1",
+      "d2",
+    ]);
+  });
+});
+
 describe("displayed event ids", () => {
   it("returns an empty list by default", async () => {
     expect(await getDisplayedEventIds()).toEqual([]);

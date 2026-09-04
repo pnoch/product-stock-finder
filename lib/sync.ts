@@ -450,7 +450,12 @@ async function itemExists(
 // so device clock skew cannot lose or wrongly win edits.
 async function serverNow(storage: Storage): Promise<number> {
   const meta = await storage.getSyncMeta();
-  const lastSyncedAt = meta.lastSyncedAt ?? Date.now();
+  // Never synced: there is no server clock baseline, so use the client
+  // clock. Without this, lastSyncedAt (0) minus okAt (now) collapses to 0
+  // and pre-first-sync edits are stamped 0, which collectDirty treats as
+  // "not newer than cursor 0" — silently never pushing them.
+  if (!meta.lastSyncedAt) return Date.now();
+  const lastSyncedAt = meta.lastSyncedAt;
   const okAt = meta.lastSyncOkAt ?? Date.now();
   if (!Number.isFinite(lastSyncedAt) || !Number.isFinite(okAt)) return Date.now();
   return Date.now() + (lastSyncedAt - okAt);

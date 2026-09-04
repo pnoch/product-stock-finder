@@ -78,8 +78,8 @@ const syncItemSchema = z.object({
     },
     { message: "data too large" },
   ),
-  updatedAt: z.number(),
-  deletedAt: z.number().nullable(),
+  updatedAt: z.number().finite(),
+  deletedAt: z.number().finite().nullable(),
 });
 
 export const appRouter = router({
@@ -105,8 +105,9 @@ export const appRouter = router({
 
   sync: router({
     pull: protectedProcedure
-      .input(z.object({ since: z.number().nullable() }))
+      .input(z.object({ since: z.number().finite().nonnegative().nullable() }))
       .query(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "sync.pull", 60, 60_000);
         const db = await getDb();
         if (!db) {
           console.warn("[Sync] Database not available; returning empty pull");

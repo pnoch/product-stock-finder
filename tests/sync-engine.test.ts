@@ -173,6 +173,34 @@ describe("syncNow", () => {
     expect((await storage.getWatchlist()).map((p) => p.id)).toEqual(["fresh"]);
   });
 
+  it("pushes pre-first-sync edits instead of stamping them 0", async () => {
+    const storage = makeStorage();
+    setupSync({
+      storage,
+      isSignedIn: () => true,
+      pull: vi.fn(async () => ({ lastSyncedAt: 0, items: [] })),
+      push: vi.fn(async () => ({ accepted: 0, stamped: [] })),
+      debounceMs: 60000,
+    });
+    // Add before any successful sync; the onChange markDirty stamps via
+    // serverNow, which must not collapse to 0 or the item is never pushed.
+    await storage.addToWatchlist(makeProduct("p1"));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const pull = vi.fn(async () => ({ lastSyncedAt: 5000, items: [] }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 6000,
+    });
+    const pushedIds = push.mock.calls.flatMap(([items]: SyncItem[][]) =>
+      items.map((i) => i.id),
+    );
+    expect(pushedIds).toContain("p1");
+  });
+
   it("pulls and merges server items on first sync without re-pushing them", async () => {
     const storage = makeStorage();
     const serverProduct = makeProduct("p1", [listing("d1", 100, "in_stock")]);

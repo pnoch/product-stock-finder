@@ -2,10 +2,135 @@ import { COOKIE_NAME, SESSION_MS } from "../../shared/const.js";
 import type { Express, Request, Response } from "express";
 import { sdk } from "./sdk";
 import { getSessionCookieOptions } from "./cookies";
-import { randomUUID, createHash } from "crypto";
+import { randomUUID, createHash, createHmac } from "crypto";
 import bcrypt from "bcryptjs";
 import * as db from "../db";
-import { encodeOAuthState } from "../../shared/oauth-state.js";
+
+// ─── Signed OAuth state + single-use tickets ────────────────────────────────
+// The client must never accept a raw session token from a URL (login CSRF /
+// session fixation). Instead the server signs the OAuth `state` envelope and
+// issues short-lived, device-bound, single-use tickets that the app redeems.
+
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+const OAUTH_TICKET_TTL_MS = 5 * 60 * 1000;
+
+export interface OAuthStatePayload {
+  redirectUri: string;
+  deviceId?: string;
+  provider: string;
+}
+
+const usedStateNonces = new Map<string, number>();
+
+function stateSecret(): string {
+  return process.env.JWT_SECRET ?? "dev-secret-change-in-production";
+}
+
+function pruneExpiring<K>(map: Map<K, number>, now: number) {
+  for (const [key, exp] of map) {
+    if (exp <= now) map.delete(key);
+  }
+  if (map.size > 1000) {
+    const oldest = [...map.entries()].sort((a, b) => a[1] - b[1])[0];
+    if (oldest) map.delete(oldest[0]);
+  }
+}
+
+function pruneTickets(now: number) {
+  for (const [key, ticket] of oauthTickets) {
+    if (ticket.expires <= now) oauthTickets.delete(key);
+  }
+  if (oauthTickets.size > 1000) {
+    const oldest = [...oauthTickets.entries()].sort((a, b) => a[1].expires - b[1].expires)[0];
+    if (oldest) oauthTickets.delete(oldest[0]);
+  }
+}
+
+export function signOAuthState(
+  payload: OAuthStatePayload,
+  ttlMs: number = OAUTH_STATE_TTL_MS,
+): string {
+  const body = {
+    ...payload,
+    nonce: randomUUID(),
+    exp: Date.now() + ttlMs,
+  };
+  const encoded =
+    typeof Buffer !== "undefined"
+      ? Buffer.from(JSON.stringify(body), "utf8").toString("base64url")
+      : btoa(JSON.stringify(body));
+  const sig = createHmac("sha256", stateSecret()).update(encoded).digest("base64url");
+  return `${encoded}.${sig}`;
+}
+
+export function verifyOAuthState(
+  state: string,
+): (OAuthStatePayload & { nonce: string }) | null {
+  try {
+    const [encoded, sig] = state.split(".");
+    if (!encoded || !sig) return null;
+    const expected = createHmac("sha256", stateSecret()).update(encoded).digest("base64url");
+    const a = Buffer.from(sig, "utf8");
+    const b = Buffer.from(expected, "utf8");
+    if (a.length !== b.length) return null;
+    let diff = 0;
+    for (let i = 0; i < a.length; i++) diff |= a[i]! ^ b[i]!;
+    if (diff !== 0) return null;
+    const body = JSON.parse(
+      Buffer.from(encoded, "base64url").toString("utf8"),
+    ) as OAuthStatePayload & { nonce?: string; exp?: number };
+    if (!body.nonce || typeof body.exp !== "number" || body.exp <= Date.now()) {
+      return null;
+    }
+    if (typeof body.redirectUri !== "string" || typeof body.provider !== "string") {
+      return null;
+    }
+    pruneExpiring(usedStateNonces, Date.now());
+    if (usedStateNonces.has(body.nonce)) return null;
+    usedStateNonces.set(body.nonce, body.exp);
+    return {
+      redirectUri: body.redirectUri,
+      deviceId: body.deviceId,
+      provider: body.provider,
+      nonce: body.nonce,
+    };
+  } catch {
+    return null;
+  }
+}
+
+interface OAuthTicket {
+  openId: string;
+  deviceId?: string;
+  expires: number;
+}
+
+const oauthTickets = new Map<string, OAuthTicket>();
+
+function issueOAuthTicket(openId: string, deviceId?: string): string {
+  pruneTickets(Date.now());
+  const ticket = randomUUID();
+  oauthTickets.set(ticket, {
+    openId,
+    deviceId,
+    expires: Date.now() + OAUTH_TICKET_TTL_MS,
+  });
+  return ticket;
+}
+
+function redeemOAuthTicket(
+  ticket: string,
+  deviceId?: string,
+): { openId: string } | null {
+  const entry = oauthTickets.get(ticket);
+  if (!entry) return null;
+  oauthTickets.delete(ticket);
+  if (entry.expires <= Date.now()) return null;
+  // Device binding kills fixation: a ticket minted for one device cannot be
+  // redeemed from another.
+  if (entry.deviceId && entry.deviceId !== deviceId) return null;
+  return { openId: entry.openId };
+}
 
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
 function sendPasswordResetEmail(email: string, token: string) {
@@ -143,23 +268,256 @@ export function registerOAuthRoutes(app: Express) {
     }
   });
 
-  app.get("/api/oauth/callback", (req: Request, res: Response) => {
-    // Never drop the provider response: forward code/state/error to the
-    // client callback route so the app can complete or surface the flow.
-    // (Full server-side code exchange is a follow-up; see oauth TODO.)
-    const params = new URLSearchParams();
-    for (const key of ["code", "state", "error", "error_description"] as const) {
-      const value = req.query[key];
-      if (typeof value === "string" && value) params.set(key, value);
+  function oauthBases() {
+    const apiBase =
+      process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
+    const webBase =
+      process.env.EXPO_PUBLIC_WEB_URL?.replace(/\/$/, "") ?? apiBase;
+    return {
+      apiBase,
+      webBase,
+      oauthRedirect: `${apiBase || webBase}/api/oauth/callback`,
+    };
+  }
+
+  function resolveSafeRedirectUri(input: string, webBase: string): string {
+    const trimmed = input.trim();
+    if (!trimmed) return "/";
+    // Relative app paths and the native deep-link scheme are always safe.
+    if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return trimmed;
+    if (trimmed.startsWith("productstockfinder:")) return trimmed;
+    try {
+      const url = new URL(trimmed);
+      if (webBase) {
+        const base = new URL(webBase);
+        if (url.origin === base.origin) return trimmed;
+      }
+    } catch {
+      // fall through to "/"
     }
-    const suffix = params.size > 0 ? `?${params.toString()}` : "";
-    res.redirect(302, `/oauth/callback${suffix}`);
+    return "/";
+  }
+
+  function googleOAuthConfig() {
+    const clientId =
+      process.env.GOOGLE_CLIENT_ID ??
+      process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ??
+      "";
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET ?? "";
+    return {
+      configured: clientId.trim().length > 0 && clientSecret.trim().length > 0,
+      clientId: clientId.trim(),
+      clientSecret: clientSecret.trim(),
+    };
+  }
+
+  function appleOAuthConfig() {
+    const clientId =
+      process.env.APPLE_CLIENT_ID ?? process.env.EXPO_PUBLIC_APPLE_CLIENT_ID ?? "";
+    const teamId = process.env.APPLE_TEAM_ID ?? "";
+    const keyId = process.env.APPLE_KEY_ID ?? "";
+    const privateKey = process.env.APPLE_PRIVATE_KEY ?? "";
+    return {
+      configured:
+        clientId.trim().length > 0 &&
+        teamId.trim().length > 0 &&
+        keyId.trim().length > 0 &&
+        privateKey.trim().length > 0,
+      clientId: clientId.trim(),
+      teamId: teamId.trim(),
+      keyId: keyId.trim(),
+      privateKey,
+    };
+  }
+
+  async function exchangeGoogleCode(
+    code: string,
+    redirectUri: string,
+  ): Promise<{ sub: string; email: string; name: string } | null> {
+    const { clientId, clientSecret } = googleOAuthConfig();
+    if (!clientId || !clientSecret) return null;
+    try {
+      const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: "authorization_code",
+        }).toString(),
+      });
+      if (!tokenRes.ok) return null;
+      const tokenData = (await tokenRes.json()) as { access_token?: string };
+      if (!tokenData.access_token) return null;
+      const userRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      if (!userRes.ok) return null;
+      const profile = (await userRes.json()) as {
+        sub?: string;
+        email?: string;
+        name?: string;
+      };
+      if (!profile.sub || !profile.email) return null;
+      return { sub: profile.sub, email: profile.email, name: profile.name ?? profile.email };
+    } catch {
+      return null;
+    }
+  }
+
+  async function exchangeAppleCode(
+    code: string,
+  ): Promise<{ sub: string; email: string; name: string } | null> {
+    const config = appleOAuthConfig();
+    if (!config.configured) return null;
+    try {
+      const { SignJWT, importPKCS8, jwtVerify, createRemoteJWKSet } = await import("jose");
+      const now = Math.floor(Date.now() / 1000);
+      const privateKey = await importPKCS8(
+        config.privateKey.replace(/\\n/g, "\n"),
+        "ES256",
+      );
+      const clientSecret = await new SignJWT({})
+        .setProtectedHeader({ alg: "ES256", kid: config.keyId })
+        .setIssuer(config.teamId)
+        .setSubject(config.clientId)
+        .setAudience("https://appleid.apple.com")
+        .setIssuedAt(now)
+        .setExpirationTime(now + 300)
+        .sign(privateKey);
+      const tokenRes = await fetch("https://appleid.apple.com/auth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code,
+          client_id: config.clientId,
+          client_secret: clientSecret,
+          grant_type: "authorization_code",
+        }).toString(),
+      });
+      if (!tokenRes.ok) return null;
+      const tokenData = (await tokenRes.json()) as { id_token?: string };
+      if (!tokenData.id_token) return null;
+      const jwks = createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));
+      const { payload } = await jwtVerify(tokenData.id_token, jwks, {
+        issuer: "https://appleid.apple.com",
+        audience: config.clientId,
+      });
+      const sub = payload.sub;
+      const email = payload.email;
+      if (typeof sub !== "string" || typeof email !== "string") return null;
+      return { sub, email, name: email };
+    } catch {
+      return null;
+    }
+  }
+
+  function errorRedirect(res: Response, message: string) {
+    const params = new URLSearchParams({ error: message });
+    res.redirect(302, `/oauth/callback?${params.toString()}`);
+  }
+
+  app.get("/api/oauth/callback", async (req: Request, res: Response) => {
+    try {
+      const providerError =
+        typeof req.query.error === "string" ? req.query.error : undefined;
+      const rawState = typeof req.query.state === "string" ? req.query.state : "";
+      const state = verifyOAuthState(rawState);
+      if (!state) {
+        errorRedirect(res, "invalid_state");
+        return;
+      }
+      if (providerError) {
+        errorRedirect(res, providerError);
+        return;
+      }
+      const code = typeof req.query.code === "string" ? req.query.code : "";
+      if (!code) {
+        errorRedirect(res, "missing_code");
+        return;
+      }
+      const { oauthRedirect, webBase } = oauthBases();
+      const profile =
+        state.provider === "apple"
+          ? await exchangeAppleCode(code)
+          : await exchangeGoogleCode(code, oauthRedirect);
+      if (!profile) {
+        errorRedirect(res, "exchange_failed");
+        return;
+      }
+      const openId = `${state.provider}:${profile.sub}`;
+      await db.upsertUser({
+        openId,
+        email: profile.email.toLowerCase(),
+        name: profile.name,
+        loginMethod: state.provider,
+        lastSignedIn: new Date(),
+      } as never);
+      const user = await db.getUserByOpenId(openId);
+      if (!user) {
+        errorRedirect(res, "provisioning_failed");
+        return;
+      }
+      const sessionToken = await sdk.createSessionToken(openId, {
+        name: profile.name,
+        deviceId: state.deviceId,
+      });
+      const isNative =
+        Boolean(state.deviceId) ||
+        state.redirectUri.startsWith("productstockfinder:");
+      if (isNative) {
+        const ticket = issueOAuthTicket(openId, state.deviceId);
+        const params = new URLSearchParams({ ticket });
+        res.redirect(302, `productstockfinder:/oauth/callback?${params.toString()}`);
+        return;
+      }
+      const cookieOptions = getSessionCookieOptions(req);
+      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: SESSION_MS });
+      res.redirect(302, resolveSafeRedirectUri(state.redirectUri, webBase));
+    } catch (error) {
+      console.error("[Auth] OAuth callback failed", error);
+      errorRedirect(res, "callback_failed");
+    }
+  });
+
+  app.post("/api/auth/oauth/consume", async (req: Request, res: Response) => {
+    try {
+      const { ticket, deviceId } = req.body ?? {};
+      if (typeof ticket !== "string" || !ticket) {
+        res.status(400).json({ error: "ticket is required" });
+        return;
+      }
+      const redeemed = redeemOAuthTicket(
+        ticket,
+        typeof deviceId === "string" ? deviceId : undefined,
+      );
+      if (!redeemed) {
+        res.status(400).json({ error: "Invalid or expired ticket" });
+        return;
+      }
+      const user = await db.getUserByOpenId(redeemed.openId);
+      if (!user) {
+        res.status(400).json({ error: "Invalid or expired ticket" });
+        return;
+      }
+      const sessionToken = await sdk.createSessionToken(redeemed.openId, {
+        name: user.name ?? "",
+        deviceId: typeof deviceId === "string" ? deviceId : undefined,
+      });
+      res.json({ sessionToken, user: buildUserResponse(user) });
+    } catch (error) {
+      console.error("[Auth] OAuth consume failed", error);
+      res.status(400).json({ error: String(error) });
+    }
   });
 
   app.get("/api/auth/oauth/providers", (_req: Request, res: Response) => {
-    const googleClientId = process.env.GOOGLE_CLIENT_ID ?? process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? "";
-    const appleClientId = process.env.APPLE_CLIENT_ID ?? process.env.EXPO_PUBLIC_APPLE_CLIENT_ID ?? "";
-    res.json({ google: googleClientId.trim().length > 0, apple: appleClientId.trim().length > 0 });
+    res.json({
+      google: googleOAuthConfig().configured,
+      apple: appleOAuthConfig().configured,
+    });
   });
 
   app.get("/api/auth/oauth/start", (req: Request, res: Response) => {
@@ -178,18 +536,18 @@ export function registerOAuthRoutes(app: Express) {
         : typeof req.headers["x-device-id"] === "string"
           ? String(req.headers["x-device-id"])
           : undefined;
-    const state = encodeOAuthState(redirectUri ?? "", deviceId);
-    const apiBase =
-      process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
-    const webBase =
-      process.env.EXPO_PUBLIC_WEB_URL?.replace(/\/$/, "") ?? apiBase;
+    const state = signOAuthState({
+      redirectUri: redirectUri ?? "",
+      deviceId,
+      provider,
+    });
+    const { apiBase, webBase, oauthRedirect } = oauthBases();
 
     const googleClientId = process.env.GOOGLE_CLIENT_ID ?? process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? "";
     const appleClientId = process.env.APPLE_CLIENT_ID ?? process.env.EXPO_PUBLIC_APPLE_CLIENT_ID ?? "";
 
     let url: string;
     if (provider === "google" && googleClientId) {
-      const oauthRedirect = `${apiBase || webBase}/api/oauth/callback`;
       const params = new URLSearchParams({
         client_id: googleClientId,
         redirect_uri: oauthRedirect,
@@ -200,7 +558,6 @@ export function registerOAuthRoutes(app: Express) {
       });
       url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
     } else if (provider === "apple" && appleClientId) {
-      const oauthRedirect = `${apiBase || webBase}/api/oauth/callback`;
       const params = new URLSearchParams({
         client_id: appleClientId,
         redirect_uri: oauthRedirect,

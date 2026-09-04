@@ -189,6 +189,26 @@ describe("resilientFetch", () => {
     expect(browserMock.fetchWithBrowser).toHaveBeenCalledTimes(1);
   });
 
+  it("forwards timeoutMs to the browser escalation path", async () => {
+    const fetchMock = vi.fn(
+      async () => new Response("403 Forbidden", { status: 403 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    browserMock.fetchWithBrowser.mockResolvedValue("<html>price</html>");
+    const state = createMemoryBreakerStore();
+    const outcome = await resilientFetch({
+      parser: makeParser(),
+      url: "https://example.com/search?q=CRS804",
+      state,
+      timeoutMs: 1234,
+    });
+    expect(outcome.status).toBe("ok");
+    expect(browserMock.fetchWithBrowser).toHaveBeenCalledWith(
+      "https://example.com/search?q=CRS804",
+      expect.objectContaining({ timeoutMs: 1234 }),
+    );
+  });
+
   it("reports blocked when plain is blocked and browser escalation fails", async () => {
     const fetchMock = vi.fn(
       async () => new Response("403 Forbidden", { status: 403 }),

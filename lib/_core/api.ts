@@ -96,31 +96,24 @@ export async function apiCall<T>(
   }
 }
 
-// OAuth callback handler - exchange code for session token
-// Calls /api/oauth/mobile endpoint which returns JSON with app_session_id and user
+// OAuth callback handler - redeem a single-use server ticket for a session.
+// Calls /api/auth/oauth/consume which returns JSON with sessionToken and user.
+// (The legacy /api/oauth/mobile endpoint no longer exists.)
 export async function exchangeOAuthCode(
-  code: string,
-  state: string,
+  ticket: string,
+  deviceId?: string,
 ): Promise<{ sessionToken: string; user: any }> {
   LOG("[API] exchangeOAuthCode called");
-  // Use GET with query params
-  const params = new URLSearchParams({ code, state });
-  const endpoint = `/api/oauth/mobile?${params.toString()}`;
-  LOG("[API] Calling OAuth mobile endpoint:", endpoint);
-  const result = await apiCall<{ app_session_id: string; user: any }>(endpoint);
-
-  // Convert app_session_id to sessionToken for compatibility
-  const sessionToken = result.app_session_id;
+  const { redeemOAuthTicket } = await import("@/lib/oauth-callback");
+  const { getApiBaseUrl } = await import("@/constants/oauth");
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) throw new Error("API base URL is not configured");
+  const result = await redeemOAuthTicket(ticket, { baseUrl, deviceId });
   LOG("[API] OAuth exchange result:", {
-    hasSessionToken: !!sessionToken,
+    hasSessionToken: !!result.sessionToken,
     hasUser: !!result.user,
-    sessionToken: sessionToken ? `${sessionToken.substring(0, 50)}...` : null,
   });
-
-  return {
-    sessionToken,
-    user: result.user,
-  };
+  return result;
 }
 
 // Logout

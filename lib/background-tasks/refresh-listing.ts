@@ -7,6 +7,11 @@ import type { DistributorListing, PricePoint, Product } from "../types";
 import { breakerStore } from "./instances";
 import type { createHealthCollector } from "./health-collector";
 
+// Server snapshots carry their own fetchedAt: a stale-while-revalidate cache
+// entry must never be written into the watchlist as a fresh price with a
+// fresh lastChecked timestamp. Must match server/prices.ts PRICE_TTL_MS.
+const SERVER_SNAPSHOT_TTL_MS = 60 * 60 * 1000;
+
 export async function refreshListing(
   product: Product,
   listing: DistributorListing,
@@ -16,14 +21,19 @@ export async function refreshListing(
     listing.distributorId,
     product.modelNumber,
   );
-  if (serverResult?.snapshot) {
+  const snapshot = serverResult?.snapshot;
+  const snapshotFresh =
+    snapshot != null &&
+    Number.isFinite(snapshot.fetchedAt) &&
+    Date.now() - snapshot.fetchedAt < SERVER_SNAPSHOT_TTL_MS;
+  if (snapshot && snapshotFresh) {
     healthCollector.record(listing.distributorId, "working");
     const now = new Date().toISOString();
     const newPricePoint: PricePoint = {
       date: now,
-      price: serverResult.snapshot.price,
-      currency: serverResult.snapshot.currency,
-      stockStatus: serverResult.snapshot.stockStatus,
+      price: snapshot.price,
+      currency: snapshot.currency,
+      stockStatus: snapshot.stockStatus,
     };
     const mergedHistory = mergePriceHistory(
       listing.priceHistory,
@@ -38,11 +48,11 @@ export async function refreshListing(
     }
     return {
       ...listing,
-      price: serverResult.snapshot.price,
-      currency: serverResult.snapshot.currency,
-      stockStatus: serverResult.snapshot.stockStatus,
-      expectedDate: serverResult.snapshot.expectedDate,
-      url: serverResult.snapshot.url,
+      price: snapshot.price,
+      currency: snapshot.currency,
+      stockStatus: snapshot.stockStatus,
+      expectedDate: snapshot.expectedDate,
+      url: snapshot.url,
       lastChecked: now,
       priceHistory: appendPricePoint(
         mergedHistory,

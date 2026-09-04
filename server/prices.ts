@@ -97,12 +97,23 @@ function pLimit(concurrency: number) {
     new Promise<T>((resolve, reject) => {
       const run = () => {
         active++;
-        fn().then(resolve, reject).finally(next);
+        // A synchronous throw must not leak the slot or wedge the queue.
+        let result: Promise<T>;
+        try {
+          result = fn();
+        } catch (error) {
+          next();
+          reject(error);
+          return;
+        }
+        result.then(resolve, reject).finally(next);
       };
       if (active < concurrency) run();
       else queue.push(run);
     });
 }
+
+export { pLimit };
 
 export async function refreshNearExpiry(now: number): Promise<void> {
   const entries = await listNearExpiry(now, PRICE_TTL_MS - WARMER_LEAD_MS);

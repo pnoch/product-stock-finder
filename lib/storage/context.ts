@@ -71,12 +71,32 @@ export function createContext(adapter: StorageAdapter): StorageContext {
   }
 
   async function readList<T>(key: string): Promise<T[]> {
+    let raw: string | null;
     try {
-      const raw = await adapter.getItem(key);
-      if (!raw) return [];
+      raw = await adapter.getItem(key);
+    } catch (error) {
+      // Adapter failures must not masquerade as empty stores: callers would
+      // treat the result as empty and the next write would destroy data.
+      console.warn(`[storage] read failed for ${key}`, error);
+      throw error;
+    }
+    if (!raw) return [];
+    try {
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) ? parsed : [];
     } catch {
+      // Corrupt payload: quarantine the raw value for forensics instead of
+      // silently dropping it — returning [] here would let the next write
+      // overwrite whatever the corrupt payload used to hold.
+      try {
+        await adapter.setItem(
+          `${key}.corrupt-${Date.now()}`,
+          raw.slice(0, 100_000),
+        );
+      } catch {
+        // best effort; the original key is left untouched
+      }
+      console.warn(`[storage] quarantined corrupt payload for ${key}`);
       return [];
     }
   }
