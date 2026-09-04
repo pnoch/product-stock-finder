@@ -125,7 +125,7 @@ export function Watchlist() {
     storage.getSettings().then((s) => {
       const defs = (s.tagDefinitions ?? {}) as Record<string, TagDefinition>;
       setTagDefinitions(defs);
-      setSelectedTagIds((prev) => prev.filter((id) => id in defs));
+      setSelectedTagIds((prev) => prev.filter((id) => Object.prototype.hasOwnProperty.call(defs, id)));
     });
   }, [settings]);
 
@@ -338,7 +338,7 @@ export function Watchlist() {
   const refreshTagDefs = async () => {
     const defs = await storage.getTagDefinitions();
     setTagDefinitions(defs as Record<string, TagDefinition>);
-    setSelectedTagIds((prev) => prev.filter((id) => id in defs));
+    setSelectedTagIds((prev) => prev.filter((id) => Object.prototype.hasOwnProperty.call(defs, id)));
   };
   const handleCreateTag = async () => {
     const name = newTagName.trim();
