@@ -87,6 +87,7 @@ export async function getPrice(
 }
 
 function pLimit(concurrency: number) {
+  const slots = Math.max(1, Math.floor(concurrency) || 1);
   let active = 0;
   const queue: Array<() => void> = [];
   const next = () => {
@@ -109,7 +110,7 @@ function pLimit(concurrency: number) {
         }
         result.then(resolve, reject).finally(next);
       };
-      if (active < concurrency) run();
+      if (active < slots) run();
       else queue.push(run);
     });
 }
@@ -172,6 +173,8 @@ export async function runWarmerTick(): Promise<void> {
 
 let warmerTimer: ReturnType<typeof setInterval> | null = null;
 
+// Singleton: a second call while the warmer runs returns a no-op cleanup
+// (it does NOT stop the timer — ownership stays with the first caller).
 export function startWarmer(opts?: { intervalMs?: number }): () => void {
   const intervalMs = opts?.intervalMs ?? WARMER_INTERVAL_MS;
   if (process.env.NODE_ENV === "test") return () => {};

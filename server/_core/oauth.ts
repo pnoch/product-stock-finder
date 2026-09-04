@@ -145,17 +145,20 @@ const authBuckets = new Map<string, number[]>();
 const AUTH_RATE_LIMIT = 10;
 const AUTH_RATE_WINDOW = 60_000;
 
-function checkAuthRateLimit(ip: string): boolean {
+function checkAuthRateLimit(key: string): boolean {
+  // Key is usually the client IP; pass a scoped key (e.g. `forgot:<email>`)
+  // for per-target buckets. An attacker rotating source addresses still
+  // hits the per-target budget.
   const now = Date.now();
   const windowStart = now - AUTH_RATE_WINDOW;
-  const timestamps = authBuckets.get(ip) ?? [];
+  const timestamps = authBuckets.get(key) ?? [];
   const recent = timestamps.filter((t) => t > windowStart);
   if (recent.length >= AUTH_RATE_LIMIT) {
-    authBuckets.set(ip, recent);
+    authBuckets.set(key, recent);
     return false;
   }
   recent.push(now);
-  authBuckets.set(ip, recent);
+  authBuckets.set(key, recent);
   // prune stale buckets to bound memory
   if (authBuckets.size > 500) {
     for (const [k, v] of authBuckets.entries()) {
@@ -232,7 +235,12 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
-      const result = await sdk.register({ email, password, name });
+      const result = await sdk.register({
+        email,
+        password,
+        name,
+        deviceId: deviceIdFromReq(req) ?? undefined,
+      });
       // A fresh login from a previously signed-out device re-authorizes it.
       const registerDeviceId = deviceIdFromReq(req);
       if (registerDeviceId) {
@@ -263,7 +271,11 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
-      const result = await sdk.login({ email, password });
+      const result = await sdk.login({
+        email,
+        password,
+        deviceId: deviceIdFromReq(req) ?? undefined,
+      });
       // A fresh login from a previously signed-out device re-authorizes it.
       const loginDeviceId = deviceIdFromReq(req);
       if (loginDeviceId) {
@@ -644,6 +656,12 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       const normalized = String(email).trim().toLowerCase();
+      // Per-target bucket in addition to the per-IP one above: rotating
+      // source addresses must not allow bombing one victim's inbox.
+      if (!checkAuthRateLimit(`forgot:${normalized}`)) {
+        res.status(429).json({ error: "Too many requests. Try again shortly." });
+        return;
+      }
       const user = await db.getUserByEmail(normalized);
       if (user?.id) {
         const token = randomUUID();

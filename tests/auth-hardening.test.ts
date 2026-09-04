@@ -93,6 +93,42 @@ describe("auth hardening", () => {
     expect(devices.unrevokeDevice).toHaveBeenCalledWith(42, "dev-9");
   });
 
+  it("embeds the presenting deviceId in the session JWT at login", async () => {
+    const handler = makeApp();
+    const { sdk: mockedSdk } = await import("../server/_core/sdk");
+    const res = makeRes();
+    await handler("POST", "/api/auth/login")(
+      makeReq(
+        { email: "a@b.com", password: "oldpass123" },
+        { headers: { "x-device-id": "dev-9" } },
+      ),
+      res,
+    );
+    expect(vi.mocked(mockedSdk.login)).toHaveBeenCalledWith(
+      expect.objectContaining({ deviceId: "dev-9" }),
+    );
+  });
+
+  it("embeds the presenting deviceId in the session JWT at register", async () => {
+    const handler = makeApp();
+    const { sdk: mockedSdk } = await import("../server/_core/sdk");
+    vi.mocked(mockedSdk.register).mockResolvedValue({
+      user: { id: 43, email: "n@b.com", name: null },
+      sessionToken: "sess-2",
+    } as never);
+    const res = makeRes();
+    await handler("POST", "/api/auth/register")(
+      makeReq(
+        { email: "n@b.com", password: "newpass123" },
+        { headers: { "x-device-id": "dev-10" } },
+      ),
+      res,
+    );
+    expect(vi.mocked(mockedSdk.register)).toHaveBeenCalledWith(
+      expect.objectContaining({ deviceId: "dev-10" }),
+    );
+  });
+
   it("consumes a reset token atomically — see token-consume-atomic.test.ts", async () => {
     // Real-module atomicity is covered in tests/token-consume-atomic.test.ts
     // (this file mocks ../server/db, so it cannot exercise the real path).

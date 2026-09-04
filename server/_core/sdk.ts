@@ -62,6 +62,7 @@ class SDKServer {
     const sessionToken = await this.createSessionToken(openId, {
       name: user.name || normalizedEmail,
       expiresInMs: SESSION_MS,
+      deviceId: req.deviceId,
     });
 
     return {
@@ -90,6 +91,7 @@ class SDKServer {
     const sessionToken = await this.createSessionToken(user.openId, {
       name: user.name || normalizedEmail,
       expiresInMs: SESSION_MS,
+      deviceId: req.deviceId,
     });
 
     return {

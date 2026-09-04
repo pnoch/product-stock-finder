@@ -142,6 +142,32 @@ describe("POST /api/auth/forgot", () => {
     expect(res.status).toHaveBeenCalledWith(429);
   });
 
+  it("rate limits forgot per email across rotating IPs", async () => {
+    const handler = makeApp();
+    vi.mocked(db.getUserByEmail).mockResolvedValue(null as any);
+    for (let i = 0; i < 10; i++) {
+      const res = makeRes();
+      await handler("POST", "/api/auth/forgot")(
+        { ...makeReq({ email: "victim@b.com" }), ip: `10.9.9.${100 + i}` } as any,
+        res,
+      );
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    }
+    const limited = makeRes();
+    await handler("POST", "/api/auth/forgot")(
+      { ...makeReq({ email: "victim@b.com" }), ip: "10.9.9.250" } as any,
+      limited,
+    );
+    expect(limited.status).toHaveBeenCalledWith(429);
+    // A different email from a fresh IP is unaffected.
+    const other = makeRes();
+    await handler("POST", "/api/auth/forgot")(
+      { ...makeReq({ email: "other@b.com" }), ip: "10.9.9.251" } as any,
+      other,
+    );
+    expect(other.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+  });
+
   it("stores a hash, not the plaintext reset token", async () => {
     const handler = makeApp();
     vi.mocked(db.getUserByEmail).mockResolvedValue({ id: 42, email: "a@b.com" } as any);

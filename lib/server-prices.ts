@@ -3,6 +3,8 @@ import type { PricePoint, ServerPriceResult } from "./types";
 
 export { isFreshPriceSnapshot } from "./price-freshness";
 
+const TIMEOUT_MS = 4000;
+
 export async function fetchServerPrice(
   distributorId: string,
   modelNumber: string,
