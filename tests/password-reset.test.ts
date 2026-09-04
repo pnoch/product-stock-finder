@@ -84,6 +84,61 @@ describe("POST /api/auth/forgot", () => {
     await handler("POST", "/api/auth/forgot")(makeReq({}), res);
     expect(res.status).toHaveBeenCalledWith(400);
   });
+
+  it("rate limits forgot after 10 attempts from one IP", async () => {
+    const handler = makeApp();
+    vi.mocked(db.getUserByEmail).mockResolvedValue(null as any);
+    const ip = "10.9.9.1";
+    for (let i = 0; i < 10; i++) {
+      const res = makeRes();
+      await handler("POST", "/api/auth/forgot")(
+        { ...makeReq({ email: "x@y.com" }), ip } as any,
+        res,
+      );
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    }
+    const res = makeRes();
+    await handler("POST", "/api/auth/forgot")(
+      { ...makeReq({ email: "x@y.com" }), ip } as any,
+      res,
+    );
+    expect(res.status).toHaveBeenCalledWith(429);
+  });
+
+  it("ignores spoofed X-Forwarded-For without a trusted proxy", async () => {
+    const handler = makeApp();
+    vi.mocked(db.getUserByEmail).mockResolvedValue(null as any);
+    for (let i = 0; i < 10; i++) {
+      const res = makeRes();
+      await handler("POST", "/api/auth/forgot")(
+        {
+          ...makeReq({ email: "x@y.com" }),
+          ip: "10.9.9.2",
+          headers: { "x-forwarded-for": `9.9.9.${i}` },
+        } as any,
+        res,
+      );
+    }
+    const res = makeRes();
+    await handler("POST", "/api/auth/forgot")(
+      {
+        ...makeReq({ email: "x@y.com" }),
+        ip: "10.9.9.2",
+        headers: { "x-forwarded-for": "9.9.9.99" },
+      } as any,
+      res,
+    );
+    expect(res.status).toHaveBeenCalledWith(429);
+  });
+
+  it("stores a hash, not the plaintext reset token", async () => {
+    const handler = makeApp();
+    vi.mocked(db.getUserByEmail).mockResolvedValue({ id: 42, email: "a@b.com" } as any);
+    const res = makeRes();
+    await handler("POST", "/api/auth/forgot")(makeReq({ email: "a@b.com" }), res);
+    const stored = vi.mocked(db.createPasswordResetToken).mock.calls[0][1] as string;
+    expect(stored).toMatch(/^[0-9a-f]{64}$/);
+  });
 });
 
 describe("POST /api/auth/reset", () => {
@@ -97,7 +152,7 @@ describe("POST /api/auth/reset", () => {
     await handler("POST", "/api/auth/reset")(makeReq({ token, newPassword: "newpass123" }), res);
     expect(bcrypt.hash).toHaveBeenCalled();
     expect(db.updateUserPasswordHashById).toHaveBeenCalledWith(42, "hashed");
-    expect(db.markPasswordResetTokenUsed).toHaveBeenCalledWith(token);
+    expect(vi.mocked(db.markPasswordResetTokenUsed).mock.calls[0][0]).toMatch(/^[0-9a-f]{64}$/);
     expect(res.json).toHaveBeenCalledWith({ success: true });
   });
 
@@ -123,6 +178,36 @@ describe("POST /api/auth/reset", () => {
     const res = makeRes();
     await handler("POST", "/api/auth/reset")(makeReq({ token: "t", newPassword: "123" }), res);
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("rate limits reset after 10 attempts from one IP", async () => {
+    const handler = makeApp();
+    vi.mocked(db.getPasswordResetToken).mockResolvedValue(null as any);
+    const ip = "10.9.9.3";
+    for (let i = 0; i < 10; i++) {
+      const res = makeRes();
+      await handler("POST", "/api/auth/reset")(
+        { ...makeReq({ token: "bad", newPassword: "newpass123" }), ip } as any,
+        res,
+      );
+      expect(res.status).toHaveBeenCalledWith(400);
+    }
+    const res = makeRes();
+    await handler("POST", "/api/auth/reset")(
+      { ...makeReq({ token: "bad", newPassword: "newpass123" }), ip } as any,
+      res,
+    );
+    expect(res.status).toHaveBeenCalledWith(429);
+  });
+
+  it("looks up the reset token by hash", async () => {
+    const handler = makeApp();
+    vi.mocked(db.getPasswordResetToken).mockResolvedValue(null as any);
+    const res = makeRes();
+    await handler("POST", "/api/auth/reset")(makeReq({ token: "tok-123", newPassword: "newpass123" }), res);
+    const lookedUp = vi.mocked(db.getPasswordResetToken).mock.calls[0][0] as string;
+    expect(lookedUp).toMatch(/^[0-9a-f]{64}$/);
+    expect(lookedUp).not.toBe("tok-123");
   });
 });
 

@@ -1,6 +1,6 @@
-import { PricePoint, DistributorListing } from "@/lib/types";
-import { convertPrice } from "@/lib/currency";
-import { getDistributorById } from "@/lib/distributors";
+import type { PricePoint, DistributorListing } from "@/lib/types";
+import { convertPrice } from "./currency";
+import { getDistributorById } from "./distributors";
 // ─── Chart colors for up to 5 distributors ───────────────────────────────────
 export const CHART_COLORS = [
   "#0F52BA",

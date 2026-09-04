@@ -116,7 +116,13 @@ export function useAuth() {
             lastSignedIn: decoded.lastSignedIn ?? new Date().toISOString(),
           });
         } catch {
-          // ignore malformed user payload; the token is still valid
+          // A token without a usable user profile must not leave a stale
+          // signed-in session behind.
+          removeSessionToken();
+          clearUserInfo();
+          setUser(null);
+          setError("Sign-in failed: invalid user payload");
+          return false;
         }
       }
       notify();
@@ -139,7 +145,7 @@ export function useAuth() {
     user,
     loading,
     error,
-    isAuthenticated: Boolean(user),
+    isAuthenticated: Boolean(user && getSessionToken()),
     login,
     logout,
   };

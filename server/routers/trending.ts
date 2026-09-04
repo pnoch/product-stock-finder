@@ -1,4 +1,5 @@
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
+import { checkRateLimit } from "../rate-limit";
 import { getDb } from "../db";
 import { trendingProducts } from "../../drizzle/schema";
 import { gte } from "drizzle-orm";
@@ -91,7 +92,8 @@ export const trendingRouter = router({
     return rows.slice(0, 10);
   }),
 
-  refresh: publicProcedure.mutation(async () => {
+  refresh: protectedProcedure.mutation(async ({ ctx }) => {
+    checkRateLimit(ctx, "trending.refresh", 5, 60_000);
     const items = await fetchRssFeeds();
     if (items.length === 0) return { count: 0 };
 

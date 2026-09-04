@@ -52,9 +52,13 @@ export function createWatchlistStorage(ctx: StorageContext) {
     return mutated ? next : products;
   }
 
-  async function saveWatchlist(products: Product[]): Promise<void> {
+  async function persistWatchlist(products: Product[]): Promise<void> {
     const capped = capProducts(products);
     await adapter.setItem(KEYS.WATCHLIST, JSON.stringify(capped));
+  }
+
+  async function saveWatchlist(products: Product[]): Promise<void> {
+    await enqueue(KEYS.WATCHLIST, () => persistWatchlist(products));
   }
 
   // Enqueued read-modify-write so concurrent callers (sync engine, background
@@ -65,7 +69,7 @@ export function createWatchlistStorage(ctx: StorageContext) {
     await enqueue(KEYS.WATCHLIST, async () => {
       const list = await getWatchlist();
       const next = await fn(list);
-      await saveWatchlist(next);
+      await persistWatchlist(next);
     });
   }
 
@@ -79,7 +83,7 @@ export function createWatchlistStorage(ctx: StorageContext) {
           isWatched: true,
           addedAt: product.addedAt ?? new Date().toISOString(),
         });
-        await saveWatchlist(list);
+        await persistWatchlist(list);
         notify("watchlist", product.id);
       }
     });
@@ -90,7 +94,7 @@ export function createWatchlistStorage(ctx: StorageContext) {
       const list = await getWatchlist();
       const next = list.filter((p) => p.id !== productId);
       if (next.length !== list.length) {
-        await saveWatchlist(next);
+        await persistWatchlist(next);
         notify("watchlist", productId);
       }
     });
@@ -121,7 +125,7 @@ export function createWatchlistStorage(ctx: StorageContext) {
           next.description = fields.description.trim();
         return next;
       });
-      await saveWatchlist(updated);
+      await persistWatchlist(updated);
       notify("watchlist", productId);
     });
   }
@@ -136,7 +140,7 @@ export function createWatchlistStorage(ctx: StorageContext) {
       const updated = list.map((p) =>
         p.id === productId ? { ...p, listings, lastRefreshed: now } : p,
       );
-      await saveWatchlist(updated);
+      await persistWatchlist(updated);
       notify("watchlist", productId);
     });
   }
@@ -146,7 +150,7 @@ export function createWatchlistStorage(ctx: StorageContext) {
       const list = await getWatchlist();
       const now = new Date().toISOString();
       const updated = list.map((p) => ({ ...p, lastRefreshed: now }));
-      await saveWatchlist(updated);
+      await persistWatchlist(updated);
       for (const p of updated) notify("watchlist", p.id);
     });
   }

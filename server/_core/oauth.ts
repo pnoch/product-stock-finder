@@ -1,8 +1,8 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
+import { COOKIE_NAME, SESSION_MS } from "../../shared/const.js";
 import type { Express, Request, Response } from "express";
 import { sdk } from "./sdk";
 import { getSessionCookieOptions } from "./cookies";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
 import bcrypt from "bcryptjs";
 import * as db from "../db";
 import { encodeOAuthState } from "../../shared/oauth-state.js";
@@ -44,8 +44,18 @@ function checkAuthRateLimit(ip: string): boolean {
 
 function getClientIp(req: Request): string {
   const xf = req.headers["x-forwarded-for"];
-  const forwarded = typeof xf === "string" ? xf.split(",")[0]?.trim() : undefined;
-  return forwarded ?? req.ip ?? "unknown";
+  // Only trust X-Forwarded-For when Express trust proxy is enabled;
+  // otherwise a client can spoof its IP and bypass rate limits.
+  const trustProxy = (req as unknown as { app?: { get?: (k: string) => unknown } }).app?.get?.("trust proxy");
+  if (trustProxy && typeof xf === "string") {
+    const forwarded = xf.split(",")[0]?.trim();
+    if (forwarded) return forwarded;
+  }
+  return req.ip ?? "unknown";
+}
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token, "utf8").digest("hex");
 }
 
 function buildUserResponse(user: { id?: number | null; openId?: string | null; name?: string | null; email?: string | null; loginMethod?: string | null; lastSignedIn?: Date | null; emailVerified?: number | boolean | null }) {
@@ -82,7 +92,7 @@ export function registerOAuthRoutes(app: Express) {
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, result.sessionToken, {
         ...cookieOptions,
-        maxAge: ONE_YEAR_MS,
+        maxAge: SESSION_MS,
       });
       res.json({ user: buildUserResponse(result.user), sessionToken: result.sessionToken });
     } catch (error: any) {
@@ -108,7 +118,7 @@ export function registerOAuthRoutes(app: Express) {
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, result.sessionToken, {
         ...cookieOptions,
-        maxAge: ONE_YEAR_MS,
+        maxAge: SESSION_MS,
       });
       res.json({ user: buildUserResponse(result.user), sessionToken: result.sessionToken });
     } catch (error: any) {
@@ -198,6 +208,11 @@ export function registerOAuthRoutes(app: Express) {
 
   app.post("/api/auth/forgot", async (req: Request, res: Response) => {
     try {
+      const ip = getClientIp(req);
+      if (!checkAuthRateLimit(ip)) {
+        res.status(429).json({ error: "Too many requests. Try again shortly." });
+        return;
+      }
       const { email } = req.body ?? {};
       if (!email || typeof email !== "string" || !email.trim()) {
         res.status(400).json({ error: "email is required" });
@@ -208,7 +223,7 @@ export function registerOAuthRoutes(app: Express) {
       if (user?.id) {
         const token = randomUUID();
         const expiresAt = Date.now() + PASSWORD_RESET_TTL_MS;
-        await db.createPasswordResetToken(user.id, token, expiresAt);
+        await db.createPasswordResetToken(user.id, hashToken(token), expiresAt);
         sendPasswordResetEmail(normalized, token);
       }
       res.json({ success: true });
@@ -220,6 +235,11 @@ export function registerOAuthRoutes(app: Express) {
 
   app.post("/api/auth/reset", async (req: Request, res: Response) => {
     try {
+      const ip = getClientIp(req);
+      if (!checkAuthRateLimit(ip)) {
+        res.status(429).json({ error: "Too many requests. Try again shortly." });
+        return;
+      }
       const { token, newPassword } = req.body ?? {};
       if (!token || typeof token !== "string" || !token.trim()) {
         res.status(400).json({ error: "token is required" });
@@ -229,7 +249,8 @@ export function registerOAuthRoutes(app: Express) {
         res.status(400).json({ error: "password must be at least 6 characters" });
         return;
       }
-      const row = await db.getPasswordResetToken(token);
+      const tokenHash = hashToken(token.trim());
+      const row = await db.getPasswordResetToken(tokenHash);
       if (!row || row.usedAt || (row.expiresAt && row.expiresAt < Date.now())) {
         res.status(400).json({ error: "Invalid or expired token" });
         return;
@@ -238,7 +259,7 @@ export function registerOAuthRoutes(app: Express) {
         ?? (bcrypt as unknown as { default?: { hash: (p: string, r: number) => Promise<string> } }).default?.hash;
       const hashed = hashFn ? await hashFn(newPassword, 10) : await (bcrypt as unknown as { hash: (p: string, r: number) => Promise<string> }).hash(newPassword, 10);
       await db.updateUserPasswordHashById(row.userId, hashed);
-      await db.markPasswordResetTokenUsed(token);
+      await db.markPasswordResetTokenUsed(tokenHash);
       res.json({ success: true });
     } catch (e: unknown) {
       console.error("[Auth] reset failed", e);

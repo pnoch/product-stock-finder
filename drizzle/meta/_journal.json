@@ -141,6 +141,13 @@
       "when": 1788105215039,
       "tag": "0019_ordinary_pete_wisdom",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1788503771000,
+      "tag": "0020_shared_watchlists",
+      "breakpoints": true
     }
   ]
 }

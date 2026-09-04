@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNull, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import {
   deviceLabels,
   deviceNotificationConfigs,
@@ -63,7 +63,20 @@ export async function listDevicesForUser(
     .select()
     .from(devicePushTokens)
     .where(eq(devicePushTokens.userId, userId));
-  const labelRows = await db.select().from(deviceLabels);
+  // Scope the label lookup to this user's own devices — never scan all labels.
+  const ownDeviceIds = [
+    ...new Set([
+      ...configRows.map((r) => r.deviceId),
+      ...tokenRows.map((r) => r.deviceId),
+    ]),
+  ];
+  const labelRows =
+    ownDeviceIds.length === 0
+      ? []
+      : await db
+          .select()
+          .from(deviceLabels)
+          .where(inArray(deviceLabels.deviceId, ownDeviceIds));
   const labelMap = new Map(labelRows.map((r) => [r.deviceId, r.label]));
   const byDevice = new Map<string, DeviceInfo>();
   for (const row of configRows) {

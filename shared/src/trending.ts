@@ -1,4 +1,4 @@
-import { TrendingProduct } from "@/lib/types";
+import type { TrendingProduct } from "@/lib/types";
 
 function getApiBase(): string {
   // Supports both Expo (process.env.EXPO_PUBLIC_API_BASE_URL) and Vite/desktop

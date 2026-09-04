@@ -5,15 +5,15 @@ import type { createWatchlistStorage } from "./watchlist";
 
 type WatchlistReader = Pick<
   ReturnType<typeof createWatchlistStorage>,
-  "getWatchlist" | "saveWatchlist"
+  "getWatchlist" | "updateWatchlist"
 >;
 
 export function createSettingsStorage(
   ctx: StorageContext,
   watchlist: WatchlistReader,
 ) {
-  const { adapter, KEYS, notify, enqueue } = ctx;
-  const { getWatchlist, saveWatchlist } = watchlist;
+  const { adapter, KEYS, notify } = ctx;
+  const { getWatchlist, updateWatchlist } = watchlist;
 
   const DEFAULT_SETTINGS: AppSettings = {
     theme: "auto",
@@ -65,31 +65,25 @@ export function createSettingsStorage(
     productId: string,
     tags: string[],
   ): Promise<void> {
-    await enqueue(KEYS.WATCHLIST, async () => {
-      const list = await getWatchlist();
-      const updated = list.map((p) =>
-        p.id === productId ? { ...p, tags } : p,
-      );
-      await saveWatchlist(updated);
-      notify("watchlist", productId);
-    });
+    await updateWatchlist((list) =>
+      list.map((p) => (p.id === productId ? { ...p, tags } : p)),
+    );
+    notify("watchlist", productId);
   }
 
   async function addTagsToProducts(
     productIds: string[],
     tagIds: string[],
   ): Promise<void> {
-    await enqueue(KEYS.WATCHLIST, async () => {
-      const list = await getWatchlist();
+    await updateWatchlist((list) => {
       const idSet = new Set(productIds);
-      const updated = list.map((p) =>
+      return list.map((p) =>
         idSet.has(p.id)
           ? { ...p, tags: Array.from(new Set([...(p.tags ?? []), ...tagIds])) }
           : p,
       );
-      await saveWatchlist(updated);
-      for (const id of productIds) notify("watchlist", id);
     });
+    for (const id of productIds) notify("watchlist", id);
   }
 
   async function createTag(
@@ -134,16 +128,14 @@ export function createSettingsStorage(
       if (key !== id) rest[key] = value;
     }
     await saveTagDefinitions(rest);
-    await enqueue(KEYS.WATCHLIST, async () => {
-      const list = await getWatchlist();
-      const updated = list.map((p) =>
+    await updateWatchlist((list) =>
+      list.map((p) =>
         p.tags?.includes(id)
           ? { ...p, tags: (p.tags ?? []).filter((t) => t !== id) }
           : p,
-      );
-      await saveWatchlist(updated);
-      for (const p of updated) notify("watchlist", p.id);
-    });
+      ),
+    );
+    for (const p of await getWatchlist()) notify("watchlist", p.id);
   }
 
   return {

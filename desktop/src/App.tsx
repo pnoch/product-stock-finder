@@ -83,7 +83,6 @@ function ShortcutsOverlay({ open, onClose }: { open: boolean; onClose: () => voi
   const previousActiveRef = useRef<HTMLElement | null>(null);
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform ?? navigator.userAgent);
   const mod = isMac ? "⌘" : "Ctrl";
-  if (!open) return null;
   const shortcuts = [
     { keys: [mod, "K"], label: "Search products" },
     { keys: [mod, ","], label: "Open Settings" },
@@ -93,8 +92,8 @@ function ShortcutsOverlay({ open, onClose }: { open: boolean; onClose: () => voi
     { keys: ["Esc"], label: "Close dialog" },
   ];
   // focus trap + restore
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
+    if (!open) return;
     previousActiveRef.current = document.activeElement as HTMLElement | null;
     const dialog = dialogRef.current;
     if (dialog) {
@@ -120,6 +119,7 @@ function ShortcutsOverlay({ open, onClose }: { open: boolean; onClose: () => voi
       if (previousActiveRef.current) previousActiveRef.current.focus();
     };
   }, [open, onClose]);
+  if (!open) return null;
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fadeIn" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <div ref={dialogRef} tabIndex={-1} className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6 animate-scaleIn outline-none" onClick={(e) => e.stopPropagation()}>

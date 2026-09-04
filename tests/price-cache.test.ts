@@ -48,6 +48,19 @@ describe("price cache (memory backend)", () => {
     expect((await getCachedPrice("server2u-my", "CRS804"))?.price).toBe(2);
   });
 
+  it("rejects implausible snapshots instead of caching them", async () => {
+    await expect(
+      setCachedPrice("server2u-my", "CRS804", snapshot({ price: NaN })),
+    ).rejects.toThrow(/implausible/);
+    await expect(
+      setCachedPrice("server2u-my", "CRS804", snapshot({ price: -5 })),
+    ).rejects.toThrow(/implausible/);
+    await expect(
+      setCachedPrice("server2u-my", "CRS804", snapshot({ price: 5e9 })),
+    ).rejects.toThrow(/implausible/);
+    expect(await getCachedPrice("server2u-my", "CRS804")).toBeNull();
+  });
+
   it("listNearExpiry returns only entries older than the cutoff", async () => {
     const now = 10_000;
     await setCachedPrice("a", "m1", snapshot({ fetchedAt: now - 1000 }));

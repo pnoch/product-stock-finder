@@ -1,6 +1,11 @@
 // Load environment variables with proper priority (system > .env)
 import "./scripts/load-env.js";
 import type { ExpoConfig } from "expo/config";
+import {
+  getAndroidIntentFilters,
+  getIosAssociatedDomains,
+  getWebLinkHost,
+} from "./scripts/app-links";
 
 const bundleId = "com.app.stock_tracker_pro";
 
@@ -10,7 +15,13 @@ const env = {
   scheme: "productstockfinder",
   iosBundleId: bundleId,
   androidPackage: bundleId,
+  webUrl:
+    process.env.EXPO_PUBLIC_WEB_URL ??
+    process.env.EXPO_PUBLIC_API_BASE_URL ??
+    "",
 };
+
+const webHost = getWebLinkHost(env.webUrl);
 
 const config: ExpoConfig = {
   name: env.appName,
@@ -24,6 +35,7 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
+    associatedDomains: getIosAssociatedDomains(webHost),
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
     },
@@ -39,19 +51,10 @@ const config: ExpoConfig = {
     predictiveBackGestureEnabled: false,
     package: env.androidPackage,
     permissions: ["POST_NOTIFICATIONS"],
-    intentFilters: [
-      {
-        action: "VIEW",
-        autoVerify: true,
-        data: [
-          {
-            scheme: env.scheme,
-            host: "*",
-          },
-        ],
-        category: ["BROWSABLE", "DEFAULT"],
-      },
-    ],
+    intentFilters: getAndroidIntentFilters({
+      scheme: env.scheme,
+      webHost,
+    }),
   },
   web: {
     bundler: "metro",

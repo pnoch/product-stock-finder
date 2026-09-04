@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { EXCHANGE_RATES } from "@shared/currency";
+import { EXCHANGE_RATES } from "@/lib/currency";
 import { storage } from "../storage";
 import { getFxChange } from "../../../lib/fx-history";
 import { maybeRefreshFxRates, refreshFxRates } from "../../../lib/fx";

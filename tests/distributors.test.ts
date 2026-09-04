@@ -2,8 +2,14 @@ import { describe, expect, it } from "vitest";
 import { DISTRIBUTORS, getDistributorById } from "../lib/distributors";
 
 describe("DISTRIBUTORS", () => {
-  it("has 25 entries", () => {
-    expect(DISTRIBUTORS).toHaveLength(25);
+  it("has 30 entries", () => {
+    expect(DISTRIBUTORS).toHaveLength(30);
+  });
+
+  it("includes distributors referenced by sample listings", () => {
+    for (const id of ["newegg-us", "apple-us", "pimoroni-uk", "allasch-uk", "valve-us"]) {
+      expect(getDistributorById(id)?.id).toBe(id);
+    }
   });
 
   it("all have unique ids", () => {

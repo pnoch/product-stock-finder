@@ -123,8 +123,9 @@ export async function scrapeMikrotikStore(
   }
 }
 
-// Category pages live under /en/switches/<category>; product pages are
-// /en/mikrotik-<slug> or /en/<category>/<product-slug>.
+// Category pages live under /en/switches/<category>; everything else matched
+// by parseSearchResults (/en/mikrotik-<slug> or /en/<category>/<product-slug>)
+// is treated as a product page.
 function isProductPage(url: string): boolean {
-  return /\/en\/mikrotik-/.test(url);
+  return !/\/en\/switches\/[^/]+\/?$/.test(url);
 }

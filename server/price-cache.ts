@@ -35,6 +35,17 @@ export async function setCachedPrice(
   modelNumber: string,
   snapshot: PriceSnapshot,
 ): Promise<void> {
+  // Plausibility guard: a misparsed page (e.g. shipping text as price) must
+  // never overwrite the global 1h cache for all users.
+  if (
+    !Number.isFinite(snapshot.price) ||
+    snapshot.price <= 0 ||
+    snapshot.price > 1e7
+  ) {
+    throw new Error(
+      `implausible price for ${distributorId}/${modelNumber}: ${snapshot.price}`,
+    );
+  }
   const db = await getDb();
   if (!db) {
     memoryCache.set(cacheKey(distributorId, modelNumber), snapshot);

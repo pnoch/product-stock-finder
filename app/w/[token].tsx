@@ -10,6 +10,8 @@ import { StockBadge } from "@/components/stock-badge";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { addToWatchlist } from "@/lib/storage";
+import { normalizeSharedWatchlistProduct } from "@/lib/shared-watchlist";
+import { showAlert } from "@/lib/alert";
 import { productHistoryToCsv, watchlistToDetailedCsv } from "@/lib/csv";
 import type { Product } from "@/lib/types";
 
@@ -50,8 +52,22 @@ export default function SharedWatchlistScreen() {
 
   const handleBulkAdd = async () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    let added = 0;
+    let failed = 0;
     for (const p of rawProducts) {
-      try { await addToWatchlist(p as Product); } catch {}
+      try {
+        await addToWatchlist(normalizeSharedWatchlistProduct(p));
+        added += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    if (added > 0 && failed === 0) {
+      showAlert("Added to watchlist", `Added ${added} product${added === 1 ? "" : "s"}.`);
+    } else if (added > 0) {
+      showAlert("Partially added", `Added ${added}. Skipped ${failed} invalid shared product${failed === 1 ? "" : "s"}.`);
+    } else {
+      showAlert("Nothing added", "None of the shared products were valid.");
     }
   };
 

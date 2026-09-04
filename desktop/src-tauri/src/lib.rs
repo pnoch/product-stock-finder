@@ -496,8 +496,10 @@ async fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64, api_ba
 }
 
 #[tauri::command]
-fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
-    let _guard = PRICE_CHECK_LOCK.blocking_lock();
+async fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
+    // Async lock: blocking_lock() here would stall the executor while
+    // run_full_price_check holds the same mutex across awaited scrapes.
+    let _guard = PRICE_CHECK_LOCK.lock().await;
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     check_price_drops_inner(&app, &data_dir)
 }

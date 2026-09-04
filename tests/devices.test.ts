@@ -293,9 +293,11 @@ describe("devices (database backend)", () => {
             };
           }
           if (table === deviceLabels) {
-            return Promise.resolve([
-              { deviceId: "dev-1", label: "Living Room", updatedAt: 300 },
-            ]);
+            return {
+              where: vi.fn(async () => [
+                { deviceId: "dev-1", label: "Living Room", updatedAt: 300 },
+              ]),
+            };
           }
           return { where: vi.fn(async () => []) };
         }),
@@ -476,7 +478,9 @@ describe("devices (database backend)", () => {
               ]),
             };
           }
-          if (table === deviceLabels) return Promise.resolve([]);
+          if (table === deviceLabels) {
+            return { where: vi.fn(async () => []) };
+          }
           return { where: vi.fn(async () => []) };
         }),
       })),
@@ -505,7 +509,9 @@ describe("devices (database backend)", () => {
               ]),
             };
           }
-          if (table === deviceLabels) return Promise.resolve([]);
+          if (table === deviceLabels) {
+            return { where: vi.fn(async () => []) };
+          }
           return { where: vi.fn(async () => []) };
         }),
       })),

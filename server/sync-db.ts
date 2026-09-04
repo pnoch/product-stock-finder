@@ -19,10 +19,12 @@ const TOMBSTONE_PURGE_MS = 30 * 24 * 60 * 60 * 1000;
  */
 export function shouldAcceptSyncWrite(
   existingClientUpdatedAtMs: number | null,
-  _existingServerUpdatedAtMs: number,
+  existingServerUpdatedAtMs: number,
   incomingUpdatedAt: number,
 ): boolean {
-  if (existingClientUpdatedAtMs === null) return true;
+  if (existingClientUpdatedAtMs === null) {
+    return incomingUpdatedAt > existingServerUpdatedAtMs;
+  }
   return incomingUpdatedAt > existingClientUpdatedAtMs;
 }
 

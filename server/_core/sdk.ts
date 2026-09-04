@@ -1,6 +1,6 @@
 import {
   COOKIE_NAME,
-  ONE_YEAR_MS,
+  SESSION_MS,
 } from "../../shared/const.js";
 import { ForbiddenError } from "../../shared/_core/errors.js";
 import bcrypt from "bcryptjs";
@@ -61,7 +61,7 @@ class SDKServer {
 
     const sessionToken = await this.createSessionToken(openId, {
       name: user.name || normalizedEmail,
-      expiresInMs: ONE_YEAR_MS,
+      expiresInMs: SESSION_MS,
     });
 
     return {
@@ -89,7 +89,7 @@ class SDKServer {
 
     const sessionToken = await this.createSessionToken(user.openId, {
       name: user.name || normalizedEmail,
-      expiresInMs: ONE_YEAR_MS,
+      expiresInMs: SESSION_MS,
     });
 
     return {
@@ -118,7 +118,7 @@ class SDKServer {
     options: { expiresInMs?: number } = {},
   ): Promise<string> {
     const issuedAt = Date.now();
-    const expiresInMs = options.expiresInMs ?? ONE_YEAR_MS;
+    const expiresInMs = options.expiresInMs ?? SESSION_MS;
     const expirationSeconds = Math.floor((issuedAt + expiresInMs) / 1000);
     const secretKey = this.getSessionSecret();
 
