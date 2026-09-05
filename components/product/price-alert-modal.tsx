@@ -10,7 +10,7 @@ import {
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
-import { EXCHANGE_RATES, formatPrice } from "@/lib/currency";
+import { EXCHANGE_RATES, formatPrice } from "@shared/currency";
 import type { AlertSuggestion } from "@/lib/alert-suggestions";
 
 interface PriceAlertModalProps {

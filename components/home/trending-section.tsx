@@ -15,7 +15,7 @@ import { fetchTrending } from "@/lib/trending";
 import { useColors } from "@/hooks/use-colors";
 import { addToWatchlist, getWatchlist } from "@/lib/storage";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import { useFocusEffect, useRouter } from "expo-router";
 import { fetchProductImage } from "@/lib/server-images";
 import { IconSymbol } from "@/components/ui/icon-symbol";

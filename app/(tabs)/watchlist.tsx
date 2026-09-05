@@ -53,7 +53,7 @@ import {
   countTagMatches,
   type StatusFilter,
 } from "@/lib/watchlist-org";
-import { CURRENCY_SYMBOLS } from "@/lib/currency";
+import { CURRENCY_SYMBOLS } from "@shared/currency";
 import { ProductCard } from "@/components/watchlist/product-card";
 import { SwipeableCard } from "@/components/watchlist/swipeable-card";
 import { SummaryCard } from "@/components/watchlist/summary-card";

@@ -2,7 +2,7 @@ import { memo, useCallback, useMemo } from "react";
 import { Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import type {
   MoversResult,

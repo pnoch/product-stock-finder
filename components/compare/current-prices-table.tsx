@@ -1,7 +1,8 @@
 import { Text, View, StyleSheet } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
-import { formatPrice, convertPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
+import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { CHART_COLORS } from "@/lib/compare-utils";
 

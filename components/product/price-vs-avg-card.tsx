@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import type { PriceVsAverage } from "@/lib/price-average";
 
 const VERDICT_COPY: Record<PriceVsAverage["verdict"], string> = {

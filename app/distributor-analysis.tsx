@@ -17,7 +17,7 @@ import {
   analyzeDistributors,
   DistributorAnalysis,
 } from "@/lib/distributor-analysis";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SkeletonList } from "@/components/ui/skeleton";
 

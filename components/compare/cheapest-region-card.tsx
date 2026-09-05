@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { Text, View, Animated } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { cheapestByRegion } from "@/lib/compare-utils";
 

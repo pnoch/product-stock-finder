@@ -1,7 +1,9 @@
 import { EXCHANGE_RATES, setExchangeRates } from "../lib/currency";
 import type { FxRatesResult } from "../lib/types";
 
-export const FX_TTL_MS = 60 * 60 * 1000; // 1 hour
+// Single source: shared/src/fx.ts.
+import { FX_TTL_MS } from "../shared/src/fx.js";
+export { FX_TTL_MS };
 
 interface FxCache {
   rates: Record<string, number>;

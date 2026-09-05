@@ -3,7 +3,7 @@ import { View, Text } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { PricePoint } from "@/lib/types";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import { indexForLocationX } from "@/lib/price-chart";
 import { detectPriceEvents, getEventColor } from "@/lib/price-events";
 import Svg, {

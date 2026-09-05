@@ -2,7 +2,7 @@ import { memo, useMemo, useCallback } from "react";
 import { Text, View, TouchableOpacity } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { PriceAlert } from "@/lib/types";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { getDistributorById } from "@/lib/distributors";
 

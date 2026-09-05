@@ -3,7 +3,7 @@ import { Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import { getDistributorById } from "@/lib/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CHART_COLORS, SortBy } from "@/lib/compare-utils";

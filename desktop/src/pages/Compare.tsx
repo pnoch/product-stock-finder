@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams } from "react-router";
 import { storage } from "../storage";
-import { formatPrice, convertPrice, CURRENCY_SYMBOLS } from "@/lib/currency";
+import { formatPrice, CURRENCY_SYMBOLS } from "@shared/currency";
+import { convertPrice } from "@/lib/currency";
 import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
 import type { Product } from "../../../lib/types";
 import { StockBadge } from "../components/StockBadge";

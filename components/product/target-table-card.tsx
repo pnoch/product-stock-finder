@@ -1,6 +1,6 @@
 import { Text, TouchableOpacity, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import { getDistributorById } from "@/lib/distributors";
 import {
   scopedAlertFor,

@@ -8,10 +8,8 @@ import {
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
-import {
-  formatPrice,
-  convertPrice,
-} from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
+import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@/lib/distributors";
 import {
   formatLastRefreshed,

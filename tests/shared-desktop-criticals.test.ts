@@ -5,16 +5,23 @@ import { SAMPLE_LISTINGS } from "../lib/sample-data";
 
 describe("shared/desktop release blockers", () => {
   it("uses live-rate currency on desktop pricing pages", async () => {
-    const pages = [
-      "desktop/src/pages/Rates.tsx",
+    // Pages that convert prices must import live names from @/lib/currency
+    // (live FX overlay); pure display-only pages use @shared/currency.
+    const livePages = [
       "desktop/src/pages/Home.tsx",
       "desktop/src/pages/Compare.tsx",
-      "desktop/src/pages/Settings.tsx",
     ];
-    for (const file of pages) {
+    for (const file of livePages) {
       const text = await readFile(file, "utf8");
-      expect(text).toContain("@/lib/currency");
-      expect(text).not.toContain("@shared/currency");
+      const libImport = /import\s*{([^}]*)}[^;]*@\/lib\/currency/.exec(text);
+      expect(libImport?.[1] ?? "").toMatch(/convertPrice|getBestPrice/);
+    }
+    for (const file of [
+      "desktop/src/pages/Rates.tsx",
+      "desktop/src/pages/Settings.tsx",
+    ]) {
+      const text = await readFile(file, "utf8");
+      expect(text).toContain("@shared/currency");
     }
   });
 

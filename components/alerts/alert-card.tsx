@@ -1,7 +1,7 @@
 import { memo, useMemo, useCallback } from "react";
 import { Text, View, Switch, TouchableOpacity } from "react-native";
 import { PriceAlert } from "@/lib/types";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { getDistributorById } from "@/lib/distributors";

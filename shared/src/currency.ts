@@ -33,7 +33,8 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
 
 export const CURRENCIES: string[] = Object.keys(EXCHANGE_RATES);
 
-export const FX_TTL_MS = 60 * 60 * 1000; // 1 hour — also exported from fx.ts
+// Single source: shared/src/fx.ts (server/fx.ts re-exports it too).
+export { FX_TTL_MS } from "./fx";
 
 export function convertPrice(
   amount: number,

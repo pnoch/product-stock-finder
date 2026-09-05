@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 import { StockBadge } from "@/components/stock-badge";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import { useColors } from "@/hooks/use-colors";
 import type { DistributorListing, Product } from "@/lib/types";
 

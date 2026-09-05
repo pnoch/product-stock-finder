@@ -6,7 +6,7 @@ import { schedulePriceAlert } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
 import { useToast } from "@/components/ui/toast";
 import { useColors } from "@/hooks/use-colors";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 
 export function AlertSection({ productId, productName, displayCurrency = "USD" }: { productId: string; productName?: string; displayCurrency?: string }) {
   const colors = useColors();

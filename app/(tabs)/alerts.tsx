@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenContainer } from "@/components/screen-container";
 import { NotificationCenter } from "@/components/notification-center";
 import { useColors } from "@/hooks/use-colors";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAlertsData } from "@/hooks/use-alerts-data";
 import { showAlert } from "@/lib/alert";

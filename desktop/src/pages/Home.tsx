@@ -9,7 +9,8 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useWatchlist, useAlerts } from "../hooks/use-storage";
-import { formatPrice, getBestPrice, convertPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
+import { getBestPrice, convertPrice } from "@/lib/currency";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { storage } from "../storage";
 import { getDistributorById } from "@shared/distributors";

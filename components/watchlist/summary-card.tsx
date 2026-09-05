@@ -7,7 +7,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import type { WatchlistSummary } from "@/lib/watchlist-summary";
 import type { StatusFilter } from "@/lib/watchlist-org";
 

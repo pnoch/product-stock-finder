@@ -10,7 +10,8 @@ import {
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { Product, TagDefinition } from "@/lib/types";
-import { formatPrice, convertPrice, getBestPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
+import { convertPrice, getBestPrice } from "@/lib/currency";
 import { StockBadge } from "@/components/stock-badge";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { fetchProductImage } from "@/lib/server-images";

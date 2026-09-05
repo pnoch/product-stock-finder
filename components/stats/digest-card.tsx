@@ -1,7 +1,7 @@
 import { memo, useMemo } from "react";
 import { Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import type { DigestResult } from "@/lib/price-digest";
 
 export const DigestCard = memo(function DigestCard({

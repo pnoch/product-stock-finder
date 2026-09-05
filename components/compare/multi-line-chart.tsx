@@ -10,7 +10,8 @@ import Svg, {
 
 import { useColors } from "@/hooks/use-colors";
 import { PricePoint } from "@/lib/types";
-import { convertPrice, formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
+import { convertPrice } from "@/lib/currency";
 import { nearestByX } from "@/lib/price-chart";
 import { detectPriceEvents, getEventColor } from "@/lib/price-events";
 

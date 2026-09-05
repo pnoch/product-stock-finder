@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 import { Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import type { ShareRow } from "@/lib/price-share";
 
 export const ProductShareCard = forwardRef<

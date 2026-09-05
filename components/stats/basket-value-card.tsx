@@ -2,7 +2,7 @@ import { memo, useEffect, useRef } from "react";
 import { Text, TouchableOpacity, View, Animated } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { useColors } from "@/hooks/use-colors";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import type { BasketValueResult } from "@/lib/watchlist-stats";
 

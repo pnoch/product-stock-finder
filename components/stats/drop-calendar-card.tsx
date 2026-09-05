@@ -2,7 +2,7 @@ import { memo, useState, useMemo, useCallback } from "react";
 import { Text, View, TouchableOpacity, useWindowDimensions } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
 import { dateKey } from "@/lib/drop-calendar";
 import type {
   DropCalendarResult,

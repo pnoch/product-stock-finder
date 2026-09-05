@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { Text, View, TouchableOpacity } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
-import { convertPrice, formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
+import { convertPrice } from "@/lib/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export function CrossAlertCTA({

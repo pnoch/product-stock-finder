@@ -8,11 +8,8 @@ import {
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
-import {
-  formatPrice,
-  convertPrice,
-  getBestPrice,
-} from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
+import { convertPrice, getBestPrice } from "@/lib/currency";
 import {
   formatLastRefreshed,
   getLastRefreshedColor,
