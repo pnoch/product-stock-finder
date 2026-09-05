@@ -1,8 +1,21 @@
 import * as Linking from "expo-linking";
 import * as ReactNative from "react-native";
 
+function readEnv(key: string): string {
+  const viteEnv =
+    typeof import.meta !== "undefined"
+      ? (import.meta as unknown as { env?: Record<string, string | undefined> })
+          .env?.[key]
+      : undefined;
+  if (viteEnv) return viteEnv;
+  // process is undefined in plain browser bundles (desktop web); guard it
+  // the same way shared/src/trending.ts does.
+  if (typeof process !== "undefined") return process.env[key] ?? "";
+  return "";
+}
+
 const env = {
-  apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? "",
+  apiBaseUrl: readEnv("EXPO_PUBLIC_API_BASE_URL"),
   deepLinkScheme: "productstockfinder",
 };
 

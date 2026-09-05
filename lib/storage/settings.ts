@@ -14,7 +14,7 @@ export function createSettingsStorage(
   watchlist: WatchlistReader,
 ) {
   const { adapter, KEYS, notify, enqueue } = ctx;
-  const { getWatchlist, updateWatchlist } = watchlist;
+  const { updateWatchlist } = watchlist;
 
   const DEFAULT_SETTINGS: AppSettings = {
     theme: "auto",

@@ -195,7 +195,6 @@ export function modelMismatch(
 }
 
 function matchDepth(
-  $: (selector: string | Element) => Cheerio<Element>,
   $el: Cheerio<Element>,
   model: string,
 ): number {
@@ -230,7 +229,7 @@ export function findPriceElement(
   let best: Cheerio<Element> | null = null;
   let bestDepth = Infinity;
   $prices.each((index, _el) => {
-    const depth = matchDepth($, $prices.eq(index), model);
+    const depth = matchDepth($prices.eq(index), model);
     if (depth < bestDepth) {
       bestDepth = depth;
       best = $prices.eq(index);

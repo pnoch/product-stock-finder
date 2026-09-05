@@ -37,6 +37,8 @@ export const NativeEventEmitter = class {
   }
   removeAllListeners() {};
 };
+// expo package HMR path (dev only) imports this singleton.
+export const DeviceEventEmitter = new NativeEventEmitter();
 export const PixelRatio = {
   get: () => 1,
   getFontScale: () => 1,

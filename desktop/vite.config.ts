@@ -5,6 +5,11 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  // React Native globals used by shared lib modules. import.meta.env.DEV
+  // inlines to true/false per mode, matching Metro's __DEV__ semantics.
+  define: {
+    __DEV__: "import.meta.env.DEV",
+  },
   resolve: {
     alias: [
       {
@@ -52,6 +57,11 @@ export default defineConfig({
   server: {
     port: 1420,
     strictPort: true,
+    // Never watch Rust build output: src-tauri/target holds hundreds of
+    // thousands of files and exhausts the OS inotify limit (ENOSPC).
+    watch: {
+      ignored: ["**/src-tauri/target/**", "**/src-tauri/gen/**"],
+    },
   },
   envPrefix: ["VITE_", "TAURI_"],
   build: {
