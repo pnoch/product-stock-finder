@@ -5,6 +5,8 @@ import { recordDisplayedEventId, recordNotificationEvent, getSettings } from "./
 import { getDistributorById } from "./distributors";
 import { isInQuietHours } from "./quiet-hours";
 
+const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
+
 // ─── Notification Handler ─────────────────────────────────────────────────────
 // Must be called at module level (outside any component) so it's set before
 // any notification arrives, including when the app is in the foreground.
@@ -92,7 +94,9 @@ export async function scheduleHealthAlert(
   try {
     const settings = await getSettings();
     if (isInQuietHours(settings)) return null;
-  } catch {}
+  } catch (e) {
+    LOG_ERROR("[Notifications] settings read failed, sending anyway", e);
+  }
   const displayName = getDistributorById(distributorId)?.name ?? distributorId;
   const title =
     status === "blocked" ? "🟠 Distributor Blocked" : "🔴 Distributor Down";
