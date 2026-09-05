@@ -25,6 +25,12 @@ describe("shared/desktop release blockers", () => {
     }
   });
 
+  it("auto-refreshes stale FX rates on mobile Rates mount", async () => {
+    const text = await readFile("app/(tabs)/rates.tsx", "utf8");
+    expect(text).toContain("maybeRefreshFxRates");
+    expect(text).not.toContain("@/lib/currency");
+  });
+
   it("keeps shared modules free of runtime lib imports", async () => {
     const files = [
       "shared/src/catalog.ts",
