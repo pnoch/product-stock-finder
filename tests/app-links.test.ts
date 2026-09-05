@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getAndroidIntentFilters } from "../scripts/app-links";
+import { getAndroidIntentFilters } from "../app.config";
 
 describe("Android app links", () => {
   it("adds an HTTPS intent filter for the configured web host", () => {
