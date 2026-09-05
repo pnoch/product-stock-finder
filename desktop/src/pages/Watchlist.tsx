@@ -298,14 +298,20 @@ export function Watchlist() {
         await refresh();
         showToast("Watchlist refreshed");
       } else {
-        const result = await fetchServerPricesForWatchlist();
+        let result: { refreshed: number; total: number } | null = null;
+        let fetchFailed = false;
+        try {
+          result = await fetchServerPricesForWatchlist();
+        } catch {
+          fetchFailed = true;
+        }
         await refresh();
-        if (!result) {
-          showToast("Live prices need a server connection or the Tauri app");
-        } else if (result.refreshed > 0) {
-          showToast(`Refreshed ${result.refreshed} of ${result.total} prices`);
-        } else {
+        if (fetchFailed || (result && result.refreshed === 0)) {
           showToast("Couldn't refresh prices");
+        } else if (!result) {
+          showToast("Live prices need a server connection or the Tauri app");
+        } else {
+          showToast(`Refreshed ${result.refreshed} of ${result.total} prices`);
         }
       }
     } finally {
