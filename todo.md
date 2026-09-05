@@ -944,3 +944,11 @@
 - [x] Expo config fix: `app.config.ts` extensionless `./scripts/app-links` import broke every Expo command since `23634f2`; helpers inlined, `scripts/app-links.ts` removed, test repointed (`6ea0955`); `expo export -p web` green
 - [x] E2E: `cargo check` + desktop vite 3.05s + `pnpm check` (`tsc 0`) + lint (0 errors) + `166 passed` files / `1362 passed` tests all green
 - [x] Version sync: 5.4.1 → package/app.config (drift fixed: was 5.3.0)/desktop/Cargo/tauri.conf; tag `v5.4.1` (`803ab71`)
+
+## Phase 115: Desktop web-preview refresh fix
+
+- [x] Problem: outside Tauri, Watchlist Refresh only bumped `lastRefreshed` via `refreshWatchlistPrices()` — prices never fetched, toast still claimed success
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-refresh-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-refresh.md`): per-listing tRPC `prices.get`, concurrency 3, `composeLiveListings` merge, `updateProductListings` persist, no server changes
+- [x] Guard test (`tests/desktop-watchlist-refresh.test.ts`) + implementation (`5aff904`, `b617b0a`): Tauri path first, else server fetch with `Refreshed X of Y` / `Couldn't refresh prices` / `Live prices need a server connection or the Tauri app` toasts; bare timestamp bump removed
+- [x] Hardening (`bce77dc`): helper throw still reloads UI + error toast instead of silent spinner stop
+- [x] E2E: `tsc 0`, lint 0 errors, `167 passed` files / `1363 passed` tests, desktop vite build green
