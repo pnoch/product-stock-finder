@@ -65,7 +65,7 @@ import { RegionFilterRow } from "@/components/watchlist/region-filter-row";
 import { EmptyState } from "@/components/watchlist/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 
-
+const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
 
 export default function WatchlistScreen() {
   const router = useRouter();
@@ -119,7 +119,9 @@ export default function WatchlistScreen() {
       try {
         const meta = await getSyncMeta();
         if (!cancelled) setQueuedCount(countQueuedEdits(meta));
-      } catch {}
+      } catch (e) {
+        LOG_ERROR("[Watchlist] queued-count refresh failed", e);
+      }
     };
     void refreshQueue();
     const interval = setInterval(refreshQueue, 30000);
@@ -197,7 +199,9 @@ export default function WatchlistScreen() {
           watchlistPriceRange: priceRange ?? null,
         };
         if (!cancelled) await saveSettings(next);
-      } catch {}
+      } catch (e) {
+        LOG_ERROR("[Watchlist] settings persist failed", e);
+      }
     };
     void persist();
     return () => { cancelled = true; };
@@ -437,7 +441,9 @@ export default function WatchlistScreen() {
     try {
       const message = buildWatchlistShareText({ watchlist, displayCurrency, days: 30, now: Date.now() });
       await Share.share({ message, title: "My Watchlist" });
-    } catch {}
+    } catch (e) {
+      LOG_ERROR("[Watchlist] share failed", e);
+    }
   }, [watchlist, displayCurrency]);
 
   const persistChainRef = useRef(Promise.resolve<void>(undefined));
