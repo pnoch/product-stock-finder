@@ -60,8 +60,8 @@ export function Rates() {
   }, []);
 
   useEffect(() => {
-    void maybeRefreshFxRates(storage).catch(() => {});
     void loadData();
+    void maybeRefreshFxRates(storage).then(loadData, loadData);
   }, [loadData]);
 
   const onRefresh = useCallback(async () => {

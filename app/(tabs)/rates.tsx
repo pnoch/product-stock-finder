@@ -22,8 +22,8 @@ export default function RatesScreen() {
   }, []);
 
   useEffect(() => {
-    void maybeRefreshFxRates().catch(() => {});
     void loadData();
+    void maybeRefreshFxRates().then(loadData, loadData);
   }, [loadData]);
 
   const onRefresh = useCallback(async () => {
