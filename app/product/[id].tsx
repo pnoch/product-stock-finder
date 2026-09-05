@@ -31,6 +31,8 @@ import { useToast } from "@/components/ui/toast";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 
+const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
+
 export default function ProductDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
@@ -262,7 +264,9 @@ export default function ProductDetailScreen() {
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         return;
       }
-    } catch {}
+    } catch (e) {
+      LOG_ERROR("[Product] image share failed, falling back to text", e);
+    }
     try {
       const result = await Share.share({ message, title: product.name });
       if ((result as unknown as { action: string })?.action === Share.dismissedAction) return;

@@ -52,6 +52,8 @@ import {
   filterByRange,
 } from "@/lib/compare-utils";
 
+const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
+
 function hashId(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
@@ -260,7 +262,9 @@ export default function CompareScreen() {
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         return;
       }
-    } catch {}
+    } catch (e) {
+      LOG_ERROR("[Compare] image share failed, falling back to text", e);
+    }
     try {
       const result = await Share.share({ message, title: product.name });
       if ((result as unknown as { action: string })?.action === Share.dismissedAction) return;
