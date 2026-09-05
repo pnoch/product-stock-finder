@@ -1,4 +1,4 @@
-export const COUNTRY_TAX_RATES: Record<string, number> = {
+const COUNTRY_TAX_RATES: Record<string, number> = {
   Australia: 0.1,
   Canada: 0.13,
   "Czech Republic": 0.21,

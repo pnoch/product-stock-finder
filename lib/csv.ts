@@ -53,10 +53,6 @@ export function watchlistToCsv(products: Product[], currency: string): string {
   return lines.join("\n");
 }
 
-export function watchlistToSummaryCsv(products: Product[], currency: string): string {
-  return watchlistToCsv(products, currency);
-}
-
 export function watchlistToDetailedCsv(products: Product[]): string {
   const lines: string[] = [LISTINGS_HEADER];
   for (const p of products) {

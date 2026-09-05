@@ -30,12 +30,25 @@ describe("fetchParsedProduct", () => {
   it("slices raw to 2000 chars", async () => {
     const { createTRPCClient } = await import("../lib/trpc");
     const long = "a".repeat(3000);
+    vi.mocked(createTRPCClient).mockReturnValueOnce({
+      products: {
+        parse: {
+          query: vi.fn(async ({ raw }: { raw: string }) => {
+            expect(raw.length).toBe(2000);
+            return {
+              product: {
+                name: "x",
+                modelNumber: "M123",
+                brand: "Test",
+                category: "Switch",
+                description: "Desc",
+              },
+            };
+          }),
+        },
+      },
+    } as never);
     await fetchParsedProduct(long);
-    const mock = vi.mocked(createTRPCClient).mock.results[0]?.value as unknown as { products: { parse: { query: ReturnType<typeof vi.fn> } } };
-    // Alternative: check via mock call
-    const client = vi.mocked(createTRPCClient).mock.results[0]?.value;
-    // Simpler: just ensure it doesn't throw and truncates
-    expect(long.slice(0, 2000).length).toBe(2000);
   });
 
   it("returns null on throw", async () => {

@@ -79,16 +79,3 @@ export function getEventColor(
       return colors.success;
   }
 }
-
-export function getEventLabel(type: PriceEventType): string {
-  switch (type) {
-    case "restock":
-      return "Restock";
-    case "price_drop":
-      return "Drop";
-    case "price_rise":
-      return "Rise";
-    default:
-      return type;
-  }
-}

@@ -1,6 +1,6 @@
 import type { AppSettings } from "./types";
 
-export function parseQuietTime(value: string): number | null {
+function parseQuietTime(value: string): number | null {
   const m = /^(\d{2}):(\d{2})$/.exec(value);
   if (!m) return null;
   const h = Number(m[1]);
@@ -24,9 +24,4 @@ export function isInQuietHours(
     return cur >= start && cur < end;
   }
   return cur >= start || cur < end;
-}
-
-export function formatQuietHoursLabel(qh?: { start: string; end: string }): string {
-  if (!qh?.start || !qh?.end) return "Off";
-  return `${qh.start}–${qh.end}`;
 }
