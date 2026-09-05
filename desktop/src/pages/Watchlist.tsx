@@ -27,7 +27,10 @@ import { ProductImage } from "../components/ProductImage";
 import { TagFilterRow } from "../components/TagFilterRow";
 import { countTagMatches } from "../../../lib/watchlist-org";
 import { matchesTagFilterMode, TAG_PALETTE, nextTagColor } from "../../../lib/tags";
-import type { Product, StockStatus, TagDefinition } from "../../../lib/types";
+import { createTRPCClient } from "../lib/trpc";
+import { composeLiveListings } from "../../../lib/live-prices";
+import { isFreshPriceSnapshot } from "../../../lib/price-freshness";
+import type { Product, ServerPriceResult, StockStatus, TagDefinition } from "../../../lib/types";
 
 type SortKey = "name" | "price" | "trend" | "lastUpdated";
 type FilterKey = "all" | "in_stock" | "back_order" | "out_of_stock";
@@ -68,6 +71,50 @@ function getDominantStatus(product: Product): StockStatus {
   if (statuses.includes("back_order")) return "back_order";
   if (statuses.includes("out_of_stock")) return "out_of_stock";
   return "unknown";
+}
+
+
+
+const MAX_CONCURRENT_SERVER_FETCHES = 3;
+
+async function fetchServerPricesForWatchlist(): Promise<{ refreshed: number; total: number } | null> {
+  if (!getApiBaseUrl()) return null;
+  const products = await storage.getWatchlist();
+  const jobs = products
+    .filter((p) => p.listings.length > 0)
+    .map((p) => ({ productId: p.id, modelNumber: p.modelNumber, listings: p.listings }));
+  const total = jobs.reduce((n, j) => n + j.listings.length, 0);
+  if (total === 0) return { refreshed: 0, total: 0 };
+  const client = createTRPCClient();
+  let refreshed = 0;
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(MAX_CONCURRENT_SERVER_FETCHES, total) }, async () => {
+      while (next < jobs.length) {
+        const job = jobs[next];
+        next += 1;
+        const results: (ServerPriceResult | null)[] = [];
+        for (const listing of job.listings) {
+          try {
+            results.push(
+              await client.prices.get.query({
+                distributorId: listing.distributorId,
+                modelNumber: job.modelNumber,
+              }),
+            );
+          } catch {
+            results.push(null);
+          }
+        }
+        if (results.some((r) => r !== null)) {
+          const merged = composeLiveListings(job.listings, results);
+          await storage.updateProductListings(job.productId, merged);
+        }
+        refreshed += results.filter((r) => isFreshPriceSnapshot(r?.snapshot)).length;
+      }
+    }),
+  );
+  return { refreshed, total };
 }
 
 
@@ -226,10 +273,7 @@ export function Watchlist() {
     setRefreshing(true);
     try {
       // Attempt live price refresh via Tauri backend when available.
-      // Falls back to a timestamp bump (placeholder) when running outside
-      // Tauri (e.g. web preview) — live prices are kept fresh by the server
-      // catalog warmer / background poller in that case.
-      let liveRefreshed = false;
+      let viaTauri = false;
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         const raw = await storage.getWatchlist();
@@ -245,16 +289,25 @@ export function Watchlist() {
             products,
             apiBaseUrl: getApiBaseUrl(),
           });
-          liveRefreshed = true;
+          viaTauri = true;
         }
       } catch {
-        // Not in Tauri or invoke unavailable — fall through to bump
+        // Not in Tauri or invoke unavailable — fall through to server fetch
       }
-      if (!liveRefreshed) {
-        await storage.refreshWatchlistPrices();
+      if (viaTauri) {
+        await refresh();
+        showToast("Watchlist refreshed");
+      } else {
+        const result = await fetchServerPricesForWatchlist();
+        await refresh();
+        if (!result) {
+          showToast("Live prices need a server connection or the Tauri app");
+        } else if (result.refreshed > 0) {
+          showToast(`Refreshed ${result.refreshed} of ${result.total} prices`);
+        } else {
+          showToast("Couldn't refresh prices");
+        }
       }
-      await refresh();
-      showToast("Watchlist refreshed");
     } finally {
       setRefreshing(false);
     }
