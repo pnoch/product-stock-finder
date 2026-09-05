@@ -4,10 +4,10 @@ import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { FxRateGrid } from "@/components/rates/fx-rate-grid";
-import { EXCHANGE_RATES } from "@/lib/currency";
+import { EXCHANGE_RATES } from "@shared/currency";
 import { getFxHistory } from "@/lib/storage";
 import { getFxChange } from "@/lib/fx-history";
-import { refreshFxRates } from "@/lib/fx";
+import { maybeRefreshFxRates, refreshFxRates } from "@/lib/fx";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
 import type { FxHistory } from "@/lib/storage/fx-history";
 
@@ -22,7 +22,8 @@ export default function RatesScreen() {
   }, []);
 
   useEffect(() => {
-    loadData();
+    void maybeRefreshFxRates().catch(() => {});
+    void loadData();
   }, [loadData]);
 
   const onRefresh = useCallback(async () => {
