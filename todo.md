@@ -935,3 +935,12 @@
 - [x] `cargo check` (Tauri) + `expo export` (web) + `pnpm check` (root `tsc 0` + desktop vite 4.2s + `145 passed` + `36 tests`) all green at `33a0256`
 - [x] Desktop bulk/tag/alert parity, tag collapse, thumbnail herds, drift, contrast, health `blocked` parity
 - [x] Version sync: 5.4.0 → package/app.config/desktop/Cargo/tauri.conf
+
+## Phase 114: v5.4.1 — Currency migration, Rates live-FX, Expo config fix
+
+- [x] Currency migration: 26 pure-only files → `@shared/currency`, 10 mixed files split (live `convertPrice`/`getBestPrice` stay on `@/lib/currency`); `FX_TTL_MS` single-sourced in `shared/src/fx.ts` (`96123cd`); guard test asserts live-vs-pure contract (`tests/shared-desktop-criticals.test.ts`)
+- [x] Dead-code cleanup: removed `watchlistToSummaryCsv`, `getEventLabel`, `formatQuietHoursLabel`; un-exported `parseQuietTime`, `COUNTRY_TAX_RATES`; strengthened 2000-char truncation test (`857c039`)
+- [x] Rates live-FX parity: spec (`docs/superpowers/specs/2026-09-06-rates-live-fx-parity-design.md`) + plan (`docs/superpowers/plans/2026-09-06-rates-live-fx-parity.md`); mobile mount `maybeRefreshFxRates` (`4ddf7cd`); reload history after refresh settles, mobile + desktop (`8f6d5cc`)
+- [x] Expo config fix: `app.config.ts` extensionless `./scripts/app-links` import broke every Expo command since `23634f2`; helpers inlined, `scripts/app-links.ts` removed, test repointed (`6ea0955`); `expo export -p web` green
+- [x] E2E: `cargo check` + desktop vite 3.05s + `pnpm check` (`tsc 0`) + lint (0 errors) + `166 passed` files / `1362 passed` tests all green
+- [x] Version sync: 5.4.1 → package/app.config (drift fixed: was 5.3.0)/desktop/Cargo/tauri.conf; tag `v5.4.1` (`803ab71`)
