@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router";
 import {
   Palette,
@@ -33,7 +33,9 @@ import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
 import { getSyncSetup } from "../../../lib/sync";
-import type { AppSettings } from "../../../lib/types";
+import type { AppSettings, Product, DistributorListing } from "../../../lib/types";
+import { getDistributorById } from "@shared/distributors";
+import { getAllParserIds } from "../../../lib/scrapers/registry";
 import { isWebNotificationsSupported, requestWebNotificationPermission, displayWebNotification } from "../../../lib/web-notifications";
 
 export function Settings() {
@@ -170,6 +172,86 @@ export function Settings() {
   const [toast, setToast] = useState<string | null>(null);
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
   const trpcClient = trpc as any;
+
+  // Scraper Status — desktop port of mobile ScraperStatusSection
+  const [products, setProducts] = useState<Product[]>([]);
+  const [reenabling, setReenabling] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    storage.getWatchlist().then((w) => {
+      if (!cancelled) setProducts(w);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const distributorStatuses = useMemo(() => {
+    const statuses: Record<string, { lastSuccess: string | null; lastError: string | null; consecutiveFailures: number }> = {};
+    const parserIds = getAllParserIds();
+    for (const id of parserIds) {
+      statuses[id] = { lastSuccess: null, lastError: null, consecutiveFailures: 0 };
+    }
+    for (const product of products) {
+      if (!product.listings) continue;
+      for (const listing of product.listings) {
+        const id = listing.distributorId;
+        if (!statuses[id]) {
+          statuses[id] = { lastSuccess: null, lastError: null, consecutiveFailures: 0 };
+        }
+        if (listing.lastChecked) {
+          const existing = statuses[id].lastSuccess;
+          if (!existing || listing.lastChecked > existing) {
+            statuses[id].lastSuccess = listing.lastChecked;
+          }
+        }
+      }
+    }
+    return statuses;
+  }, [products]);
+
+  const getDistributorHealth = (lastSuccess: string | null): { label: string; emoji: string } => {
+    if (!lastSuccess) {
+      return { label: "Never Checked", emoji: "❓" };
+    }
+    const hoursSince = (Date.now() - new Date(lastSuccess).getTime()) / (1000 * 60 * 60);
+    if (hoursSince < 24) {
+      return { label: "OK", emoji: "✅" };
+    }
+    if (hoursSince < 168) {
+      return { label: "Stale", emoji: "⚠️" };
+    }
+    return { label: "Failed", emoji: "❌" };
+  };
+
+  const handleReenableDistributor = useCallback(async (distributorId: string) => {
+    if (reenabling) return;
+    setReenabling(true);
+    try {
+      const nowIso = new Date().toISOString();
+      const tasks = products
+        .filter((p) => p.listings?.some((l) => l.distributorId === distributorId))
+        .map((product) => {
+          const updatedListings: DistributorListing[] = product.listings.map((l) =>
+            l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
+          );
+          return storage.updateProductListings(product.id, updatedListings);
+        });
+      await Promise.all(tasks);
+      setProducts((prev) =>
+        prev.map((p) => ({
+          ...p,
+          listings: p.listings?.map((l) =>
+            l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
+          ),
+        })),
+      );
+      showToast("Distributor re-enabled");
+    } catch {
+      showToast("Could not re-enable distributor");
+    } finally {
+      setReenabling(false);
+    }
+  }, [products, reenabling]);
 
   const loadDevices = async () => {
     if (!isAuthenticated) return;
@@ -364,6 +446,53 @@ export function Settings() {
           </span>
         </span>
       </button>
+
+      {/* Scraper Status — desktop port of mobile ScraperStatusSection */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <Activity className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+          <h2 className="text-lg font-semibold">Scraper Status</h2>
+        </div>
+        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+          {Object.entries(distributorStatuses)
+            .filter(([id]) => getDistributorById(id))
+            .map(([id, status]) => {
+              const distributor = getDistributorById(id)!;
+              const health = getDistributorHealth(status.lastSuccess);
+              return (
+                <div key={id} className="flex items-center justify-between py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">
+                      {distributor.countryFlag} {distributor.name} <span aria-hidden="true">{health.emoji}</span>
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {status.lastSuccess
+                        ? `Last checked: ${new Date(status.lastSuccess).toLocaleDateString()}`
+                        : "Never checked"}
+                    </p>
+                  </div>
+                  {health.label !== "OK" ? (
+                    <button
+                      onClick={() => handleReenableDistributor(id)}
+                      disabled={reenabling}
+                      className="ml-2 shrink-0 px-3 py-1.5 rounded-lg bg-brand-600/10 text-brand-600 dark:text-brand-400 text-xs font-semibold hover:bg-brand-600/20 disabled:opacity-50"
+                      aria-label={`Re-enable ${distributor.name}`}
+                    >
+                      Re-enable
+                    </button>
+                  ) : (
+                    <span className="ml-2 shrink-0 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                      {health.label}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          {Object.keys(distributorStatuses).length === 0 && (
+            <p className="text-sm text-gray-500 text-center py-4">No distributors configured</p>
+          )}
+        </div>
+      </div>
 
       {/* Device Management Section — desktop port */}
       {isAuthenticated && user && (
