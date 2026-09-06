@@ -960,3 +960,9 @@
 - [x] Tier 2 (`680bbf2`): `scheduleHealthAlert` settings-read failure logs in dev, alert still sends (explicit fail-open)
 - [x] Tier 3 (`a81ef7a`, `6c01081`): dev-only logs for watchlist badge/persist/share + compare/product image→text fallback; dismissal catches intentionally left silent
 - [x] Guards (`tests/silent-failures.test.ts`, `ba6fd97`); E2E: `tsc 0`, lint 0 errors, `168 passed` files / `1367 passed` tests
+
+## Phase 117: Security-critical module tests + Infinity fix
+
+- [x] 52 new tests via 4 parallel agents (`946212f`): rate-limit (9), quiet-hours (7), price-events (24), price-freshness (12)
+- [x] Fixed: `Infinity` prices passed the positivity guard → spurious rise/drop events; now require `Number.isFinite` (`6ead6d1`); restock-precedence + sorted-index semantics kept (both chart callers pre-sort)
+- [x] E2E: `tsc 0`, lint clean, `172 passed` files / `1419 passed` tests
