@@ -989,3 +989,10 @@
 - [x] In-stock toggle + Min/Max range in single-pass memo, persisted to mobile's settings keys with sentinel-aware load; review-caught `displayCurrency` dep fix (`6955e55`, `eda3fa4`)
 - [x] Check-Now: full pipeline via dynamic import (bundle-safe, no fallback needed), progress + re-entrancy guard (`83e8bb5`)
 - [x] Guards (`tests/desktop-p2-watchlist.test.ts`); E2E: `tsc 0`, lint 0 errors, `175 passed` files / `1428 passed` tests, desktop build green
+
+## Phase 121: Desktop P3a (compare CTA + browser insight)
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-p3a-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-p3a.md`)
+- [x] Compare cross-distributor alert CTA: sentinel `cross-` alerts via `addAlert`, hidden when no actionable target (`fbf46ab`)
+- [x] ProductDetail AI insight outside Tauri via vanilla `insights.get` (4s race); Tauri path intact, no expo-chain import (`bbfad8b`)
+- [x] Guards (`tests/desktop-p3a.test.ts`); E2E: `tsc 0`, lint 0 errors, `176 passed` files / `1430 passed` tests, desktop build green
