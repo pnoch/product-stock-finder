@@ -2,7 +2,7 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { HEALTH_ALERT_THRESHOLD, HealthStatus } from "./scrapers/health";
 import { recordDisplayedEventId, recordNotificationEvent, getSettings } from "./storage";
-import { getDistributorById } from "./distributors";
+import { getDistributorById } from "@shared/distributors";
 import { isInQuietHours } from "./quiet-hours";
 
 const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};

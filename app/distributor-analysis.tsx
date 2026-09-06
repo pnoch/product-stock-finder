@@ -12,7 +12,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { getWatchlist, getSettings } from "@/lib/storage";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import {
   analyzeDistributors,
   DistributorAnalysis,

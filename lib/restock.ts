@@ -7,7 +7,7 @@ import {
   updateStockWatchStatus,
 } from "./storage";
 import { scheduleStockAlert } from "./notifications";
-import { getDistributorById } from "./distributors";
+import { getDistributorById } from "@shared/distributors";
 
 // Serializes concurrent checkRestocks calls (background task + foreground check)
 // so overlapping runs can't both fire a duplicate restock notification.

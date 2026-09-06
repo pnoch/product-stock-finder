@@ -9,7 +9,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
 interface ReminderDatePickerModalProps {

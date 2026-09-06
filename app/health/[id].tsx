@@ -16,7 +16,7 @@ import {
   HealthStatus,
   timelineSegments,
 } from "@/lib/scrapers/health";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 
 const healthService = createHealthService(AsyncStorage);
 

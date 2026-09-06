@@ -1,5 +1,5 @@
 import type { Product } from "./types";
-import { DISTRIBUTORS } from "./distributors";
+import { DISTRIBUTORS } from "@shared/distributors";
 import { convertPrice, hasExchangeRate } from "./currency";
 
 export interface DistributorAnalysis {

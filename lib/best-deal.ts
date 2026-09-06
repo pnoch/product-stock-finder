@@ -1,5 +1,5 @@
 import type { DistributorListing } from "./types";
-import { getDistributorById } from "./distributors";
+import { getDistributorById } from "@shared/distributors";
 import { convertPrice } from "./currency";
 
 export interface BestDeal {

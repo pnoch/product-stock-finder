@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { priceInsights, type PriceInsightsRow } from "../drizzle/schema";
 import { PRODUCT_CATALOG } from "../lib/catalog";
-import { getDistributorById } from "../lib/distributors";
+import { getDistributorById } from "../shared/src/distributors.js";
 import { getAllParserIds } from "../lib/scrapers/registry";
 import { getCachedPrice } from "./price-cache";
 import { getHistory } from "./price-history";

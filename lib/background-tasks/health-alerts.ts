@@ -4,7 +4,7 @@ import {
   detectHealthAlert,
   detectHealthRecovery,
 } from "../scrapers/health";
-import { getDistributorById } from "../distributors";
+import { getDistributorById } from "@shared/distributors";
 import {
   scheduleHealthAlert,
   scheduleHealthRecovery,

@@ -1,5 +1,5 @@
 import { PRODUCT_CATALOG } from "../../lib/catalog";
-import { getDistributorById } from "../../lib/distributors";
+import { getDistributorById } from "../../shared/src/distributors.js";
 import { getAllParserIds } from "../../lib/scrapers/registry";
 import { getCachedPrice } from "../price-cache";
 import { convertPrice, formatPrice } from "../../lib/currency";

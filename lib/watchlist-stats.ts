@@ -1,6 +1,6 @@
 import type { Product } from "./types";
 import { convertPrice, hasExchangeRate } from "./currency";
-import { getDistributorById } from "./distributors";
+import { getDistributorById } from "@shared/distributors";
 
 export type MoversWindow = 7 | 30 | null;
 

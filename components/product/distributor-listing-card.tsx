@@ -10,7 +10,7 @@ import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { convertPrice } from "@/lib/currency";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import {
   formatLastRefreshed,
   getLastRefreshedColor,

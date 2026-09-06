@@ -12,7 +12,7 @@ import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { getStockWatches, removeStockWatch } from "@/lib/storage";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import type { BackOrderReminder } from "@/lib/types";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SkeletonList } from "@/components/ui/skeleton";

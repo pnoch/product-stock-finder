@@ -6,7 +6,7 @@ import type {
   WatchlistSort,
 } from "./types";
 import { convertPrice, getBestPrice } from "./currency";
-import { getDistributorById } from "./distributors";
+import { getDistributorById } from "@shared/distributors";
 import { productHasRegion } from "./region-filter";
 import { matchesTagFilterMode } from "./tags";
 

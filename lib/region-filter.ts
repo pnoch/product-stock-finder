@@ -1,4 +1,4 @@
-import { DISTRIBUTORS, getDistributorById } from "./distributors";
+import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
 import type { Product, DistributorListing } from "./types";
 
 export function getAllRegions(): string[] {

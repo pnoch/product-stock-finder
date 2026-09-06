@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import { formatPrice, convertPrice } from "@/lib/currency";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { openListingUrl } from "@/lib/listing-utils";
 

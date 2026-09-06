@@ -21,7 +21,7 @@ import {
   HealthStats,
   HealthStatus,
 } from "@/lib/scrapers/health";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import { classifyFetchStatus } from "@/lib/scrapers/resilient";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { EmptyStateView } from "@/components/ui/empty-state-view";

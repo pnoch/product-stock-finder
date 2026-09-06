@@ -1,6 +1,6 @@
 import { Animated, Text, View } from "react-native";
 import { StockBadge } from "@/components/stock-badge";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import { useColors } from "@/hooks/use-colors";
 import type { Product } from "@/lib/types";
 import type { BestDeal } from "@/lib/best-deal";

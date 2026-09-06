@@ -7,7 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { formatPrice, getBestPrice } from "@/lib/currency";
 import { StockBadge } from "@/components/stock-badge";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { addToWatchlist } from "@/lib/storage";
 import { normalizeSharedWatchlistProduct } from "@/lib/shared-watchlist";

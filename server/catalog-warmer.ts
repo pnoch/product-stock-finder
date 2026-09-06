@@ -1,5 +1,5 @@
 import { PRODUCT_CATALOG } from "../lib/catalog";
-import { DISTRIBUTORS } from "../lib/distributors";
+import { DISTRIBUTORS } from "../shared/src/distributors.js";
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 
 export interface CatalogPair {

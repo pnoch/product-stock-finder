@@ -21,7 +21,7 @@ import { formatPrice } from "@shared/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAlertsData } from "@/hooks/use-alerts-data";
 import { showAlert } from "@/lib/alert";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 
 import { TabSwitcher } from "@/components/alerts/tab-switcher";
 import { AlertCard } from "@/components/alerts/alert-card";

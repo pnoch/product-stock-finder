@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DISTRIBUTORS, getDistributorById } from "../lib/distributors";
+import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
 
 describe("DISTRIBUTORS", () => {
   it("has 30 entries", () => {

@@ -1,6 +1,6 @@
 import type { DistributorListing } from "./types";
 import { convertPrice, hasExchangeRate, formatPrice } from "./currency";
-import { getDistributorById } from "./distributors";
+import { getDistributorById } from "@shared/distributors";
 
 export interface PriceShareInput {
   productName?: string;

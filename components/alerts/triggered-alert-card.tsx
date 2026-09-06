@@ -4,7 +4,7 @@ import { useColors } from "@/hooks/use-colors";
 import { PriceAlert } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 
 interface TriggeredAlertCardProps {
   alert: PriceAlert;

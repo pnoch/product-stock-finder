@@ -3,7 +3,7 @@ import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { convertPrice } from "@/lib/currency";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import { CHART_COLORS } from "@/lib/compare-utils";
 
 function hashId(id: string): number {

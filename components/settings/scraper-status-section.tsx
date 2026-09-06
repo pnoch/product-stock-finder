@@ -9,7 +9,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { SectionHeader } from "@/components/settings/section-header";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import { getAllParserIds } from "@/lib/scrapers/registry";
 import type { Product } from "@/lib/types";
 

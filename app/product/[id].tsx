@@ -15,7 +15,7 @@ import { captureAndShareImage } from "@/lib/share-image";
 import { getSettings, getStockWatches, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch } from "@/lib/storage";
 import { formatPrice } from "@shared/currency";
 import { convertPrice } from "@/lib/currency";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
 import { computePriceVsAverage } from "@/lib/price-average";
 import { findBestDeal } from "@/lib/best-deal";

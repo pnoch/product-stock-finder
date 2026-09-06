@@ -37,7 +37,7 @@ import {
 } from "@/lib/notifications";
 import { PriceAlert } from "@/lib/types";
 import { convertPrice, formatPrice } from "@/lib/currency";
-import { getDistributorById } from "@/lib/distributors";
+import { getDistributorById } from "@shared/distributors";
 import { PRODUCT_CATALOG } from "@/lib/catalog";
 import { SkeletonChart, SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
