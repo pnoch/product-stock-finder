@@ -26,6 +26,8 @@ import {
   importWatchlistFromJson,
 } from "../import-export";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { useConnection } from "../hooks/use-connection";
+import { ConnectionBadge } from "../components/ConnectionBadge";
 import { useAuth, buildLoginUrl } from "../hooks/use-auth";
 import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
@@ -53,6 +55,7 @@ export function Settings() {
     null,
   );
   const { user, isAuthenticated, login, logout } = useAuth();
+  const connection = useConnection();
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
@@ -212,6 +215,22 @@ export function Settings() {
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
       {toast && <div className="fixed bottom-6 right-6 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-[60]">{toast}</div>}
+
+      {/* Connection Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <h2 className="text-lg font-semibold mb-4">Connection</h2>
+        <div className="flex items-center justify-between gap-4">
+          <ConnectionBadge status={connection.status} />
+          <button
+            onClick={() => connection.refetch()}
+            disabled={connection.isRefreshing}
+            className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
+            aria-label="Check connection now"
+          >
+            {connection.isRefreshing ? "Checking" : "Check now"}
+          </button>
+        </div>
+      </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
         <div className="flex items-center gap-3 mb-4">
