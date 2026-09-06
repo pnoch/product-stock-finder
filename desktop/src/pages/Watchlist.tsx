@@ -135,6 +135,16 @@ export function Watchlist() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagMatchMode, setTagMatchMode] = useState<"any" | "all">("any");
   const [query, setQuery] = useState("");
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [priceMinInput, setPriceMinInput] = useState("");
+  const [priceMaxInput, setPriceMaxInput] = useState("");
+  const priceRange = useMemo<[number, number] | undefined>(() => {
+    if (priceMinInput.trim() === "" && priceMaxInput.trim() === "") return undefined;
+    const min = priceMinInput.trim() === "" ? 0 : Number(priceMinInput);
+    const max = priceMaxInput.trim() === "" ? Number.MAX_SAFE_INTEGER : Number(priceMaxInput);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < min) return undefined;
+    return [min, max];
+  }, [priceMinInput, priceMaxInput]);
   const [toast, setToast] = useState<string | null>(null);
   // Bulk select + undo parity
   const [selectionMode, setSelectionMode] = useState(false);
@@ -175,8 +185,23 @@ export function Watchlist() {
       const defs = (s.tagDefinitions ?? {}) as Record<string, TagDefinition>;
       setTagDefinitions(defs);
       setSelectedTagIds((prev) => prev.filter((id) => Object.prototype.hasOwnProperty.call(defs, id)));
+      setInStockOnly(s.watchlistInStockOnly ?? false);
+      const storedRange = s.watchlistPriceRange ?? null;
+      if (storedRange && Array.isArray(storedRange) && storedRange.length === 2) {
+        const [min, max] = storedRange;
+        setPriceMinInput(min === 0 ? "" : String(min));
+        setPriceMaxInput(max === Number.MAX_SAFE_INTEGER ? "" : String(max));
+      }
     });
   }, [settings]);
+
+  useEffect(() => {
+    if (loading) return;
+    storage
+      .getSettings()
+      .then((s) => storage.saveSettings({ ...s, watchlistInStockOnly: inStockOnly, watchlistPriceRange: priceRange ?? null }))
+      .catch(() => {});
+  }, [inStockOnly, priceRange, loading]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -201,6 +226,16 @@ export function Watchlist() {
     if (filter !== "all") {
       result = result.filter((p) => getDominantStatus(p) === filter);
     }
+    if (inStockOnly) {
+      result = result.filter((p) => getDominantStatus(p) === "in_stock");
+    }
+    if (priceRange) {
+      const [min, max] = priceRange;
+      result = result.filter((p) => {
+        const best = getBestPrice(p.listings, displayCurrency);
+        return best !== null && best.price >= min && best.price <= max;
+      });
+    }
     if (selectedTagIds.length > 0) {
       result = result.filter((p) => matchesTagFilterMode(p, selectedTagIds, tagMatchMode));
     }
@@ -213,7 +248,7 @@ export function Watchlist() {
       );
     }
     return result;
-  }, [products, regionFilter, filter, selectedTagIds, tagMatchMode, query]);
+  }, [products, regionFilter, filter, selectedTagIds, tagMatchMode, query, inStockOnly, priceRange]);
 
   const summary = useMemo(
     () => computeWatchlistSummary(filtered, displayCurrency),
@@ -666,7 +701,7 @@ export function Watchlist() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {FILTER_OPTIONS.map((opt) => (
           <button
             key={opt.key}
@@ -681,6 +716,34 @@ export function Watchlist() {
             {opt.label}
           </button>
         ))}
+        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={inStockOnly}
+            onChange={(e) => setInStockOnly(e.target.checked)}
+            className="rounded border-gray-300"
+            aria-label="In stock only"
+          />
+          In stock only
+        </label>
+        <input
+          type="number"
+          value={priceMinInput}
+          onChange={(e) => setPriceMinInput(e.target.value)}
+          placeholder="Min"
+          inputMode="decimal"
+          aria-label="Minimum price"
+          className="w-20 px-3 py-1.5 rounded-lg text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-600"
+        />
+        <input
+          type="number"
+          value={priceMaxInput}
+          onChange={(e) => setPriceMaxInput(e.target.value)}
+          placeholder="Max"
+          inputMode="decimal"
+          aria-label="Maximum price"
+          className="w-20 px-3 py-1.5 rounded-lg text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-600"
+        />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -917,6 +980,9 @@ export function Watchlist() {
                   setQuery("");
                   setRegionFilter("all");
                   setSelectedTagIds([]);
+                  setInStockOnly(false);
+                  setPriceMinInput("");
+                  setPriceMaxInput("");
                 }}
                 className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 transition-colors"
                 aria-label="Clear all filters"
