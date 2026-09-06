@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useParams } from "react-router";
 import { ArrowLeft, Package, PackagePlus } from "lucide-react";
-import { createTRPCClient } from "../lib/trpc";
+import { trpc } from "../lib/trpc";
 import { storage } from "../storage";
 import { normalizeSharedWatchlistProduct } from "../../../lib/shared-watchlist";
 import { formatPrice } from "@shared/currency";
+import { getBestPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
@@ -23,50 +24,25 @@ interface SharedProduct {
   }>;
 }
 
-interface SharedData {
-  title: string;
-  products: unknown[];
-  createdAt: string | null;
-  expiresAt: string | null;
-}
-
 export function SharedWatchlist() {
   const { token } = useParams();
-  const [data, setData] = useState<SharedData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = trpc.sharedWatchlists.get.useQuery(
+    { token: token ?? "" },
+    { enabled: !!token },
+  );
+  const loading = query.isLoading;
+  const error = !token
+    ? "Share not found"
+    : query.error
+      ? query.error.message || "Share not found"
+      : null;
+  const data = query.data;
   const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
   };
-
-  useEffect(() => {
-    if (!token) {
-      setError("Share not found");
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const client = createTRPCClient();
-        const result = await client.sharedWatchlists.get.query({ token });
-        if (!cancelled) {
-          setData(result as SharedData);
-          setError(null);
-        }
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Share not found");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
 
   const handleAddAll = useCallback(async () => {
     const products = data?.products ?? [];
@@ -141,15 +117,17 @@ export function SharedWatchlist() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {products.map((p) => {
             const first = p.listings?.[0];
+            const best = first ? getBestPrice(p.listings ?? [], first.currency) : null;
+            const price = best ?? first;
             return (
               <div key={p.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <div className="font-semibold text-sm">{p.name}</div>
                 {p.brand && <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{p.brand}</div>}
                 <div className="flex items-center gap-2 mt-2">
-                  {first && (
+                  {first && price && (
                     <>
                       <span className="text-sm font-semibold">
-                        {formatPrice(first.price, first.currency)}
+                        {formatPrice(price.price, price.currency)}
                       </span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
                         {getDistributorById(first.distributorId)?.name ?? first.distributorId}
