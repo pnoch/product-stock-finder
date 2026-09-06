@@ -36,7 +36,12 @@ export function detectPriceEvents(history: PricePoint[]): PriceEvent[] {
       });
       continue;
     }
-    if (prev.price > 0 && curr.price > 0) {
+    if (
+      prev.price > 0 &&
+      curr.price > 0 &&
+      Number.isFinite(prev.price) &&
+      Number.isFinite(curr.price)
+    ) {
       const change = (curr.price - prev.price) / prev.price;
       if (change <= -0.05) {
         events.push({

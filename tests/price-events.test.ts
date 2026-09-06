@@ -182,7 +182,7 @@ describe("detectPriceEvents", () => {
     ).toEqual([]);
   });
 
-  it("emits no event for NaN prices (fails the > 0 guard)", () => {
+  it("emits no event for non-finite prices → no event", () => {
     expect(
       detectPriceEvents([
         point("2026-01-01", 100),
@@ -193,6 +193,36 @@ describe("detectPriceEvents", () => {
       detectPriceEvents([
         point("2026-01-01", NaN),
         point("2026-01-02", 100),
+      ]),
+    ).toEqual([]);
+    expect(
+      detectPriceEvents([
+        point("2026-01-01", 100),
+        point("2026-01-02", Infinity),
+      ]),
+    ).toEqual([]);
+    expect(
+      detectPriceEvents([
+        point("2026-01-01", Infinity),
+        point("2026-01-02", 100),
+      ]),
+    ).toEqual([]);
+    expect(
+      detectPriceEvents([
+        point("2026-01-01", 100),
+        point("2026-01-02", -Infinity),
+      ]),
+    ).toEqual([]);
+    expect(
+      detectPriceEvents([
+        point("2026-01-01", -Infinity),
+        point("2026-01-02", 100),
+      ]),
+    ).toEqual([]);
+    expect(
+      detectPriceEvents([
+        point("2026-01-01", Infinity),
+        point("2026-01-02", Infinity),
       ]),
     ).toEqual([]);
   });
