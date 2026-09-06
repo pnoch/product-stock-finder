@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   Bell,
@@ -97,17 +97,28 @@ export function Alerts() {
     showToast(`Rescheduled to ${label}`);
   };
 
-  useEffect(() => {
-    (async () => {
+  const [remindersError, setRemindersError] = useState<string | null>(null);
+
+  const loadReminders = useCallback(async () => {
+    setRemindersLoading(true);
+    setRemindersError(null);
+    try {
       const [r, w] = await Promise.all([
         storage.getBackOrderReminders(),
         storage.getStockWatches(),
       ]);
       setReminders(r);
       setWatches(w);
+    } catch (e) {
+      setRemindersError(e instanceof Error ? e.message : "Couldn't load reminders");
+    } finally {
       setRemindersLoading(false);
-    })();
+    }
   }, []);
+
+  useEffect(() => {
+    void loadReminders();
+  }, [loadReminders]);
 
   useEffect(() => {
     storage.getWatchlist().then((w) => {
@@ -320,6 +331,19 @@ export function Alerts() {
           )}
         </div>
       ) : (
+        <div className="space-y-4">
+        {remindersError && (
+          <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
+            <span className="flex-1">{remindersError}</span>
+            <button
+              onClick={() => void loadReminders()}
+              className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
+              aria-label="Retry loading reminders"
+            >
+              Retry
+            </button>
+          </div>
+        )}
         <RemindersTab
           reminders={reminders}
           watches={watches}
@@ -327,6 +351,7 @@ export function Alerts() {
           onDeleteWatch={handleDeleteWatch}
           onReschedule={openReschedule}
         />
+        </div>
       )}
 
       {/* RescheduleModal — desktop port */}
