@@ -150,7 +150,23 @@ export function ProductDetail() {
         setLivePriceLoading(false);
       }
 
-      if (!("__TAURI__" in window)) return;
+      if (!("__TAURI__" in window)) {
+        const base = getApiBaseUrl();
+        if (base) {
+          try {
+            const { createTRPCClient } = await import("../lib/trpc");
+            const client = createTRPCClient();
+            const result = await Promise.race([
+              client.insights.get.query({ productId: id ?? "" }),
+              new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
+            ]);
+            if (!cancelled && result) setInsight(result.insight);
+          } catch {
+            // insight stays empty
+          }
+        }
+        return;
+      }
       const base = getApiBaseUrl();
       if (base && !cancelled) {
         const { invoke } = await import("@tauri-apps/api/core");
