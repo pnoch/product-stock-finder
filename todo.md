@@ -996,3 +996,17 @@
 - [x] Compare cross-distributor alert CTA: sentinel `cross-` alerts via `addAlert`, hidden when no actionable target (`fbf46ab`)
 - [x] ProductDetail AI insight outside Tauri via vanilla `insights.get` (4s race); Tauri path intact, no expo-chain import (`bbfad8b`)
 - [x] Guards (`tests/desktop-p3a.test.ts`); E2E: `tsc 0`, lint 0 errors, `176 passed` files / `1430 passed` tests, desktop build green
+
+## Phase 122: Desktop P3b-1 (connection, sync-now, test notification)
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-p3b1-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-p3b1.md`)
+- [x] Connection section with manual check (`2e959d4`); Sync-Now via shared engine in signed-in branch (`df5e419`); web test-notification with unsupported/denied paths (`797fc3e`)
+- [x] Guards (`tests/desktop-p3b1-settings.test.ts`); E2E: `tsc 0`, lint 0 errors, `177 passed` files / `1433 passed` tests, desktop build green
+
+## Phase 123: Desktop P3b-2 (LLM, scraper, about settings)
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-p3b2-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-p3b2.md`)
+- [x] LLM provider section: 4 providers, debounced drafts + blur-save to syncing keys (`f1a574a`)
+- [x] Scraper-status section: verbatim thresholds + working Re-enable; registry import proven bundle-safe (`b084092`)
+- [x] About section: version from `package.json`, PWA install, rate/support/privacy; no account deletion (`f82a82b`)
+- [x] Guards (`tests/desktop-p3b2-settings.test.ts`); E2E: `tsc 0`, lint 0 errors, `178 passed` files / `1436 passed` tests, desktop build green
