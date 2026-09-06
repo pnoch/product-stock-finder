@@ -248,7 +248,7 @@ export function Watchlist() {
       );
     }
     return result;
-  }, [products, regionFilter, filter, selectedTagIds, tagMatchMode, query, inStockOnly, priceRange]);
+  }, [products, regionFilter, filter, selectedTagIds, tagMatchMode, query, inStockOnly, priceRange, displayCurrency]);
 
   const summary = useMemo(
     () => computeWatchlistSummary(filtered, displayCurrency),
