@@ -981,3 +981,11 @@
 - [x] Shared links open on desktop: `/w/:token` route + `SharedWatchlist` page (public `sharedWatchlists.get`, rows, bulk add with toasts, loading/not-found states); polished to `useQuery` hook + best-price rows (`2ecab36`, `e4e89ab`, `30095ec`)
 - [x] Alerts reminders can't spin forever: `loadReminders` with error banner + Retry (`a4b0806`)
 - [x] E2E: `tsc 0`, lint 0 errors, `174 passed` files / `1424 passed` tests, desktop build green
+
+## Phase 120: Desktop P2 watchlist (share, check-now, filters, CTA)
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-p2-watchlist-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-p2-watchlist.md`)
+- [x] Share-to-clipboard with fallback + toasts; empty-state CTA → `/search` via new optional `EmptyState` action prop (`a1eb8d1`)
+- [x] In-stock toggle + Min/Max range in single-pass memo, persisted to mobile's settings keys with sentinel-aware load; review-caught `displayCurrency` dep fix (`6955e55`, `eda3fa4`)
+- [x] Check-Now: full pipeline via dynamic import (bundle-safe, no fallback needed), progress + re-entrancy guard (`83e8bb5`)
+- [x] Guards (`tests/desktop-p2-watchlist.test.ts`); E2E: `tsc 0`, lint 0 errors, `175 passed` files / `1428 passed` tests, desktop build green
