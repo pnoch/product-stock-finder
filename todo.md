@@ -974,3 +974,10 @@
 - [x] `lib/currency.ts` → live-rate layer, `lib/fx.ts` → persistence layer (headers rewritten, pure re-exports dropped); 16 straggler files split pure→shared; obsolete wrapper assertion removed from `tests/shared-boundary.test.ts`
 - [x] Guards (`tests/no-lib-shims.test.ts`, `66a248e`); commits `88cd8d0`/`c29d9dd`/`df41be0`
 - [x] E2E: `tsc 0`, lint 0 errors, `173 passed` files / `1421 passed` tests, desktop build + web export green
+
+## Phase 119: Desktop P1 parity (shared links + alerts retry)
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-p1-parity-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-p1-parity.md`)
+- [x] Shared links open on desktop: `/w/:token` route + `SharedWatchlist` page (public `sharedWatchlists.get`, rows, bulk add with toasts, loading/not-found states); polished to `useQuery` hook + best-price rows (`2ecab36`, `e4e89ab`, `30095ec`)
+- [x] Alerts reminders can't spin forever: `loadReminders` with error banner + Retry (`a4b0806`)
+- [x] E2E: `tsc 0`, lint 0 errors, `174 passed` files / `1424 passed` tests, desktop build green
