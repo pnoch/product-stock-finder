@@ -1,7 +1,8 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import {
   RefreshCw,
+  Share2,
   Trash2,
   ArrowUpDown,
   Package,
@@ -29,6 +30,7 @@ import { countTagMatches } from "../../../lib/watchlist-org";
 import { matchesTagFilterMode, TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import { createTRPCClient } from "../lib/trpc";
 import { composeLiveListings } from "../../../lib/live-prices";
+import { buildWatchlistShareText } from "../../../lib/watchlist-share";
 import { isFreshPriceSnapshot } from "../../../lib/price-freshness";
 import type { Product, ServerPriceResult, StockStatus, TagDefinition } from "../../../lib/types";
 
@@ -319,6 +321,27 @@ export function Watchlist() {
     }
   };
 
+  const handleShare = useCallback(async () => {
+    if (products.length === 0) return;
+    const message = buildWatchlistShareText({ watchlist: products, displayCurrency, days: 30, now: Date.now() });
+    try {
+      await navigator.clipboard.writeText(message);
+      showToast("Copied to clipboard");
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = message;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        showToast("Copied to clipboard");
+      } catch {
+        showToast("Couldn't copy share text");
+      }
+      document.body.removeChild(ta);
+    }
+  }, [products, displayCurrency]);
+
   const toggleSelection = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -420,6 +443,7 @@ export function Watchlist() {
           icon={<Package className="w-8 h-8" />}
           title="No products in watchlist"
           description="Search for products to start tracking prices and stock availability."
+          action={{ label: "Add products", to: "/search" }}
         />
       </div>
     );
@@ -577,6 +601,15 @@ export function Watchlist() {
               aria-label="View distributor analysis"
             >
               Distributor Analysis
+            </button>
+            <button
+              onClick={handleShare}
+              disabled={refreshing || products.length === 0}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
+              aria-label="Share watchlist"
+            >
+              <Share2 className="w-4 h-4" />
+              Share
             </button>
             <button
               onClick={handleRefresh}
