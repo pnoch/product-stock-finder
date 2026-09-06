@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import {
   RefreshCw,
   Share2,
+  Zap,
   Trash2,
   ArrowUpDown,
   Package,
@@ -129,6 +130,9 @@ export function Watchlist() {
   const [sortAsc, setSortAsc] = useState(true);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [refreshing, setRefreshing] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [checkProgress, setCheckProgress] = useState<{ current: number; total: number } | null>(null);
+  const checkingRef = useRef(false);
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
@@ -376,6 +380,24 @@ export function Watchlist() {
       document.body.removeChild(ta);
     }
   }, [products, displayCurrency]);
+
+  const handleCheckNow = useCallback(async () => {
+    if (checkingRef.current || products.length === 0) return;
+    checkingRef.current = true;
+    setChecking(true);
+    setCheckProgress({ current: 0, total: products.length });
+    try {
+      const { checkPriceDropsNow } = await import("../../../lib/background-price-check");
+      await checkPriceDropsNow((current, total) => setCheckProgress({ current, total }));
+      await refresh();
+    } catch {
+      showToast("Couldn't complete price check");
+    } finally {
+      checkingRef.current = false;
+      setChecking(false);
+      setCheckProgress(null);
+    }
+  }, [products.length, refresh]);
 
   const toggleSelection = (id: string) => {
     setSelectedIds((prev) => {
@@ -647,6 +669,15 @@ export function Watchlist() {
               Share
             </button>
             <button
+              onClick={handleCheckNow}
+              disabled={refreshing || checking || products.length === 0}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
+              aria-label="Check prices now"
+            >
+              <Zap className="w-4 h-4" />
+              Check Now
+            </button>
+            <button
               onClick={handleRefresh}
               disabled={refreshing}
               className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
@@ -662,6 +693,9 @@ export function Watchlist() {
             >
               <Settings2 className="w-4 h-4" /> Manage Tags
             </button>
+            {checking && checkProgress && (
+              <span className="text-xs text-gray-500">Checking {checkProgress.current}/{checkProgress.total}</span>
+            )}
           </div>
         </div>
       </div>
