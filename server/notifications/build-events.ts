@@ -2,7 +2,8 @@ import { PRODUCT_CATALOG } from "../../shared/src/catalog.js";
 import { getDistributorById } from "../../shared/src/distributors.js";
 import { getAllParserIds } from "../../lib/scrapers/registry";
 import { getCachedPrice } from "../price-cache";
-import { convertPrice, formatPrice } from "../../lib/currency";
+import { formatPrice } from "../../shared/src/currency.js";
+import { convertPrice } from "../../lib/currency";
 import type {
   EventDraft,
   NotificationConfig,

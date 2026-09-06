@@ -1,5 +1,5 @@
 import type { Product } from "./types";
-import { formatPrice } from "./currency";
+import { formatPrice } from "@shared/currency";
 import {
   computeBasketValue,
   computeMovers,

@@ -36,7 +36,8 @@ import {
   requestNotificationPermissions,
 } from "@/lib/notifications";
 import { PriceAlert } from "@/lib/types";
-import { convertPrice, formatPrice } from "@/lib/currency";
+import { formatPrice } from "@shared/currency";
+import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
 import { PRODUCT_CATALOG } from "@shared/catalog";
 import { SkeletonChart, SkeletonList } from "@/components/ui/skeleton";

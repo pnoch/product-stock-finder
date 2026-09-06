@@ -1,5 +1,5 @@
-// Deprecated: prefer @shared/fx. Kept for one release.
-// Pure fetch stays in @shared/fx; storage persistence + setExchangeRates stays here.
+// FX persistence layer over @shared/fx: AsyncStorage caching + live
+// overlay updates. Pure fetch/TTL live in @shared/fx.
 import { fetchFxRates, FX_TTL_MS } from "@shared/fx";
 export { fetchFxRates, FX_TTL_MS };
 import { defaultStorage, type Storage } from "./storage";

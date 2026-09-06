@@ -1,9 +1,9 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import {
-  EXCHANGE_RATES,
   convertPrice,
   setExchangeRates,
 } from "../lib/currency";
+import { EXCHANGE_RATES } from "../shared/src/currency";
 import { FX_TTL_MS, getFxRates, clearFxCache } from "../server/fx";
 
 function mockResponse(rates: Record<string, number>) {

@@ -1,10 +1,10 @@
 import { describe, expect, it, afterEach } from "vitest";
 import {
   convertPrice,
-  formatPrice,
   getBestPrice,
   setExchangeRates,
 } from "../lib/currency";
+import { formatPrice } from "../shared/src/currency";
 
 describe("convertPrice", () => {
   it("returns the same amount for USD to USD", () => {

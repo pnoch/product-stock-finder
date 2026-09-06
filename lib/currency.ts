@@ -1,8 +1,7 @@
-// Deprecated: prefer @shared/currency. Kept for one release.
-// Re-exports pure helpers; keeps mutable live-rate overlay here.
-export { CURRENCY_SYMBOLS, CURRENCIES, FX_TTL_MS, getCurrencySymbol, formatPrice } from "@shared/currency";
+// Live-rate currency layer over @shared/currency: mutable FX overlay
+// (setExchangeRates) + conversions. Pure formatting/constants live in
+// @shared/currency — import those directly.
 import { EXCHANGE_RATES } from "@shared/currency";
-export { EXCHANGE_RATES };
 
 let liveRates: Record<string, number> | null = null;
 

@@ -10,7 +10,8 @@ import {
   savePriceDigestSnapshot,
   saveSettings,
 } from "../storage";
-import { convertPrice, formatPrice, getBestPrice } from "../currency";
+import { formatPrice } from "@shared/currency";
+import { convertPrice, getBestPrice } from "../currency";
 import { requestNotificationPermissions } from "../notifications";
 import { checkRestocks } from "../restock";
 import { maybeSendDigest } from "../price-digest";

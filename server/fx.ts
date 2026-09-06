@@ -1,4 +1,5 @@
-import { EXCHANGE_RATES, setExchangeRates } from "../lib/currency";
+import { setExchangeRates } from "../lib/currency";
+import { EXCHANGE_RATES } from "../shared/src/currency.js";
 import type { FxRatesResult } from "../lib/types";
 
 // Single source: shared/src/fx.ts.

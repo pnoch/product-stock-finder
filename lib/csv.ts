@@ -1,5 +1,6 @@
 import type { DistributorListing, PricePoint, Product, StockStatus } from "./types";
-import { formatPrice, getBestPrice } from "./currency";
+import { formatPrice } from "@shared/currency";
+import { getBestPrice } from "./currency";
 
 const SUMMARY_HEADER = "product,model,brand,category,bestPrice,stockStatus";
 const LISTINGS_HEADER = "product,model,brand,category,distributor,price,currency,stockStatus,url";

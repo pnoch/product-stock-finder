@@ -1,4 +1,5 @@
-import { formatPrice, getBestPrice } from "./currency";
+import { formatPrice } from "@shared/currency";
+import { getBestPrice } from "./currency";
 import type { AppSettings, PriceAlert, Product, StockStatus } from "./types";
 
 export interface DigestProductState {

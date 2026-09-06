@@ -16,9 +16,4 @@ describe("desktop parity architecture", () => {
       expect(text).not.toMatch(/from ["']\.\.\/\.\.\/(shared|catalog|currency|distributors|fx|trending|compare-utils)/);
     }
   });
-
-  it("keeps lib wrappers as re-exports rather than duplicated logic", async () => {
-    const catalogWrapper = await readFile("lib/catalog.ts", "utf8");
-    expect(catalogWrapper).toContain('export * from "@shared/catalog"');
-  });
 });

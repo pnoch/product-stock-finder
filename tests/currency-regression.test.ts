@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { convertPrice, formatPrice } from "../lib/currency";
+import { convertPrice } from "../lib/currency";
+import { formatPrice } from "../shared/src/currency";
 
 describe("convertPrice regression", () => {
   it("returns null for unknown fromCurrency", () => {
