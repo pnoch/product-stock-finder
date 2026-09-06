@@ -33,6 +33,7 @@ import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
 import { getSyncSetup } from "../../../lib/sync";
+import { isWebNotificationsSupported, requestWebNotificationPermission, displayWebNotification } from "../../../lib/web-notifications";
 
 export function Settings() {
   const { settings, loading, update } = useSettings();
@@ -95,6 +96,21 @@ export function Settings() {
 
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [testNotifMessage, setTestNotifMessage] = useState<string | null>(null);
+
+  const handleTestNotification = useCallback(async () => {
+    if (!isWebNotificationsSupported()) {
+      setTestNotifMessage("Notifications aren't available in this browser");
+      return;
+    }
+    const permission = await requestWebNotificationPermission();
+    if (permission !== "granted") {
+      setTestNotifMessage("Notification permission not granted");
+      return;
+    }
+    displayWebNotification("Notifications working", "Product Stock Finder will alert you here.");
+    setTestNotifMessage("Test notification sent");
+  }, []);
 
   const handleSyncNow = useCallback(async () => {
     const setup = getSyncSetup();
@@ -552,6 +568,16 @@ export function Settings() {
               <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
             </span>
           </label>
+        </div>
+        <div className="mt-4">
+          <button
+            onClick={handleTestNotification}
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+            aria-label="Send test notification"
+          >
+            Test notification
+          </button>
+          {testNotifMessage && (<p className="mt-3 text-sm text-gray-600 dark:text-gray-400">{testNotifMessage}</p>)}
         </div>
       </div>
 
