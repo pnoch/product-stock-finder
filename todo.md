@@ -952,3 +952,11 @@
 - [x] Guard test (`tests/desktop-watchlist-refresh.test.ts`) + implementation (`5aff904`, `b617b0a`): Tauri path first, else server fetch with `Refreshed X of Y` / `Couldn't refresh prices` / `Live prices need a server connection or the Tauri app` toasts; bare timestamp bump removed
 - [x] Hardening (`bce77dc`): helper throw still reloads UI + error toast instead of silent spinner stop
 - [x] E2E: `tsc 0`, lint 0 errors, `167 passed` files / `1363 passed` tests, desktop vite build green
+
+## Phase 116: Silent failures + auth log leak
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-silent-failures-design.md`) + plan (`docs/superpowers/plans/2026-09-06-silent-failures.md`): 3 tiers, zero user-facing behavior change
+- [x] Tier 1 (`478e8b9`): `lib/_core/auth.ts` logging gated behind `__DEV__` (api.ts pattern); token prefix → `present`/`missing`, full user object → `user.id`
+- [x] Tier 2 (`680bbf2`): `scheduleHealthAlert` settings-read failure logs in dev, alert still sends (explicit fail-open)
+- [x] Tier 3 (`a81ef7a`, `6c01081`): dev-only logs for watchlist badge/persist/share + compare/product image→text fallback; dismissal catches intentionally left silent
+- [x] Guards (`tests/silent-failures.test.ts`, `ba6fd97`); E2E: `tsc 0`, lint 0 errors, `168 passed` files / `1367 passed` tests
