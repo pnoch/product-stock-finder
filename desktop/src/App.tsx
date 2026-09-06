@@ -19,6 +19,7 @@ import { RestockWatches } from "./pages/RestockWatches";
 import { DistributorAnalysis } from "./pages/DistributorAnalysis";
 import { Stats } from "./pages/Stats";
 import { Rates } from "./pages/Rates";
+import { SharedWatchlist } from "./pages/SharedWatchlist";
 import { exportWatchlistAsJson } from "./import-export";
 import { useTheme } from "./hooks/use-theme";
 import { onPricesChecked } from "./background";
@@ -309,6 +310,7 @@ export default function App() {
                       path="/distributor-analysis"
                       element={<DistributorAnalysis />}
                     />
+                    <Route path="/w/:token" element={<SharedWatchlist />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </div>
