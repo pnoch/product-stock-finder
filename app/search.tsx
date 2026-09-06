@@ -18,7 +18,7 @@ import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { BulkImportModal } from "@/components/search/bulk-import-modal";
 import { ManualAddSheet } from "@/components/search/manual-add-sheet";
 import { useColors } from "@/hooks/use-colors";
-import { searchCatalog, getAllCatalog, PRODUCT_CATALOG, getAllCategories, getAllBrands } from "@/lib/catalog";
+import { searchCatalog, getAllCatalog, PRODUCT_CATALOG, getAllCategories, getAllBrands } from "@shared/catalog";
 import { SAMPLE_LISTINGS } from "@/lib/sample-data";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
 import { RecentSearches } from "@/components/search/recent-searches";

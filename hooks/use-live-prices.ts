@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { PRODUCT_CATALOG } from "@/lib/catalog";
+import { PRODUCT_CATALOG } from "@shared/catalog";
 import { SAMPLE_LISTINGS } from "@/lib/sample-data";
 import {
   composeLiveListings,

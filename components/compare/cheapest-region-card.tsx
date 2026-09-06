@@ -4,7 +4,7 @@ import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { getDistributorById } from "@shared/distributors";
-import { cheapestByRegion } from "@/lib/compare-utils";
+import { cheapestByRegion } from "@shared/compare-utils";
 
 export function CheapestRegionCard({ listings, displayCurrency = "USD" }: { listings: DistributorListing[]; displayCurrency?: string }) {
   const colors = useColors();

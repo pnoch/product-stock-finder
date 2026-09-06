@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchTrending } from "../lib/trending";
+import { fetchTrending } from "@shared/trending";
 
 describe("fetchTrending", () => {
   beforeEach(() => {

@@ -1,6 +1,6 @@
 import { eq, inArray } from "drizzle-orm";
 import { productImages } from "../drizzle/schema";
-import { PRODUCT_CATALOG } from "../lib/catalog";
+import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
 import { getDb } from "./db";
 import { generateImage } from "./_core/imageGeneration";
 

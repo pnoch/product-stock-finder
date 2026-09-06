@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { matchModels, parseModelInput } from "../lib/bulk-import";
-import { PRODUCT_CATALOG } from "../lib/catalog";
+import { PRODUCT_CATALOG } from "@shared/catalog";
 
 describe("parseModelInput", () => {
   it("splits on newlines when present and preserves spaces inside entries", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PRODUCT_CATALOG, searchCatalog } from "../lib/catalog";
+import { PRODUCT_CATALOG, searchCatalog } from "@shared/catalog";
 
 describe("searchCatalog", () => {
   it("finds by name, case-insensitive", () => {

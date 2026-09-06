@@ -38,7 +38,7 @@ import {
 import { PriceAlert } from "@/lib/types";
 import { convertPrice, formatPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
-import { PRODUCT_CATALOG } from "@/lib/catalog";
+import { PRODUCT_CATALOG } from "@shared/catalog";
 import { SkeletonChart, SkeletonList } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
@@ -50,7 +50,7 @@ import {
   TimeRange,
   SortBy,
   filterByRange,
-} from "@/lib/compare-utils";
+} from "@shared/compare-utils";
 
 const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
 

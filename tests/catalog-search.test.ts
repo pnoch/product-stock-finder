@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { searchCatalog, PRODUCT_CATALOG } from "../lib/catalog";
+import { searchCatalog, PRODUCT_CATALOG } from "@shared/catalog";
 
 describe("searchCatalog", () => {
   it("returns full catalog for empty query", () => {

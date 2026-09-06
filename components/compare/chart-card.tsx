@@ -3,7 +3,7 @@ import { Text, View, TouchableOpacity } from "react-native";
 import { MultiLineChart } from "@/components/compare/multi-line-chart";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { TimeRange, TIME_RANGES } from "@/lib/compare-utils";
+import { TimeRange, TIME_RANGES } from "@shared/compare-utils";
 import { PricePoint } from "@/lib/types";
 
 export function ChartCard({

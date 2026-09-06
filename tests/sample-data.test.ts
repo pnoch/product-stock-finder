@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SAMPLE_LISTINGS } from "../lib/sample-data";
-import { PRODUCT_CATALOG } from "../lib/catalog";
+import { PRODUCT_CATALOG } from "@shared/catalog";
 
 const SEED_PRODUCT_IDS = ["mikrotik-crs804-4ddq-hrm", "mikrotik-crs326-24s"];
 

@@ -11,10 +11,10 @@ import {
 import * as Haptics from "expo-haptics";
 import { useQuery } from "@tanstack/react-query";
 import { TrendingProduct } from "@/lib/types";
-import { fetchTrending } from "@/lib/trending";
+import { fetchTrending } from "@shared/trending";
 import { useColors } from "@/hooks/use-colors";
 import { addToWatchlist, getWatchlist } from "@/lib/storage";
-import { PRODUCT_CATALOG } from "@/lib/catalog";
+import { PRODUCT_CATALOG } from "@shared/catalog";
 import { formatPrice } from "@shared/currency";
 import { useFocusEffect, useRouter } from "expo-router";
 import { fetchProductImage } from "@/lib/server-images";

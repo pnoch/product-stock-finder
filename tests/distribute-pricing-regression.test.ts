@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { convertPrice, getBestPrice } from "../lib/currency";
 import { computePriceVsAverage } from "../lib/price-average";
-import { cheapestByRegion } from "../lib/compare-utils";
+import { cheapestByRegion } from "@shared/compare-utils";
 import { computeWatchlistSummary } from "../lib/watchlist-summary";
 import type { DistributorListing } from "../lib/types";
 

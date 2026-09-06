@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterByRange, cheapestByRegion } from "../lib/compare-utils";
+import { filterByRange, cheapestByRegion } from "@shared/compare-utils";
 
 const now = Date.now();
 const DAY = 86_400_000;

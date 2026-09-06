@@ -1,5 +1,5 @@
 import Fuse from "fuse.js";
-import { PRODUCT_CATALOG } from "./catalog";
+import { PRODUCT_CATALOG } from "@shared/catalog";
 
 export type CatalogProduct = (typeof PRODUCT_CATALOG)[0];
 

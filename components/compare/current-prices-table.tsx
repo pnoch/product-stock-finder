@@ -4,7 +4,7 @@ import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
-import { CHART_COLORS } from "@/lib/compare-utils";
+import { CHART_COLORS } from "@shared/compare-utils";
 
 function hashId(id: string): number {
   let h = 0;

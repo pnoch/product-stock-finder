@@ -6,7 +6,7 @@ import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { getDistributorById } from "@shared/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { CHART_COLORS, SortBy } from "@/lib/compare-utils";
+import { CHART_COLORS, SortBy } from "@shared/compare-utils";
 
 function hashId(id: string): number {
   let h = 0;

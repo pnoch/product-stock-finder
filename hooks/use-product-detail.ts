@@ -3,7 +3,7 @@ import { useLocalSearchParams } from "expo-router";
 import { getWatchlist } from "@/lib/storage";
 import { getBestPrice } from "@/lib/currency";
 import { findBestDeal } from "@/lib/best-deal";
-import { filterByRange, type TimeRange } from "@/lib/compare-utils";
+import { filterByRange, type TimeRange } from "@shared/compare-utils";
 import type { Product, DistributorListing } from "@/lib/types";
 
 export function useProductDetail() {

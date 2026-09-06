@@ -7,7 +7,7 @@ describe("fetchTrending regression — tRPC contract", () => {
       json: async () => ({ result: { data: { json: [] } } }),
     });
     vi.stubGlobal("fetch", fetchMock);
-    const { fetchTrending } = await import("../lib/trending");
+    const { fetchTrending } = await import("@shared/trending");
     await fetchTrending();
     const url = fetchMock.mock.calls[0][0] as string;
     expect(url).toContain("/api/trpc/trending.get");
@@ -17,7 +17,7 @@ describe("fetchTrending regression — tRPC contract", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true, json: async () => ({ result: { data: { json: [] } } }),
     }));
-    const { fetchTrending } = await import("../lib/trending");
+    const { fetchTrending } = await import("@shared/trending");
     const result = await fetchTrending();
     expect(result.length).toBeGreaterThan(0); // fallback
   });
@@ -26,7 +26,7 @@ describe("fetchTrending regression — tRPC contract", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true, json: async () => ({ result: { data: { json: mockData } } }),
     }));
-    const { fetchTrending } = await import("../lib/trending");
+    const { fetchTrending } = await import("@shared/trending");
     const result = await fetchTrending();
     expect(result).toEqual(mockData);
   });

@@ -1,4 +1,4 @@
-import { PRODUCT_CATALOG } from "../lib/catalog";
+import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
 import { DISTRIBUTORS } from "../shared/src/distributors.js";
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 

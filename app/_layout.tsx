@@ -39,7 +39,7 @@ import { setupWebNotifications } from "@/lib/web-notifications";
 import { hasSeenOnboarding } from "@/lib/onboarding";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import { registerWebPushServiceWorker } from "@/lib/web-push";
-import { PRODUCT_CATALOG } from "@/lib/catalog";
+import { PRODUCT_CATALOG } from "@shared/catalog";
 import {
   SAMPLE_LISTINGS,
   freshenSampleListings,
