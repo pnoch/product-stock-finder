@@ -16,6 +16,7 @@ import {
   Pencil,
   LogOut,
   X,
+  Info,
 } from "lucide-react";
 import { useSettings } from "../hooks/use-storage";
 import { storage } from "../storage";
@@ -37,6 +38,12 @@ import type { AppSettings, Product, DistributorListing } from "../../../lib/type
 import { getDistributorById } from "@shared/distributors";
 import { getAllParserIds } from "../../../lib/scrapers/registry";
 import { isWebNotificationsSupported, requestWebNotificationPermission, displayWebNotification } from "../../../lib/web-notifications";
+import packageJson from "../../package.json";
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
 
 export function Settings() {
   const { settings, loading, update } = useSettings();
@@ -100,6 +107,32 @@ export function Settings() {
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [testNotifMessage, setTestNotifMessage] = useState<string | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+    const installedHandler = () => setDeferredPrompt(null);
+    window.addEventListener("beforeinstallprompt", handler);
+    window.addEventListener("appinstalled", installedHandler);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("appinstalled", installedHandler);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    try {
+      await deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice.outcome === "accepted") setDeferredPrompt(null);
+    } catch (e) {
+      console.warn("[Settings] install prompt failed", e);
+    }
+  };
 
   // AI / LLM — desktop port of mobile LlmSettingsSection
   const [showLlmApiKey, setShowLlmApiKey] = useState(false);
@@ -980,6 +1013,91 @@ export function Settings() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* About Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <Info className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+          <h2 className="text-lg font-semibold">About</h2>
+        </div>
+        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+          <div className="flex items-center justify-between py-2.5">
+            <div>
+              <p className="text-sm font-medium">Version</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Product Stock Finder
+              </p>
+            </div>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {packageJson.version}
+            </span>
+          </div>
+          {deferredPrompt && (
+            <div className="flex items-center justify-between py-2.5">
+              <div>
+                <p className="text-sm font-medium">Install app</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Add to home screen for offline access
+                </p>
+              </div>
+              <button
+                onClick={handleInstall}
+                className="ml-2 shrink-0 px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-semibold hover:bg-brand-700"
+                aria-label="Install app"
+              >
+                Install
+              </button>
+            </div>
+          )}
+          <div className="flex items-center justify-between py-2.5">
+            <div>
+              <p className="text-sm font-medium">Rate the App</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Love the app? Leave a review
+              </p>
+            </div>
+            <button
+              onClick={() => window.open("https://play.google.com/store/apps/details?id=com.app.stock_tracker_pro", "_blank", "noopener")}
+              className="ml-2 shrink-0 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+              aria-label="Rate the app"
+            >
+              Rate
+            </button>
+          </div>
+          <div className="flex items-center justify-between py-2.5">
+            <div>
+              <p className="text-sm font-medium">Contact Support</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Get help with the app
+              </p>
+            </div>
+            <a
+              href="mailto:support@productstockfinder.app"
+              className="ml-2 shrink-0 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+              aria-label="Contact support"
+            >
+              Email us
+            </a>
+          </div>
+          <div className="flex items-center justify-between py-2.5">
+            <div>
+              <p className="text-sm font-medium">Privacy Policy</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                How we handle your data
+              </p>
+            </div>
+            <a
+              href="https://productstockfinder.app/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-2 shrink-0 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+              aria-label="Open privacy policy"
+            >
+              View
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );
