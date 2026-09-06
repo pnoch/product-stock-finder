@@ -4,7 +4,7 @@ import { storage } from "../storage";
 import { formatPrice, CURRENCY_SYMBOLS } from "@shared/currency";
 import { convertPrice } from "@/lib/currency";
 import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
-import type { Product } from "../../../lib/types";
+import type { Product, PriceAlert } from "../../../lib/types";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
@@ -205,6 +205,11 @@ export function Compare() {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const selectionInitialized = useRef<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -318,6 +323,31 @@ export function Compare() {
     });
   }, [sortedListings, displayCurrency]);
 
+  const alertTarget = useMemo(() => {
+    const inStock = sortedListings.filter((l) => l.stockStatus === "in_stock");
+    if (inStock.length === 0) return null;
+    const vals = inStock
+      .map((l) => convertPrice(l.price, l.currency, displayCurrency))
+      .filter((v): v is number => v !== null && Number.isFinite(v));
+    if (vals.length === 0) return null;
+    return Math.round(Math.min(...vals) * 0.95 * 100) / 100;
+  }, [sortedListings, displayCurrency]);
+
+  const handleCrossAlert = useCallback(async () => {
+    if (!id || !product || alertTarget === null) return;
+    const alert: PriceAlert = {
+      id: `cross-${id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      productId: id,
+      distributorId: undefined,
+      targetPrice: alertTarget,
+      currency: displayCurrency,
+      createdAt: new Date().toISOString(),
+      isActive: true,
+    };
+    await storage.addAlert(alert);
+    showToast(`Alert set below ${formatPrice(alertTarget, displayCurrency)}`);
+  }, [id, product, alertTarget, displayCurrency]);
+
   const getTrend = (priceHistory: { price: number; date: string }[]) => {
     if (priceHistory.length < 2) return "flat";
     const recent = priceHistory[priceHistory.length - 1].price;
@@ -339,6 +369,11 @@ export function Compare() {
 
   return (
     <div className="p-6 space-y-6">
+      {toast && (
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-sm" role="status">
+          {toast}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{product.name}</h1>
@@ -367,6 +402,22 @@ export function Compare() {
               <StockBadge status={cheapest.stockStatus} />
             </div>
           </div>
+        </div>
+      )}
+
+      {alertTarget !== null && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
+          <div className="flex-1">
+            <div className="text-sm font-semibold">Alert me below {formatPrice(alertTarget, displayCurrency)}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">5% below the best in-stock price, any distributor</div>
+          </div>
+          <button
+            onClick={handleCrossAlert}
+            className="px-3 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 shrink-0"
+            aria-label="Set cross-distributor price alert"
+          >
+            Set alert
+          </button>
         </div>
       )}
 
