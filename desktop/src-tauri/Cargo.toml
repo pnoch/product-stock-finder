@@ -1,6 +1,6 @@
 [package]
 name = "product-stock-finder"
-version = "5.4.2"
+version = "5.4.3"
 edition = "2021"
 
 [lib]
