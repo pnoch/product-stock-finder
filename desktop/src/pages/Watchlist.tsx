@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback, Fragment } from "react";
 import { useNavigate } from "react-router";
 import {
   RefreshCw,
@@ -28,13 +28,13 @@ import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ProductImage } from "../components/ProductImage";
 import { TagFilterRow } from "../components/TagFilterRow";
-import { countTagMatches } from "../../../lib/watchlist-org";
+import { countTagMatches, groupWatchlist } from "../../../lib/watchlist-org";
 import { matchesTagFilterMode, TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import { createTRPCClient } from "../lib/trpc";
 import { composeLiveListings } from "../../../lib/live-prices";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
 import { isFreshPriceSnapshot } from "../../../lib/price-freshness";
-import type { Product, ServerPriceResult, StockStatus, TagDefinition } from "../../../lib/types";
+import type { Product, ServerPriceResult, StockStatus, TagDefinition, WatchlistGroup } from "../../../lib/types";
 
 type SortKey = "name" | "price" | "trend" | "lastUpdated";
 type FilterKey = "all" | "in_stock" | "back_order" | "out_of_stock";
@@ -129,6 +129,7 @@ export function Watchlist() {
   const navigate = useNavigate();
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortAsc, setSortAsc] = useState(true);
+  const [groupMode, setGroupMode] = useState<WatchlistGroup>("off");
   const [filter, setFilter] = useState<FilterKey>("all");
   const [refreshing, setRefreshing] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -187,6 +188,7 @@ export function Watchlist() {
       setTagDefinitions(defs);
       setSelectedTagIds((prev) => prev.filter((id) => Object.prototype.hasOwnProperty.call(defs, id)));
       setInStockOnly(s.watchlistInStockOnly ?? false);
+      setGroupMode(s.watchlistGroup ?? "off");
       const storedRange = s.watchlistPriceRange ?? null;
       if (storedRange && Array.isArray(storedRange) && storedRange.length === 2) {
         const [min, max] = storedRange;
@@ -200,9 +202,9 @@ export function Watchlist() {
     if (loading) return;
     storage
       .getSettings()
-      .then((s) => storage.saveSettings({ ...s, watchlistInStockOnly: inStockOnly, watchlistPriceRange: priceRange ?? null }))
+      .then((s) => storage.saveSettings({ ...s, watchlistInStockOnly: inStockOnly, watchlistPriceRange: priceRange ?? null, watchlistGroup: groupMode }))
       .catch(() => {});
-  }, [inStockOnly, priceRange, loading]);
+  }, [inStockOnly, priceRange, groupMode, loading]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -306,6 +308,11 @@ export function Watchlist() {
     });
     return arr;
   }, [filtered, sortKey, sortAsc, displayCurrency]);
+
+  const sections = useMemo(
+    () => groupWatchlist(sorted, groupMode, tagDefinitions),
+    [sorted, groupMode, tagDefinitions],
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -610,6 +617,114 @@ export function Watchlist() {
     setBulkOpen(true);
   };
 
+  const renderRow = (product: Product) => {
+    const best = getBestPrice(product.listings, displayCurrency);
+    const trend = getTrend(product);
+    const refreshed = product.lastRefreshed ?? product.addedAt;
+
+    return (
+      <tr
+        key={product.id}
+        onClick={() => {
+          if (selectionMode) {
+            toggleSelection(product.id);
+            return;
+          }
+          setSelectedId(product.id);
+          navigate(`/product/${product.id}`);
+        }}
+        className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors duration-150 ${selectedId === product.id ? "bg-brand-50 dark:bg-brand-900/10 border-l-2 border-l-brand-500" : "border-l-2 border-l-transparent hover:border-l-brand-200"} ${selectedIds.has(product.id) ? "bg-brand-50/60 dark:bg-brand-900/20" : ""}`}
+      >
+        {selectionMode && (
+          <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="checkbox"
+              checked={selectedIds.has(product.id)}
+              onChange={() => toggleSelection(product.id)}
+              className="rounded border-gray-300"
+              aria-label={`Select ${product.name}`}
+            />
+          </td>
+        )}
+        <td className="px-4 py-3">
+          <div className="flex items-center">
+            <ProductImage productId={product.id} />
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="font-medium text-sm">{product.name}</p>
+                {(product.tags ?? [])
+                  .filter((tagId) => tagDefinitions[tagId])
+                  .map((tagId) => {
+                    const def = tagDefinitions[tagId];
+                    return (
+                      <span
+                        key={tagId}
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-white"
+                        style={{ backgroundColor: def.color }}
+                        title={def.name}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
+                        {def.name}
+                      </span>
+                    );
+                  })}
+                {(product.tags ?? []).filter((id) => tagDefinitions[id]).length === 0 &&
+                  product.tags &&
+                  product.tags.length > 0 && (
+                    <span className="text-[10px] text-gray-400">
+                      · {product.tags.length} tag
+                      {product.tags.length !== 1 ? "s" : ""}
+                    </span>
+                  )}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {product.brand} · {product.modelNumber}
+              </p>
+            </div>
+          </div>
+        </td>
+        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+          {product.listings.length}
+        </td>
+        <td className="px-4 py-3">
+          {best ? (
+            <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+              {formatPrice(best.price, best.currency)}
+            </span>
+          ) : (
+            <span className="text-sm text-gray-400">No price</span>
+          )}
+        </td>
+        <td className="px-4 py-3">
+          <StockBadge status={getDominantStatus(product)} />
+        </td>
+        <td className="px-4 py-3">
+          <span className="inline-flex items-center gap-1 text-sm">
+            {trend === "up" && <TrendingUp className="w-4 h-4 text-red-500" />}
+            {trend === "down" && (
+              <TrendingDown className="w-4 h-4 text-emerald-500" />
+            )}
+            {trend === "flat" && <Minus className="w-4 h-4 text-gray-400" />}
+          </span>
+        </td>
+        <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+          {formatLastRefreshed(refreshed)}
+        </td>
+        <td className="px-4 py-3 text-right">
+          <button
+            type="button"
+            onClick={(e) => handleRemove(e, product.id)}
+            onKeyDown={(e) => e.stopPropagation()}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+            aria-label={`Remove ${product.name} from watchlist`}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </td>
+      </tr>
+    );
+  };
+
   return (
     <div className="p-6 space-y-4">
       {toast && (
@@ -775,6 +890,17 @@ export function Watchlist() {
           aria-label="Maximum price"
           className="w-20 px-3 py-1.5 rounded-lg text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-600"
         />
+        <select
+          value={groupMode}
+          onChange={(e) => setGroupMode(e.target.value as WatchlistGroup)}
+          aria-label="Group by"
+          className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-600"
+        >
+          <option value="off">Group: Off</option>
+          <option value="tag">Group: Tag</option>
+          <option value="status">Group: Status</option>
+          <option value="region">Group: Region</option>
+        </select>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -890,113 +1016,18 @@ export function Watchlist() {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((product) => {
-              const best = getBestPrice(product.listings, displayCurrency);
-              const trend = getTrend(product);
-              const refreshed = product.lastRefreshed ?? product.addedAt;
-
-              return (
-                <tr
-                  key={product.id}
-                  onClick={() => {
-                    if (selectionMode) {
-                      toggleSelection(product.id);
-                      return;
-                    }
-                    setSelectedId(product.id);
-                    navigate(`/product/${product.id}`);
-                  }}
-                  className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors duration-150 ${selectedId === product.id ? "bg-brand-50 dark:bg-brand-900/10 border-l-2 border-l-brand-500" : "border-l-2 border-l-transparent hover:border-l-brand-200"} ${selectedIds.has(product.id) ? "bg-brand-50/60 dark:bg-brand-900/20" : ""}`}
-                >
-                  {selectionMode && (
-                    <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(product.id)}
-                        onChange={() => toggleSelection(product.id)}
-                        className="rounded border-gray-300"
-                        aria-label={`Select ${product.name}`}
-                      />
-                    </td>
-                  )}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center">
-                      <ProductImage productId={product.id} />
-                      <div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="font-medium text-sm">{product.name}</p>
-                          {(product.tags ?? [])
-                            .filter((tagId) => tagDefinitions[tagId])
-                            .map((tagId) => {
-                              const def = tagDefinitions[tagId];
-                              return (
-                                <span
-                                  key={tagId}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-white"
-                                  style={{ backgroundColor: def.color }}
-                                  title={def.name}
-                                >
-                                  <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
-                                  {def.name}
-                                </span>
-                              );
-                            })}
-                          {(product.tags ?? []).filter((id) => tagDefinitions[id]).length === 0 &&
-                            product.tags &&
-                            product.tags.length > 0 && (
-                              <span className="text-[10px] text-gray-400">
-                                · {product.tags.length} tag
-                                {product.tags.length !== 1 ? "s" : ""}
-                              </span>
-                            )}
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {product.brand} · {product.modelNumber}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                    {product.listings.length}
-                  </td>
-                  <td className="px-4 py-3">
-                    {best ? (
-                      <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                        {formatPrice(best.price, best.currency)}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-gray-400">No price</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StockBadge status={getDominantStatus(product)} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1 text-sm">
-                      {trend === "up" && <TrendingUp className="w-4 h-4 text-red-500" />}
-                      {trend === "down" && (
-                        <TrendingDown className="w-4 h-4 text-emerald-500" />
-                      )}
-                      {trend === "flat" && <Minus className="w-4 h-4 text-gray-400" />}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                    {formatLastRefreshed(refreshed)}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={(e) => handleRemove(e, product.id)}
-                      onKeyDown={(e) => e.stopPropagation()}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                      aria-label={`Remove ${product.name} from watchlist`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+            {groupMode === "off"
+              ? sorted.map((product) => renderRow(product))
+              : sections.map((section) => (
+                  <Fragment key={section.key}>
+                    <tr>
+                      <td colSpan={selectionMode ? 8 : 7} className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800/60">
+                        {section.title} · {section.products.length}
+                      </td>
+                    </tr>
+                    {section.products.map((product) => renderRow(product))}
+                  </Fragment>
+                ))}
           </tbody>
           </table>
         </div>
