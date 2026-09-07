@@ -30,7 +30,7 @@ import {
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useConnection } from "../hooks/use-connection";
 import { ConnectionBadge } from "../components/ConnectionBadge";
-import { useAuth, buildLoginUrl } from "../hooks/use-auth";
+import { useAuth, buildLoginUrl, getSessionToken } from "../hooks/use-auth";
 import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
@@ -64,6 +64,9 @@ export function Settings() {
     startPricePoller(intervalMinutes, getApiBaseUrl());
   }, [settings?.checkInterval]);
   const [clearConfirm, setClearConfirm] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [importExportMessage, setImportExportMessage] = useState<string | null>(
     null,
   );
@@ -424,6 +427,39 @@ export function Settings() {
     setClearConfirm(false);
     window.location.reload();
   };
+
+  const handleDeleteAccount = useCallback(async () => {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const token = getSessionToken();
+      const res = await fetch(`${getApiBaseUrl()}/api/auth/delete-account`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ confirm: "DELETE" }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Server account deletion failed");
+      }
+      try {
+        logout();
+      } catch {
+        // token is removed by the wipe below regardless
+      }
+      await storage.clearAllData();
+      window.location.reload();
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : "Server account deletion failed");
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleting]);
 
   return (
     <div className="p-6 space-y-6">
@@ -1051,6 +1087,7 @@ export function Settings() {
         {!clearConfirm ? (
           <button
             onClick={() => setClearConfirm(true)}
+            disabled={deleting}
             className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
             aria-label="Clear all data"
           >
@@ -1063,6 +1100,7 @@ export function Settings() {
             </span>
             <button
               onClick={handleClearAllData}
+              disabled={deleting}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
               aria-label="Confirm clear all data"
             >
@@ -1070,6 +1108,7 @@ export function Settings() {
             </button>
             <button
               onClick={() => setClearConfirm(false)}
+              disabled={deleting}
               className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
               aria-label="Cancel clear all data"
             >
@@ -1077,6 +1116,45 @@ export function Settings() {
             </button>
           </div>
         )}
+          {isAuthenticated && user && (
+            <div className="mt-4">
+              {!deleteConfirm ? (
+                <button
+                  onClick={() => setDeleteConfirm(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                  aria-label="Delete account and data"
+                >
+                  <Trash2 className="w-4 h-4" /> Delete account & data
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-red-600 dark:text-red-400">
+                    This permanently deletes your server account and all local data. This cannot be undone.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={deleting}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
+                      aria-label="Confirm delete account and data"
+                    >
+                      {deleting ? "Deleting" : "Yes, delete everything"}
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm(false)}
+                      className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+                      aria-label="Cancel delete account and data"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {deleteError && (
+                    <p className="text-sm text-red-600 dark:text-red-400" role="alert">{deleteError}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
       </div>
 
       {/* About Section */}
