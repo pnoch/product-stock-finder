@@ -1010,3 +1010,10 @@
 - [x] Scraper-status section: verbatim thresholds + working Re-enable; registry import proven bundle-safe (`b084092`)
 - [x] About section: version from `package.json`, PWA install, rate/support/privacy; no account deletion (`f82a82b`)
 - [x] Guards (`tests/desktop-p3b2-settings.test.ts`); E2E: `tsc 0`, lint 0 errors, `178 passed` files / `1436 passed` tests, desktop build green
+
+## Phase 124: Desktop P3c (not-found retry + stats export)
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-p3c-design.md`, option 2: PNG export) + plan (`docs/superpowers/plans/2026-09-06-desktop-p3c.md`)
+- [x] ProductDetail not-found Try Again via extracted `loadProduct` (dead cancel flag noted as optional cleanup) (`1c7724e`)
+- [x] Stats PNG export (`html-to-image@1.11.13`) with text fallback; header Share button (`538314a`)
+- [x] Guards (`tests/desktop-p3c.test.ts`); E2E: `tsc 0`, lint 0 errors, `179 passed` files / `1438 passed` tests, desktop build green
