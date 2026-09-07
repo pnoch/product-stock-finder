@@ -10,6 +10,7 @@ import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import type { TagDefinition } from "../../../lib/types";
 import { TagFilterRow } from "../components/TagFilterRow";
 import { matchesTagFilterMode } from "../../../lib/tags";
+import { useToast } from "../hooks/use-toast";
 
 const RECENT_KEY = "recent_searches";
 function loadRecent(): string[] {
@@ -87,7 +88,7 @@ export function Search() {
   const pendingTagsDerived = useMemo(() => Object.entries(pendingTags).flatMap(([k, v]) => [k, ...v]), [pendingTags]);
   const trackedIdsArray = useMemo(() => Array.from(trackedIds), [trackedIds]);
   const [discovering, setDiscovering] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, showToast } = useToast();
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [bulkImporting, setBulkImporting] = useState(false);
@@ -176,9 +177,9 @@ export function Search() {
       await storage.addToWatchlist({ ...product, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags });
       if (tags.length) setPendingTags((prev) => { const n = { ...prev }; delete n[product.id]; return n; });
       setTrackedIds((prev) => new Set([...prev, product.id]));
-      setToast(`Added ${product.name}`); setTimeout(() => setToast(null), 2500);
+      showToast(`Added ${product.name}`);
       if (query.trim()) setRecentSearches(recordRecent(query));
-    } catch (e) { setToast(e instanceof Error ? e.message : "Failed"); setTimeout(() => setToast(null), 2500); }
+    } catch (e) { showToast(e instanceof Error ? e.message : "Failed"); }
   };
 
   const handleDiscover = useCallback(async () => {
@@ -190,7 +191,7 @@ export function Search() {
         await storage.addToWatchlist({ ...res.product, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
         setRecentSearches(recordRecent(query));
         navigate(`/product/${res.product.id}`);
-      } else { setToast("Discovery failed"); setTimeout(() => setToast(null), 2500); }
+      } else { showToast("Discovery failed"); }
     } finally { setDiscovering(false); }
   }, [query, discovering, navigate]);
 
@@ -203,17 +204,17 @@ export function Search() {
       for (const it of bulkNew) await storage.addToWatchlist({ ...it, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
       setTrackedIds((prev) => new Set([...prev, ...bulkNew.map((p) => p.id)]));
       setBulkText(""); setBulkOpen(false);
-      setToast(`Imported ${bulkNew.length}`); setTimeout(() => setToast(null), 2500);
+      showToast(`Imported ${bulkNew.length}`);
     } finally { setBulkImporting(false); }
   };
   const handleManualAdd = async () => {
-    if (!manualName.trim() || !manualModel.trim()) { setToast("Name and model required"); setTimeout(() => setToast(null), 2000); return; }
+    if (!manualName.trim() || !manualModel.trim()) { showToast("Name and model required"); return; }
     const id = `manual-${Date.now()}`;
     const prod = { id, name: manualName.trim(), modelNumber: manualModel.trim(), brand: manualBrand.trim() || "Unknown", category: manualCategory.trim() || categories[0] || "Other", description: "" };
     await storage.addToWatchlist({ ...prod, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
     setTrackedIds((prev) => new Set([...prev, id]));
     setManualOpen(false); setManualName(""); setManualModel(""); setManualBrand(""); setManualCategory("");
-    setToast(`Added ${prod.name}`); setTimeout(() => setToast(null), 2500);
+    showToast(`Added ${prod.name}`);
   };
 
   return (

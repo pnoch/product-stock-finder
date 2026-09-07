@@ -4,6 +4,7 @@ import { Flame, Plus, Check } from "lucide-react";
 import { fetchTrending } from "@shared/trending";
 import type { TrendingProduct } from "../../../lib/types";
 import { storage } from "../storage";
+import { useToast } from "../hooks/use-toast";
 import { ProductImage } from "./ProductImage";
 
 function currencySymbol(c: string) {
@@ -17,12 +18,7 @@ export function TrendingSection() {
   const [products, setProducts] = useState<TrendingProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
-  const [toast, setToast] = useState<string | null>(null);
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
+  const { toast, showToast } = useToast();
 
   useEffect(() => {
     fetchTrending()

@@ -6,6 +6,7 @@ import { storage } from "../storage";
 import { Modal } from "./Modal";
 import { ProductImage } from "./ProductImage";
 import { discoverProduct } from "../../../lib/llm-discovery";
+import { useToast } from "../hooks/use-toast";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import type { TagDefinition } from "../../../lib/types";
 
@@ -86,7 +87,7 @@ export function SearchModal({
   const [query, setQuery] = useState("");
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
   const [discovering, setDiscovering] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, showToast } = useToast();
   const [discoveredProducts, setDiscoveredProducts] = useState<typeof PRODUCT_CATALOG>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
@@ -190,13 +191,11 @@ export function SearchModal({
       }
       setTrackedIds((prev) => new Set([...prev, product.id]));
       if (tags.length) setTagPickerFor(null);
-      setToast(`Added ${product.name}`);
-      setTimeout(() => setToast(null), 2500);
+      showToast(`Added ${product.name}`);
       if (query.trim()) setRecentSearches(recordRecent(query));
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to add to watchlist";
-      setToast(msg);
-      setTimeout(() => setToast(null), 3000);
+      showToast(msg);
     }
   }, [pendingTags, pendingTagsDerived, query]);
 
@@ -216,8 +215,7 @@ export function SearchModal({
         setRecentSearches(recordRecent(query));
         onClose();
       } else {
-        setToast("Discovery failed — try a more specific search");
-        setTimeout(() => setToast(null), 3000);
+        showToast("Discovery failed — try a more specific search");
       }
     } finally {
       setDiscovering(false);
@@ -239,15 +237,13 @@ export function SearchModal({
       setTrackedIds((prev) => new Set([...prev, ...bulkNew.map((p) => p.id)]));
       setBulkText("");
       setBulkOpen(false);
-      setToast(`Imported ${bulkNew.length} product${bulkNew.length !== 1 ? "s" : ""}`);
-      setTimeout(() => setToast(null), 2500);
+      showToast(`Imported ${bulkNew.length} product${bulkNew.length !== 1 ? "s" : ""}`);
     } finally { setBulkImporting(false); }
   };
 
   const handleManualAdd = async () => {
     if (!manualName.trim() || !manualModel.trim()) {
-      setToast("Name and model required");
-      setTimeout(() => setToast(null), 2500);
+      showToast("Name and model required");
       return;
     }
     const id = `manual-${Date.now()}`;
@@ -257,11 +253,9 @@ export function SearchModal({
       setTrackedIds((prev) => new Set([...prev, id]));
       setManualOpen(false);
       setManualName(""); setManualModel(""); setManualBrand(""); setManualCategory("");
-      setToast(`Added ${product.name}`);
-      setTimeout(() => setToast(null), 2500);
+      showToast(`Added ${product.name}`);
     } catch (e) {
-      setToast(e instanceof Error ? e.message : "Failed to add");
-      setTimeout(() => setToast(null), 2500);
+      showToast(e instanceof Error ? e.message : "Failed to add");
     }
   };
 
