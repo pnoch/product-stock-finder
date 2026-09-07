@@ -34,10 +34,16 @@ export function useOnboardingModal() {
     let cancelled = false;
     (async () => {
       try {
+        localStorage.setItem("__onboarding_probe", "1");
+        localStorage.removeItem("__onboarding_probe");
+      } catch {
+        return; // storage broken: treat as seen, never nag
+      }
+      try {
         const seen = await hasSeenOnboarding(localStore);
         if (!cancelled && !seen) setOpen(true);
       } catch {
-        // treat as seen — never block
+        // treat as seen — never block the app
       }
     })();
     return () => {
