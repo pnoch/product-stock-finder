@@ -1042,6 +1042,7 @@
 
 - [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-onboarding-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-onboarding.md`)
 - [x] 3-slide welcome modal (exact mobile copy) on shared Modal chrome; visibility hook with localStorage-backed shared helpers; dismiss persists (`1722c0e`)
+- [x] Private-mode follow-up: broken storage treated as seen, never nags (`a875520`)
 - [x] Guards (`tests/desktop-onboarding.test.ts`); E2E: `tsc 0`, lint 0 errors, `182 passed` files / `1444 passed` tests, desktop build green
 
 ## Phase 130: Desktop watchlist group-by
