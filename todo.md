@@ -1031,6 +1031,20 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 132: Desktop shared filter unification
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-shared-filter-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-shared-filter.md`)
+- [x] `filtered` memo + tag-counts pre-filter delegate to shared `filterWatchlist` (query gains brand/category, null-safe status); sort model untouched (`bea6d3d`)
+- [x] Lint follow-up: `showToast` deps (`97692a7`)
+- [x] Guards (`tests/desktop-shared-filter.test.ts`); E2E: `tsc 0`, lint 0 warnings, `184 passed` files / `1449 passed` tests, desktop build green
+
+## Phase 133: Desktop shared page upgrades
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-shared-upgrades-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-shared-upgrades.md`)
+- [x] Retry via `refetch`, display-currency best prices, per-item Add with Added-state, CSV export (`a7161fc`)
+- [x] Lint follow-up: `showToast` dep + `Array<T>` (`0910375`)
+- [x] Guards (`tests/desktop-shared-upgrades.test.ts`); E2E: `tsc 0`, lint exit 0, `185 passed` files / `1452 passed` tests, desktop build green
+
 ## Phase 128: Desktop account deletion
 
 - [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-account-deletion-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-account-deletion.md`)
