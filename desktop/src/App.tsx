@@ -20,6 +20,7 @@ import { DistributorAnalysis } from "./pages/DistributorAnalysis";
 import { Stats } from "./pages/Stats";
 import { Rates } from "./pages/Rates";
 import { SharedWatchlist } from "./pages/SharedWatchlist";
+import { ResetPassword } from "./pages/ResetPassword";
 import { exportWatchlistAsJson } from "./import-export";
 import { useTheme } from "./hooks/use-theme";
 import { onPricesChecked } from "./background";
@@ -311,6 +312,7 @@ export default function App() {
                       element={<DistributorAnalysis />}
                     />
                     <Route path="/w/:token" element={<SharedWatchlist />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </div>
