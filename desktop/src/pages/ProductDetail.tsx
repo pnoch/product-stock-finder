@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import {
   ArrowLeft,
@@ -120,7 +120,7 @@ export function ProductDetail() {
   const [inlineReminderError, setInlineReminderError] = useState<string | null>(null);
   const { isDark } = useTheme();
 
-  useEffect(() => {
+  const loadProduct = useCallback(async () => {
     if (!id) return;
     let cancelled = false;
     setLoading(true);
@@ -177,10 +177,11 @@ export function ProductDetail() {
           .catch(() => {});
       }
     })();
-    return () => {
-      cancelled = true;
-    };
   }, [id]);
+
+  useEffect(() => {
+    void loadProduct();
+  }, [loadProduct]);
 
   const visibleListings =
     regionFilter === "all"
@@ -513,13 +514,22 @@ export function ProductDetail() {
   if (!product) {
     return (
       <div className="p-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-4"
-          aria-label="Go back"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
+        <div className="flex items-center gap-2 mb-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <button
+            onClick={() => void loadProduct()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700"
+            aria-label="Try loading product again"
+          >
+            Try Again
+          </button>
+        </div>
         <div className="text-center py-16">
           <h2 className="text-lg font-semibold mb-1">Product not found</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
