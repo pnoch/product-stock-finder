@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { Sidebar } from "./components/Sidebar";
 import { SearchModal } from "./components/SearchModal";
+import { OnboardingModal, useOnboardingModal } from "./components/OnboardingModal";
 import { ConnectionBadge } from "./components/ConnectionBadge";
 import { useConnection } from "./hooks/use-connection";
 import { Home } from "./pages/Home";
@@ -199,6 +200,7 @@ function KeyboardShortcuts({
 export default function App() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const { open: onboardingOpen, complete: completeOnboarding } = useOnboardingModal();
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -284,6 +286,7 @@ export default function App() {
             setShortcutsOpen={setShortcutsOpen}
           />
           <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+          <OnboardingModal open={onboardingOpen} onClose={completeOnboarding} />
           <SearchModal
             open={searchModalOpen}
             onClose={() => setSearchModalOpen(false)}
