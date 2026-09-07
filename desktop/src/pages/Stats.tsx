@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
-import { TrendingDown, TrendingUp, Package, BarChart3 } from "lucide-react";
+import { Share2, TrendingDown, TrendingUp, Package, BarChart3 } from "lucide-react";
+import { toPng } from "html-to-image";
 import { storage } from "../storage";
 import { EmptyState } from "../components/EmptyState";
 import { MultiLineChart } from "../components/MultiLineChart";
@@ -13,6 +14,7 @@ import {
   computeMovers,
   computeStockHealth,
 } from "../../../lib/watchlist-stats";
+import { buildWatchlistShareText } from "../../../lib/watchlist-share";
 
 const CHART_COLORS = ["#0F52BA", "#00C896", "#F59E0B", "#EF4444", "#8B5CF6"];
 
@@ -39,6 +41,47 @@ export function Stats() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [days] = useState(30);
+  const [toast, setToast] = useState<string | null>(null);
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
+  const summaryRef = useRef<HTMLDivElement>(null);
+
+  const handleShare = useCallback(async () => {
+    if (summaryRef.current) {
+      try {
+        const dataUrl = await toPng(summaryRef.current);
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = "stats-watchlist.png";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast("Stats image saved");
+        return;
+      } catch {
+        // fall through to text
+      }
+    }
+    const message = buildWatchlistShareText({ watchlist: products ?? [], displayCurrency, days: days as 7 | 30 });
+    try {
+      await navigator.clipboard.writeText(message);
+      showToast("Copied to clipboard");
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = message;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        showToast("Copied to clipboard");
+      } catch {
+        showToast("Couldn't copy share text");
+      }
+      document.body.removeChild(ta);
+    }
+  }, [products, displayCurrency, days]);
 
   useEffect(() => {
     Promise.all([storage.getWatchlist(), storage.getSettings()]).then(
@@ -141,9 +184,25 @@ export function Stats() {
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto w-full">
-      <h1 className="text-2xl font-bold">Statistics</h1>
+      {toast && (
+        <div className="fixed bottom-6 right-6 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50 animate-fadeIn">
+          {toast}
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Statistics</h1>
+        <button
+          onClick={handleShare}
+          disabled={!products || products.length === 0}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
+          aria-label="Share stats"
+        >
+          <Share2 className="w-4 h-4" />
+          Share
+        </button>
+      </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div ref={summaryRef} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
           <p className="text-sm text-gray-500 dark:text-gray-400">Basket Value</p>
           <p className="text-2xl font-bold mt-1">
