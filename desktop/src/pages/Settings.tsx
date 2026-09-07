@@ -1088,7 +1088,7 @@ export function Settings() {
           <button
             onClick={() => setClearConfirm(true)}
             disabled={deleting}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
             aria-label="Clear all data"
           >
             <Trash2 className="w-4 h-4" /> Clear All Data
@@ -1101,7 +1101,7 @@ export function Settings() {
             <button
               onClick={handleClearAllData}
               disabled={deleting}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
               aria-label="Confirm clear all data"
             >
               Yes, clear all
@@ -1109,7 +1109,7 @@ export function Settings() {
             <button
               onClick={() => setClearConfirm(false)}
               disabled={deleting}
-              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium disabled:opacity-50"
               aria-label="Cancel clear all data"
             >
               Cancel
@@ -1142,7 +1142,8 @@ export function Settings() {
                     </button>
                     <button
                       onClick={() => setDeleteConfirm(false)}
-                      className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+                      disabled={deleting}
+                      className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium disabled:opacity-50"
                       aria-label="Cancel delete account and data"
                     >
                       Cancel
