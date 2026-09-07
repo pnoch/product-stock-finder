@@ -108,6 +108,10 @@ export default function CompareScreen() {
       return pa - pb;
     });
     setSelected(new Set(sortedByPrice.slice(0, 3).map((l) => l.distributorId)));
+    // Intentional one-time init per product/currency (guarded by
+    // selectionInitialized + the selected.size early-return above): re-running
+    // on selection changes would reseed after the user deselects all.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, listings, id, displayCurrency]);
 
   const toggleSelect = useCallback((distributorId: string) => {

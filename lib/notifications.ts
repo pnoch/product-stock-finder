@@ -146,7 +146,9 @@ export async function scheduleHealthRecovery(
   try {
     const settings = await getSettings();
     if (isInQuietHours(settings)) return null;
-  } catch {}
+  } catch (e) {
+    LOG_ERROR("[Notifications] settings read failed, sending anyway", e);
+  }
   const displayName = getDistributorById(distributorId)?.name ?? distributorId;
   const title = "🟢 Distributor Recovered";
   const body = `${displayName} is back online after being ${status}`;
@@ -281,7 +283,9 @@ export async function sendPriceDigestNotification(
   try {
     const settings = await getSettings();
     if (isInQuietHours(settings)) return;
-  } catch {}
+  } catch (e) {
+    LOG_ERROR("[Notifications] settings read failed, sending anyway", e);
+  }
   if (Platform.OS === "web") return;
   const granted = await requestNotificationPermissions();
   if (!granted) return;

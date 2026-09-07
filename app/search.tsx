@@ -22,7 +22,7 @@ import { searchCatalog, getAllCatalog, PRODUCT_CATALOG, getAllCategories, getAll
 import { SAMPLE_LISTINGS } from "@/lib/sample-data";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
 import { RecentSearches } from "@/components/search/recent-searches";
-import { DiscoveryAuthError, DiscoveryError } from "@/lib/llm-discovery";
+import { DiscoveryAuthError, DiscoveryError, discoverProduct } from "@/lib/llm-discovery";
 import {
   clearRecentSearches,
   getRecentSearches,
@@ -32,7 +32,6 @@ import { SearchEmptyState } from "@/components/search/search-empty-state";
 import { CatalogProductCard } from "@/components/search/catalog-product-card";
 import { addToWatchlist } from "@/lib/storage";
 import { Product } from "@/lib/types";
-import { discoverProduct } from "@/lib/llm-discovery";
 import { useSearchData } from "@/hooks/use-search-data";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TagFilterRow } from "@/components/tag-filter-row";
@@ -371,7 +370,7 @@ export default function SearchScreen() {
         setAdding(null);
       }
     },
-    [router, trackedIds, adding, pendingTags, pendingTagsDerived, loadData, showToast],
+    [router, trackedIds, adding, pendingTags, loadData, showToast],
   );
 
   const handleTagPress = useCallback((p: Product) => {

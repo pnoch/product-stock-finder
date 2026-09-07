@@ -157,7 +157,7 @@ export const ProductCard = memo(function ProductCard({
     return () => {
       active = false;
     };
-  }, [product.id]);
+  }, [product.id, imageOpacity]);
 
   useEffect(() => {
     sparklineOpacity.setValue(0.55);
@@ -166,7 +166,7 @@ export const ProductCard = memo(function ProductCard({
       duration: 420,
       useNativeDriver: true,
     }).start();
-  }, [product.id]);
+  }, [product.id, sparklineOpacity]);
 
   useEffect(() => {
     Animated.spring(selectionAnim, {

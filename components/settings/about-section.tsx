@@ -12,6 +12,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { getApiBaseUrl } from "@/constants/oauth";
 import * as Auth from "@/lib/_core/auth";
 
+const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
+
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
@@ -117,7 +119,9 @@ export function AboutSection() {
                 }
                 try {
                   await logout();
-                } catch {}
+                } catch (e) {
+                  LOG_ERROR("[AboutSection] logout during delete failed", e);
+                }
               }
               await clearAllData();
               showAlert("Data Deleted", "All local data has been cleared.");

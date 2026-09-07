@@ -47,7 +47,7 @@ export default function SharedWatchlistScreen() {
 
   const data = query.data as unknown as { title: string; token: string; products: unknown[]; createdAt: string | null; expiresAt: string | null } | undefined;
   const rawProducts = (data?.products ?? []) as unknown as Product[];
-  const products = rawProducts as Array<{ id: string; name: string; brand?: string; modelNumber?: string; category?: string; listings?: Array<{ distributorId: string; price: number; currency: string; stockStatus: string; url?: string; priceHistory?: import("@/lib/types").PricePoint[] }> }>;
+  const products = rawProducts as { id: string; name: string; brand?: string; modelNumber?: string; category?: string; listings?: { distributorId: string; price: number; currency: string; stockStatus: string; url?: string; priceHistory?: import("@/lib/types").PricePoint[] }[] }[];
   const createdLabel = data?.createdAt ? formatLastRefreshed(data.createdAt) : null;
   const expiresLabel = data?.expiresAt ? new Date(data.expiresAt).toLocaleDateString() : null;
 

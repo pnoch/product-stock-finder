@@ -16,6 +16,8 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { PriceHistoryChart } from "@/components/price-history-chart";
 import { priceHistoryToCsv } from "@/lib/csv";
 
+const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
+
 interface PriceChartModalProps {
   visible: boolean;
   chartListing: DistributorListing | null;
@@ -59,7 +61,9 @@ export function PriceChartModal({
           title: `Price history — ${chartListing.productId}`,
         });
       }
-    } catch {}
+    } catch (e) {
+      LOG_ERROR("[PriceChart] export failed", e);
+    }
   };
 
   return (

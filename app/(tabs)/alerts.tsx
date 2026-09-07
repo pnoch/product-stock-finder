@@ -115,7 +115,7 @@ export default function AlertsScreen() {
           };
         }) ?? []
     );
-  }, [editingAlert?.productId, products]);
+  }, [editingAlert, products]);
 
   if (loading) {
     return (

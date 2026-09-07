@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Platform, View, TouchableOpacity, TextInput, Keyboard, Animated } from "react-native";
+import { TouchableOpacity, TextInput, Keyboard, Animated } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
