@@ -107,6 +107,37 @@ export function Settings() {
 
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotMessage, setForgotMessage] = useState<string | null>(null);
+  const [forgotSending, setForgotSending] = useState(false);
+
+  const handleForgotPassword = useCallback(async () => {
+    const email = forgotEmail.trim();
+    if (!email || !email.includes("@")) {
+      setForgotMessage("Please enter a valid email address");
+      return;
+    }
+    setForgotSending(true);
+    setForgotMessage(null);
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/auth/forgot`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to send reset email");
+      }
+      setForgotMessage("Check your email for a reset link");
+      setForgotEmail("");
+    } catch (e) {
+      setForgotMessage(e instanceof Error ? e.message : "Failed to send reset email");
+    } finally {
+      setForgotSending(false);
+    }
+  }, [forgotEmail]);
   const [testNotifMessage, setTestNotifMessage] = useState<string | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
@@ -449,20 +480,45 @@ export function Settings() {
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium">Sign in to sync</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {syncStatus}
-              </p>
+          <div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium">Sign in to sync</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {syncStatus}
+                </p>
+              </div>
+              <button
+                onClick={handleSignIn}
+                className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+                aria-label="Sign in"
+              >
+                Sign in
+              </button>
             </div>
-            <button
-              onClick={handleSignIn}
-              className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
-              aria-label="Sign in"
-            >
-              Sign in
-            </button>
+            <div className="mt-3 space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="Email for password reset"
+                  className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+                  aria-label="Email for password reset"
+                />
+                <button
+                  onClick={handleForgotPassword}
+                  disabled={forgotSending}
+                  className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 shrink-0"
+                  aria-label="Send reset link"
+                >
+                  {forgotSending ? "Sending" : "Send reset link"}
+                </button>
+              </div>
+              {forgotMessage && (
+                <p className="text-sm text-gray-600 dark:text-gray-400">{forgotMessage}</p>
+              )}
+            </div>
           </div>
         )}
       </div>
