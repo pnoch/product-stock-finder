@@ -1030,3 +1030,10 @@
 - [x] Scraper "Never checked" flash → loading state (`65aea3f`)
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
+
+## Phase 127: Desktop password reset
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-password-reset-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-password-reset.md`)
+- [x] Forgot-password form inline in signed-out Settings (same endpoint/copy as mobile) (`4daccd1`)
+- [x] Public `/reset-password` route + page (identical validation, no auto-sign-in) (`1694c61`)
+- [x] Guards (`tests/desktop-password-reset.test.ts`); E2E: `tsc 0`, lint 0 errors + 0 warnings, `180 passed` files / `1440 passed` tests, desktop build green
