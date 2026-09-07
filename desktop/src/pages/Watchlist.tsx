@@ -189,6 +189,8 @@ export function Watchlist() {
       setSelectedTagIds((prev) => prev.filter((id) => Object.prototype.hasOwnProperty.call(defs, id)));
       setInStockOnly(s.watchlistInStockOnly ?? false);
       setGroupMode(s.watchlistGroup ?? "off");
+      setSortKey(s.watchlistSortKey ?? "name");
+      setSortAsc(s.watchlistSortAsc ?? true);
       const storedRange = s.watchlistPriceRange ?? null;
       if (storedRange && Array.isArray(storedRange) && storedRange.length === 2) {
         const [min, max] = storedRange;
@@ -202,9 +204,9 @@ export function Watchlist() {
     if (loading) return;
     storage
       .getSettings()
-      .then((s) => storage.saveSettings({ ...s, watchlistInStockOnly: inStockOnly, watchlistPriceRange: priceRange ?? null, watchlistGroup: groupMode }))
+      .then((s) => storage.saveSettings({ ...s, watchlistInStockOnly: inStockOnly, watchlistPriceRange: priceRange ?? null, watchlistGroup: groupMode, watchlistSortKey: sortKey, watchlistSortAsc: sortAsc }))
       .catch(() => {});
-  }, [inStockOnly, priceRange, groupMode, loading]);
+  }, [inStockOnly, priceRange, groupMode, sortKey, sortAsc, loading]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -254,8 +256,8 @@ export function Watchlist() {
   }, [products, regionFilter, filter, selectedTagIds, tagMatchMode, query, inStockOnly, priceRange, displayCurrency]);
 
   const summary = useMemo(
-    () => computeWatchlistSummary(filtered, displayCurrency),
-    [filtered, displayCurrency],
+    () => computeWatchlistSummary(products, displayCurrency),
+    [products, displayCurrency],
   );
 
   const tagCounts = useMemo(
@@ -264,6 +266,12 @@ export function Watchlist() {
         products.filter((p) => {
           if (regionFilter !== "all" && !productHasRegion(p, regionFilter)) return false;
           if (filter !== "all" && getDominantStatus(p) !== filter) return false;
+          if (inStockOnly && getDominantStatus(p) !== "in_stock") return false;
+          if (priceRange) {
+            const [min, max] = priceRange;
+            const best = getBestPrice(p.listings, displayCurrency);
+            if (best === null || best.price < min || best.price > max) return false;
+          }
           if (query.trim()) {
             const q = query.trim().toLowerCase();
             if (!p.name.toLowerCase().includes(q) && !p.modelNumber.toLowerCase().includes(q)) return false;
@@ -272,7 +280,7 @@ export function Watchlist() {
         }),
         { region: "all", status: "all", query: "" },
       ),
-    [products, regionFilter, filter, query],
+    [products, regionFilter, filter, query, inStockOnly, priceRange, displayCurrency],
   );
 
   const sorted = useMemo(() => {
@@ -1021,9 +1029,9 @@ export function Watchlist() {
               : sections.map((section) => (
                   <Fragment key={section.key}>
                     <tr>
-                      <td colSpan={selectionMode ? 8 : 7} className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800/60">
+                      <th scope="rowgroup" colSpan={selectionMode ? 8 : 7} className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800/60 text-left">
                         {section.title} · {section.products.length}
-                      </td>
+                      </th>
                     </tr>
                     {section.products.map((product) => renderRow(product))}
                   </Fragment>

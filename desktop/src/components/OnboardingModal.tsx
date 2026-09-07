@@ -74,14 +74,19 @@ export function OnboardingModal({
   const last = index === SLIDES.length - 1;
   const slide = SLIDES[index];
   const done = onComplete ?? onClose ?? (() => {});
+  useEffect(() => {
+    if (open) setIndex(0);
+  }, [open]);
   return (
     <Modal open={open} onClose={done} title="Welcome">
       <div className="flex flex-col items-center text-center">
         <div className="text-5xl mb-4" aria-hidden="true">
           {slide.emoji}
         </div>
-        <h3 className="text-xl font-semibold mb-2">{slide.title}</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{slide.body}</p>
+        <div aria-live="polite" aria-atomic="true" className="flex flex-col items-center">
+          <h3 className="text-xl font-semibold mb-2">{slide.title}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{slide.body}</p>
+        </div>
         <div className="flex items-center gap-2 mb-6" aria-label="Onboarding progress">
           {SLIDES.map((s, i) => (
             <button
@@ -89,6 +94,7 @@ export function OnboardingModal({
               type="button"
               onClick={() => setIndex(i)}
               aria-label={`Go to slide ${i + 1}: ${s.title}`}
+              aria-current={i === index ? "true" : undefined}
               className={`h-2 rounded-full transition-all ${
                 i === index
                   ? "w-6 bg-brand-600"

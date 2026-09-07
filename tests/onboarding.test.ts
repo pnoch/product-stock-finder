@@ -20,9 +20,9 @@ describe("hasSeenOnboarding", () => {
     expect(await hasSeenOnboarding(mockStore("true"))).toBe(true);
   });
 
-  it("returns false on store error", async () => {
+  it("returns true on store error (treat broken storage as seen, never nag)", async () => {
     const bad = { getItem: vi.fn(async () => { throw new Error("fail"); }), setItem: vi.fn() };
-    expect(await hasSeenOnboarding(bad)).toBe(false);
+    expect(await hasSeenOnboarding(bad)).toBe(true);
   });
 });
 

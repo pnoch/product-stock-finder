@@ -147,6 +147,8 @@ export interface AppSettings {
   tagDefinitions?: Record<string, TagDefinition>;
   watchlistSort?: WatchlistSort;
   watchlistGroup?: WatchlistGroup;
+  watchlistSortKey?: "name" | "price" | "trend" | "lastUpdated";
+  watchlistSortAsc?: boolean;
   llmProvider?: "openai" | "ollama" | "ollama-local" | "forge";
   llmApiKey?: string;
   llmModel?: string;

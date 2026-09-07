@@ -13,7 +13,7 @@ export async function hasSeenOnboarding(
   try {
     return (await store.getItem(KEY)) === "true";
   } catch {
-    return false;
+    return true;
   }
 }
 
