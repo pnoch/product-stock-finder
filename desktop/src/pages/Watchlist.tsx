@@ -369,7 +369,7 @@ export function Watchlist() {
       }
       document.body.removeChild(ta);
     }
-  }, [products, displayCurrency]);
+  }, [products, displayCurrency, showToast]);
 
   const handleCheckNow = useCallback(async () => {
     if (checkingRef.current || products.length === 0) return;
@@ -387,7 +387,7 @@ export function Watchlist() {
       setChecking(false);
       setCheckProgress(null);
     }
-  }, [products.length, refresh]);
+  }, [products.length, refresh, showToast]);
 
   const toggleSelection = (id: string) => {
     setSelectedIds((prev) => {
