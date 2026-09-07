@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router";
 import { ArrowLeft, Package, PackagePlus } from "lucide-react";
 import { trpc } from "../lib/trpc";
 import { storage } from "../storage";
+import { useToast } from "../hooks/use-toast";
 import { normalizeSharedWatchlistProduct } from "../../../lib/shared-watchlist";
 import { formatPrice } from "@shared/currency";
 import { getBestPrice } from "@/lib/currency";
@@ -38,11 +39,7 @@ export function SharedWatchlist() {
       : null;
   const data = query.data;
   const [adding, setAdding] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
+  const { toast, showToast } = useToast();
 
   const handleAddAll = useCallback(async () => {
     const products = data?.products ?? [];

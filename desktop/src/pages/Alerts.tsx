@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { useAlerts } from "../hooks/use-storage";
+import { useToast } from "../hooks/use-toast";
 import { storage } from "../storage";
 import {
   formatPrice,
@@ -47,11 +48,7 @@ export function Alerts() {
   const [productNames, setProductNames] = useState<Map<string, string>>(
     () => new Map(),
   );
-  const [toast, setToast] = useState<string | null>(null);
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
+  const { toast, showToast } = useToast();
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [notifications, setNotifications] = useState<NotificationHistoryEntry[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);

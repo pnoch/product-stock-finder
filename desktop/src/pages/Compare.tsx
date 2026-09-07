@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams } from "react-router";
 import { storage } from "../storage";
+import { useToast } from "../hooks/use-toast";
 import { formatPrice, CURRENCY_SYMBOLS } from "@shared/currency";
 import { convertPrice } from "@/lib/currency";
 import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
@@ -205,11 +206,7 @@ export function Compare() {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const selectionInitialized = useRef<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
+  const { toast, showToast } = useToast();
 
   useEffect(() => {
     if (!id) return;

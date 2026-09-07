@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import {
   ArrowLeft,
@@ -15,6 +15,7 @@ import {
   Copy,
 } from "lucide-react";
 import { storage } from "../storage";
+import { useToast } from "../hooks/use-toast";
 import { getApiBaseUrl } from "../lib/api-base";
 import { useTheme } from "../hooks/use-theme";
 import {
@@ -119,33 +120,34 @@ export function ProductDetail() {
   const [inlineReminderDistributorId, setInlineReminderDistributorId] = useState<string | null>(null);
   const [inlineReminderError, setInlineReminderError] = useState<string | null>(null);
   const { isDark } = useTheme();
+  const loadIdRef = useRef(0);
 
   const loadProduct = useCallback(async () => {
     if (!id) return;
-    let cancelled = false;
+    const myId = ++loadIdRef.current;
     setLoading(true);
     setLivePriceLoading(true);
     setRegionFilter("all");
     (async () => {
       const products = await storage.getWatchlist();
-      if (cancelled) return;
+      if (loadIdRef.current !== myId) return;
       const found = products.find((p) => p.id === id);
-      if (!cancelled) setProduct(found ?? null);
+      if (loadIdRef.current === myId) setProduct(found ?? null);
       const settings = await storage.getSettings();
-      if (cancelled) return;
-      if (!cancelled) {
+      if (loadIdRef.current !== myId) return;
+      if (loadIdRef.current === myId) {
         setDisplayCurrency(settings.displayCurrency ?? "USD");
         setShippingRegion(settings.shippingRegion ?? "Asia-Pacific");
         setPerListingAlertCurrency(settings.displayCurrency ?? "USD");
         setInlineAlertCurrency(settings.displayCurrency ?? "USD");
       }
       const watches = await storage.getStockWatches();
-      if (!cancelled) {
+      if (loadIdRef.current === myId) {
         const map: Record<string, boolean> = {};
         for (const w of watches) if (w.productId === id) map[w.distributorId] = true;
         setStockWatches(map);
       }
-      if (!cancelled) {
+      if (loadIdRef.current === myId) {
         setLoading(false);
         setLivePriceLoading(false);
       }
@@ -160,7 +162,7 @@ export function ProductDetail() {
               client.insights.get.query({ productId: id ?? "" }),
               new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
             ]);
-            if (!cancelled && result) setInsight(result.insight);
+            if (loadIdRef.current === myId && result) setInsight(result.insight);
           } catch {
             // insight stays empty
           }
@@ -168,11 +170,11 @@ export function ProductDetail() {
         return;
       }
       const base = getApiBaseUrl();
-      if (base && !cancelled) {
+      if (base && loadIdRef.current === myId) {
         const { invoke } = await import("@tauri-apps/api/core");
         invoke("fetch_price_insight", { apiBaseUrl: base, productId: id })
           .then((res: any) => {
-            if (!cancelled && res && res.insight) setInsight(res.insight);
+            if (loadIdRef.current === myId && res && res.insight) setInsight(res.insight);
           })
           .catch(() => {});
       }
@@ -213,11 +215,7 @@ export function ProductDetail() {
   );
 
   const [alertError, setAlertError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
+  const { toast, showToast } = useToast();
 
   const checkNotificationPermission = async (): Promise<boolean> => {
     try {

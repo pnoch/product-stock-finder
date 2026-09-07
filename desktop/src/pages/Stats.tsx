@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Share2, TrendingDown, TrendingUp, Package, BarChart3 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { storage } from "../storage";
+import { useToast } from "../hooks/use-toast";
 import { EmptyState } from "../components/EmptyState";
 import { MultiLineChart } from "../components/MultiLineChart";
 import { formatPrice, convertPrice, CURRENCY_SYMBOLS } from "@shared/currency";
@@ -41,11 +42,7 @@ export function Stats() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [days] = useState(30);
-  const [toast, setToast] = useState<string | null>(null);
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
+  const { toast, showToast } = useToast();
   const summaryRef = useRef<HTMLDivElement>(null);
 
   const handleShare = useCallback(async () => {

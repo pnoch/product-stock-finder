@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { useWatchlist, useSettings } from "../hooks/use-storage";
+import { useToast } from "../hooks/use-toast";
 import { storage } from "../storage";
 import { formatPrice, getBestPrice } from "@shared/currency";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
@@ -149,7 +150,7 @@ export function Watchlist() {
     if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < min) return undefined;
     return [min, max];
   }, [priceMinInput, priceMaxInput]);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, showToast } = useToast();
   // Bulk select + undo parity
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -160,10 +161,6 @@ export function Watchlist() {
   void selectedIdsSize;
   const [undoProduct, setUndoProduct] = useState<Product | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
   const regions = useMemo(() => getAllRegions(), []);
   const scrollRef = useRef<HTMLDivElement>(null);
   // Collapsing header: desktop equivalent of mobile Animated headerCollapse

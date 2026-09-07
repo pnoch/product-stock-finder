@@ -19,6 +19,7 @@ import {
   Info,
 } from "lucide-react";
 import { useSettings } from "../hooks/use-storage";
+import { useToast } from "../hooks/use-toast";
 import { storage } from "../storage";
 import { startPricePoller, stopPricePoller } from "../background";
 import { EXCHANGE_RATES, CURRENCY_SYMBOLS } from "@shared/currency";
@@ -202,19 +203,21 @@ export function Settings() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
+  const { toast, showToast } = useToast();
   const trpcClient = trpc as any;
 
   // Scraper Status — desktop port of mobile ScraperStatusSection
   const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [reenabling, setReenabling] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     storage.getWatchlist().then((w) => {
       if (!cancelled) setProducts(w);
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => {
+      if (!cancelled) setProductsLoading(false);
+    });
     return () => { cancelled = true; };
   }, []);
 
@@ -487,7 +490,10 @@ export function Settings() {
           <h2 className="text-lg font-semibold">Scraper Status</h2>
         </div>
         <div className="divide-y divide-gray-100 dark:divide-gray-700">
-          {Object.entries(distributorStatuses)
+          {productsLoading ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400 py-4">Loading distributor status…</p>
+          ) : (
+          <>{Object.entries(distributorStatuses)
             .filter(([id]) => getDistributorById(id))
             .map(([id, status]) => {
               const distributor = getDistributorById(id)!;
@@ -523,6 +529,8 @@ export function Settings() {
             })}
           {Object.keys(distributorStatuses).length === 0 && (
             <p className="text-sm text-gray-500 text-center py-4">No distributors configured</p>
+          )}
+          </>
           )}
         </div>
       </div>
