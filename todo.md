@@ -1031,6 +1031,13 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 128: Desktop account deletion
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-account-deletion-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-account-deletion.md`)
+- [x] Danger Zone "Delete account & data": Bearer + `{confirm:"DELETE"}` → abort-before-wipe → logout → clear + reload; signed-in only, both actions locked (`24d63af`, `1357866`)
+- [x] Superseded P3b-2 no-delete assertion removed (ordering covered by new guards) (`a1c540c`)
+- [x] Guards (`tests/desktop-account-deletion.test.ts`); E2E: `tsc 0`, lint 0 errors, `181 passed` files / `1442 passed` tests, desktop build green
+
 ## Phase 127: Desktop password reset
 
 - [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-password-reset-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-password-reset.md`)
