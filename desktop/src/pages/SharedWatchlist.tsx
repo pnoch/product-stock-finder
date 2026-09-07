@@ -18,12 +18,12 @@ interface SharedProduct {
   name: string;
   brand?: string;
   modelNumber?: string;
-  listings?: Array<{
+  listings?: {
     distributorId: string;
     price: number;
     currency: string;
     stockStatus: "in_stock" | "back_order" | "out_of_stock" | "unknown";
-  }>;
+  }[];
 }
 
 export function SharedWatchlist() {
@@ -88,7 +88,7 @@ export function SharedWatchlist() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showToast("Share exported as CSV");
-  }, [data, token]);
+  }, [data, token, showToast]);
 
   if (loading) {
     return (
