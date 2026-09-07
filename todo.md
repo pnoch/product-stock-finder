@@ -1038,6 +1038,18 @@
 - [x] Superseded P3b-2 no-delete assertion removed (ordering covered by new guards) (`a1c540c`)
 - [x] Guards (`tests/desktop-account-deletion.test.ts`); E2E: `tsc 0`, lint 0 errors, `181 passed` files / `1442 passed` tests, desktop build green
 
+## Phase 129: Desktop onboarding tour
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-onboarding-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-onboarding.md`)
+- [x] 3-slide welcome modal (exact mobile copy) on shared Modal chrome; visibility hook with localStorage-backed shared helpers; dismiss persists (`1722c0e`)
+- [x] Guards (`tests/desktop-onboarding.test.ts`); E2E: `tsc 0`, lint 0 errors, `182 passed` files / `1444 passed` tests, desktop build green
+
+## Phase 130: Desktop watchlist group-by
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-group-by-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-group-by.md`)
+- [x] Group picker (Off/Tag/Status/Region) via shared `groupWatchlist`, persisted to `watchlistGroup`; header rows with verified colSpan; off-mode identical (`7f0783e`)
+- [x] Guards (`tests/desktop-group-by.test.ts`); E2E: `tsc 0`, lint 0 errors, `183 passed` files / `1446 passed` tests, desktop build green
+
 ## Phase 127: Desktop password reset
 
 - [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-password-reset-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-password-reset.md`)
