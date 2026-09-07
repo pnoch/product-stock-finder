@@ -1017,3 +1017,9 @@
 - [x] ProductDetail not-found Try Again via extracted `loadProduct` (dead cancel flag noted as optional cleanup) (`1c7724e`)
 - [x] Stats PNG export (`html-to-image@1.11.13`) with text fallback; header Share button (`538314a`)
 - [x] Guards (`tests/desktop-p3c.test.ts`); E2E: `tsc 0`, lint 0 errors, `179 passed` files / `1438 passed` tests, desktop build green
+
+## Phase 125: Lint + catch hygiene sweep
+
+- [x] Lint 11 → 0 warnings via 3 parallel agents: duplicate imports, unused vars, `Array<T>` casts, 5 `exhaustive-deps` (3 safe fixes, 1 intentional-disable, 1 unused-dep removal)
+- [x] Triaged ~18 bare catches: benign best-effort stays silent; dev-logging added for price-chart export, About logout-during-delete, 2 notification quiet-hours paths
+- [x] E2E: `tsc 0`, lint exit 0, `179 passed` files / `1438 passed` tests (`6723039`)
