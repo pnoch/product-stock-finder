@@ -1023,3 +1023,10 @@
 - [x] Lint 11 → 0 warnings via 3 parallel agents: duplicate imports, unused vars, `Array<T>` casts, 5 `exhaustive-deps` (3 safe fixes, 1 intentional-disable, 1 unused-dep removal)
 - [x] Triaged ~18 bare catches: benign best-effort stays silent; dev-logging added for price-chart export, About logout-during-delete, 2 notification quiet-hours paths
 - [x] E2E: `tsc 0`, lint exit 0, `179 passed` files / `1438 passed` tests (`6723039`)
+
+## Phase 126: Review-note fixes + shared useToast
+
+- [x] `loadProduct` dead cancel flag → request-id guard on all await points (`65aea3f`)
+- [x] Scraper "Never checked" flash → loading state (`65aea3f`)
+- [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
+- [x] E2E: `tsc 0`, lint exit 0, desktop build green
