@@ -1043,6 +1043,14 @@
 - [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-onboarding-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-onboarding.md`)
 - [x] 3-slide welcome modal (exact mobile copy) on shared Modal chrome; visibility hook with localStorage-backed shared helpers; dismiss persists (`1722c0e`)
 - [x] Private-mode follow-up: broken storage treated as seen, never nags (`a875520`)
+
+## Phase 131: Quick-wins bundle (sort persist, ARIA, parity)
+
+- [x] Desktop sort persists in new `watchlistSortKey`/`watchlistSortAsc` keys (mobile enum untouched — no lossy mapping)
+- [x] Summary uses full watchlist; tag counts honor price/in-stock filters
+- [x] Group headers `<th scope="rowgroup">`; modal `aria-current`/`aria-live`/index-reset
+- [x] `hasSeenOnboarding` catch → `true` on all platforms (+ test update)
+- [x] E2E: `tsc 0`, `183 passed` files / `1446 passed` tests (`3204c07`)
 - [x] Guards (`tests/desktop-onboarding.test.ts`); E2E: `tsc 0`, lint 0 errors, `182 passed` files / `1444 passed` tests, desktop build green
 
 ## Phase 130: Desktop watchlist group-by
