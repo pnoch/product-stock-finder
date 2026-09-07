@@ -22,14 +22,14 @@ import { formatPrice, getBestPrice } from "@shared/currency";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { getApiBaseUrl } from "../lib/api-base";
 import { computeWatchlistSummary } from "../../../lib/watchlist-summary";
-import { getAllRegions, productHasRegion } from "../../../lib/region-filter";
+import { getAllRegions } from "../../../lib/region-filter";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ProductImage } from "../components/ProductImage";
 import { TagFilterRow } from "../components/TagFilterRow";
-import { countTagMatches, groupWatchlist } from "../../../lib/watchlist-org";
-import { matchesTagFilterMode, TAG_PALETTE, nextTagColor } from "../../../lib/tags";
+import { countTagMatches, filterWatchlist, groupWatchlist, type StatusFilter } from "../../../lib/watchlist-org";
+import { TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import { createTRPCClient } from "../lib/trpc";
 import { composeLiveListings } from "../../../lib/live-prices";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
@@ -223,37 +223,20 @@ export function Watchlist() {
   };
 
   // Single pipeline: apply all filters (region, status, tags, query) in one pass
-  const filtered = useMemo(() => {
-    let result = products;
-    if (regionFilter !== "all") {
-      result = result.filter((p) => productHasRegion(p, regionFilter));
-    }
-    if (filter !== "all") {
-      result = result.filter((p) => getDominantStatus(p) === filter);
-    }
-    if (inStockOnly) {
-      result = result.filter((p) => getDominantStatus(p) === "in_stock");
-    }
-    if (priceRange) {
-      const [min, max] = priceRange;
-      result = result.filter((p) => {
-        const best = getBestPrice(p.listings, displayCurrency);
-        return best !== null && best.price >= min && best.price <= max;
-      });
-    }
-    if (selectedTagIds.length > 0) {
-      result = result.filter((p) => matchesTagFilterMode(p, selectedTagIds, tagMatchMode));
-    }
-    if (query.trim()) {
-      const q = query.trim().toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.modelNumber.toLowerCase().includes(q),
-      );
-    }
-    return result;
-  }, [products, regionFilter, filter, selectedTagIds, tagMatchMode, query, inStockOnly, priceRange, displayCurrency]);
+  const filtered = useMemo(
+    () =>
+      filterWatchlist(products, {
+        region: regionFilter,
+        tagIds: selectedTagIds,
+        tagMatchMode,
+        status: filter as StatusFilter,
+        query,
+        priceRange,
+        inStockOnly,
+        displayCurrency,
+      }),
+    [products, regionFilter, selectedTagIds, tagMatchMode, filter, query, priceRange, inStockOnly, displayCurrency],
+  );
 
   const summary = useMemo(
     () => computeWatchlistSummary(products, displayCurrency),
@@ -263,24 +246,19 @@ export function Watchlist() {
   const tagCounts = useMemo(
     () =>
       countTagMatches(
-        products.filter((p) => {
-          if (regionFilter !== "all" && !productHasRegion(p, regionFilter)) return false;
-          if (filter !== "all" && getDominantStatus(p) !== filter) return false;
-          if (inStockOnly && getDominantStatus(p) !== "in_stock") return false;
-          if (priceRange) {
-            const [min, max] = priceRange;
-            const best = getBestPrice(p.listings, displayCurrency);
-            if (best === null || best.price < min || best.price > max) return false;
-          }
-          if (query.trim()) {
-            const q = query.trim().toLowerCase();
-            if (!p.name.toLowerCase().includes(q) && !p.modelNumber.toLowerCase().includes(q)) return false;
-          }
-          return true;
+        filterWatchlist(products, {
+          region: regionFilter,
+          tagIds: selectedTagIds,
+          tagMatchMode,
+          status: filter as StatusFilter,
+          query,
+          priceRange,
+          inStockOnly,
+          displayCurrency,
         }),
         { region: "all", status: "all", query: "" },
       ),
-    [products, regionFilter, filter, query, inStockOnly, priceRange, displayCurrency],
+    [products, regionFilter, selectedTagIds, tagMatchMode, filter, query, inStockOnly, priceRange, displayCurrency],
   );
 
   const sorted = useMemo(() => {
