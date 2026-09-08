@@ -82,8 +82,11 @@ function getDominantStatus(product: Product): StockStatus {
 
 
 const MAX_CONCURRENT_SERVER_FETCHES = 3;
+const QUERY_TIMEOUT_MS = 20_000;
 
-async function fetchServerPricesForWatchlist(): Promise<{ refreshed: number; total: number } | null> {
+async function fetchServerPricesForWatchlist(
+  onProgress?: (done: number, total: number) => void,
+): Promise<{ refreshed: number; total: number } | null> {
   if (!getApiBaseUrl()) return null;
   const products = await storage.getWatchlist();
   const jobs = products
@@ -93,6 +96,7 @@ async function fetchServerPricesForWatchlist(): Promise<{ refreshed: number; tot
   if (total === 0) return { refreshed: 0, total: 0 };
   const client = createTRPCClient();
   let refreshed = 0;
+  let done = 0;
   let next = 0;
   await Promise.all(
     Array.from({ length: Math.min(MAX_CONCURRENT_SERVER_FETCHES, total) }, async () => {
@@ -103,14 +107,21 @@ async function fetchServerPricesForWatchlist(): Promise<{ refreshed: number; tot
         for (const listing of job.listings) {
           try {
             results.push(
-              await client.prices.get.query({
-                distributorId: listing.distributorId,
-                modelNumber: job.modelNumber,
-              }),
+              await Promise.race([
+                client.prices.get.query({
+                  distributorId: listing.distributorId,
+                  modelNumber: job.modelNumber,
+                }),
+                new Promise<never>((_resolve, reject) =>
+                  setTimeout(() => reject(new Error("price query timeout")), QUERY_TIMEOUT_MS),
+                ),
+              ]),
             );
           } catch {
             results.push(null);
           }
+          done += 1;
+          onProgress?.(done, total);
         }
         if (results.some((r) => r !== null)) {
           const merged = composeLiveListings(job.listings, results);
@@ -134,6 +145,7 @@ export function Watchlist() {
   const [groupMode, setGroupMode] = useState<WatchlistGroup>("off");
   const [filter, setFilter] = useState<FilterKey>("all");
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshProgress, setRefreshProgress] = useState<{ current: number; total: number } | null>(null);
   const [checking, setChecking] = useState(false);
   const [checkProgress, setCheckProgress] = useState<{ current: number; total: number } | null>(null);
   const checkingRef = useRef(false);
@@ -341,7 +353,7 @@ export function Watchlist() {
         let result: { refreshed: number; total: number } | null = null;
         let fetchFailed = false;
         try {
-          result = await fetchServerPricesForWatchlist();
+          result = await fetchServerPricesForWatchlist((done, total) => setRefreshProgress({ current: done, total }));
         } catch {
           fetchFailed = true;
         }
@@ -356,6 +368,7 @@ export function Watchlist() {
       }
     } finally {
       setRefreshing(false);
+      setRefreshProgress(null);
     }
   };
 
@@ -767,7 +780,7 @@ export function Watchlist() {
               aria-label="Refresh prices"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-              Refresh
+              {refreshing && refreshProgress ? `Refreshing ${refreshProgress.current}/${refreshProgress.total}` : "Refresh"}
             </button>
             <button
               onClick={() => setManageOpen(true)}
