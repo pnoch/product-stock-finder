@@ -111,6 +111,38 @@ export function Stats() {
       setBasketThreshold(settings?.basketAlertThreshold ?? null);
       if (frequency === "off") {
         setDigest(null);
+        const offSnapshot: DigestSnapshot = {
+          lastDigestAt: new Date().toISOString(),
+          displayCurrency: currency,
+          products: list.map((p) => {
+            const best = getBestPrice(p.listings, currency);
+            const inStock = p.listings.some(
+              (l) => l.stockStatus === "in_stock" && l.price > 0,
+            );
+            const backOrder = p.listings.some(
+              (l) => l.stockStatus === "back_order",
+            );
+            const stockStatus: StockStatus = inStock
+              ? "in_stock"
+              : backOrder
+                ? "back_order"
+                : p.listings.length === 0 ||
+                    p.listings.some((l) => l.stockStatus === "unknown")
+                  ? "unknown"
+                  : "out_of_stock";
+            return {
+              productId: p.id,
+              name: p.name,
+              bestPrice: best?.price ?? null,
+              stockStatus,
+            };
+          }),
+        };
+        try {
+          await storage.savePriceDigestSnapshot(offSnapshot);
+        } catch {
+          // best-effort — digest display already computed
+        }
         return;
       }
       setDigest(computeDigest(snapshot, list, settings, alerts));

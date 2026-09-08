@@ -122,8 +122,12 @@ export function Home() {
     void (async () => {
       setLoadError(null);
       await loadDashboard();
-      await refreshWatchlist();
-      await refreshAlerts();
+      try {
+        await refreshWatchlist();
+        await refreshAlerts();
+      } catch (e) {
+        setLoadError(e instanceof Error ? e.message : "Couldn't load dashboard");
+      }
       try {
         await storage.getWatchlist();
         await storage.getAlerts();

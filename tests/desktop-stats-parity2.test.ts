@@ -19,7 +19,8 @@ describe("desktop stats parity 2", () => {
     const rates = await readFile("desktop/src/pages/Rates.tsx", "utf8");
     const stats = await readFile("desktop/src/pages/Stats.tsx", "utf8");
     expect(detail).toContain("formatPrice(first");
-    expect(rates).toContain("formatPrice(first");
+    expect(rates).toContain("toFixed(4)");
+    expect(rates).toContain("trending ${trend}");
     expect(stats).toContain("Copy text");
     expect(stats).toContain("Save image");
   });

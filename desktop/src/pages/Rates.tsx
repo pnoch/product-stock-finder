@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { EXCHANGE_RATES, formatPrice } from "@shared/currency";
+import { EXCHANGE_RATES } from "@shared/currency";
 import { storage } from "../storage";
 import { getFxChange } from "../../../lib/fx-history";
 import { maybeRefreshFxRates, refreshFxRates } from "../../../lib/fx";
@@ -37,7 +37,9 @@ function Sparkline({ values, color, currency }: { values: (number | null)[]; col
   const firstValue = filtered[0];
   const lastValue = filtered[filtered.length - 1];
   const trend = lastValue > firstValue ? "up" : lastValue < firstValue ? "down" : "flat";
-  const sparklineLabel = `Exchange rate sparkline, trending ${trend}, ${formatPrice(firstValue, currency)} to ${formatPrice(lastValue, currency)}`;
+  const formatRate = (value: number) =>
+    `${value >= 10 ? value.toFixed(2) : value >= 1 ? value.toFixed(3) : value.toFixed(4)} ${currency}`;
+  const sparklineLabel = `Exchange rate sparkline, trending ${trend}, ${formatRate(firstValue)} to ${formatRate(lastValue)}`;
   return (
     <svg width={60} height={24} className="mt-2" role="img" aria-label={sparklineLabel}>
       <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} />

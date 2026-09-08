@@ -140,9 +140,15 @@ export function Watchlist() {
   const { products, loading, refresh } = useWatchlist();
   const [listError, setListError] = useState<string | null>(null);
 
+  const hasLoadedOnce = useRef(false);
+
   const handleRetryList = useCallback(async () => {
     setListError(null);
-    await refresh();
+    try {
+      await refresh();
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "Couldn't load watchlist");
+    }
     try {
       await storage.getWatchlist();
       setListError(null);
@@ -154,14 +160,18 @@ export function Watchlist() {
   useEffect(() => {
     if (loading) return;
     if (products.length > 0) {
+      hasLoadedOnce.current = true;
       setListError(null);
       return;
     }
+    if (!hasLoadedOnce.current) return;
     let cancelled = false;
     storage
       .getWatchlist()
       .then(() => {
-        if (!cancelled) setListError(null);
+        if (cancelled) return;
+        hasLoadedOnce.current = true;
+        setListError(null);
       })
       .catch((e) => {
         if (!cancelled)
@@ -989,6 +999,18 @@ export function Watchlist() {
         />
       </div>
 
+      {listError && (
+        <div role="alert" className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-xs text-red-800 dark:text-red-200 flex items-center gap-2">
+          <span className="flex-1">Couldn't refresh watchlist: {listError}</span>
+          <button
+            onClick={() => void handleRetryList()}
+            className="px-2.5 py-1 rounded-lg bg-red-100 dark:bg-red-800 text-xs font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
+            aria-label="Retry loading watchlist"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       <div
         ref={scrollRef}
         className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[60vh] overflow-y-auto"
