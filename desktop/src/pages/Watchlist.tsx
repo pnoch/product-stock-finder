@@ -609,6 +609,7 @@ export function Watchlist() {
         key={product.id}
         ref={virtual?.ref}
         data-index={virtual?.index}
+        aria-rowindex={virtual ? virtual.index + 1 : undefined}
         onClick={() => {
           if (selectionMode) {
             toggleSelection(product.id);
@@ -683,7 +684,7 @@ export function Watchlist() {
           <StockBadge status={getDominantStatus(product)} />
         </td>
         <td className="px-4 py-3">
-          <span className="inline-flex items-center gap-1 text-sm">
+          <span className="inline-flex items-center gap-1 text-sm" role="img" aria-label={`Trend ${trend}`}>
             {trend === "up" && <TrendingUp className="w-4 h-4 text-red-500" />}
             {trend === "down" && (
               <TrendingDown className="w-4 h-4 text-emerald-500" />
@@ -836,6 +837,7 @@ export function Watchlist() {
           <button
             key={opt.key}
             onClick={() => setFilter(opt.key)}
+            aria-pressed={filter === opt.key}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === opt.key
                 ? "bg-brand-600 text-white"
@@ -846,7 +848,7 @@ export function Watchlist() {
             {opt.label}
           </button>
         ))}
-        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-pointer">
+        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-pointer" aria-pressed={inStockOnly}>
           <input
             type="checkbox"
             checked={inStockOnly}
@@ -897,6 +899,7 @@ export function Watchlist() {
           <button
             key={region}
             onClick={() => setRegionFilter(region)}
+            aria-pressed={regionFilter === region}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               regionFilter === region
                 ? "bg-brand-600 text-white"
@@ -949,11 +952,11 @@ export function Watchlist() {
         className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[60vh] overflow-y-auto"
       >
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full" aria-rowcount={rows.length}>
             <thead className="sticky top-0 bg-white dark:bg-gray-800 z-10">
             <tr className="border-b border-gray-200 dark:border-gray-700">
               {selectionMode && <th className="px-2 py-3 w-8"><span className="sr-only">Select</span></th>}
-              <th className="text-left">
+              <th className="text-left" aria-sort={sortKey === "name" ? (sortAsc ? "ascending" : "descending") : "none"}>
                 <button
                   onClick={() => handleSort("name")}
                   className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
@@ -966,7 +969,7 @@ export function Watchlist() {
               <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-left">
                 Listings
               </th>
-              <th className="text-left">
+              <th className="text-left" aria-sort={sortKey === "price" ? (sortAsc ? "ascending" : "descending") : "none"}>
                 <button
                   onClick={() => handleSort("price")}
                   className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
@@ -979,7 +982,7 @@ export function Watchlist() {
               <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-left">
                 Stock
               </th>
-              <th className="text-left">
+              <th className="text-left" aria-sort={sortKey === "trend" ? (sortAsc ? "ascending" : "descending") : "none"}>
                 <button
                   onClick={() => handleSort("trend")}
                   className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
@@ -989,7 +992,7 @@ export function Watchlist() {
                   <ArrowUpDown className="w-3 h-3" />
                 </button>
               </th>
-              <th className="text-left">
+              <th className="text-left" aria-sort={sortKey === "lastUpdated" ? (sortAsc ? "ascending" : "descending") : "none"}>
                 <button
                   onClick={() => handleSort("lastUpdated")}
                   className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
@@ -1015,7 +1018,7 @@ export function Watchlist() {
               if (!row) return null;
               if (row.kind === "header") {
                 return (
-                  <tr key={row.key} ref={rowVirtualizer.measureElement} data-index={vr.index}>
+                  <tr key={row.key} ref={rowVirtualizer.measureElement} data-index={vr.index} aria-rowindex={vr.index + 1}>
                     <th scope="rowgroup" colSpan={selectionMode ? 8 : 7} className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800/60 text-left">
                       {row.title} · {row.count}
                     </th>
