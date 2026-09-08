@@ -1038,6 +1038,23 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 139: Desktop error-path hardening
+
+- [x] Loaders extracted with error cards + Retry: Stats, Compare, ProductDetail (reuses not-found block), HealthDetail (+ labeled timeline), DistributorAnalysis; Search tracked-ids stays best-effort (`d250f13`)
+- [x] E2E: `tsc 0`, lint exit 0
+
+## Phase 140: Desktop stats parity
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-stats-parity-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-stats-parity.md`)
+- [x] Digest card with snapshot flow, insights card, drop-calendar grid, 7/30/All movers switcher, slice caption; latent null-cutoff fix (`a13a6d5`, `e722c04`, `b2d68cf`)
+- [x] Guards (`tests/desktop-stats-parity.test.ts`); E2E: `tsc 0`, lint 0 errors, `190 passed` files / `1465 passed` tests, desktop build green
+
+## Phase 141: Desktop safety + charts a11y
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-safety-charts-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-safety-charts.md`)
+- [x] Typed delete confirmation (email or DELETE fallback) (`6f860a2`); dialog-wide tour keys (`cde45fc`); truthful chart labels (`d8b57a2`)
+- [x] Guards (`tests/desktop-safety-charts.test.ts`); E2E: `tsc 0`, lint 0 errors, `191 passed` files / `1468 passed` tests, desktop build green
+
 ## Phase 135: Quick-wins bundle 2 (empty chrome, price hint, faceted counts)
 
 - [x] Empty/loading states render message only (dead Select/Cancel removed) (`6555784`)
