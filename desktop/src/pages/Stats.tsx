@@ -570,26 +570,37 @@ export function Stats() {
         <p className="text-lg font-bold mt-1">
           {dropCalendar.totalDrops} {dropCalendar.totalDrops === 1 ? "drop" : "drops"} in 30 days
         </p>
-        <div className="grid grid-cols-7 gap-1 mt-3">
+        <div className="grid grid-cols-7 gap-1 mt-3" role="grid" aria-label="Price drop calendar, last 30 days">
           {last30DayKeys.map((key) => {
             const day = dropCalendar.byDay.get(key);
             const dropCount = day?.dropCount ?? 0;
             const hasDrops = dropCount > 0;
+            const label = hasDrops
+              ? `${key}: ${dropCount} ${dropCount === 1 ? "drop" : "drops"}, biggest ${day?.biggestPct}%`
+              : key;
+            if (hasDrops) {
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  role="gridcell"
+                  title={label}
+                  aria-label={label}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium ${
+                    "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
+                  }`}
+                >
+                  {dropCount}
+                </button>
+              );
+            }
             return (
               <div
                 key={key}
-                title={
-                  hasDrops
-                    ? `${key}: ${dropCount} ${dropCount === 1 ? "drop" : "drops"}, biggest ${day?.biggestPct}%`
-                    : key
-                }
-                className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium ${
-                  hasDrops
-                    ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-400"
-                }`}
+                title={label}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-400"
               >
-                {hasDrops ? dropCount : Number(key.slice(8, 10))}
+                {Number(key.slice(8, 10))}
               </div>
             );
           })}
