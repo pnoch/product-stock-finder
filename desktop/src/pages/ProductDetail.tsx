@@ -614,27 +614,31 @@ export function ProductDetail() {
               <PriceSparkline history={bestListing.priceHistory} currency={bestListing.currency} />
             </div>
           </div>
-          {bestListing.stockStatus !== "in_stock" || buyNowLoading || livePriceLoading ? (
+          {buyNowLoading || livePriceLoading ? (
             <button
               type="button"
               disabled
               className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150 bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-              aria-label={
-                buyNowLoading || livePriceLoading
-                  ? "Loading price"
-                  : `${product.name} is not in stock at ${bestDistributor.name}`
-              }
+              aria-label="Loading price"
             >
-              {buyNowLoading || livePriceLoading ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
-                </>
-              ) : bestListing.stockStatus === "back_order" ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
+              </>
+            </button>
+          ) : bestListing.stockStatus !== "in_stock" ? (
+            <a
+              href={bestListing.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150 bg-gray-600 text-white hover:bg-gray-500 cursor-pointer"
+              aria-label={`Buy ${product.name} at ${bestDistributor.name} (currently ${bestListing.stockStatus === "back_order" ? "on back order" : "out of stock"})`}
+            >
+              {bestListing.stockStatus === "back_order" ? (
                 <>Back Order <ExternalLink className="w-3.5 h-3.5" /></>
               ) : (
                 <>Out of Stock <ExternalLink className="w-3.5 h-3.5" /></>
               )}
-            </button>
+            </a>
           ) : (
             <a
               href={bestListing.url}

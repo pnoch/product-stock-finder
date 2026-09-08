@@ -135,7 +135,7 @@ export function Rates() {
 
       {!history && (
         <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4 text-sm text-amber-800 dark:text-amber-200">
-          No cached history yet. Showing base rates. Pull to refresh.
+          No cached history yet. Showing base rates.
         </div>
       )}
 
