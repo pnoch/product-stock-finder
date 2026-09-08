@@ -110,7 +110,7 @@ export function HealthDetail() {
         {segments.length > 0 && (
           <div className="flex h-2 rounded-full overflow-hidden mt-4" role="img" aria-label={`Health timeline: ${segments.map((seg) => `${seg.status}`).join(", ")}`}>
             {segments.map((seg, i) => (
-              <div key={i} style={{ flex: seg.weight, backgroundColor: statusColors[seg.status] }} title={seg.status} aria-label={seg.status} />
+              <div key={i} style={{ flex: seg.weight, backgroundColor: statusColors[seg.status] }} title={seg.status} />
             ))}
           </div>
         )}
@@ -127,7 +127,7 @@ export function HealthDetail() {
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
               {g.samples.map((s, i) => (
                 <div key={`${s.at}-${i}`} className="flex items-center gap-3 px-4 py-3">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: statusColors[s.status] }} title={`${s.status} · ${new Date(s.at).toLocaleString()}`} aria-label={`${s.status} · ${new Date(s.at).toLocaleString()}`} />
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: statusColors[s.status] }} title={`${s.status} · ${new Date(s.at).toLocaleString()}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{new Date(s.at).toLocaleString()}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{s.reason || s.status}{s.responseTimeMs ? ` · ${s.responseTimeMs}ms` : ""}</p>

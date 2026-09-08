@@ -47,6 +47,7 @@ export function Stats() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [digest, setDigest] = useState<DigestResult | null>(null);
+  const [digestFrequency, setDigestFrequency] = useState("off");
   const [days, setDays] = useState<MoversWindow>(30);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
@@ -99,6 +100,12 @@ export function Stats() {
       setProducts(list);
       if (settings?.displayCurrency) setDisplayCurrency(settings.displayCurrency);
       const currency = settings?.displayCurrency ?? "USD";
+      const frequency = settings?.digestFrequency ?? "off";
+      setDigestFrequency(frequency);
+      if (frequency === "off") {
+        setDigest(null);
+        return;
+      }
       setDigest(computeDigest(snapshot, list, settings, alerts));
       const nextSnapshot: DigestSnapshot = {
         lastDigestAt: new Date().toISOString(),
@@ -369,7 +376,20 @@ export function Stats() {
         </div>
       </div>
 
-      {digest && (
+      {digestFrequency === "off" ? (
+        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
+          <p className="text-sm text-gray-500 dark:text-gray-400">Digest off</p>
+          <p className="text-sm text-gray-400 mt-2">Enable daily or weekly price digests to see changes here.</p>
+          <Link
+            to="/settings"
+            className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+            aria-label="Go to Settings"
+          >
+            Go to Settings
+          </Link>
+        </div>
+      ) : (
+        digest && (
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
           <p className="text-sm text-gray-500 dark:text-gray-400">Digest</p>
           {digest.valueDelta && (
@@ -474,6 +494,7 @@ export function Stats() {
             </div>
           )}
         </div>
+        )
       )}
 
       {insights && (

@@ -138,6 +138,37 @@ async function fetchServerPricesForWatchlist(
 
 export function Watchlist() {
   const { products, loading, refresh } = useWatchlist();
+  const [listError, setListError] = useState<string | null>(null);
+
+  const handleRetryList = useCallback(async () => {
+    setListError(null);
+    try {
+      await refresh();
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "Couldn't load watchlist");
+    }
+  }, [refresh]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (products.length > 0) {
+      setListError(null);
+      return;
+    }
+    let cancelled = false;
+    storage
+      .getWatchlist()
+      .then(() => {
+        if (!cancelled) setListError(null);
+      })
+      .catch((e) => {
+        if (!cancelled)
+          setListError(e instanceof Error ? e.message : "Couldn't load watchlist");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, products.length]);
   const { settings } = useSettings();
   const navigate = useNavigate();
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -477,6 +508,18 @@ export function Watchlist() {
   if (products.length === 0) {
     return (
       <div className="p-6 space-y-4">
+        {listError && (
+          <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
+            <span className="flex-1">Couldn't load watchlist: {listError}</span>
+            <button
+              onClick={() => void handleRetryList()}
+              className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
+              aria-label="Retry loading watchlist"
+            >
+              Retry
+            </button>
+          </div>
+        )}
         <EmptyState
           icon={<Package className="w-8 h-8" />}
           title="No products in watchlist"

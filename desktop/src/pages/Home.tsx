@@ -7,7 +7,7 @@ import {
   Plus,
   ArrowRight,
 } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useWatchlist, useAlerts } from "../hooks/use-storage";
 import { formatPrice } from "@shared/currency";
 import { getBestPrice, convertPrice } from "@/lib/currency";
@@ -86,10 +86,11 @@ function StatCard({
 }
 
 export function Home() {
-  const { products, loading: watchlistLoading } = useWatchlist();
-  const { alerts, loading: alertsLoading } = useAlerts();
+  const { products, loading: watchlistLoading, refresh: refreshWatchlist } = useWatchlist();
+  const { alerts, loading: alertsLoading, refresh: refreshAlerts } = useAlerts();
   const [reminderCount, setReminderCount] = useState(0);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [loadError, setLoadError] = useState<string | null>(null);
   // PendingTags reactivity fix — derived array ensures effect triggers when Set mutates via new Set()
   // (parity with Watchlist/SearchModal pendingTags handling)
   const [pendingTags] = useState<Set<string>>(new Set());
@@ -99,16 +100,33 @@ export function Home() {
   void pendingTagsSize;
   const navigate = useNavigate();
 
-  useEffect(() => {
-    storage
-      .getBackOrderReminders()
-      .then((r) => setReminderCount(r.length))
-      .catch(() => {});
-    storage
-      .getSettings()
-      .then((s) => setDisplayCurrency(s?.displayCurrency ?? "USD"))
-      .catch(() => {});
+  const loadDashboard = useCallback(async () => {
+    setLoadError(null);
+    try {
+      const [reminders, settings] = await Promise.all([
+        storage.getBackOrderReminders(),
+        storage.getSettings(),
+      ]);
+      setReminderCount(reminders.length);
+      setDisplayCurrency(settings?.displayCurrency ?? "USD");
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Couldn't load dashboard");
+    }
   }, []);
+
+  useEffect(() => {
+    void loadDashboard();
+  }, [loadDashboard]);
+
+  const handleRetry = useCallback(() => {
+    void loadDashboard();
+    void refreshWatchlist().catch((e) => {
+      setLoadError(e instanceof Error ? e.message : "Couldn't load dashboard");
+    });
+    void refreshAlerts().catch((e) => {
+      setLoadError(e instanceof Error ? e.message : "Couldn't load dashboard");
+    });
+  }, [loadDashboard, refreshWatchlist, refreshAlerts]);
 
   const loading = watchlistLoading || alertsLoading;
 
@@ -138,6 +156,18 @@ export function Home() {
   if (products.length === 0) {
     return (
       <div className="p-6">
+        {loadError && (
+          <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 mb-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
+            <span className="flex-1">Couldn't load dashboard: {loadError}</span>
+            <button
+              onClick={handleRetry}
+              className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
+              aria-label="Retry loading dashboard"
+            >
+              Retry
+            </button>
+          </div>
+        )}
         <EmptyState
           icon={<Package className="w-8 h-8" />}
           title="No products tracked"
@@ -168,6 +198,19 @@ export function Home() {
           <Plus className="w-4 h-4" /> Add Product
         </Link>
       </div>
+
+      {loadError && (
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
+          <span className="flex-1">Couldn't load dashboard: {loadError}</span>
+          <button
+            onClick={handleRetry}
+            className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
+            aria-label="Retry loading dashboard"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
