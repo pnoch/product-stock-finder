@@ -368,7 +368,7 @@ export function Stats() {
               🔔 Alert below {formatPrice(basketThreshold, displayCurrency)}
             </p>
           )}
-          {basketThreshold != null && basket && basket.total < basketThreshold && (
+          {basketThreshold != null && basket && basket.total <= basketThreshold && (
             <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1">
               Basket below alert threshold
             </p>
