@@ -1018,6 +1018,13 @@
 - [x] Stats PNG export (`html-to-image@1.11.13`) with text fallback; header Share button (`538314a`)
 - [x] Guards (`tests/desktop-p3c.test.ts`); E2E: `tsc 0`, lint 0 errors, `179 passed` files / `1438 passed` tests, desktop build green
 
+## Phase 138: A11y + copy bundle
+
+- [x] ResetPassword: real form, single submit path, autocomplete, `aria-invalid`/`describedby`
+- [x] Price range: `aria-invalid` + `role="alert"`; onboarding dots arrow-key nav (aria-current was already correct)
+- [x] Removed dead selection vars; search placeholder advertises brand/category
+- [x] E2E: `tsc 0`, lint exit 0 (`08e740e`)
+
 ## Phase 125: Lint + catch hygiene sweep
 
 - [x] Lint 11 → 0 warnings via 3 parallel agents: duplicate imports, unused vars, `Array<T>` casts, 5 `exhaustive-deps` (3 safe fixes, 1 intentional-disable, 1 unused-dep removal)
