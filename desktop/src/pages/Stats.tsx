@@ -42,6 +42,7 @@ export function Stats() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [days] = useState(30);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
   const summaryRef = useRef<HTMLDivElement>(null);
 
@@ -80,16 +81,22 @@ export function Stats() {
     }
   }, [products, displayCurrency, days]);
 
-  useEffect(() => {
-    Promise.all([storage.getWatchlist(), storage.getSettings()]).then(
-      ([list, settings]) => {
-        setProducts(list);
-        if (settings?.displayCurrency) setDisplayCurrency(settings.displayCurrency);
-      },
-    );
+  const loadStats = useCallback(async () => {
+    setLoadError(null);
+    try {
+      const [list, settings] = await Promise.all([storage.getWatchlist(), storage.getSettings()]);
+      setProducts(list);
+      if (settings?.displayCurrency) setDisplayCurrency(settings.displayCurrency);
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Couldn't load statistics");
+    }
   }, []);
 
-  const loading = products === null;
+  useEffect(() => {
+    void loadStats();
+  }, [loadStats]);
+
+  const loading = products === null && loadError === null;
 
   const basket = useMemo(
     () => (products ? computeBasketValue(products, displayCurrency) : null),
@@ -159,6 +166,24 @@ export function Stats() {
     );
   }
 
+  if (loadError && !products) {
+    return (
+      <div className="p-6 space-y-6 max-w-6xl mx-auto w-full">
+        <h1 className="text-2xl font-bold">Statistics</h1>
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
+          <span className="flex-1">Couldn't load statistics: {loadError}</span>
+          <button
+            onClick={() => void loadStats()}
+            className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
+            aria-label="Retry loading statistics"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!products || products.length === 0) {
     return (
       <div className="p-6 max-w-6xl mx-auto w-full">
@@ -198,6 +223,18 @@ export function Stats() {
           Share
         </button>
       </div>
+      {loadError && (
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
+          <span className="flex-1">Couldn't load statistics: {loadError}</span>
+          <button
+            onClick={() => void loadStats()}
+            className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
+            aria-label="Retry loading statistics"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       <div ref={summaryRef} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">

@@ -105,7 +105,7 @@ export function Search() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    storage.getWatchlist().then((p) => setTrackedIds(new Set(p.map((x) => x.id))));
+    storage.getWatchlist().then((p) => setTrackedIds(new Set(p.map((x) => x.id)))).catch(() => {});
     storage.getDiscoveredProducts().then((disc) => {
       let list = disc.map((p) => ({ id: p.id, name: p.name, modelNumber: p.modelNumber, brand: p.brand, category: p.category, description: p.description ?? "" }));
       if (list.length > 50) list = list.slice(-50);

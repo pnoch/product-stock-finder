@@ -12,23 +12,26 @@ export function DistributorAnalysis() {
   const [analysis, setAnalysis] = useState<DistributorAnalysis[]>([]);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
       const watchlist = await storage.getWatchlist();
       const settings = await storage.getSettings();
       const currency = settings?.displayCurrency ?? "USD";
       setDisplayCurrency(currency);
       setAnalysis(analyzeDistributors(watchlist, currency));
-    } catch {
-      // Ignore load failures — show empty state
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Couldn't load distributor analysis");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, [loadData]);
 
   return (
@@ -47,6 +50,17 @@ export function DistributorAnalysis() {
       {loading ? (
         <div className="flex justify-center mt-10">
           <LoadingSpinner />
+        </div>
+      ) : loadError ? (
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
+          <span className="flex-1">Couldn't load distributor analysis: {loadError}</span>
+          <button
+            onClick={() => void loadData()}
+            className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
+            aria-label="Retry loading distributor analysis"
+          >
+            Retry
+          </button>
         </div>
       ) : analysis.length === 0 ? (
         <p className="text-center text-gray-500 dark:text-gray-400 mt-10">

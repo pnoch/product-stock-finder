@@ -99,6 +99,7 @@ export function ProductDetail() {
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
   const [insight, setInsight] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [buyNowLoading] = useState(false);
   const [livePriceLoading, setLivePriceLoading] = useState(false);
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
@@ -127,8 +128,9 @@ export function ProductDetail() {
     const myId = ++loadIdRef.current;
     setLoading(true);
     setLivePriceLoading(true);
+    setLoadError(null);
     setRegionFilter("all");
-    (async () => {
+    try {
       const products = await storage.getWatchlist();
       if (loadIdRef.current !== myId) return;
       const found = products.find((p) => p.id === id);
@@ -147,38 +149,43 @@ export function ProductDetail() {
         for (const w of watches) if (w.productId === id) map[w.distributorId] = true;
         setStockWatches(map);
       }
+    } catch (e) {
+      if (loadIdRef.current === myId) {
+        setLoadError(e instanceof Error ? e.message : "Couldn't load product");
+      }
+    } finally {
       if (loadIdRef.current === myId) {
         setLoading(false);
         setLivePriceLoading(false);
       }
+    }
 
-      if (!("__TAURI__" in window)) {
-        const base = getApiBaseUrl();
-        if (base) {
-          try {
-            const { createTRPCClient } = await import("../lib/trpc");
-            const client = createTRPCClient();
-            const result = await Promise.race([
-              client.insights.get.query({ productId: id ?? "" }),
-              new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
-            ]);
-            if (loadIdRef.current === myId && result) setInsight(result.insight);
-          } catch {
-            // insight stays empty
-          }
-        }
-        return;
-      }
+    if (!("__TAURI__" in window)) {
       const base = getApiBaseUrl();
-      if (base && loadIdRef.current === myId) {
-        const { invoke } = await import("@tauri-apps/api/core");
-        invoke("fetch_price_insight", { apiBaseUrl: base, productId: id })
-          .then((res: any) => {
-            if (loadIdRef.current === myId && res && res.insight) setInsight(res.insight);
-          })
-          .catch(() => {});
+      if (base) {
+        try {
+          const { createTRPCClient } = await import("../lib/trpc");
+          const client = createTRPCClient();
+          const result = await Promise.race([
+            client.insights.get.query({ productId: id ?? "" }),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
+          ]);
+          if (loadIdRef.current === myId && result) setInsight(result.insight);
+        } catch {
+          // insight stays empty
+        }
       }
-    })();
+      return;
+    }
+    const base = getApiBaseUrl();
+    if (base && loadIdRef.current === myId) {
+      const { invoke } = await import("@tauri-apps/api/core");
+      invoke("fetch_price_insight", { apiBaseUrl: base, productId: id })
+        .then((res: any) => {
+          if (loadIdRef.current === myId && res && res.insight) setInsight(res.insight);
+        })
+        .catch(() => {});
+    }
   }, [id]);
 
   useEffect(() => {
@@ -523,17 +530,23 @@ export function ProductDetail() {
           <button
             onClick={() => void loadProduct()}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700"
-            aria-label="Try loading product again"
+            aria-label={loadError ? "Retry loading product" : "Try loading product again"}
           >
-            Try Again
+            {loadError ? "Retry" : "Try Again"}
           </button>
         </div>
-        <div className="text-center py-16">
-          <h2 className="text-lg font-semibold mb-1">Product not found</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            This product may have been removed from your watchlist.
-          </p>
-        </div>
+        {loadError ? (
+          <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200">
+            Couldn't load product: {loadError}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <h2 className="text-lg font-semibold mb-1">Product not found</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              This product may have been removed from your watchlist.
+            </p>
+          </div>
+        )}
       </div>
     );
   }

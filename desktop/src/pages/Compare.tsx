@@ -205,20 +205,31 @@ export function Compare() {
   const [sortBy, setSortBy] = useState<"name" | "price">("name");
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [loadError, setLoadError] = useState<string | null>(null);
   const selectionInitialized = useRef<string | null>(null);
   const { toast, showToast } = useToast();
 
-  useEffect(() => {
+  const loadCompare = useCallback(async () => {
     if (!id) return;
-    Promise.all([
-      storage.getWatchlist(),
-      storage.getSettings(),
-    ]).then(([list, settings]) => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [list, settings] = await Promise.all([
+        storage.getWatchlist(),
+        storage.getSettings(),
+      ]);
       setProduct(list.find((p) => p.id === id) ?? null);
       if (settings?.displayCurrency) setDisplayCurrency(settings.displayCurrency);
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Couldn't load comparison");
+    } finally {
       setLoading(false);
-    });
+    }
   }, [id]);
+
+  useEffect(() => {
+    void loadCompare();
+  }, [loadCompare]);
 
   useEffect(() => {
     if (!product || selectionInitialized.current === product.id) return;
@@ -355,6 +366,21 @@ export function Compare() {
   };
 
   if (loading) return <LoadingSpinner size="large" label="Loading prices..." />;
+  if (loadError)
+    return (
+      <div className="p-6 space-y-6">
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
+          <span className="flex-1">Couldn't load comparison: {loadError}</span>
+          <button
+            onClick={() => void loadCompare()}
+            className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
+            aria-label="Retry loading comparison"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
   if (!product)
     return (
       <EmptyState
