@@ -119,13 +119,19 @@ export function Home() {
   }, [loadDashboard]);
 
   const handleRetry = useCallback(() => {
-    void loadDashboard();
-    void refreshWatchlist().catch((e) => {
-      setLoadError(e instanceof Error ? e.message : "Couldn't load dashboard");
-    });
-    void refreshAlerts().catch((e) => {
-      setLoadError(e instanceof Error ? e.message : "Couldn't load dashboard");
-    });
+    void (async () => {
+      setLoadError(null);
+      await loadDashboard();
+      await refreshWatchlist();
+      await refreshAlerts();
+      try {
+        await storage.getWatchlist();
+        await storage.getAlerts();
+        setLoadError(null);
+      } catch (e) {
+        setLoadError(e instanceof Error ? e.message : "Couldn't load dashboard");
+      }
+    })();
   }, [loadDashboard, refreshWatchlist, refreshAlerts]);
 
   const loading = watchlistLoading || alertsLoading;
