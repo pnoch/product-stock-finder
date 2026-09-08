@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { EXCHANGE_RATES } from "@shared/currency";
+import { EXCHANGE_RATES, formatPrice } from "@shared/currency";
 import { storage } from "../storage";
 import { getFxChange } from "../../../lib/fx-history";
 import { maybeRefreshFxRates, refreshFxRates } from "../../../lib/fx";
@@ -22,7 +22,7 @@ const CURRENCY_INFO: Record<string, { flag: string }> = {
   AED: { flag: "🇦🇪" },
 };
 
-function Sparkline({ values, color }: { values: (number | null)[]; color: string }) {
+function Sparkline({ values, color, currency }: { values: (number | null)[]; color: string; currency: string }) {
   const filtered = values.filter((v): v is number => v !== null && Number.isFinite(v));
   if (filtered.length < 2) return <div className="h-6 mt-2" />;
   const min = Math.min(...filtered);
@@ -37,7 +37,7 @@ function Sparkline({ values, color }: { values: (number | null)[]; color: string
   const firstValue = filtered[0];
   const lastValue = filtered[filtered.length - 1];
   const trend = lastValue > firstValue ? "up" : lastValue < firstValue ? "down" : "flat";
-  const sparklineLabel = `Exchange rate sparkline, trending ${trend}, ${firstValue} to ${lastValue}`;
+  const sparklineLabel = `Exchange rate sparkline, trending ${trend}, ${formatPrice(firstValue, currency)} to ${formatPrice(lastValue, currency)}`;
   return (
     <svg width={60} height={24} className="mt-2" role="img" aria-label={sparklineLabel}>
       <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} />
@@ -151,7 +151,7 @@ export function Rates() {
               </div>
               <div className="text-lg font-semibold mt-2">{rate >= 10 ? rate.toFixed(2) : rate >= 1 ? rate.toFixed(3) : rate.toFixed(4)}</div>
               <div className={`text-xs font-semibold mt-1 ${chColor}`}>{ch > 0 ? "+" : ""}{ch.toFixed(2)}%</div>
-              <Sparkline values={hist} color="#0F52BA" />
+              <Sparkline values={hist} color="#0F52BA" currency={code} />
             </div>
           );
         })}

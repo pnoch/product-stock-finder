@@ -56,22 +56,7 @@ export function Stats() {
   const { toast, showToast } = useToast();
   const summaryRef = useRef<HTMLDivElement>(null);
 
-  const handleShare = useCallback(async () => {
-    if (summaryRef.current) {
-      try {
-        const dataUrl = await toPng(summaryRef.current);
-        const a = document.createElement("a");
-        a.href = dataUrl;
-        a.download = "stats-watchlist.png";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        showToast("Stats image saved");
-        return;
-      } catch {
-        // fall through to text
-      }
-    }
+  const handleCopyText = useCallback(async () => {
     const message = buildWatchlistShareText({ watchlist: products ?? [], displayCurrency, days });
     try {
       await navigator.clipboard.writeText(message);
@@ -90,6 +75,24 @@ export function Stats() {
       document.body.removeChild(ta);
     }
   }, [products, displayCurrency, days]);
+
+  const handleSaveImage = useCallback(async () => {
+    if (summaryRef.current) {
+      try {
+        const dataUrl = await toPng(summaryRef.current);
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = "stats-watchlist.png";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast("Stats image saved");
+        return;
+      } catch {
+        showToast("Couldn't save stats image");
+      }
+    }
+  }, []);
 
   const loadStats = useCallback(async () => {
     setLoadError(null);
@@ -297,15 +300,26 @@ export function Stats() {
       )}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Statistics</h1>
-        <button
-          onClick={handleShare}
-          disabled={!products || products.length === 0}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
-          aria-label="Share stats"
-        >
-          <Share2 className="w-4 h-4" />
-          Share
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCopyText}
+            disabled={!products || products.length === 0}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
+            aria-label="Copy stats as text"
+          >
+            <Share2 className="w-4 h-4" />
+            Copy text
+          </button>
+          <button
+            onClick={handleSaveImage}
+            disabled={!products || products.length === 0}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
+            aria-label="Save stats as image"
+          >
+            <Share2 className="w-4 h-4" />
+            Save image
+          </button>
+        </div>
       </div>
       {loadError && (
         <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">

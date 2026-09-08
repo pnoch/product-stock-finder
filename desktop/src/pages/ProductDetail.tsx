@@ -47,7 +47,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-function PriceSparkline({ history }: { history: { price: number }[] }) {
+function PriceSparkline({ history, currency }: { history: { price: number }[]; currency: string }) {
   if (history.length < 2) {
     return <div className="h-8 w-24 bg-gray-100 dark:bg-gray-800 rounded" />;
   }
@@ -73,7 +73,7 @@ function PriceSparkline({ history }: { history: { price: number }[] }) {
   const firstPrice = prices[0];
   const lastPrice = prices[prices.length - 1];
   const trend = lastPrice < firstPrice ? "down" : lastPrice > firstPrice ? "up" : "flat";
-  const sparklineLabel = `Price sparkline, trending ${trend}, ${firstPrice} to ${lastPrice}`;
+  const sparklineLabel = `Price sparkline, trending ${trend}, ${formatPrice(firstPrice, currency)} to ${formatPrice(lastPrice, currency)}`;
 
   return (
     <svg width={w} height={h} className="shrink-0" role="img" aria-label={sparklineLabel}>
@@ -611,7 +611,7 @@ export function ProductDetail() {
                 status={bestListing.stockStatus}
                 expectedDate={bestListing.expectedDate}
               />
-              <PriceSparkline history={bestListing.priceHistory} />
+              <PriceSparkline history={bestListing.priceHistory} currency={bestListing.currency} />
             </div>
           </div>
           {bestListing.stockStatus !== "in_stock" || buyNowLoading || livePriceLoading ? (
