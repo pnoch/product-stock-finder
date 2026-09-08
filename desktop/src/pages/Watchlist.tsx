@@ -30,6 +30,7 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ProductImage } from "../components/ProductImage";
 import { TagFilterRow } from "../components/TagFilterRow";
 import { countTagMatches, filterWatchlist, groupWatchlist, type StatusFilter } from "../../../lib/watchlist-org";
+import { flattenWatchlistRows } from "../lib/watchlist-rows";
 import { TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import { createTRPCClient } from "../lib/trpc";
 import { composeLiveListings } from "../../../lib/live-prices";
@@ -301,17 +302,7 @@ export function Watchlist() {
     [sorted, groupMode, tagDefinitions],
   );
 
-  type WatchlistRow =
-    | { kind: "header"; key: string; title: string; count: number }
-    | { kind: "product"; product: Product };
-
-  const rows = useMemo<WatchlistRow[]>(() => {
-    if (groupMode === "off") return sorted.map((p) => ({ kind: "product" as const, product: p }));
-    return sections.flatMap((s) => [
-      { kind: "header" as const, key: s.key, title: s.title, count: s.products.length },
-      ...s.products.map((p) => ({ kind: "product" as const, product: p })),
-    ]);
-  }, [groupMode, sorted, sections]);
+  const rows = useMemo(() => flattenWatchlistRows(groupMode, sorted, sections), [groupMode, sorted, sections]);
 
   const rowVirtualizer = useVirtualizer({
     count: rows.length,

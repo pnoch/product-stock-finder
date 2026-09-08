@@ -10,7 +10,7 @@ describe("desktop watchlist virtualization", () => {
   });
 
   it("flattens sections to row descriptors", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile("desktop/src/lib/watchlist-rows.ts", "utf8");
     expect(text).toContain('kind: "header"');
     expect(text).toContain('kind: "product"');
   });
