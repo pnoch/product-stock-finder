@@ -79,7 +79,13 @@ export function OnboardingModal({
   }, [open]);
   return (
     <Modal open={open} onClose={done} title="Welcome">
-      <div className="flex flex-col items-center text-center">
+      <div
+        className="flex flex-col items-center text-center"
+        onKeyDown={(e) => {
+          if (e.key === "ArrowRight" && index < SLIDES.length - 1) setIndex(index + 1);
+          else if (e.key === "ArrowLeft" && index > 0) setIndex(index - 1);
+        }}
+      >
         <div className="text-5xl mb-4" aria-hidden="true">
           {slide.emoji}
         </div>
@@ -91,10 +97,6 @@ export function OnboardingModal({
           className="flex items-center gap-2 mb-6"
           role="group"
           aria-label="Tour steps"
-          onKeyDown={(e) => {
-            if (e.key === "ArrowRight" && index < SLIDES.length - 1) setIndex(index + 1);
-            else if (e.key === "ArrowLeft" && index > 0) setIndex(index - 1);
-          }}
         >
           {SLIDES.map((s, i) => (
             <button
