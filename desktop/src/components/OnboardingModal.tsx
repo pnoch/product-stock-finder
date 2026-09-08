@@ -87,7 +87,15 @@ export function OnboardingModal({
           <h3 className="text-xl font-semibold mb-2">{slide.title}</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{slide.body}</p>
         </div>
-        <div className="flex items-center gap-2 mb-6" aria-label="Onboarding progress">
+        <div
+          className="flex items-center gap-2 mb-6"
+          role="group"
+          aria-label="Tour steps"
+          onKeyDown={(e) => {
+            if (e.key === "ArrowRight" && index < SLIDES.length - 1) setIndex(index + 1);
+            else if (e.key === "ArrowLeft" && index > 0) setIndex(index - 1);
+          }}
+        >
           {SLIDES.map((s, i) => (
             <button
               key={s.title}

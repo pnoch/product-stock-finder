@@ -171,11 +171,6 @@ export function Watchlist() {
   // Bulk select + undo parity
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  // Derived array for Set reactivity — ensures effects trigger on mutation via new Set()
-  const selectedIdsArray = useMemo(() => Array.from(selectedIds), [selectedIds]);
-  const selectedIdsSize = selectedIds.size;
-  void selectedIdsArray;
-  void selectedIdsSize;
   const [undoProduct, setUndoProduct] = useState<Product | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const regions = useMemo(() => getAllRegions(), []);
@@ -865,6 +860,7 @@ export function Watchlist() {
           placeholder="Min"
           inputMode="decimal"
           aria-label="Minimum price"
+          aria-invalid={priceInvalid}
           className="w-20 px-3 py-1.5 rounded-lg text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-600"
         />
         <input
@@ -874,10 +870,11 @@ export function Watchlist() {
           placeholder="Max"
           inputMode="decimal"
           aria-label="Maximum price"
+          aria-invalid={priceInvalid}
           className="w-20 px-3 py-1.5 rounded-lg text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-600"
         />
         {priceInvalid && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">
+          <span role="alert" className="text-xs text-gray-500 dark:text-gray-400">
             Enter a valid range (min ≤ max)
           </span>
         )}
@@ -941,7 +938,7 @@ export function Watchlist() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by name or model number..."
+          placeholder="Search name, brand, model, or category…"
           className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600"
           aria-label="Search watchlist"
         />
