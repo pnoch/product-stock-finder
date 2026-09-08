@@ -153,6 +153,8 @@ export function Watchlist() {
     if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < min) return undefined;
     return [min, max];
   }, [priceMinInput, priceMaxInput]);
+  const priceInvalid =
+    (priceMinInput.trim() !== "" || priceMaxInput.trim() !== "") && priceRange === undefined;
   const { toast, showToast } = useToast();
   // Bulk select + undo parity
   const [selectionMode, setSelectionMode] = useState(false);
@@ -464,19 +466,6 @@ export function Watchlist() {
   if (loading) {
     return (
       <div className="p-6 space-y-4">
-        {!selectionMode ? (
-          <button
-            type="button"
-            onClick={() => setSelectionMode(true)}
-            aria-label="Enter bulk select mode"
-          >
-            Select
-          </button>
-        ) : (
-          <button type="button" onClick={exitSelection}>
-            Cancel
-          </button>
-        )}
         <LoadingSpinner size="large" label="Loading watchlist..." />
       </div>
     );
@@ -485,19 +474,6 @@ export function Watchlist() {
   if (products.length === 0) {
     return (
       <div className="p-6 space-y-4">
-        {!selectionMode ? (
-          <button
-            type="button"
-            onClick={() => setSelectionMode(true)}
-            aria-label="Enter bulk select mode"
-          >
-            Select
-          </button>
-        ) : (
-          <button type="button" onClick={exitSelection}>
-            Cancel
-          </button>
-        )}
         <EmptyState
           icon={<Package className="w-8 h-8" />}
           title="No products in watchlist"
@@ -890,6 +866,11 @@ export function Watchlist() {
           aria-label="Maximum price"
           className="w-20 px-3 py-1.5 rounded-lg text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-600"
         />
+        {priceInvalid && (
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Enter a valid range (min ≤ max)
+          </span>
+        )}
         <select
           value={groupMode}
           onChange={(e) => setGroupMode(e.target.value as WatchlistGroup)}
