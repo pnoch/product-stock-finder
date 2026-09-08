@@ -48,6 +48,9 @@ export function Stats() {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [digest, setDigest] = useState<DigestResult | null>(null);
   const [digestFrequency, setDigestFrequency] = useState("off");
+  const [basketThreshold, setBasketThreshold] = useState<number | null>(null);
+  const [basketSheetOpen, setBasketSheetOpen] = useState(false);
+  const [basketDraft, setBasketDraft] = useState("");
   const [days, setDays] = useState<MoversWindow>(30);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
@@ -102,6 +105,7 @@ export function Stats() {
       const currency = settings?.displayCurrency ?? "USD";
       const frequency = settings?.digestFrequency ?? "off";
       setDigestFrequency(frequency);
+      setBasketThreshold(settings?.basketAlertThreshold ?? null);
       if (frequency === "off") {
         setDigest(null);
         return;
@@ -147,6 +151,13 @@ export function Stats() {
   useEffect(() => {
     void loadStats();
   }, [loadStats]);
+
+  const handleSaveBasketAlert = useCallback(async (threshold: number | null) => {
+    setBasketThreshold(threshold);
+    const current = await storage.getSettings();
+    if (!current) return;
+    await storage.saveSettings({ ...current, basketAlertThreshold: threshold });
+  }, []);
 
   const loading = products === null && loadError === null;
 
@@ -335,11 +346,33 @@ export function Stats() {
 
       <div ref={summaryRef} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Basket Value</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Basket Value</p>
+            <button
+              onClick={() => {
+                setBasketDraft(basketThreshold != null ? String(basketThreshold) : "");
+                setBasketSheetOpen(true);
+              }}
+              className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+              aria-label={basketThreshold != null ? "Edit basket alert" : "Set alert"}
+            >
+              {basketThreshold != null ? "Edit alert" : "Set alert"}
+            </button>
+          </div>
           <p className="text-2xl font-bold mt-1">
             {basket ? formatPrice(basket.total, displayCurrency) : "—"}
           </p>
           <p className="text-xs text-gray-400 mt-1">{basket?.productCount ?? 0} products</p>
+          {basketThreshold != null && (
+            <p className="text-xs text-gray-400 mt-1">
+              🔔 Alert below {formatPrice(basketThreshold, displayCurrency)}
+            </p>
+          )}
+          {basketThreshold != null && basket && basket.total < basketThreshold && (
+            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1">
+              Basket below alert threshold
+            </p>
+          )}
         </div>
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
           <p className="text-sm text-gray-500 dark:text-gray-400">In Stock</p>
@@ -625,6 +658,64 @@ export function Stats() {
           )}
         </div>
       </div>
+
+      {basketSheetOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => setBasketSheetOpen(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-semibold text-lg mb-1">Basket Value Alert</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Notify me when the total watchlist value drops below this amount
+              ({displayCurrency}). Fires once, then turns off.
+            </p>
+            <label className="block text-xs font-semibold mb-1">
+              Threshold ({displayCurrency})
+            </label>
+            <input
+              type="number"
+              value={basketDraft}
+              onChange={(e) => setBasketDraft(e.target.value)}
+              placeholder="e.g. 500"
+              min="0"
+              step="0.01"
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              aria-label="Basket alert threshold"
+            />
+            <div className="flex gap-2">
+              {basketThreshold != null && (
+                <button
+                  onClick={() => {
+                    void handleSaveBasketAlert(null);
+                    setBasketSheetOpen(false);
+                  }}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700"
+                  aria-label="Disable basket alert"
+                >
+                  Disable
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  const numeric = parseFloat(basketDraft);
+                  if (isNaN(numeric) || numeric <= 0) return;
+                  void handleSaveBasketAlert(numeric);
+                  setBasketSheetOpen(false);
+                }}
+                disabled={!(parseFloat(basketDraft) > 0)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 disabled:opacity-50"
+                aria-label="Enable basket alert"
+              >
+                Enable
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
