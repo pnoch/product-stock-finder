@@ -848,7 +848,7 @@ export function Watchlist() {
             {opt.label}
           </button>
         ))}
-        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-pointer" aria-pressed={inStockOnly}>
+        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-pointer">
           <input
             type="checkbox"
             checked={inStockOnly}
