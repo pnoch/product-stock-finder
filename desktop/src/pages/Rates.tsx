@@ -34,8 +34,12 @@ function Sparkline({ values, color }: { values: (number | null)[]; color: string
   } else {
     points = filtered.map((v, i) => `${(i / (filtered.length - 1)) * 56},${20 - ((v - min) / range) * 18}`).join(" ");
   }
+  const firstValue = filtered[0];
+  const lastValue = filtered[filtered.length - 1];
+  const trend = lastValue > firstValue ? "up" : lastValue < firstValue ? "down" : "flat";
+  const sparklineLabel = `Exchange rate sparkline, trending ${trend}, ${firstValue} to ${lastValue}`;
   return (
-    <svg width={60} height={24} className="mt-2">
+    <svg width={60} height={24} className="mt-2" role="img" aria-label={sparklineLabel}>
       <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} />
     </svg>
   );

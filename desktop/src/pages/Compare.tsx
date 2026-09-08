@@ -83,6 +83,26 @@ function SeriesChart({
     sorted: [...s.data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
   }));
 
+  const chartA11yLabel = useMemo(() => {
+    let up = 0;
+    let down = 0;
+    for (const s of sortedSeries) {
+      if (s.sorted.length < 2) continue;
+      const firstPt = s.sorted[0];
+      const lastPt = s.sorted[s.sorted.length - 1];
+      const firstConv = convertPrice(firstPt.price, firstPt.currency, displayCurrency);
+      const lastConv = convertPrice(lastPt.price, lastPt.currency, displayCurrency);
+      const first = firstConv ?? firstPt.price;
+      const last = lastConv ?? lastPt.price;
+      if (last > first) up += 1;
+      else if (last < first) down += 1;
+    }
+    const direction = up > down ? "up" : down > up ? "down" : "mixed";
+    const n = sortedSeries.length;
+    return `Price history, ${n} distributor${n === 1 ? "" : "s"}, trending ${direction}`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [series, displayCurrency]);
+
   return (
     <div className="w-full overflow-x-auto">
       <div className="relative mx-auto" style={{ width, height }}>
@@ -90,6 +110,8 @@ function SeriesChart({
           width={width}
           height={height}
           className="block"
+          role="img"
+          aria-label={chartA11yLabel}
           onMouseMove={(e) => {
             const rect = (e.currentTarget as SVGElement).getBoundingClientRect();
             const mx = e.clientX - rect.left;

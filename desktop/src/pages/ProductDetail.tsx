@@ -70,9 +70,13 @@ function PriceSparkline({ history }: { history: { price: number }[] }) {
 
   const isDown = prices[prices.length - 1] < prices[0];
   const strokeColor = isDown ? "#10b981" : "#ef4444";
+  const firstPrice = prices[0];
+  const lastPrice = prices[prices.length - 1];
+  const trend = lastPrice < firstPrice ? "down" : lastPrice > firstPrice ? "up" : "flat";
+  const sparklineLabel = `Price sparkline, trending ${trend}, ${firstPrice} to ${lastPrice}`;
 
   return (
-    <svg width={w} height={h} className="shrink-0">
+    <svg width={w} height={h} className="shrink-0" role="img" aria-label={sparklineLabel}>
       <polyline
         points={points}
         fill="none"
