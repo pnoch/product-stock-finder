@@ -776,7 +776,7 @@ export function Watchlist() {
               aria-label="Refresh prices"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-              {refreshing && refreshProgress ? `Refreshing ${refreshProgress.current}/${refreshProgress.total}` : "Refresh"}
+              {refreshing && refreshProgress ? `Refreshing ${refreshProgress.current}/${refreshProgress.total} prices` : "Refresh"}
             </button>
             <button
               onClick={() => setManageOpen(true)}
@@ -786,7 +786,7 @@ export function Watchlist() {
               <Settings2 className="w-4 h-4" /> Manage Tags
             </button>
             {checking && checkProgress && (
-              <span className="text-xs text-gray-500">Checking {checkProgress.current}/{checkProgress.total}</span>
+              <span className="text-xs text-gray-500">Checking {checkProgress.current}/{checkProgress.total} products</span>
             )}
           </div>
         </div>
