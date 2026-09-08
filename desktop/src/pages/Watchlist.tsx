@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef, useEffect, useCallback, Fragment } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useNavigate } from "react-router";
 import {
   RefreshCw,
@@ -299,6 +300,26 @@ export function Watchlist() {
     () => groupWatchlist(sorted, groupMode, tagDefinitions),
     [sorted, groupMode, tagDefinitions],
   );
+
+  type WatchlistRow =
+    | { kind: "header"; key: string; title: string; count: number }
+    | { kind: "product"; product: Product };
+
+  const rows = useMemo<WatchlistRow[]>(() => {
+    if (groupMode === "off") return sorted.map((p) => ({ kind: "product" as const, product: p }));
+    return sections.flatMap((s) => [
+      { kind: "header" as const, key: s.key, title: s.title, count: s.products.length },
+      ...s.products.map((p) => ({ kind: "product" as const, product: p })),
+    ]);
+  }, [groupMode, sorted, sections]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 76,
+    overscan: 8,
+  });
+  const virtualRows = rowVirtualizer.getVirtualItems();
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -603,7 +624,7 @@ export function Watchlist() {
     setBulkOpen(true);
   };
 
-  const renderRow = (product: Product) => {
+  const renderRow = (product: Product, virtual?: { ref: (el: HTMLTableRowElement | null) => void; index: number }) => {
     const best = getBestPrice(product.listings, displayCurrency);
     const trend = getTrend(product);
     const refreshed = product.lastRefreshed ?? product.addedAt;
@@ -611,6 +632,8 @@ export function Watchlist() {
     return (
       <tr
         key={product.id}
+        ref={virtual?.ref}
+        data-index={virtual?.index}
         onClick={() => {
           if (selectionMode) {
             toggleSelection(product.id);
@@ -1002,18 +1025,34 @@ export function Watchlist() {
             </tr>
           </thead>
           <tbody>
-            {groupMode === "off"
-              ? sorted.map((product) => renderRow(product))
-              : sections.map((section) => (
-                  <Fragment key={section.key}>
-                    <tr>
-                      <th scope="rowgroup" colSpan={selectionMode ? 8 : 7} className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800/60 text-left">
-                        {section.title} · {section.products.length}
-                      </th>
-                    </tr>
-                    {section.products.map((product) => renderRow(product))}
-                  </Fragment>
-                ))}
+            {virtualRows.length > 0 && virtualRows[0].start > 0 && (
+              <tr aria-hidden="true">
+                <td colSpan={selectionMode ? 8 : 7} style={{ height: virtualRows[0].start, padding: 0, border: 0 }} />
+              </tr>
+            )}
+            {virtualRows.map((vr) => {
+              const row = rows[vr.index];
+              if (!row) return null;
+              if (row.kind === "header") {
+                return (
+                  <tr key={row.key} ref={rowVirtualizer.measureElement} data-index={vr.index}>
+                    <th scope="rowgroup" colSpan={selectionMode ? 8 : 7} className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800/60 text-left">
+                      {row.title} · {row.count}
+                    </th>
+                  </tr>
+                );
+              }
+              return renderRow(row.product, { ref: rowVirtualizer.measureElement, index: vr.index });
+            })}
+            {(() => {
+              const last = virtualRows[virtualRows.length - 1];
+              const remainder = last ? rowVirtualizer.getTotalSize() - last.end : 0;
+              return remainder > 0 ? (
+                <tr aria-hidden="true">
+                  <td colSpan={selectionMode ? 8 : 7} style={{ height: remainder, padding: 0, border: 0 }} />
+                </tr>
+              ) : null;
+            })()}
           </tbody>
           </table>
         </div>
