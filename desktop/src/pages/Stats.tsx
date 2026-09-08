@@ -17,6 +17,7 @@ import {
 } from "../../../lib/watchlist-stats";
 import { computeDigest, type DigestResult, type DigestSnapshot } from "../../../lib/price-digest";
 import { getBestPrice } from "../../../lib/currency";
+import { computeProductInsights } from "../../../lib/product-insights";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
 
 const CHART_COLORS = ["#0F52BA", "#00C896", "#F59E0B", "#EF4444", "#8B5CF6"];
@@ -155,6 +156,10 @@ export function Stats() {
   const freshness = useMemo(
     () => (products ? computeDataFreshness(products) : null),
     [products],
+  );
+  const insights = useMemo(
+    () => (products ? computeProductInsights(products, displayCurrency) : null),
+    [products, displayCurrency],
   );
 
   const chartData = useMemo(() => {
@@ -423,6 +428,41 @@ export function Stats() {
                   )}
                 </div>
               )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {insights && (
+        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
+          <p className="text-sm text-gray-500 dark:text-gray-400">Product Insights</p>
+          <div className="flex gap-2 mt-1">
+            <div className="flex-1">
+              <p className="text-lg font-bold text-emerald-600">{insights.allTimeLows}</p>
+              <p className="text-xs text-gray-400">At all-time low</p>
+            </div>
+            <div className="flex-1">
+              <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{insights.droppingCount}</p>
+              <p className="text-xs text-gray-400">Dropping now</p>
+            </div>
+            <div className="flex-1">
+              <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                {insights.volatility.low}·{insights.volatility.medium}·{insights.volatility.high}
+              </p>
+              <p className="text-xs text-gray-400">Volatility</p>
+              <p className="text-[11px] text-gray-400">Low · Medium · High</p>
+            </div>
+          </div>
+          {insights.products.filter((p) => p.atAllTimeLow).slice(0, 3).length > 0 && (
+            <div className="mt-2 space-y-1">
+              {insights.products
+                .filter((p) => p.atAllTimeLow)
+                .slice(0, 3)
+                .map((p) => (
+                  <p key={p.productId} className="text-xs text-emerald-600 truncate">
+                    🏅 {p.name} is at its all-time low
+                  </p>
+                ))}
             </div>
           )}
         </div>
