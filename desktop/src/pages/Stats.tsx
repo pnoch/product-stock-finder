@@ -14,8 +14,10 @@ import {
   computeDataFreshness,
   computeMovers,
   computeStockHealth,
+  type MoversWindow,
 } from "../../../lib/watchlist-stats";
 import { computeDigest, type DigestResult, type DigestSnapshot } from "../../../lib/price-digest";
+import { computeDropCalendar, dateKey } from "../../../lib/drop-calendar";
 import { getBestPrice } from "../../../lib/currency";
 import { computeProductInsights } from "../../../lib/product-insights";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
@@ -45,7 +47,7 @@ export function Stats() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [digest, setDigest] = useState<DigestResult | null>(null);
-  const [days] = useState(30);
+  const [days, setDays] = useState<MoversWindow>(30);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -66,7 +68,7 @@ export function Stats() {
         // fall through to text
       }
     }
-    const message = buildWatchlistShareText({ watchlist: products ?? [], displayCurrency, days: days as 7 | 30 });
+    const message = buildWatchlistShareText({ watchlist: products ?? [], displayCurrency, days });
     try {
       await navigator.clipboard.writeText(message);
       showToast("Copied to clipboard");
@@ -150,7 +152,7 @@ export function Stats() {
     [products],
   );
   const movers = useMemo(
-    () => (products ? computeMovers(products, displayCurrency, days === 90 ? null : (days as 7 | 30)) : null),
+    () => (products ? computeMovers(products, displayCurrency, days) : null),
     [products, displayCurrency, days],
   );
   const freshness = useMemo(
@@ -161,12 +163,29 @@ export function Stats() {
     () => (products ? computeProductInsights(products, displayCurrency) : null),
     [products, displayCurrency],
   );
+  const dropCalendar = useMemo(
+    () => computeDropCalendar(products ?? [], displayCurrency, 30),
+    [products, displayCurrency],
+  );
+  const last30DayKeys = useMemo(() => {
+    const keys: string[] = [];
+    const now = Date.now();
+    for (let i = 29; i >= 0; i--) {
+      keys.push(dateKey(now - i * 24 * 60 * 60 * 1000));
+    }
+    return keys;
+  }, []);
 
   const chartData = useMemo(() => {
     if (!products || products.length === 0) return { data: [], distributors: [] };
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    const cutoffStr =
+      days === null
+        ? ""
+        : (() => {
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - days);
+            return cutoff.toISOString().slice(0, 10);
+          })();
     const dateMap = new Map<string, Record<string, number | string>>();
     products.slice(0, 3).forEach((p) => {
       p.listings.forEach((listing) => {
@@ -282,6 +301,30 @@ export function Stats() {
           </button>
         </div>
       )}
+
+      <div className="flex items-center gap-1" role="group" aria-label="Movers window">
+        {(
+          [
+            { label: "7D", value: 7 },
+            { label: "30D", value: 30 },
+            { label: "All", value: null },
+          ] as { label: string; value: MoversWindow }[]
+        ).map((opt) => (
+          <button
+            key={opt.label}
+            onClick={() => setDays(opt.value)}
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              days === opt.value
+                ? "bg-brand-600 text-white"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+            }`}
+            aria-label={`Select movers window: ${opt.label}`}
+            aria-pressed={days === opt.value}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
 
       <div ref={summaryRef} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
@@ -468,8 +511,42 @@ export function Stats() {
         </div>
       )}
 
+      <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
+        <p className="text-sm text-gray-500 dark:text-gray-400">Drop Calendar</p>
+        <p className="text-lg font-bold mt-1">
+          {dropCalendar.totalDrops} {dropCalendar.totalDrops === 1 ? "drop" : "drops"} in 30 days
+        </p>
+        <div className="grid grid-cols-7 gap-1 mt-3">
+          {last30DayKeys.map((key) => {
+            const day = dropCalendar.byDay.get(key);
+            const dropCount = day?.dropCount ?? 0;
+            const hasDrops = dropCount > 0;
+            return (
+              <div
+                key={key}
+                title={
+                  hasDrops
+                    ? `${key}: ${dropCount} ${dropCount === 1 ? "drop" : "drops"}, biggest ${day?.biggestPct}%`
+                    : key
+                }
+                className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium ${
+                  hasDrops
+                    ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-400"
+                }`}
+              >
+                {hasDrops ? dropCount : Number(key.slice(8, 10))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
         <h2 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Price History</h2>
+        {products.length > 3 && (
+          <p className="text-xs text-gray-400 mt-1 mb-2">Top 3 of {products.length} by value</p>
+        )}
         {chartData.data.length > 0 ? (
           <MultiLineChart
             data={chartData.data}
