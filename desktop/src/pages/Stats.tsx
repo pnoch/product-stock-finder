@@ -8,13 +8,15 @@ import { EmptyState } from "../components/EmptyState";
 import { MultiLineChart } from "../components/MultiLineChart";
 import { formatPrice, convertPrice, CURRENCY_SYMBOLS } from "@shared/currency";
 import { DISTRIBUTORS } from "@shared/distributors";
-import type { Product } from "../../../lib/types";
+import type { Product, StockStatus } from "../../../lib/types";
 import {
   computeBasketValue,
   computeDataFreshness,
   computeMovers,
   computeStockHealth,
 } from "../../../lib/watchlist-stats";
+import { computeDigest, type DigestResult, type DigestSnapshot } from "../../../lib/price-digest";
+import { getBestPrice } from "../../../lib/currency";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
 
 const CHART_COLORS = ["#0F52BA", "#00C896", "#F59E0B", "#EF4444", "#8B5CF6"];
@@ -41,6 +43,7 @@ function ChartSkeleton() {
 export function Stats() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [digest, setDigest] = useState<DigestResult | null>(null);
   const [days] = useState(30);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
@@ -84,9 +87,48 @@ export function Stats() {
   const loadStats = useCallback(async () => {
     setLoadError(null);
     try {
-      const [list, settings] = await Promise.all([storage.getWatchlist(), storage.getSettings()]);
+      const [list, settings, snapshot, alerts] = await Promise.all([
+        storage.getWatchlist(),
+        storage.getSettings(),
+        storage.getPriceDigestSnapshot(),
+        storage.getAlerts(),
+      ]);
       setProducts(list);
       if (settings?.displayCurrency) setDisplayCurrency(settings.displayCurrency);
+      const currency = settings?.displayCurrency ?? "USD";
+      setDigest(computeDigest(snapshot, list, settings, alerts));
+      const nextSnapshot: DigestSnapshot = {
+        lastDigestAt: new Date().toISOString(),
+        displayCurrency: currency,
+        products: list.map((p) => {
+          const best = getBestPrice(p.listings, currency);
+          const inStock = p.listings.some(
+            (l) => l.stockStatus === "in_stock" && l.price > 0,
+          );
+          const backOrder = p.listings.some(
+            (l) => l.stockStatus === "back_order",
+          );
+          const stockStatus: StockStatus = inStock
+            ? "in_stock"
+            : backOrder
+              ? "back_order"
+              : p.listings.length === 0 ||
+                  p.listings.some((l) => l.stockStatus === "unknown")
+                ? "unknown"
+                : "out_of_stock";
+          return {
+            productId: p.id,
+            name: p.name,
+            bestPrice: best?.price ?? null,
+            stockStatus,
+          };
+        }),
+      };
+      try {
+        await storage.savePriceDigestSnapshot(nextSnapshot);
+      } catch {
+        // best-effort — digest display already computed
+      }
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Couldn't load statistics");
     }
@@ -278,6 +320,113 @@ export function Stats() {
           )}
         </div>
       </div>
+
+      {digest && (
+        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
+          <p className="text-sm text-gray-500 dark:text-gray-400">Digest</p>
+          {digest.valueDelta && (
+            <p className="text-sm mt-1">
+              <span className="text-gray-500 dark:text-gray-400">
+                {formatPrice(digest.valueDelta.from, displayCurrency)} →{" "}
+                {formatPrice(digest.valueDelta.to, displayCurrency)}
+              </span>{" "}
+              <span
+                className={
+                  digest.valueDelta.percent >= 0
+                    ? "font-bold text-red-600"
+                    : "font-bold text-emerald-600"
+                }
+              >
+                {digest.valueDelta.percent >= 0 ? "+" : ""}
+                {digest.valueDelta.percent.toFixed(1)}%
+              </span>
+            </p>
+          )}
+          {digest.priceChanges.length === 0 &&
+          digest.stockChanges.length === 0 &&
+          digest.alertTargetsHit.length === 0 &&
+          digest.newProducts.length === 0 &&
+          digest.removedProducts.length === 0 ? (
+            <p className="text-sm text-gray-400 mt-2">No changes in this period.</p>
+          ) : (
+            <div className="mt-2 space-y-2 text-sm">
+              {digest.priceChanges.length > 0 && (
+                <div>
+                  {digest.priceChanges.slice(0, 3).map((c) => (
+                    <p key={c.productId} className="text-gray-600 dark:text-gray-400">
+                      <span className="text-gray-900 dark:text-gray-100">{c.name}</span>{" "}
+                      {formatPrice(c.from, displayCurrency)} →{" "}
+                      {formatPrice(c.to, displayCurrency)}{" "}
+                      <span
+                        className={
+                          c.percent > 0
+                            ? "font-semibold text-red-600"
+                            : "font-semibold text-emerald-600"
+                        }
+                      >
+                        {c.percent > 0 ? "+" : ""}
+                        {c.percent.toFixed(0)}%
+                      </span>
+                    </p>
+                  ))}
+                  {digest.priceChanges.length > 3 && (
+                    <p className="text-xs text-gray-400">+{digest.priceChanges.length - 3} more</p>
+                  )}
+                </div>
+              )}
+              {digest.stockChanges.length > 0 && (
+                <div>
+                  {digest.stockChanges.slice(0, 3).map((s) => (
+                    <p key={s.productId} className="text-gray-600 dark:text-gray-400">
+                      <span className="text-gray-900 dark:text-gray-100">{s.name}</span>: {s.from} → {s.to}
+                    </p>
+                  ))}
+                  {digest.stockChanges.length > 3 && (
+                    <p className="text-xs text-gray-400">+{digest.stockChanges.length - 3} more</p>
+                  )}
+                </div>
+              )}
+              {digest.alertTargetsHit.length > 0 && (
+                <div>
+                  {digest.alertTargetsHit.slice(0, 3).map((t) => (
+                    <p key={t.productId} className="text-gray-600 dark:text-gray-400">
+                      🎯 <span className="text-gray-900 dark:text-gray-100">{t.name}</span> at{" "}
+                      {formatPrice(t.price, t.currency)}
+                    </p>
+                  ))}
+                  {digest.alertTargetsHit.length > 3 && (
+                    <p className="text-xs text-gray-400">+{digest.alertTargetsHit.length - 3} more</p>
+                  )}
+                </div>
+              )}
+              {digest.newProducts.length > 0 && (
+                <div>
+                  {digest.newProducts.slice(0, 3).map((p) => (
+                    <p key={p.productId} className="text-gray-600 dark:text-gray-400">
+                      ➕ <span className="text-gray-900 dark:text-gray-100">{p.name}</span>
+                    </p>
+                  ))}
+                  {digest.newProducts.length > 3 && (
+                    <p className="text-xs text-gray-400">+{digest.newProducts.length - 3} more</p>
+                  )}
+                </div>
+              )}
+              {digest.removedProducts.length > 0 && (
+                <div>
+                  {digest.removedProducts.slice(0, 3).map((p) => (
+                    <p key={p.productId} className="text-gray-600 dark:text-gray-400">
+                      ➖ <span className="text-gray-900 dark:text-gray-100">{p.name}</span>
+                    </p>
+                  ))}
+                  {digest.removedProducts.length > 3 && (
+                    <p className="text-xs text-gray-400">+{digest.removedProducts.length - 3} more</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
         <h2 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Price History</h2>
