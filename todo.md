@@ -1031,6 +1031,13 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 134: Desktop watchlist virtualization
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-virtualization-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-virtualization.md`)
+- [x] Windowed table via `@tanstack/react-virtual@3.14.11` (76px estimate, overscan 8, dynamic measurement, spacer rows); verbatim row/header markup (`8ef9b18`)
+- [x] Follow-up: flattening extracted to tested `desktop/src/lib/watchlist-rows.ts` (5 unit tests) + guard retarget (`4f32966`)
+- [x] Guards (`tests/desktop-virtualization.test.ts`); E2E: `tsc 0`, lint 0 errors, `187 passed` files / `1459 passed` tests, desktop build green
+
 ## Phase 132: Desktop shared filter unification
 
 - [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-shared-filter-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-shared-filter.md`)
