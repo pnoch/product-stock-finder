@@ -65,6 +65,7 @@ export function Settings() {
   }, [settings?.checkInterval]);
   const [clearConfirm, setClearConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [importExportMessage, setImportExportMessage] = useState<string | null>(
@@ -460,6 +461,12 @@ export function Settings() {
       setDeleting(false);
     }
   }, [deleting]);
+
+  const deleteExpected = user?.email ?? "DELETE";
+  const isDeleteConfirmed =
+    user?.email != null
+      ? deleteConfirmEmail.trim().toLowerCase() === deleteExpected.toLowerCase()
+      : deleteConfirmEmail.trim() === deleteExpected;
 
   return (
     <div className="p-6 space-y-6">
@@ -1120,7 +1127,7 @@ export function Settings() {
             <div className="mt-4">
               {!deleteConfirm ? (
                 <button
-                  onClick={() => setDeleteConfirm(true)}
+                  onClick={() => { setDeleteConfirmEmail(""); setDeleteConfirm(true); }}
                   className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
                   aria-label="Delete account and data"
                 >
@@ -1131,17 +1138,30 @@ export function Settings() {
                   <p className="text-sm text-red-600 dark:text-red-400">
                     This permanently deletes your server account and all local data. This cannot be undone.
                   </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {user?.email
+                      ? `Type your email (${user.email}) to confirm.`
+                      : "Type DELETE to confirm."}
+                  </p>
+                  <input
+                    type="text"
+                    value={deleteConfirmEmail}
+                    onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+                    placeholder={user?.email ? "Your email address" : "DELETE"}
+                    className="w-full max-w-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                    aria-label="Type to confirm account deletion"
+                  />
                   <div className="flex items-center gap-3">
                     <button
                       onClick={handleDeleteAccount}
-                      disabled={deleting}
+                      disabled={deleting || !isDeleteConfirmed}
                       className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
                       aria-label="Confirm delete account and data"
                     >
                       {deleting ? "Deleting" : "Yes, delete everything"}
                     </button>
                     <button
-                      onClick={() => setDeleteConfirm(false)}
+                      onClick={() => { setDeleteConfirmEmail(""); setDeleteConfirm(false); }}
                       disabled={deleting}
                       className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium disabled:opacity-50"
                       aria-label="Cancel delete account and data"
