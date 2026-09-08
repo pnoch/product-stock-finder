@@ -249,20 +249,15 @@ export function Watchlist() {
 
   const tagCounts = useMemo(
     () =>
-      countTagMatches(
-        filterWatchlist(products, {
-          region: regionFilter,
-          tagIds: selectedTagIds,
-          tagMatchMode,
-          status: filter as StatusFilter,
-          query,
-          priceRange,
-          inStockOnly,
-          displayCurrency,
-        }),
-        { region: "all", status: "all", query: "" },
-      ),
-    [products, regionFilter, selectedTagIds, tagMatchMode, filter, query, inStockOnly, priceRange, displayCurrency],
+      countTagMatches(products, {
+        region: regionFilter,
+        status: filter as StatusFilter,
+        query,
+        priceRange,
+        inStockOnly,
+        displayCurrency,
+      }),
+    [products, regionFilter, filter, query, inStockOnly, priceRange, displayCurrency],
   );
 
   const sorted = useMemo(() => {
