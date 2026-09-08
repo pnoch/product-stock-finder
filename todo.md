@@ -1031,6 +1031,24 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 135: Quick-wins bundle 2 (empty chrome, price hint, faceted counts)
+
+- [x] Empty/loading states render message only (dead Select/Cancel removed) (`6555784`)
+- [x] Invalid price-range hint (empty inputs stay silent, invalid never persists) (`6555784`)
+- [x] Faceted tag counts in a single shared pass (`6b49d87`)
+
+## Phase 136: Desktop refresh hardening
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-refresh-hardening-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-refresh-hardening.md`)
+- [x] 20s per-query timeout into the miss path; `Refreshing x/y` progress, cleared in `finally` (`a17f253`)
+- [x] Guards (`tests/desktop-refresh-hardening.test.ts`); E2E: `tsc 0`, lint 0 errors, `188 passed` files / `1461 passed` tests, desktop build green
+
+## Phase 137: Desktop table accessibility
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-table-a11y-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-table-a11y.md`)
+- [x] `aria-rowcount`/`rowindex`, `aria-sort` on 4 headers, labeled trend images, `aria-pressed` on toggle buttons; invalid label attribute caught + removed (`05fc115`, `15a30a1`)
+- [x] Guards (`tests/desktop-table-a11y.test.ts`); E2E: `tsc 0`, lint 0 errors, `189 passed` files / `1463 passed` tests, desktop build green
+
 ## Phase 134: Desktop watchlist virtualization
 
 - [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-virtualization-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-virtualization.md`)
