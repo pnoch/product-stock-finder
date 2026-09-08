@@ -1038,6 +1038,18 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 142: Correctness bundle (digest gate, error states, labels)
+
+- [x] Digest respects frequency (off → placeholder, no self-erase)
+- [x] Home/Watchlist list-load error banners + Retry with explicit storage probes (hooks never reject) (`d016ae5`, `cb1c141`)
+- [x] HealthDetail ineffective aria-labels removed (strip summary kept)
+
+## Phase 143: Desktop stats parity 2
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-stats-parity2-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-stats-parity2.md`)
+- [x] Basket threshold sheet + banner (`<=` aligned) (`dde317b`, `c1d4617`); keyboard calendar (`81d7642`); formatted sparklines + share chooser (`e29053f`)
+- [x] Guards (`tests/desktop-stats-parity2.test.ts`); E2E: `tsc 0`, lint 0 errors, `192 passed` files / `1471 passed` tests, desktop build green
+
 ## Phase 139: Desktop error-path hardening
 
 - [x] Loaders extracted with error cards + Retry: Stats, Compare, ProductDetail (reuses not-found block), HealthDetail (+ labeled timeline), DistributorAnalysis; Search tracked-ids stays best-effort (`d250f13`)
