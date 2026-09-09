@@ -1038,6 +1038,14 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 147: Desktop correctness follow-ups 2
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-correctness2-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-correctness2.md`)
+- [x] Per-row compare focus via distributor param + named labels (`c2d71c0`)
+- [x] Honest live-price refresh (fetch-merge-persist, stamp on fresh, dead state removed) (`9a8db54`)
+- [x] First-load probe failures surface banner; shared `buildDigestSnapshot` with dev-logged saves (`585e2e4`, `cade125`, `a1840d0`)
+- [x] Guards (`tests/desktop-correctness2.test.ts`); E2E: `tsc 0`, lint 0 errors, `195 passed` files, desktop build green
+
 ## Phase 144: Correctness follow-ups (retry, digest, visibility, FX)
 
 - [x] Retry handlers capture storage errors explicitly (hooks rethrow via try/finally)
