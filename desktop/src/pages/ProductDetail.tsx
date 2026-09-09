@@ -50,6 +50,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { toPng } from "html-to-image";
 
 function PriceSparkline({ history, currency }: { history: { price: number }[]; currency: string }) {
   if (history.length < 2) {
@@ -129,6 +130,7 @@ export function ProductDetail() {
   const [inlineReminderError, setInlineReminderError] = useState<string | null>(null);
   const { isDark } = useTheme();
   const loadIdRef = useRef(0);
+  const summaryRef = useRef<HTMLDivElement>(null);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null);
 
   const loadProduct = useCallback(async () => {
@@ -458,6 +460,22 @@ export function ProductDetail() {
     }
   };
 
+  const handleSaveImage = useCallback(async () => {
+    if (!summaryRef.current || !product) return;
+    try {
+      const dataUrl = await toPng(summaryRef.current);
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `product-${product.id}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast("Product image saved");
+    } catch {
+      showToast("Couldn't save product image");
+    }
+  }, [product]);
+
   const handleWatchRestock = async () => {
     if (!product || !bestListing) {
       showToast("No distributor available");
@@ -601,6 +619,7 @@ export function ProductDetail() {
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
+      <div ref={summaryRef} className="space-y-6">
       {/* Product Header */}
       <div className="flex items-start gap-4">
         <ProductImage productId={product.id} size={96} />
@@ -683,6 +702,7 @@ export function ProductDetail() {
           )}
         </div>
       )}
+      </div>
 
       {priceVsAvg && (
         <div
@@ -767,6 +787,13 @@ export function ProductDetail() {
           aria-label="Copy product link"
         >
           <Copy className="w-4 h-4" /> Copy Link
+        </button>
+        <button
+          onClick={handleSaveImage}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+          aria-label="Save product image"
+        >
+          <Share2 className="w-4 h-4" /> Save image
         </button>
         <Link
           to={`/compare/${product.id}`}
