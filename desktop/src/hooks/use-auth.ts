@@ -69,71 +69,98 @@ export function subscribeAuth(listener: Listener): () => void {
 }
 
 function mapUser(data: {
-  id: number;
-  openId: string | null;
-  name: string | null;
-  email: string | null;
-  loginMethod: string | null;
-  lastSignedIn: string;
+  id?: number;
+  openId?: string | null;
+  name?: string | null;
+  email?: string | null;
+  loginMethod?: string | null;
+  lastSignedIn?: string;
 }): User {
   return {
-    id: data.id,
+    id: data.id ?? 0,
     openId: data.openId ?? "",
-    name: data.name,
-    email: data.email,
-    loginMethod: data.loginMethod ?? "email",
-    lastSignedIn: data.lastSignedIn,
+    name: data.name ?? null,
+    email: data.email ?? null,
+    loginMethod: data.loginMethod ?? null,
+    lastSignedIn: data.lastSignedIn ?? new Date().toISOString(),
   };
 }
 
-export async function signInWithEmail(email: string, password: string): Promise<void> {
-  const res = await fetch(`${getApiBaseUrl()}/api/auth/login`, {
+async function authedFetch<T>(
+  path: string,
+  body: unknown,
+  opts?: { token?: string | null; fallbackError?: string },
+): Promise<T> {
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) throw new Error("Server not configured");
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = opts?.token;
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${baseUrl}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    headers,
+    body: JSON.stringify(body),
     credentials: "include",
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Login failed");
+    throw new Error(data.error || opts?.fallbackError || "Request failed");
   }
-  const data = await res.json();
+  return (await res.json()) as T;
+}
+
+export async function signInWithEmail(email: string, password: string): Promise<void> {
+  const data = await authedFetch<{ sessionToken?: string; user?: Parameters<typeof mapUser>[0] }>(
+    "/api/auth/login",
+    { email, password },
+    { fallbackError: "Login failed" },
+  );
   if (data.sessionToken) setSessionToken(data.sessionToken);
   if (data.user) setUserInfo(mapUser(data.user));
   notify();
 }
 
 export async function signUpWithEmail(email: string, password: string, name?: string): Promise<void> {
-  const res = await fetch(`${getApiBaseUrl()}/api/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, name }),
-    credentials: "include",
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Registration failed");
-  }
-  const data = await res.json();
+  const data = await authedFetch<{ sessionToken?: string; user?: Parameters<typeof mapUser>[0] }>(
+    "/api/auth/register",
+    { email, password, name },
+    { fallbackError: "Registration failed" },
+  );
   if (data.sessionToken) setSessionToken(data.sessionToken);
   if (data.user) setUserInfo(mapUser(data.user));
   notify();
 }
 
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
-  const token = getSessionToken();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  const res = await fetch(`${getApiBaseUrl()}/api/auth/change-password`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ currentPassword, newPassword }),
-    credentials: "include",
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Change password failed");
-  }
+  await authedFetch<{ success?: boolean }>(
+    "/api/auth/change-password",
+    { currentPassword, newPassword },
+    { token: getSessionToken(), fallbackError: "Change password failed" },
+  );
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  await authedFetch<{ success?: boolean }>(
+    "/api/auth/reset",
+    { token, newPassword },
+    { fallbackError: "Password reset failed" },
+  );
+}
+
+export async function resendVerification(): Promise<void> {
+  await authedFetch<{ success?: boolean }>(
+    "/api/auth/resend-verification",
+    {},
+    { token: getSessionToken(), fallbackError: "Resend verification failed" },
+  );
+}
+
+export async function deleteAccount(): Promise<void> {
+  await authedFetch<{ success?: boolean }>(
+    "/api/auth/delete-account",
+    { confirm: "DELETE" },
+    { token: getSessionToken(), fallbackError: "Server account deletion failed" },
+  );
 }
 
 export function useAuth() {

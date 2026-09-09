@@ -126,20 +126,32 @@ export function Settings() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authBusy, setAuthBusy] = useState(false);
 
-  const handleEmailAuth = async () => {
-    if (!authEmail.includes("@") || !authPassword) {
-      setAuthError("Please enter a valid email and password");
-      return;
+  function validateEmailAuth(email: string, password: string, isRegister: boolean): string | null {
+    if (!email.includes("@") || !password) {
+      return "Please enter a valid email and password";
     }
-    if (authMode === "register" && authPassword.length < 6) {
-      setAuthError("Password must be at least 6 characters");
+    if (isRegister && password.length < 6) {
+      return "Password must be at least 6 characters";
+    }
+    return null;
+  }
+
+  const handleEmailAuth = async () => {
+    const validationError = validateEmailAuth(authEmail, authPassword, authMode === "register");
+    if (validationError) {
+      setAuthError(validationError);
       return;
     }
     setAuthBusy(true);
     setAuthError(null);
     try {
-      if (authMode === "login") await signInWithEmail(authEmail.trim(), authPassword);
-      else await signUpWithEmail(authEmail.trim(), authPassword, authName.trim() || undefined);
+      if (authMode === "login") {
+        await signInWithEmail(authEmail.trim(), authPassword);
+        showToast("Signed in");
+      } else {
+        await signUpWithEmail(authEmail.trim(), authPassword, authName.trim() || undefined);
+        showToast("Account created");
+      }
       setAuthEmail("");
       setAuthPassword("");
       setAuthName("");
@@ -704,6 +716,8 @@ export function Settings() {
               </div>
             </div>
             <div className="mt-3 space-y-2">
+              {user.loginMethod === "email" ? (
+              <>
               <input
                 type="password"
                 value={currentPw}
@@ -737,7 +751,11 @@ export function Settings() {
                 {changing ? "Changing" : "Change password"}
               </button>
               {changeError && (
-                <p role="alert" className="text-sm text-gray-600 dark:text-gray-400">{changeError}</p>
+                <p role="alert" className="text-sm text-red-600 dark:text-red-400">{changeError}</p>
+              )}
+              </>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">Password sign-in isn&apos;t available for OAuth accounts</p>
               )}
             </div>
           </div>
@@ -815,7 +833,7 @@ export function Settings() {
                   </button>
                 </div>
                 {authError && (
-                  <p role="alert" className="text-sm text-gray-600 dark:text-gray-400">{authError}</p>
+                  <p role="alert" className="text-sm text-red-600 dark:text-red-400">{authError}</p>
                 )}
               </div>
             </div>
