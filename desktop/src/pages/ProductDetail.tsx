@@ -33,8 +33,9 @@ import {
   getAllRegions,
   filterListingsByRegion,
 } from "../../../lib/region-filter";
-import type { Product } from "../../../lib/types";
+import type { Product, ServerPriceResult } from "../../../lib/types";
 import { findBestDeal } from "../../../lib/best-deal";
+import { composeLiveListings } from "../../../lib/live-prices";
 import { buildShareText } from "../../../lib/price-share";
 import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
@@ -106,7 +107,6 @@ export function ProductDetail() {
   const regions = useMemo(() => getAllRegions(), []);
   const [insight, setInsight] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [buyNowLoading] = useState(false);
   const [livePriceLoading, setLivePriceLoading] = useState(false);
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
   const [perListingAlertId, setPerListingAlertId] = useState<string | null>(null);
@@ -142,7 +142,6 @@ export function ProductDetail() {
       if (loadIdRef.current !== myId) return;
       const found = products.find((p) => p.id === id);
       if (loadIdRef.current === myId) setProduct(found ?? null);
-      if (loadIdRef.current === myId && found) setLastRefreshedAt(Date.now());
       const settings = await storage.getSettings();
       if (loadIdRef.current !== myId) return;
       if (loadIdRef.current === myId) {
@@ -156,6 +155,51 @@ export function ProductDetail() {
         const map: Record<string, boolean> = {};
         for (const w of watches) if (w.productId === id) map[w.distributorId] = true;
         setStockWatches(map);
+      }
+      if (loadIdRef.current === myId && found && found.listings.length > 0 && getApiBaseUrl()) {
+        try {
+          const { createTRPCClient } = await import("../lib/trpc");
+          const client = createTRPCClient();
+          const seeds = found.listings;
+          const results: (ServerPriceResult | null)[] = new Array(seeds.length).fill(null);
+          let next = 0;
+          await Promise.all(
+            Array.from({ length: Math.min(3, seeds.length) }, async () => {
+              while (loadIdRef.current === myId && next < seeds.length) {
+                const idx = next;
+                next += 1;
+                const listing = seeds[idx];
+                try {
+                  results[idx] = await Promise.race([
+                    client.prices.get.query({
+                      distributorId: listing.distributorId,
+                      modelNumber: found.modelNumber,
+                    }),
+                    new Promise<never>((_resolve, reject) =>
+                      setTimeout(() => reject(new Error("price query timeout")), 20000),
+                    ),
+                  ]);
+                } catch {
+                  results[idx] = null;
+                }
+              }
+            }),
+          );
+          if (loadIdRef.current === myId && results.some((r) => r !== null)) {
+            const merged = composeLiveListings(seeds, results);
+            await storage.updateProductListings(id, merged);
+            if (loadIdRef.current !== myId) return;
+            const refreshed = await storage.getWatchlist();
+            if (loadIdRef.current !== myId) return;
+            const updated = refreshed.find((p) => p.id === id);
+            if (loadIdRef.current === myId && updated) {
+              setProduct(updated);
+              setLastRefreshedAt(Date.now());
+            }
+          }
+        } catch {
+          // live refresh is best-effort; cached listings stay visible
+        }
       }
     } catch (e) {
       if (loadIdRef.current === myId) {
@@ -623,7 +667,7 @@ export function ProductDetail() {
               <PriceSparkline history={bestListing.priceHistory} currency={bestListing.currency} />
             </div>
           </div>
-          {buyNowLoading || livePriceLoading ? (
+          {livePriceLoading ? (
             <button
               type="button"
               disabled
