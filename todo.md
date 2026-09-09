@@ -1038,6 +1038,24 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 150: Correctness follow-ups 4
+
+- [x] Shared `fetchListingsWithTimeout` (`desktop/src/lib/server-prices.ts`); real behavioral tests (order, isolation, timeout, empty)
+- [x] Compare param scoped per-product, stamp-on-match; single-source retry; toast `role="status"` everywhere
+- [x] Pushed as `44bbee6`
+
+## Phase 151: Desktop full backup
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-backup-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-backup.md`)
+- [x] Export all collections; import with preview confirm, sync-meta stamping, reload; zero Rust changes (`e8cdc1a`, `7b5f97a`)
+- [x] Guards + round-trip (`tests/desktop-backup.test.ts`); E2E: `tsc 0`, lint 0 errors, `197 passed` files / `1486 passed` tests, desktop build green
+
+## Phase 152: Desktop share + notifications + search tags
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-share-notify-search-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-share-notify-search.md`)
+- [x] Compare text share; product PNG export; notification open + single-read; search tag matches + counts (`17bf086`, `bb2bd28`, `a464d92`, `1879c4c`)
+- [x] Guards (`tests/desktop-share-notify-search.test.ts`); E2E: `tsc 0`, lint 0 errors, `198 passed` files / `1489 passed` tests, desktop build green
+
 ## Phase 148: Correctness follow-ups 3
 
 - [x] Shared `fetchListingsWithTimeout` helper (`desktop/src/lib/server-prices.ts`); both call sites rewritten identically
