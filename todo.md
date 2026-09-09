@@ -1038,6 +1038,18 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 148: Correctness follow-ups 3
+
+- [x] Shared `fetchListingsWithTimeout` helper (`desktop/src/lib/server-prices.ts`); both call sites rewritten identically
+- [x] Compare `?distributor=` re-nav without remount; retry masking fixed; toast `role="status"` on all sites
+- [x] Pushed as `847875b`
+
+## Phase 149: Mobile parity (compare param + digest helper)
+
+- [x] Mobile compare honors `?distributor=` (init + re-apply, validation, no reseed; stamp-on-match fix) (`2399eec`, `e44e998`)
+- [x] `maybeSendDigest` adopts shared `buildDigestSnapshot` (additive `now` param, field-for-field)
+- [x] E2E: `tsc 0`, `195 passed` files / `1480 passed` tests
+
 ## Phase 147: Desktop correctness follow-ups 2
 
 - [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-correctness2-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-correctness2.md`)
