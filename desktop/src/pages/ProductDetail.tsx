@@ -33,9 +33,10 @@ import {
   getAllRegions,
   filterListingsByRegion,
 } from "../../../lib/region-filter";
-import type { Product, ServerPriceResult } from "../../../lib/types";
+import type { Product } from "../../../lib/types";
 import { findBestDeal } from "../../../lib/best-deal";
 import { composeLiveListings } from "../../../lib/live-prices";
+import { fetchListingsWithTimeout } from "../lib/server-prices";
 import { buildShareText } from "../../../lib/price-share";
 import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
@@ -161,30 +162,7 @@ export function ProductDetail() {
           const { createTRPCClient } = await import("../lib/trpc");
           const client = createTRPCClient();
           const seeds = found.listings;
-          const results: (ServerPriceResult | null)[] = new Array(seeds.length).fill(null);
-          let next = 0;
-          await Promise.all(
-            Array.from({ length: Math.min(3, seeds.length) }, async () => {
-              while (loadIdRef.current === myId && next < seeds.length) {
-                const idx = next;
-                next += 1;
-                const listing = seeds[idx];
-                try {
-                  results[idx] = await Promise.race([
-                    client.prices.get.query({
-                      distributorId: listing.distributorId,
-                      modelNumber: found.modelNumber,
-                    }),
-                    new Promise<never>((_resolve, reject) =>
-                      setTimeout(() => reject(new Error("price query timeout")), 20000),
-                    ),
-                  ]);
-                } catch {
-                  results[idx] = null;
-                }
-              }
-            }),
-          );
+          const results = await fetchListingsWithTimeout(client, seeds, found.modelNumber);
           if (loadIdRef.current === myId && results.some((r) => r !== null)) {
             const merged = composeLiveListings(seeds, results);
             await storage.updateProductListings(id, merged);
@@ -611,7 +589,7 @@ export function ProductDetail() {
   return (
     <div className="p-6 space-y-6 max-w-4xl">
       {toast && (
-        <div className="fixed bottom-6 right-6 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-[60] animate-fadeIn">
+        <div role="status" className="fixed bottom-6 right-6 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-[60] animate-fadeIn">
           {toast}
         </div>
       )}

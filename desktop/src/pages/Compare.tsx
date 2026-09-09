@@ -233,6 +233,8 @@ export function Compare() {
   });
   const [loadError, setLoadError] = useState<string | null>(null);
   const selectionInitialized = useRef<string | null>(null);
+  const lastAppliedParam = useRef<string | null>(null);
+  const distributorParam = searchParams.get("distributor");
   const { toast, showToast } = useToast();
 
   const loadCompare = useCallback(async () => {
@@ -258,9 +260,20 @@ export function Compare() {
   }, [loadCompare]);
 
   useEffect(() => {
-    if (!product || selectionInitialized.current === product.id) return;
+    if (!product) return;
+    if (distributorParam !== lastAppliedParam.current) {
+      lastAppliedParam.current = distributorParam;
+      if (distributorParam && product.listings.some((l) => l.distributorId === distributorParam)) {
+        selectionInitialized.current = product.id;
+        setSelected(new Set([distributorParam]));
+        return;
+      }
+      if (selectionInitialized.current === product.id) return;
+    } else if (selectionInitialized.current === product.id) {
+      return;
+    }
     selectionInitialized.current = product.id;
-    const d = searchParams.get("distributor");
+    const d = distributorParam;
     if (d && product.listings.some((l) => l.distributorId === d)) {
       setSelected(new Set([d]));
       return;
@@ -273,7 +286,7 @@ export function Compare() {
         return aConv - bConv;
       });
     setSelected(new Set(withHistory.slice(0, 3).map((l) => l.distributorId)));
-  }, [product, displayCurrency, searchParams]);
+  }, [product, displayCurrency, distributorParam]);
 
   const toggleSelect = useCallback((distributorId: string) => {
     setSelected((prev) => {

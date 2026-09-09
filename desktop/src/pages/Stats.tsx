@@ -275,7 +275,7 @@ export function Stats() {
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto w-full">
       {toast && (
-        <div className="fixed bottom-6 right-6 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50 animate-fadeIn">
+        <div role="status" className="fixed bottom-6 right-6 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50 animate-fadeIn">
           {toast}
         </div>
       )}

@@ -33,10 +33,11 @@ import { countTagMatches, filterWatchlist, groupWatchlist, type StatusFilter } f
 import { flattenWatchlistRows } from "../lib/watchlist-rows";
 import { TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import { createTRPCClient } from "../lib/trpc";
+import { fetchListingsWithTimeout } from "../lib/server-prices";
 import { composeLiveListings } from "../../../lib/live-prices";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
 import { isFreshPriceSnapshot } from "../../../lib/price-freshness";
-import type { Product, ServerPriceResult, StockStatus, TagDefinition, WatchlistGroup } from "../../../lib/types";
+import type { Product, StockStatus, TagDefinition, WatchlistGroup } from "../../../lib/types";
 
 type SortKey = "name" | "price" | "trend" | "lastUpdated";
 type FilterKey = "all" | "in_stock" | "back_order" | "out_of_stock";
@@ -82,7 +83,6 @@ function getDominantStatus(product: Product): StockStatus {
 
 
 const MAX_CONCURRENT_SERVER_FETCHES = 3;
-const QUERY_TIMEOUT_MS = 20_000;
 
 async function fetchServerPricesForWatchlist(
   onProgress?: (done: number, total: number) => void,
@@ -103,26 +103,10 @@ async function fetchServerPricesForWatchlist(
       while (next < jobs.length) {
         const job = jobs[next];
         next += 1;
-        const results: (ServerPriceResult | null)[] = [];
-        for (const listing of job.listings) {
-          try {
-            results.push(
-              await Promise.race([
-                client.prices.get.query({
-                  distributorId: listing.distributorId,
-                  modelNumber: job.modelNumber,
-                }),
-                new Promise<never>((_resolve, reject) =>
-                  setTimeout(() => reject(new Error("price query timeout")), QUERY_TIMEOUT_MS),
-                ),
-              ]),
-            );
-          } catch {
-            results.push(null);
-          }
+        const results = await fetchListingsWithTimeout(client, job.listings, job.modelNumber, () => {
           done += 1;
           onProgress?.(done, total);
-        }
+        });
         if (results.some((r) => r !== null)) {
           const merged = composeLiveListings(job.listings, results);
           await storage.updateProductListings(job.productId, merged);
@@ -143,15 +127,16 @@ export function Watchlist() {
   const hasLoadedOnce = useRef(false);
 
   const handleRetryList = useCallback(async () => {
-    setListError(null);
+    let ok = true;
     try {
       await refresh();
     } catch (e) {
+      ok = false;
       setListError(e instanceof Error ? e.message : "Couldn't load watchlist");
     }
     try {
       await storage.getWatchlist();
-      setListError(null);
+      if (ok) setListError(null);
     } catch (e) {
       setListError(e instanceof Error ? e.message : "Couldn't load watchlist");
     }
@@ -762,7 +747,7 @@ export function Watchlist() {
   return (
     <div className="p-6 space-y-4">
       {toast && (
-        <div className="fixed bottom-6 right-6 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50 animate-fadeIn">
+        <div role="status" className="fixed bottom-6 right-6 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50 animate-fadeIn">
           {toast}
         </div>
       )}
