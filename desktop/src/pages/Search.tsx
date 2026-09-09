@@ -9,7 +9,7 @@ import { discoverProduct } from "../../../lib/llm-discovery";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import type { TagDefinition } from "../../../lib/types";
 import { TagFilterRow } from "../components/TagFilterRow";
-import { matchesTagFilterMode } from "../../../lib/tags";
+import { countTagMatches, filterWatchlist } from "../../../lib/watchlist-org";
 import { useToast } from "../hooks/use-toast";
 
 const RECENT_KEY = "recent_searches";
@@ -79,6 +79,7 @@ export function Search() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
+  const [watchlistProducts, setWatchlistProducts] = useState<Awaited<ReturnType<typeof storage.getWatchlist>>>([]);
   const [discoveredProducts, setDiscoveredProducts] = useState<typeof PRODUCT_CATALOG>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
@@ -105,7 +106,7 @@ export function Search() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    storage.getWatchlist().then((p) => setTrackedIds(new Set(p.map((x) => x.id)))).catch(() => {});
+    storage.getWatchlist().then((p) => { setTrackedIds(new Set(p.map((x) => x.id))); setWatchlistProducts(p); }).catch(() => {});
     storage.getDiscoveredProducts().then((disc) => {
       let list = disc.map((p) => ({ id: p.id, name: p.name, modelNumber: p.modelNumber, brand: p.brand, category: p.category, description: p.description ?? "" }));
       if (list.length > 50) list = list.slice(-50);
@@ -122,6 +123,26 @@ export function Search() {
     return [...PRODUCT_CATALOG, ...discoveredProducts.filter((p) => !ids.has(p.id))] as typeof PRODUCT_CATALOG;
   }, [discoveredProducts]);
 
+  const tagMatchedIds = useMemo(() => {
+    if (searchTagIds.length === 0) return null;
+    const matching = filterWatchlist(watchlistProducts, {
+      region: "all",
+      status: "all",
+      query: "",
+      tagIds: searchTagIds,
+      tagMatchMode: searchTagMode,
+    });
+    return new Set(matching.map((p) => p.id));
+  }, [watchlistProducts, searchTagIds, searchTagMode]);
+
+  const tagCounts = useMemo(() => {
+    return countTagMatches(watchlistProducts, {
+      region: "all",
+      status: "all",
+      query,
+    });
+  }, [watchlistProducts, query]);
+
   const results = useMemo(() => {
     let base: typeof combinedCatalog;
     if (!query.trim()) base = combinedCatalog;
@@ -133,18 +154,13 @@ export function Search() {
       base = fuse.search(query).map((r) => r.item);
     }
     if (searchTagIds.length > 0) {
-      // For catalog search, filter to products whose pending tags match selection
-      base = base.filter((p) => {
-        const pending = pendingTags[p.id] ?? [];
-        if (pending.length === 0) return false;
-        const fake = { tags: pending } as never;
-        return matchesTagFilterMode(fake, searchTagIds, searchTagMode);
-      });
+      // Show watchlist tag matches plus untracked catalog products
+      base = base.filter((p) => tagMatchedIds?.has(p.id) || !trackedIds.has(p.id));
     }
     // Ensure derived array is referenced so linter sees pendingTagsDerived as dep
     void pendingTagsDerived;
     return base;
-  }, [query, combinedCatalog, searchTagIds, searchTagMode, pendingTags, pendingTagsDerived]);
+  }, [query, combinedCatalog, searchTagIds, searchTagMode, pendingTags, pendingTagsDerived, tagMatchedIds, trackedIds]);
 
   const categories = useMemo(() => getAllCategories(), []);
   const brands = useMemo(() => getAllBrands(), []);
@@ -247,7 +263,7 @@ export function Search() {
           tagDefinitions={tagDefinitions}
           selectedTagIds={searchTagIds}
           tagMatchMode={searchTagMode}
-          counts={{}}
+          counts={tagCounts}
           onToggleTag={(id) => setSearchTagIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])}
           onChangeMode={setSearchTagMode}
           onClearAll={() => setSearchTagIds([])}
@@ -281,6 +297,10 @@ export function Search() {
         <span>{sortedResults.length} result{sortedResults.length !== 1 ? "s" : ""}</span>
         {query.trim() && <span className="px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-600">{query}</span>}
       </div>
+
+      {searchTagIds.length > 0 && (
+        <p className="text-xs text-gray-500 px-1">Tag filter: showing watchlist matches only — clear to see catalog</p>
+      )}
 
       <div className="space-y-2">
         {sortedResults.map((product) => {
