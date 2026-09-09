@@ -210,6 +210,14 @@ export function Alerts() {
       setUnreadCount(0);
     } catch {}
   };
+  const handleNotificationOpen = async (n: NotificationHistoryEntry) => {
+    if (n.read) return;
+    try {
+      await storage.markNotificationRead(n.id);
+      setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch {}
+  };
 
   const handleDeleteReminder = async (id: string) => {
     await storage.removeBackOrderReminder(id);
@@ -311,19 +319,37 @@ export function Alerts() {
             <EmptyState icon={<BellRing className="w-12 h-12" />} title="No notifications yet" description="Price alerts and restock updates will appear here and in your system tray." />
           ) : (
             <div className="space-y-2">
-              {notifications.map((n) => (
-                <div key={n.id} className={`flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border ${n.read ? "border-gray-200 dark:border-gray-700" : "border-brand-200 dark:border-brand-800 bg-brand-50/40 dark:bg-brand-900/10"} `}>
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${n.type === "health" ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400" : n.type === "reminder" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"}`}>
-                    <Bell className="w-4 h-4" />
+              {notifications.map((n) => {
+                const route =
+                  n.type === "health" && n.distributorId
+                    ? `/health/${n.distributorId}`
+                    : n.productId
+                      ? `/product/${n.productId}`
+                      : null;
+                const itemClassName = `flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border ${n.read ? "border-gray-200 dark:border-gray-700" : "border-brand-200 dark:border-brand-800 bg-brand-50/40 dark:bg-brand-900/10"} `;
+                const content = (
+                  <>
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${n.type === "health" ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400" : n.type === "reminder" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"}`}>
+                      <Bell className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{n.title}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{n.body}</p>
+                      <p className="text-[11px] text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                    </div>
+                    {!n.read && <span className="w-2.5 h-2.5 rounded-full bg-brand-600 shrink-0" aria-label="Unread" />}
+                  </>
+                );
+                return route ? (
+                  <Link key={n.id} to={route} onClick={() => void handleNotificationOpen(n)} className={itemClassName}>
+                    {content}
+                  </Link>
+                ) : (
+                  <div key={n.id} className={itemClassName}>
+                    {content}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">{n.title}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{n.body}</p>
-                    <p className="text-[11px] text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
-                  </div>
-                  {!n.read && <span className="w-2.5 h-2.5 rounded-full bg-brand-600 shrink-0" aria-label="Unread" />}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
