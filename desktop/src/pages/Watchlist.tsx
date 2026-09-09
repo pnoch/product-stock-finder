@@ -30,6 +30,9 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ProductImage } from "../components/ProductImage";
 import { TagFilterRow } from "../components/TagFilterRow";
 import { countTagMatches, filterWatchlist, groupWatchlist, type StatusFilter } from "../../../lib/watchlist-org";
+import { useConnection } from "../hooks/use-connection";
+import { countQueuedEdits } from "../../../lib/sync";
+import { computeProductInsights } from "../../../lib/product-insights";
 import { flattenWatchlistRows } from "../lib/watchlist-rows";
 import { TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import { createTRPCClient } from "../lib/trpc";
@@ -188,6 +191,23 @@ export function Watchlist() {
   const priceInvalid =
     (priceMinInput.trim() !== "" || priceMaxInput.trim() !== "") && priceRange === undefined;
   const { toast, showToast } = useToast();
+  const connection = useConnection();
+  const [queuedCount, setQueuedCount] = useState(0);
+
+  const refreshQueuedCount = useCallback(async () => {
+    try {
+      const meta = await storage.getSyncMeta();
+      setQueuedCount(countQueuedEdits(meta));
+    } catch {
+      // best-effort
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshQueuedCount();
+    window.addEventListener("focus", refreshQueuedCount);
+    return () => window.removeEventListener("focus", refreshQueuedCount);
+  }, [refreshQueuedCount]);
   // Bulk select + undo parity
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -273,6 +293,11 @@ export function Watchlist() {
     () => computeWatchlistSummary(products, displayCurrency),
     [products, displayCurrency],
   );
+
+  const insightMap = useMemo(() => {
+    const result = computeProductInsights(products, displayCurrency);
+    return new Map(result.products.map((entry) => [entry.productId, entry]));
+  }, [products, displayCurrency]);
 
   const tagCounts = useMemo(
     () =>
@@ -497,7 +522,13 @@ export function Watchlist() {
   if (products.length === 0) {
     return (
       <div className="p-6 space-y-4">
-        {listError && (
+      {/* edits queued banner */}
+      {connection.status === "offline" && queuedCount > 0 && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm font-semibold" role="alert">
+          Offline — {queuedCount} edit{queuedCount === 1 ? "" : "s"} queued. Will sync when back online.
+        </div>
+      )}
+      {listError && (
           <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
             <span className="flex-1">Couldn't load watchlist: {listError}</span>
             <button
@@ -664,6 +695,24 @@ export function Watchlist() {
             <div>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <p className="font-medium text-sm">{product.name}</p>
+                {(() => {
+                  const insight = insightMap.get(product.id);
+                  if (!insight || !(insight.atAllTimeLow || insight.dropStreak >= 2)) return null;
+                  return (
+                    <>
+                      {insight.atAllTimeLow && (
+                        <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                          All-time low
+                        </span>
+                      )}
+                      {insight.dropStreak >= 2 && (
+                        <span className="text-[11px] font-semibold text-red-600 dark:text-red-400">
+                          ▼ Dropping ×{insight.dropStreak}
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
                 {(product.tags ?? [])
                   .filter((tagId) => tagDefinitions[tagId])
                   .map((tagId) => {
