@@ -15,9 +15,11 @@ export async function fetchListingsWithTimeout(
   listings: DistributorListing[],
   modelNumber: string,
   onItem?: () => void,
+  timeoutMs: number = QUERY_TIMEOUT_MS,
 ): Promise<(ServerPriceResult | null)[]> {
   const results: (ServerPriceResult | null)[] = [];
   for (const listing of listings) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       results.push(
         await Promise.race([
@@ -25,13 +27,15 @@ export async function fetchListingsWithTimeout(
             distributorId: listing.distributorId,
             modelNumber,
           }),
-          new Promise<never>((_resolve, reject) =>
-            setTimeout(() => reject(new Error("price query timeout")), QUERY_TIMEOUT_MS),
-          ),
+          new Promise<never>((_resolve, reject) => {
+            timer = setTimeout(() => reject(new Error("price query timeout")), timeoutMs);
+          }),
         ]),
       );
     } catch {
       results.push(null);
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
     }
     onItem?.();
   }

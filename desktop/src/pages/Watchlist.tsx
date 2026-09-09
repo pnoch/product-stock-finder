@@ -127,16 +127,9 @@ export function Watchlist() {
   const hasLoadedOnce = useRef(false);
 
   const handleRetryList = useCallback(async () => {
-    let ok = true;
     try {
       await refresh();
-    } catch (e) {
-      ok = false;
-      setListError(e instanceof Error ? e.message : "Couldn't load watchlist");
-    }
-    try {
-      await storage.getWatchlist();
-      if (ok) setListError(null);
+      setListError(null);
     } catch (e) {
       setListError(e instanceof Error ? e.message : "Couldn't load watchlist");
     }

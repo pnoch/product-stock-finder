@@ -261,23 +261,17 @@ export function Compare() {
 
   useEffect(() => {
     if (!product) return;
-    if (distributorParam !== lastAppliedParam.current) {
-      lastAppliedParam.current = distributorParam;
-      if (distributorParam && product.listings.some((l) => l.distributorId === distributorParam)) {
+    const paramKey = `${product.id}|${distributorParam ?? ""}`;
+    if (distributorParam && product.listings.some((l) => l.distributorId === distributorParam)) {
+      if (lastAppliedParam.current !== paramKey) {
+        lastAppliedParam.current = paramKey;
         selectionInitialized.current = product.id;
         setSelected(new Set([distributorParam]));
-        return;
       }
-      if (selectionInitialized.current === product.id) return;
-    } else if (selectionInitialized.current === product.id) {
       return;
     }
+    if (selectionInitialized.current === product.id) return;
     selectionInitialized.current = product.id;
-    const d = distributorParam;
-    if (d && product.listings.some((l) => l.distributorId === d)) {
-      setSelected(new Set([d]));
-      return;
-    }
     const withHistory = product.listings
       .filter((l) => l.priceHistory && l.priceHistory.length >= 2)
       .sort((a, b) => {
