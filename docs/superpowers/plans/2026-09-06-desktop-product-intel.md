@@ -4,7 +4,7 @@
 
 **Goal:** Desktop detail answers "good deal?", links per-listing history, and refreshes in place.
 
-**Architecture:** `computePriceVsAverage` memo + card, chart links beside row actions, header Refresh reusing `loadProduct` — all in `desktop/src/pages/ProductDetail.tsx`. No server or mobile changes.
+**Architecture:** `computePriceVsAverage` memo + card, per-row chart links (a page-level Compare link already exists — the gap is per-row), header refresh + recency label — all in `desktop/src/pages/ProductDetail.tsx`. No server or mobile changes.
 
 **Tech Stack:** React, react-router, vitest.
 
@@ -30,10 +30,10 @@ describe("desktop product intelligence", () => {
     expect(text).toContain("Below average");
   });
 
-  it("links per-listing history and refreshes in place", async () => {
+  it("links per-row history and shows refresh recency", async () => {
     const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
-    expect(text).toContain("/compare/${");
-    expect(text).toContain("loadProduct()");
+    expect(text).toContain("View price history");
+    expect(text).toContain("lastRefreshedAt");
   });
 });
 ```
