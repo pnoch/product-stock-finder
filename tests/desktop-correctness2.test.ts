@@ -40,4 +40,9 @@ describe("desktop correctness follow-ups 2", () => {
     expect(snap.products[0]).toMatchObject({ productId: "p1", bestPrice: 100, stockStatus: "in_stock" });
     expect(typeof snap.lastDigestAt).toBe("string");
   });
+
+  it("surfaces first-load probe failures", async () => {
+    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    expect(text).toContain("listError");
+  });
 });
