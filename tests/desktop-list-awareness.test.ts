@@ -5,7 +5,7 @@ describe("desktop list awareness", () => {
   it("shows the offline queued-edits banner", async () => {
     const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
     expect(text).toContain("countQueuedEdits");
-    expect(text).toContain("edits queued");
+    expect(text).toContain("Will sync when back online");
   });
 
   it("badges buy signals and counts tabs", async () => {

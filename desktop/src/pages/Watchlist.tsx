@@ -522,7 +522,6 @@ export function Watchlist() {
   if (products.length === 0) {
     return (
       <div className="p-6 space-y-4">
-      {/* edits queued banner */}
       {connection.status === "offline" && queuedCount > 0 && (
         <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm font-semibold" role="alert">
           Offline — {queuedCount} edit{queuedCount === 1 ? "" : "s"} queued. Will sync when back online.
