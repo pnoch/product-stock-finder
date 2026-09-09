@@ -35,6 +35,7 @@ import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
 import { getSyncSetup } from "../../../lib/sync";
+import { buildBackup } from "../../../lib/backup";
 import type { AppSettings, Product, DistributorListing } from "../../../lib/types";
 import { getDistributorById } from "@shared/distributors";
 import { getAllParserIds } from "../../../lib/scrapers/registry";
@@ -422,6 +423,44 @@ export function Settings() {
       setImportExportMessage("Import failed");
     }
   };
+
+  const handleExportBackup = useCallback(async () => {
+    try {
+      const [watchlist, alerts, reminders, stockWatches, settings] = await Promise.all([
+        storage.getWatchlist(),
+        storage.getAlerts(),
+        storage.getBackOrderReminders(),
+        storage.getStockWatches(),
+        storage.getSettings(),
+      ]);
+      const json = buildBackup({ watchlist, alerts, reminders, stockWatches, settings });
+      const fileName = `product-stock-finder-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      if (typeof window !== "undefined" && (window as unknown as { __TAURI__?: unknown }).__TAURI__) {
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const { writeFile } = await import("@tauri-apps/plugin-fs");
+        const filePath = await save({ defaultPath: fileName, filters: [{ name: "JSON", extensions: ["json"] }] });
+        if (!filePath) {
+          setImportExportMessage("Export cancelled");
+          return;
+        }
+        await writeFile(filePath, new TextEncoder().encode(json));
+        setImportExportMessage(`Exported to ${filePath}`);
+      } else {
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setImportExportMessage("Backup downloaded");
+      }
+    } catch (e) {
+      setImportExportMessage(e instanceof Error ? e.message : "Backup export failed");
+    }
+  }, []);
 
   const handleClearAllData = async () => {
     await storage.clearAllData();
@@ -1079,6 +1118,13 @@ export function Settings() {
             aria-label="Import watchlist"
           >
             <Upload className="w-4 h-4" /> Import Watchlist
+          </button>
+          <button
+            onClick={handleExportBackup}
+            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+            aria-label="Export full backup"
+          >
+            <Download className="w-4 h-4" /> Export full backup
           </button>
         </div>
         {importExportMessage && (
