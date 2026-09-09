@@ -1038,6 +1038,25 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 144: Correctness follow-ups (retry, digest, visibility, FX)
+
+- [x] Retry handlers capture storage errors explicitly (hooks rethrow via try/finally)
+- [x] Digest off-branch saves fresh baseline; non-empty error banner; `hasLoadedOnce` probe gate; FX labels match card precision
+- [x] Pushed as `b5a4dd9`
+
+## Phase 145: Desktop navigation + dead-ends
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-navigation-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-navigation.md`)
+- [x] Actionable restock rows (product links, error handling, CTA) + sidebar entries (`80689aa`)
+- [x] Rates copy fix; out-of-stock best-price links out, loading spinner preserved (`ac026ca`)
+- [x] Guards (`tests/desktop-navigation.test.ts`); E2E: `tsc 0`, lint 0 errors, `193 passed` files / `1474 passed` tests, desktop build green
+
+## Phase 146: Desktop product intelligence
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-product-intel-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-product-intel.md`)
+- [x] Vs-average card with exact mobile copy (`f758fdc`); per-row history links + refresh with recency (`1b7f3a5`)
+- [x] Guards (`tests/desktop-product-intel.test.ts`); E2E: `tsc 0`, lint 0 errors, `194 passed` files / `1476 passed` tests, desktop build green
+
 ## Phase 142: Correctness bundle (digest gate, error states, labels)
 
 - [x] Digest respects frequency (off → placeholder, no self-erase)
