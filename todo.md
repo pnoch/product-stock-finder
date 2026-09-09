@@ -1038,6 +1038,12 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 154: Desktop email/password auth
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-email-auth-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-email-auth.md`)
+- [x] REST functions with session store + notify (`6892d3c`); sign-in/sign-up UI (`486d976`); change-password UI (`015e786`)
+- [x] Guards (`tests/desktop-email-auth.test.ts`); E2E: `tsc 0`, lint 0 errors, `200 passed` files / `1493 passed` tests, desktop build green
+
 ## Phase 153: Desktop notification settings parity
 
 - [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-notif-settings-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-notif-settings.md`)
