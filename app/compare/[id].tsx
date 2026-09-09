@@ -63,8 +63,14 @@ function hashId(id: string): number {
 
 // ─── Compare Screen ───────────────────────────────────────────────────────────
 export default function CompareScreen() {
-  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const { id: rawId, distributor: rawDistributor } = useLocalSearchParams<{
+    id: string;
+    distributor?: string | string[];
+  }>();
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
+  const distributorParam = Array.isArray(rawDistributor)
+    ? rawDistributor[0]
+    : rawDistributor;
   const router = useRouter();
   const { showToast } = useToast();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -113,6 +119,17 @@ export default function CompareScreen() {
     // on selection changes would reseed after the user deselects all.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, listings, id, displayCurrency]);
+
+  const lastAppliedDistributor = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!loaded || !id) return;
+    if (distributorParam === lastAppliedDistributor.current) return;
+    lastAppliedDistributor.current = distributorParam;
+    if (!distributorParam) return;
+    if (listings.some((l) => l.distributorId === distributorParam)) {
+      setSelected(new Set([distributorParam]));
+    }
+  }, [distributorParam, loaded, listings, id]);
 
   const toggleSelect = useCallback((distributorId: string) => {
     if (Platform.OS !== "web")

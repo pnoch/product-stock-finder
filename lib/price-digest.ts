@@ -85,9 +85,10 @@ function productState(
 export function buildDigestSnapshot(
   products: Product[],
   displayCurrency: string,
+  now: string = new Date().toISOString(),
 ): DigestSnapshot {
   return {
-    lastDigestAt: new Date().toISOString(),
+    lastDigestAt: now,
     displayCurrency,
     products: products.map((p) => productState(p, displayCurrency)),
   };
@@ -319,11 +320,7 @@ export async function maybeSendDigest(
     await send(title, body);
 
     const displayCurrency = settings.displayCurrency;
-    return {
-      lastDigestAt: now,
-      displayCurrency,
-      products: watchlist.map((p) => productState(p, displayCurrency)),
-    };
+    return buildDigestSnapshot(watchlist, displayCurrency, now);
   } catch {
     return null;
   }
