@@ -23,6 +23,8 @@ import { buildWatchlistShareText } from "../../../lib/watchlist-share";
 
 const CHART_COLORS = ["#0F52BA", "#00C896", "#F59E0B", "#EF4444", "#8B5CF6"];
 
+const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
+
 function StatSkeleton() {
   return (
     <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 animate-pulse">
@@ -113,8 +115,8 @@ export function Stats() {
         const offSnapshot: DigestSnapshot = buildDigestSnapshot(list, currency);
         try {
           await storage.savePriceDigestSnapshot(offSnapshot);
-        } catch {
-          // best-effort — digest display already computed
+        } catch (e) {
+          LOG_ERROR("[Stats] digest snapshot save failed", e);
         }
         return;
       }
@@ -122,8 +124,8 @@ export function Stats() {
       const nextSnapshot: DigestSnapshot = buildDigestSnapshot(list, currency);
       try {
         await storage.savePriceDigestSnapshot(nextSnapshot);
-      } catch {
-        // best-effort — digest display already computed
+      } catch (e) {
+        LOG_ERROR("[Stats] digest snapshot save failed", e);
       }
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Couldn't load statistics");
