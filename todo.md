@@ -1038,6 +1038,18 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 155: Desktop auth hardening follow-ups
+
+- [x] Shared `authedFetch` (base guard); `resetPassword`/`deleteAccount`/`resendVerification` wrappers; aligned `mapUser`
+- [x] OAuth gate on change-password; centralized validation, red errors, success toasts
+- [x] Behavioral tests (`desktop/tests/auth-functions.test.ts`, 8 tests); E2E: root + desktop `tsc 0`, root suite green
+
+## Phase 156: Desktop list awareness
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-list-awareness-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-list-awareness.md`)
+- [x] Offline queued-edits banner in both empty and main paths; insight badges in name cells; tab counts matching contents (`17c1abd`, `7603358`, `6254eff`)
+- [x] Guards (`tests/desktop-list-awareness.test.ts`); E2E: `tsc 0`, lint 0 errors, `201 passed` files / `1495 passed` tests, desktop build green
+
 ## Phase 154: Desktop email/password auth
 
 - [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-email-auth-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-email-auth.md`)
