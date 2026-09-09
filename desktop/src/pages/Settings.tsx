@@ -30,7 +30,7 @@ import {
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useConnection } from "../hooks/use-connection";
 import { ConnectionBadge } from "../components/ConnectionBadge";
-import { useAuth, buildLoginUrl, getSessionToken, signInWithEmail, signUpWithEmail } from "../hooks/use-auth";
+import { useAuth, buildLoginUrl, getSessionToken, signInWithEmail, signUpWithEmail, changePassword } from "../hooks/use-auth";
 import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
@@ -275,6 +275,40 @@ export function Settings() {
   const [shareError, setShareError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
   const trpcClient = trpc as any;
+
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [changeError, setChangeError] = useState<string | null>(null);
+  const [changing, setChanging] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (!currentPw || !newPw || !confirmPw) {
+      setChangeError("Please fill in all password fields");
+      return;
+    }
+    if (newPw !== confirmPw) {
+      setChangeError("New passwords do not match");
+      return;
+    }
+    if (newPw.length < 6) {
+      setChangeError("Password must be at least 6 characters");
+      return;
+    }
+    setChanging(true);
+    setChangeError(null);
+    try {
+      await changePassword(currentPw, newPw);
+      setCurrentPw("");
+      setNewPw("");
+      setConfirmPw("");
+      showToast("Password changed");
+    } catch (e) {
+      setChangeError(e instanceof Error ? e.message : "Change password failed");
+    } finally {
+      setChanging(false);
+    }
+  };
 
   // Scraper Status — desktop port of mobile ScraperStatusSection
   const [products, setProducts] = useState<Product[]>([]);
@@ -641,31 +675,70 @@ export function Settings() {
           <h2 className="text-lg font-semibold">Account</h2>
         </div>
         {isAuthenticated && user ? (
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium">{user.name ?? "Signed in"}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {user.email ?? user.openId}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">{syncStatus}</p>
-              {syncMessage && (<p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{syncMessage}</p>)}
+          <div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium">{user.name ?? "Signed in"}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {user.email ?? user.openId}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">{syncStatus}</p>
+                {syncMessage && (<p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{syncMessage}</p>)}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSyncNow}
+                  disabled={syncing}
+                  className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium disabled:opacity-50"
+                  aria-label="Sync now"
+                >
+                  {syncing ? "Syncing" : "Sync now"}
+                </button>
+                <button
+                  onClick={logout}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                  aria-label="Sign out"
+                >
+                  Sign out
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="mt-3 space-y-2">
+              <input
+                type="password"
+                value={currentPw}
+                onChange={(e) => setCurrentPw(e.target.value)}
+                placeholder="Current password"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+                aria-label="Current password"
+              />
+              <input
+                type="password"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                placeholder="New password"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+                aria-label="New password"
+              />
+              <input
+                type="password"
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+                placeholder="Confirm new password"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+                aria-label="Confirm new password"
+              />
               <button
-                onClick={handleSyncNow}
-                disabled={syncing}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium disabled:opacity-50"
-                aria-label="Sync now"
+                onClick={handleChangePassword}
+                disabled={changing}
+                className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 shrink-0"
+                aria-label="Change password"
               >
-                {syncing ? "Syncing" : "Sync now"}
+                {changing ? "Changing" : "Change password"}
               </button>
-              <button
-                onClick={logout}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                aria-label="Sign out"
-              >
-                Sign out
-              </button>
+              {changeError && (
+                <p role="alert" className="text-sm text-gray-600 dark:text-gray-400">{changeError}</p>
+              )}
             </div>
           </div>
         ) : (
