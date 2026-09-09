@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { getAppId, getOAuthPortalUrl } from "../lib/api-base";
+import { getApiBaseUrl, getAppId, getOAuthPortalUrl } from "../lib/api-base";
 
 const SESSION_TOKEN_KEY = "desktop_session_token";
 const USER_INFO_KEY = "desktop_user_info";
@@ -66,6 +66,74 @@ export function subscribeAuth(listener: Listener): () => void {
   return () => {
     listeners.delete(listener);
   };
+}
+
+function mapUser(data: {
+  id: number;
+  openId: string | null;
+  name: string | null;
+  email: string | null;
+  loginMethod: string | null;
+  lastSignedIn: string;
+}): User {
+  return {
+    id: data.id,
+    openId: data.openId ?? "",
+    name: data.name,
+    email: data.email,
+    loginMethod: data.loginMethod ?? "email",
+    lastSignedIn: data.lastSignedIn,
+  };
+}
+
+export async function signInWithEmail(email: string, password: string): Promise<void> {
+  const res = await fetch(`${getApiBaseUrl()}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Login failed");
+  }
+  const data = await res.json();
+  if (data.sessionToken) setSessionToken(data.sessionToken);
+  if (data.user) setUserInfo(mapUser(data.user));
+  notify();
+}
+
+export async function signUpWithEmail(email: string, password: string, name?: string): Promise<void> {
+  const res = await fetch(`${getApiBaseUrl()}/api/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, name }),
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Registration failed");
+  }
+  const data = await res.json();
+  if (data.sessionToken) setSessionToken(data.sessionToken);
+  if (data.user) setUserInfo(mapUser(data.user));
+  notify();
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  const token = getSessionToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${getApiBaseUrl()}/api/auth/change-password`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ currentPassword, newPassword }),
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Change password failed");
+  }
 }
 
 export function useAuth() {
