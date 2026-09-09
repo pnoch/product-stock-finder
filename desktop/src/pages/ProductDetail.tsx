@@ -8,6 +8,7 @@ import {
   Star,
   BarChart3,
   Loader2,
+  RefreshCw,
   Eye,
   EyeOff,
   Share2,
@@ -127,6 +128,7 @@ export function ProductDetail() {
   const [inlineReminderError, setInlineReminderError] = useState<string | null>(null);
   const { isDark } = useTheme();
   const loadIdRef = useRef(0);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null);
 
   const loadProduct = useCallback(async () => {
     if (!id) return;
@@ -140,6 +142,7 @@ export function ProductDetail() {
       if (loadIdRef.current !== myId) return;
       const found = products.find((p) => p.id === id);
       if (loadIdRef.current === myId) setProduct(found ?? null);
+      if (loadIdRef.current === myId && found) setLastRefreshedAt(Date.now());
       const settings = await storage.getSettings();
       if (loadIdRef.current !== myId) return;
       if (loadIdRef.current === myId) {
@@ -750,6 +753,19 @@ export function ProductDetail() {
         >
           <BarChart3 className="w-4 h-4" /> Compare
         </Link>
+        <button
+          onClick={() => void loadProduct()}
+          disabled={loading}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer disabled:opacity-50"
+          aria-label="Refresh product"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Refresh
+        </button>
+        {lastRefreshedAt ? (
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Updated {formatLastRefreshed(new Date(lastRefreshedAt).toISOString())}
+          </span>
+        ) : null}
       </div>
 
       {/* Price History Section */}
@@ -978,6 +994,14 @@ export function ProductDetail() {
                         >
                           <Bell className="w-3.5 h-3.5" />
                         </button>
+                        <Link
+                          to={`/compare/${product.id}`}
+                          className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          aria-label="View price history"
+                          title="View price history"
+                        >
+                          <BarChart3 className="w-3.5 h-3.5" />
+                        </Link>
                         <a
                           href={listing.url}
                           target="_blank"
