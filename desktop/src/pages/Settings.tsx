@@ -47,6 +47,10 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
+const QUIET_HOURS_OPTIONS = ["Off", "22:00–07:00", "23:00–07:00", "00:00–08:00"] as const;
+
 export function Settings() {
   const { settings, loading, update } = useSettings();
   const navigate = useNavigate();
@@ -977,6 +981,59 @@ export function Settings() {
               <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
             </span>
           </label>
+          <label className={`flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors ${settings.notificationsEnabled ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
+            <span>
+              <span className="block text-sm font-medium">Health Alerts</span>
+              <span className="block text-xs text-gray-500 dark:text-gray-400">Notify when a distributor is blocked or down</span>
+            </span>
+            <span className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.healthAlerts}
+                onChange={(e) => update({ healthAlerts: e.target.checked })}
+                disabled={!settings.notificationsEnabled}
+                className="sr-only peer"
+                aria-label="Enable health alerts"
+              />
+              <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
+            </span>
+          </label>
+        </div>
+        <div className="mt-4">
+          <p className="text-sm font-medium mb-2">Quiet Hours</p>
+          <div className="flex gap-2 flex-wrap">
+            {QUIET_HOURS_OPTIONS.map((option) => {
+              const current = !settings.quietHours
+                ? "Off"
+                : `${settings.quietHours.start}–${settings.quietHours.end}`;
+              return (
+                <button
+                  key={option}
+                  onClick={() => {
+                    if (option === "Off") {
+                      update({ quietHours: undefined });
+                    } else {
+                      const [start, end] = option.split("–");
+                      update({ quietHours: { start, end } });
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    current === option
+                      ? "bg-brand-600 text-white"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  }`}
+                  aria-label={option === "Off" ? "Disable quiet hours" : `Set quiet hours to ${option}`}
+                >
+                  {option}
+                </button>
+              );
+            })}
+          </div>
+          {settings.quietHours && (
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Health alerts and digests are muted during quiet hours.
+            </p>
+          )}
         </div>
         <div className="mt-4">
           <button
@@ -1172,6 +1229,24 @@ export function Settings() {
             </button>
           ))}
         </div>
+        {settings.digestFrequency === "weekly" && (
+          <div className="flex gap-2 mt-2">
+            {DAY_LABELS.map((day, index) => (
+              <button
+                key={day}
+                onClick={() => update({ digestDayOfWeek: index })}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  DAY_LABELS[settings.digestDayOfWeek ?? 0] === day
+                    ? "bg-brand-600 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                }`}
+                aria-label={`Set digest day to ${day}`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Import/Export Section */}
