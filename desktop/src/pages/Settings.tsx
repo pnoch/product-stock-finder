@@ -35,7 +35,7 @@ import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
 import { getSyncSetup } from "../../../lib/sync";
-import { buildBackup } from "../../../lib/backup";
+import { buildBackup, parseBackup, applyBackup } from "../../../lib/backup";
 import type { AppSettings, Product, DistributorListing } from "../../../lib/types";
 import { getDistributorById } from "@shared/distributors";
 import { getAllParserIds } from "../../../lib/scrapers/registry";
@@ -459,6 +459,79 @@ export function Settings() {
       }
     } catch (e) {
       setImportExportMessage(e instanceof Error ? e.message : "Backup export failed");
+    }
+  }, []);
+
+  const handleImportBackup = useCallback(async () => {
+    try {
+      let contents: string | null = null;
+      if (typeof window !== "undefined" && (window as unknown as { __TAURI__?: unknown }).__TAURI__) {
+        const { open } = await import("@tauri-apps/plugin-dialog");
+        const { readFile } = await import("@tauri-apps/plugin-fs");
+        const picked = await open({ filters: [{ name: "JSON", extensions: ["json"] }], multiple: false });
+        if (!picked) {
+          setImportExportMessage("Import cancelled");
+          return;
+        }
+        const bytes = await readFile(picked as string);
+        contents = new TextDecoder().decode(bytes);
+      } else {
+        contents = await new Promise<string | null>((resolve) => {
+          const input = document.createElement("input");
+          input.type = "file";
+          input.accept = "application/json,.json";
+          input.onchange = () => {
+            const file = input.files?.[0];
+            if (!file) {
+              resolve(null);
+              return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : null);
+            reader.onerror = () => resolve(null);
+            reader.readAsText(file);
+          };
+          input.click();
+        });
+        if (!contents) {
+          setImportExportMessage("Import cancelled");
+          return;
+        }
+      }
+      const backup = parseBackup(contents);
+      if (!backup) {
+        setImportExportMessage("That file is not a valid Product Stock Finder backup.");
+        return;
+      }
+      const [watchlist, alerts, reminders, stockWatches, settings] = await Promise.all([
+        storage.getWatchlist(),
+        storage.getAlerts(),
+        storage.getBackOrderReminders(),
+        storage.getStockWatches(),
+        storage.getSettings(),
+      ]);
+      const result = applyBackup(backup, { watchlist, alerts, reminders, stockWatches, settings });
+      const summary = [
+        `Watchlist: +${result.counts.watchlistAdded} new, ${result.counts.watchlistUpdated} updated`,
+        `Alerts: +${result.counts.alertsAdded} new, ${result.counts.alertsUpdated} updated`,
+        `Reminders: +${result.counts.remindersAdded} new, ${result.counts.remindersUpdated} updated`,
+        `Stock watches: +${result.counts.stockWatchesAdded} new, ${result.counts.stockWatchesUpdated} updated`,
+      ].join("\n");
+      if (!confirm(`Import Backup?\n\n${summary}`)) return;
+      await storage.saveWatchlist(result.watchlist);
+      await storage.saveAlerts(result.alerts);
+      await storage.saveBackOrderReminders(result.reminders);
+      await storage.saveStockWatches(result.stockWatches);
+      if (result.settingsApplied) await storage.saveSettings(result.settings);
+      const now = Date.now();
+      for (const idc of result.touchedIds.watchlist) await storage.setItemSyncMeta("watchlist", idc, now);
+      for (const idc of result.touchedIds.alerts) await storage.setItemSyncMeta("alerts", idc, now);
+      for (const idc of result.touchedIds.reminders) await storage.setItemSyncMeta("reminders", idc, now);
+      for (const idc of result.touchedIds.stockWatches) await storage.setItemSyncMeta("reminders", idc, now);
+      setImportExportMessage("Backup imported. Reloading…");
+      window.location.reload();
+    } catch (e) {
+      setImportExportMessage(e instanceof Error ? e.message : "Backup import failed");
     }
   }, []);
 
@@ -1125,6 +1198,13 @@ export function Settings() {
             aria-label="Export full backup"
           >
             <Download className="w-4 h-4" /> Export full backup
+          </button>
+          <button
+            onClick={handleImportBackup}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+            aria-label="Import backup"
+          >
+            <Upload className="w-4 h-4" /> Import backup
           </button>
         </div>
         {importExportMessage && (
