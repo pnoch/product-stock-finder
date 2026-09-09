@@ -123,6 +123,17 @@ async function fetchServerPricesForWatchlist(
 
 
 
+function OfflineBanner({ queuedCount, isOffline }: { queuedCount: number; isOffline: boolean }) {
+  if (!isOffline || queuedCount <= 0) return null;
+  return (
+    <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm font-semibold" role="alert">
+      Offline — {queuedCount} edit{queuedCount === 1 ? "" : "s"} queued. Will sync when back online.
+    </div>
+  );
+}
+
+
+
 export function Watchlist() {
   const { products, loading, refresh } = useWatchlist();
   const [listError, setListError] = useState<string | null>(null);
@@ -522,11 +533,7 @@ export function Watchlist() {
   if (products.length === 0) {
     return (
       <div className="p-6 space-y-4">
-      {connection.status === "offline" && queuedCount > 0 && (
-        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm font-semibold" role="alert">
-          Offline — {queuedCount} edit{queuedCount === 1 ? "" : "s"} queued. Will sync when back online.
-        </div>
-      )}
+      <OfflineBanner queuedCount={queuedCount} isOffline={connection.status === "offline"} />
       {listError && (
           <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
             <span className="flex-1">Couldn't load watchlist: {listError}</span>
@@ -871,6 +878,8 @@ export function Watchlist() {
           </div>
         </div>
       </div>
+
+      <OfflineBanner queuedCount={queuedCount} isOffline={connection.status === "offline"} />
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
         <div className="flex items-baseline justify-between">
