@@ -124,9 +124,9 @@ export default function CompareScreen() {
   useEffect(() => {
     if (!loaded || !id) return;
     if (distributorParam === lastAppliedDistributor.current) return;
-    lastAppliedDistributor.current = distributorParam;
     if (!distributorParam) return;
     if (listings.some((l) => l.distributorId === distributorParam)) {
+      lastAppliedDistributor.current = distributorParam;
       setSelected(new Set([distributorParam]));
     }
   }, [distributorParam, loaded, listings, id]);
