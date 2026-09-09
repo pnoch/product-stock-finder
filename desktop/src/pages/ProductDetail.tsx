@@ -26,6 +26,7 @@ import {
   CURRENCY_SYMBOLS,
 } from "@shared/currency";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
+import { computePriceVsAverage } from "../../../lib/price-average";
 import { DISTRIBUTORS } from "@shared/distributors";
 import {
   getAllRegions,
@@ -223,6 +224,11 @@ export function ProductDetail() {
   const bestDeal = useMemo(
     () => findBestDeal(visibleListings, shippingRegion, displayCurrency),
     [visibleListings, shippingRegion, displayCurrency],
+  );
+
+  const priceVsAvg = useMemo(
+    () => (product ? computePriceVsAverage(product.listings ?? [], displayCurrency) : null),
+    [product, displayCurrency],
   );
 
   const [alertError, setAlertError] = useState<string | null>(null);
@@ -650,6 +656,39 @@ export function ProductDetail() {
               Buy Now <ExternalLink className="w-3.5 h-3.5" />
             </a>
           )}
+        </div>
+      )}
+
+      {priceVsAvg && (
+        <div
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 flex items-center gap-4"
+          aria-label={`${priceVsAvg.verdict === "below" ? "▼" : priceVsAvg.verdict === "above" ? "▲" : "—"} ${priceVsAvg.percentVsAvg > 0 ? "+" : ""}${priceVsAvg.percentVsAvg.toFixed(1)}% versus 30-day average — ${priceVsAvg.verdict === "below" ? "Below average — good time to buy" : priceVsAvg.verdict === "above" ? "Above average" : "Around its average"}`}
+        >
+          <span
+            className={`text-2xl font-bold shrink-0 min-w-[84px] ${
+              priceVsAvg.verdict === "below"
+                ? "text-emerald-600 dark:text-emerald-400"
+                : priceVsAvg.verdict === "above"
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-gray-500 dark:text-gray-400"
+            }`}
+          >
+            {priceVsAvg.verdict === "below" ? "▼" : priceVsAvg.verdict === "above" ? "▲" : "—"}{" "}
+            {priceVsAvg.percentVsAvg > 0 ? "+" : ""}
+            {priceVsAvg.percentVsAvg.toFixed(1)}%
+          </span>
+          <div className="flex-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              vs 30-day average · avg {formatPrice(priceVsAvg.average, displayCurrency)}
+            </p>
+            <p className="text-sm text-gray-900 dark:text-gray-100 mt-0.5">
+              {priceVsAvg.verdict === "below"
+                ? "Below average — good time to buy"
+                : priceVsAvg.verdict === "above"
+                  ? "Above average"
+                  : "Around its average"}
+            </p>
+          </div>
         </div>
       )}
 
