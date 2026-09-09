@@ -82,6 +82,17 @@ function productState(
   };
 }
 
+export function buildDigestSnapshot(
+  products: Product[],
+  displayCurrency: string,
+): DigestSnapshot {
+  return {
+    lastDigestAt: new Date().toISOString(),
+    displayCurrency,
+    products: products.map((p) => productState(p, displayCurrency)),
+  };
+}
+
 function buildSummary(products: DigestProductState[]): DigestSummary {
   return products.reduce(
     (acc, p) => {

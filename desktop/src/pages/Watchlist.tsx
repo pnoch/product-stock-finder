@@ -164,7 +164,6 @@ export function Watchlist() {
       setListError(null);
       return;
     }
-    if (!hasLoadedOnce.current) return;
     let cancelled = false;
     storage
       .getWatchlist()

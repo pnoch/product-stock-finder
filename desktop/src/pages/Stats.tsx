@@ -8,7 +8,7 @@ import { EmptyState } from "../components/EmptyState";
 import { MultiLineChart } from "../components/MultiLineChart";
 import { formatPrice, convertPrice, CURRENCY_SYMBOLS } from "@shared/currency";
 import { DISTRIBUTORS } from "@shared/distributors";
-import type { Product, StockStatus } from "../../../lib/types";
+import type { Product } from "../../../lib/types";
 import {
   computeBasketValue,
   computeDataFreshness,
@@ -16,9 +16,8 @@ import {
   computeStockHealth,
   type MoversWindow,
 } from "../../../lib/watchlist-stats";
-import { computeDigest, type DigestResult, type DigestSnapshot } from "../../../lib/price-digest";
+import { computeDigest, buildDigestSnapshot, type DigestResult, type DigestSnapshot } from "../../../lib/price-digest";
 import { computeDropCalendar, dateKey } from "../../../lib/drop-calendar";
-import { getBestPrice } from "../../../lib/currency";
 import { computeProductInsights } from "../../../lib/product-insights";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
 
@@ -111,33 +110,7 @@ export function Stats() {
       setBasketThreshold(settings?.basketAlertThreshold ?? null);
       if (frequency === "off") {
         setDigest(null);
-        const offSnapshot: DigestSnapshot = {
-          lastDigestAt: new Date().toISOString(),
-          displayCurrency: currency,
-          products: list.map((p) => {
-            const best = getBestPrice(p.listings, currency);
-            const inStock = p.listings.some(
-              (l) => l.stockStatus === "in_stock" && l.price > 0,
-            );
-            const backOrder = p.listings.some(
-              (l) => l.stockStatus === "back_order",
-            );
-            const stockStatus: StockStatus = inStock
-              ? "in_stock"
-              : backOrder
-                ? "back_order"
-                : p.listings.length === 0 ||
-                    p.listings.some((l) => l.stockStatus === "unknown")
-                  ? "unknown"
-                  : "out_of_stock";
-            return {
-              productId: p.id,
-              name: p.name,
-              bestPrice: best?.price ?? null,
-              stockStatus,
-            };
-          }),
-        };
+        const offSnapshot: DigestSnapshot = buildDigestSnapshot(list, currency);
         try {
           await storage.savePriceDigestSnapshot(offSnapshot);
         } catch {
@@ -146,33 +119,7 @@ export function Stats() {
         return;
       }
       setDigest(computeDigest(snapshot, list, settings, alerts));
-      const nextSnapshot: DigestSnapshot = {
-        lastDigestAt: new Date().toISOString(),
-        displayCurrency: currency,
-        products: list.map((p) => {
-          const best = getBestPrice(p.listings, currency);
-          const inStock = p.listings.some(
-            (l) => l.stockStatus === "in_stock" && l.price > 0,
-          );
-          const backOrder = p.listings.some(
-            (l) => l.stockStatus === "back_order",
-          );
-          const stockStatus: StockStatus = inStock
-            ? "in_stock"
-            : backOrder
-              ? "back_order"
-              : p.listings.length === 0 ||
-                  p.listings.some((l) => l.stockStatus === "unknown")
-                ? "unknown"
-                : "out_of_stock";
-          return {
-            productId: p.id,
-            name: p.name,
-            bestPrice: best?.price ?? null,
-            stockStatus,
-          };
-        }),
-      };
+      const nextSnapshot: DigestSnapshot = buildDigestSnapshot(list, currency);
       try {
         await storage.savePriceDigestSnapshot(nextSnapshot);
       } catch {
