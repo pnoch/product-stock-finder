@@ -1038,6 +1038,12 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 153: Desktop notification settings parity
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-notif-settings-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-notif-settings.md`)
+- [x] Health Alerts toggle (master-gated); digest-day segmented (weekly only); quiet hours with helper (`3aa5d68`)
+- [x] Guards (`tests/desktop-notif-settings.test.ts`); E2E: `tsc 0`, lint 0 errors, `199 passed` files / `1491 passed` tests, desktop build green
+
 ## Phase 150: Correctness follow-ups 4
 
 - [x] Shared `fetchListingsWithTimeout` (`desktop/src/lib/server-prices.ts`); real behavioral tests (order, isolation, timeout, empty)
