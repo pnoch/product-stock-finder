@@ -261,7 +261,7 @@ export function Alerts() {
           aria-label="Show price alerts"
         >
           <Bell className="w-4 h-4 inline-block mr-1.5" />
-          Alerts
+          Alerts ({alerts.length})
         </button>
         <button
           onClick={() => setTab("reminders")}
@@ -273,7 +273,7 @@ export function Alerts() {
           aria-label="Show reminders and stock watches"
         >
           <Clock className="w-4 h-4 inline-block mr-1.5" />
-          Reminders
+          Reminders ({reminders.length + watches.length})
         </button>
         <button
           onClick={() => setTab("notifications")}
