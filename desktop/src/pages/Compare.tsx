@@ -6,6 +6,7 @@ import { formatPrice, CURRENCY_SYMBOLS } from "@shared/currency";
 import { convertPrice } from "@/lib/currency";
 import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
 import type { Product, PriceAlert } from "../../../lib/types";
+import { buildShareText } from "../../../lib/price-share";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
@@ -13,6 +14,7 @@ import { TimeRangeChips } from "../components/TimeRangeChips";
 import { filterByRange, type TimeRange } from "@shared/compare-utils";
 import {
   GitCompareArrows,
+  Share2,
   TrendingDown,
   TrendingUp,
   Minus,
@@ -394,6 +396,27 @@ export function Compare() {
     showToast(`Alert set below ${formatPrice(alertTarget, displayCurrency)}`);
   }, [id, product, alertTarget, displayCurrency]);
 
+  const handleShareCompare = useCallback(async () => {
+    if (!product) return;
+    const message = `${buildShareText({ product, listings: sortedListings, displayCurrency, limit: 5 })}\n\n${window.location.origin}/#/compare/${product.id}`;
+    try {
+      await navigator.clipboard.writeText(message);
+      showToast("Copied to clipboard");
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = message;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        showToast("Copied to clipboard");
+      } catch {
+        showToast("Couldn't copy share text");
+      }
+      document.body.removeChild(ta);
+    }
+  }, [product, sortedListings, displayCurrency]);
+
   const getTrend = (priceHistory: { price: number; date: string }[]) => {
     if (priceHistory.length < 2) return "flat";
     const recent = priceHistory[priceHistory.length - 1].price;
@@ -442,7 +465,16 @@ export function Compare() {
             {product.brand} · {product.modelNumber}
           </p>
         </div>
-        <TimeRangeChips selected={timeRange} onSelect={setTimeRange} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void handleShareCompare()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+            aria-label="Share comparison"
+          >
+            <Share2 className="w-4 h-4" /> Share
+          </button>
+          <TimeRangeChips selected={timeRange} onSelect={setTimeRange} />
+        </div>
       </div>
 
       {cheapest && (
