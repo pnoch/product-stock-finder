@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
 import { formatPrice, CURRENCY_SYMBOLS } from "@shared/currency";
@@ -226,7 +226,11 @@ export function Compare() {
   const [timeRange, setTimeRange] = useState("all");
   const [sortBy, setSortBy] = useState<"name" | "price">("name");
   const [displayCurrency, setDisplayCurrency] = useState("USD");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [searchParams] = useSearchParams();
+  const [selected, setSelected] = useState<Set<string>>(() => {
+    const d = searchParams.get("distributor");
+    return new Set(d ? [d] : []);
+  });
   const [loadError, setLoadError] = useState<string | null>(null);
   const selectionInitialized = useRef<string | null>(null);
   const { toast, showToast } = useToast();
@@ -256,6 +260,11 @@ export function Compare() {
   useEffect(() => {
     if (!product || selectionInitialized.current === product.id) return;
     selectionInitialized.current = product.id;
+    const d = searchParams.get("distributor");
+    if (d && product.listings.some((l) => l.distributorId === d)) {
+      setSelected(new Set([d]));
+      return;
+    }
     const withHistory = product.listings
       .filter((l) => l.priceHistory && l.priceHistory.length >= 2)
       .sort((a, b) => {
@@ -264,7 +273,7 @@ export function Compare() {
         return aConv - bConv;
       });
     setSelected(new Set(withHistory.slice(0, 3).map((l) => l.distributorId)));
-  }, [product, displayCurrency]);
+  }, [product, displayCurrency, searchParams]);
 
   const toggleSelect = useCallback((distributorId: string) => {
     setSelected((prev) => {
