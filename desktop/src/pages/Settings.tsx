@@ -30,7 +30,7 @@ import {
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useConnection } from "../hooks/use-connection";
 import { ConnectionBadge } from "../components/ConnectionBadge";
-import { useAuth, buildLoginUrl, getSessionToken } from "../hooks/use-auth";
+import { useAuth, buildLoginUrl, getSessionToken, signInWithEmail, signUpWithEmail } from "../hooks/use-auth";
 import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
@@ -119,6 +119,36 @@ export function Settings() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotMessage, setForgotMessage] = useState<string | null>(null);
   const [forgotSending, setForgotSending] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authName, setAuthName] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authBusy, setAuthBusy] = useState(false);
+
+  const handleEmailAuth = async () => {
+    if (!authEmail.includes("@") || !authPassword) {
+      setAuthError("Please enter a valid email and password");
+      return;
+    }
+    if (authMode === "register" && authPassword.length < 6) {
+      setAuthError("Password must be at least 6 characters");
+      return;
+    }
+    setAuthBusy(true);
+    setAuthError(null);
+    try {
+      if (authMode === "login") await signInWithEmail(authEmail.trim(), authPassword);
+      else await signUpWithEmail(authEmail.trim(), authPassword, authName.trim() || undefined);
+      setAuthEmail("");
+      setAuthPassword("");
+      setAuthName("");
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : "Authentication failed");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
 
   const handleForgotPassword = useCallback(async () => {
     const email = forgotEmail.trim();
@@ -654,6 +684,67 @@ export function Settings() {
               >
                 Sign in
               </button>
+            </div>
+            <div className="mt-3 space-y-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setAuthMode("login")}
+                  className={`px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium shrink-0 ${authMode === "login" ? "bg-gray-100 dark:bg-gray-800" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+                  aria-label="Sign in tab"
+                  aria-pressed={authMode === "login"}
+                >
+                  Sign in
+                </button>
+                <button
+                  onClick={() => setAuthMode("register")}
+                  className={`px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium shrink-0 ${authMode === "register" ? "bg-gray-100 dark:bg-gray-800" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+                  aria-label="Create account tab"
+                  aria-pressed={authMode === "register"}
+                >
+                  Create account
+                </button>
+              </div>
+              <div className="space-y-2">
+                {authMode === "register" && (
+                  <input
+                    type="text"
+                    value={authName}
+                    onChange={(e) => setAuthName(e.target.value)}
+                    placeholder="Name (optional)"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+                    aria-label="Name"
+                  />
+                )}
+                <input
+                  type="email"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  placeholder="Email"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+                  aria-label="Email"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    placeholder="Password"
+                    className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+                    aria-label="Password"
+                  />
+                  <button
+                    onClick={handleEmailAuth}
+                    disabled={authBusy}
+                    className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 shrink-0"
+                    aria-label="Submit email authentication"
+                  >
+                    {authBusy ? "Working" : authMode === "login" ? "Sign in with email" : "Sign up with email"}
+                  </button>
+                </div>
+                {authError && (
+                  <p role="alert" className="text-sm text-gray-600 dark:text-gray-400">{authError}</p>
+                )}
+              </div>
             </div>
             <div className="mt-3 space-y-2">
               <div className="flex gap-2">
