@@ -24,7 +24,7 @@ import { SharedWatchlist } from "./pages/SharedWatchlist";
 import { ResetPassword } from "./pages/ResetPassword";
 import { exportWatchlistAsJson } from "./import-export";
 import { useTheme } from "./hooks/use-theme";
-import { onPricesChecked } from "./background";
+import { onPricesChecked, onPriceDropsTriggered } from "./background";
 import { maybeSendDigest } from "../../lib/price-digest";
 import { useAuth } from "./hooks/use-auth";
 import { trpc, createTRPCClient } from "./lib/trpc";
@@ -251,6 +251,31 @@ export default function App() {
         if (nextDigest) await storage.savePriceDigestSnapshot(nextDigest);
       } catch {
         // digest failures are non-fatal
+      }
+    }).catch(() => () => {});
+    return () => {
+      unlistenPromise.then((fn) => fn());
+    };
+  }, []);
+
+  // Record Rust "price-drops-triggered" events to notification history.
+  useEffect(() => {
+    const unlistenPromise = onPriceDropsTriggered(async (events) => {
+      for (const e of events ?? []) {
+        try {
+          await storage.recordNotificationEvent({
+            id: `price-drop-${e.productId}-${Date.now()}`,
+            type: "price_drop",
+            title: "Price Drop Alert!",
+            body: `${e.productName} is now ${e.bestPrice} ${e.currency} (target ${e.targetPrice} ${e.currency})`,
+            productId: e.productId,
+            triggeredPrice: e.bestPrice,
+            currency: e.currency,
+            createdAt: Date.now(),
+          });
+        } catch {
+          // recording never breaks the check
+        }
       }
     }).catch(() => () => {});
     return () => {

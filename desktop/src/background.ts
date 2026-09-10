@@ -51,3 +51,13 @@ export function onPricesChecked(
     callback(event.payload as any);
   });
 }
+
+// Emitted by Rust after check_price_drops (desktop/src-tauri/src/lib.rs);
+// App.tsx records each trigger via storage.recordNotificationEvent.
+export function onPriceDropsTriggered(
+  callback: (events: Array<{ productId: string; productName: string; bestPrice: number; currency: string; targetPrice: number }>) => void,
+): Promise<UnlistenFn> {
+  return listen("price-drops-triggered", (event) => {
+    callback(event.payload as any);
+  });
+}

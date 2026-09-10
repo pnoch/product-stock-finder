@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router";
+import { storage } from "../storage";
 import {
   LayoutDashboard,
   List,
@@ -27,6 +29,25 @@ const navItems = [
 ];
 
 export function Sidebar() {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const history = await storage.getNotificationHistory();
+        setUnreadCount(history.filter((e) => !e.read).length);
+      } catch {
+        // best-effort — badge stays hidden
+      }
+    };
+    void load();
+    const onFocus = () => {
+      void load();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
   return (
     <aside className="flex flex-col w-16 lg:w-56 h-screen bg-surface-light dark:bg-surface-dark border-r border-gray-200 dark:border-gray-700 shadow-sm shrink-0">
       <div className="flex items-center gap-2 px-4 h-16 shrink-0 border-b border-gray-200 dark:border-gray-700">
@@ -51,6 +72,11 @@ export function Sidebar() {
             >
               <Icon className="w-5 h-5 shrink-0" />
               <span className="hidden lg:block truncate">{label}</span>
+              {to === "/alerts" && unreadCount > 0 && (
+                <span className="absolute right-1.5 lg:static lg:ml-auto flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-brand-600 text-white text-[11px] font-semibold">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </NavLink>
             <span className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap rounded-md bg-gray-900 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 delay-500 lg:hidden z-50">
               {label}
