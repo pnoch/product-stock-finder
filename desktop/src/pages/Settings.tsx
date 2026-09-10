@@ -1612,21 +1612,6 @@ export function Settings() {
           )}
           <div className="flex items-center justify-between py-2.5">
             <div>
-              <p className="text-sm font-medium">Rate the App</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Love the app? Leave a review
-              </p>
-            </div>
-            <button
-              onClick={() => window.open("https://play.google.com/store/apps/details?id=com.app.stock_tracker_pro", "_blank", "noopener")}
-              className="ml-2 shrink-0 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
-              aria-label="Rate the app"
-            >
-              Rate
-            </button>
-          </div>
-          <div className="flex items-center justify-between py-2.5">
-            <div>
               <p className="text-sm font-medium">Contact Support</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Get help with the app

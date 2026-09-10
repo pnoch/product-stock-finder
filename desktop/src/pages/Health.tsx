@@ -81,11 +81,13 @@ export function Health() {
   const [filter, setFilter] = useState<Filter>("all");
   const [testing, setTesting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [healthError, setHealthError] = useState<string | null>(null);
   const [stats, setStats] = useState<Record<string, HealthStats>>({});
 
   const runTest = useCallback(async () => {
     setTesting(true);
     setProgress(0);
+    setHealthError(null);
     let unlisten: (() => void) | null = null;
     try {
       try {
@@ -115,6 +117,7 @@ export function Health() {
       }
     } catch (error) {
       console.error("Health check failed:", error);
+      setHealthError(error instanceof Error ? error.message : "Health check failed");
     } finally {
       if (unlisten) unlisten();
       setTesting(false);
@@ -165,6 +168,19 @@ export function Health() {
         </button>
         <h1 className="text-2xl font-bold">Distributor Health</h1>
       </div>
+
+      {healthError && (
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 mb-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
+          <span className="flex-1">{healthError}</span>
+          <button
+            onClick={() => void runTest()}
+            className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
+            aria-label="Retry health check"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4 flex items-center justify-between">
         <div>

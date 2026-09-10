@@ -79,7 +79,7 @@ export function RestockWatches() {
       ) : watches.length === 0 ? (
         <div className="text-center mt-10">
           <p className="text-center text-gray-500 dark:text-gray-400">
-            No restock watches. Open a product and tap &quot;Watch for
+            No restock watches. Open a product and click &quot;Watch for
             Restock&quot; to add one.
           </p>
           <Link
