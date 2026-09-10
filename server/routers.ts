@@ -44,6 +44,7 @@ function getOrigin(req?: { headers: Record<string, unknown> }): string {
 let lastTombstonePurgeAt = 0;
 const TOMBSTONE_PURGE_INTERVAL_MS = 60 * 60 * 1000;
 import { getPrice } from "./prices";
+import { checkAllDistributors } from "./health";
 import { getFxRates } from "./fx";
 import { mergeHistory } from "./price-history";
 import { checkRateLimit } from "./rate-limit";
@@ -205,6 +206,13 @@ export const appRouter = router({
         );
         return { accepted: input.points.length } as const;
       }),
+  }),
+
+  health: router({
+    check: publicProcedure.query(async ({ ctx }) => {
+      checkRateLimit(ctx, "health.check", 5, 60_000);
+      return checkAllDistributors();
+    }),
   }),
 
   fx: router({
