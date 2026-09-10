@@ -22,6 +22,7 @@ import {
 import { getTagById } from "@/lib/tags";
 import { productStatus } from "@/lib/watchlist-org";
 import type { DealScore } from "@/lib/deal-score";
+import { dealBandLabel } from "@/lib/deal-score";
 
 export const ProductCard = memo(function ProductCard({
   product,
@@ -466,7 +467,7 @@ export const ProductCard = memo(function ProductCard({
                   fontWeight: "700",
                 }}
               >
-                🔥 Hot deal
+                🔥 {dealBandLabel(dealScore.band)}
               </Text>
             </View>
           )}

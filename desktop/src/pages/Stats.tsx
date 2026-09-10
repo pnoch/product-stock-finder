@@ -19,7 +19,7 @@ import {
 import { computeDigest, buildDigestSnapshot, type DigestResult, type DigestSnapshot } from "../../../lib/price-digest";
 import { computeDropCalendar, dateKey } from "../../../lib/drop-calendar";
 import { computeProductInsights } from "../../../lib/product-insights";
-import { rankDeals } from "../../../lib/deal-score";
+import { rankDeals, dealBandLabel } from "../../../lib/deal-score";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
 
 const CHART_COLORS = ["#0F52BA", "#00C896", "#F59E0B", "#EF4444", "#8B5CF6"];
@@ -167,7 +167,7 @@ export function Stats() {
     [products, displayCurrency],
   );
   const topDeals = useMemo(
-    () => rankDeals(products ?? [], displayCurrency).filter((d) => d.band !== "wait"),
+    () => rankDeals(products ?? [], displayCurrency),
     [products, displayCurrency],
   );
   const dropCalendar = useMemo(
@@ -500,7 +500,7 @@ export function Stats() {
                               : "font-semibold text-gray-400"
                         }
                       >
-                        {d.band === "hot" ? "Hot deal" : d.band === "fair" ? "Fair price" : "Wait for a drop"}
+                        {dealBandLabel(d.band)}
                       </span>
                     </Link>
                   ))}

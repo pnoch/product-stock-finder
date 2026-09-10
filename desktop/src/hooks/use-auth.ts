@@ -87,7 +87,7 @@ function mapUser(data: {
 }
 
 export function validateEmailAuth(email: string, password: string, isRegister: boolean): string | null {
-  if (!email.includes("@") || !password) {
+  if (!email || !email.includes("@") || !password) {
     return "Email and password are required";
   }
   if (isRegister && password.length < 6) {

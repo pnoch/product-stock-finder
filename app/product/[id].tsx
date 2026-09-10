@@ -18,7 +18,7 @@ import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
 import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
 import { computePriceVsAverage } from "@/lib/price-average";
-import { computeDealScore } from "@/lib/deal-score";
+import { computeDealScore, dealBandLabel } from "@/lib/deal-score";
 import { findBestDeal } from "@/lib/best-deal";
 import { fetchPriceInsight } from "@/lib/server-insights";
 import { fetchProductImage } from "@/lib/server-images";
@@ -373,7 +373,7 @@ export default function ProductDetailScreen() {
               }}
             >
               <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}>
-                Deal Score {dealScore.score} — {dealScore.band === "hot" ? "Hot deal" : dealScore.band === "fair" ? "Fair price" : "Wait for a drop"}
+                Deal Score {dealScore.score} — {dealBandLabel(dealScore.band)}
               </Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 8 }}>
                 <Text style={{ color: colors.muted, fontSize: 12 }}>Range {dealScore.factors.range}</Text>

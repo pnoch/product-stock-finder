@@ -5,6 +5,7 @@ import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@shared/currency";
 import type { DigestResult } from "@/lib/price-digest";
 import type { rankDeals } from "@/lib/deal-score";
+import { dealBandLabel } from "@/lib/deal-score";
 
 type TopDeal = ReturnType<typeof rankDeals>[number];
 
@@ -178,11 +179,7 @@ export const DigestCard = memo(function DigestCard({
                   textAlign: "right",
                 }}
               >
-                {d.band === "hot"
-                  ? "Hot deal"
-                  : d.band === "fair"
-                    ? "Fair price"
-                    : "Wait for a drop"}
+                {dealBandLabel(d.band)}
               </Text>
             </TouchableOpacity>
           ))}

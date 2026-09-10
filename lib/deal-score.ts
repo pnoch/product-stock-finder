@@ -1,5 +1,5 @@
 import type { DistributorListing, Product } from "./types";
-import { convertPrice, hasExchangeRate } from "./currency";
+import { convert, dropStreak, mergedPoints } from "./product-insights";
 
 export type DealBand = "hot" | "fair" | "wait";
 
@@ -16,52 +16,8 @@ const MIN_SPAN_DAYS = 14;
 const HOT_CUTOFF = 75;
 const FAIR_CUTOFF = 40;
 
-interface Point {
-  t: number;
-  v: number;
-}
-
-// Mirrors lib/product-insights.ts convert (private there, not exported):
-// guards non-positive prices and unknown currencies before converting.
-function convert(price: number, currency: string, target: string): number | null {
-  if (!(price > 0)) return null;
-  if (!currency || !hasExchangeRate(currency) || !hasExchangeRate(target)) {
-    return null;
-  }
-  return convertPrice(price, currency, target);
-}
-
-// Mirrors lib/product-insights.ts grouping (private there, not exported):
-// groups converted history by timestamp and averages collisions so
-// interleaved distributors don't create phantom volatility. Sorted by time.
-function mergedPoints(listings: DistributorListing[], currency: string): Point[] {
-  const pointsByTime = new Map<number, number[]>();
-  for (const l of listings ?? []) {
-    for (const p of l.priceHistory ?? []) {
-      const t = Date.parse(p.date);
-      const v = convert(p.price, p.currency, currency);
-      if (!Number.isFinite(t) || v === null) continue;
-      const arr = pointsByTime.get(t);
-      if (arr) arr.push(v);
-      else pointsByTime.set(t, [v]);
-    }
-  }
-  return Array.from(pointsByTime.entries())
-    .sort((a, b) => a[0] - b[0])
-    .map(([t, vs]) => ({
-      t,
-      v: vs.reduce((s, x) => s + x, 0) / vs.length,
-    }));
-}
-
-// Mirrors lib/product-insights.ts trailing-decline loop (inline there).
-function dropStreak(values: number[]): number {
-  let streak = 0;
-  for (let i = values.length - 1; i > 0; i--) {
-    if (values[i] < values[i - 1]) streak += 1;
-    else break;
-  }
-  return streak;
+export function dealBandLabel(band: DealBand): string {
+  return band === "hot" ? "Hot deal" : band === "fair" ? "Fair price" : "Wait for a drop";
 }
 
 export function computeDealScore(
@@ -122,6 +78,7 @@ export function rankDeals(
     .map((p) => ({ product: p, result: computeDealScore(p.listings ?? [], currency) }))
     .filter((e): e is { product: Product; result: DealScore } => e.result !== null)
     .sort((a, b) => b.result.score - a.result.score)
+    .filter((e) => e.result.band !== "wait")
     .slice(0, limit)
     .map((e) => ({
       productId: e.product.id,

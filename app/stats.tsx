@@ -107,7 +107,7 @@ export default function StatsScreen() {
   );
 
   const topDeals = useMemo(
-    () => rankDeals(watchlist, displayCurrency).filter((d) => d.band !== "wait"),
+    () => rankDeals(watchlist, displayCurrency),
     [watchlist, displayCurrency],
   );
 

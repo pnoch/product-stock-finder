@@ -1,4 +1,4 @@
-import type { Product } from "./types";
+import type { DistributorListing, Product } from "./types";
 import { convertPrice, hasExchangeRate } from "./currency";
 
 export interface ProductInsight {
@@ -16,7 +16,7 @@ export interface ProductInsightsResult {
   volatility: { low: number; medium: number; high: number };
 }
 
-function convert(
+export function convert(
   price: number,
   currency: string,
   displayCurrency: string,
@@ -32,6 +32,43 @@ function convert(
   return convertPrice(price, currency, displayCurrency);
 }
 
+export interface MergedPoint {
+  t: number;
+  v: number;
+}
+
+export function mergedPoints(
+  listings: DistributorListing[],
+  displayCurrency: string,
+): MergedPoint[] {
+  const pointsByTime = new Map<number, number[]>();
+  for (const l of listings ?? []) {
+    for (const p of l.priceHistory ?? []) {
+      const t = Date.parse(p.date);
+      const v = convert(p.price, p.currency, displayCurrency);
+      if (!Number.isFinite(t) || v === null) continue;
+      const arr = pointsByTime.get(t);
+      if (arr) arr.push(v);
+      else pointsByTime.set(t, [v]);
+    }
+  }
+  return Array.from(pointsByTime.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([t, vs]) => ({
+      t,
+      v: vs.reduce((s, x) => s + x, 0) / vs.length,
+    }));
+}
+
+export function dropStreak(values: number[]): number {
+  let streak = 0;
+  for (let i = values.length - 1; i > 0; i--) {
+    if (values[i] < values[i - 1]) streak += 1;
+    else break;
+  }
+  return streak;
+}
+
 export function computeProductInsights(
   watchlist: Product[],
   displayCurrency: string,
@@ -45,20 +82,10 @@ export function computeProductInsights(
     // Group by timestamp and average to avoid phantom volatility from
     // interleaving multiple distributors' prices at the same time or
     // mixing currencies without aggregation.
-    const pointsByTime = new Map<number, number[]>();
-    for (const l of product.listings ?? []) {
-      for (const p of l.priceHistory ?? []) {
-        const t = Date.parse(p.date);
-        const v = convert(p.price, p.currency, displayCurrency);
-        if (!Number.isFinite(t) || v === null) continue;
-        const arr = pointsByTime.get(t);
-        if (arr) arr.push(v);
-        else pointsByTime.set(t, [v]);
-      }
-    }
-    const points = Array.from(pointsByTime.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([, vs]) => vs.reduce((s, v) => s + v, 0) / vs.length);
+    const points = mergedPoints(
+      product.listings ?? [],
+      displayCurrency,
+    ).map((p) => p.v);
 
     const inStockPrices = product.listings
       .filter((l) => l.stockStatus === "in_stock")
@@ -73,11 +100,7 @@ export function computeProductInsights(
       currentBest !== null &&
       Math.abs(currentBest - Math.min(...points)) < 0.01;
 
-    let dropStreak = 0;
-    for (let i = points.length - 1; i > 0; i--) {
-      if (points[i] < points[i - 1]) dropStreak += 1;
-      else break;
-    }
+    const dropStreakCount = dropStreak(points);
 
     let vol: ProductInsight["volatility"] = null;
     if (points.length >= 3) {
@@ -90,13 +113,13 @@ export function computeProductInsights(
     }
 
     if (atAllTimeLow) allTimeLows += 1;
-    if (dropStreak >= 2) droppingCount += 1;
+    if (dropStreakCount >= 2) droppingCount += 1;
 
     products.push({
       productId: product.id,
       name: product.name,
       atAllTimeLow,
-      dropStreak,
+      dropStreak: dropStreakCount,
       volatility: vol,
     });
   }

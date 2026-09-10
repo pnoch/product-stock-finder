@@ -76,7 +76,9 @@ describe("deal score surfaces", () => {
   });
 
   it("mobile product card shows Hot deal badge", () => {
-    expect(read("components/watchlist/product-card.tsx")).toContain("Hot deal");
+    const src = read("components/watchlist/product-card.tsx");
+    expect(src).toContain("dealBandLabel");
+    expect(src).toContain("🔥");
   });
 
   it("mobile product detail shows Deal Score card", () => {
