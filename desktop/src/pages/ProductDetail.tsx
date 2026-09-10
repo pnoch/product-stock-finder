@@ -249,17 +249,21 @@ export function ProductDetail() {
     const base = getApiBaseUrl();
     if (base && loadIdRef.current === myId) {
       setInsightLoading(true);
-      const { invoke } = await import("@tauri-apps/api/core");
-      invoke("fetch_price_insight", { apiBaseUrl: base, productId: id })
-        .then((res: any) => {
-          if (loadIdRef.current === myId) {
-            if (res && res.insight) setInsight(res.insight);
-            setInsightLoading(false);
-          }
-        })
-        .catch(() => {
-          if (loadIdRef.current === myId) setInsightLoading(false);
-        });
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("fetch_price_insight", { apiBaseUrl: base, productId: id })
+          .then((res: any) => {
+            if (loadIdRef.current === myId) {
+              if (res && res.insight) setInsight(res.insight);
+              setInsightLoading(false);
+            }
+          })
+          .catch(() => {
+            if (loadIdRef.current === myId) setInsightLoading(false);
+          });
+      } catch {
+        if (loadIdRef.current === myId) setInsightLoading(false);
+      }
     }
   }, [id]);
 
@@ -925,8 +929,8 @@ export function ProductDetail() {
           aria-label="Loading insight"
           className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 animate-pulse"
         >
-          <div className="h-3 w-24 rounded bg-gray-100 dark:bg-gray-800" />
-          <div className="mt-2 h-4 w-full rounded bg-gray-100 dark:bg-gray-800" />
+          <div className="h-3 w-24 rounded bg-gray-200 dark:bg-gray-700" />
+          <div className="mt-2 h-4 w-full rounded bg-gray-200 dark:bg-gray-700" />
         </div>
       ) : insight ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
