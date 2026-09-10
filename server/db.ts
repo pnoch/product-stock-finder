@@ -153,8 +153,12 @@ export async function deleteUserById(id: number) {
     const { revokedDevices } = await import("../drizzle/schema");
     try {
       await db.delete(revokedDevices).where(eq(revokedDevices.userId, id));
-    } catch {}
-  } catch {}
+    } catch (e) {
+      console.error("[Database] Failed to clean up revoked devices for user", id, e);
+    }
+  } catch (e) {
+    console.error("[Database] Failed to load revoked devices schema", e);
+  }
   await db.delete(users).where(eq(users.id, id));
 }
 
