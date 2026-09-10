@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { invoke } from "@tauri-apps/api/core";
+import { createTRPCClient } from "../lib/trpc";
 import { getDistributorById } from "@shared/distributors";
 import { computeHealthStats, createHealthService, type HealthStats } from "../../../lib/scrapers/health";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
@@ -99,9 +100,17 @@ export function Health() {
       } catch {
         // listen unavailable (e.g. web preview)
       }
-      const results = await invoke<DistributorHealth[]>(
-        "check_distributor_health",
-      );
+      let results: DistributorHealth[];
+      try {
+        results = await invoke<DistributorHealth[]>(
+          "check_distributor_health",
+        );
+      } catch {
+        // Web/PWA: Tauri unavailable — run checks server-side instead.
+        console.error("[Health] Tauri check unavailable, falling back to server");
+        const client = createTRPCClient();
+        results = (await client.health.check.query()) as unknown as DistributorHealth[];
+      }
       setHealth(results);
       setProgress(100);
       try {
