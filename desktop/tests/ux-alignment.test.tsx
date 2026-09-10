@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 
@@ -30,10 +30,17 @@ const mockStorage = vi.hoisted(() => ({
 vi.mock("../src/storage", () => ({ storage: mockStorage }));
 
 import { Alerts } from "../src/pages/Alerts";
+import { Watchlist } from "../src/pages/Watchlist";
 
 function renderAlerts() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<QueryClientProvider client={qc}><MemoryRouter><Alerts /></MemoryRouter></QueryClientProvider>);
+  return qc;
+}
+
+function renderWatchlist() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<QueryClientProvider client={qc}><MemoryRouter><Watchlist /></MemoryRouter></QueryClientProvider>);
   return qc;
 }
 
@@ -51,5 +58,35 @@ describe("alerts tab count", () => {
     ]);
     renderAlerts();
     await waitFor(() => expect(screen.getByRole("button", { name: /show price alerts/i })).toHaveTextContent("Alerts (1)"));
+  });
+});
+
+describe("deal sort persistence", () => {
+  it("persists the deal sort to settings", async () => {
+    mockStorage.getWatchlist.mockResolvedValue([
+      {
+        id: "p1",
+        name: "CRS326-24G-2S+RM",
+        modelNumber: "CRS326-24G-2S+RM",
+        brand: "MikroTik",
+        category: "Switch",
+        description: "",
+        addedAt: new Date().toISOString(),
+        isWatched: true,
+        listings: [],
+      },
+    ]);
+    mockStorage.getSettings.mockResolvedValue({ displayCurrency: "USD" });
+    const qc = renderWatchlist();
+    const sortButton = await screen.findByRole("button", { name: "Sort by Deal" });
+    await waitFor(() => expect(mockStorage.saveSettings).toHaveBeenCalled());
+    mockStorage.saveSettings.mockClear();
+    fireEvent.click(sortButton);
+    await waitFor(() =>
+      expect(mockStorage.saveSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ watchlistSortKey: "deal" }),
+      ),
+    );
+    qc.clear();
   });
 });

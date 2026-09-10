@@ -268,7 +268,7 @@ export function Watchlist() {
     if (loading) return;
     storage
       .getSettings()
-      .then((s) => storage.saveSettings({ ...s, watchlistInStockOnly: inStockOnly, watchlistPriceRange: priceRange ?? null, watchlistGroup: groupMode, watchlistSortKey: sortKey === "deal" ? s.watchlistSortKey : sortKey, watchlistSortAsc: sortAsc }))
+      .then((s) => storage.saveSettings({ ...s, watchlistInStockOnly: inStockOnly, watchlistPriceRange: priceRange ?? null, watchlistGroup: groupMode, watchlistSortKey: sortKey, watchlistSortAsc: sortAsc }))
       .catch(() => {});
   }, [inStockOnly, priceRange, groupMode, sortKey, sortAsc, loading]);
 
