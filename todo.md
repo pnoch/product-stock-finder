@@ -1277,3 +1277,21 @@
 - [x] Forgot-password form inline in signed-out Settings (same endpoint/copy as mobile) (`4daccd1`)
 - [x] Public `/reset-password` route + page (identical validation, no auto-sign-in) (`1694c61`)
 - [x] Guards (`tests/desktop-password-reset.test.ts`); E2E: `tsc 0`, lint 0 errors + 0 warnings, `180 passed` files / `1440 passed` tests, desktop build green
+
+## Phase 166: Error paths + safety bundle
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-error-paths-safety-design.md`) + plan (`docs/superpowers/plans/2026-09-10-error-paths-safety.md`)
+- [x] Alerts notification failures → toast + Retry (`e5fd1b0`); bulk-tag load + Cmd+E export guard (`a0b7c3f`); deleteUserById cleanup logging (`5c55fb1`); delete confirms (`17ea6ac`); discovery errors + shared mapping (`e9f9ac6`, `0a8294c`); email verification badge/resend + Rules-of-Hooks fix (`4063a87`); test providers + nits (`4e94ca3`)
+- [x] Guards (`desktop/tests/error-paths-safety.test.tsx`, `tests/delete-user-cleanup.test.ts`, `tests/desktop-shortcut-guard.test.ts`, `tests/llm-discovery.test.ts` extended); E2E: `tsc 0`, lint 0 errors, `215 passed` files / `1556 passed` tests, desktop build green
+
+## Phase 167: Dedup bundle + logger layering
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-dedup-bundle-design.md`) + plan (`docs/superpowers/plans/2026-09-10-dedup-bundle.md`)
+- [x] `lib/log.ts` shared logger across 8 sites (`8e742b7`); desktop Stats (`e5bc817`); recent-searches core (`15dc305`); share.ts helpers (`3a42f86`); guard updates (`d1dfc51`, `9a007de`); moved to `shared/src/log.ts` (`fe90552`)
+- [x] Guards (`tests/log.test.ts`, `tests/desktop-log-guard.test.ts`, `tests/desktop-recents-guard.test.ts`, `desktop/tests/share.test.tsx`); E2E: `tsc 0`, lint 0 errors, `215 passed` files / `1556 passed` tests, desktop build green
+
+## Phase 168: Small UX alignment
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-small-ux-alignment-design.md`) + plan (`docs/superpowers/plans/2026-09-10-small-ux-alignment.md`)
+- [x] Active-only tab count (`cdb3b35`); persist deal sort + watchlistSortKey widening (`04269f1`); tags pointer → Watchlist (`8d0bba3`); notifications refresh (`28af7b5`)
+- [x] Guards (`desktop/tests/ux-alignment.test.tsx`, `tests/desktop-tags-pointer-guard.test.ts`); E2E: `tsc 0`, lint 0 errors, `215 passed` files / `1556 passed` tests, desktop build green
