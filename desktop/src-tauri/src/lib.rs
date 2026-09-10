@@ -62,6 +62,10 @@ fn format_price(amount: f64, currency: &str) -> String {
     format!("{}{:.2}", symbol, amount)
 }
 
+fn trigger_event_json(product_id: &str, product_name: &str, best_price: f64, currency: &str, target_price: f64) -> serde_json::Value {
+    serde_json::json!({ "productId": product_id, "productName": product_name, "bestPrice": best_price, "currency": currency, "targetPrice": target_price })
+}
+
 // ─── Global State ────────────────────────────────────────────────────────────
 
 static POLLER_RUNNING: Mutex<bool> = Mutex::new(false);
@@ -521,6 +525,7 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
     // Returns (alert_index, best_price) for each triggered alert.
     let mut triggered: Vec<(usize, f64)> = Vec::new();
     let mut notifications: Vec<(String, String)> = Vec::new();
+    let mut events: Vec<serde_json::Value> = Vec::new();
     let now_ts = current_iso_timestamp();
 
     for (idx, alert) in alerts.iter().enumerate() {
@@ -572,6 +577,7 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
                 format_price(target_price, alert_currency)
             );
             notifications.push(("💸 Price Drop Alert!".to_string(), body));
+            events.push(trigger_event_json(product_id, product_name, best_price, alert_currency, target_price));
             triggered.push((idx, best_price));
         }
     }
@@ -581,6 +587,7 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
         for (title, body) in &notifications {
             let _ = app.notification().builder().title(title).body(body).sound("default".to_string()).show();
         }
+        let _ = app.emit("price-drops-triggered", &events);
 
         // Deactivate the triggered alerts in a single pass
         let mut updated_alerts = alerts.clone();
@@ -1484,5 +1491,14 @@ mod tests {
             "2026-05-13",
         );
         assert_eq!(history.len(), 2);
+    }
+
+    #[test]
+    fn trigger_event_json_shape() {
+        let v = trigger_event_json("p1", "Widget", 88.5, "USD", 100.0);
+        assert_eq!(v["productId"], "p1");
+        assert_eq!(v["bestPrice"], 88.5);
+        assert_eq!(v["currency"], "USD");
+        assert_eq!(v["targetPrice"], 100.0);
     }
 }
