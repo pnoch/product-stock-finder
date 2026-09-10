@@ -18,25 +18,28 @@ existing `recordNotificationEvent` (single history schema,
 dedupes by id, caps 200). System-notification + deactivation
 flow untouched.
 
-## Structured trigger return
+## Structured trigger event
 
 - `desktop/src-tauri/src/lib.rs`
-  `check_price_drops_inner`: alongside `notifications`, build
-  `events: [{ productId, productName, bestPrice, currency,
-  targetPrice }]` (all in scope in the trigger loop) and return
-  JSON `{"summary": "<existing string>", "events": [...]}`.
-- Rust unit test for the shape (existing `#[cfg(test)]` module).
+  `check_price_drops_inner` (which already holds the `app`
+  handle and builds per-trigger data in its loop): after sending
+  the system notifications, `app.emit("price-drops-triggered",
+  events_json)` with `[{ productId, productName, bestPrice,
+  currency, targetPrice }]` (all in scope in the loop). The
+  `String` return (summary toast path) stays untouched.
+- Rust unit test for the events payload shape (existing
+  `#[cfg(test)]` module).
 
 ## TS recording
 
-- `desktop/src/background.ts` `checkPriceDropsNow`: parse the
-  JSON (fall back to raw-string toast when unparseable — old
-  Tauri builds), `recordNotificationEvent` per event
+- `desktop/src/background.ts`: `onPriceDropsTriggered(callback)`
+  listener for the new event (mirroring `onPricesChecked`);
+  subscribed once in `App.tsx` beside the existing listener.
+  Handler records each event via `recordNotificationEvent`
   (`{ id: \`price-drop-{productId}-{Date.now()}\`, type:
   "price-drop", title, body, productId, createdAt }` — match
   `NotificationHistoryEntry` fields; read them first), each in
-  its own try/catch so recording never breaks the check; toast
-  `summary` as today.
+  its own try/catch so recording never breaks the check.
 - Browser path unchanged (no Rust trigger detection on web;
   refreshViaServer counts only).
 
