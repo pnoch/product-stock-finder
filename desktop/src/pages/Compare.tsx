@@ -7,7 +7,7 @@ import { convertPrice } from "@/lib/currency";
 import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
 import type { Product, PriceAlert } from "../../../lib/types";
 import { buildShareText } from "../../../lib/price-share";
-import { toPng } from "html-to-image";
+import { copyTextWithFallback, saveNodeAsPng } from "../lib/share";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
@@ -414,34 +414,14 @@ export function Compare() {
   const handleShareCompare = useCallback(async () => {
     if (!product) return;
     const message = `${buildShareText({ product, listings: sortedListings, displayCurrency, limit: 5 })}\n\n${window.location.origin}/#/compare/${product.id}`;
-    try {
-      await navigator.clipboard.writeText(message);
-      showToast("Copied to clipboard");
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = message;
-      document.body.appendChild(ta);
-      ta.select();
-      try {
-        document.execCommand("copy");
-        showToast("Copied to clipboard");
-      } catch {
-        showToast("Couldn't copy share text");
-      }
-      document.body.removeChild(ta);
-    }
+    if (await copyTextWithFallback(message)) showToast("Copied to clipboard");
+    else showToast("Couldn't copy share text");
   }, [product, sortedListings, displayCurrency]);
 
   const handleSaveImage = useCallback(async () => {
     if (!chartRef.current || !product) return;
     try {
-      const dataUrl = await toPng(chartRef.current);
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `compare-${product.id}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      await saveNodeAsPng(chartRef.current, `compare-${product.id}.png`);
       showToast("Comparison image saved");
     } catch {
       showToast("Couldn't save comparison image");

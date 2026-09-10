@@ -39,6 +39,7 @@ import { findBestDeal } from "../../../lib/best-deal";
 import { computeDealScore, dealBandLabel } from "../../../lib/deal-score";
 import { composeLiveListings } from "../../../lib/live-prices";
 import { fetchListingsWithTimeout } from "../lib/server-prices";
+import { saveNodeAsPng } from "../lib/share";
 import { buildShareText } from "../../../lib/price-share";
 import { getProductNote, saveProductNote } from "../../../lib/product-notes";
 import { StockBadge } from "../components/StockBadge";
@@ -53,7 +54,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { toPng } from "html-to-image";
 
 function PriceSparkline({ history, currency }: { history: { price: number }[]; currency: string }) {
   if (history.length < 2) {
@@ -551,13 +551,7 @@ export function ProductDetail() {
   const handleSaveImage = useCallback(async () => {
     if (!summaryRef.current || !product) return;
     try {
-      const dataUrl = await toPng(summaryRef.current);
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `product-${product.id}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      await saveNodeAsPng(summaryRef.current, `product-${product.id}.png`);
       showToast("Product image saved");
     } catch {
       showToast("Couldn't save product image");

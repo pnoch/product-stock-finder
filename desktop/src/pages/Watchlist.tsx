@@ -40,6 +40,7 @@ import { createTRPCClient } from "../lib/trpc";
 import { fetchListingsWithTimeout } from "../lib/server-prices";
 import { composeLiveListings } from "../../../lib/live-prices";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
+import { copyTextWithFallback } from "../lib/share";
 import { isFreshPriceSnapshot } from "../../../lib/price-freshness";
 import type { Product, StockStatus, TagDefinition, WatchlistGroup } from "../../../lib/types";
 
@@ -441,22 +442,8 @@ export function Watchlist() {
   const handleShare = useCallback(async () => {
     if (products.length === 0) return;
     const message = buildWatchlistShareText({ watchlist: products, displayCurrency, days: 30, now: Date.now() });
-    try {
-      await navigator.clipboard.writeText(message);
-      showToast("Copied to clipboard");
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = message;
-      document.body.appendChild(ta);
-      ta.select();
-      try {
-        document.execCommand("copy");
-        showToast("Copied to clipboard");
-      } catch {
-        showToast("Couldn't copy share text");
-      }
-      document.body.removeChild(ta);
-    }
+    if (await copyTextWithFallback(message)) showToast("Copied to clipboard");
+    else showToast("Couldn't copy share text");
   }, [products, displayCurrency, showToast]);
 
   const handleCheckNow = useCallback(async () => {

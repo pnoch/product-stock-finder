@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { Share2, TrendingDown, TrendingUp, Package, BarChart3 } from "lucide-react";
-import { toPng } from "html-to-image";
+import { copyTextWithFallback, saveNodeAsPng } from "../lib/share";
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
 import { EmptyState } from "../components/EmptyState";
@@ -59,34 +59,14 @@ export function Stats() {
 
   const handleCopyText = useCallback(async () => {
     const message = buildWatchlistShareText({ watchlist: products ?? [], displayCurrency, days });
-    try {
-      await navigator.clipboard.writeText(message);
-      showToast("Copied to clipboard");
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = message;
-      document.body.appendChild(ta);
-      ta.select();
-      try {
-        document.execCommand("copy");
-        showToast("Copied to clipboard");
-      } catch {
-        showToast("Couldn't copy share text");
-      }
-      document.body.removeChild(ta);
-    }
+    if (await copyTextWithFallback(message)) showToast("Copied to clipboard");
+    else showToast("Couldn't copy share text");
   }, [products, displayCurrency, days]);
 
   const handleSaveImage = useCallback(async () => {
     if (summaryRef.current) {
       try {
-        const dataUrl = await toPng(summaryRef.current);
-        const a = document.createElement("a");
-        a.href = dataUrl;
-        a.download = "stats-watchlist.png";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        await saveNodeAsPng(summaryRef.current, "stats-watchlist.png");
         showToast("Stats image saved");
         return;
       } catch {
