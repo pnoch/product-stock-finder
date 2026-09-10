@@ -12,21 +12,21 @@ import { TagFilterRow } from "../components/TagFilterRow";
 import { countTagMatches, filterWatchlist } from "../../../lib/watchlist-org";
 import { useToast } from "../hooks/use-toast";
 
+import { addRecentSearch, parseRecentSearches, MAX_RECENT_SEARCHES } from "../../../lib/recent-searches";
+
 const RECENT_KEY = "recent_searches";
 function loadRecent(): string[] {
   try {
-    const raw = localStorage.getItem(RECENT_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string").slice(0, 8) : [];
+    return parseRecentSearches(localStorage.getItem(RECENT_KEY)).slice(0, MAX_RECENT_SEARCHES);
   } catch { return []; }
 }
-function saveRecent(list: string[]) { try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 8))); } catch {} }
-function recordRecent(q: string): string[] {
-  const t = q.trim(); if (!t) return loadRecent();
-  const list = loadRecent();
-  const filtered = list.filter((x) => x.toLowerCase() !== t.toLowerCase());
-  const upd = [t, ...filtered].slice(0, 8); saveRecent(upd); return upd;
+function saveRecent(list: string[]) {
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, MAX_RECENT_SEARCHES))); } catch {}
+}
+function recordRecent(query: string): string[] {
+  const updated = addRecentSearch(loadRecent(), query);
+  if (query.trim()) saveRecent(updated);
+  return updated;
 }
 
 type CatalogSort = "relevance" | "name" | "brand" | "price";

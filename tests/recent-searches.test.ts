@@ -61,3 +61,24 @@ describe("recent searches", () => {
     expect(await getRecentSearches(store)).toEqual([]);
   });
 });
+import { addRecentSearch, parseRecentSearches, MAX_RECENT_SEARCHES } from "../lib/recent-searches";
+
+describe("recent searches pure core", () => {
+  it("caps at MAX_RECENT_SEARCHES", () => {
+    expect(MAX_RECENT_SEARCHES).toBe(8);
+    const list = Array.from({ length: 8 }, (_, i) => `q${i}`);
+    expect(addRecentSearch(list, "new")).toEqual(["new", "q0", "q1", "q2", "q3", "q4", "q5", "q6"]);
+  });
+  it("dedups case-insensitively and trims", () => {
+    expect(addRecentSearch(["CRS326"], "  crs326 ")).toEqual(["crs326"]);
+  });
+  it("returns current list on blank query", () => {
+    expect(addRecentSearch(["a"], "   ")).toEqual(["a"]);
+  });
+  it("parses garbage to []", () => {
+    expect(parseRecentSearches(null)).toEqual([]);
+    expect(parseRecentSearches("not json")).toEqual([]);
+    expect(parseRecentSearches('{"a":1}')).toEqual([]);
+    expect(parseRecentSearches('["a",1,"b"]')).toEqual(["a", "b"]);
+  });
+});

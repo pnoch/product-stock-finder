@@ -10,26 +10,21 @@ import { useToast } from "../hooks/use-toast";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import type { TagDefinition } from "../../../lib/types";
 
+import { addRecentSearch, parseRecentSearches, MAX_RECENT_SEARCHES } from "../../../lib/recent-searches";
+
 const RECENT_KEY = "recent_searches";
 
 function loadRecent(): string[] {
   try {
-    const raw = localStorage.getItem(RECENT_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string").slice(0, 8) : [];
+    return parseRecentSearches(localStorage.getItem(RECENT_KEY)).slice(0, MAX_RECENT_SEARCHES);
   } catch { return []; }
 }
 function saveRecent(list: string[]) {
-  try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 8))); } catch {}
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, MAX_RECENT_SEARCHES))); } catch {}
 }
 function recordRecent(query: string): string[] {
-  const trimmed = query.trim();
-  if (!trimmed) return loadRecent();
-  const list = loadRecent();
-  const filtered = list.filter((q) => q.toLowerCase() !== trimmed.toLowerCase());
-  const updated = [trimmed, ...filtered].slice(0, 8);
-  saveRecent(updated);
+  const updated = addRecentSearch(loadRecent(), query);
+  if (query.trim()) saveRecent(updated);
   return updated;
 }
 
