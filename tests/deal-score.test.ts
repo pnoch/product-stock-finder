@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { DistributorListing } from "@/lib/types";
-import { computeDealScore } from "@/lib/deal-score";
+import type { DistributorListing, Product } from "@/lib/types";
+import { computeDealScore, rankDeals } from "@/lib/deal-score";
 
 function listing(
   prices: { date: string; price: number; currency?: string }[],
@@ -131,5 +131,49 @@ describe("computeDealScore", () => {
     expect(freshScore).not.toBeNull();
     expect(staleScore).not.toBeNull();
     expect(freshScore!.score).toBeGreaterThan(staleScore!.score);
+  });
+});
+
+describe("rankDeals", () => {
+  function product(
+    id: string,
+    name: string,
+    listings: DistributorListing[],
+  ): Product {
+    return {
+      id,
+      name,
+      modelNumber: "model",
+      brand: "brand",
+      category: "category",
+      description: "",
+      addedAt: D[0],
+      isWatched: true,
+      listings,
+    };
+  }
+
+  it("ranks by score desc, drops nulls, honors limit", () => {
+    const hot = product("hot-id", "Hot Product", [
+      listing(priced([200, 180, 160, 140, 100])),
+    ]);
+    const fair = product("fair-id", "Fair Product", [
+      listing(priced([150, 150, 150, 150, 150])),
+    ]);
+    const thin = product("thin-id", "Thin Product", [
+      listing([
+        { date: D[0], price: 200 },
+        { date: D[4], price: 100 },
+      ]),
+    ]);
+    const ranked = rankDeals([fair, thin, hot], "USD", 2);
+    expect(ranked).toHaveLength(2);
+    expect(ranked[0].productId).toBe("hot-id");
+    expect(ranked[0]).toMatchObject({ name: expect.any(String), band: "hot" });
+    expect(ranked.map((r) => r.productId)).not.toContain("thin-id");
+  });
+
+  it("returns [] when nothing scores", () => {
+    expect(rankDeals([], "USD")).toEqual([]);
   });
 });

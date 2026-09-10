@@ -1,4 +1,4 @@
-import type { DistributorListing } from "./types";
+import type { DistributorListing, Product } from "./types";
 import { convertPrice, hasExchangeRate } from "./currency";
 
 export type DealBand = "hot" | "fair" | "wait";
@@ -104,4 +104,29 @@ export function computeDealScore(
       volatility: Math.round(volatility),
     },
   };
+}
+
+export interface RankedDeal {
+  productId: string;
+  name: string;
+  score: number;
+  band: DealBand;
+}
+
+export function rankDeals(
+  products: Product[],
+  currency: string,
+  limit = 3,
+): RankedDeal[] {
+  return products
+    .map((p) => ({ product: p, result: computeDealScore(p.listings ?? [], currency) }))
+    .filter((e): e is { product: Product; result: DealScore } => e.result !== null)
+    .sort((a, b) => b.result.score - a.result.score)
+    .slice(0, limit)
+    .map((e) => ({
+      productId: e.product.id,
+      name: e.product.name,
+      score: e.result.score,
+      band: e.result.band,
+    }));
 }
