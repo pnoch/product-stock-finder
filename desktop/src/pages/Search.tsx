@@ -194,6 +194,7 @@ export function Search() {
       if (tags.length) setPendingTags((prev) => { const n = { ...prev }; delete n[product.id]; return n; });
       setTrackedIds((prev) => new Set([...prev, product.id]));
       showToast(`Added ${product.name}`);
+      navigate("/watchlist");
       if (query.trim()) setRecentSearches(recordRecent(query));
     } catch (e) { showToast(e instanceof Error ? e.message : "Failed"); }
   };
@@ -239,7 +240,7 @@ export function Search() {
         <h1 className="text-2xl font-bold">Search Products</h1>
         <div className="flex items-center gap-2">
           <button onClick={() => setBulkOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700"><Upload className="w-4 h-4" /> Bulk Import</button>
-          <button onClick={() => setManualOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700"><PenLine className="w-4 h-4" /> Manual Add</button>
+          <button onClick={() => { setManualModel(query); setManualOpen(true); }} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700"><PenLine className="w-4 h-4" /> Manual Add</button>
         </div>
       </div>
 

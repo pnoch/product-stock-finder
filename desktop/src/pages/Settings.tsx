@@ -36,6 +36,7 @@ import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
 import { getSyncSetup } from "../../../lib/sync";
 import { buildBackup, parseBackup, applyBackup } from "../../../lib/backup";
+import { watchlistToCsv } from "../../../lib/csv";
 import type { AppSettings, Product, DistributorListing } from "../../../lib/types";
 import { getDistributorById } from "@shared/distributors";
 import { getAllParserIds } from "../../../lib/scrapers/registry";
@@ -487,6 +488,41 @@ export function Settings() {
       setImportExportMessage("Import failed");
     }
   };
+
+  const handleExportCsv = useCallback(async () => {
+    try {
+      const [watchlist, appSettings] = await Promise.all([
+        storage.getWatchlist(),
+        storage.getSettings(),
+      ]);
+      const csv = watchlistToCsv(watchlist, appSettings.displayCurrency ?? "USD");
+      const fileName = `product-stock-finder-watchlist-${new Date().toISOString().slice(0, 10)}.csv`;
+      if (typeof window !== "undefined" && (window as unknown as { __TAURI__?: unknown }).__TAURI__) {
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const { writeFile } = await import("@tauri-apps/plugin-fs");
+        const filePath = await save({ defaultPath: fileName, filters: [{ name: "CSV", extensions: ["csv"] }] });
+        if (!filePath) {
+          setImportExportMessage("Export cancelled");
+          return;
+        }
+        await writeFile(filePath, new TextEncoder().encode(csv));
+        setImportExportMessage(`Exported to ${filePath}`);
+      } else {
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setImportExportMessage("Watchlist exported as CSV");
+      }
+    } catch (e) {
+      setImportExportMessage(e instanceof Error ? e.message : "CSV export failed");
+    }
+  }, []);
 
   const handleExportBackup = useCallback(async () => {
     try {
@@ -1419,6 +1455,13 @@ export function Settings() {
             aria-label="Import watchlist"
           >
             <Upload className="w-4 h-4" /> Import Watchlist
+          </button>
+          <button
+            onClick={handleExportCsv}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+            aria-label="Export CSV"
+          >
+            <Download className="w-4 h-4" /> Export CSV
           </button>
           <button
             onClick={handleExportBackup}
