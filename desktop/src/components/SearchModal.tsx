@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from "react";
 import { useNavigate } from "react-router";
 import { Search, Check, Plus, Wand2, Loader2, Upload, PenLine, X } from "lucide-react";
-import { PRODUCT_CATALOG, getAllCategories, getAllBrands } from "@shared/catalog";
+import { PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCatalogByPrice } from "@shared/catalog";
 import Fuse from "fuse.js";
 import { storage } from "../storage";
 import { Modal } from "./Modal";
@@ -90,8 +90,6 @@ export function SearchModal({
   const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
   const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
   const [tagPickerFor, setTagPickerFor] = useState<string | null>(null);
-  // Derived arrays for effect reactivity — Set/object identity would not trigger deps reliably
-  const pendingTagsDerived = useMemo(() => Object.entries(pendingTags).flatMap(([k, v]) => [k, ...v]), [pendingTags]);
   const trackedIdsArray = useMemo(() => Array.from(trackedIds), [trackedIds]);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
@@ -131,24 +129,12 @@ export function SearchModal({
     return [...PRODUCT_CATALOG, ...filtered] as typeof PRODUCT_CATALOG;
   }, [discoveredProducts]);
 
+  const fuse = useMemo(() => new Fuse(combinedCatalog, SEARCH_OPTIONS), [combinedCatalog]);
+  const deferredQuery = useDeferredValue(query);
   const results = useMemo(() => {
-    if (!query.trim()) return combinedCatalog;
-    // Fuse ranked search threshold 0.4 keys modelNumber 0.4/name 0.3 etc.
-    const fuse = new Fuse(combinedCatalog, {
-      keys: [
-        { name: "modelNumber", weight: 0.4 },
-        { name: "name", weight: 0.3 },
-        { name: "brand", weight: 0.15 },
-        { name: "category", weight: 0.1 },
-        { name: "description", weight: 0.05 },
-      ],
-      threshold: 0.4,
-      includeScore: true,
-      minMatchCharLength: 2,
-      ignoreLocation: true,
-    });
-    return fuse.search(query).map((r) => r.item);
-  }, [query, combinedCatalog]);
+    if (!deferredQuery.trim()) return combinedCatalog;
+    return fuse.search(deferredQuery).map((r) => r.item);
+  }, [deferredQuery, fuse, combinedCatalog]);
 
   const categories = useMemo(() => getAllCategories(), []);
   const brands = useMemo(() => getAllBrands(), []);
@@ -169,7 +155,7 @@ export function SearchModal({
       case "brand":
         return copy.sort((a, b) => a.brand.localeCompare(b.brand) || a.name.localeCompare(b.name));
       case "price":
-        return copy.sort((a, b) => a.name.localeCompare(b.name));
+        return sortCatalogByPrice(copy);
       default:
         return copy;
     }
@@ -196,7 +182,7 @@ export function SearchModal({
       const msg = e instanceof Error ? e.message : "Failed to add to watchlist";
       showToast(msg);
     }
-  }, [pendingTags, pendingTagsDerived, query]);
+  }, [pendingTags, query]);
 
   const handleDiscover = useCallback(async () => {
     if (!query.trim() || discovering) return;
@@ -228,8 +214,6 @@ export function SearchModal({
 
   const bulkPreview = useMemo(() => matchModels(parseModelInput(bulkText)), [bulkText]);
   const bulkNew = useMemo(() => bulkPreview.matched.filter((p) => !trackedIds.has(p.id)), [bulkPreview, trackedIdsArray, trackedIds]);
-  // Keep pendingTagsDerived in scope for reactivity (used in handleAdd tag assignment)
-  void pendingTagsDerived;
 
   const handleBulkImport = async () => {
     if (bulkImporting || bulkNew.length === 0) return;

@@ -18,7 +18,7 @@ import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { BulkImportModal } from "@/components/search/bulk-import-modal";
 import { ManualAddSheet } from "@/components/search/manual-add-sheet";
 import { useColors } from "@/hooks/use-colors";
-import { searchCatalog, getAllCatalog, PRODUCT_CATALOG, getAllCategories, getAllBrands } from "@shared/catalog";
+import { searchCatalog, getAllCatalog, PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCatalogByPrice } from "@shared/catalog";
 import { SAMPLE_LISTINGS } from "@/lib/sample-data";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
 import { RecentSearches } from "@/components/search/recent-searches";
@@ -135,7 +135,6 @@ export default function SearchScreen() {
   const [adding, setAdding] = useState<string | null>(null);
   const [discovering, setDiscovering] = useState(false);
   const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
-  const pendingTagsDerived = useMemo(() => Object.entries(pendingTags).flatMap(([k, v]) => [k, ...v]), [pendingTags]);
   const [pickerItem, setPickerItem] = useState<Product | null>(null);
   const [postAddProduct, setPostAddProduct] = useState<Product | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -259,19 +258,7 @@ export default function SearchScreen() {
     }
     const combined = [...PRODUCT_CATALOG, ...discoveredProducts];
     if (deferredQuery.trim().length === 0) return sortPreviewByStock(combined).slice(0, PREVIEW_LIMIT);
-    const fuse = new Fuse(combined, {
-      keys: [
-        { name: "modelNumber", weight: 0.4 },
-        { name: "name", weight: 0.3 },
-        { name: "brand", weight: 0.15 },
-        { name: "category", weight: 0.1 },
-        { name: "description", weight: 0.05 },
-      ],
-      threshold: 0.4,
-      includeScore: true,
-      minMatchCharLength: 2,
-      ignoreLocation: true,
-    });
+    const fuse = new Fuse(combined, SEARCH_OPTIONS);
     return fuse.search(deferredQuery).map((r) => r.item);
   }, [deferredQuery, discoveredProducts]);
 
@@ -320,8 +307,7 @@ export default function SearchScreen() {
       case "brand":
         return copy.sort((a, b) => a.brand.localeCompare(b.brand) || a.name.localeCompare(b.name));
       case "price":
-        // No price on catalog items; fall back to name for deterministic order but keep chip parity
-        return copy.sort((a, b) => a.name.localeCompare(b.name));
+        return sortCatalogByPrice(copy);
       default:
         return copy;
     }
@@ -381,8 +367,7 @@ export default function SearchScreen() {
       listings: [],
       tags: pendingTags[p.id] ?? [],
     });
-    void pendingTagsDerived;
-  }, [pendingTags, pendingTagsDerived]);
+  }, [pendingTags]);
 
   return (
     <ScreenContainer>

@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, useDeferredValue } from "react";
 import { useNavigate } from "react-router";
 import { Search as SearchIcon, Check, Plus, Wand2, Loader2, Upload, PenLine, X } from "lucide-react";
-import { PRODUCT_CATALOG, getAllCategories, getAllBrands } from "@shared/catalog";
+import { PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCatalogByPrice } from "@shared/catalog";
 import Fuse from "fuse.js";
 import { storage } from "../storage";
 import { ProductImage } from "../components/ProductImage";
@@ -85,8 +85,6 @@ export function Search() {
   const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
   const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
   const [tagPickerFor, setTagPickerFor] = useState<string | null>(null);
-  // Derived arrays for Set/object reactivity — keeps effects in sync when identity changes
-  const pendingTagsDerived = useMemo(() => Object.entries(pendingTags).flatMap(([k, v]) => [k, ...v]), [pendingTags]);
   const trackedIdsArray = useMemo(() => Array.from(trackedIds), [trackedIds]);
   const [discovering, setDiscovering] = useState(false);
   const [discoverError, setDiscoverError] = useState<{ title: string; message: string; retry: boolean } | null>(null);
@@ -136,32 +134,29 @@ export function Search() {
     return new Set(matching.map((p) => p.id));
   }, [watchlistProducts, searchTagIds, searchTagMode]);
 
+  const fuse = useMemo(() => new Fuse(combinedCatalog, SEARCH_OPTIONS), [combinedCatalog]);
+  const deferredQuery = useDeferredValue(query);
+
   const tagCounts = useMemo(() => {
     return countTagMatches(watchlistProducts, {
       region: "all",
       status: "all",
-      query,
+      query: deferredQuery,
     });
-  }, [watchlistProducts, query]);
+  }, [watchlistProducts, deferredQuery]);
 
   const results = useMemo(() => {
     let base: typeof combinedCatalog;
-    if (!query.trim()) base = combinedCatalog;
+    if (!deferredQuery.trim()) base = combinedCatalog;
     else {
-      const fuse = new Fuse(combinedCatalog, {
-        keys: [{ name: "modelNumber", weight: 0.4 }, { name: "name", weight: 0.3 }, { name: "brand", weight: 0.15 }, { name: "category", weight: 0.1 }, { name: "description", weight: 0.05 }],
-        threshold: 0.4, includeScore: true, minMatchCharLength: 2, ignoreLocation: true,
-      });
-      base = fuse.search(query).map((r) => r.item);
+      base = fuse.search(deferredQuery).map((r) => r.item);
     }
     if (searchTagIds.length > 0) {
       // Show watchlist tag matches plus untracked catalog products
       base = base.filter((p) => tagMatchedIds?.has(p.id) || !trackedIds.has(p.id));
     }
-    // Ensure derived array is referenced so linter sees pendingTagsDerived as dep
-    void pendingTagsDerived;
     return base;
-  }, [query, combinedCatalog, searchTagIds, searchTagMode, pendingTags, pendingTagsDerived, tagMatchedIds, trackedIds]);
+  }, [deferredQuery, fuse, combinedCatalog, searchTagIds, searchTagMode, tagMatchedIds, trackedIds]);
 
   const categories = useMemo(() => getAllCategories(), []);
   const brands = useMemo(() => getAllBrands(), []);
@@ -182,7 +177,7 @@ export function Search() {
       case "brand":
         return copy.sort((a, b) => a.brand.localeCompare(b.brand) || a.name.localeCompare(b.name));
       case "price":
-        return copy.sort((a, b) => a.name.localeCompare(b.name));
+        return sortCatalogByPrice(copy);
       default:
         return copy;
     }

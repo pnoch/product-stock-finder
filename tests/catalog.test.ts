@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PRODUCT_CATALOG, searchCatalog } from "@shared/catalog";
+import { PRODUCT_CATALOG, searchCatalog, sortCatalogByPrice } from "@shared/catalog";
 
 describe("searchCatalog", () => {
   it("finds by name, case-insensitive", () => {
@@ -37,5 +37,16 @@ describe("searchCatalog", () => {
     const results = searchCatalog("mikro");
     expect(results.length).toBeGreaterThan(0);
     expect(results.some((p) => p.brand === "MikroTik")).toBe(true);
+  });
+
+  it("sorts catalog by name fallback without mutating", () => {
+    const b = PRODUCT_CATALOG.find((p) => p.id === "ubiquiti-udm-pro")!;
+    const a = PRODUCT_CATALOG.find((p) => p.id === "mikrotik-crs804-4ddq-hrm")!;
+    const input = [b, a];
+    const out = sortCatalogByPrice(input);
+    expect(out.map((p) => p.name)).toEqual(
+      [a.name, b.name].sort((x, y) => x.localeCompare(y)),
+    );
+    expect(input.map((p) => p.id)).toEqual([b.id, a.id]);
   });
 });

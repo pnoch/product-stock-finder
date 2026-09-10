@@ -1,4 +1,5 @@
 import Fuse from "fuse.js";
+import type { IFuseOptions } from "fuse.js";
 import type { Product } from "@/lib/types";
 
 export const PRODUCT_CATALOG: Omit<
@@ -396,33 +397,32 @@ export const PRODUCT_CATALOG: Omit<
   },
 ];
 
+export const SEARCH_OPTIONS: IFuseOptions<(typeof PRODUCT_CATALOG)[number]> = {
+  keys: [
+    { name: "modelNumber", weight: 0.4 },
+    { name: "name", weight: 0.3 },
+    { name: "brand", weight: 0.15 },
+    { name: "category", weight: 0.1 },
+    { name: "description", weight: 0.05 },
+  ],
+  threshold: 0.4,
+  includeScore: true,
+  minMatchCharLength: 2,
+  ignoreLocation: true,
+};
+
+// No price on catalog items; fall back to name for deterministic order but keep chip parity
+export function sortCatalogByPrice(items: typeof PRODUCT_CATALOG): typeof PRODUCT_CATALOG {
+  return [...items].sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function buildFuse(catalog: typeof PRODUCT_CATALOG) {
-  return new Fuse(catalog, {
-    keys: [
-      { name: "modelNumber", weight: 0.4 },
-      { name: "name", weight: 0.3 },
-      { name: "brand", weight: 0.15 },
-      { name: "category", weight: 0.1 },
-      { name: "description", weight: 0.05 },
-    ],
-    threshold: 0.4,
-    includeScore: true,
-    minMatchCharLength: 2,
-    ignoreLocation: true,
-  });
+  return new Fuse(catalog, SEARCH_OPTIONS);
 }
 
 export function searchCatalog(query: string): typeof PRODUCT_CATALOG {
   if (!query.trim()) return PRODUCT_CATALOG;
   return buildFuse(PRODUCT_CATALOG).search(query).map((result) => result.item);
-}
-
-export function searchCatalogFuzzy(query: string, limit?: number): typeof PRODUCT_CATALOG {
-  if (!query.trim()) {
-    return typeof limit === "number" ? PRODUCT_CATALOG.slice(0, limit) : PRODUCT_CATALOG;
-  }
-  const results = buildFuse(PRODUCT_CATALOG).search(query).map((result) => result.item);
-  return typeof limit === "number" ? results.slice(0, limit) : results;
 }
 
 export async function getAllCatalog() {
@@ -435,23 +435,4 @@ export function getAllCategories(): string[] {
 
 export function getAllBrands(): string[] {
   return [...new Set(PRODUCT_CATALOG.map((p) => p.brand))].sort();
-}
-
-export async function searchCatalogAsync(query: string) {
-  const catalog = await getAllCatalog();
-  const fuseInstance = new Fuse(catalog, {
-    keys: [
-      { name: "modelNumber", weight: 0.4 },
-      { name: "name", weight: 0.3 },
-      { name: "brand", weight: 0.15 },
-      { name: "category", weight: 0.1 },
-      { name: "description", weight: 0.05 },
-    ],
-    threshold: 0.4,
-    includeScore: true,
-    minMatchCharLength: 2,
-    ignoreLocation: true,
-  });
-  if (!query.trim()) return catalog;
-  return fuseInstance.search(query).map((result) => result.item);
 }
