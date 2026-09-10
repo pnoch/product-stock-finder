@@ -39,6 +39,7 @@ import { computeDealScore, dealBandLabel } from "../../../lib/deal-score";
 import { composeLiveListings } from "../../../lib/live-prices";
 import { fetchListingsWithTimeout } from "../lib/server-prices";
 import { buildShareText } from "../../../lib/price-share";
+import { getProductNote, saveProductNote } from "../../../lib/product-notes";
 import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
 import { ProductImage } from "../components/ProductImage";
@@ -95,6 +96,14 @@ function PriceSparkline({ history, currency }: { history: { price: number }[]; c
   );
 }
 
+const notesStore = {
+  getItem: (k: string) => Promise.resolve(localStorage.getItem(k)),
+  setItem: (k: string, v: string): Promise<void> => {
+    localStorage.setItem(k, v);
+    return Promise.resolve();
+  },
+};
+
 export function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -133,6 +142,17 @@ export function ProductDetail() {
   const loadIdRef = useRef(0);
   const summaryRef = useRef<HTMLDivElement>(null);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null);
+  const [note, setNote] = useState("");
+  const [editingNote, setEditingNote] = useState(false);
+  const [draftNote, setDraftNote] = useState("");
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editModel, setEditModel] = useState("");
+  const [editBrand, setEditBrand] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
 
   const loadProduct = useCallback(async () => {
     if (!id) return;
@@ -266,6 +286,58 @@ export function ProductDetail() {
 
   const [alertError, setAlertError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
+
+  useEffect(() => {
+    if (!product?.id) return;
+    let cancelled = false;
+    getProductNote(product.id, notesStore)
+      .then((saved) => {
+        if (!cancelled) {
+          setNote(saved);
+          setDraftNote(saved);
+          setEditingNote(false);
+          setNoteError(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setNoteError("Couldn't load note");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [product?.id]);
+
+  const handleSaveNote = async () => {
+    if (!product) return;
+    try {
+      await saveProductNote(product.id, draftNote.trim(), notesStore);
+      setNote(draftNote.trim());
+      setEditingNote(false);
+      setNoteError(null);
+      showToast("Note saved");
+    } catch {
+      setNoteError("Couldn't save note");
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!product) return;
+    setEditError(null);
+    try {
+      await storage.updateProductDetails(product.id, {
+        name: editName.trim(),
+        modelNumber: editModel.trim(),
+        brand: editBrand.trim(),
+        category: editCategory.trim(),
+        description: editDescription.trim(),
+      });
+      setEditOpen(false);
+      await loadProduct();
+      showToast("Product updated");
+    } catch {
+      setEditError("Couldn't save changes");
+    }
+  };
 
   const checkNotificationPermission = async (): Promise<boolean> => {
     try {
@@ -629,7 +701,7 @@ export function ProductDetail() {
       {/* Product Header */}
       <div className="flex items-start gap-4">
         <ProductImage productId={product.id} size={96} />
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">{product.name}</h1>
           <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 dark:text-gray-400">
             <span>{product.brand}</span>
@@ -644,6 +716,78 @@ export function ProductDetail() {
             </p>
           )}
         </div>
+        <button
+          onClick={() => {
+            setEditName(product.name);
+            setEditModel(product.modelNumber);
+            setEditBrand(product.brand);
+            setEditCategory(product.category);
+            setEditDescription(product.description ?? "");
+            setEditError(null);
+            setEditOpen(true);
+          }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shrink-0"
+          aria-label="Edit product"
+        >
+          Edit
+        </button>
+      </div>
+
+      {/* Product Note */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-lg font-semibold">My Note</h2>
+          {!editingNote && (
+            <button
+              onClick={() => {
+                setDraftNote(note);
+                setNoteError(null);
+                setEditingNote(true);
+              }}
+              className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              aria-label="Edit note"
+            >
+              Edit
+            </button>
+          )}
+        </div>
+        {noteError && <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">{noteError}</p>}
+        {editingNote ? (
+          <div className="space-y-2">
+            <textarea
+              value={draftNote}
+              onChange={(e) => setDraftNote(e.target.value)}
+              placeholder="Add a note about this product…"
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              aria-label="Product note"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setDraftNote(note);
+                  setNoteError(null);
+                  setEditingNote(false);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                aria-label="Cancel editing note"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveNote}
+                className="px-4 py-2 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+                aria-label="Save note"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        ) : note ? (
+          <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{note}</p>
+        ) : (
+          <p className="text-sm text-gray-500 dark:text-gray-400">No note yet.</p>
+        )}
       </div>
 
       {/* Best Distributor Card */}
@@ -1096,6 +1240,101 @@ export function ProductDetail() {
           )}
         </div>
       </div>
+
+      {/* Edit Product Modal */}
+      <Modal
+        open={editOpen}
+        onClose={() => {
+          setEditOpen(false);
+          setEditError(null);
+        }}
+        title="Edit product"
+      >
+        <div className="space-y-4">
+          {editError && (
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+              {editError}
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium mb-1">Name</label>
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              aria-label="Product name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Model</label>
+            <input
+              type="text"
+              value={editModel}
+              onChange={(e) => setEditModel(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              aria-label="Product model"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Brand</label>
+            <input
+              type="text"
+              value={editBrand}
+              onChange={(e) => setEditBrand(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              aria-label="Product brand"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Category</label>
+            <input
+              type="text"
+              value={editCategory}
+              onChange={(e) => setEditCategory(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              aria-label="Product category"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Description</label>
+            <textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              aria-label="Product description"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={() => {
+                setEditOpen(false);
+                setEditError(null);
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              aria-label="Cancel editing product"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveEdit}
+              disabled={
+                !editName.trim() ||
+                (editName.trim() === (product.name ?? "") &&
+                  editModel.trim() === (product.modelNumber ?? "") &&
+                  editBrand.trim() === (product.brand ?? "") &&
+                  editCategory.trim() === (product.category ?? "") &&
+                  editDescription.trim() === (product.description ?? ""))
+              }
+              className="px-4 py-2 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
+              aria-label="Save product changes"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Set Alert Modal */}
       <Modal
