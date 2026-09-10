@@ -33,6 +33,7 @@ import { countTagMatches, filterWatchlist, groupWatchlist, type StatusFilter } f
 import { useConnection } from "../hooks/use-connection";
 import { countQueuedEdits } from "../../../lib/sync";
 import { computeProductInsights } from "../../../lib/product-insights";
+import { computeDealScore } from "../../../lib/deal-score";
 import { flattenWatchlistRows } from "../lib/watchlist-rows";
 import { TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import { createTRPCClient } from "../lib/trpc";
@@ -42,7 +43,7 @@ import { buildWatchlistShareText } from "../../../lib/watchlist-share";
 import { isFreshPriceSnapshot } from "../../../lib/price-freshness";
 import type { Product, StockStatus, TagDefinition, WatchlistGroup } from "../../../lib/types";
 
-type SortKey = "name" | "price" | "trend" | "lastUpdated";
+type SortKey = "name" | "price" | "deal" | "trend" | "lastUpdated";
 type FilterKey = "all" | "in_stock" | "back_order" | "out_of_stock";
 
 const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
@@ -266,7 +267,7 @@ export function Watchlist() {
     if (loading) return;
     storage
       .getSettings()
-      .then((s) => storage.saveSettings({ ...s, watchlistInStockOnly: inStockOnly, watchlistPriceRange: priceRange ?? null, watchlistGroup: groupMode, watchlistSortKey: sortKey, watchlistSortAsc: sortAsc }))
+      .then((s) => storage.saveSettings({ ...s, watchlistInStockOnly: inStockOnly, watchlistPriceRange: priceRange ?? null, watchlistGroup: groupMode, watchlistSortKey: sortKey === "deal" ? s.watchlistSortKey : sortKey, watchlistSortAsc: sortAsc }))
       .catch(() => {});
   }, [inStockOnly, priceRange, groupMode, sortKey, sortAsc, loading]);
 
@@ -323,6 +324,11 @@ export function Watchlist() {
     [products, regionFilter, filter, query, inStockOnly, priceRange, displayCurrency],
   );
 
+  const dealScores = useMemo(
+    () => new Map(filtered.map((p) => [p.id, computeDealScore(p.listings ?? [], displayCurrency)?.score ?? null])),
+    [filtered, displayCurrency],
+  );
+
   const sorted = useMemo(() => {
     const arr = [...filtered];
     arr.sort((a, b) => {
@@ -340,6 +346,15 @@ export function Watchlist() {
           else cmp = aPrice - bPrice;
           break;
         }
+        case "deal": {
+          const aScore = dealScores.get(a.id) ?? null;
+          const bScore = dealScores.get(b.id) ?? null;
+          if (aScore === null && bScore === null) cmp = 0;
+          else if (aScore === null) return 1;
+          else if (bScore === null) return -1;
+          else cmp = bScore - aScore;
+          break;
+        }
         case "trend": {
           const order = { up: 0, flat: 1, down: 2 };
           cmp = order[getTrend(a)] - order[getTrend(b)];
@@ -355,7 +370,7 @@ export function Watchlist() {
       return sortAsc ? cmp : -cmp;
     });
     return arr;
-  }, [filtered, sortKey, sortAsc, displayCurrency]);
+  }, [filtered, sortKey, sortAsc, displayCurrency, dealScores]);
 
   const sections = useMemo(
     () => groupWatchlist(sorted, groupMode, tagDefinitions),
@@ -719,6 +734,7 @@ export function Watchlist() {
                     </>
                   );
                 })()}
+                {(() => { const s = dealScores.get(product.id); return s != null && s >= 80 ? (<span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">🔥 Hot deal</span>) : null; })()}
                 {(product.tags ?? [])
                   .filter((tagId) => tagDefinitions[tagId])
                   .map((tagId) => {
@@ -761,6 +777,16 @@ export function Watchlist() {
           ) : (
             <span className="text-sm text-gray-400">No price</span>
           )}
+        </td>
+        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+          {(() => {
+            const s = dealScores.get(product.id);
+            return s != null ? (
+              <span className="font-semibold" title={`Deal Score ${s}`}>{s}</span>
+            ) : (
+              <span className="text-gray-400">—</span>
+            );
+          })()}
         </td>
         <td className="px-4 py-3">
           <StockBadge status={getDominantStatus(product)} />
@@ -1077,6 +1103,16 @@ export function Watchlist() {
                   <ArrowUpDown className="w-3 h-3" />
                 </button>
               </th>
+              <th className="text-left" aria-sort={sortKey === "deal" ? (sortAsc ? "ascending" : "descending") : "none"}>
+                <button
+                  onClick={() => handleSort("deal")}
+                  className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
+                  aria-label="Sort by Deal"
+                >
+                  Deal
+                  <ArrowUpDown className="w-3 h-3" />
+                </button>
+              </th>
               <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-left">
                 Stock
               </th>
@@ -1108,7 +1144,7 @@ export function Watchlist() {
           <tbody>
             {virtualRows.length > 0 && virtualRows[0].start > 0 && (
               <tr aria-hidden="true">
-                <td colSpan={selectionMode ? 8 : 7} style={{ height: virtualRows[0].start, padding: 0, border: 0 }} />
+                <td colSpan={selectionMode ? 9 : 8} style={{ height: virtualRows[0].start, padding: 0, border: 0 }} />
               </tr>
             )}
             {virtualRows.map((vr) => {
@@ -1117,7 +1153,7 @@ export function Watchlist() {
               if (row.kind === "header") {
                 return (
                   <tr key={row.key} ref={rowVirtualizer.measureElement} data-index={vr.index} aria-rowindex={vr.index + 1}>
-                    <th scope="rowgroup" colSpan={selectionMode ? 8 : 7} className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800/60 text-left">
+                    <th scope="rowgroup" colSpan={selectionMode ? 9 : 8} className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800/60 text-left">
                       {row.title} · {row.count}
                     </th>
                   </tr>
@@ -1130,7 +1166,7 @@ export function Watchlist() {
               const remainder = last ? rowVirtualizer.getTotalSize() - last.end : 0;
               return remainder > 0 ? (
                 <tr aria-hidden="true">
-                  <td colSpan={selectionMode ? 8 : 7} style={{ height: remainder, padding: 0, border: 0 }} />
+                  <td colSpan={selectionMode ? 9 : 8} style={{ height: remainder, padding: 0, border: 0 }} />
                 </tr>
               ) : null;
             })()}

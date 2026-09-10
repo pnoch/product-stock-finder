@@ -35,6 +35,7 @@ import {
 } from "../../../lib/region-filter";
 import type { Product } from "../../../lib/types";
 import { findBestDeal } from "../../../lib/best-deal";
+import { computeDealScore } from "../../../lib/deal-score";
 import { composeLiveListings } from "../../../lib/live-prices";
 import { fetchListingsWithTimeout } from "../lib/server-prices";
 import { buildShareText } from "../../../lib/price-share";
@@ -255,6 +256,11 @@ export function ProductDetail() {
 
   const priceVsAvg = useMemo(
     () => (product ? computePriceVsAverage(product.listings ?? [], displayCurrency) : null),
+    [product, displayCurrency],
+  );
+
+  const dealScore = useMemo(
+    () => computeDealScore(product?.listings ?? [], displayCurrency),
     [product, displayCurrency],
   );
 
@@ -703,6 +709,20 @@ export function ProductDetail() {
         </div>
       )}
       </div>
+
+      {dealScore != null && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <p className="text-[15px] font-bold text-gray-900 dark:text-gray-100">
+            Deal Score {dealScore.score} — {dealScore.band === "hot" ? "Hot deal" : dealScore.band === "fair" ? "Fair price" : "Wait for a drop"}
+          </p>
+          <div className="flex flex-wrap gap-3 mt-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Range {dealScore.factors.range}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Trend {dealScore.factors.trend}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Streak {dealScore.factors.streak}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Volatility {dealScore.factors.volatility}</span>
+          </div>
+        </div>
+      )}
 
       {priceVsAvg && (
         <div
