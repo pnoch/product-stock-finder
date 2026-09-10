@@ -21,10 +21,9 @@ import { computeDropCalendar, dateKey } from "../../../lib/drop-calendar";
 import { computeProductInsights } from "../../../lib/product-insights";
 import { rankDeals, dealBandLabel } from "../../../lib/deal-score";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
+import { LOG_ERROR } from "../../../lib/log";
 
 const CHART_COLORS = ["#0F52BA", "#00C896", "#F59E0B", "#EF4444", "#8B5CF6"];
-
-const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
 
 function StatSkeleton() {
   return (
