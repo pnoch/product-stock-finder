@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useParams, useSearchParams } from "react-router";
+import { useParams, useSearchParams, Link } from "react-router";
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
 import { formatPrice, CURRENCY_SYMBOLS } from "@shared/currency";
@@ -19,6 +19,8 @@ import {
   TrendingUp,
   Minus,
   Check,
+  ArrowLeft,
+  RefreshCw,
 } from "lucide-react";
 
 const CHART_COLORS = [
@@ -448,6 +450,7 @@ export function Compare() {
         icon={<GitCompareArrows className="w-12 h-12" />}
         title="Product not found"
         description="Go back to your watchlist and try again."
+        action={{ label: "Back to watchlist", to: "/watchlist" }}
       />
     );
 
@@ -466,6 +469,21 @@ export function Compare() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            to="/watchlist"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+            aria-label="Back to watchlist"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </Link>
+          <button
+            onClick={() => void loadCompare()}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer disabled:opacity-50"
+            aria-label="Refresh comparison"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </button>
           <button
             onClick={() => void handleShareCompare()}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
