@@ -1038,6 +1038,19 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 164: Desktop notification history + badges
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-notif-history-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-notif-history.md`)
+- [x] Rust `price-drops-triggered` event with tested payload; return/notify/deactivate untouched (`9a188e6`)
+- [x] TS recording with per-event isolation + sidebar unread bubble (`4dd43ac`); Cargo.lock version sync (`6e82f7b`)
+- [x] Guards (`tests/desktop-notif-history.test.ts`); E2E: `tsc 0`, lint 0 errors, tests green, `cargo check` + `cargo test` green, desktop build green
+
+## Phase 165: Desktop search + polish bundle
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-search-polish-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-search-polish.md`)
+- [x] CSV export, navigate-after-add, query prefill (`1377fdb`); rate row removed, health errors, restock copy (`3325258`)
+- [x] Guards (`tests/desktop-search-polish.test.ts`); E2E: `tsc 0`, lint 0 errors, `209 passed` files / `1537 passed` tests, desktop build green
+
 ## Phase 161: Deal-score follow-ups (dedup, labels, guard)
 
 - [x] Conversion/streak deduped into `product-insights` exports; shared `dealBandLabel` everywhere (mapping test pinned)
