@@ -15,7 +15,8 @@ describe("desktop email auth", () => {
     const settings = await readFile("desktop/src/pages/Settings.tsx", "utf8");
     expect(hooks).toContain("changePassword");
     expect(hooks).toContain("/api/auth/change-password");
+    expect(hooks).toContain("New passwords do not match");
     expect(settings).toContain("Create account");
-    expect(settings).toContain("New passwords do not match");
+    expect(settings).toContain("validatePasswordChange(");
   });
 });

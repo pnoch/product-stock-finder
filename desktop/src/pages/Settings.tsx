@@ -30,7 +30,7 @@ import {
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useConnection } from "../hooks/use-connection";
 import { ConnectionBadge } from "../components/ConnectionBadge";
-import { useAuth, buildLoginUrl, getSessionToken, signInWithEmail, signUpWithEmail, changePassword } from "../hooks/use-auth";
+import { useAuth, buildLoginUrl, signInWithEmail, signUpWithEmail, changePassword, deleteAccount, validateEmailAuth, validateForgotEmail, validatePasswordChange } from "../hooks/use-auth";
 import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
@@ -126,16 +126,6 @@ export function Settings() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authBusy, setAuthBusy] = useState(false);
 
-  function validateEmailAuth(email: string, password: string, isRegister: boolean): string | null {
-    if (!email.includes("@") || !password) {
-      return "Please enter a valid email and password";
-    }
-    if (isRegister && password.length < 6) {
-      return "Password must be at least 6 characters";
-    }
-    return null;
-  }
-
   const handleEmailAuth = async () => {
     const validationError = validateEmailAuth(authEmail, authPassword, authMode === "register");
     if (validationError) {
@@ -164,8 +154,9 @@ export function Settings() {
 
   const handleForgotPassword = useCallback(async () => {
     const email = forgotEmail.trim();
-    if (!email || !email.includes("@")) {
-      setForgotMessage("Please enter a valid email address");
+    const validationError = validateForgotEmail(email);
+    if (validationError) {
+      setForgotMessage(validationError);
       return;
     }
     setForgotSending(true);
@@ -295,16 +286,9 @@ export function Settings() {
   const [changing, setChanging] = useState(false);
 
   const handleChangePassword = async () => {
-    if (!currentPw || !newPw || !confirmPw) {
-      setChangeError("Please fill in all password fields");
-      return;
-    }
-    if (newPw !== confirmPw) {
-      setChangeError("New passwords do not match");
-      return;
-    }
-    if (newPw.length < 6) {
-      setChangeError("Password must be at least 6 characters");
+    const validationError = validatePasswordChange(currentPw, newPw, confirmPw);
+    if (validationError) {
+      setChangeError(validationError);
       return;
     }
     setChanging(true);
@@ -626,20 +610,7 @@ export function Settings() {
     setDeleting(true);
     setDeleteError(null);
     try {
-      const token = getSessionToken();
-      const res = await fetch(`${getApiBaseUrl()}/api/auth/delete-account`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ confirm: "DELETE" }),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Server account deletion failed");
-      }
+      await deleteAccount();
       try {
         logout();
       } catch {

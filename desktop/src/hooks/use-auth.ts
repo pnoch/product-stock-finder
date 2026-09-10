@@ -86,6 +86,36 @@ function mapUser(data: {
   };
 }
 
+export function validateEmailAuth(email: string, password: string, isRegister: boolean): string | null {
+  if (!email.includes("@") || !password) {
+    return "Email and password are required";
+  }
+  if (isRegister && password.length < 6) {
+    return "Password must be at least 6 characters";
+  }
+  return null;
+}
+
+export function validateForgotEmail(email: string): string | null {
+  if (!email || !email.includes("@")) {
+    return "Email is required";
+  }
+  return null;
+}
+
+export function validatePasswordChange(currentPw: string, newPw: string, confirmPw: string): string | null {
+  if (!currentPw || !newPw || !confirmPw) {
+    return "All fields are required";
+  }
+  if (newPw.length < 6) {
+    return "New password must be at least 6 characters";
+  }
+  if (newPw !== confirmPw) {
+    return "New passwords do not match";
+  }
+  return null;
+}
+
 async function authedFetch<T>(
   path: string,
   body: unknown,
@@ -202,14 +232,7 @@ export function useAuth() {
             loginMethod?: string | null;
             lastSignedIn?: string;
           };
-          setUserInfo({
-            id: decoded.id ?? 0,
-            openId: decoded.openId ?? "",
-            name: decoded.name ?? null,
-            email: decoded.email ?? null,
-            loginMethod: decoded.loginMethod ?? null,
-            lastSignedIn: decoded.lastSignedIn ?? new Date().toISOString(),
-          });
+          setUserInfo(mapUser(decoded));
         } catch {
           // A token without a usable user profile must not leave a stale
           // signed-in session behind.
