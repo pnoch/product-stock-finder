@@ -6,6 +6,7 @@ import {
   Clock,
   Plus,
   ArrowRight,
+  RefreshCw,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useWatchlist, useAlerts } from "../hooks/use-storage";
@@ -91,6 +92,7 @@ export function Home() {
   const [reminderCount, setReminderCount] = useState(0);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   // PendingTags reactivity fix — derived array ensures effect triggers when Set mutates via new Set()
   // (parity with Watchlist/SearchModal pendingTags handling)
   const [pendingTags] = useState<Set<string>>(new Set());
@@ -118,8 +120,9 @@ export function Home() {
     void loadDashboard();
   }, [loadDashboard]);
 
-  const handleRetry = useCallback(() => {
-    void (async () => {
+  const refreshDashboard = useCallback(async () => {
+    setRefreshing(true);
+    try {
       setLoadError(null);
       await loadDashboard();
       try {
@@ -135,8 +138,14 @@ export function Home() {
       } catch (e) {
         setLoadError(e instanceof Error ? e.message : "Couldn't load dashboard");
       }
-    })();
+    } finally {
+      setRefreshing(false);
+    }
   }, [loadDashboard, refreshWatchlist, refreshAlerts]);
+
+  const handleRetry = useCallback(() => {
+    void refreshDashboard();
+  }, [refreshDashboard]);
 
   const loading = watchlistLoading || alertsLoading;
 
@@ -200,13 +209,24 @@ export function Home() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <Link
-          to="/search"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
-          aria-label="Add a new product"
-        >
-          <Plus className="w-4 h-4" /> Add Product
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void refreshDashboard()}
+            disabled={refreshing}
+            aria-label="Refresh dashboard"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Refreshing" : "Refresh"}
+          </button>
+          <Link
+            to="/search"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+            aria-label="Add a new product"
+          >
+            <Plus className="w-4 h-4" /> Add Product
+          </Link>
+        </div>
       </div>
 
       {loadError && (
