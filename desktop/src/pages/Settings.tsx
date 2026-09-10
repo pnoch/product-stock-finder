@@ -67,7 +67,18 @@ export function Settings() {
       stopPricePoller();
     }
     const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
-    startPricePoller(intervalMinutes, getApiBaseUrl());
+    let cancelled = false;
+    (async () => {
+      try {
+        await startPricePoller(intervalMinutes, getApiBaseUrl());
+      } catch {
+        if (cancelled) return;
+        showToast("Couldn't start background checks — reverted to Manual");
+        console.error("[Settings] startPricePoller failed, reverting to manual");
+        await update({ checkInterval: "manual" });
+      }
+    })();
+    return () => { cancelled = true; };
   }, [settings?.checkInterval]);
   const [clearConfirm, setClearConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);

@@ -74,7 +74,10 @@ export function createIDBAdapter(): StorageAdapter {
       } catch {
         try {
           if (typeof localStorage !== "undefined") localStorage.removeItem(key);
-        } catch {}
+        } catch (e) {
+          console.warn("[idb-adapter] removeItem fallback failed", e);
+          throw e;
+        }
       }
     },
     async multiRemove(keys: string[]): Promise<void> {
@@ -96,7 +99,10 @@ export function createIDBAdapter(): StorageAdapter {
       } catch {
         try {
           if (typeof localStorage !== "undefined") keys.forEach((k) => localStorage.removeItem(k));
-        } catch {}
+        } catch (e) {
+          console.warn("[idb-adapter] multiRemove fallback failed", e);
+          throw e;
+        }
       }
     },
   };

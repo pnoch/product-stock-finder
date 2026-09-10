@@ -9,6 +9,7 @@ export async function startPricePoller(
     await invoke("start_price_poller", { intervalMinutes, apiBaseUrl });
   } catch (e) {
     console.error("Failed to start price poller:", e);
+    throw e;
   }
 }
 
