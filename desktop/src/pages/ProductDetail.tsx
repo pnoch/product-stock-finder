@@ -33,7 +33,7 @@ import {
   getAllRegions,
   filterListingsByRegion,
 } from "../../../lib/region-filter";
-import type { Product, PriceAlert } from "../../../lib/types";
+import type { Product, PriceAlert, DistributorListing } from "../../../lib/types";
 import { scopedAlertFor, productWideAlert, alertDeltaPct } from "../../../lib/alert-scope";
 import { findBestDeal } from "../../../lib/best-deal";
 import { computeDealScore, dealBandLabel } from "../../../lib/deal-score";
@@ -44,6 +44,7 @@ import { buildShareText } from "../../../lib/price-share";
 import { getProductNote, saveProductNote } from "../../../lib/product-notes";
 import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
+import { DistributorHistoryModal } from "../components/DistributorHistoryModal";
 import { ProductImage } from "../components/ProductImage";
 import {
   LineChart,
@@ -155,6 +156,7 @@ export function ProductDetail() {
   const [editCategory, setEditCategory] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
+  const [historyFor, setHistoryFor] = useState<DistributorListing | null>(null);
 
   const loadProduct = useCallback(async () => {
     if (!id) return;
@@ -1224,14 +1226,25 @@ export function ProductDetail() {
                         >
                           <Clock className="w-3.5 h-3.5" />
                         </button>
-                        <Link
-                          to={`/compare/${product.id}?distributor=${listing.distributorId}`}
-                          className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                          aria-label={`View ${dist?.name ?? listing.distributorId} price history`}
-                          title="View price history"
-                        >
-                          <BarChart3 className="w-3.5 h-3.5" />
-                        </Link>
+                        {listing.priceHistory && listing.priceHistory.length >= 2 ? (
+                          <button
+                            onClick={() => setHistoryFor(listing)}
+                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                            aria-label={`View ${dist?.name ?? listing.distributorId} price history`}
+                            title="View price history"
+                          >
+                            <BarChart3 className="w-3.5 h-3.5" />
+                          </button>
+                        ) : (
+                          <Link
+                            to={`/compare/${product.id}?distributor=${listing.distributorId}`}
+                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                            aria-label={`View ${dist?.name ?? listing.distributorId} price history`}
+                            title="View price history"
+                          >
+                            <BarChart3 className="w-3.5 h-3.5" />
+                          </Link>
+                        )}
                         <a
                           href={listing.url}
                           target="_blank"
@@ -1686,6 +1699,17 @@ export function ProductDetail() {
           </div>
         </div>
       </Modal>
+
+      {/* Per-distributor History Modal */}
+      <DistributorHistoryModal
+        open={historyFor !== null}
+        onClose={() => setHistoryFor(null)}
+        productId={product.id}
+        productName={product.name}
+        listing={historyFor}
+        distributorName={DISTRIBUTORS.find((d) => d.id === historyFor?.distributorId)?.name ?? historyFor?.distributorId ?? ""}
+        displayCurrency={displayCurrency}
+      />
 
       {/* Inline AlertSection / ReminderSection — desktop ports of mobile components */}
       <div className="grid gap-6 md:grid-cols-2">
