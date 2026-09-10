@@ -6,7 +6,6 @@ vi.mock("../server/db", () => {
     getUserByEmail: vi.fn(),
     createEmailVerificationToken: vi.fn(),
     getEmailVerificationToken: vi.fn(async (token: string) => store.get(token) ?? null),
-    markEmailVerificationTokenUsed: vi.fn(),
     consumeEmailVerificationToken: vi.fn(async (token: string) => {
       const r = store.get(token);
       if (!r || r.usedAt !== null || r.expiresAt <= Date.now()) return null;

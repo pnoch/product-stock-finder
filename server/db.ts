@@ -192,20 +192,6 @@ export async function getPasswordResetToken(token: string) {
   }
 }
 
-export async function markPasswordResetTokenUsed(token: string) {
-  const db = await getDb();
-  const now = Date.now();
-  if (memTokens.has(token)) {
-    const row = memTokens.get(token)!;
-    row.usedAt = now;
-    memTokens.set(token, row);
-  }
-  if (!db) return;
-  try {
-    await db.update(passwordResetTokens).set({ usedAt: now } as any).where(eq(passwordResetTokens.token, token));
-  } catch {}
-}
-
 /**
  * Atomically consumes a reset token: returns the row only if it is unused
  * and unexpired, marking it used in the same step. Concurrent uses of the
@@ -276,20 +262,6 @@ export async function getEmailVerificationToken(token: string) {
   } catch {
     return memVerifyTokens.get(token) ?? null;
   }
-}
-
-export async function markEmailVerificationTokenUsed(token: string) {
-  const db = await getDb();
-  const now = Date.now();
-  if (memVerifyTokens.has(token)) {
-    const row = memVerifyTokens.get(token)!;
-    row.usedAt = now;
-    memVerifyTokens.set(token, row);
-  }
-  if (!db) return;
-  try {
-    await db.update(emailVerificationTokens).set({ usedAt: now } as any).where(eq(emailVerificationTokens.token, token));
-  } catch {}
 }
 
 /**

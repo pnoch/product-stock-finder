@@ -13,14 +13,6 @@ export async function startPricePoller(
   }
 }
 
-export async function checkPriceDropsNow(): Promise<string> {
-  try {
-    return await invoke("check_price_drops");
-  } catch (e) {
-    return `Error: ${e}`;
-  }
-}
-
 export async function stopPricePoller(): Promise<void> {
   try {
     await invoke("stop_price_poller");

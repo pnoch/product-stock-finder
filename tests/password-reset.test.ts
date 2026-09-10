@@ -12,10 +12,6 @@ vi.mock("../server/db", () => {
       store.set(token, { userId, token, expiresAt, usedAt: null });
     }),
     getPasswordResetToken: vi.fn(async (token: string) => store.get(token) ?? null),
-    markPasswordResetTokenUsed: vi.fn(async (token: string) => {
-      const r = store.get(token);
-      if (r) r.usedAt = Date.now();
-    }),
     consumePasswordResetToken: vi.fn(async (token: string) => {
       const r = store.get(token);
       if (!r || r.usedAt !== null || r.expiresAt <= Date.now()) return null;
@@ -260,9 +256,12 @@ describe("server/db passwordResetTokens in-memory fallback", () => {
       store.set(token, { userId, token, expiresAt, usedAt: null });
     });
     vi.mocked(db.getPasswordResetToken).mockImplementation(async (token: string) => store.get(token) ?? null);
-    vi.mocked(db.markPasswordResetTokenUsed).mockImplementation(async (token: string) => {
+    vi.mocked(db.consumePasswordResetToken).mockImplementation(async (token: string) => {
       const r = store.get(token);
-      if (r) r.usedAt = Date.now();
+      if (!r || r.usedAt !== null || r.expiresAt <= Date.now()) return null;
+      r.usedAt = Date.now();
+      store.set(token, r);
+      return r;
     });
     vi.mocked(db.__clearPasswordResetTokensForTest as unknown as { mockImplementation: (fn: () => void) => void }).mockImplementation(() => store.clear());
   });
@@ -274,7 +273,7 @@ describe("server/db passwordResetTokens in-memory fallback", () => {
     expect(row).not.toBeNull();
     expect(row!.token).toBe(tok);
     expect(row!.usedAt).toBeNull();
-    await db2.markPasswordResetTokenUsed(tok);
+    await db2.consumePasswordResetToken(tok);
     const row2 = await db2.getPasswordResetToken(tok);
     expect(row2!.usedAt).not.toBeNull();
   });

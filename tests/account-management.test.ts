@@ -8,7 +8,6 @@ vi.mock("../server/db", () => ({
   deleteUserById: vi.fn(),
   getPasswordResetToken: vi.fn(),
   createPasswordResetToken: vi.fn(),
-  markPasswordResetTokenUsed: vi.fn(),
   updateUserPasswordHash: vi.fn(),
   __clearPasswordResetTokensForTest: vi.fn(),
 }));

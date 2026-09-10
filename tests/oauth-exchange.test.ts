@@ -6,7 +6,6 @@ vi.mock("../server/db", () => ({
   upsertUser: vi.fn(),
   createEmailVerificationToken: vi.fn(),
   getPasswordResetToken: vi.fn(),
-  markPasswordResetTokenUsed: vi.fn(),
   updateUserPasswordHashById: vi.fn(),
 }));
 

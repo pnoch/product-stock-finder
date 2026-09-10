@@ -7,7 +7,6 @@ vi.mock("../server/db", () => {
     getUserById: vi.fn(async () => ({ id: 42, passwordHash: "old-hash" })),
     createPasswordResetToken: vi.fn(),
     getPasswordResetToken: vi.fn(async (token: string) => store.get(token) ?? null),
-    markPasswordResetTokenUsed: vi.fn(),
     consumePasswordResetToken: vi.fn(async () => null),
     consumeEmailVerificationToken: vi.fn(async () => null),
     updateUserPasswordHashById: vi.fn(),
