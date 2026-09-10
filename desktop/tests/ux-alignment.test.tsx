@@ -90,3 +90,22 @@ describe("deal sort persistence", () => {
     qc.clear();
   });
 });
+
+describe("notifications refresh", () => {
+  it("refreshes notifications on demand", async () => {
+    mockStorage.getNotificationHistory.mockResolvedValue([]);
+    mockStorage.getUnreadNotificationCount.mockResolvedValue(0);
+    const qc = renderAlerts();
+    try {
+      const tabButton = await screen.findByRole("button", { name: /show notifications/i });
+      fireEvent.click(tabButton);
+      await waitFor(() => expect(mockStorage.getNotificationHistory).toHaveBeenCalled());
+      mockStorage.getNotificationHistory.mockClear();
+      const refreshButton = await screen.findByRole("button", { name: /refresh notifications/i });
+      fireEvent.click(refreshButton);
+      await waitFor(() => expect(mockStorage.getNotificationHistory).toHaveBeenCalledTimes(1));
+    } finally {
+      qc.clear();
+    }
+  });
+});

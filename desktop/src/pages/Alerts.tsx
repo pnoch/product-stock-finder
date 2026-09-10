@@ -16,6 +16,7 @@ import {
 import { useAlerts } from "../hooks/use-storage";
 import { useToast } from "../hooks/use-toast";
 import { storage } from "../storage";
+import { syncDesktopNotifications } from "../server-notifications";
 import {
   formatPrice,
   convertPrice,
@@ -219,6 +220,16 @@ export function Alerts() {
     showToast("Alert updated");
     refreshAlerts();
   };
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefreshNotifications = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await syncDesktopNotifications();
+    } finally {
+      await loadNotifications();
+      setRefreshing(false);
+    }
+  }, [loadNotifications]);
   const handleMarkAllRead = async () => {
     try {
       await (storage.markAllNotificationsRead as unknown as () => Promise<void>)?.();
@@ -335,9 +346,19 @@ export function Alerts() {
           </div>
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500 dark:text-gray-400">{unreadCount > 0 ? `${unreadCount} unread` : notifications.length > 0 ? "All caught up" : "No notifications yet"}</p>
-            {unreadCount > 0 && (
-              <button onClick={handleMarkAllRead} className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline">Mark all read</button>
-            )}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => void handleRefreshNotifications()}
+                disabled={refreshing}
+                aria-label="Refresh notifications"
+                className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline disabled:opacity-50"
+              >
+                {refreshing ? "Refreshing" : "Refresh"}
+              </button>
+              {unreadCount > 0 && (
+                <button onClick={handleMarkAllRead} className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline">Mark all read</button>
+              )}
+            </div>
           </div>
           {notifError && (
             <div role="alert" className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
