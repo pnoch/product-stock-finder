@@ -25,7 +25,7 @@ vi.mock("../server/db", () => ({
   upsertUser: vi.fn(async () => {}),
 }));
 
-import { registerOAuthRoutes } from "../server/_core/oauth";
+import { registerOAuthRoutes, signOAuthState } from "../server/_core/oauth";
 import { sdk } from "../server/_core/sdk";
 import { getUserByOpenId, upsertUser } from "../server/db";
 
@@ -240,5 +240,56 @@ describe("GET /api/oauth/callback (legacy redirect)", () => {
       302,
       expect.stringContaining("error=invalid_state"),
     );
+  });
+});
+
+describe("GET /api/oauth/callback (web ticket redirect)", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("redirects the ticket to a same-origin web redirectUri", async () => {
+    process.env.EXPO_PUBLIC_API_BASE_URL = "https://app.example.com";
+    process.env.GOOGLE_CLIENT_ID = "test-google-id";
+    process.env.GOOGLE_CLIENT_SECRET = "test-google-secret";
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes("oauth2.googleapis.com/token")) {
+        return { ok: true, json: async () => ({ access_token: "at-1" }) };
+      }
+      return {
+        ok: true,
+        json: async () => ({ sub: "google-1", email: "g@example.com", name: "G User" }),
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      mockedGetUser.mockResolvedValue({ id: 7 } as any);
+      mockedCreateToken.mockResolvedValue("sess-123" as any);
+      const getHandler = setupRoutes();
+      const webBase = "https://app.example.com";
+      const state = signOAuthState(
+        { redirectUri: `${webBase}/#/oauth/callback`, deviceId: "dev-9", provider: "google" },
+      );
+      const res = makeRes();
+      const req: any = {
+        ...makeReq({}),
+        query: { code: "auth-code", state },
+        ip: "10.9.9.101",
+      };
+      await getHandler("GET", "/api/oauth/callback")(req, res);
+      const redirectLocation: string = res.redirect.mock.calls[0][1];
+      expect(redirectLocation).toContain("/#/oauth/callback?ticket=");
+      expect(redirectLocation).not.toContain("productstockfinder:");
+    } finally {
+      vi.unstubAllGlobals();
+      delete process.env.GOOGLE_CLIENT_ID;
+      delete process.env.GOOGLE_CLIENT_SECRET;
+      delete process.env.EXPO_PUBLIC_API_BASE_URL;
+    }
   });
 });

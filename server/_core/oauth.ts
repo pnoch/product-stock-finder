@@ -515,6 +515,12 @@ export function registerOAuthRoutes(app: Express) {
         state.redirectUri.startsWith("productstockfinder:");
       if (isNative) {
         const ticket = issueOAuthTicket(openId, state.deviceId);
+        const safeRedirect = resolveSafeRedirectUri(state.redirectUri, webBase);
+        if (safeRedirect.startsWith("http://") || safeRedirect.startsWith("https://")) {
+          const sep = safeRedirect.includes("?") ? "&" : "?";
+          res.redirect(302, `${safeRedirect}${sep}ticket=${encodeURIComponent(ticket)}`);
+          return;
+        }
         const params = new URLSearchParams({ ticket });
         res.redirect(302, `productstockfinder:/oauth/callback?${params.toString()}`);
         return;
