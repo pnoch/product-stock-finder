@@ -6,6 +6,7 @@ import type {
   WatchlistSort,
 } from "./types";
 import { convertPrice, getBestPrice } from "./currency";
+import { computeDealScore } from "./deal-score";
 import { getDistributorById } from "@shared/distributors";
 import { productHasRegion } from "./region-filter";
 import { matchesTagFilterMode } from "./tags";
@@ -38,6 +39,7 @@ export const SORT_OPTIONS: { key: WatchlistSort; label: string }[] = [
   { key: "price_drop", label: "Price Drop" },
   { key: "status", label: "Status" },
   { key: "region", label: "Region" },
+  { key: "deal", label: "Best deals" },
 ];
 
 export const GROUP_OPTIONS: { key: WatchlistGroup; label: string }[] = [
@@ -215,6 +217,17 @@ export function sortWatchlist(
       );
     case "region":
       return copy.sort((a, b) => productRegion(a).localeCompare(productRegion(b)));
+    case "deal": {
+      const scores = new Map(list.map((p) => [p.id, computeDealScore(p.listings ?? [], displayCurrency)?.score ?? null]));
+      return copy.sort((a, b) => {
+        const sa = scores.get(a.id) ?? null;
+        const sb = scores.get(b.id) ?? null;
+        if (sa === null && sb === null) return 0;
+        if (sa === null) return 1;
+        if (sb === null) return -1;
+        return sb - sa;
+      });
+    }
     default:
       return copy;
   }

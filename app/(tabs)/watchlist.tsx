@@ -34,6 +34,7 @@ import {
 import { countQueuedEdits } from "@/lib/sync";
 import { computeWatchlistSummary } from "@/lib/watchlist-summary";
 import { computeProductInsights } from "@/lib/product-insights";
+import { computeDealScore } from "@/lib/deal-score";
 import {
   Product,
   TagDefinition,
@@ -260,6 +261,15 @@ export default function WatchlistScreen() {
   const insightMap = useMemo(() => {
     const result = computeProductInsights(watchlist, displayCurrency);
     return new Map(result.products.map((p) => [p.productId, p] as const));
+  }, [watchlist, displayCurrency]);
+
+  const dealScoreMap = useMemo(() => {
+    return new Map(
+      watchlist.map(
+        (p) =>
+          [p.id, computeDealScore(p.listings ?? [], displayCurrency)] as const,
+      ),
+    );
   }, [watchlist, displayCurrency]);
 
   const toggleTagFilter = useCallback((tagId: string) => {
@@ -746,6 +756,7 @@ export default function WatchlistScreen() {
                     }
                   : undefined
               }
+              dealScore={dealScoreMap.get(item.id) ?? undefined}
               selected={selectedIds.has(item.id)}
               onPress={() => handleProductPress(item)}
               onLongPress={() => handleProductLongPress(item)}

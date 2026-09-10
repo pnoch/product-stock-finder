@@ -18,6 +18,7 @@ import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
 import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
 import { computePriceVsAverage } from "@/lib/price-average";
+import { computeDealScore } from "@/lib/deal-score";
 import { findBestDeal } from "@/lib/best-deal";
 import { fetchPriceInsight } from "@/lib/server-insights";
 import { fetchProductImage } from "@/lib/server-images";
@@ -123,6 +124,7 @@ export default function ProductDetailScreen() {
     return best;
   }, [visibleListings, effectiveCurrency]);
   const priceVsAvg = useMemo(() => computePriceVsAverage(listings, effectiveCurrency), [listings, effectiveCurrency]);
+  const dealScore = useMemo(() => computeDealScore(listings, effectiveCurrency), [listings, effectiveCurrency]);
   const reminderTarget = useMemo(
     () => bestInStockListing ?? sortedListings.find((l) => l.stockStatus !== "out_of_stock") ?? sortedListings[0] ?? null,
     [bestInStockListing, sortedListings],
@@ -358,6 +360,29 @@ export default function ProductDetailScreen() {
         <DetailHeader product={product} bestDeal={bestDeal} scrollY={scrollY} />
         <View ref={shareRef} collapsable={false}>
           <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={effectiveCurrency} productImage={productImage} />
+          {dealScore != null && (
+            <View
+              style={{
+                marginHorizontal: 16,
+                backgroundColor: colors.surface,
+                borderRadius: 16,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: colors.border,
+                marginBottom: 16,
+              }}
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}>
+                Deal Score {dealScore.score} — {dealScore.band === "hot" ? "Hot deal" : dealScore.band === "fair" ? "Fair price" : "Wait for a drop"}
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 8 }}>
+                <Text style={{ color: colors.muted, fontSize: 12 }}>Range {dealScore.factors.range}</Text>
+                <Text style={{ color: colors.muted, fontSize: 12 }}>Trend {dealScore.factors.trend}</Text>
+                <Text style={{ color: colors.muted, fontSize: 12 }}>Streak {dealScore.factors.streak}</Text>
+                <Text style={{ color: colors.muted, fontSize: 12 }}>Volatility {dealScore.factors.volatility}</Text>
+              </View>
+            </View>
+          )}
           {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} displayCurrency={effectiveCurrency} />}
           <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={effectiveShippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={effectiveCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={() => router.push(`/compare/${id}`)} onRemind={setReminderListing} />
         </View>

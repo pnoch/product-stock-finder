@@ -26,7 +26,8 @@ export type WatchlistSort =
   | "az"
   | "price_drop"
   | "status"
-  | "region";
+  | "region"
+  | "deal";
 
 export type WatchlistGroup = "off" | "tag" | "status" | "region";
 

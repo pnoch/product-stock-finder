@@ -21,6 +21,7 @@ import {
 } from "@/lib/last-refreshed";
 import { getTagById } from "@/lib/tags";
 import { productStatus } from "@/lib/watchlist-org";
+import type { DealScore } from "@/lib/deal-score";
 
 export const ProductCard = memo(function ProductCard({
   product,
@@ -32,6 +33,7 @@ export const ProductCard = memo(function ProductCard({
   selected = false,
   onLongPress,
   insight,
+  dealScore,
   displayCurrency,
 }: {
   product: Product;
@@ -43,10 +45,14 @@ export const ProductCard = memo(function ProductCard({
   selected?: boolean;
   onLongPress?: () => void;
   insight?: { atAllTimeLow: boolean; dropStreak: number };
+  dealScore?: DealScore | null;
   displayCurrency?: string;
 }) {
   const colors = useColors();
   const currency = displayCurrency ?? "USD";
+  const showInsightRow =
+    (insight != null && (insight.atAllTimeLow || insight.dropStreak >= 2)) ||
+    (dealScore != null && dealScore.band === "hot");
   const bestPrice = useMemo(
     () => getBestPrice(product.listings ?? [], currency),
     [product.listings, currency],
@@ -386,7 +392,7 @@ export const ProductCard = memo(function ProductCard({
           )}
         </View>
       )}
-      {insight && (insight.atAllTimeLow || insight.dropStreak >= 2) && (
+      {showInsightRow && (
         <View
           style={{
             flexDirection: "row",
@@ -395,7 +401,7 @@ export const ProductCard = memo(function ProductCard({
             marginTop: validTags.length > 0 ? 6 : 10,
           }}
         >
-          {insight.atAllTimeLow && (
+          {insight?.atAllTimeLow && (
             <View
               style={{
                 flexDirection: "row",
@@ -418,7 +424,7 @@ export const ProductCard = memo(function ProductCard({
               </Text>
             </View>
           )}
-          {insight.dropStreak >= 2 && (
+          {insight != null && insight.dropStreak >= 2 && (
             <View
               style={{
                 flexDirection: "row",
@@ -438,6 +444,29 @@ export const ProductCard = memo(function ProductCard({
                 }}
               >
                 ▼ Dropping ×{insight.dropStreak}
+              </Text>
+            </View>
+          )}
+          {dealScore != null && dealScore.band === "hot" && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                backgroundColor: colors.warning + "22",
+                borderRadius: 8,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.warning,
+                  fontSize: 10,
+                  fontWeight: "700",
+                }}
+              >
+                🔥 Hot deal
               </Text>
             </View>
           )}
