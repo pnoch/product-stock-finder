@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NavLink } from "react-router";
+import { NavLink, useLocation } from "react-router";
 import { storage } from "../storage";
 import {
   LayoutDashboard,
@@ -30,6 +30,7 @@ const navItems = [
 
 export function Sidebar() {
   const [unreadCount, setUnreadCount] = useState(0);
+  const { pathname } = useLocation();
 
   useEffect(() => {
     const load = async () => {
@@ -46,7 +47,7 @@ export function Sidebar() {
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, []);
+  }, [pathname]);
 
   return (
     <aside className="flex flex-col w-16 lg:w-56 h-screen bg-surface-light dark:bg-surface-dark border-r border-gray-200 dark:border-gray-700 shadow-sm shrink-0">

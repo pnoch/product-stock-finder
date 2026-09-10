@@ -264,7 +264,7 @@ export default function App() {
       for (const e of events ?? []) {
         try {
           await storage.recordNotificationEvent({
-            id: `price-drop-${e.productId}-${Date.now()}`,
+            id: `price-drop-${e.productId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             type: "price_drop",
             title: "Price Drop Alert!",
             body: `${e.productName} is now ${e.bestPrice} ${e.currency} (target ${e.targetPrice} ${e.currency})`,

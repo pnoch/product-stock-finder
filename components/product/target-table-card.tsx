@@ -24,7 +24,7 @@ export function TargetTableCard({
 
   const rows = listings.map((listing) => ({
     listing,
-    alert: scopedAlertFor(alerts, productId, listing.distributorId),
+    alert: scopedAlertFor(alerts, productId, listing.distributorId, listing.currency),
   }));
   const wide = productWideAlert(alerts, productId);
   if (rows.length === 0) return null;

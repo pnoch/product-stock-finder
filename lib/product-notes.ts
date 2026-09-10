@@ -28,14 +28,25 @@ export async function getProductNote(
   return all[productId] ?? "";
 }
 
+// Best-effort serialization of read-modify-write cycles so concurrent saves
+// cannot clobber each other. lib/storage's per-key enqueue does not fit here
+// (callers inject their own KeyValueStore), so chain module-locally. The chain
+// itself never stays rejected; callers still observe their own write's error.
+let pending: Promise<unknown> = Promise.resolve();
+
 export async function saveProductNote(
   productId: string,
   note: string,
   store: KeyValueStore = AsyncStorage,
 ): Promise<void> {
-  const all = await readAll(store);
-  const trimmed = note.trim();
-  if (!trimmed) delete all[productId];
-  else all[productId] = trimmed;
-  await store.setItem(KEY, JSON.stringify(all));
+  const doWrite = async (): Promise<void> => {
+    const all = await readAll(store);
+    const trimmed = note.trim();
+    if (!trimmed) delete all[productId];
+    else all[productId] = trimmed;
+    await store.setItem(KEY, JSON.stringify(all));
+  };
+  const next = pending.then(doWrite, doWrite);
+  pending = next.catch(() => {});
+  return next;
 }
