@@ -16,6 +16,7 @@ export function NotesCard({ productId }: { productId: string }) {
   const [note, setNote] = useState("");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     void getProductNote(productId).then(setNote);
@@ -25,12 +26,18 @@ export function NotesCard({ productId }: { productId: string }) {
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setDraft(note);
+    setSaveError("");
     setEditing(true);
   };
 
   const handleSave = async () => {
     const trimmed = draft.trim();
-    await saveProductNote(productId, trimmed);
+    try {
+      await saveProductNote(productId, trimmed);
+    } catch {
+      setSaveError("Couldn't save note. Please try again.");
+      return;
+    }
     setNote(trimmed);
     setEditing(false);
     if (Platform.OS !== "web")
@@ -69,7 +76,10 @@ export function NotesCard({ productId }: { productId: string }) {
         <>
           <TextInput
             value={draft}
-            onChangeText={setDraft}
+            onChangeText={(text) => {
+              setDraft(text);
+              if (saveError) setSaveError("");
+            }}
             multiline
             autoFocus
             maxLength={500}
@@ -88,9 +98,17 @@ export function NotesCard({ productId }: { productId: string }) {
               marginBottom: 10,
             }}
           />
+          {saveError ? (
+            <Text style={{ color: colors.error, fontSize: 12, marginBottom: 8 }}>
+              {saveError}
+            </Text>
+          ) : null}
           <View style={{ flexDirection: "row", gap: 10 }}>
             <TouchableOpacity activeOpacity={0.7}
-              onPress={() => setEditing(false)}
+              onPress={() => {
+                setSaveError("");
+                setEditing(false);
+              }}
               style={{
                 flex: 1,
                 paddingVertical: 10,
