@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DistributorListing, Product } from "@/lib/types";
-import { computeDealScore, rankDeals } from "@/lib/deal-score";
+import { computeDealScore, dealBandLabel, rankDeals } from "@/lib/deal-score";
 
 function listing(
   prices: { date: string; price: number; currency?: string }[],
@@ -175,5 +175,13 @@ describe("rankDeals", () => {
 
   it("returns [] when nothing scores", () => {
     expect(rankDeals([], "USD")).toEqual([]);
+  });
+});
+
+describe("dealBandLabel", () => {
+  it("maps bands to user-facing copy", () => {
+    expect(dealBandLabel("hot")).toBe("Hot deal");
+    expect(dealBandLabel("fair")).toBe("Fair price");
+    expect(dealBandLabel("wait")).toBe("Wait for a drop");
   });
 });

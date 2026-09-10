@@ -88,7 +88,8 @@ describe("deal score surfaces", () => {
   it("desktop Watchlist has deal sortKey + Hot deal", () => {
     const src = read("desktop/src/pages/Watchlist.tsx");
     expect(src).toContain('"deal"');
-    expect(src).toContain("Hot deal");
+    expect(src).toContain("dealBandLabel");
+    expect(src).toContain("🔥");
   });
 
   it("desktop ProductDetail has Deal Score", () => {

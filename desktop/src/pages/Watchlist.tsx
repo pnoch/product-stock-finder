@@ -33,7 +33,7 @@ import { countTagMatches, filterWatchlist, groupWatchlist, type StatusFilter } f
 import { useConnection } from "../hooks/use-connection";
 import { countQueuedEdits } from "../../../lib/sync";
 import { computeProductInsights } from "../../../lib/product-insights";
-import { computeDealScore, type DealScore } from "../../../lib/deal-score";
+import { computeDealScore, dealBandLabel, type DealScore } from "../../../lib/deal-score";
 import { flattenWatchlistRows } from "../lib/watchlist-rows";
 import { TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import { createTRPCClient } from "../lib/trpc";
@@ -734,7 +734,7 @@ export function Watchlist() {
                     </>
                   );
                 })()}
-                {(() => { const d = dealScores.get(product.id); return d?.band === "hot" ? (<span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">🔥 Hot deal</span>) : null; })()}
+                {(() => { const d = dealScores.get(product.id); return d?.band === "hot" ? (<span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">🔥 {dealBandLabel(d.band)}</span>) : null; })()}
                 {(product.tags ?? [])
                   .filter((tagId) => tagDefinitions[tagId])
                   .map((tagId) => {
