@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router";
 import { Search, Check, Plus, Wand2, Loader2, Upload, PenLine, X } from "lucide-react";
 import { PRODUCT_CATALOG, getAllCategories, getAllBrands } from "@shared/catalog";
 import Fuse from "fuse.js";
@@ -104,6 +105,7 @@ export function SearchModal({
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [catalogSort, setCatalogSort] = useState<CatalogSort>("relevance");
   const inputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (open) {
@@ -435,7 +437,18 @@ export function SearchModal({
                   </label>
                 );
               })}
-              {Object.keys(tagDefinitions).length === 0 && <p className="text-sm text-gray-500">No tags yet. Create tags in Settings.</p>}
+              {Object.keys(tagDefinitions).length === 0 && (
+                <div>
+                  <p className="text-sm text-gray-500">No tags yet. Create tags in Watchlist.</p>
+                  <button
+                    onClick={() => { onClose(); navigate("/watchlist"); }}
+                    aria-label="Go to watchlist to create tags"
+                    className="mt-1 text-xs text-brand-600 hover:underline"
+                  >
+                    Go to Watchlist
+                  </button>
+                </div>
+              )}
             </div>
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => setTagPickerFor(null)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">Done</button>
