@@ -95,6 +95,7 @@ export function Alerts() {
   };
 
   const [remindersError, setRemindersError] = useState<string | null>(null);
+  const [notifError, setNotifError] = useState<string | null>(null);
 
   const loadReminders = useCallback(async () => {
     setRemindersLoading(true);
@@ -117,6 +118,21 @@ export function Alerts() {
     void loadReminders();
   }, [loadReminders]);
 
+  const loadNotifications = useCallback(async () => {
+    setNotifError(null);
+    try {
+      const [history, unread] = await Promise.all([
+        storage.getNotificationHistory?.() as Promise<NotificationHistoryEntry[]> | undefined,
+        storage.getUnreadNotificationCount?.() as Promise<number> | undefined,
+      ]);
+      if (history) setNotifications(history);
+      if (typeof unread === "number") setUnreadCount(unread);
+    } catch {
+      console.error("[Alerts] Failed to load notifications");
+      setNotifError("Couldn't load notifications.");
+    }
+  }, []);
+
   useEffect(() => {
     storage.getWatchlist().then((w) => {
       setProductNames(new Map(w.map((p) => [p.id, p.name])));
@@ -125,17 +141,8 @@ export function Alerts() {
     storage.getSettings().then((s) => {
       if (s?.displayCurrency) setDisplayCurrency(s.displayCurrency);
     });
-    (async () => {
-      try {
-        const [history, unread] = await Promise.all([
-          storage.getNotificationHistory?.() as Promise<NotificationHistoryEntry[]> | undefined,
-          storage.getUnreadNotificationCount?.() as Promise<number> | undefined,
-        ]);
-        if (history) setNotifications(history);
-        if (typeof unread === "number") setUnreadCount(unread);
-      } catch {}
-    })();
-  }, []);
+    void loadNotifications();
+  }, [loadNotifications]);
 
   const loading = alertsLoading || remindersLoading;
 
@@ -208,7 +215,10 @@ export function Alerts() {
       await (storage.markAllNotificationsRead as unknown as () => Promise<void>)?.();
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
-    } catch {}
+    } catch {
+      console.error("[Alerts] Failed to update notification read state");
+      showToast("Couldn't update notification. Try again.");
+    }
   };
   const handleNotificationOpen = async (n: NotificationHistoryEntry) => {
     if (n.read) return;
@@ -216,7 +226,10 @@ export function Alerts() {
       await storage.markNotificationRead(n.id);
       setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
       setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch {}
+    } catch {
+      console.error("[Alerts] Failed to update notification read state");
+      showToast("Couldn't update notification. Try again.");
+    }
   };
 
   const handleDeleteReminder = async (id: string) => {
@@ -315,6 +328,18 @@ export function Alerts() {
               <button onClick={handleMarkAllRead} className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline">Mark all read</button>
             )}
           </div>
+          {notifError && (
+            <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
+              <span className="flex-1">{notifError}</span>
+              <button
+                onClick={() => void loadNotifications()}
+                className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
+                aria-label="Retry loading notifications"
+              >
+                Retry
+              </button>
+            </div>
+          )}
           {notifications.length === 0 ? (
             <EmptyState icon={<BellRing className="w-12 h-12" />} title="No notifications yet" description="Price alerts and restock updates will appear here and in your system tray." />
           ) : (
