@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getApiBaseUrl, getAppId, getOAuthPortalUrl } from "../lib/api-base";
+import { getDesktopDeviceId } from "../lib/device-id";
 
 const SESSION_TOKEN_KEY = "desktop_session_token";
 const USER_INFO_KEY = "desktop_user_info";
@@ -57,6 +58,20 @@ export function buildLoginUrl(): string {
   return url.toString();
 }
 
+export async function buildWebLoginUrl(): Promise<string> {
+  const portal = getOAuthPortalUrl();
+  if (!portal) return "";
+  const deviceId = await getDesktopDeviceId().catch(() => undefined);
+  const redirectUri = `${window.location.origin}/#/oauth/callback`;
+  const url = new URL(`${portal}/app-auth`);
+  url.searchParams.set("appId", getAppId());
+  url.searchParams.set("redirectUri", redirectUri);
+  if (deviceId) url.searchParams.set("deviceId", deviceId);
+  url.searchParams.set("state", btoa(redirectUri));
+  url.searchParams.set("type", "signIn");
+  return url.toString();
+}
+
 type Listener = () => void;
 const listeners = new Set<Listener>();
 function notify() {
@@ -69,7 +84,7 @@ export function subscribeAuth(listener: Listener): () => void {
   };
 }
 
-function mapUser(data: {
+export function mapUser(data: {
   id?: number;
   openId?: string | null;
   name?: string | null;
@@ -216,6 +231,18 @@ export function useAuth() {
     setLoading(true);
     setError(null);
     try {
+      const isTauri =
+        typeof window !== "undefined" &&
+        (window as unknown as { __TAURI__?: unknown }).__TAURI__;
+      if (!isTauri) {
+        const webUrl = await buildWebLoginUrl();
+        if (!webUrl) {
+          setError("OAuth portal is not configured");
+          return false;
+        }
+        window.location.href = webUrl;
+        return true;
+      }
       const result = await invoke<{ sessionToken: string; user: string }>(
         "start_oauth",
         { loginUrl },

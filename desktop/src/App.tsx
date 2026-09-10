@@ -22,6 +22,7 @@ import { Stats } from "./pages/Stats";
 import { Rates } from "./pages/Rates";
 import { SharedWatchlist } from "./pages/SharedWatchlist";
 import { ResetPassword } from "./pages/ResetPassword";
+import { OAuthCallback } from "./pages/OAuthCallback";
 import { exportWatchlistAsJson } from "./import-export";
 import { useToast } from "./hooks/use-toast";
 import { useTheme } from "./hooks/use-theme";
@@ -348,6 +349,7 @@ export default function App() {
                     />
                     <Route path="/w/:token" element={<SharedWatchlist />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/oauth/callback" element={<OAuthCallback />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </div>
