@@ -155,6 +155,7 @@ export function Alerts() {
   };
 
   const handleDeleteAlert = async (id: string) => {
+    if (!window.confirm("Remove this price alert? This cannot be undone.")) return;
     await storage.removeAlert(id);
     showToast("Alert deleted");
     refreshAlerts();
@@ -233,11 +234,13 @@ export function Alerts() {
   };
 
   const handleDeleteReminder = async (id: string) => {
+    if (!window.confirm("Cancel this reminder? This cannot be undone.")) return;
     await storage.removeBackOrderReminder(id);
     setReminders((prev) => prev.filter((r) => r.id !== id));
   };
 
   const handleDeleteWatch = async (id: string) => {
+    if (!window.confirm("Stop watching for this restock? This cannot be undone.")) return;
     await storage.removeStockWatch(id);
     setWatches((prev) => prev.filter((w) => w.id !== id));
   };

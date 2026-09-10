@@ -33,6 +33,7 @@ export function RestockWatches() {
   }, [loadWatches]);
 
   const handleRemove = useCallback(async (id: string) => {
+    if (!window.confirm("Stop watching for this restock? This cannot be undone.")) return;
     try {
       await storage.removeStockWatch(id);
       setWatches((prev) => prev.filter((w) => w.id !== id));
