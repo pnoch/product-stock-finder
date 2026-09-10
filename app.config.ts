@@ -73,7 +73,7 @@ const webHost = getWebLinkHost(env.webUrl);
 const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
-  version: "5.4.16",
+  version: "5.4.17",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
