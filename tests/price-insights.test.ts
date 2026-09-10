@@ -162,3 +162,94 @@ describe("getInsight single-flight", () => {
     expect(second!.insight).toContain("Single-flight result.");
   });
 });
+
+describe("getInsight deal score grounding", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    clearInsightsForTests();
+    mockedGetCached.mockResolvedValue(snapshot);
+    mockedGetHistory.mockResolvedValue(history);
+    mockedInvokeLLM.mockResolvedValue({
+      id: "x",
+      created: 1,
+      model: "m",
+      choices: [
+        {
+          index: 0,
+          message: { role: "assistant", content: "Grounded result." },
+          finish_reason: "stop",
+        },
+      ],
+    });
+  });
+
+  it("includes the deal score in the LLM context", async () => {
+    const falling: PricePoint[] = [
+      "2026-05-01T00:00:00.000Z",
+      "2026-05-11T00:00:00.000Z",
+      "2026-05-21T00:00:00.000Z",
+      "2026-06-01T00:00:00.000Z",
+      "2026-06-11T00:00:00.000Z",
+      "2026-06-21T00:00:00.000Z",
+      "2026-07-01T00:00:00.000Z",
+      "2026-07-11T00:00:00.000Z",
+      "2026-08-01T00:00:00.000Z",
+      "2026-08-12T00:00:00.000Z",
+    ].map((date, i) => {
+      const prices = [120, 118, 115, 112, 110, 105, 100, 95, 92, 88.5];
+      return {
+        date,
+        price: prices[i]!,
+        currency: "MYR",
+        stockStatus: "in_stock" as const,
+      };
+    });
+    mockedGetHistory.mockResolvedValue(falling);
+    await getInsight("mikrotik-crs804-4ddq-hrm");
+    expect(mockedInvokeLLM).toHaveBeenCalledTimes(1);
+    const args = mockedInvokeLLM.mock.calls[0]?.[0] as {
+      messages: { role: string; content: string }[];
+    };
+    const userMessage = args.messages.find((m) => m.role === "user");
+    expect(userMessage).toBeDefined();
+    const context = JSON.parse(userMessage!.content) as {
+      dealScore: {
+        score: number;
+        band: string;
+        factors: Record<string, unknown>;
+      } | null;
+    };
+    expect(context.dealScore).toEqual({
+      score: expect.any(Number),
+      band: expect.any(String),
+      factors: expect.any(Object),
+    });
+    expect(context.dealScore!.band).toBe("hot");
+  });
+
+  it("sends null dealScore for thin history", async () => {
+    mockedGetHistory.mockResolvedValue([]);
+    await getInsight("mikrotik-crs804-4ddq-hrm");
+    expect(mockedInvokeLLM).toHaveBeenCalledTimes(1);
+    const args = mockedInvokeLLM.mock.calls[0]?.[0] as {
+      messages: { role: string; content: string }[];
+    };
+    const userMessage = args.messages.find((m) => m.role === "user");
+    expect(userMessage).toBeDefined();
+    const context = JSON.parse(userMessage!.content) as {
+      dealScore: unknown;
+    };
+    expect(context.dealScore).toBeNull();
+  });
+
+  it("instructs consistency with the score", async () => {
+    await getInsight("mikrotik-crs804-4ddq-hrm");
+    expect(mockedInvokeLLM).toHaveBeenCalledTimes(1);
+    const args = mockedInvokeLLM.mock.calls[0]?.[0] as {
+      messages: { role: string; content: string }[];
+    };
+    const systemMessage = args.messages.find((m) => m.role === "system");
+    expect(systemMessage).toBeDefined();
+    expect(systemMessage!.content).toContain("never contradict");
+  });
+});
