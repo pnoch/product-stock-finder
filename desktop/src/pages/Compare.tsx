@@ -7,6 +7,7 @@ import { convertPrice } from "@/lib/currency";
 import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
 import type { Product, PriceAlert } from "../../../lib/types";
 import { buildShareText } from "../../../lib/price-share";
+import { toPng } from "html-to-image";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
@@ -228,7 +229,7 @@ export function Compare() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState("all");
-  const [sortBy, setSortBy] = useState<"name" | "price">("name");
+  const [sortBy, setSortBy] = useState<"name" | "price" | "trend">("name");
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [searchParams] = useSearchParams();
   const [selected, setSelected] = useState<Set<string>>(() => {
@@ -238,6 +239,7 @@ export function Compare() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const selectionInitialized = useRef<string | null>(null);
   const lastAppliedParam = useRef<string | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
   const distributorParam = searchParams.get("distributor");
   const { toast, showToast } = useToast();
 
@@ -357,8 +359,19 @@ export function Compare() {
           (convertPrice(b.price, b.currency, displayCurrency) ?? b.price),
       );
     }
+    if (sortBy === "trend") {
+      return listings.sort((a, b) => {
+        const ta = priceTrends.get(a.distributorId);
+        const tb = priceTrends.get(b.distributorId);
+        const scoreA =
+          ta?.dir === "down" ? ta.pct : ta?.dir === "up" ? -ta.pct : 0;
+        const scoreB =
+          tb?.dir === "down" ? tb.pct : tb?.dir === "up" ? -tb.pct : 0;
+        return scoreB - scoreA;
+      });
+    }
     return listings.sort((a, b) => a.distName.localeCompare(b.distName));
-  }, [product, sortBy, displayCurrency]);
+  }, [product, sortBy, displayCurrency, priceTrends]);
 
   const cheapest = useMemo(() => {
     if (!sortedListings.length) return null;
@@ -418,6 +431,22 @@ export function Compare() {
       document.body.removeChild(ta);
     }
   }, [product, sortedListings, displayCurrency]);
+
+  const handleSaveImage = useCallback(async () => {
+    if (!chartRef.current || !product) return;
+    try {
+      const dataUrl = await toPng(chartRef.current);
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `compare-${product.id}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast("Comparison image saved");
+    } catch {
+      showToast("Couldn't save comparison image");
+    }
+  }, [product]);
 
   const getTrend = (priceHistory: { price: number; date: string }[]) => {
     if (priceHistory.length < 2) return "flat";
@@ -490,6 +519,13 @@ export function Compare() {
             aria-label="Share comparison"
           >
             <Share2 className="w-4 h-4" /> Share
+          </button>
+          <button
+            onClick={() => void handleSaveImage()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+            aria-label="Save comparison image"
+          >
+            Save image
           </button>
           <TimeRangeChips selected={timeRange} onSelect={setTimeRange} />
         </div>
@@ -597,7 +633,7 @@ export function Compare() {
       </div>
 
       {chartSeries.length > 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+        <div ref={chartRef} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
           <h2 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">
             Price History ({displayCurrency})
           </h2>
@@ -657,6 +693,17 @@ export function Compare() {
               aria-label="Sort by price"
             >
               Price
+            </button>
+            <button
+              onClick={() => setSortBy("trend")}
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                sortBy === "trend"
+                  ? "bg-brand-600 text-white"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+              }`}
+              aria-label="Sort by trend"
+            >
+              Trend
             </button>
           </div>
         </div>
