@@ -60,4 +60,15 @@ describe("oauth callback", () => {
     await waitFor(() => expect(screen.getByText(/nope/i)).toBeInTheDocument());
     expect(redeemOAuthTicket).not.toHaveBeenCalled();
   });
+
+  it("rejects an invalid user without storing a session", async () => {
+    vi.mocked(redeemOAuthTicket).mockResolvedValue({
+      sessionToken: "sess-1",
+      user: { id: "NaN", openId: "" },
+    });
+    renderAt("/oauth/callback?ticket=tick-bad");
+    await waitFor(() => expect(screen.getByText(/invalid user/i)).toBeInTheDocument());
+    expect(screen.queryByText("Home")).not.toBeInTheDocument();
+    expect(getSessionToken()).toBeNull();
+  });
 });
