@@ -27,7 +27,7 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
   },
 }));
 
-import { discoverProduct } from "../lib/llm-discovery";
+import { discoverProduct, toDiscoverErrorState, DiscoveryAuthError, DiscoveryError } from "../lib/llm-discovery";
 
 describe("discoverProduct", () => {
   beforeEach(() => {
@@ -88,5 +88,63 @@ describe("discoverProduct", () => {
     const { getApiBaseUrl } = await import("../constants/oauth");
     vi.mocked(getApiBaseUrl).mockReturnValueOnce("");
     await expect(discoverProduct("test")).rejects.toMatchObject({ name: "DiscoveryError", kind: "server" });
+  });
+});
+
+describe("toDiscoverErrorState", () => {
+  it("maps auth errors with no retry", () => {
+    expect(toDiscoverErrorState(new DiscoveryAuthError(401))).toEqual({
+      title: "Sign-in Required",
+      message: "Please sign in to use AI discovery.",
+      retry: false,
+    });
+  });
+
+  it("maps timeout errors", () => {
+    expect(toDiscoverErrorState(new DiscoveryError("timeout", "timed out"))).toEqual({
+      title: "Discovery Failed",
+      message: "Discovery timed out. Check your connection and try again.",
+      retry: true,
+    });
+  });
+
+  it("maps network errors with cause message", () => {
+    expect(toDiscoverErrorState(new DiscoveryError("network", "boom"))).toEqual({
+      title: "Discovery Failed",
+      message: "Network error: boom",
+      retry: true,
+    });
+  });
+
+  it("maps server errors with status", () => {
+    expect(toDiscoverErrorState(new DiscoveryError("server", "boom", { status: 500 }))).toEqual({
+      title: "Discovery Failed",
+      message: "Server error (500). Try again in a moment.",
+      retry: true,
+    });
+  });
+
+  it("maps server errors without status to raw message", () => {
+    expect(toDiscoverErrorState(new DiscoveryError("server", "boom"))).toEqual({
+      title: "Discovery Failed",
+      message: "boom",
+      retry: true,
+    });
+  });
+
+  it("maps parse errors", () => {
+    expect(toDiscoverErrorState(new DiscoveryError("parse", "bad"))).toEqual({
+      title: "Discovery Failed",
+      message: "We couldn't parse the discovery response. Try again.",
+      retry: true,
+    });
+  });
+
+  it("maps unknown errors to generic message", () => {
+    expect(toDiscoverErrorState(new Error("nope"))).toEqual({
+      title: "Discovery Failed",
+      message: "We couldn't find that product. Try again.",
+      retry: true,
+    });
   });
 });

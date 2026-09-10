@@ -5,7 +5,7 @@ import Fuse from "fuse.js";
 import { storage } from "../storage";
 import { Modal } from "./Modal";
 import { ProductImage } from "./ProductImage";
-import { discoverProduct, DiscoveryAuthError, DiscoveryError } from "../../../lib/llm-discovery";
+import { discoverProduct, toDiscoverErrorState } from "../../../lib/llm-discovery";
 import { useToast } from "../hooks/use-toast";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import type { TagDefinition } from "../../../lib/types";
@@ -221,21 +221,9 @@ export function SearchModal({
         showToast("Discovery failed — try a more specific search");
       }
     } catch (e) {
-      if (e instanceof DiscoveryAuthError) {
-        setDiscoverError({ title: "Sign-in Required", message: "Please sign in to use AI discovery.", retry: false });
-        showToast("Sign-in Required");
-      } else if (e instanceof DiscoveryError) {
-        const message =
-          e.kind === "timeout" ? "Discovery timed out. Check your connection and try again."
-          : e.kind === "network" ? `Network error: ${e.message}`
-          : e.kind === "server" ? (e.status ? `Server error (${e.status}). Try again in a moment.` : e.message)
-          : "We couldn't parse the discovery response. Try again.";
-        setDiscoverError({ title: "Discovery Failed", message, retry: true });
-        showToast("Discovery Failed");
-      } else {
-        setDiscoverError({ title: "Discovery Failed", message: "We couldn't find that product. Try again.", retry: true });
-        showToast("Discovery Failed");
-      }
+      const errState = toDiscoverErrorState(e);
+      setDiscoverError(errState);
+      showToast(errState.title);
     } finally {
       setDiscovering(false);
     }
@@ -400,7 +388,7 @@ export function SearchModal({
                 </button>
               )}
               {discoverError && (
-                <div className="mt-4 p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-left">
+                <div role="alert" className="mt-4 p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-left">
                   <p className="text-sm font-semibold text-red-700 dark:text-red-300">{discoverError.title}</p>
                   <p className="text-sm text-red-600 dark:text-red-400 mt-1">{discoverError.message}</p>
                   {discoverError.retry && <button onClick={() => void handleDiscover()} className="mt-2 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700">Retry</button>}

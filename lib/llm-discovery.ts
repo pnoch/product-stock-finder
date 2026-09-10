@@ -25,6 +25,23 @@ export class DiscoveryError extends Error {
   }
 }
 
+export type DiscoverErrorState = { title: string; message: string; retry: boolean };
+
+export function toDiscoverErrorState(e: unknown): DiscoverErrorState {
+  if (e instanceof DiscoveryAuthError) {
+    return { title: "Sign-in Required", message: "Please sign in to use AI discovery.", retry: false };
+  }
+  if (e instanceof DiscoveryError) {
+    const message =
+      e.kind === "timeout" ? "Discovery timed out. Check your connection and try again."
+      : e.kind === "network" ? `Network error: ${e.message}`
+      : e.kind === "server" ? (e.status ? `Server error (${e.status}). Try again in a moment.` : e.message)
+      : "We couldn't parse the discovery response. Try again.";
+    return { title: "Discovery Failed", message, retry: true };
+  }
+  return { title: "Discovery Failed", message: "We couldn't find that product. Try again.", retry: true };
+}
+
 export async function discoverProduct(
   query: string,
 ): Promise<{ product: Product; retailers: Distributor[] } | null> {
