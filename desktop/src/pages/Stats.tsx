@@ -167,7 +167,7 @@ export function Stats() {
     [products, displayCurrency],
   );
   const topDeals = useMemo(
-    () => rankDeals(products ?? [], displayCurrency),
+    () => rankDeals(products ?? [], displayCurrency).filter((d) => d.band !== "wait"),
     [products, displayCurrency],
   );
   const dropCalendar = useMemo(
