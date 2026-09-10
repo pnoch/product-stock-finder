@@ -33,7 +33,7 @@ import { countTagMatches, filterWatchlist, groupWatchlist, type StatusFilter } f
 import { useConnection } from "../hooks/use-connection";
 import { countQueuedEdits } from "../../../lib/sync";
 import { computeProductInsights } from "../../../lib/product-insights";
-import { computeDealScore } from "../../../lib/deal-score";
+import { computeDealScore, type DealScore } from "../../../lib/deal-score";
 import { flattenWatchlistRows } from "../lib/watchlist-rows";
 import { TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import { createTRPCClient } from "../lib/trpc";
@@ -324,8 +324,8 @@ export function Watchlist() {
     [products, regionFilter, filter, query, inStockOnly, priceRange, displayCurrency],
   );
 
-  const dealScores = useMemo(
-    () => new Map(filtered.map((p) => [p.id, computeDealScore(p.listings ?? [], displayCurrency)?.score ?? null])),
+  const dealScores: Map<string, DealScore | null> = useMemo(
+    () => new Map(filtered.map((p) => [p.id, computeDealScore(p.listings ?? [], displayCurrency)])),
     [filtered, displayCurrency],
   );
 
@@ -347,8 +347,8 @@ export function Watchlist() {
           break;
         }
         case "deal": {
-          const aScore = dealScores.get(a.id) ?? null;
-          const bScore = dealScores.get(b.id) ?? null;
+          const aScore = dealScores.get(a.id)?.score ?? null;
+          const bScore = dealScores.get(b.id)?.score ?? null;
           if (aScore === null && bScore === null) cmp = 0;
           else if (aScore === null) return 1;
           else if (bScore === null) return -1;
@@ -734,7 +734,7 @@ export function Watchlist() {
                     </>
                   );
                 })()}
-                {(() => { const s = dealScores.get(product.id); return s != null && s >= 80 ? (<span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">🔥 Hot deal</span>) : null; })()}
+                {(() => { const d = dealScores.get(product.id); return d?.band === "hot" ? (<span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">🔥 Hot deal</span>) : null; })()}
                 {(product.tags ?? [])
                   .filter((tagId) => tagDefinitions[tagId])
                   .map((tagId) => {
@@ -780,7 +780,7 @@ export function Watchlist() {
         </td>
         <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
           {(() => {
-            const s = dealScores.get(product.id);
+            const s = dealScores.get(product.id)?.score ?? null;
             return s != null ? (
               <span className="font-semibold" title={`Deal Score ${s}`}>{s}</span>
             ) : (

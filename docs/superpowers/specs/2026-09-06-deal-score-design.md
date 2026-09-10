@@ -49,7 +49,9 @@ computeDealScore(
   strings both platforms).
 - Watchlist sort: mobile sort enum + desktop `sortKey` column
   gain "deal" (descending score; nulls last on both).
-- Badge: score ≥ 80 → "🔥 Hot deal" chip beside existing insight
+- Deal score column (header + cells + spacer colSpans updated 7/8→8/9); name-cell chip ALSO present; session-only sort (key never persisted, asc carry-over accepted).
+- Badge: band === "hot" (HOT_CUTOFF=75 in engine, never duplicated
+  in UI) → "🔥 Hot deal" chip beside existing insight
   chips (mobile card + desktop name cell).
 
 ## Testing
