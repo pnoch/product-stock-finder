@@ -1,7 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import { SESSION_TOKEN_KEY, USER_INFO_KEY } from "@/constants/oauth";
-import { LOG_ERROR } from "@/lib/log";
+import { LOG_ERROR } from "@shared/log";
 
 const LOG = __DEV__ ? console.log.bind(console) : () => {};
 

@@ -31,7 +31,7 @@ import { SkeletonCard, SkeletonChart, SkeletonDetailHeader } from "@/components/
 import { useToast } from "@/components/ui/toast";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
-import { LOG_ERROR } from "@/lib/log";
+import { LOG_ERROR } from "@shared/log";
 
 export default function ProductDetailScreen() {
   const insets = useSafeAreaInsets();

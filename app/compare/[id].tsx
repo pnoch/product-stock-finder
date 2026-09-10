@@ -52,7 +52,7 @@ import {
   SortBy,
   filterByRange,
 } from "@shared/compare-utils";
-import { LOG_ERROR } from "@/lib/log";
+import { LOG_ERROR } from "@shared/log";
 
 function hashId(id: string): number {
   let h = 0;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LOG_ERROR } from "../lib/log";
+import { LOG_ERROR } from "../shared/src/log";
 
 describe("LOG_ERROR", () => {
   it("is a callable function", () => {

@@ -11,7 +11,7 @@ import { clearAllData } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
 import { getApiBaseUrl } from "@/constants/oauth";
 import * as Auth from "@/lib/_core/auth";
-import { LOG_ERROR } from "@/lib/log";
+import { LOG_ERROR } from "@shared/log";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
