@@ -4,8 +4,12 @@ import {
   Bell,
   BellRing,
   Calendar,
+  CircleCheck,
   Clock,
   Trash2,
+  TrendingDown,
+  TrendingUp,
+  TriangleAlert,
   RotateCcw,
   ToggleLeft,
   ToggleRight,
@@ -23,6 +27,7 @@ import {
   EXCHANGE_RATES,
 } from "@shared/currency";
 import { getDistributorById } from "@shared/distributors";
+import { formatRelativeTime } from "../lib/relative-time";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
@@ -34,6 +39,14 @@ import type {
 } from "../../../lib/types";
 
 type Tab = "alerts" | "reminders" | "notifications";
+
+const TYPE_ICONS = {
+  price_drop: TrendingDown,
+  price_rise: TrendingUp,
+  restock: CircleCheck,
+  reminder: Clock,
+  health: TriangleAlert,
+} as const;
 
 export function Alerts() {
   const navigate = useNavigate();
@@ -384,15 +397,16 @@ export function Alerts() {
                       ? `/product/${n.productId}`
                       : null;
                 const itemClassName = `flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border ${n.read ? "border-gray-200 dark:border-gray-700" : "border-brand-200 dark:border-brand-800 bg-brand-50/40 dark:bg-brand-900/10"} `;
+                const TypeIcon = TYPE_ICONS[n.type] ?? Bell;
                 const content = (
                   <>
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${n.type === "health" ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400" : n.type === "reminder" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"}`}>
-                      <Bell className="w-4 h-4" />
+                      <TypeIcon className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate">{n.title}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{n.body}</p>
-                      <p className="text-[11px] text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                      <p className="text-[11px] text-gray-400 mt-1" title={new Date(n.createdAt).toLocaleString()}>{formatRelativeTime(n.createdAt)}</p>
                     </div>
                     {!n.read && <span className="w-2.5 h-2.5 rounded-full bg-brand-600 shrink-0" aria-label="Unread" />}
                   </>
