@@ -37,8 +37,8 @@ flow untouched.
   subscribed once in `App.tsx` beside the existing listener.
   Handler records each event via `recordNotificationEvent`
   (`{ id: \`price-drop-{productId}-{Date.now()}\`, type:
-  "price-drop", title, body, productId, createdAt }` — match
-  `NotificationHistoryEntry` fields; read them first), each in
+  "price_drop", title, body, productId, createdAt }` — underscore
+  per the `NotificationHistoryEntry` union; read them first), each in
   its own try/catch so recording never breaks the check.
 - Browser path unchanged (no Rust trigger detection on web;
   refreshViaServer counts only).
