@@ -3,6 +3,7 @@ import { priceInsights, type PriceInsightsRow } from "../drizzle/schema";
 import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
 import { getDistributorById } from "../shared/src/distributors.js";
 import { getAllParserIds } from "../lib/scrapers/registry";
+import { computeDealScore } from "../lib/deal-score";
 import { getCachedPrice } from "./price-cache";
 import { getHistory } from "./price-history";
 import { getDb } from "./db";
@@ -124,6 +125,7 @@ async function buildInsightContext(
   return {
     productName: product.name,
     modelNumber: product.modelNumber,
+    dealScore: computeDealScore(listings, "USD"),
     listings: listings.map((l) => ({
       distributorId: l.distributorId,
       distributorName:
@@ -150,7 +152,8 @@ async function generateInsight(
             "Given a product's price history across distributors, write a short (1-3 sentence), " +
             "factual buying recommendation. Mention price trend (up/down/stable and rough %), " +
             "whether it's a good time to buy, and which distributor/region is cheapest if known. " +
-            "Do not invent numbers not present in the data.",
+            "Do not invent numbers not present in the data. " +
+            "A deterministic deal score is provided (0–100, band hot/fair/wait with factor breakdown); stay consistent with its verdict — never contradict it.",
         },
         {
           role: "user",
