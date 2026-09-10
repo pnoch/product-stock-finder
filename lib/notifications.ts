@@ -4,8 +4,7 @@ import { HEALTH_ALERT_THRESHOLD, HealthStatus } from "./scrapers/health";
 import { recordDisplayedEventId, recordNotificationEvent, getSettings } from "./storage";
 import { getDistributorById } from "@shared/distributors";
 import { isInQuietHours } from "./quiet-hours";
-
-const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
+import { LOG_ERROR } from "@/lib/log";
 
 // ─── Notification Handler ─────────────────────────────────────────────────────
 // Must be called at module level (outside any component) so it's set before

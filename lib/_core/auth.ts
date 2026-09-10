@@ -1,9 +1,9 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import { SESSION_TOKEN_KEY, USER_INFO_KEY } from "@/constants/oauth";
+import { LOG_ERROR } from "@/lib/log";
 
 const LOG = __DEV__ ? console.log.bind(console) : () => {};
-const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
 
 export type User = {
   id: number;

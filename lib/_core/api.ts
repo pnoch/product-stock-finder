@@ -1,9 +1,9 @@
 import { Platform } from "react-native";
 import { getApiBaseUrl } from "@/constants/oauth";
 import * as Auth from "./auth";
+import { LOG_ERROR } from "@/lib/log";
 
 const LOG = __DEV__ ? console.log.bind(console) : () => {};
-const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
 
 export async function apiCall<T>(
   endpoint: string,

@@ -65,8 +65,7 @@ import { SortGroupBar } from "@/components/watchlist/sort-group-bar";
 import { RegionFilterRow } from "@/components/watchlist/region-filter-row";
 import { EmptyState } from "@/components/watchlist/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
-
-const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
+import { LOG_ERROR } from "@/lib/log";
 
 export default function WatchlistScreen() {
   const router = useRouter();

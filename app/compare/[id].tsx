@@ -52,8 +52,7 @@ import {
   SortBy,
   filterByRange,
 } from "@shared/compare-utils";
-
-const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
+import { LOG_ERROR } from "@/lib/log";
 
 function hashId(id: string): number {
   let h = 0;

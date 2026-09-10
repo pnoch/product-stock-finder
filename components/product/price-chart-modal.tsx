@@ -15,8 +15,7 @@ import { getDistributorById } from "@shared/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { PriceHistoryChart } from "@/components/price-history-chart";
 import { priceHistoryToCsv } from "@/lib/csv";
-
-const LOG_ERROR = __DEV__ ? console.error.bind(console) : () => {};
+import { LOG_ERROR } from "@/lib/log";
 
 interface PriceChartModalProps {
   visible: boolean;
