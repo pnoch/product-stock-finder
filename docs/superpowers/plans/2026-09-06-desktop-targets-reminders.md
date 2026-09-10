@@ -32,8 +32,7 @@ describe("desktop targets and reminders", () => {
 
   it("creates scoped date reminders", async () => {
     const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
-    expect(text).toContain("addBackOrderReminder");
-    expect(text).toContain('type="date"');
+    expect(text).toContain("setReminderDistributorId(listing.distributorId)");
   });
 });
 ```
@@ -119,7 +118,7 @@ git commit -m "Feat: desktop distributor target overview. TypeScript: 0 errors."
 **Files:**
 - Modify: `desktop/src/pages/ProductDetail.tsx`
 
-- [ ] **Step 1: Add modal + creation**
+- [ ] **Step 1: Add per-row Remind action** (a global reminder modal with distributor scoping already exists — reuse it; do NOT build a new modal)
 
 State: `const [reminderListing, setReminderListing] = useState<DistributorListing | null>(null);` (verify DistributorListing type import; add if missing) + `const [reminderDate, setReminderDate] = useState("");` Reset date when opening (in the row onClick: set both).
 Row action (beside Watch/Bell/History/Visit — read exact actions markup): Remind button (`aria-label="Set reminder"`, icon — check lucide `BellRing`/`CalendarClock` availability in file imports; reuse an imported icon, do NOT invent) setting `reminderListing`.
