@@ -11,7 +11,10 @@ describe("desktop share, notifications, search tags", () => {
   it("exports product images and opens notifications", async () => {
     const detail = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
     const alerts = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
-    expect(detail).toContain("toPng");
+    const share = await readFile("desktop/src/lib/share.ts", "utf8");
+    expect(detail).toContain("saveNodeAsPng");
+    expect(detail).toContain("../lib/share");
+    expect(share).toContain("toPng");
     expect(alerts).toContain("markNotificationRead");
     expect(alerts).toContain("/product/${");
   });

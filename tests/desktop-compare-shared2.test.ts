@@ -10,7 +10,10 @@ describe("desktop compare and shared upgrades", () => {
 
   it("exports chart images and sorts by trend", async () => {
     const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
-    expect(text).toContain("toPng");
+    const share = await readFile("desktop/src/lib/share.ts", "utf8");
+    expect(text).toContain("saveNodeAsPng");
+    expect(text).toContain("../lib/share");
+    expect(share).toContain("toPng");
     expect(text).toContain('"trend"');
   });
 
