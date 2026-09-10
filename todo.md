@@ -1038,6 +1038,25 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 158: Deal score engine + surfaces
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-deal-score-design.md`) + plan (`docs/superpowers/plans/2026-09-06-deal-score.md`)
+- [x] Deterministic 50/30/10/−10 engine, hot ≥ 75, nulls on thin data, 9 unit tests (`82b499c`)
+- [x] Mobile Best-deals sort + card + chip (`a923845`); desktop score column + card + chip, session-only sort (`56d38d0`, `7650e2b`)
+- [x] Guards + surfaces tests; E2E: `tsc 0`, lint 0 errors, `204 passed` files / `1513 passed` tests, desktop build green
+
+## Phase 159: Smart digest best-time-to-buy
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-smart-digest-design.md`) + plan (`docs/superpowers/plans/2026-09-06-smart-digest.md`)
+- [x] `rankDeals` helper + unit tests; both digest cards with navigation, wait-band filtered (`5780c1a`, `b84543a`, `bbe21f2`)
+- [x] Guards; E2E: `tsc 0`, lint 0 errors, `205 passed` files / `1517 passed` tests, desktop build green
+
+## Phase 160: Grounded LLM insights
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-grounded-insights-design.md`) + plan (`docs/superpowers/plans/2026-09-06-grounded-insights.md`)
+- [x] `dealScore` in LLM context + consistency sentence; cache/UI untouched (`1ec311d`)
+- [x] Mocked-LLM tests; E2E: `tsc 0`, lint 0 errors, `205 passed` files / `1520 passed` tests
+
 ## Phase 157: Desktop compare + shared upgrades 2
 
 - [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-compare-shared2-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-compare-shared2.md`)
