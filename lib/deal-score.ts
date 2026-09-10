@@ -1,5 +1,5 @@
 import type { DistributorListing, Product } from "./types";
-import { convert, dropStreak, mergedPoints } from "./product-insights";
+import { dropStreak, mergedPoints } from "./product-insights";
 
 export type DealBand = "hot" | "fair" | "wait";
 
