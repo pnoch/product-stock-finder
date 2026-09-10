@@ -146,6 +146,14 @@ export function Alerts() {
 
   const loading = alertsLoading || remindersLoading;
 
+  const activeAlertCount = useMemo(
+    () =>
+      alerts.filter(
+        (a) => a.isActive && !a.triggeredAt && (!a.snoozedUntil || new Date(a.snoozedUntil).getTime() <= Date.now()),
+      ).length,
+    [alerts],
+  );
+
   const handleToggle = async (id: string) => {
     await storage.toggleAlert(id);
     const updated = await storage.getAlerts();
@@ -277,7 +285,7 @@ export function Alerts() {
           aria-label="Show price alerts"
         >
           <Bell className="w-4 h-4 inline-block mr-1.5" />
-          Alerts ({alerts.length})
+          Alerts ({activeAlertCount})
         </button>
         <button
           onClick={() => setTab("reminders")}
