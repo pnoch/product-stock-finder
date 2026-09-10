@@ -16,7 +16,7 @@ export interface ProductInsightsResult {
   volatility: { low: number; medium: number; high: number };
 }
 
-export function convert(
+export function convertPricePoint(
   price: number,
   currency: string,
   displayCurrency: string,
@@ -45,7 +45,7 @@ export function mergedPoints(
   for (const l of listings ?? []) {
     for (const p of l.priceHistory ?? []) {
       const t = Date.parse(p.date);
-      const v = convert(p.price, p.currency, displayCurrency);
+      const v = convertPricePoint(p.price, p.currency, displayCurrency);
       if (!Number.isFinite(t) || v === null) continue;
       const arr = pointsByTime.get(t);
       if (arr) arr.push(v);
@@ -89,7 +89,7 @@ export function computeProductInsights(
 
     const inStockPrices = product.listings
       .filter((l) => l.stockStatus === "in_stock")
-      .map((l) => convert(l.price, l.currency, displayCurrency))
+      .map((l) => convertPricePoint(l.price, l.currency, displayCurrency))
       .filter((v): v is number => v !== null);
 
     const currentBest =

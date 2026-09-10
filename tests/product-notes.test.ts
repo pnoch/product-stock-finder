@@ -61,4 +61,12 @@ describe("product notes", () => {
     const store = memoryStore({ product_notes: "{not json" });
     expect(await getProductNote("p1", store)).toBe("");
   });
+
+  it("propagates persistence failures instead of swallowing them", async () => {
+    const store = memoryStore();
+    store.setItem = async () => {
+      throw new Error("disk full");
+    };
+    await expect(saveProductNote("p1", "note", store)).rejects.toThrow("disk full");
+  });
 });

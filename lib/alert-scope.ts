@@ -31,15 +31,21 @@ export function scopedAlertFor(
   alerts: PriceAlert[],
   productId: string,
   distributorId: string,
+  currency?: string,
 ): PriceAlert | null {
-  const match = alerts.find(
+  const matches = alerts.filter(
     (a) =>
       a.productId === productId &&
       a.distributorId === distributorId &&
       a.isActive &&
       !a.triggeredAt,
   );
-  return match ?? null;
+  if (matches.length === 0) return null;
+  if (currency) {
+    const currencyMatch = matches.find((a) => a.currency === currency);
+    if (currencyMatch) return currencyMatch;
+  }
+  return matches[0] ?? null;
 }
 
 export function productWideAlert(

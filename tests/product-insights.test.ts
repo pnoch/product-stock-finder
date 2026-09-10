@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeProductInsights } from "../lib/product-insights";
+import { computeProductInsights, convertPricePoint } from "../lib/product-insights";
 import type { DistributorListing, Product } from "../lib/types";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -96,5 +96,17 @@ describe("computeProductInsights", () => {
     expect(result.products).toEqual([]);
     expect(result.allTimeLows).toBe(0);
     expect(result.droppingCount).toBe(0);
+  });
+});
+
+describe("convertPricePoint", () => {
+  it("converts a price point to the display currency", () => {
+    expect(convertPricePoint(100, "USD", "USD")).toBe(100);
+    expect(convertPricePoint(100, "USD", "EUR")).toBeGreaterThan(0);
+  });
+
+  it("returns null for non-positive prices or unknown currencies", () => {
+    expect(convertPricePoint(0, "USD", "USD")).toBeNull();
+    expect(convertPricePoint(100, "XYZ", "USD")).toBeNull();
   });
 });

@@ -13,4 +13,27 @@ describe("desktop notes and edit", () => {
     expect(text).toContain("updateProductDetails");
     expect(text).toContain("Edit product");
   });
+
+  it("surfaces save failures instead of false success toasts", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("handleSaveNote");
+    expect(text).toContain("handleSaveEdit");
+    expect(text).toContain("catch");
+    expect(text).toContain("Couldn't save note");
+    expect(text).toContain("Couldn't save changes");
+  });
+
+  it("passes listing currency to the scoped alert matcher", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("scopedAlertFor(alerts, product.id, listing.distributorId, listing.currency)");
+  });
+
+  it("loads independent product data in parallel", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("Promise.all([");
+    expect(text).toContain("storage.getWatchlist()");
+    expect(text).toContain("storage.getSettings()");
+    expect(text).toContain("storage.getStockWatches()");
+    expect(text).toContain("storage.getAlerts()");
+  });
 });

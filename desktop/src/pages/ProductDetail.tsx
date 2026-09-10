@@ -164,11 +164,15 @@ export function ProductDetail() {
     setLoadError(null);
     setRegionFilter("all");
     try {
-      const products = await storage.getWatchlist();
+      const [products, settings, watches, allAlerts] = await Promise.all([
+        storage.getWatchlist(),
+        storage.getSettings(),
+        storage.getStockWatches(),
+        storage.getAlerts(),
+      ]);
       if (loadIdRef.current !== myId) return;
       const found = products.find((p) => p.id === id);
       if (loadIdRef.current === myId) setProduct(found ?? null);
-      const settings = await storage.getSettings();
       if (loadIdRef.current !== myId) return;
       if (loadIdRef.current === myId) {
         setDisplayCurrency(settings.displayCurrency ?? "USD");
@@ -176,13 +180,11 @@ export function ProductDetail() {
         setPerListingAlertCurrency(settings.displayCurrency ?? "USD");
         setInlineAlertCurrency(settings.displayCurrency ?? "USD");
       }
-      const watches = await storage.getStockWatches();
       if (loadIdRef.current === myId) {
         const map: Record<string, boolean> = {};
         for (const w of watches) if (w.productId === id) map[w.distributorId] = true;
         setStockWatches(map);
       }
-      const allAlerts = await storage.getAlerts();
       if (loadIdRef.current === myId) {
         setAlerts(allAlerts.filter((a) => a.productId === id));
       }
@@ -323,6 +325,7 @@ export function ProductDetail() {
       showToast("Note saved");
     } catch {
       setNoteError("Couldn't save note");
+      showToast("Couldn't save note");
     }
   };
 
@@ -342,6 +345,7 @@ export function ProductDetail() {
       showToast("Product updated");
     } catch {
       setEditError("Couldn't save changes");
+      showToast("Couldn't save changes");
     }
   };
 
@@ -1269,7 +1273,7 @@ export function ProductDetail() {
               const dist = DISTRIBUTORS.find((d) => d.id === listing.distributorId);
               const name = dist?.name ?? listing.distributorId;
               const alert =
-                scopedAlertFor(alerts, product.id, listing.distributorId) ??
+                scopedAlertFor(alerts, product.id, listing.distributorId, listing.currency) ??
                 productWideAlert(alerts, product.id);
               const deltaPct = alert ? alertDeltaPct(listing, alert) : null;
               return (

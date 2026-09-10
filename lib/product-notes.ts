@@ -37,9 +37,5 @@ export async function saveProductNote(
   const trimmed = note.trim();
   if (!trimmed) delete all[productId];
   else all[productId] = trimmed;
-  try {
-    await store.setItem(KEY, JSON.stringify(all));
-  } catch {
-    // Best-effort persistence.
-  }
+  await store.setItem(KEY, JSON.stringify(all));
 }

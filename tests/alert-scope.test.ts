@@ -62,6 +62,24 @@ describe("scopedAlertFor", () => {
     expect(scopedAlertFor(alerts, "p1", "zzz")).toBeNull();
     expect(productWideAlert(alerts, "p1")).toBeNull();
   });
+
+  it("prefers the alert matching the listing currency", () => {
+    const mixed = [
+      alert({ id: "c-usd", distributorId: "d1", currency: "USD" }),
+      alert({ id: "c-eur", distributorId: "d1", currency: "EUR" }),
+    ];
+    expect(scopedAlertFor(mixed, "p1", "d1", "EUR")?.id).toBe("c-eur");
+    expect(scopedAlertFor(mixed, "p1", "d1", "USD")?.id).toBe("c-usd");
+  });
+
+  it("falls back to the first match when no currency matches", () => {
+    const mixed = [
+      alert({ id: "c-usd", distributorId: "d1", currency: "USD" }),
+      alert({ id: "c-eur", distributorId: "d1", currency: "EUR" }),
+    ];
+    expect(scopedAlertFor(mixed, "p1", "d1", "GBP")?.id).toBe("c-usd");
+    expect(scopedAlertFor(mixed, "p1", "d1")?.id).toBe("c-usd");
+  });
 });
 
 describe("productWideAlert", () => {
