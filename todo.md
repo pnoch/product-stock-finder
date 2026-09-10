@@ -1038,6 +1038,23 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 161: Deal-score follow-ups (dedup, labels, guard)
+
+- [x] Conversion/streak deduped into `product-insights` exports; shared `dealBandLabel` everywhere (mapping test pinned)
+- [x] Wait-filter inside `rankDeals`; email empty-guard (`c91806a`, `13f2fb2`)
+
+## Phase 162: Desktop product notes + edit sheet
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-notes-edit-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-notes-edit.md`)
+- [x] Notes card (store-backed, empty deletes) + edit sheet (dirty-gated, reload + toast) (`f95f08d`); unused-import build fix (`d32d74d`)
+- [x] Guards (`tests/desktop-notes-edit.test.ts`); E2E: `tsc 0`, lint 0 errors, `206 passed` files / `1523 passed` tests, desktop build green
+
+## Phase 163: Desktop targets + per-row reminders
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-targets-reminders-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-targets-reminders.md`)
+- [x] Distributor Targets table (scoped + wide fallback, modal CTA) (`b70e34c`); per-row Remind reusing global modal (`c7170f7`)
+- [x] Guards (`tests/desktop-targets-reminders.test.ts`); E2E: `tsc 0`, lint 0 errors, `207 passed` files / `1525 passed` tests, desktop build green
+
 ## Phase 158: Deal score engine + surfaces
 
 - [x] Spec (`docs/superpowers/specs/2026-09-06-deal-score-design.md`) + plan (`docs/superpowers/plans/2026-09-06-deal-score.md`)
