@@ -27,9 +27,22 @@ const mockStorage = vi.hoisted(() => ({
   getTagDefinitions: vi.fn(),
   getSyncMeta: vi.fn(),
   saveSettings: vi.fn().mockResolvedValue(undefined),
+  // Search/discovery storage calls
+  getDiscoveredProducts: vi.fn().mockResolvedValue([]),
+  addToWatchlist: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../src/storage", () => ({ storage: mockStorage }));
+
+const mockDiscover = vi.hoisted(() => vi.fn());
+
+vi.mock("../../lib/llm-discovery", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("../../lib/llm-discovery")>();
+  return {
+    ...mod,
+    discoverProduct: mockDiscover,
+  };
+});
 
 // jsdom cannot measure scroll containers, so the virtualized watchlist table
 // renders zero rows. Render every row so selection checkboxes are clickable.
@@ -55,6 +68,9 @@ vi.mock("@tanstack/react-virtual", async (importOriginal) => {
 import { Alerts } from "../src/pages/Alerts";
 import { Watchlist } from "../src/pages/Watchlist";
 import { RestockWatches } from "../src/pages/RestockWatches";
+import { Search } from "../src/pages/Search";
+import { SearchModal } from "../src/components/SearchModal";
+import { DiscoveryAuthError, DiscoveryError } from "../../lib/llm-discovery";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -67,6 +83,8 @@ beforeEach(() => {
   mockStorage.getUnreadNotificationCount.mockResolvedValue(0);
   mockStorage.getTagDefinitions.mockResolvedValue({});
   mockStorage.getSyncMeta.mockResolvedValue({ lastSyncedAt: 0, items: {} });
+  mockStorage.getDiscoveredProducts.mockResolvedValue([]);
+  mockStorage.addToWatchlist.mockResolvedValue(undefined);
 });
 
 describe("alerts error paths", () => {
@@ -234,5 +252,64 @@ describe("delete confirmations", () => {
     } finally {
       confirm.mockRestore();
     }
+  });
+});
+
+describe("discovery error paths", () => {
+  const NO_MATCH_QUERY = "qqqxzy-nonexistent-12345";
+
+  beforeEach(() => {
+    mockDiscover.mockReset();
+    mockDiscover.mockResolvedValue(null);
+    mockStorage.getDiscoveredProducts.mockResolvedValue([]);
+    mockStorage.addToWatchlist.mockResolvedValue(undefined);
+  });
+
+  it("Search shows sign-in guidance on DiscoveryAuthError with no Retry", async () => {
+    mockDiscover.mockRejectedValue(new DiscoveryAuthError(401));
+    render(<MemoryRouter><Search /></MemoryRouter>);
+    const input = await screen.findByLabelText("Search products");
+    await userEvent.type(input, NO_MATCH_QUERY);
+    await userEvent.click(await screen.findByRole("button", { name: /discover with ai/i }));
+    await waitFor(() => expect(screen.getByText(/please sign in to use ai discovery/i)).toBeInTheDocument());
+    expect(screen.getAllByText("Sign-in Required").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByRole("button", { name: /^retry$/i })).not.toBeInTheDocument();
+  });
+
+  it("Search offers Retry on timeout and retry re-invokes discovery", async () => {
+    mockDiscover.mockRejectedValue(new DiscoveryError("timeout", "timed out"));
+    render(<MemoryRouter><Search /></MemoryRouter>);
+    const input = await screen.findByLabelText("Search products");
+    await userEvent.type(input, NO_MATCH_QUERY);
+    await userEvent.click(await screen.findByRole("button", { name: /discover with ai/i }));
+    await waitFor(() => expect(screen.getByText(/discovery timed out/i)).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /^retry$/i }));
+    await waitFor(() => expect(mockDiscover).toHaveBeenCalledTimes(2));
+  });
+
+  it("SearchModal stays open and offers Retry on server error", async () => {
+    const onClose = vi.fn();
+    mockDiscover.mockRejectedValue(new DiscoveryError("server", "boom", { status: 500 }));
+    render(<MemoryRouter><SearchModal open onClose={onClose} /></MemoryRouter>);
+    const input = await screen.findByLabelText(/search products by name/i);
+    await userEvent.type(input, NO_MATCH_QUERY);
+    await userEvent.click(await screen.findByRole("button", { name: /discover product with ai/i }));
+    await waitFor(() => expect(screen.getByText(/server error \(500\)/i)).toBeInTheDocument());
+    expect(onClose).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: /^retry$/i }));
+    await waitFor(() => expect(mockDiscover).toHaveBeenCalledTimes(2));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("SearchModal shows sign-in guidance on DiscoveryAuthError without closing", async () => {
+    const onClose = vi.fn();
+    mockDiscover.mockRejectedValue(new DiscoveryAuthError(401));
+    render(<MemoryRouter><SearchModal open onClose={onClose} /></MemoryRouter>);
+    const input = await screen.findByLabelText(/search products by name/i);
+    await userEvent.type(input, NO_MATCH_QUERY);
+    await userEvent.click(await screen.findByRole("button", { name: /discover product with ai/i }));
+    await waitFor(() => expect(screen.getByText(/please sign in to use ai discovery/i)).toBeInTheDocument());
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: /^retry$/i })).not.toBeInTheDocument();
   });
 });

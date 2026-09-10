@@ -5,7 +5,7 @@ import { PRODUCT_CATALOG, getAllCategories, getAllBrands } from "@shared/catalog
 import Fuse from "fuse.js";
 import { storage } from "../storage";
 import { ProductImage } from "../components/ProductImage";
-import { discoverProduct } from "../../../lib/llm-discovery";
+import { discoverProduct, DiscoveryAuthError, DiscoveryError } from "../../../lib/llm-discovery";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import type { TagDefinition } from "../../../lib/types";
 import { TagFilterRow } from "../components/TagFilterRow";
@@ -89,6 +89,7 @@ export function Search() {
   const pendingTagsDerived = useMemo(() => Object.entries(pendingTags).flatMap(([k, v]) => [k, ...v]), [pendingTags]);
   const trackedIdsArray = useMemo(() => Array.from(trackedIds), [trackedIds]);
   const [discovering, setDiscovering] = useState(false);
+  const [discoverError, setDiscoverError] = useState<{ title: string; message: string; retry: boolean } | null>(null);
   const { toast, showToast } = useToast();
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
@@ -202,6 +203,7 @@ export function Search() {
   const handleDiscover = useCallback(async () => {
     if (!query.trim() || discovering) return;
     setDiscovering(true);
+    setDiscoverError(null);
     try {
       const res = await discoverProduct(query);
       if (res) {
@@ -209,6 +211,22 @@ export function Search() {
         setRecentSearches(recordRecent(query));
         navigate(`/product/${res.product.id}`);
       } else { showToast("Discovery failed"); }
+    } catch (e) {
+      if (e instanceof DiscoveryAuthError) {
+        setDiscoverError({ title: "Sign-in Required", message: "Please sign in to use AI discovery.", retry: false });
+        showToast("Sign-in Required");
+      } else if (e instanceof DiscoveryError) {
+        const message =
+          e.kind === "timeout" ? "Discovery timed out. Check your connection and try again."
+          : e.kind === "network" ? `Network error: ${e.message}`
+          : e.kind === "server" ? (e.status ? `Server error (${e.status}). Try again in a moment.` : e.message)
+          : "We couldn't parse the discovery response. Try again.";
+        setDiscoverError({ title: "Discovery Failed", message, retry: true });
+        showToast("Discovery Failed");
+      } else {
+        setDiscoverError({ title: "Discovery Failed", message: "We couldn't find that product. Try again.", retry: true });
+        showToast("Discovery Failed");
+      }
     } finally { setDiscovering(false); }
   }, [query, discovering, navigate]);
 
@@ -328,6 +346,13 @@ export function Search() {
           <div className="text-center py-12">
             <p className="text-sm text-gray-500 mb-4">No products found.</p>
             {query.trim() && !discovering && <button onClick={handleDiscover} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-brand-500/30 bg-brand-500/10 text-brand-600 text-sm font-medium"><Wand2 className="w-4 h-4" /> Discover with AI</button>}
+            {discoverError && (
+              <div className="mt-4 mx-auto max-w-md p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-left">
+                <p className="text-sm font-semibold text-red-700 dark:text-red-300">{discoverError.title}</p>
+                <p className="text-sm text-red-600 dark:text-red-400 mt-1">{discoverError.message}</p>
+                {discoverError.retry && <button onClick={() => void handleDiscover()} className="mt-2 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700">Retry</button>}
+              </div>
+            )}
             {discovering && <div className="flex flex-col items-center gap-2 mt-4"><Loader2 className="w-6 h-6 animate-spin text-brand-600" /><span className="text-sm text-gray-500">Discovering...</span></div>}
           </div>
         )}
