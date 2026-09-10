@@ -120,6 +120,7 @@ export function ProductDetail() {
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
   const [insight, setInsight] = useState<string | null>(null);
+  const [insightLoading, setInsightLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [livePriceLoading, setLivePriceLoading] = useState(false);
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
@@ -226,6 +227,7 @@ export function ProductDetail() {
     if (!("__TAURI__" in window)) {
       const base = getApiBaseUrl();
       if (base) {
+        if (loadIdRef.current === myId) setInsightLoading(true);
         try {
           const { createTRPCClient } = await import("../lib/trpc");
           const client = createTRPCClient();
@@ -233,8 +235,12 @@ export function ProductDetail() {
             client.insights.get.query({ productId: id ?? "" }),
             new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
           ]);
-          if (loadIdRef.current === myId && result) setInsight(result.insight);
+          if (loadIdRef.current === myId) {
+            if (result) setInsight(result.insight);
+            setInsightLoading(false);
+          }
         } catch {
+          if (loadIdRef.current === myId) setInsightLoading(false);
           // insight stays empty
         }
       }
@@ -242,12 +248,18 @@ export function ProductDetail() {
     }
     const base = getApiBaseUrl();
     if (base && loadIdRef.current === myId) {
+      setInsightLoading(true);
       const { invoke } = await import("@tauri-apps/api/core");
       invoke("fetch_price_insight", { apiBaseUrl: base, productId: id })
         .then((res: any) => {
-          if (loadIdRef.current === myId && res && res.insight) setInsight(res.insight);
+          if (loadIdRef.current === myId) {
+            if (res && res.insight) setInsight(res.insight);
+            setInsightLoading(false);
+          }
         })
-        .catch(() => {});
+        .catch(() => {
+          if (loadIdRef.current === myId) setInsightLoading(false);
+        });
     }
   }, [id]);
 
@@ -907,7 +919,16 @@ export function ProductDetail() {
         </div>
       )}
 
-      {insight && (
+      {insightLoading ? (
+        <div
+          role="status"
+          aria-label="Loading insight"
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 animate-pulse"
+        >
+          <div className="h-3 w-24 rounded bg-gray-100 dark:bg-gray-800" />
+          <div className="mt-2 h-4 w-full rounded bg-gray-100 dark:bg-gray-800" />
+        </div>
+      ) : insight ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
             AI insight
@@ -916,7 +937,7 @@ export function ProductDetail() {
             {insight}
           </p>
         </div>
-      )}
+      ) : null}
 
       {/* Action Buttons */}
       <div className="flex items-center gap-2 flex-wrap transition-opacity duration-200">
