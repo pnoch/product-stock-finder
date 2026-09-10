@@ -34,6 +34,34 @@ const mockStorage = vi.hoisted(() => ({
 
 vi.mock("../src/storage", () => ({ storage: mockStorage }));
 
+const mockAuthState = vi.hoisted(() => ({
+  user: null as null | {
+    id: number;
+    openId: string;
+    name: string | null;
+    email: string | null;
+    loginMethod: string | null;
+    lastSignedIn: string;
+    emailVerified?: boolean | null;
+  },
+  resendVerification: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("../src/hooks/use-auth", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("../src/hooks/use-auth")>();
+  return {
+    ...mod,
+    useAuth: () => ({
+      user: mockAuthState.user,
+      isAuthenticated: Boolean(mockAuthState.user),
+      login: vi.fn(),
+      logout: vi.fn(),
+    }),
+    resendVerification: (...args: unknown[]) =>
+      (mockAuthState.resendVerification as (...a: unknown[]) => Promise<void>)(...args),
+  };
+});
+
 const mockDiscover = vi.hoisted(() => vi.fn());
 
 vi.mock("../../lib/llm-discovery", async (importOriginal) => {
@@ -70,6 +98,7 @@ import { Watchlist } from "../src/pages/Watchlist";
 import { RestockWatches } from "../src/pages/RestockWatches";
 import { Search } from "../src/pages/Search";
 import { SearchModal } from "../src/components/SearchModal";
+import { Settings } from "../src/pages/Settings";
 import { DiscoveryAuthError, DiscoveryError } from "../../lib/llm-discovery";
 
 beforeEach(() => {
@@ -311,5 +340,62 @@ describe("discovery error paths", () => {
     await waitFor(() => expect(screen.getByText(/please sign in to use ai discovery/i)).toBeInTheDocument());
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: /^retry$/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("email verification in Settings", () => {
+  const verifiedUserBase = {
+    id: 1,
+    openId: "email|1",
+    name: "Test User",
+    email: "test@example.com",
+    loginMethod: "email",
+    lastSignedIn: new Date().toISOString(),
+  };
+
+  function renderSettings() {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <Settings />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    return queryClient;
+  }
+
+  beforeEach(() => {
+    mockAuthState.user = null;
+    mockAuthState.resendVerification.mockReset();
+    mockAuthState.resendVerification.mockResolvedValue(undefined);
+  });
+
+  it("shows a Resend affordance for an unverified email and toasts on success", async () => {
+    mockAuthState.user = { ...verifiedUserBase, emailVerified: false };
+    const queryClient = renderSettings();
+    try {
+      const resend = await screen.findByRole("button", { name: /resend verification email/i });
+      expect(resend).toBeInTheDocument();
+      await userEvent.click(resend);
+      await waitFor(() => expect(mockAuthState.resendVerification).toHaveBeenCalled());
+      await waitFor(() => expect(screen.getByText(/verification email sent/i)).toBeInTheDocument());
+    } finally {
+      queryClient.clear();
+    }
+  });
+
+  it("shows a Verified badge and no Resend button when the email is verified", async () => {
+    mockAuthState.user = { ...verifiedUserBase, emailVerified: true };
+    const queryClient = renderSettings();
+    try {
+      await waitFor(() => expect(screen.getByLabelText("Email verified")).toBeInTheDocument());
+      expect(screen.queryByRole("button", { name: /resend verification email/i })).not.toBeInTheDocument();
+      expect(mockAuthState.resendVerification).not.toHaveBeenCalled();
+    } finally {
+      queryClient.clear();
+    }
   });
 });

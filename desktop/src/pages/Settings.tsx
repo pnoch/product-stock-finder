@@ -30,7 +30,7 @@ import {
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useConnection } from "../hooks/use-connection";
 import { ConnectionBadge } from "../components/ConnectionBadge";
-import { useAuth, buildLoginUrl, signInWithEmail, signUpWithEmail, changePassword, deleteAccount, validateEmailAuth, validateForgotEmail, validatePasswordChange } from "../hooks/use-auth";
+import { useAuth, buildLoginUrl, signInWithEmail, signUpWithEmail, changePassword, deleteAccount, resendVerification, validateEmailAuth, validateForgotEmail, validatePasswordChange } from "../hooks/use-auth";
 import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
@@ -285,6 +285,7 @@ export function Settings() {
   const [confirmPw, setConfirmPw] = useState("");
   const [changeError, setChangeError] = useState<string | null>(null);
   const [changing, setChanging] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const handleChangePassword = async () => {
     const validationError = validatePasswordChange(currentPw, newPw, confirmPw);
@@ -304,6 +305,18 @@ export function Settings() {
       setChangeError(e instanceof Error ? e.message : "Change password failed");
     } finally {
       setChanging(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      await resendVerification();
+      showToast("Verification email sent — check your inbox.");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Resend failed");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -466,10 +479,11 @@ export function Settings() {
     }
   };
 
-  if (loading || !settings) return <LoadingSpinner />;
+  // Loading guard lives just before the main return below so every render
+  // calls the same hooks (Rules of Hooks).
 
   const currencies = Object.keys(EXCHANGE_RATES);
-  const llmProvider = settings.llmProvider ?? "forge";
+  const llmProvider = settings?.llmProvider ?? "forge";
 
   const handleExport = async () => {
     try {
@@ -667,6 +681,8 @@ export function Settings() {
       ? deleteConfirmEmail.trim().toLowerCase() === deleteExpected.toLowerCase()
       : deleteConfirmEmail.trim() === deleteExpected;
 
+  if (loading || !settings) return <LoadingSpinner />;
+
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
@@ -701,6 +717,22 @@ export function Settings() {
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {user.email ?? user.openId}
                 </p>
+                {user.email != null && user.emailVerified === true && (
+                  <span aria-label="Email verified" className="inline-block mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">Verified</span>
+                )}
+                {user.email != null && !user.emailVerified && (
+                  <div className="mt-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Check your email to verify your address.</span>
+                    <button
+                      onClick={() => void handleResend()}
+                      disabled={resending}
+                      className="ml-2 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
+                      aria-label="Resend verification email"
+                    >
+                      {resending ? "Sending" : "Resend"}
+                    </button>
+                  </div>
+                )}
                 <p className="text-xs text-gray-400 mt-1">{syncStatus}</p>
                 {syncMessage && (<p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{syncMessage}</p>)}
               </div>

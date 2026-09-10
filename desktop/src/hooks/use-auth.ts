@@ -10,6 +10,7 @@ export type User = {
   openId: string;
   name: string | null;
   email: string | null;
+  emailVerified?: boolean | null;
   loginMethod: string | null;
   lastSignedIn: string;
 };
@@ -73,6 +74,7 @@ function mapUser(data: {
   openId?: string | null;
   name?: string | null;
   email?: string | null;
+  emailVerified?: number | boolean | null;
   loginMethod?: string | null;
   lastSignedIn?: string;
 }): User {
@@ -81,6 +83,7 @@ function mapUser(data: {
     openId: data.openId ?? "",
     name: data.name ?? null,
     email: data.email ?? null,
+    emailVerified: data.emailVerified == null ? null : Boolean(data.emailVerified),
     loginMethod: data.loginMethod ?? null,
     lastSignedIn: data.lastSignedIn ?? new Date().toISOString(),
   };
@@ -229,6 +232,7 @@ export function useAuth() {
             openId?: string;
             name?: string | null;
             email?: string | null;
+            emailVerified?: number | boolean | null;
             loginMethod?: string | null;
             lastSignedIn?: string;
           };
