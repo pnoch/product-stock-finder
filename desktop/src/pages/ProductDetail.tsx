@@ -33,7 +33,8 @@ import {
   getAllRegions,
   filterListingsByRegion,
 } from "../../../lib/region-filter";
-import type { Product } from "../../../lib/types";
+import type { Product, PriceAlert } from "../../../lib/types";
+import { scopedAlertFor, productWideAlert, alertDeltaPct } from "../../../lib/alert-scope";
 import { findBestDeal } from "../../../lib/best-deal";
 import { computeDealScore, dealBandLabel } from "../../../lib/deal-score";
 import { composeLiveListings } from "../../../lib/live-prices";
@@ -121,6 +122,7 @@ export function ProductDetail() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [livePriceLoading, setLivePriceLoading] = useState(false);
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
+  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [perListingAlertId, setPerListingAlertId] = useState<string | null>(null);
   const [perListingAlertPrice, setPerListingAlertPrice] = useState("");
   const [perListingAlertCurrency, setPerListingAlertCurrency] = useState("USD");
@@ -179,6 +181,10 @@ export function ProductDetail() {
         const map: Record<string, boolean> = {};
         for (const w of watches) if (w.productId === id) map[w.distributorId] = true;
         setStockWatches(map);
+      }
+      const allAlerts = await storage.getAlerts();
+      if (loadIdRef.current === myId) {
+        setAlerts(allAlerts.filter((a) => a.productId === id));
       }
       if (loadIdRef.current === myId && found && found.listings.length > 0 && getApiBaseUrl()) {
         try {
@@ -1240,6 +1246,58 @@ export function ProductDetail() {
           )}
         </div>
       </div>
+
+      {/* Distributor Targets */}
+      {product.listings.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <h2 className="text-lg font-semibold mb-3">Distributor Targets</h2>
+          <ul className="divide-y divide-gray-100 dark:divide-gray-700/50">
+            {product.listings.map((listing) => {
+              const dist = DISTRIBUTORS.find((d) => d.id === listing.distributorId);
+              const name = dist?.name ?? listing.distributorId;
+              const alert =
+                scopedAlertFor(alerts, product.id, listing.distributorId) ??
+                productWideAlert(alerts, product.id);
+              const deltaPct = alert ? alertDeltaPct(listing, alert) : null;
+              return (
+                <li key={`${listing.distributorId}-${listing.currency}`} className="flex items-center justify-between gap-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {dist?.countryFlag ? `${dist.countryFlag} ` : ""}
+                      {name}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      {formatPrice(listing.price, listing.currency)}
+                      {alert && (
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {" "}· target {formatPrice(alert.targetPrice, alert.currency)}
+                        </span>
+                      )}
+                      {deltaPct !== null && (
+                        <span
+                          className={`ml-1.5 font-semibold ${deltaPct <= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-gray-400"}`}
+                        >
+                          {deltaPct > 0 ? `+${deltaPct}%` : `${deltaPct}%`}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  {!alert && (
+                    <button
+                      onClick={() => setPerListingAlertId(listing.distributorId)}
+                      className="shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-lg font-medium leading-none"
+                      aria-label={`Set target for ${name}`}
+                      title={`Set target for ${name}`}
+                    >
+                      +
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {/* Edit Product Modal */}
       <Modal
