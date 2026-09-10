@@ -23,6 +23,7 @@ import { Rates } from "./pages/Rates";
 import { SharedWatchlist } from "./pages/SharedWatchlist";
 import { ResetPassword } from "./pages/ResetPassword";
 import { exportWatchlistAsJson } from "./import-export";
+import { useToast } from "./hooks/use-toast";
 import { useTheme } from "./hooks/use-theme";
 import { onPricesChecked, onPriceDropsTriggered } from "./background";
 import { maybeSendDigest } from "../../lib/price-digest";
@@ -159,6 +160,7 @@ function KeyboardShortcuts({
 }) {
   const navigate = useNavigate();
   const { toggle } = useTheme();
+  const { toast, showToast } = useToast();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -177,7 +179,7 @@ function KeyboardShortcuts({
         setSearchModalOpen((prev) => !prev);
       } else if (isMeta && e.key === "e") {
         e.preventDefault();
-        exportWatchlistAsJson();
+        exportWatchlistAsJson().catch(() => showToast("Export failed"));
       } else if (isMeta && e.key === ",") {
         e.preventDefault();
         navigate("/settings");
@@ -192,9 +194,14 @@ function KeyboardShortcuts({
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [setSearchModalOpen, setShortcutsOpen, navigate, toggle]);
+  }, [setSearchModalOpen, setShortcutsOpen, navigate, toggle, showToast]);
 
-  return null;
+  if (!toast) return null;
+  return (
+    <div role="status" className="fixed bottom-6 right-6 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-[60] animate-fadeIn">
+      {toast}
+    </div>
+  );
 }
 
 export default function App() {

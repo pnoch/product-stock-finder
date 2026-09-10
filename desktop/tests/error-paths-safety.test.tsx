@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const mockStorage = vi.hoisted(() => ({
   getWatchlist: vi.fn().mockResolvedValue([]),
@@ -22,11 +23,37 @@ const mockStorage = vi.hoisted(() => ({
   addBackOrderReminder: vi.fn().mockResolvedValue(undefined),
   removeBackOrderReminder: vi.fn().mockResolvedValue(undefined),
   removeStockWatch: vi.fn().mockResolvedValue(undefined),
+  // Watchlist bulk-tag sheet storage calls
+  getTagDefinitions: vi.fn(),
+  getSyncMeta: vi.fn(),
+  saveSettings: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../src/storage", () => ({ storage: mockStorage }));
 
+// jsdom cannot measure scroll containers, so the virtualized watchlist table
+// renders zero rows. Render every row so selection checkboxes are clickable.
+vi.mock("@tanstack/react-virtual", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("@tanstack/react-virtual")>();
+  return {
+    ...mod,
+    useVirtualizer: (opts: { count: number }) => ({
+      getVirtualItems: () =>
+        Array.from({ length: opts.count }, (_, index) => ({
+          key: index,
+          index,
+          start: index * 76,
+          end: index * 76 + 76,
+          size: 76,
+        })),
+      getTotalSize: () => opts.count * 76,
+      measureElement: () => {},
+    }),
+  };
+});
+
 import { Alerts } from "../src/pages/Alerts";
+import { Watchlist } from "../src/pages/Watchlist";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -37,6 +64,8 @@ beforeEach(() => {
   mockStorage.getStockWatches.mockResolvedValue([]);
   mockStorage.getNotificationHistory.mockRejectedValue(new Error("boom"));
   mockStorage.getUnreadNotificationCount.mockResolvedValue(0);
+  mockStorage.getTagDefinitions.mockResolvedValue({});
+  mockStorage.getSyncMeta.mockResolvedValue({ lastSyncedAt: 0, items: {} });
 });
 
 describe("alerts error paths", () => {
@@ -49,5 +78,40 @@ describe("alerts error paths", () => {
     mockStorage.getNotificationHistory.mockResolvedValue([]);
     await userEvent.click(screen.getByRole("button", { name: /retry/i }));
     await waitFor(() => expect(mockStorage.getNotificationHistory).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe("watchlist bulk-tag error path", () => {
+  it("toasts when tag definitions fail to load", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    mockStorage.getWatchlist.mockResolvedValue([
+      {
+        id: "p1",
+        name: "CRS326-24G-2S+RM",
+        modelNumber: "CRS326-24G-2S+RM",
+        brand: "MikroTik",
+        category: "Switch",
+        description: "",
+        addedAt: new Date().toISOString(),
+        isWatched: true,
+        listings: [],
+      },
+    ]);
+    mockStorage.getSettings.mockResolvedValue({ displayCurrency: "USD" });
+    mockStorage.getTagDefinitions.mockRejectedValue(new Error("boom"));
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <Watchlist />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await userEvent.click(await screen.findByLabelText("Enter bulk select mode"));
+    await userEvent.click(await screen.findByLabelText("Select CRS326-24G-2S+RM"));
+    await userEvent.click(screen.getByRole("button", { name: "Tag" }));
+    await waitFor(() => expect(screen.getByText(/couldn't load tags/i)).toBeInTheDocument());
+    queryClient.clear();
   });
 });

@@ -670,7 +670,10 @@ export function Watchlist() {
     try {
       const defs = await storage.getTagDefinitions();
       setTagDefinitions(defs as Record<string, TagDefinition>);
-    } catch {}
+    } catch {
+      console.error("[Watchlist] Failed to load tag definitions");
+      showToast("Couldn't load tags");
+    }
     setBulkSelectedTagIds([]);
     setBulkNewTagName("");
     setBulkError(null);
