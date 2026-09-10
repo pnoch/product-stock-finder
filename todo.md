@@ -1038,6 +1038,13 @@
 - [x] New `desktop/src/hooks/use-toast.ts` (timer cleared on re-show + unmount); migrated all 10 toast sites (`65aea3f`, `49a7318`)
 - [x] E2E: `tsc 0`, lint exit 0, desktop build green
 
+## Phase 157: Desktop compare + shared upgrades 2
+
+- [x] Spec (`docs/superpowers/specs/2026-09-06-desktop-compare-shared2-design.md`) + plan (`docs/superpowers/plans/2026-09-06-desktop-compare-shared2.md`)
+- [x] Compare Back/Refresh header + not-found CTA (`153d956`); chart PNG export + biggest-drop-first trend sort, default unchanged (`5092885`)
+- [x] Shared 5-listing rows + overflow, per-product history CSV, full meta line (`7f6cf94`)
+- [x] Guards (`tests/desktop-compare-shared2.test.ts`); E2E: `tsc 0`, lint 0 errors, `202 passed` files / `1498 passed` tests, desktop build green
+
 ## Phase 155: Desktop auth hardening follow-ups
 
 - [x] Shared `authedFetch` (base guard); `resetPassword`/`deleteAccount`/`resendVerification` wrappers; aligned `mapUser`
