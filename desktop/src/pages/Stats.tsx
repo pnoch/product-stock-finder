@@ -19,6 +19,7 @@ import {
 import { computeDigest, buildDigestSnapshot, type DigestResult, type DigestSnapshot } from "../../../lib/price-digest";
 import { computeDropCalendar, dateKey } from "../../../lib/drop-calendar";
 import { computeProductInsights } from "../../../lib/product-insights";
+import { rankDeals } from "../../../lib/deal-score";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
 
 const CHART_COLORS = ["#0F52BA", "#00C896", "#F59E0B", "#EF4444", "#8B5CF6"];
@@ -163,6 +164,10 @@ export function Stats() {
   );
   const insights = useMemo(
     () => (products ? computeProductInsights(products, displayCurrency) : null),
+    [products, displayCurrency],
+  );
+  const topDeals = useMemo(
+    () => rankDeals(products ?? [], displayCurrency),
     [products, displayCurrency],
   );
   const dropCalendar = useMemo(
@@ -468,6 +473,37 @@ export function Stats() {
                   {digest.priceChanges.length > 3 && (
                     <p className="text-xs text-gray-400">+{digest.priceChanges.length - 3} more</p>
                   )}
+                </div>
+              )}
+              {topDeals.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Best time to buy
+                  </p>
+                  {topDeals.map((d) => (
+                    <Link
+                      key={d.productId}
+                      to={`/product/${d.productId}`}
+                      className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                      aria-label={`View ${d.name} details`}
+                    >
+                      <span className="text-gray-900 dark:text-gray-100 truncate flex-1">
+                        {d.name}
+                      </span>{" "}
+                      <span className="text-gray-500 dark:text-gray-400">{d.score}</span>{" "}
+                      <span
+                        className={
+                          d.band === "hot"
+                            ? "font-semibold text-emerald-600"
+                            : d.band === "fair"
+                              ? "font-semibold text-amber-600"
+                              : "font-semibold text-gray-400"
+                        }
+                      >
+                        {d.band === "hot" ? "Hot deal" : d.band === "fair" ? "Fair price" : "Wait for a drop"}
+                      </span>
+                    </Link>
+                  ))}
                 </div>
               )}
               {digest.stockChanges.length > 0 && (

@@ -1,19 +1,26 @@
 import { memo, useMemo } from "react";
-import { Text, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
+import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@shared/currency";
 import type { DigestResult } from "@/lib/price-digest";
+import type { rankDeals } from "@/lib/deal-score";
+
+type TopDeal = ReturnType<typeof rankDeals>[number];
 
 export const DigestCard = memo(function DigestCard({
   result,
   periodLabel,
   displayCurrency,
+  topDeals,
 }: {
   result: DigestResult;
   periodLabel: string;
   displayCurrency: string;
+  topDeals: TopDeal[];
 }) {
   const colors = useColors();
+  const router = useRouter();
   const empty = useMemo(
     () =>
       result.priceChanges.length === 0 &&
@@ -121,6 +128,63 @@ export const DigestCard = memo(function DigestCard({
                 {c.percent.toFixed(0)}%
               </Text>
             </View>
+          ))}
+
+          {topDeals.length > 0 && (
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 12,
+                fontWeight: "600",
+                marginTop: 10,
+              }}
+            >
+              Best time to buy
+            </Text>
+          )}
+          {topDeals.map((d) => (
+            <TouchableOpacity
+              key={d.productId}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${d.name} details`}
+              onPress={() => router.push(`/product/${d.productId}`)}
+              style={{ flexDirection: "row", paddingVertical: 4, gap: 8 }}
+            >
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontSize: 12,
+                  flex: 1,
+                }}
+                numberOfLines={1}
+              >
+                {d.name}
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                {d.score}
+              </Text>
+              <Text
+                style={{
+                  color:
+                    d.band === "hot"
+                      ? colors.success
+                      : d.band === "fair"
+                        ? colors.warning
+                        : colors.muted,
+                  fontSize: 12,
+                  fontWeight: "600",
+                  minWidth: 44,
+                  textAlign: "right",
+                }}
+              >
+                {d.band === "hot"
+                  ? "Hot deal"
+                  : d.band === "fair"
+                    ? "Fair price"
+                    : "Wait for a drop"}
+              </Text>
+            </TouchableOpacity>
           ))}
 
           {result.stockChanges.length > 0 && (

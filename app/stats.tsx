@@ -33,6 +33,7 @@ import {
   type DigestSnapshot,
 } from "@/lib/price-digest";
 import { DigestCard } from "@/components/stats/digest-card";
+import { rankDeals } from "@/lib/deal-score";
 import { buildWatchlistShareText } from "@/lib/watchlist-share";
 import { captureAndShareImage } from "@/lib/share-image";
 import { StatsShareCard } from "@/components/share/stats-share-card";
@@ -103,6 +104,11 @@ export default function StatsScreen() {
   const showDigestPlaceholder = useMemo(
     () => digestFrequency === "off" && watchlist.length > 0,
     [digestFrequency, watchlist.length],
+  );
+
+  const topDeals = useMemo(
+    () => rankDeals(watchlist, displayCurrency),
+    [watchlist, displayCurrency],
   );
 
   const handleSaveBasketAlert = useCallback(
@@ -248,6 +254,7 @@ export default function StatsScreen() {
                 digestFrequency === "weekly" ? "this week" : "today"
               }
               displayCurrency={displayCurrency}
+              topDeals={topDeals}
             />
           ) : showDigestPlaceholder ? (
             <View
