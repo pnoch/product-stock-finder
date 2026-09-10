@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Home } from "../src/pages/Home";
 import { Settings } from "../src/pages/Settings";
 
@@ -41,6 +42,20 @@ vi.mock("../src/storage", () => ({
 
 function renderWithRouter(ui: React.ReactElement, route = "/") {
   return render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>);
+}
+
+function renderSettingsWithProviders() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={["/settings"]}>
+        <Settings />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  return queryClient;
 }
 
 describe("Home page", () => {
@@ -95,23 +110,35 @@ describe("Settings page", () => {
   });
 
   it("renders settings title", async () => {
-    renderWithRouter(<Settings />);
-    await waitFor(() => {
-      expect(screen.getByText("Settings")).toBeInTheDocument();
-    });
+    const queryClient = renderSettingsWithProviders();
+    try {
+      await waitFor(() => {
+        expect(screen.getByText("Settings")).toBeInTheDocument();
+      });
+    } finally {
+      queryClient.clear();
+    }
   });
 
   it("shows theme section", async () => {
-    renderWithRouter(<Settings />);
-    await waitFor(() => {
-      expect(screen.getByText("Theme")).toBeInTheDocument();
-    });
+    const queryClient = renderSettingsWithProviders();
+    try {
+      await waitFor(() => {
+        expect(screen.getByText("Theme")).toBeInTheDocument();
+      });
+    } finally {
+      queryClient.clear();
+    }
   });
 
   it("shows currency section", async () => {
-    renderWithRouter(<Settings />);
-    await waitFor(() => {
-      expect(screen.getByText("Display Currency")).toBeInTheDocument();
-    });
+    const queryClient = renderSettingsWithProviders();
+    try {
+      await waitFor(() => {
+        expect(screen.getByText("Display Currency")).toBeInTheDocument();
+      });
+    } finally {
+      queryClient.clear();
+    }
   });
 });

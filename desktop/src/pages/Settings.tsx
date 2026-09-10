@@ -309,6 +309,7 @@ export function Settings() {
   };
 
   const handleResend = async () => {
+    if (resending) return;
     setResending(true);
     try {
       await resendVerification();

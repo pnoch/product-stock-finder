@@ -117,7 +117,7 @@ beforeEach(() => {
 });
 
 describe("alerts error paths", () => {
-  it("toasts and offers Retry when notification history fails to load", async () => {
+  it("shows an inline error and offers Retry when notification history fails to load", async () => {
     render(<MemoryRouter><Alerts /></MemoryRouter>);
     // Notifications list lives under the notifications tab
     const tabButton = await screen.findByRole("button", { name: /show notifications/i });
@@ -252,6 +252,20 @@ describe("delete confirmations", () => {
       await userEvent.click(await screen.findByRole("button", { name: /^delete reminder$/i }));
       await waitFor(() => expect(mockStorage.removeBackOrderReminder).toHaveBeenCalledWith("r1"));
       expect(confirm).toHaveBeenCalledWith(expect.stringContaining("cannot be undone"));
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
+  it("does not delete a stock watch when the confirm is dismissed", async () => {
+    mockAlertsPageData();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    try {
+      render(<MemoryRouter><Alerts /></MemoryRouter>);
+      await userEvent.click(await screen.findByRole("button", { name: /show reminders/i }));
+      await userEvent.click(await screen.findByRole("button", { name: /delete stock watch/i }));
+      await waitFor(() => expect(confirm).toHaveBeenCalled());
+      expect(mockStorage.removeStockWatch).not.toHaveBeenCalled();
     } finally {
       confirm.mockRestore();
     }

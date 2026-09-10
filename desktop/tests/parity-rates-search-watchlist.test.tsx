@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { Rates } from "../src/pages/Rates";
 import { Search } from "../src/pages/Search";
@@ -37,15 +38,34 @@ describe("desktop parity pages", () => {
   });
 
   it("supports bulk-select mode on Watchlist", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    mockStorage.getWatchlist.mockResolvedValue([
+      {
+        id: "p1",
+        name: "CRS326-24G-2S+RM",
+        modelNumber: "CRS326-24G-2S+RM",
+        brand: "MikroTik",
+        category: "Switch",
+        description: "",
+        addedAt: new Date().toISOString(),
+        isWatched: true,
+        listings: [],
+      },
+    ]);
     render(
-      <MemoryRouter>
-        <Watchlist />
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <Watchlist />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
-    fireEvent.click(screen.getByLabelText("Enter bulk select mode"));
+    fireEvent.click(await screen.findByLabelText("Enter bulk select mode"));
     await waitFor(() => {
       expect(screen.getByText("Cancel")).toBeInTheDocument();
     });
+    queryClient.clear();
   });
 
   it("searches the shared catalog through the desktop page", async () => {

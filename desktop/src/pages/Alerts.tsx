@@ -332,7 +332,7 @@ export function Alerts() {
             )}
           </div>
           {notifError && (
-            <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
+            <div role="alert" className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
               <span className="flex-1">{notifError}</span>
               <button
                 onClick={() => void loadNotifications()}
