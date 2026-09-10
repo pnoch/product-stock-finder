@@ -5,7 +5,8 @@ import { trpc } from "../lib/trpc";
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
 import { normalizeSharedWatchlistProduct } from "../../../lib/shared-watchlist";
-import { watchlistToDetailedCsv } from "../../../lib/csv";
+import { productHistoryToCsv, watchlistToDetailedCsv } from "../../../lib/csv";
+import type { Product } from "../../../lib/types";
 import { formatPrice } from "@shared/currency";
 import { getBestPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
@@ -75,6 +76,20 @@ export function SharedWatchlist() {
     else showToast("Nothing added");
   }, [data, adding, addOne, showToast]);
 
+  const handleExportHistory = useCallback((product: Product) => {
+    const csv = productHistoryToCsv(product);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${product.id}-history.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("History exported");
+  }, [showToast]);
+
   const handleExportCsv = useCallback(() => {
     const products = (data?.products ?? []) as SharedProduct[];
     const csv = watchlistToDetailedCsv(products as never[]);
@@ -123,6 +138,16 @@ export function SharedWatchlist() {
   }
 
   const products = (data.products ?? []) as SharedProduct[];
+  const createdLabel = data.createdAt ? new Date(data.createdAt).toLocaleDateString() : null;
+  const lastSharedLabel = (data as { updatedAt?: string | null }).updatedAt
+    ? new Date((data as { updatedAt?: string | null }).updatedAt as string).toLocaleDateString()
+    : null;
+  const expiresLabel = data.expiresAt ? new Date(data.expiresAt).toLocaleDateString() : null;
+  const metaLine = [
+    createdLabel ? `Shared ${createdLabel}` : null,
+    lastSharedLabel ? `Last shared ${lastSharedLabel}` : null,
+    expiresLabel ? `Expires ${expiresLabel}` : null,
+  ].filter((x): x is string => x !== null).join(" · ");
 
   return (
     <div className="p-6 space-y-4">
@@ -131,7 +156,7 @@ export function SharedWatchlist() {
           <h1 className="text-2xl font-bold">{data.title}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {products.length} product{products.length === 1 ? "" : "s"}
-            {data.expiresAt ? ` · Expires ${new Date(data.expiresAt).toLocaleDateString()}` : ""}
+            {metaLine ? ` · ${metaLine}` : ""}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -172,18 +197,31 @@ export function SharedWatchlist() {
                 <div className="font-semibold text-sm">{p.name}</div>
                 {p.brand && <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{p.brand}</div>}
                 <div className="flex items-center gap-2 mt-2">
-                  {first && price && (
-                    <>
-                      <span className="text-sm font-semibold">
-                        {formatPrice(price.price, price.currency)}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {getDistributorById(first.distributorId)?.name ?? first.distributorId}
-                      </span>
-                      <StockBadge status={first.stockStatus} />
-                    </>
+                  {price && (
+                    <span className="text-sm font-semibold">
+                      {formatPrice(price.price, price.currency)}
+                    </span>
                   )}
                 </div>
+                {(p.listings?.length ?? 0) > 0 && (
+                  <div className="mt-2 space-y-1.5">
+                    {(p.listings ?? []).slice(0, 5).map((l) => (
+                      <div key={l.distributorId} className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">
+                          {formatPrice(l.price, l.currency)}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {getDistributorById(l.distributorId)?.name ?? l.distributorId}
+                        </span>
+                        <StockBadge status={l.stockStatus} />
+                      </div>
+                    ))}
+                    {(p.listings ?? []).length > 5 && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">+{(p.listings ?? []).length - 5} more</p>
+                    )}
+                  </div>
+                )}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button
                   onClick={async () => {
                     if (await addOne(p)) {
@@ -194,11 +232,19 @@ export function SharedWatchlist() {
                     }
                   }}
                   disabled={addedIds.has(p.id)}
-                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                   aria-label="Add to watchlist"
                 >
                   {addedIds.has(p.id) ? "Added ✓" : "Add"}
                 </button>
+                <button
+                  onClick={() => handleExportHistory(p as unknown as Product)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                  aria-label={`Export history for ${p.name}`}
+                >
+                  Export history
+                </button>
+                </div>
               </div>
             );
           })}
