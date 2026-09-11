@@ -49,7 +49,7 @@ async function emitHealthEvent(
   pending: PendingHealthEvent[],
 ): Promise<void> {
   const eventId = `health-${distributorId.toLowerCase()}-${status}-${createdAt}`;
-  await sendDesktopNotification(title, body);
+  await sendDesktopNotification(title, body, "/health");
   await storage.recordNotificationEvent({
     id: eventId,
     type: "health",

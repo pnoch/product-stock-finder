@@ -1,5 +1,6 @@
 import { storage } from "./storage";
 import { createTRPCClient } from "./lib/trpc";
+import { resolveEventRoute } from "./lib/notification-routing";
 import { withTimeout } from "../../lib/with-timeout";
 
 const TIMEOUT_MS = 4000;
@@ -166,7 +167,8 @@ async function runSyncDesktopNotifications(): Promise<void> {
           event.alertId &&
           !activeAlertIds.has(event.alertId);
         if (!stalePriceDrop) {
-          await sendDesktopNotification(event.title, event.body);
+          const route = resolveEventRoute(event, activeAlerts, stockWatches, dateReminders);
+          await sendDesktopNotification(event.title, event.body, route);
         }
         await reconcileEvent(event);
       } catch {

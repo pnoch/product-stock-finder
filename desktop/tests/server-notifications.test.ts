@@ -34,8 +34,8 @@ vi.mock("../src/lib/trpc", () => ({
 }));
 
 vi.mock("../src/notifications", () => ({
-  sendDesktopNotification: vi.fn(async (title: string, body: string) => {
-    state.notifications.push({ title, body });
+  sendDesktopNotification: vi.fn(async (title: string, body: string, route?: string) => {
+    state.notifications.push({ title, body, route });
   }),
 }));
 
@@ -78,7 +78,65 @@ describe("syncDesktopNotifications", () => {
     const alerts = input.alerts as Array<{ id: string }>;
     expect(alerts.map((a) => a.id)).toContain("a1");
     expect(state.notifications).toEqual([
-      { title: "💸 Price Drop Alert!", body: "CRS804 is now $480.00!" },
+      {
+        title: "💸 Price Drop Alert!",
+        body: "CRS804 is now $480.00!",
+        route: "/product/mikrotik-crs804-4ddq-hrm",
+      },
+    ]);
+  });
+
+  it("routes restock and reminder events to their watched product", async () => {
+    await storage.addStockWatch({
+      id: "w1",
+      productId: "mikrotik-crs804-4ddq-hrm",
+      productName: "CRS804",
+      distributorId: "d1",
+      distributorName: "D1",
+      reminderDate: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      reminderType: "back_in_stock",
+    });
+    await storage.addBackOrderReminder({
+      id: "r1",
+      productId: "mikrotik-crs804-4ddq-hrm",
+      productName: "CRS804",
+      distributorId: "d1",
+      distributorName: "D1",
+      reminderDate: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      reminderType: "date",
+    });
+    state.pulled = [
+      {
+        id: "e1",
+        type: "restock",
+        title: "Back in stock!",
+        body: "CRS804 is back!",
+        watchId: "w1",
+        createdAt: 123,
+      },
+      {
+        id: "e2",
+        type: "reminder",
+        title: "Reminder",
+        body: "Check CRS804",
+        reminderId: "r1",
+        createdAt: 124,
+      },
+    ];
+    await syncDesktopNotifications();
+    expect(state.notifications).toEqual([
+      {
+        title: "Back in stock!",
+        body: "CRS804 is back!",
+        route: "/product/mikrotik-crs804-4ddq-hrm",
+      },
+      {
+        title: "Reminder",
+        body: "Check CRS804",
+        route: "/product/mikrotik-crs804-4ddq-hrm",
+      },
     ]);
   });
 
@@ -178,7 +236,11 @@ describe("syncDesktopNotifications", () => {
     ];
     await syncDesktopNotifications();
     expect(state.notifications).toEqual([
-      { title: "💸 Price Drop Alert!", body: "CRS804 is now $450.00!" },
+      {
+        title: "💸 Price Drop Alert!",
+        body: "CRS804 is now $450.00!",
+        route: "/product/mikrotik-crs804-4ddq-hrm",
+      },
     ]);
     const alerts = await storage.getAlerts();
     expect(alerts.find((a) => a.id === "a2")!.isActive).toBe(false);

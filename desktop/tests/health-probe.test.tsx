@@ -152,6 +152,7 @@ describe("runHealthProbeIfDue", () => {
     expect(sendDesktopNotification).toHaveBeenCalledWith(
       "🟠 Distributor Blocked",
       expect.stringContaining("has been blocked for 3 consecutive probes"),
+      "/health",
     );
     expect(mockStorage.recordNotificationEvent).toHaveBeenCalledWith(
       expect.objectContaining({ type: "health", title: "🟠 Distributor Blocked" }),
@@ -191,6 +192,7 @@ describe("runHealthProbeIfDue", () => {
     expect(sendDesktopNotification).toHaveBeenCalledWith(
       "🟢 Distributor Recovered",
       expect.stringContaining("is back online after being blocked"),
+      "/health",
     );
     expect(mockStorage.recordNotificationEvent).toHaveBeenCalledWith(
       expect.objectContaining({ type: "health", title: "🟢 Distributor Recovered" }),
