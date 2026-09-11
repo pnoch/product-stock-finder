@@ -54,7 +54,8 @@ function fieldStyle(colors: ReturnType<typeof useColors>) {
 
 const DISCOVER_TIMEOUT_MS = 15_000;
 
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+// Reject-semantics variant (shared withTimeout resolves null instead):
+function withTimeoutReject<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     promise,
     new Promise<never>((_, reject) =>
@@ -205,7 +206,7 @@ export function ManualAddSheet({
       if (active && activeRef.current) setProgress("Searching distributors 0/…");
       let listings: Awaited<ReturnType<typeof discoverListings>>;
       try {
-        listings = await withTimeout(
+        listings = await withTimeoutReject(
           discoverListings(modelNumber, {
             productId: id,
             onProgress: (done, total) => {

@@ -16,4 +16,12 @@ describe("withTimeout", () => {
     await assertion;
     vi.useRealTimers();
   });
+  it("leaves no pending timer after settle", async () => {
+    vi.useFakeTimers();
+    const p = withTimeout(Promise.resolve(1), 4000);
+    expect(vi.getTimerCount()).toBe(1);
+    await expect(p).resolves.toBe(1);
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
 });

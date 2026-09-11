@@ -1,5 +1,6 @@
 import { storage } from "./storage";
 import { createTRPCClient } from "./lib/trpc";
+import { withTimeout } from "../../lib/with-timeout";
 
 const TIMEOUT_MS = 4000;
 
@@ -48,14 +49,12 @@ interface PushEvent {
 async function uploadConfig(config: PushConfig): Promise<boolean> {
   try {
     const client = createTRPCClient();
-    const result = await Promise.race([
+    const result = await withTimeout(
       client.notifications.uploadConfig
         .mutate({ ...config })
         .then(() => true as const),
-      new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), TIMEOUT_MS),
-      ),
-    ]);
+      TIMEOUT_MS,
+    );
     return result === true;
   } catch {
     return false;
@@ -65,12 +64,7 @@ async function uploadConfig(config: PushConfig): Promise<boolean> {
 async function pullEvents(): Promise<PushEvent[]> {
   try {
     const client = createTRPCClient();
-    const result = await Promise.race([
-      client.notifications.pull.query({}),
-      new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), TIMEOUT_MS),
-      ),
-    ]);
+    const result = await withTimeout(client.notifications.pull.query({}), TIMEOUT_MS);
     return result?.events ?? [];
   } catch {
     return [];
