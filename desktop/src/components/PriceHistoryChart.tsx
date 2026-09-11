@@ -19,16 +19,19 @@ export function PriceHistoryChart({
   displayCurrency: string;
 }) {
   const { isDark } = useTheme();
+  const points = history
+    .map((p) => {
+      const price = convertPrice(p.price, p.currency, displayCurrency);
+      if (price === null || !Number.isFinite(price)) return null;
+      return { date: new Date(p.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }), price };
+    })
+    .filter((pt): pt is { date: string; price: number } => pt !== null);
+
+  if (points.length === 0) return <div className="text-center text-sm text-gray-400 py-8">No data</div>;
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart
-        data={history.map((p) => ({
-          date: new Date(p.date).toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-          }),
-          price: convertPrice(p.price, p.currency, displayCurrency),
-        }))}
+        data={points}
       >
         <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#374151" : "#e5e7eb"} />
         <XAxis dataKey="date" tick={{ fontSize: 12, fill: isDark ? "#9ca3af" : "#6b7280" }} axisLine={{ stroke: isDark ? "#4b5563" : "#d1d5db" }} tickLine={{ stroke: isDark ? "#4b5563" : "#d1d5db" }} />
