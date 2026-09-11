@@ -14,6 +14,22 @@ function vapidKey(): string {
   return import.meta.env.VITE_VAPID_PUBLIC_KEY ?? "";
 }
 
+export function hasVapidKey(): boolean {
+  return vapidKey().length > 0;
+}
+
+export async function getPushStatus(): Promise<"on" | "off"> {
+  if (!isPushSupported()) return "off";
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    const subscription = await registration?.pushManager.getSubscription();
+    return subscription ? "on" : "off";
+  } catch (e) {
+    console.error("[web-push] status check failed", e);
+    return "off";
+  }
+}
+
 function urlBase64ToUint8Array(base64: string): Uint8Array {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const raw = window.atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));
