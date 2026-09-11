@@ -1295,3 +1295,27 @@
 - [x] Spec (`docs/superpowers/specs/2026-09-10-small-ux-alignment-design.md`) + plan (`docs/superpowers/plans/2026-09-10-small-ux-alignment.md`)
 - [x] Active-only tab count (`cdb3b35`); persist deal sort + watchlistSortKey widening (`04269f1`); tags pointer → Watchlist (`8d0bba3`); notifications refresh (`28af7b5`)
 - [x] Guards (`desktop/tests/ux-alignment.test.tsx`, `tests/desktop-tags-pointer-guard.test.ts`); E2E: `tsc 0`, lint 0 errors, `215 passed` files / `1556 passed` tests, desktop build green
+
+## Phase 169: Hygiene bundle
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-hygiene-bundle-design.md`) + plan (`docs/superpowers/plans/2026-09-10-hygiene-bundle.md`)
+- [x] Shared SEARCH_OPTIONS, deferred index, price sorter, pendingTags, dead exports (`b7a362b`); idb warn+rethrow, poller rethrow + revert-to-manual (`cdc0e38`); dead wrapper + mark* removal, mocks to consume* (`b435e1a`)
+- [x] Guards (`tests/catalog-search-guard.test.ts`, `tests/idb-adapter.test.ts`); E2E: `tsc 0`, lint 0 errors, root `219 passed` files / `1568 passed` tests, desktop `19 passed` files / `83 passed` tests
+
+## Phase 170: Server-side health checks
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-server-health-checks-design.md`) + plan (`docs/superpowers/plans/2026-09-10-server-health-checks.md`)
+- [x] health.check endpoint + memory adapter (`7762a56`); desktop web fallback, Tauri-first (`fc43909`)
+- [x] Guards (`tests/health-router.test.ts`, `tests/server-health.test.ts`, `desktop/tests/health-fallback.test.tsx`); E2E: `tsc 0`, lint 0 errors, root `219 passed` files / `1568 passed` tests, desktop `19 passed` files / `83 passed` tests
+
+## Phase 171: OAuth web path
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-oauth-web-path-design.md`) + plan (`docs/superpowers/plans/2026-09-10-oauth-web-path.md`)
+- [x] Ticket redirect to web URLs (`7bb56a4`); callback route + web login (`ee931fb`); invalid-user rejection test (`16d1c82`)
+- [x] Guards (`tests/oauth-handlers.test.ts` extended, `desktop/tests/oauth-callback.test.tsx`); security review: open-redirect analysis clean (ticket-only, no raw tokens from URL); E2E: `tsc 0`, lint 0 errors, root `219 passed` files / `1568 passed` tests, desktop `19 passed` files / `83 passed` tests
+
+## Phase 172: Desktop polish bundle
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-desktop-polish-design.md`) + plan (`docs/superpowers/plans/2026-09-10-desktop-polish.md`)
+- [x] History modal + CSV (`67f0de8`); notif icons + relative time (`13bb9b4`); Home refresh (`f158ee7`); insight skeleton + stuck-state/dark-shade fix (`e74c1b3`, `7582f60`)
+- [x] Guards (`desktop/tests/distributor-history-modal.test.tsx`, `desktop/tests/relative-time.test.ts`, `desktop/tests/notifications-polish.test.tsx`, `desktop/tests/home-refresh.test.tsx`, `desktop/tests/insight-skeleton.test.tsx`); E2E: `tsc 0`, lint 0 errors, root `219 passed` files / `1568 passed` tests, desktop `19 passed` files / `83 passed` tests
