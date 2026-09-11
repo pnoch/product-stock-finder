@@ -13,6 +13,7 @@ import { countTagMatches, filterWatchlist } from "../../../lib/watchlist-org";
 import { useToast } from "../hooks/use-toast";
 
 import { addRecentSearch, parseRecentSearches, MAX_RECENT_SEARCHES } from "../../../lib/recent-searches";
+import { PREVIEW_LIMIT, sortPreviewByStock } from "../../../lib/search-preview";
 
 const RECENT_KEY = "recent_searches";
 function loadRecent(): string[] {
@@ -147,7 +148,7 @@ export function Search() {
 
   const results = useMemo(() => {
     let base: typeof combinedCatalog;
-    if (!deferredQuery.trim()) base = combinedCatalog;
+    if (!deferredQuery.trim()) base = sortPreviewByStock(combinedCatalog).slice(0, PREVIEW_LIMIT);
     else {
       base = fuse.search(deferredQuery).map((r) => r.item);
     }

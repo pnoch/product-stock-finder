@@ -19,7 +19,7 @@ import { BulkImportModal } from "@/components/search/bulk-import-modal";
 import { ManualAddSheet } from "@/components/search/manual-add-sheet";
 import { useColors } from "@/hooks/use-colors";
 import { searchCatalog, getAllCatalog, PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCatalogByPrice } from "@shared/catalog";
-import { SAMPLE_LISTINGS } from "@/lib/sample-data";
+import { PREVIEW_LIMIT, sortPreviewByStock } from "@/lib/search-preview";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
 import { RecentSearches } from "@/components/search/recent-searches";
 import { DiscoveryAuthError, DiscoveryError, discoverProduct } from "@/lib/llm-discovery";
@@ -37,20 +37,6 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TagFilterRow } from "@/components/tag-filter-row";
 import { countTagMatches, filterWatchlist } from "@/lib/watchlist-org";
 import Fuse from "fuse.js";
-
-const PREVIEW_LIMIT = 10;
-
-function previewStockScore(productId: string): number {
-  const listings = SAMPLE_LISTINGS[productId] ?? [];
-  if (listings.length === 0) return 0;
-  const inStock = listings.filter((l) => l.stockStatus === "in_stock").length;
-  // Weight in-stock heavily, then total listings
-  return inStock * 10 + listings.length;
-}
-
-function sortPreviewByStock<T extends { id: string }>(items: T[]): T[] {
-  return [...items].sort((a, b) => previewStockScore(b.id) - previewStockScore(a.id));
-}
 
 type CatalogSort = "relevance" | "name" | "price" | "brand";
 
