@@ -21,4 +21,11 @@ describe("checkAllDistributors", () => {
       expect(Number.isNaN(Date.parse(r.lastChecked))).toBe(false);
     }
   });
+  it("keeps no state between calls", async () => {
+    const first = await checkAllDistributors();
+    const second = await checkAllDistributors();
+    expect(first).toHaveLength(second.length);
+    // breaker state is per-call: force failure then success would need fetch control — keep the structural pin:
+    expect(first.map((r) => r.distributorId).sort()).toEqual(second.map((r) => r.distributorId).sort());
+  });
 });

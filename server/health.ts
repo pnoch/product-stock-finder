@@ -1,6 +1,9 @@
 import { createHealthService } from "../lib/scrapers/health";
 import type { StorageAdapter } from "../lib/storage/adapter";
 
+// Stateless by design: a fresh adapter per call means breaker state and
+// history never persist server-side. The client persists results through its
+// own health service (desktop Health page, mobile probe task).
 function memoryAdapter(): StorageAdapter {
   const store = new Map<string, string>();
   return {
