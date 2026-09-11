@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Routes, Route } from "react-router";
 import { Home } from "../src/pages/Home";
 
 const mockStorage = vi.hoisted(() => ({
@@ -13,6 +13,16 @@ const mockStorage = vi.hoisted(() => ({
 
 vi.mock("../src/storage", () => ({
   storage: mockStorage,
+}));
+
+vi.mock("../src/hooks/use-connection", () => ({
+  useConnection: () => ({
+    status: "signed-out",
+    reachable: false,
+    isRefreshing: false,
+    lastCheckedAt: null,
+    refetch: () => {},
+  }),
 }));
 
 function renderHome() {
@@ -68,5 +78,22 @@ describe("home manual refresh", () => {
     );
     expect(mockStorage.getWatchlist).toHaveBeenCalled();
     expect(callsBefore).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows connection status in the header", async () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/settings" element={<div>Settings page</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    const badge = await screen.findByRole("button", {
+      name: /connection status: signed out/i,
+    });
+    expect(badge).toHaveTextContent(/signed out/i);
+    await userEvent.click(badge);
+    expect(await screen.findByText("Settings page")).toBeInTheDocument();
   });
 });

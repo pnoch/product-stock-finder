@@ -16,6 +16,8 @@ import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { storage } from "../storage";
 import { getDistributorById } from "@shared/distributors";
 import { StockBadge } from "../components/StockBadge";
+import { ConnectionBadge } from "../components/ConnectionBadge";
+import { useConnection } from "../hooks/use-connection";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
 import { TrendingSection } from "../components/TrendingSection";
@@ -101,6 +103,7 @@ export function Home() {
   void pendingTagsArray;
   void pendingTagsSize;
   const navigate = useNavigate();
+  const connection = useConnection();
 
   const loadDashboard = useCallback(async () => {
     setLoadError(null);
@@ -219,6 +222,14 @@ export function Home() {
             <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
             {refreshing ? "Refreshing" : "Refresh"}
           </button>
+          <ConnectionBadge
+            status={connection.status}
+            onPress={
+              connection.status === "signed-out"
+                ? () => navigate("/settings")
+                : undefined
+            }
+          />
           <Link
             to="/search"
             className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
