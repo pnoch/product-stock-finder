@@ -1,9 +1,40 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
-import { readFile } from "node:fs/promises";
+import { MemoryRouter, Routes, Route } from "react-router";
 import { DistributorHistoryModal } from "../src/components/DistributorHistoryModal";
+
+const mockStorage = vi.hoisted(() => ({
+  getWatchlist: vi.fn(),
+  getSettings: vi.fn(),
+  getStockWatches: vi.fn(),
+  getAlerts: vi.fn(),
+  updateProductListings: vi.fn(),
+}));
+
+vi.mock("../src/storage", () => ({
+  storage: mockStorage,
+}));
+
+vi.mock("../src/lib/api-base", () => ({
+  getApiBaseUrl: () => "https://api.example.com",
+  getOAuthPortalUrl: () => "",
+  getAppId: () => "",
+}));
+
+vi.mock("../src/lib/trpc", () => ({
+  createTRPCClient: () => ({
+    prices: { get: { query: vi.fn().mockResolvedValue(null) } },
+    insights: { get: { query: vi.fn().mockResolvedValue(null) } },
+  }),
+}));
+
+const mockTauriInvoke = vi.hoisted(() => vi.fn());
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: mockTauriInvoke,
+}));
+
+import { ProductDetail } from "../src/pages/ProductDetail";
 
 const listing = {
   distributorId: "d1",
@@ -85,10 +116,80 @@ describe("distributor history modal", () => {
     expect(link.getAttribute("href")).toBe("/compare/p1?distributor=d1");
   });
 
-  it("wires the modal from listing rows with >=2-point gating", async () => {
-    const text = await readFile("src/pages/ProductDetail.tsx", "utf8");
-    expect(text).toContain("DistributorHistoryModal");
-    expect(text).toContain("priceHistory.length >= 2");
-    expect(text).toContain("setHistoryFor");
+  it("opens the modal from a listing row with >=2 points", async () => {
+    const wiredProduct = {
+      id: "p1",
+      name: "MikroTik hAP ac3",
+      modelNumber: "hAP ac3",
+      brand: "MikroTik",
+      category: "Router",
+      description: "Dual-band router",
+      addedAt: new Date().toISOString(),
+      isWatched: true,
+      listings: [
+        {
+          distributorId: "balticnetworks-us",
+          productId: "p1",
+          price: 100,
+          currency: "USD",
+          stockStatus: "in_stock",
+          url: "https://example.com/us",
+          lastChecked: new Date().toISOString(),
+          priceHistory: [
+            { date: "2026-08-01", price: 110, currency: "USD", stockStatus: "in_stock" },
+            { date: "2026-09-01", price: 100, currency: "USD", stockStatus: "in_stock" },
+          ],
+        },
+        {
+          distributorId: "server2u-my",
+          productId: "p1",
+          price: 400,
+          currency: "MYR",
+          stockStatus: "in_stock",
+          url: "https://example.com/my",
+          lastChecked: new Date().toISOString(),
+          priceHistory: [],
+        },
+      ],
+    };
+    vi.clearAllMocks();
+    mockTauriInvoke.mockRejectedValue(new Error("no tauri"));
+    localStorage.clear();
+    mockStorage.getWatchlist.mockResolvedValue([wiredProduct]);
+    mockStorage.getSettings.mockResolvedValue({
+      theme: "auto",
+      displayCurrency: "USD",
+      checkInterval: "manual",
+      notificationsEnabled: true,
+      stockAlerts: true,
+      priceAlerts: true,
+      shippingRegion: "Asia-Pacific",
+    });
+    mockStorage.getStockWatches.mockResolvedValue([]);
+    mockStorage.getAlerts.mockResolvedValue([]);
+    mockStorage.updateProductListings.mockResolvedValue(undefined);
+
+    render(
+      <MemoryRouter initialEntries={["/product/p1"]}>
+        <Routes>
+          <Route path="/product/:id" element={<ProductDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const historyButton = await screen.findByRole("button", {
+      name: /view baltic networks price history/i,
+    });
+    expect(
+      screen.queryByRole("link", { name: /view baltic networks price history/i }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(historyButton);
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Baltic Networks")).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("button", { name: /download csv/i }),
+    ).toBeInTheDocument();
   });
 });
