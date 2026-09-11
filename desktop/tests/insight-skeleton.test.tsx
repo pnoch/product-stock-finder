@@ -135,7 +135,7 @@ describe("tauri insight fetch", () => {
       renderProductDetail();
       await waitFor(() =>
         expect(errorSpy).toHaveBeenCalledWith(
-          "[ProductDetail] Tauri insight fetch failed",
+          "[ProductDetail] insight fetch failed",
           expect.anything(),
         ),
       );

@@ -40,6 +40,7 @@ import { fetchListingsWithTimeout } from "../lib/server-prices";
 import { saveNodeAsPng } from "../lib/share";
 import { buildShareText } from "../../../lib/price-share";
 import { getProductNote, saveProductNote } from "../../../lib/product-notes";
+import { withTimeout } from "../../../lib/with-timeout";
 import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
 import { DistributorHistoryModal } from "../components/DistributorHistoryModal";
@@ -220,10 +221,10 @@ export function ProductDetail() {
         try {
           const { createTRPCClient } = await import("../lib/trpc");
           const client = createTRPCClient();
-          const result = await Promise.race([
+          const result = await withTimeout(
             client.insights.get.query({ productId: id ?? "" }),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
-          ]);
+            4000,
+          );
           if (loadIdRef.current === myId) {
             if (result) setInsight(result.insight);
             setInsightLoading(false);
@@ -241,16 +242,16 @@ export function ProductDetail() {
       setInsightLoading(true);
       try {
         const { invoke } = await import("@tauri-apps/api/core");
-        const res = (await Promise.race([
+        const res = (await withTimeout(
           invoke("fetch_price_insight", { apiBaseUrl: base, productId: id }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
-        ])) as { insight?: unknown } | null;
+          4000,
+        )) as { insight?: unknown } | null;
         if (loadIdRef.current === myId) {
           if (res && typeof res.insight === "string" && res.insight) setInsight(res.insight);
           setInsightLoading(false);
         }
       } catch (e) {
-        console.error("[ProductDetail] Tauri insight fetch failed", e);
+        console.error("[ProductDetail] insight fetch failed", e);
         if (loadIdRef.current === myId) setInsightLoading(false);
       }
     }
