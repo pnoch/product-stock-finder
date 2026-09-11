@@ -83,8 +83,32 @@ async function reconcileEvent(event: PushEvent): Promise<void> {
   }
 }
 
-export async function syncDesktopNotifications(): Promise<void> {
+let syncInFlight: Promise<void> | null = null;
+
+export function syncDesktopNotifications(): Promise<void> {
+  if (syncInFlight) return syncInFlight;
+  syncInFlight = runSyncDesktopNotifications().finally(() => {
+    syncInFlight = null;
+  });
+  return syncInFlight;
+}
+
+async function runSyncDesktopNotifications(): Promise<void> {
   try {
+    const settings = await storage.getSettings();
+    const pendingHealthEvents = await storage.getPendingHealthEvents();
+
+    // Master switch off: retract the server-side config so evaluation stops,
+    // drop the health buffer (intentional suppression, not loss), and skip
+    // pulling/displaying events entirely.
+    if (!settings.notificationsEnabled) {
+      await uploadConfig({ alerts: [], stockWatches: [], dateReminders: [] });
+      if (pendingHealthEvents.length > 0) {
+        await storage.clearPendingHealthEvents();
+      }
+      return;
+    }
+
     const alerts = await storage.getAlerts();
     const activeAlerts = alerts
       .filter((a) => a.isActive && !a.triggeredAt)
@@ -110,7 +134,6 @@ export async function syncDesktopNotifications(): Promise<void> {
         distributorId: r.distributorId,
         reminderDate: r.reminderDate,
       }));
-    const pendingHealthEvents = await storage.getPendingHealthEvents();
     const healthEvents = pendingHealthEvents.map((e) => {
       const id = (e as unknown as { id?: unknown }).id;
       return {
