@@ -153,18 +153,26 @@ export function Home() {
   const loading = watchlistLoading || alertsLoading;
 
   const recentActivity = useMemo(() => {
-    return products
-      .flatMap((p) => (p.listings ?? []).map((l) => ({ product: p, listing: l })))
-      .sort((a, b) => {
-        const aTime = isNaN(new Date(a.listing.lastChecked).getTime())
+    const withTime = products.flatMap((p) => {
+      const listings = p.listings ?? [];
+      if (listings.length === 0) return [];
+      let best = listings[0]!;
+      let bestTime = isNaN(new Date(best.lastChecked).getTime())
+        ? 0
+        : new Date(best.lastChecked).getTime();
+      for (const l of listings) {
+        const t = isNaN(new Date(l.lastChecked).getTime())
           ? 0
-          : new Date(a.listing.lastChecked).getTime();
-        const bTime = isNaN(new Date(b.listing.lastChecked).getTime())
-          ? 0
-          : new Date(b.listing.lastChecked).getTime();
-        return bTime - aTime;
-      })
-      .slice(0, 5);
+          : new Date(l.lastChecked).getTime();
+        if (t > bestTime) {
+          best = l;
+          bestTime = t;
+        }
+      }
+      return [{ product: p, listing: best, sortTime: bestTime }];
+    });
+    withTime.sort((a, b) => b.sortTime - a.sortTime);
+    return withTime.slice(0, 5).map(({ product, listing }) => ({ product, listing }));
   }, [products]);
 
   if (loading) return <LoadingSpinner size="large" label="Loading dashboard..." />;

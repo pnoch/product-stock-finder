@@ -84,11 +84,11 @@ export function RestockWatches() {
             Restock&quot; to add one.
           </p>
           <Link
-            to="/watchlist"
+            to="/search"
             className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700"
-            aria-label="Browse watchlist"
+            aria-label="Browse Products"
           >
-            Browse watchlist
+            Browse Products
           </Link>
         </div>
       ) : (
