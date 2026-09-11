@@ -26,7 +26,7 @@ import { OAuthCallback } from "./pages/OAuthCallback";
 import { exportWatchlistAsJson } from "./import-export";
 import { useToast } from "./hooks/use-toast";
 import { useTheme } from "./hooks/use-theme";
-import { onPricesChecked, onPriceDropsTriggered } from "./background";
+import { onPricesChecked, onPriceDropsTriggered, startPricePoller } from "./background";
 import { maybeSendDigest } from "../../lib/price-digest";
 import { useAuth } from "./hooks/use-auth";
 import { trpc, createTRPCClient } from "./lib/trpc";
@@ -34,6 +34,11 @@ import { setupSync, type SyncSetup } from "../../lib/sync";
 import { storage } from "./storage";
 import { syncDesktopNotifications } from "./server-notifications";
 import { runHealthProbeIfDue } from "./lib/health-probe";
+import { PRODUCT_CATALOG } from "@shared/catalog";
+import { SAMPLE_LISTINGS, freshenSampleListings } from "../../lib/sample-data";
+import { getApiBaseUrl } from "./lib/api-base";
+import { loadFxRates, maybeRefreshFxRates } from "../../lib/fx";
+import { runLaunchSequence } from "./lib/launch";
 
 function NotFound() {
   const navigate = useNavigate();
@@ -239,6 +244,19 @@ export default function App() {
   useEffect(() => {
     if (isAuthenticated) syncRef.current?.syncNow();
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    void runLaunchSequence({
+      storage,
+      catalog: PRODUCT_CATALOG,
+      sampleListings: SAMPLE_LISTINGS,
+      freshen: freshenSampleListings,
+      startPoller: startPricePoller,
+      getApiBaseUrl,
+      loadFx: loadFxRates,
+      maybeRefreshFx: maybeRefreshFxRates,
+    });
+  }, []);
 
   useEffect(() => {
     const unlistenPromise = onPricesChecked(async () => {
