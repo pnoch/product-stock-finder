@@ -40,8 +40,18 @@ vi.mock("../src/storage", () => ({
   storage: mockStorage,
 }));
 
-function renderWithRouter(ui: React.ReactElement, route = "/") {
-  return render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>);
+function renderHomeWithProviders() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={["/"]}>
+        <Home />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  return queryClient;
 }
 
 function renderSettingsWithProviders() {
@@ -79,20 +89,28 @@ describe("Home page", () => {
   });
 
   it("renders dashboard title", async () => {
-    renderWithRouter(<Home />);
-    await waitFor(() => {
-      expect(screen.getByText("Dashboard")).toBeInTheDocument();
-    });
+    const queryClient = renderHomeWithProviders();
+    try {
+      await waitFor(() => {
+        expect(screen.getByText("Dashboard")).toBeInTheDocument();
+      });
+    } finally {
+      queryClient.clear();
+    }
   });
 
   it("shows stat cards", async () => {
-    renderWithRouter(<Home />);
-    await waitFor(() => {
-      expect(screen.getByText("Total Tracked")).toBeInTheDocument();
-      expect(screen.getByText("In Stock")).toBeInTheDocument();
-      expect(screen.getByText("Alerts Active")).toBeInTheDocument();
-      expect(screen.getByText("Reminders")).toBeInTheDocument();
-    });
+    const queryClient = renderHomeWithProviders();
+    try {
+      await waitFor(() => {
+        expect(screen.getByText("Total Tracked")).toBeInTheDocument();
+        expect(screen.getByText("In Stock")).toBeInTheDocument();
+        expect(screen.getByText("Alerts Active")).toBeInTheDocument();
+        expect(screen.getByText("Reminders")).toBeInTheDocument();
+      });
+    } finally {
+      queryClient.clear();
+    }
   });
 });
 
