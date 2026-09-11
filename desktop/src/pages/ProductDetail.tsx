@@ -1100,6 +1100,10 @@ export function ProductDetail() {
                   listing.distributorId === bestListing.distributorId &&
                   listing.currency === bestListing.currency;
                 const isWatching = !!stockWatches[listing.distributorId];
+                const convertedPrice =
+                  listing.currency !== displayCurrency
+                    ? convertPrice(listing.price, listing.currency, displayCurrency)
+                    : null;
                 const canWatch =
                   listing.stockStatus === "back_order" ||
                   listing.stockStatus === "out_of_stock";
@@ -1123,6 +1127,11 @@ export function ProductDetail() {
                       <span className="text-sm font-semibold">
                         {formatPrice(listing.price, listing.currency)}
                       </span>
+                      {convertedPrice !== null && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          ≈ {formatPrice(convertedPrice, displayCurrency)}
+                        </p>
+                      )}
                       {listing.taxRate != null && listing.taxRate > 0 ? (
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           +
