@@ -1319,3 +1319,9 @@
 - [x] Spec (`docs/superpowers/specs/2026-09-10-desktop-polish-design.md`) + plan (`docs/superpowers/plans/2026-09-10-desktop-polish.md`)
 - [x] History modal + CSV (`67f0de8`); notif icons + relative time (`13bb9b4`); Home refresh (`f158ee7`); insight skeleton + stuck-state/dark-shade fix (`e74c1b3`, `7582f60`)
 - [x] Guards (`desktop/tests/distributor-history-modal.test.tsx`, `desktop/tests/relative-time.test.ts`, `desktop/tests/notifications-polish.test.tsx`, `desktop/tests/home-refresh.test.tsx`, `desktop/tests/insight-skeleton.test.tsx`); E2E: `tsc 0`, lint 0 errors, root `219 passed` files / `1568 passed` tests, desktop `19 passed` files / `83 passed` tests
+
+## Phase 173: Polish follow-ups
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-polish-followups-design.md`) + plan (`docs/superpowers/plans/2026-09-10-polish-followups.md`)
+- [x] Shared PriceHistoryChart (`9103369`); shared relative-time + edge guards (`8640e11`); Tauri insight timeout + audible catches (`7d331bc`); converted row prices, null-safe (`14df2c5`)
+- [x] Guards (`desktop/tests/price-history-chart.test.tsx`, `tests/desktop-chart-guard.test.ts`, `tests/relative-time.test.ts`, `desktop/tests/converted-row-prices.test.tsx`, `desktop/tests/insight-skeleton.test.tsx` extended); E2E: `tsc 0`, root `221 passed` files / `1571 passed` tests, desktop `21 passed` files / `88 passed` tests
