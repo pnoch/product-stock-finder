@@ -33,6 +33,7 @@ import { trpc, createTRPCClient } from "./lib/trpc";
 import { setupSync, type SyncSetup } from "../../lib/sync";
 import { storage } from "./storage";
 import { syncDesktopNotifications } from "./server-notifications";
+import { runHealthProbeIfDue } from "./lib/health-probe";
 
 function NotFound() {
   const navigate = useNavigate();
@@ -296,6 +297,9 @@ export default function App() {
     let cancelled = false;
     const run = async () => {
       if (cancelled) return;
+      // Probe before the auth gate: local notify works signed-out; pending
+      // uploads queue for the next signed-in sync.
+      await runHealthProbeIfDue();
       if (!isAuthenticatedRef.current) return;
       await syncDesktopNotifications();
     };
