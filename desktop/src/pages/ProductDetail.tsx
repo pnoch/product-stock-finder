@@ -228,7 +228,8 @@ export function ProductDetail() {
             if (result) setInsight(result.insight);
             setInsightLoading(false);
           }
-        } catch {
+        } catch (e) {
+          console.error("[ProductDetail] insight fetch failed", e);
           if (loadIdRef.current === myId) setInsightLoading(false);
           // insight stays empty
         }
@@ -240,17 +241,16 @@ export function ProductDetail() {
       setInsightLoading(true);
       try {
         const { invoke } = await import("@tauri-apps/api/core");
-        await invoke("fetch_price_insight", { apiBaseUrl: base, productId: id })
-          .then((res: any) => {
-            if (loadIdRef.current === myId) {
-              if (res && res.insight) setInsight(res.insight);
-              setInsightLoading(false);
-            }
-          })
-          .catch(() => {
-            if (loadIdRef.current === myId) setInsightLoading(false);
-          });
-      } catch {
+        const res = (await Promise.race([
+          invoke("fetch_price_insight", { apiBaseUrl: base, productId: id }),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
+        ])) as { insight?: unknown } | null;
+        if (loadIdRef.current === myId) {
+          if (res && typeof res.insight === "string" && res.insight) setInsight(res.insight);
+          setInsightLoading(false);
+        }
+      } catch (e) {
+        console.error("[ProductDetail] Tauri insight fetch failed", e);
         if (loadIdRef.current === myId) setInsightLoading(false);
       }
     }

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router";
 
 const mockStorage = vi.hoisted(() => ({
@@ -28,8 +28,9 @@ vi.mock("../src/lib/trpc", () => ({
   }),
 }));
 
+const mockTauriInvoke = vi.hoisted(() => vi.fn());
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: () => Promise.reject(new Error("no tauri")),
+  invoke: mockTauriInvoke,
 }));
 
 import { ProductDetail } from "../src/pages/ProductDetail";
@@ -58,6 +59,7 @@ function renderProductDetail() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockTauriInvoke.mockRejectedValue(new Error("no tauri"));
   localStorage.clear();
   mockStorage.getWatchlist.mockResolvedValue([product]);
   mockStorage.getSettings.mockResolvedValue({
@@ -72,6 +74,11 @@ beforeEach(() => {
   mockStorage.getStockWatches.mockResolvedValue([]);
   mockStorage.getAlerts.mockResolvedValue([]);
   mockStorage.updateProductListings.mockResolvedValue(undefined);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  delete (window as unknown as { __TAURI__?: boolean }).__TAURI__;
 });
 
 describe("insight loading skeleton", () => {
@@ -94,5 +101,51 @@ describe("insight loading skeleton", () => {
       expect(screen.getByText("Cheapest at Dist One")).toBeInTheDocument(),
     );
     expect(screen.queryByRole("status", { name: /loading insight/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("tauri insight fetch", () => {
+  it("times out a hung Tauri insight fetch", async () => {
+    vi.useFakeTimers();
+    (window as unknown as { __TAURI__?: boolean }).__TAURI__ = true;
+    mockTauriInvoke.mockReturnValue(new Promise(() => {}));
+    renderProductDetail();
+
+    for (let i = 0; i < 50; i++) {
+      if (screen.queryByRole("status", { name: /loading insight/i })) break;
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10);
+      });
+    }
+    expect(screen.getByRole("status", { name: /loading insight/i })).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4100);
+    });
+
+    expect(screen.queryByRole("status", { name: /loading insight/i })).not.toBeInTheDocument();
+    expect(screen.queryByText("AI insight")).not.toBeInTheDocument();
+  });
+
+  it("logs Tauri insight fetch failures", async () => {
+    (window as unknown as { __TAURI__?: boolean }).__TAURI__ = true;
+    mockTauriInvoke.mockRejectedValue(new Error("boom"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      renderProductDetail();
+      await waitFor(() =>
+        expect(errorSpy).toHaveBeenCalledWith(
+          "[ProductDetail] Tauri insight fetch failed",
+          expect.anything(),
+        ),
+      );
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("status", { name: /loading insight/i }),
+        ).not.toBeInTheDocument(),
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 });
