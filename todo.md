@@ -1349,3 +1349,27 @@
 - [x] Spec (`docs/superpowers/specs/2026-09-10-desktop-health-probing-design.md`) + plan (`docs/superpowers/plans/2026-09-10-desktop-health-probing.md`)
 - [x] Scheduled desktop health probing (`c73081e`); pending health event upload (`b767057`) + retain queue on upload timeout (`6b5554e`); id-cast type error fix in health upload (`a135eeb`); probe scheduling (`762dca9`) + signed-out gating fix (`1a73eae`)
 - [x] Guards (`desktop/tests/health-probe.test.tsx`, `desktop/tests/health-probe-upload.test.tsx`, `tests/desktop-health-probe-guard.test.ts`); two review-caught bugs (timeout-clear data loss, dead signed-out hoist); E2E: `tsc 0`, root `224 passed` files / `1576 passed` tests, desktop `27 passed` files / `128 passed` tests
+
+## Phase 178: Sync correctness
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-sync-correctness-design.md`) + plan (`docs/superpowers/plans/2026-09-10-sync-correctness.md`)
+- [x] Hygienic shared withTimeout + adoption + rename (`a6d9c2e`); batched health emission (`8967750`); sync guard + master-switch retract (`8b42be8`)
+- [x] Guards (`tests/with-timeout.test.ts` extended, `desktop/tests/health-probe-upload.test.tsx` extended); E2E: `tsc 0`, root `226 passed` files / `1586 passed` tests, desktop `30 passed` files / `152 passed` tests
+
+## Phase 179: First-launch bundle
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-first-launch-design.md`) + plan (`docs/superpowers/plans/2026-09-10-first-launch.md`)
+- [x] Seeding/poller/FX via launch.ts (`2058fbc`); shared preview ordering (`686bd2d`); activity dedup + CTA + exclusion pin (`94bf978`, `51d8d90`)
+- [x] Guards (`desktop/tests/app-launch.test.ts`, `tests/search-preview.test.ts`, `desktop/tests/home-activity.test.tsx`); E2E: `tsc 0`, root `226 passed` files / `1586 passed` tests, desktop `30 passed` files / `152 passed` tests
+
+## Phase 180: Tray click deep-links
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-tray-clicks-design.md`) + plan (`docs/superpowers/plans/2026-09-10-tray-clicks.md`)
+- [x] Rust route + Linux activation (`79817c3`); listener + table (`76ecef1`); call-site routes (`b0aedf7`)
+- [x] Guards (`desktop/tests/notification-routing.test.tsx` + cargo tests); Linux full deep-link, macOS/Windows focus fallback; OS-click needs real-session QA; E2E: `tsc 0`, root `226 passed` files / `1586 passed` tests, desktop `30 passed` files / `152 passed` tests
+
+## Phase 181: Token unregister
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-token-unregister-design.md`) + plan (`docs/superpowers/plans/2026-09-10-token-unregister.md`)
+- [x] Endpoint + cross-user rejection test (`2050ce4`, `0a5b1c8`); disable + logout calls (`b7825c4`)
+- [x] Guards (`tests/push-unregister.test.ts`); E2E: `tsc 0`, root `226 passed` files / `1586 passed` tests, desktop `30 passed` files / `152 passed` tests
