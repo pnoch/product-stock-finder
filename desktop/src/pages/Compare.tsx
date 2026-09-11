@@ -48,6 +48,10 @@ function toTimeRange(k: string): TimeRange {
   }
 }
 
+export function clampChartWidth(measured: number): number {
+  return Math.min(960, Math.max(320, Math.floor(measured)));
+}
+
 function SeriesChart({
   series,
   displayCurrency,
@@ -55,7 +59,19 @@ function SeriesChart({
   series: { label: string; color: string; data: { price: number; currency: string; date: string }[] }[];
   displayCurrency: string;
 }) {
-  const width = 640;
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [measured, setMeasured] = useState<number | null>(null);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (typeof w === "number" && Number.isFinite(w)) setMeasured(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const width = measured === null ? 640 : clampChartWidth(measured);
   const height = 280;
   const padL = 56;
   const padR = 16;
@@ -109,7 +125,7 @@ function SeriesChart({
   }, [series, displayCurrency]);
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div ref={wrapRef} className="w-full">
       <div className="relative mx-auto" style={{ width, height }}>
         <svg
           width={width}
