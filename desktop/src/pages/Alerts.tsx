@@ -136,11 +136,11 @@ export function Alerts() {
     setNotifError(null);
     try {
       const [history, unread] = await Promise.all([
-        storage.getNotificationHistory?.() as Promise<NotificationHistoryEntry[]> | undefined,
-        storage.getUnreadNotificationCount?.() as Promise<number> | undefined,
+        storage.getNotificationHistory(),
+        storage.getUnreadNotificationCount(),
       ]);
-      if (history) setNotifications(history);
-      if (typeof unread === "number") setUnreadCount(unread);
+      setNotifications(history);
+      setUnreadCount(unread);
     } catch {
       console.error("[Alerts] Failed to load notifications");
       setNotifError("Couldn't load notifications.");
