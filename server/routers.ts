@@ -55,7 +55,7 @@ import { trendingRouter } from "./routers/trending";
 import { parseProductText } from "./product-parse";
 import type { SyncStampedItem } from "../lib/types";
 import { upsertDeviceConfig, pullPendingEvents } from "./notifications";
-import { upsertPushToken } from "./push-notifications";
+import { upsertPushToken, pruneDeviceToken } from "./push-notifications";
 import {
   listDevicesForUser,
   getDeviceBinding,
@@ -344,6 +344,17 @@ export const appRouter = router({
         await upsertPushToken(ctx.deviceId, input.token, input.platform, ctx.user.id);
         return { accepted: true } as const;
       }),
+    unregisterPushToken: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.deviceId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Missing device id",
+        });
+      }
+      await assertDeviceAccess(ctx.user.id, ctx.deviceId);
+      await pruneDeviceToken(ctx.deviceId);
+      return { accepted: true } as const;
+    }),
   }),
 
   discovery: discoveryRouter,
