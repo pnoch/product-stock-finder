@@ -1,9 +1,9 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { formatRelativeTime } from "../../lib/relative-time";
+import { formatRelativeTime } from "../lib/relative-time";
 
 describe("formatRelativeTime", () => {
   afterEach(() => { vi.useRealTimers(); });
-  it("formats just-now, minutes, hours, days, then date", () => {
+  it("matches mobile thresholds", () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-10T12:00:00Z"));
     const t = Date.parse("2026-09-10T12:00:00Z");
     expect(formatRelativeTime(t)).toBe("Just now");

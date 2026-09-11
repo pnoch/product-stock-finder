@@ -27,7 +27,7 @@ import {
   EXCHANGE_RATES,
 } from "@shared/currency";
 import { getDistributorById } from "@shared/distributors";
-import { formatRelativeTime } from "../lib/relative-time";
+import { formatRelativeTime } from "../../../lib/relative-time";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
