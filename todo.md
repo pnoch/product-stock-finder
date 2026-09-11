@@ -1325,3 +1325,9 @@
 - [x] Spec (`docs/superpowers/specs/2026-09-10-polish-followups-design.md`) + plan (`docs/superpowers/plans/2026-09-10-polish-followups.md`)
 - [x] Shared PriceHistoryChart (`9103369`); shared relative-time + edge guards (`8640e11`); Tauri insight timeout + audible catches (`7d331bc`); converted row prices, null-safe (`14df2c5`)
 - [x] Guards (`desktop/tests/price-history-chart.test.tsx`, `tests/desktop-chart-guard.test.ts`, `tests/relative-time.test.ts`, `desktop/tests/converted-row-prices.test.tsx`, `desktop/tests/insight-skeleton.test.tsx` extended); E2E: `tsc 0`, root `221 passed` files / `1571 passed` tests, desktop `21 passed` files / `88 passed` tests
+
+## Phase 174: Small leftovers
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-small-leftovers-design.md`) + plan (`docs/superpowers/plans/2026-09-10-small-leftovers.md`)
+- [x] Behavioral modal-wiring coverage (`83372ba`); Home connection badge (`906ac94`); responsive compare chart (`7fee7e6`); pages.test provider fix for the badge regression — caught by the suite (`93714fe`)
+- [x] Guard (`desktop/tests/compare-chart-width.test.tsx` + extended home-refresh + distributor-history-modal suites); E2E: `tsc 0`, root `221 passed` files / `1571 passed` tests, desktop `22 passed` files / `93 passed` tests
