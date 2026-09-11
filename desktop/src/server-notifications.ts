@@ -120,13 +120,13 @@ export async function syncDesktopNotifications(): Promise<void> {
     const healthEvents = pendingHealthEvents.map((e) => {
       const id = (e as unknown as { id?: unknown }).id;
       return {
-      id: typeof id === "string" && id ? id : `health-${e.distributorId}-${e.status}-${e.createdAt}`,
-      distributorId: e.distributorId,
-      distributorName: e.distributorName,
-      status: e.status,
-      title: e.title,
-      body: e.body,
-      createdAt: e.createdAt,
+        id: typeof id === "string" && id ? id : `health-${e.distributorId}-${e.status}-${e.createdAt}`,
+        distributorId: e.distributorId,
+        distributorName: e.distributorName,
+        status: e.status,
+        title: e.title,
+        body: e.body,
+        createdAt: e.createdAt,
       };
     });
 

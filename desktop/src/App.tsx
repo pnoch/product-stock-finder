@@ -293,7 +293,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
     let cancelled = false;
     const run = async () => {
       if (cancelled) return;
@@ -305,7 +304,6 @@ export default function App() {
     };
     void run();
     const timer = setInterval(() => {
-      if (!isAuthenticatedRef.current) return;
       void run();
     }, 60_000);
     return () => {
