@@ -27,6 +27,7 @@ import { exportWatchlistAsJson } from "./import-export";
 import { useToast } from "./hooks/use-toast";
 import { useTheme } from "./hooks/use-theme";
 import { onPricesChecked, onPriceDropsTriggered, startPricePoller } from "./background";
+import { onNotificationActivated } from "./notifications";
 import { maybeSendDigest } from "../../lib/price-digest";
 import { useAuth } from "./hooks/use-auth";
 import { trpc, createTRPCClient } from "./lib/trpc";
@@ -211,6 +212,21 @@ function KeyboardShortcuts({
   );
 }
 
+function NotificationRouter() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unlistenPromise = onNotificationActivated((route) => {
+      navigate(route);
+    }).catch(() => () => {});
+    return () => {
+      unlistenPromise.then((fn) => fn());
+    };
+  }, [navigate]);
+
+  return null;
+}
+
 export default function App() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -334,6 +350,7 @@ export default function App() {
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <HashRouter>
+          <NotificationRouter />
           <KeyboardShortcuts
             setSearchModalOpen={setSearchModalOpen}
             setShortcutsOpen={setShortcutsOpen}
