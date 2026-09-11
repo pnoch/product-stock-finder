@@ -34,6 +34,7 @@ import { useAuth, buildLoginUrl, signInWithEmail, signUpWithEmail, changePasswor
 import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
+import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { getSyncSetup } from "../../../lib/sync";
 import { buildBackup, parseBackup, applyBackup } from "../../../lib/backup";
 import { watchlistToCsv } from "../../../lib/csv";
@@ -714,6 +715,18 @@ export function Settings() {
             {connection.isRefreshing ? "Checking" : "Check now"}
           </button>
         </div>
+        <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+          {connection.status === "connected"
+            ? "Live price checks are active."
+            : connection.status === "signed-out"
+              ? "Sign in to sync prices with the backend."
+              : "Backend unreachable. Showing saved prices."}
+        </p>
+        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+          {connection.lastCheckedAt
+            ? `Last checked ${formatLastRefreshed(new Date(connection.lastCheckedAt).toISOString())}`
+            : "Never checked"}
+        </p>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
