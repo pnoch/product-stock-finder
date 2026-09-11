@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { TRPCError } from "@trpc/server";
 import { appRouter } from "../server/routers";
 import type { TrpcContext } from "../server/_core/context";
 
@@ -85,5 +86,19 @@ describe("notifications unregisterPushToken", () => {
     const caller = appRouter.createCaller(createAuthedContext(7));
     await caller.notifications.unregisterPushToken();
     expect(mockedAssertDeviceAccess).toHaveBeenCalledWith(7, "dev-1");
+  });
+
+  it("rejects cross-user access without pruning the token", async () => {
+    await upsertPushToken("dev-1", "tok", "web", 7);
+    mockedAssertDeviceAccess.mockRejectedValueOnce(
+      new TRPCError({ code: "FORBIDDEN", message: "Device access denied" }),
+    );
+    const caller = appRouter.createCaller(createAuthedContext(8));
+    await expect(
+      caller.notifications.unregisterPushToken(),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(
+      listMemoryTokenDevices().some((d) => d.deviceId === "dev-1"),
+    ).toBe(true);
   });
 });
