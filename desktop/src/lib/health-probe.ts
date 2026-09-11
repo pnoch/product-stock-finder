@@ -8,6 +8,7 @@ import {
   type HealthSample,
 } from "../../../lib/scrapers/health";
 import type { StorageAdapter } from "../../../lib/storage/adapter";
+import type { PendingHealthEvent } from "../../../lib/storage/notifications";
 import { isInQuietHours } from "../../../lib/quiet-hours";
 import { storage } from "../storage";
 import { createTRPCClient } from "./trpc";
@@ -37,6 +38,30 @@ function latestOf(samples: HealthSample[]): HealthSample {
   return samples[samples.length - 1] as HealthSample;
 }
 
+async function emitHealthEvent(
+  kind: "alert" | "recovery",
+  distributorId: string,
+  name: string,
+  status: "blocked" | "error",
+  title: string,
+  body: string,
+  createdAt: number,
+  pending: PendingHealthEvent[],
+): Promise<void> {
+  const eventId = `health-${distributorId.toLowerCase()}-${status}-${createdAt}`;
+  await sendDesktopNotification(title, body);
+  await storage.recordNotificationEvent({
+    id: eventId,
+    type: "health",
+    title,
+    body,
+    distributorId,
+    healthStatus: kind === "recovery" ? "recovered" : status,
+    createdAt,
+  });
+  pending.push({ distributorId, distributorName: name, status, title, body, createdAt });
+}
+
 export async function runHealthProbeIfDue(now = Date.now()): Promise<void> {
   try {
     const settings = await storage.getSettings();
@@ -54,6 +79,7 @@ export async function runHealthProbeIfDue(now = Date.now()): Promise<void> {
     localStorage.setItem(LAST_PROBE_KEY, String(now));
     if (isInQuietHours(settings)) return;
     const history = await svc.getHealthHistory();
+    const pending: PendingHealthEvent[] = [];
     for (const [distributorId, samples] of Object.entries(history)) {
       const name = getDistributorById(distributorId)?.name ?? distributorId;
       if (detectHealthAlert(samples)) {
@@ -62,55 +88,37 @@ export async function runHealthProbeIfDue(now = Date.now()): Promise<void> {
           latest.status === "blocked" ? "🟠 Distributor Blocked" : "🔴 Distributor Down";
         const body = `${name} has been ${latest.status} for 3 consecutive probes${latest.reason ? ` — ${latest.reason}` : ""}`;
         const createdAt = Date.now();
-        const eventId = `health-${distributorId.toLowerCase()}-${latest.status}-${createdAt}`;
-        await sendDesktopNotification(title, body);
-        await storage.recordNotificationEvent({
-          id: eventId,
-          type: "health",
-          title,
-          body,
+        await emitHealthEvent(
+          "alert",
           distributorId,
-          healthStatus: latest.status as "blocked" | "error",
-          createdAt,
-        });
-        const pending = await storage.getPendingHealthEvents();
-        pending.push({
-          distributorId,
-          distributorName: name,
-          status: latest.status as "blocked" | "error",
+          name,
+          latest.status as "blocked" | "error",
           title,
           body,
           createdAt,
-        });
-        await storage.savePendingHealthEvents(pending);
+          pending,
+        );
       }
       if (detectHealthRecovery(samples)) {
         const prev = samples[samples.length - 2] as HealthSample;
         const title = "🟢 Distributor Recovered";
         const body = `${name} is back online after being ${prev.status}`;
         const createdAt = Date.now();
-        const eventId = `health-${distributorId.toLowerCase()}-${prev.status}-${createdAt}`;
-        await sendDesktopNotification(title, body);
-        await storage.recordNotificationEvent({
-          id: eventId,
-          type: "health",
-          title,
-          body,
+        await emitHealthEvent(
+          "recovery",
           distributorId,
-          healthStatus: "recovered",
-          createdAt,
-        });
-        const pending = await storage.getPendingHealthEvents();
-        pending.push({
-          distributorId,
-          distributorName: name,
-          status: prev.status as "blocked" | "error",
+          name,
+          prev.status as "blocked" | "error",
           title,
           body,
           createdAt,
-        });
-        await storage.savePendingHealthEvents(pending);
+          pending,
+        );
       }
+    }
+    if (pending.length > 0) {
+      const existing = await storage.getPendingHealthEvents();
+      await storage.savePendingHealthEvents([...existing, ...pending]);
     }
     // Pending events upload on the next syncDesktopNotifications tick —
     // no direct call here to avoid coupling.

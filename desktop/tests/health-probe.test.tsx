@@ -204,4 +204,29 @@ describe("runHealthProbeIfDue", () => {
     expect(localStorage.getItem(LAST_PROBE_KEY)).toBeNull();
     expect(sendDesktopNotification).not.toHaveBeenCalled();
   });
+
+  it("batches two distributors into one queue save", async () => {
+    mockInvoke.mockResolvedValue([
+      ...probeResult("dist-a", "blocked"),
+      ...probeResult("dist-b", "blocked"),
+    ]);
+    mockSvc.getHealthHistory.mockResolvedValue({
+      "dist-a": [
+        sample("working"),
+        sample("blocked"),
+        sample("blocked"),
+        sample("blocked"),
+      ],
+      "dist-b": [
+        sample("working"),
+        sample("blocked"),
+        sample("blocked"),
+        sample("blocked"),
+      ],
+    });
+    await runHealthProbeIfDue(10_000_000);
+    expect(sendDesktopNotification).toHaveBeenCalledTimes(2);
+    expect(mockStorage.savePendingHealthEvents).toHaveBeenCalledTimes(1);
+    expect(mockStorage.savePendingHealthEvents.mock.calls[0][0]).toHaveLength(2);
+  });
 });
