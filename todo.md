@@ -1331,3 +1331,21 @@
 - [x] Spec (`docs/superpowers/specs/2026-09-10-small-leftovers-design.md`) + plan (`docs/superpowers/plans/2026-09-10-small-leftovers.md`)
 - [x] Behavioral modal-wiring coverage (`83372ba`); Home connection badge (`906ac94`); responsive compare chart (`7fee7e6`); pages.test provider fix for the badge regression — caught by the suite (`93714fe`)
 - [x] Guard (`desktop/tests/compare-chart-width.test.tsx` + extended home-refresh + distributor-history-modal suites); E2E: `tsc 0`, root `221 passed` files / `1571 passed` tests, desktop `22 passed` files / `93 passed` tests
+
+## Phase 175: Correctness bundle
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-correctness-bundle-design.md`) + plan (`docs/superpowers/plans/2026-09-10-correctness-bundle.md`)
+- [x] History chart drops unconvertible points (`3f1a8ab`); direct storage calls in Alerts loader (`1153ae8`); shared `withTimeout` for insight fetch (`c0a3dd3`); stateless server health contract pin (`5a34a45`); connection status explanation in Settings (`467f6c3`)
+- [x] Guards (`desktop/tests/price-history-chart.test.tsx` extended, `tests/with-timeout.test.ts`, `desktop/tests/settings-connection.test.tsx`); E2E: `tsc 0`, root `224 passed` files / `1576 passed` tests, desktop `27 passed` files / `128 passed` tests
+
+## Phase 176: Desktop web push
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-desktop-web-push-design.md`) + plan (`docs/superpowers/plans/2026-09-10-desktop-web-push.md`)
+- [x] Push service worker (`7cf1d2f`); desktop push subscription module (`c55374b`); push notification opt-in on desktop Settings (`40e753e`)
+- [x] Guards (`tests/desktop-sw-guard.test.ts`, `desktop/tests/web-push.test.ts`, `desktop/tests/settings-push.test.tsx`); signed-in only; headless E2E not possible (no push service) — real-browser HTTPS QA needed with VITE_VAPID_PUBLIC_KEY; E2E: `tsc 0`, root `224 passed` files / `1576 passed` tests, desktop `27 passed` files / `128 passed` tests
+
+## Phase 177: Desktop health probing
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-desktop-health-probing-design.md`) + plan (`docs/superpowers/plans/2026-09-10-desktop-health-probing.md`)
+- [x] Scheduled desktop health probing (`c73081e`); pending health event upload (`b767057`) + retain queue on upload timeout (`6b5554e`); id-cast type error fix in health upload (`a135eeb`); probe scheduling (`762dca9`) + signed-out gating fix (`1a73eae`)
+- [x] Guards (`desktop/tests/health-probe.test.tsx`, `desktop/tests/health-probe-upload.test.tsx`, `tests/desktop-health-probe-guard.test.ts`); two review-caught bugs (timeout-clear data loss, dead signed-out hoist); E2E: `tsc 0`, root `224 passed` files / `1576 passed` tests, desktop `27 passed` files / `128 passed` tests
