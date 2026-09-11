@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { Home } from "../src/pages/Home";
 import { RestockWatches } from "../src/pages/RestockWatches";
@@ -126,7 +126,39 @@ describe("home recent activity", () => {
       n.includes("Dominant Product"),
     ).length;
     expect(dominantCount).toBe(1);
-    void within;
+  });
+
+  it("excludes listing-less products without crashing", async () => {
+    const good = makeProduct("p-good", "Good Product", [
+      makeListing("p-good", "d1", FRESH),
+    ]);
+    const empty = makeProduct("p-empty", "Empty Product", []);
+    mockStorage.getWatchlist.mockResolvedValue([empty, good]);
+
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Home />
+      </MemoryRouter>,
+    );
+
+    const heading = await screen.findByRole("heading", {
+      name: /recent activity/i,
+    });
+    expect(heading).toBeInTheDocument();
+
+    await waitFor(() => {
+      const activityLinks = screen.getAllByRole("link", {
+        name: / at .* details$/i,
+      });
+      expect(activityLinks).toHaveLength(1);
+    });
+
+    const activityLinks = screen.getAllByRole("link", {
+      name: / at .* details$/i,
+    });
+    const names = activityLinks.map((l) => l.getAttribute("aria-label") ?? "");
+    expect(names.some((n) => n.includes("Empty Product"))).toBe(false);
+    expect(names.some((n) => n.includes("Good Product"))).toBe(true);
   });
 });
 
