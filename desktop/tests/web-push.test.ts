@@ -2,8 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { isPushSupported, ensurePushSubscription, disablePush, hasVapidKey, getPushStatus } from "../src/lib/web-push";
 
 const mockMutate = vi.hoisted(() => vi.fn());
+const mockUnregisterMutate = vi.hoisted(() => vi.fn());
 vi.mock("../src/lib/trpc", () => ({
-  createTRPCClient: () => ({ notifications: { registerPushToken: { mutate: mockMutate } } }),
+  createTRPCClient: () => ({
+    notifications: {
+      registerPushToken: { mutate: mockMutate },
+      unregisterPushToken: { mutate: mockUnregisterMutate },
+    },
+  }),
 }));
 
 function setSupport(partial: Record<string, unknown>) {
@@ -42,7 +48,33 @@ describe("desktop web push", () => {
     const unsubscribe = vi.fn().mockResolvedValue(true);
     Object.assign(window, { PushManager: function () {}, Notification: function () {} });
     Object.assign(navigator, { serviceWorker: { getRegistration: vi.fn().mockResolvedValue({ pushManager: { getSubscription: vi.fn().mockResolvedValue({ unsubscribe }) } }) } });
+    mockUnregisterMutate.mockResolvedValue({ accepted: true });
     await disablePush();
+    expect(unsubscribe).toHaveBeenCalled();
+  });
+  it("unregisters the server token on disable", async () => {
+    const unsubscribe = vi.fn().mockResolvedValue(true);
+    Object.assign(window, { PushManager: function () {}, Notification: function () {} });
+    Object.assign(navigator, { serviceWorker: { getRegistration: vi.fn().mockResolvedValue({ pushManager: { getSubscription: vi.fn().mockResolvedValue({ unsubscribe }) } }) } });
+    mockUnregisterMutate.mockResolvedValue({ accepted: true });
+    await disablePush();
+    expect(mockUnregisterMutate).toHaveBeenCalledTimes(1);
+    expect(mockUnregisterMutate.mock.calls[0][0]).toBeUndefined();
+  });
+  it("unregisters the server token on disable even with no local subscription", async () => {
+    Object.assign(window, { PushManager: function () {}, Notification: function () {} });
+    Object.assign(navigator, { serviceWorker: { getRegistration: vi.fn().mockResolvedValue({ pushManager: { getSubscription: vi.fn().mockResolvedValue(null) } }) } });
+    mockUnregisterMutate.mockResolvedValue({ accepted: true });
+    await disablePush();
+    expect(mockUnregisterMutate).toHaveBeenCalledTimes(1);
+    expect(mockUnregisterMutate.mock.calls[0][0]).toBeUndefined();
+  });
+  it("does not throw when server unregister fails on disable", async () => {
+    const unsubscribe = vi.fn().mockResolvedValue(true);
+    Object.assign(window, { PushManager: function () {}, Notification: function () {} });
+    Object.assign(navigator, { serviceWorker: { getRegistration: vi.fn().mockResolvedValue({ pushManager: { getSubscription: vi.fn().mockResolvedValue({ unsubscribe }) } }) } });
+    mockUnregisterMutate.mockRejectedValue(new Error("401"));
+    await expect(disablePush()).resolves.toBeUndefined();
     expect(unsubscribe).toHaveBeenCalled();
   });
   it("reports a VAPID key when configured", () => {

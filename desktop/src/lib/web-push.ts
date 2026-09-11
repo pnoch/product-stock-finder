@@ -71,4 +71,10 @@ export async function disablePush(): Promise<void> {
   } catch (e) {
     console.error("[web-push] unsubscribe failed", e);
   }
+  try {
+    const client = createTRPCClient();
+    await client.notifications.unregisterPushToken.mutate();
+  } catch {
+    // best-effort: dead endpoints prune on send failure
+  }
 }

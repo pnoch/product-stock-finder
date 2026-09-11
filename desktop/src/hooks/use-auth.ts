@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getApiBaseUrl, getAppId, getOAuthPortalUrl } from "../lib/api-base";
 import { getDesktopDeviceId } from "../lib/device-id";
+import { createTRPCClient } from "../lib/trpc";
 
 const SESSION_TOKEN_KEY = "desktop_session_token";
 const USER_INFO_KEY = "desktop_user_info";
@@ -285,6 +286,12 @@ export function useAuth() {
   }, []);
 
   const logout = useCallback(() => {
+    try {
+      const client = createTRPCClient();
+      void client.notifications.unregisterPushToken.mutate().catch(() => {});
+    } catch {
+      // sync client construction failure — ignore
+    }
     removeSessionToken();
     clearUserInfo();
     notify();
