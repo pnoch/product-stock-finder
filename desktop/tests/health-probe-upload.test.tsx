@@ -4,6 +4,7 @@ const state = vi.hoisted(() => ({
   pending: [] as Array<Record<string, unknown>>,
   mutateInput: null as Record<string, unknown> | null,
   shouldFail: false,
+  hang: false,
   clearCalls: 0,
 }));
 
@@ -14,6 +15,7 @@ vi.mock("../src/lib/trpc", () => ({
         mutate: async (input: unknown) => {
           state.mutateInput = input as Record<string, unknown>;
           if (state.shouldFail) throw new Error("down");
+          if (state.hang) return new Promise(() => {});
           return { accepted: true };
         },
       },
@@ -51,7 +53,9 @@ describe("health-probe upload", () => {
     state.pending = [];
     state.mutateInput = null;
     state.shouldFail = false;
+    state.hang = false;
     state.clearCalls = 0;
+    vi.useRealTimers();
   });
 
   it("includes pending health events in upload and clears on success", async () => {
@@ -125,5 +129,28 @@ describe("health-probe upload", () => {
     state.shouldFail = true;
     await syncDesktopNotifications();
     expect(state.clearCalls).toBe(0);
+  });
+
+  it("retains the queue when upload times out", async () => {
+    state.pending = [
+      {
+        distributorId: "d1",
+        distributorName: "D1",
+        status: "blocked",
+        title: "t",
+        body: "b",
+        createdAt: 1,
+      },
+    ];
+    state.hang = true;
+    vi.useFakeTimers();
+    try {
+      const pending = syncDesktopNotifications();
+      await vi.advanceTimersByTimeAsync(4100);
+      await pending;
+      expect(state.clearCalls).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

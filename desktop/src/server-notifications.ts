@@ -48,13 +48,15 @@ interface PushEvent {
 async function uploadConfig(config: PushConfig): Promise<boolean> {
   try {
     const client = createTRPCClient();
-    await Promise.race([
-      client.notifications.uploadConfig.mutate({ ...config }),
+    const result = await Promise.race([
+      client.notifications.uploadConfig
+        .mutate({ ...config })
+        .then(() => true as const),
       new Promise<null>((resolve) =>
         setTimeout(() => resolve(null), TIMEOUT_MS),
       ),
     ]);
-    return true;
+    return result === true;
   } catch {
     return false;
   }
