@@ -3086,9 +3086,10 @@ dependencies = [
 
 [[package]]
 name = "product-stock-finder"
-version = "5.5.1"
+version = "5.8.0"
 dependencies = [
  "futures",
+ "notify-rust",
  "playwright-rs",
  "reqwest 0.12.28",
  "scraper",

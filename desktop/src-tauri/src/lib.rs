@@ -66,6 +66,14 @@ fn trigger_event_json(product_id: &str, product_name: &str, best_price: f64, cur
     serde_json::json!({ "productId": product_id, "productName": product_name, "bestPrice": best_price, "currency": currency, "targetPrice": target_price })
 }
 
+fn notification_route_for_product(product_id: &str) -> String {
+    format!("/product/{product_id}")
+}
+
+fn activation_payload(route: &str) -> serde_json::Value {
+    serde_json::json!({ "route": route })
+}
+
 // ─── Global State ────────────────────────────────────────────────────────────
 
 static POLLER_RUNNING: Mutex<bool> = Mutex::new(false);
@@ -82,14 +90,56 @@ fn send_notification(
     title: String,
     body: String,
     sound: bool,
+    route: Option<String>,
 ) -> Result<(), String> {
+    show_notification(&app, &title, &body, sound, route.as_deref())
+}
+
+fn show_notification(
+    app: &tauri::AppHandle,
+    title: &str,
+    body: &str,
+    sound: bool,
+    route: Option<&str>,
+) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    if let Some(route) = route {
+        let app_handle = app.clone();
+        let title = title.to_owned();
+        let body = body.to_owned();
+        let route = route.to_owned();
+        tauri::async_runtime::spawn_blocking(move || {
+            let mut n = notify_rust::Notification::new();
+            n.summary(&title).body(&body);
+            if sound {
+                n.sound_name("default");
+            }
+            match n.show() {
+                Ok(handle) => {
+                    let _ = handle.wait_for_response(|response: &notify_rust::NotificationResponse| {
+                        if response.is_default_action() {
+                            let _ =
+                                app_handle.emit("notification-activated", activation_payload(&route));
+                            if let Some(w) = app_handle.get_webview_window("main") {
+                                let _ = w.set_focus();
+                            }
+                        }
+                    });
+                }
+                Err(e) => eprintln!("[notify] show failed: {e}"),
+            }
+        });
+        return Ok(());
+    }
+    #[cfg(not(target_os = "linux"))]
+    let _ = route;
     use tauri_plugin_notification::NotificationExt;
 
     let mut notification = app
         .notification()
         .builder()
-        .title(&title)
-        .body(&body);
+        .title(title)
+        .body(body);
 
     if sound {
         notification = notification.sound("default".to_string());
@@ -524,7 +574,7 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
     // Compute which alerts have dropped below target in a single pass.
     // Returns (alert_index, best_price) for each triggered alert.
     let mut triggered: Vec<(usize, f64)> = Vec::new();
-    let mut notifications: Vec<(String, String)> = Vec::new();
+    let mut notifications: Vec<(String, String, Option<String>)> = Vec::new();
     let mut events: Vec<serde_json::Value> = Vec::new();
     let now_ts = current_iso_timestamp();
 
@@ -576,16 +626,19 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
                 format_price(best_price, alert_currency),
                 format_price(target_price, alert_currency)
             );
-            notifications.push(("💸 Price Drop Alert!".to_string(), body));
+            notifications.push((
+                "💸 Price Drop Alert!".to_string(),
+                body,
+                Some(notification_route_for_product(product_id)),
+            ));
             events.push(trigger_event_json(product_id, product_name, best_price, alert_currency, target_price));
             triggered.push((idx, best_price));
         }
     }
 
     if !notifications.is_empty() {
-        use tauri_plugin_notification::NotificationExt;
-        for (title, body) in &notifications {
-            let _ = app.notification().builder().title(title).body(body).sound("default".to_string()).show();
+        for (title, body, route) in &notifications {
+            let _ = show_notification(app, title, body, true, route.as_deref());
         }
         let _ = app.emit("price-drops-triggered", &events);
 
@@ -1500,5 +1553,16 @@ mod tests {
         assert_eq!(v["bestPrice"], 88.5);
         assert_eq!(v["currency"], "USD");
         assert_eq!(v["targetPrice"], 100.0);
+    }
+
+    #[test]
+    fn notification_route_for_product() {
+        assert_eq!(super::notification_route_for_product("crs804"), "/product/crs804");
+    }
+
+    #[test]
+    fn notification_activated_payload_shape() {
+        let v = super::activation_payload("/health");
+        assert_eq!(v["route"], "/health");
     }
 }
