@@ -23,6 +23,15 @@ interface PushConfig {
     distributorId: string;
     reminderDate: string;
   }>;
+  healthEvents?: Array<{
+    id: string;
+    distributorId: string;
+    distributorName: string;
+    status: "blocked" | "error";
+    title: string;
+    body: string;
+    createdAt: number;
+  }>;
 }
 
 interface PushEvent {
@@ -105,12 +114,30 @@ export async function syncDesktopNotifications(): Promise<void> {
         distributorId: r.distributorId,
         reminderDate: r.reminderDate,
       }));
+    const pendingHealthEvents = await storage.getPendingHealthEvents();
+    const healthEvents = pendingHealthEvents.map((e) => ({
+      id:
+        typeof (e as { id?: unknown }).id === "string" &&
+        ((e as { id?: string }).id as string).length > 0
+          ? (e as { id: string }).id
+          : `health-${e.distributorId}-${e.status}-${e.createdAt}`,
+      distributorId: e.distributorId,
+      distributorName: e.distributorName,
+      status: e.status,
+      title: e.title,
+      body: e.body,
+      createdAt: e.createdAt,
+    }));
 
-    await uploadConfig({
+    const uploadOk = await uploadConfig({
       alerts: activeAlerts,
       stockWatches,
       dateReminders,
+      healthEvents: healthEvents.length > 0 ? healthEvents : undefined,
     });
+    if (uploadOk && pendingHealthEvents.length > 0) {
+      await storage.clearPendingHealthEvents();
+    }
 
     const events = await pullEvents();
     const { sendDesktopNotification } = await import("./notifications");
