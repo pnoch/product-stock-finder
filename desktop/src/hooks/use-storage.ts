@@ -54,6 +54,8 @@ export function useAlerts() {
   return { alerts, loading, refresh };
 }
 
+let writeChain: Promise<void> = Promise.resolve();
+
 export function useSettings() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,11 +74,15 @@ export function useSettings() {
     refresh();
   }, [refresh]);
 
-  const update = useCallback(async (partial: Partial<AppSettings>) => {
-    const current = await storage.getSettings();
-    const updated = { ...current, ...partial };
-    setSettings(updated);
-    await storage.saveSettings(updated);
+  const update = useCallback((partial: Partial<AppSettings>) => {
+    setSettings((prev) => ({ ...(prev ?? {}), ...partial }) as AppSettings);
+    const write = writeChain.then(async () => {
+      const current = await storage.getSettings();
+      await storage.saveSettings({ ...current, ...partial });
+    });
+    writeChain = write.catch(() => {});
+    write.catch((e) => console.error("[settings] save failed", e));
+    return write;
   }, []);
 
   return { settings, loading, refresh, update };
