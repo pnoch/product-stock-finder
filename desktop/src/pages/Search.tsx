@@ -260,6 +260,7 @@ export function Search() {
     await storage.addToWatchlist({ ...prod, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
     setTrackedIds((prev) => new Set([...prev, id]));
     const model = manualModel.trim();
+    let discovered = 0;
     if (model) {
       setManualDiscovering(true);
       try {
@@ -267,6 +268,7 @@ export function Search() {
           productId: id,
           onProgress: (done, total) => setManualProgress(`Discovering ${done}/${total}…`),
         });
+        discovered = found.length;
         if (found.length > 0) await storage.updateProductListings(id, found);
       } catch {
         // Best-effort: keep the product with no listings (today's behavior).
@@ -277,7 +279,7 @@ export function Search() {
     }
     setManualOpen(false); setManualName(""); setManualModel(""); setManualBrand(""); setManualCategory("");
     setPasteText(""); setManualError(null); setManualProgress(null);
-    showToast(`Added ${prod.name}`);
+    showToast(discovered > 0 || !model ? `Added ${prod.name}` : `Added ${prod.name} with no listings — discovery found nothing`);
   };
 
   return (

@@ -11,7 +11,9 @@ export async function sendDesktopNotification(
   try {
     await invoke("send_notification", { title, body, sound: true, route: route ?? null });
     return;
-  } catch { /* not Tauri — try web display */ }
+  } catch (e) {
+    console.error("[notifications] Tauri send failed, trying web display", e);
+  }
   try {
     const settings = await storage.getSettings();
     if (!settings?.webNotificationsEnabled) return;

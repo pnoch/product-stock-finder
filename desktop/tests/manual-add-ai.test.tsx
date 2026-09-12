@@ -163,7 +163,11 @@ describe("manual add AI assist", () => {
       );
     });
     expect(mockStorage.updateProductListings).not.toHaveBeenCalled();
-    expect(await screen.findByText("Added Plain Widget")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "Added Plain Widget with no listings — discovery found nothing",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("shows auth guidance on DiscoveryAuthError", async () => {
@@ -178,5 +182,34 @@ describe("manual add AI assist", () => {
     fireEvent.click(screen.getByRole("button", { name: "Parse with AI" }));
 
     expect(await screen.findByText("Sign-in Required")).toBeInTheDocument();
+  });
+
+  it("says when discovery found nothing", async () => {
+    mockDiscoverListings.mockResolvedValue([]);
+
+    renderSearch();
+    openManualModal();
+
+    fireEvent.change(screen.getByPlaceholderText("Product name *"), {
+      target: { value: "Lonely Gadget" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Model number *"), {
+      target: { value: "LG-1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add manual product" }));
+
+    expect(
+      await screen.findByText(
+        "Added Lonely Gadget with no listings — discovery found nothing",
+      ),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockStorage.addToWatchlist).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "Lonely Gadget", modelNumber: "LG-1" }),
+      );
+    });
+    expect(
+      screen.queryByRole("button", { name: "Add manual product" }),
+    ).not.toBeInTheDocument();
   });
 });
