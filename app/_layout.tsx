@@ -125,7 +125,7 @@ export default function RootLayout() {
         if (oldest) handledResponses.delete(oldest);
       }
       const data = dataForId;
-      router.push((notificationRouteFor(data) ?? "/(tabs)") as Parameters<typeof router.push>[0]);
+      router.push(notificationRouteFor(data) ?? "/(tabs)");
     };
     const responseSubscription =
       Notifications.addNotificationResponseReceivedListener(
