@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { storage } from "./storage";
+import { displayWebNotification } from "../../lib/web-notifications";
 
 export async function sendDesktopNotification(
   title: string,
@@ -8,6 +10,12 @@ export async function sendDesktopNotification(
 ): Promise<void> {
   try {
     await invoke("send_notification", { title, body, sound: true, route: route ?? null });
+    return;
+  } catch { /* not Tauri — try web display */ }
+  try {
+    const settings = await storage.getSettings();
+    if (!settings?.webNotificationsEnabled) return;
+    displayWebNotification(title, body);
   } catch (e) {
     console.error("Failed to send notification:", e);
   }

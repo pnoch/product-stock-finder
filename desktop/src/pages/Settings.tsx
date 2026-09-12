@@ -295,6 +295,7 @@ export function Settings() {
 
   const [pushState, setPushState] = useState<"unknown" | "on" | "off">("unknown");
   const [pushBusy, setPushBusy] = useState(false);
+  const [webNotifHint, setWebNotifHint] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated || !isPushSupported()) {
@@ -350,6 +351,31 @@ export function Settings() {
       setPushBusy(false);
     }
   }, [pushBusy, showToast]);
+
+  const handleWebToggle = useCallback(async (v: boolean) => {
+    // Persist via read-modify-write so the save happens even when React
+    // defers the update() below (updater side-effects don't run inside act);
+    // update() then syncs local state for the controlled checkbox.
+    if (v) {
+      const permission = await requestWebNotificationPermission();
+      const enabled = permission === "granted";
+      const current = await storage.getSettings();
+      await storage.saveSettings({ ...current, webNotificationsEnabled: enabled });
+      await update({ webNotificationsEnabled: enabled });
+      setWebNotifHint(
+        enabled
+          ? null
+          : permission === "denied"
+            ? "Notifications are blocked in your browser settings."
+            : "Allow notifications in your browser to receive alerts.",
+      );
+    } else {
+      const current = await storage.getSettings();
+      await storage.saveSettings({ ...current, webNotificationsEnabled: false });
+      await update({ webNotificationsEnabled: false });
+      setWebNotifHint(null);
+    }
+  }, [update]);
 
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
@@ -1302,6 +1328,25 @@ export function Settings() {
               {pushBusy ? "Working" : pushState === "on" ? "Disable" : "Enable"}
             </button>
           </div>
+          <label className="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer">
+            <span>
+              <span className="block text-sm font-medium">Web Notifications</span>
+              <span className="block text-xs text-gray-500 dark:text-gray-400">Show price and stock alerts in your browser</span>
+            </span>
+            <span className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!settings.webNotificationsEnabled}
+                onChange={(e) => void handleWebToggle(e.target.checked)}
+                className="sr-only peer"
+                aria-label="Enable web notifications"
+              />
+              <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
+            </span>
+          </label>
+          {webNotifHint && (
+            <p className="px-3 text-xs text-amber-600 dark:text-amber-400">{webNotifHint}</p>
+          )}
           <label className={`flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors ${settings.notificationsEnabled ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
             <span>
               <span className="block text-sm font-medium">Health Alerts</span>
