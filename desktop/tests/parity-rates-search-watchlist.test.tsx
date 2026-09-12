@@ -68,6 +68,90 @@ describe("desktop parity pages", () => {
     queryClient.clear();
   });
 
+  it("toggles the status filter from summary counts", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const now = new Date().toISOString();
+    mockStorage.getWatchlist.mockResolvedValue([
+      {
+        id: "p-in",
+        name: "InStock Widget",
+        modelNumber: "IS-1",
+        brand: "MikroTik",
+        category: "Router",
+        description: "",
+        addedAt: now,
+        isWatched: true,
+        listings: [
+          {
+            distributorId: "d1",
+            productId: "p-in",
+            price: 100,
+            currency: "USD",
+            stockStatus: "in_stock",
+            url: "https://example.com/a",
+            lastChecked: now,
+            priceHistory: [],
+          },
+        ],
+      },
+      {
+        id: "p-out",
+        name: "OutOfStock Gadget",
+        modelNumber: "OS-1",
+        brand: "MikroTik",
+        category: "Router",
+        description: "",
+        addedAt: now,
+        isWatched: true,
+        listings: [
+          {
+            distributorId: "d1",
+            productId: "p-out",
+            price: 200,
+            currency: "USD",
+            stockStatus: "out_of_stock",
+            url: "https://example.com/b",
+            lastChecked: now,
+            priceHistory: [],
+          },
+        ],
+      },
+    ]);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <Watchlist />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await screen.findByText(/2 products tracked/);
+    expect(screen.queryByText(/shown/)).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Toggle In Stock filter" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/1 shown/)).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole("button", { name: "Toggle In Stock filter" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: "Filter by In Stock" }),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Toggle In Stock filter" }),
+    );
+    await waitFor(() => {
+      expect(screen.queryByText(/shown/)).not.toBeInTheDocument();
+    });
+    queryClient.clear();
+  });
+
   it("searches the shared catalog through the desktop page", async () => {
     render(
       <MemoryRouter>

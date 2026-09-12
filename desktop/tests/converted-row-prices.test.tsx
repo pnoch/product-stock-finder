@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { formatPrice, convertPrice } from "@shared/currency";
 
@@ -117,5 +117,69 @@ describe("converted row prices", () => {
 
     // Header converter (Task 4) adds its own ≈ line alongside the single row-level one.
     expect(screen.getAllByText(/≈/).length).toBe(2);
+  });
+
+  it("renders per-row sparklines that open history", async () => {
+    const now = new Date().toISOString();
+    mockStorage.getWatchlist.mockResolvedValue([
+      {
+        id: "p1",
+        name: "MikroTik hAP ac3",
+        modelNumber: "hAP ac3",
+        brand: "MikroTik",
+        category: "Router",
+        description: "Dual-band router",
+        addedAt: now,
+        isWatched: true,
+        listings: [
+          {
+            distributorId: "balticnetworks-us",
+            productId: "p1",
+            price: 100,
+            currency: "USD",
+            stockStatus: "in_stock",
+            url: "https://example.com/us",
+            lastChecked: now,
+            priceHistory: [
+              { date: "2026-08-01", price: 110, currency: "USD", stockStatus: "in_stock" },
+              { date: "2026-09-01", price: 100, currency: "USD", stockStatus: "in_stock" },
+            ],
+          },
+          {
+            distributorId: "server2u-my",
+            productId: "p1",
+            price: 400,
+            currency: "MYR",
+            stockStatus: "in_stock",
+            url: "https://example.com/my",
+            lastChecked: now,
+            priceHistory: [],
+          },
+        ],
+      },
+    ]);
+    renderProductDetail();
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole("img", { name: /price sparkline/i }).length,
+      ).toBeGreaterThan(0);
+    });
+
+    const historyButtons = screen.getAllByRole("button", {
+      name: /view baltic networks price history/i,
+    });
+    const rowSparkline = historyButtons.find((b) =>
+      b.querySelector('svg[role="img"]'),
+    );
+    expect(rowSparkline).toBeDefined();
+
+    expect(
+      screen.getByRole("link", { name: /price history/i }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(rowSparkline as HTMLElement);
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Baltic Networks")).toBeInTheDocument();
   });
 });

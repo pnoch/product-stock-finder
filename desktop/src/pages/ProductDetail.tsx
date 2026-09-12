@@ -1234,6 +1234,11 @@ export function ProductDetail() {
                           ≈ {formatPrice(convertedPrice, displayCurrency)}
                         </p>
                       )}
+                      {listing.priceHistory && listing.priceHistory.length >= 2 && (
+                        <button onClick={() => setHistoryFor(listing)} aria-label={`View ${dist?.name ?? listing.distributorId} price history`} className="mt-1 block">
+                          <PriceSparkline history={listing.priceHistory} currency={listing.currency} />
+                        </button>
+                      )}
                       {listing.taxRate != null && listing.taxRate > 0 ? (
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           +

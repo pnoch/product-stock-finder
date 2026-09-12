@@ -177,9 +177,13 @@ describe("distributor history modal", () => {
       </MemoryRouter>,
     );
 
-    const historyButton = await screen.findByRole("button", {
+    const historyButtons = await screen.findAllByRole("button", {
       name: /view baltic networks price history/i,
     });
+    const historyButton = historyButtons.find(
+      (b) => !b.querySelector('svg[role="img"]'),
+    ) as HTMLElement;
+    expect(historyButton).toBeDefined();
     expect(
       screen.queryByRole("link", { name: /view baltic networks price history/i }),
     ).not.toBeInTheDocument();

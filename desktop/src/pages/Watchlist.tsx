@@ -909,28 +909,31 @@ export function Watchlist() {
           </span>
         </div>
         <div className="flex gap-4 mt-3">
-          <div className="flex-1">
-            <p className="text-lg font-semibold text-emerald-600">
-              {summary.inStock}
-            </p>
-            <p className="text-xs text-gray-500">In Stock</p>
-          </div>
-          <div className="flex-1">
-            <p className="text-lg font-semibold text-amber-600">
-              {summary.backOrder}
-            </p>
-            <p className="text-xs text-gray-500">Back Order</p>
-          </div>
-          <div className="flex-1">
-            <p className="text-lg font-semibold text-red-600">
-              {summary.outOfStock}
-            </p>
-            <p className="text-xs text-gray-500">Out of Stock</p>
-          </div>
-          <div className="flex-1">
-            <p className="text-lg font-semibold">{summary.listingCount}</p>
-            <p className="text-xs text-gray-500">Listings</p>
-          </div>
+          {(
+            [
+              { key: "in_stock", label: "In Stock", value: summary.inStock, valueClass: "text-emerald-600" },
+              { key: "back_order", label: "Back Order", value: summary.backOrder, valueClass: "text-amber-600" },
+              { key: "out_of_stock", label: "Out of Stock", value: summary.outOfStock, valueClass: "text-red-600" },
+              { key: "all", label: "Listings", value: summary.listingCount, valueClass: "" },
+            ] as { key: FilterKey; label: string; value: number; valueClass: string }[]
+          ).map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setFilter(filter === item.key ? "all" : item.key)}
+              aria-pressed={filter === item.key}
+              aria-label={`Toggle ${item.label} filter`}
+              className={`flex-1 rounded-lg px-2 py-1 text-left transition-colors ${
+                filter === item.key
+                  ? "bg-brand-600/10 ring-2 ring-brand-600"
+                  : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
+              }`}
+            >
+              <p className={`text-lg font-semibold ${item.valueClass}`}>
+                {item.value}
+              </p>
+              <p className="text-xs text-gray-500">{item.label}</p>
+            </button>
+          ))}
         </div>
         <div className="mt-3 flex justify-end">
           <Link
