@@ -282,7 +282,7 @@ export function Search() {
     const slug = customProductSlug(manualModel.trim());
     if (trackedIds.has(slug)) { showToast("Already Tracked — that model number is already in your watchlist."); return; }
     if (manualDiscovering) return;
-    const id = `manual-${Date.now()}`;
+    const id = slug;
     const prod = { id, name: manualName.trim(), modelNumber: manualModel.trim(), brand: manualBrand.trim() || "Unknown", category: manualCategory.trim() || categories[0] || "Other", description: manualDescription.trim() };
     await storage.addToWatchlist({ ...prod, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
     setTrackedIds((prev) => new Set([...prev, id]));

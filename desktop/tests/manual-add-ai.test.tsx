@@ -122,12 +122,12 @@ describe("manual add AI assist", () => {
     await waitFor(() => {
       expect(mockDiscoverListings).toHaveBeenCalledWith(
         "CRS326-24G",
-        expect.objectContaining({ productId: expect.stringMatching(/^manual-/) }),
+        expect.objectContaining({ productId: customProductSlug("CRS326-24G") }),
       );
     });
     await waitFor(() => {
       expect(mockStorage.updateProductListings).toHaveBeenCalledWith(
-        expect.stringMatching(/^manual-/),
+        customProductSlug("CRS326-24G"),
         [listingA, listingB],
       );
     });
@@ -284,5 +284,64 @@ describe("manual add AI assist", () => {
       await screen.findByText("Already Tracked — that model number is already in your watchlist."),
     ).toBeInTheDocument();
     expect(mockStorage.addToWatchlist).not.toHaveBeenCalled();
+  });
+
+  it("mints the slug as the product id", async () => {
+    renderSearch();
+    openManualModal();
+
+    fireEvent.change(screen.getByPlaceholderText("Product name *"), {
+      target: { value: "CRS326 Switch" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Model number *"), {
+      target: { value: "CRS326-24G" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add manual product" }));
+
+    const slug = customProductSlug("CRS326-24G");
+    await waitFor(() => {
+      expect(mockStorage.addToWatchlist).toHaveBeenCalledWith(
+        expect.objectContaining({ id: slug, modelNumber: "CRS326-24G" }),
+      );
+    });
+    expect(mockDiscoverListings).toHaveBeenCalledWith(
+      "CRS326-24G",
+      expect.objectContaining({ productId: slug }),
+    );
+    expect(mockStorage.updateProductListings).not.toHaveBeenCalled();
+  });
+
+  it("blocks a duplicate across adds in the same session", async () => {
+    renderSearch();
+    openManualModal();
+
+    fireEvent.change(screen.getByPlaceholderText("Product name *"), {
+      target: { value: "CRS326 Switch" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Model number *"), {
+      target: { value: "CRS326-24G" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add manual product" }));
+
+    await waitFor(() => {
+      expect(mockStorage.addToWatchlist).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      await screen.findByText("Added CRS326 Switch with no listings — discovery found nothing"),
+    ).toBeInTheDocument();
+
+    openManualModal();
+    fireEvent.change(screen.getByPlaceholderText("Product name *"), {
+      target: { value: "CRS326 Switch Again" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Model number *"), {
+      target: { value: "CRS326-24G" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add manual product" }));
+
+    expect(
+      await screen.findByText("Already Tracked — that model number is already in your watchlist."),
+    ).toBeInTheDocument();
+    expect(mockStorage.addToWatchlist).toHaveBeenCalledTimes(1);
   });
 });
