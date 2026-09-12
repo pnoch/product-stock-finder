@@ -23,13 +23,11 @@ import {
   setupPushEventTracking,
 } from "@/lib/notifications";
 import {
-  getWatchlist,
-  addToWatchlist,
-  updateProductListings,
   getSettings,
   defaultStorage,
   getSyncMeta,
 } from "@/lib/storage";
+import { seedWatchlistProducts } from "@/lib/launch-seed";
 import {
   registerPriceCheckTask,
   registerHealthProbeTask,
@@ -185,52 +183,12 @@ export default function RootLayout() {
 
   // Seed sample products into the watchlist on first launch (single read, batched)
   useEffect(() => {
-    const SEED_IDS = [
-      "mikrotik-crs804-4ddq-hrm",
-      "mikrotik-crs326-24s",
-      "nvidia-rtx-4090",
-      "apple-macbook-pro-m4-max",
-      "raspberry-pi-5-8gb",
-      "apple-airpods-max-2",
-      "valve-steam-deck-oled",
-    ] as const;
-
-    async function seedProducts() {
-      const watchlist = await getWatchlist();
-      const existingIds = new Set(watchlist.map((p) => p.id));
-      const existingById = new Map(watchlist.map((p) => [p.id, p] as const));
-      for (const id of SEED_IDS) {
-        try {
-          if (existingIds.has(id)) {
-            const existing = existingById.get(id)!;
-            // Backfill listings if a seeded product was stored without listing data
-            if (
-              (id === "mikrotik-crs804-4ddq-hrm" ||
-                id === "mikrotik-crs326-24s") &&
-              (!existing.listings || existing.listings.length === 0)
-            ) {
-              await updateProductListings(
-                id,
-                freshenSampleListings(SAMPLE_LISTINGS[id] ?? []),
-              );
-            }
-            continue;
-          }
-          const product = PRODUCT_CATALOG.find((p) => p.id === id);
-          if (!product) continue;
-          await addToWatchlist({
-            ...product,
-            isWatched: true,
-            addedAt: new Date().toISOString(),
-            listings: freshenSampleListings(SAMPLE_LISTINGS[id] ?? []),
-          });
-        } catch (e) {
-          console.error(`[Seed] failed for ${id}:`, e);
-        }
-      }
-    }
-
-    seedProducts().catch((err) => console.error("Seeding failed:", err));
+    seedWatchlistProducts({
+      storage: defaultStorage,
+      catalog: PRODUCT_CATALOG,
+      sampleListings: SAMPLE_LISTINGS,
+      freshen: freshenSampleListings,
+    }).catch((err) => console.error("Seeding failed:", err));
   }, []);
 
   // Create clients once and reuse them

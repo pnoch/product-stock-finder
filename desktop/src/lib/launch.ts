@@ -1,15 +1,6 @@
 import type { DistributorListing, Product } from "../../../lib/types";
 import type { Storage } from "../../../lib/storage";
-
-export const SEED_IDS = [
-  "mikrotik-crs804-4ddq-hrm",
-  "mikrotik-crs326-24s",
-  "nvidia-rtx-4090",
-  "apple-macbook-pro-m4-max",
-  "raspberry-pi-5-8gb",
-  "apple-airpods-max-2",
-  "valve-steam-deck-oled",
-] as const;
+import { seedWatchlistProducts } from "../../../lib/launch-seed";
 
 export type SeedCatalogProduct = Omit<Product, "addedAt" | "isWatched" | "listings">;
 
@@ -36,41 +27,7 @@ export async function runLaunchSequence(deps: LaunchDeps): Promise<void> {
     maybeRefreshFx,
   } = deps;
 
-  try {
-    const watchlist = await storage.getWatchlist();
-    const existingIds = new Set(watchlist.map((p) => p.id));
-    const existingById = new Map(watchlist.map((p) => [p.id, p] as const));
-    for (const id of SEED_IDS) {
-      try {
-        if (existingIds.has(id)) {
-          const existing = existingById.get(id)!;
-          if (
-            (id === "mikrotik-crs804-4ddq-hrm" ||
-              id === "mikrotik-crs326-24s") &&
-            (!existing.listings || existing.listings.length === 0)
-          ) {
-            await storage.updateProductListings(
-              id,
-              freshen(sampleListings[id] ?? []),
-            );
-          }
-          continue;
-        }
-        const product = catalog.find((p) => p.id === id);
-        if (!product) continue;
-        await storage.addToWatchlist({
-          ...product,
-          isWatched: true,
-          addedAt: new Date().toISOString(),
-          listings: freshen(sampleListings[id] ?? []),
-        });
-      } catch (e) {
-        console.error(`[Seed] failed for ${id}:`, e);
-      }
-    }
-  } catch (e) {
-    console.error("[Seed] failed:", e);
-  }
+  await seedWatchlistProducts({ storage, catalog, sampleListings, freshen });
 
   try {
     const settings = await storage.getSettings();
