@@ -1397,3 +1397,15 @@
 - [x] Spec (`docs/superpowers/specs/2026-09-10-product-polish-design.md`) + plan (`docs/superpowers/plans/2026-09-10-product-polish.md`)
 - [x] Best-price signals (`ec94ea4`); AI manual-add (`fd80125`); web toggle + single-writer fix + optimistic-sync fix (`1d9835b`, `33413ba`, `708a709`); tab sync, stats CTA, converter (`5155b8e`)
 - [x] Guards (`desktop/tests/best-price-signals.test.tsx`, `desktop/tests/manual-add-ai.test.tsx`, `desktop/tests/settings-webtoggle.test.tsx`, `desktop/tests/nav-header.test.tsx`, `desktop/tests/use-settings-update.test.tsx`); review-caught double-write + async regression fixed; −5% label/behavior self-consistent (mobile mismatch flagged separately); web fallback route-less by design; E2E: `tsc 0`, root `229 passed` files / `1591 passed` tests, desktop `37 passed` files / `187 passed` tests
+
+## Phase 186: Correctness bundle 3
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-correctness-3-design.md`) + plan (`docs/superpowers/plans/2026-09-10-correctness-3.md`)
+- [x] UI-first logout (`22c8c18`); audible failures (`85b28ab`); alert helper + ids (`a9c1a2e`); memoized derivations (`05b0e18`); error boundary (`e5bde9e`)
+- [x] Guards (`desktop/tests/error-boundary.test.tsx`, `desktop/tests/send-notification.test.tsx`, `desktop/tests/use-auth.test.tsx` + `desktop/tests/manual-add-ai.test.tsx` extended suites); E2E: `tsc 0`, root `229 passed` files / `1591 passed` tests, desktop `40 passed` files / `204 passed` tests
+
+## Phase 187: Discovery + compare
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-discovery-compare-design.md`) + plan (`docs/superpowers/plans/2026-09-10-discovery-compare.md`)
+- [x] URL/description/dup-guard (`547c999`); slug ids both surfaces (`22c590f`, `d80747b`); region card (`1d80357`); modal discovery parity (`be37c9a`)
+- [x] Guards (`desktop/tests/manual-add-ai.test.tsx` extended, `desktop/tests/compare-region.test.tsx`); E2E: `tsc 0`, root `229 passed` files / `1591 passed` tests, desktop `40 passed` files / `204 passed` tests
