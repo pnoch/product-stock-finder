@@ -1,6 +1,7 @@
 import { storage } from "./storage";
 import { createTRPCClient } from "./lib/trpc";
 import { resolveEventRoute } from "./lib/notification-routing";
+import { unregisterServerToken, PENDING_UNREGISTER_KEY } from "./lib/web-push";
 import { withTimeout } from "../../lib/with-timeout";
 
 const TIMEOUT_MS = 4000;
@@ -98,6 +99,11 @@ async function runSyncDesktopNotifications(): Promise<void> {
   try {
     const settings = await storage.getSettings();
     const pendingHealthEvents = await storage.getPendingHealthEvents();
+
+    if (localStorage.getItem(PENDING_UNREGISTER_KEY) === "1") {
+      const unregistered = await unregisterServerToken();
+      if (unregistered) localStorage.removeItem(PENDING_UNREGISTER_KEY);
+    }
 
     // Master switch off: retract the server-side config so evaluation stops,
     // drop the health buffer (intentional suppression, not loss), and skip

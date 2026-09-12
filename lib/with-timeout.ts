@@ -1,3 +1,6 @@
+// Contract: null means TIMEOUT (or, if T includes null/undefined, ambiguous).
+// Never race a nullable-typed promise — callers must race non-null success
+// types (boolean/object/string) so null unambiguously signals timeout.
 export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<null>((resolve) => {

@@ -14,6 +14,7 @@ vi.mock("../src/lib/trpc", () => ({
 
 import { invoke } from "@tauri-apps/api/core";
 import { getSessionToken, setSessionToken, setUserInfo, getUserInfo, useAuth } from "../src/hooks/use-auth";
+import { PENDING_UNREGISTER_KEY } from "../src/lib/web-push";
 
 const mockedInvoke = vi.mocked(invoke);
 
@@ -75,5 +76,48 @@ describe("desktop auth malformed user", () => {
     expect(mockUnregisterMutate).toHaveBeenCalledTimes(1);
     expect(getSessionToken()).toBeNull();
     expect(getUserInfo()).toBeNull();
+  });
+
+  it("flags unregister for retry when logout unregister fails", async () => {
+    mockUnregisterMutate.mockRejectedValue(new Error("offline"));
+    setSessionToken("token-1");
+    setUserInfo({
+      id: 1,
+      openId: "o1",
+      name: "Test",
+      email: "t@example.com",
+      loginMethod: "email",
+      lastSignedIn: new Date().toISOString(),
+    });
+    const { result } = renderHook(() => useAuth());
+    act(() => {
+      result.current.logout();
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(localStorage.getItem(PENDING_UNREGISTER_KEY)).toBe("1");
+    expect(getSessionToken()).toBeNull();
+  });
+
+  it("leaves no retry flag when logout unregister succeeds", async () => {
+    mockUnregisterMutate.mockResolvedValue({ accepted: true });
+    setSessionToken("token-1");
+    setUserInfo({
+      id: 1,
+      openId: "o1",
+      name: "Test",
+      email: "t@example.com",
+      loginMethod: "email",
+      lastSignedIn: new Date().toISOString(),
+    });
+    const { result } = renderHook(() => useAuth());
+    act(() => {
+      result.current.logout();
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(localStorage.getItem(PENDING_UNREGISTER_KEY)).toBeNull();
   });
 });

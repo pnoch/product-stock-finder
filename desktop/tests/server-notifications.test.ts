@@ -15,6 +15,8 @@ const state = vi.hoisted(() => ({
   uploaded: [] as unknown[],
   pulled: [] as unknown[],
   notifications: [] as unknown[],
+  unregisterCalls: 0,
+  unregisterShouldFail: false,
 }));
 
 vi.mock("../src/lib/trpc", () => ({
@@ -29,6 +31,13 @@ vi.mock("../src/lib/trpc", () => ({
       pull: {
         query: vi.fn(async () => ({ events: state.pulled })),
       },
+      unregisterPushToken: {
+        mutate: vi.fn(async () => {
+          state.unregisterCalls++;
+          if (state.unregisterShouldFail) throw new Error("offline");
+          return { accepted: true };
+        }),
+      },
     },
   })),
 }));
@@ -41,6 +50,20 @@ vi.mock("../src/notifications", () => ({
 
 import { syncDesktopNotifications } from "../src/server-notifications";
 import { sendDesktopNotification } from "../src/notifications";
+import { PENDING_UNREGISTER_KEY } from "../src/lib/web-push";
+
+function useSyncLocalStorage() {
+  const store = new Map<string, string>();
+  globalThis.localStorage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+  } as unknown as Storage;
+}
 
 describe("syncDesktopNotifications", () => {
   beforeEach(async () => {
@@ -49,6 +72,8 @@ describe("syncDesktopNotifications", () => {
     state.uploaded.length = 0;
     state.pulled.length = 0;
     state.notifications.length = 0;
+    state.unregisterCalls = 0;
+    state.unregisterShouldFail = false;
   });
 
   it("uploads the active config and shows pulled events", async () => {
@@ -252,5 +277,23 @@ describe("syncDesktopNotifications", () => {
     const second = await getDesktopDeviceId();
     expect(first).toBeTruthy();
     expect(first).toBe(second);
+  });
+
+  it("retries a pending unregister first and clears the flag on success", async () => {
+    useSyncLocalStorage();
+    localStorage.setItem(PENDING_UNREGISTER_KEY, "1");
+    await syncDesktopNotifications();
+    expect(state.unregisterCalls).toBe(1);
+    expect(localStorage.getItem(PENDING_UNREGISTER_KEY)).toBeNull();
+    expect(state.uploaded).toHaveLength(1);
+  });
+
+  it("retains the flag when the unregister retry fails", async () => {
+    useSyncLocalStorage();
+    localStorage.setItem(PENDING_UNREGISTER_KEY, "1");
+    state.unregisterShouldFail = true;
+    await syncDesktopNotifications();
+    expect(state.unregisterCalls).toBe(1);
+    expect(localStorage.getItem(PENDING_UNREGISTER_KEY)).toBe("1");
   });
 });
