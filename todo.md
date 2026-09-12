@@ -1373,3 +1373,15 @@
 - [x] Spec (`docs/superpowers/specs/2026-09-10-token-unregister-design.md`) + plan (`docs/superpowers/plans/2026-09-10-token-unregister.md`)
 - [x] Endpoint + cross-user rejection test (`2050ce4`, `0a5b1c8`); disable + logout calls (`b7825c4`)
 - [x] Guards (`tests/push-unregister.test.ts`); E2E: `tsc 0`, root `226 passed` files / `1586 passed` tests, desktop `30 passed` files / `152 passed` tests
+
+## Phase 182: Consistency bundle
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-consistency-design.md`) + plan (`docs/superpowers/plans/2026-09-10-consistency.md`)
+- [x] Movers lists + stats refresh (`14afb5e`); flagged names + 3M default (`c9e4cb5`); stat links + null-safe activity (`c63a3be`)
+- [x] Guards (`desktop/tests/stats-polish.test.tsx`, `desktop/tests/home-activity.test.tsx` extended); test-stock button dropped after verification that `<ActionButtons` is never rendered (dead-code mirror avoided); Compare default needed lowercase `3m` chip key (plan snippet would have broken highlighting); E2E: `tsc 0`, root `227 passed` files / `1589 passed` tests, desktop `32 passed` files / `168 passed` tests
+
+## Phase 183: Correctness leftovers
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-correctness-leftovers-design.md`) + plan (`docs/superpowers/plans/2026-09-10-correctness-leftovers.md`)
+- [x] Shared seeding (`4d09926`); preview tail contract pin (`6fc2e09`); unregister retry + cycle-break fix (`f496739`, `e7b0ab3`); platform-limit comments (`968d780`); Cargo.lock sync (`ca247e0`)
+- [x] Guards (`tests/launch-seed.test.ts`); preview sorter needed no code change (stable sort verified); macOS/Windows tray clicks + thread rationale documented as analyzed-and-deferred; E2E: `tsc 0`, root `227 passed` files / `1589 passed` tests, desktop `32 passed` files / `168 passed` tests
