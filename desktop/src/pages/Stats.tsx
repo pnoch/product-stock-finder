@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router";
-import { Share2, TrendingDown, TrendingUp, Package, BarChart3 } from "lucide-react";
+import { Link, useLocation } from "react-router";
+import { Share2, RefreshCw, Package, BarChart3 } from "lucide-react";
 import { copyTextWithFallback, saveNodeAsPng } from "../lib/share";
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
@@ -54,6 +54,8 @@ export function Stats() {
   const [basketDraft, setBasketDraft] = useState("");
   const [days, setDays] = useState<MoversWindow>(30);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const { pathname } = useLocation();
   const { toast, showToast } = useToast();
   const summaryRef = useRef<HTMLDivElement>(null);
 
@@ -114,6 +116,15 @@ export function Stats() {
 
   useEffect(() => {
     void loadStats();
+  }, [loadStats, pathname]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadStats();
+    } finally {
+      setRefreshing(false);
+    }
   }, [loadStats]);
 
   const handleSaveBasketAlert = useCallback(async (threshold: number | null) => {
@@ -267,6 +278,15 @@ export function Stats() {
         <h1 className="text-2xl font-bold">Statistics</h1>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => void handleRefresh()}
+            disabled={loading || refreshing}
+            aria-label="Refresh stats"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Refreshing" : "Refresh"}
+          </button>
+          <button
             onClick={handleCopyText}
             disabled={!products || products.length === 0}
             className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
@@ -361,27 +381,39 @@ export function Stats() {
           <p className="text-xs text-gray-400 mt-1">{stockHealth?.totalListings ?? 0} listings</p>
         </div>
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Biggest Drop</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Top Drops</p>
           {movers && movers.drops.length > 0 ? (
-            <>
-              <p className="text-lg font-bold mt-1 flex items-center gap-1 text-emerald-600">
-                <TrendingDown className="w-4 h-4" /> {movers.drops[0].changePct.toFixed(1)}%
-              </p>
-              <p className="text-xs text-gray-400 mt-1 truncate">{movers.drops[0].productName}</p>
-            </>
+            <div className="mt-2 space-y-2">
+              {movers.drops.map((m) => (
+                <div key={`${m.productId}-${m.distributorId}`} className="flex items-center gap-2">
+                  <span>{m.countryFlag}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{m.productName}</p>
+                    <p className="text-xs text-gray-400 truncate">{m.distributorName} · {formatPrice(m.oldPrice, m.currency)} → {formatPrice(m.newPrice, m.currency)}</p>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-600">{m.changePct.toFixed(1)}%</span>
+                </div>
+              ))}
+            </div>
           ) : (
             <p className="text-sm text-gray-400 mt-2">No movers yet</p>
           )}
         </div>
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Biggest Rise</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Top Gainers</p>
           {movers && movers.gainers.length > 0 ? (
-            <>
-              <p className="text-lg font-bold mt-1 flex items-center gap-1 text-red-600">
-                <TrendingUp className="w-4 h-4" /> +{movers.gainers[0].changePct.toFixed(1)}%
-              </p>
-              <p className="text-xs text-gray-400 mt-1 truncate">{movers.gainers[0].productName}</p>
-            </>
+            <div className="mt-2 space-y-2">
+              {movers.gainers.map((m) => (
+                <div key={`${m.productId}-${m.distributorId}`} className="flex items-center gap-2">
+                  <span>{m.countryFlag}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{m.productName}</p>
+                    <p className="text-xs text-gray-400 truncate">{m.distributorName} · {formatPrice(m.oldPrice, m.currency)} → {formatPrice(m.newPrice, m.currency)}</p>
+                  </div>
+                  <span className="text-xs font-bold text-red-600">{m.changePct > 0 ? "+" : ""}{m.changePct.toFixed(1)}%</span>
+                </div>
+              ))}
+            </div>
           ) : (
             <p className="text-sm text-gray-400 mt-2">No movers yet</p>
           )}
