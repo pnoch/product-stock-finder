@@ -118,12 +118,57 @@ describe("desktop auth malformed user", () => {
       lastSignedIn: new Date().toISOString(),
     });
     const { result } = renderHook(() => useAuth());
-    act(() => {
-      result.current.logout();
-    });
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 0));
+      await result.current.logout();
     });
     expect(localStorage.getItem(PENDING_UNREGISTER_KEY)).toBeNull();
+  });
+
+  it("sends unregister with the session still present", async () => {
+    // The mocked trpc client bypasses headers(), so capture the session the
+    // way prod does at request time: read getSessionToken() when mutate runs.
+    let tokenAtMutate: string | null | undefined;
+    mockUnregisterMutate.mockImplementation(() => {
+      tokenAtMutate = getSessionToken();
+      return Promise.resolve({ accepted: true });
+    });
+    setSessionToken("token-1");
+    setUserInfo({
+      id: 1,
+      openId: "o1",
+      name: "Test",
+      email: "t@example.com",
+      loginMethod: "email",
+      lastSignedIn: new Date().toISOString(),
+    });
+    const { result } = renderHook(() => useAuth());
+    await act(async () => {
+      await result.current.logout();
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(mockUnregisterMutate).toHaveBeenCalledTimes(1);
+    expect(tokenAtMutate).toBe("token-1");
+    expect(getSessionToken()).toBeNull();
+    expect(getUserInfo()).toBeNull();
+  });
+
+  it("sets the retry flag and still logs out when unregister fails", async () => {
+    mockUnregisterMutate.mockRejectedValue(new Error("offline"));
+    setSessionToken("token-1");
+    setUserInfo({
+      id: 1,
+      openId: "o1",
+      name: "Test",
+      email: "t@example.com",
+      loginMethod: "email",
+      lastSignedIn: new Date().toISOString(),
+    });
+    const { result } = renderHook(() => useAuth());
+    await act(async () => {
+      await result.current.logout();
+    });
+    expect(localStorage.getItem(PENDING_UNREGISTER_KEY)).toBe("1");
+    expect(getSessionToken()).toBeNull();
+    expect(getUserInfo()).toBeNull();
   });
 });

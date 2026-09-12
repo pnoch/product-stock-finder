@@ -285,18 +285,16 @@ export function useAuth() {
     }
   }, []);
 
-  const logout = useCallback(() => {
-    void (async () => {
-      // Dynamic import: a static import of ../lib/trpc here would reintroduce
-      // the use-auth ↔ trpc cycle that push-unregister was created to break.
-      try {
-        const { createTRPCClient } = await import("../lib/trpc");
-        const ok = await unregisterServerToken(createTRPCClient());
-        if (!ok) localStorage.setItem(PENDING_UNREGISTER_KEY, "1");
-      } catch {
-        localStorage.setItem(PENDING_UNREGISTER_KEY, "1");
-      }
-    })();
+  const logout = useCallback(async () => {
+    // Dynamic import: a static import of ../lib/trpc here would reintroduce
+    // the use-auth ↔ trpc cycle that push-unregister was created to break.
+    try {
+      const { createTRPCClient } = await import("../lib/trpc");
+      const ok = await unregisterServerToken(createTRPCClient());
+      if (!ok) localStorage.setItem(PENDING_UNREGISTER_KEY, "1");
+    } catch {
+      localStorage.setItem(PENDING_UNREGISTER_KEY, "1");
+    }
     removeSessionToken();
     clearUserInfo();
     notify();
