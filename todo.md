@@ -1385,3 +1385,15 @@
 - [x] Spec (`docs/superpowers/specs/2026-09-10-correctness-leftovers-design.md`) + plan (`docs/superpowers/plans/2026-09-10-correctness-leftovers.md`)
 - [x] Shared seeding (`4d09926`); preview tail contract pin (`6fc2e09`); unregister retry + cycle-break fix (`f496739`, `e7b0ab3`); platform-limit comments (`968d780`); Cargo.lock sync (`ca247e0`)
 - [x] Guards (`tests/launch-seed.test.ts`); preview sorter needed no code change (stable sort verified); macOS/Windows tray clicks + thread rationale documented as analyzed-and-deferred; E2E: `tsc 0`, root `227 passed` files / `1589 passed` tests, desktop `32 passed` files / `168 passed` tests
+
+## Phase 184: Correctness bundle 2
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-correctness-2-design.md`) + plan (`docs/superpowers/plans/2026-09-10-correctness-2.md`)
+- [x] Authenticated logout unregister (`9e6c4e1`); unregister logging (`ccbea5d`); shared routing + typable return fix (`e8333f1`, `ff8aeda`); reject-timer hygiene (`53a8d64`)
+- [x] Guards (`desktop/tests/use-auth.test.tsx` extended, `tests/notification-routing.test.ts`, `tests/manual-add-timeout-guard.test.ts`); E2E: `tsc 0`, root `229 passed` files / `1591 passed` tests, desktop `37 passed` files / `187 passed` tests
+
+## Phase 185: Product polish bundle
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-product-polish-design.md`) + plan (`docs/superpowers/plans/2026-09-10-product-polish.md`)
+- [x] Best-price signals (`ec94ea4`); AI manual-add (`fd80125`); web toggle + single-writer fix + optimistic-sync fix (`1d9835b`, `33413ba`, `708a709`); tab sync, stats CTA, converter (`5155b8e`)
+- [x] Guards (`desktop/tests/best-price-signals.test.tsx`, `desktop/tests/manual-add-ai.test.tsx`, `desktop/tests/settings-webtoggle.test.tsx`, `desktop/tests/nav-header.test.tsx`, `desktop/tests/use-settings-update.test.tsx`); review-caught double-write + async regression fixed; −5% label/behavior self-consistent (mobile mismatch flagged separately); web fallback route-less by design; E2E: `tsc 0`, root `229 passed` files / `1591 passed` tests, desktop `37 passed` files / `187 passed` tests
