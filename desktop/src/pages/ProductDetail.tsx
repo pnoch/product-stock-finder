@@ -349,13 +349,14 @@ export function ProductDetail() {
     const hist = bestListing?.priceHistory;
     if (!hist || hist.length < 2) return null;
     const sorted = [...hist].sort((a, b) => +new Date(a.date) - +new Date(b.date));
-    const oldest = sorted[0].price;
-    const current = sorted[sorted.length - 1].price;
+    const oldest = convertPrice(sorted[0].price, sorted[0].currency, displayCurrency);
+    const current = convertPrice(sorted[sorted.length - 1].price, sorted[sorted.length - 1].currency, displayCurrency);
+    if (oldest === null || current === null || oldest <= 0) return null;
     if (current === oldest) return null;
     const pct = Math.round((Math.abs(oldest - current) / oldest) * 100);
     const down = current < oldest;
     return { down, pct };
-  }, [bestListing]);
+  }, [bestListing, displayCurrency]);
 
   const isLowestEver = useMemo(() => {
     const hist = bestListing?.priceHistory;
@@ -489,7 +490,7 @@ export function ProductDetail() {
     }
     const dist = DISTRIBUTORS.find((d) => d.id === distributorId);
     await storage.addBackOrderReminder({
-      id: `reminder-${Date.now()}`,
+      id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       productId: product.id,
       productName: product.name,
       distributorId,
@@ -551,7 +552,7 @@ export function ProductDetail() {
     }
     const dist = DISTRIBUTORS.find((d) => d.id === distributorId);
     await storage.addBackOrderReminder({
-      id: `reminder-${Date.now()}`,
+      id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       productId: product.id,
       productName: product.name,
       distributorId,
@@ -616,7 +617,7 @@ export function ProductDetail() {
       return;
     }
     await storage.addStockWatch({
-      id: `watch-${Date.now()}`,
+      id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       productId: product.id,
       productName: product.name,
       distributorId: bestListing.distributorId,
@@ -646,7 +647,7 @@ export function ProductDetail() {
       showToast("Stopped watching");
     } else {
       await storage.addStockWatch({
-        id: `watch-${Date.now()}`,
+        id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         productId: product.id,
         productName: product.name,
         distributorId: listing.distributorId,

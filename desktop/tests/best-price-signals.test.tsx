@@ -76,6 +76,35 @@ function renderProductDetail() {
   );
 }
 
+function makeCurrencyProduct(history: { price: number; currency: string; date: string }[]) {
+  const current = history[history.length - 1];
+  return {
+    id: "p1",
+    name: "MikroTik hAP ac3",
+    modelNumber: "hAP ac3",
+    brand: "MikroTik",
+    category: "Router",
+    description: "Dual-band router",
+    addedAt: new Date().toISOString(),
+    isWatched: true,
+    listings: [
+      {
+        distributorId: "balticnetworks-us",
+        productId: "p1",
+        price: current.price,
+        currency: current.currency,
+        stockStatus: "in_stock",
+        url: "https://example.com/us",
+        lastChecked: new Date().toISOString(),
+        priceHistory: history.map((h) => ({
+          ...h,
+          stockStatus: "in_stock",
+        })),
+      },
+    ],
+  };
+}
+
 const settings = {
   theme: "auto",
   displayCurrency: "USD",
@@ -201,5 +230,36 @@ describe("best-price signals", () => {
     } finally {
       nowSpy.mockRestore();
     }
+  });
+
+  it("computes trend in display currency", async () => {
+    // 100 EUR -> $108.70 oldest; 90 GBP -> $113.92 current: converted trend
+    // is up ~5%, while raw prices (100 -> 90) would read as down 10%.
+    mockStorage.getWatchlist.mockResolvedValue([
+      makeCurrencyProduct([
+        { price: 100, currency: "EUR", date: "2026-06-01T00:00:00.000Z" },
+        { price: 90, currency: "GBP", date: "2026-09-01T00:00:00.000Z" },
+      ]),
+    ]);
+    renderProductDetail();
+    await waitFor(() => {
+      expect(screen.getByText(/▲ 5%/)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/▼ 10%/)).not.toBeInTheDocument();
+  });
+
+  it("renders no trend for zero-price history", async () => {
+    mockStorage.getWatchlist.mockResolvedValue([
+      makeProduct([
+        { price: 0, date: "2026-06-01T00:00:00.000Z" },
+        { price: 90, date: "2026-09-01T00:00:00.000Z" },
+      ]),
+    ]);
+    renderProductDetail();
+    await waitFor(() => {
+      expect(screen.getByText("Best Price")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Infinity/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/[▼▲] \d+%/)).not.toBeInTheDocument();
   });
 });
