@@ -14,7 +14,7 @@ vi.mock("../src/lib/trpc", () => ({
 
 import { invoke } from "@tauri-apps/api/core";
 import { getSessionToken, setSessionToken, setUserInfo, getUserInfo, useAuth } from "../src/hooks/use-auth";
-import { PENDING_UNREGISTER_KEY } from "../src/lib/web-push";
+import { PENDING_UNREGISTER_KEY } from "../src/lib/push-unregister";
 
 const mockedInvoke = vi.mocked(invoke);
 
@@ -51,6 +51,9 @@ describe("desktop auth malformed user", () => {
     act(() => {
       result.current.logout();
     });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
     expect(mockUnregisterMutate).toHaveBeenCalledTimes(1);
     expect(mockUnregisterMutate.mock.calls[0][0]).toBeUndefined();
     expect(getSessionToken()).toBeNull();
@@ -72,6 +75,9 @@ describe("desktop auth malformed user", () => {
     const { result } = renderHook(() => useAuth());
     act(() => {
       result.current.logout();
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
     });
     expect(mockUnregisterMutate).toHaveBeenCalledTimes(1);
     expect(getSessionToken()).toBeNull();

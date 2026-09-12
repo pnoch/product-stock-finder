@@ -1,22 +1,5 @@
 import { createTRPCClient } from "./trpc";
-import { withTimeout } from "../../../lib/with-timeout";
-
-export const PENDING_UNREGISTER_KEY = "pending_push_unregister";
-
-const UNREGISTER_TIMEOUT_MS = 5000;
-
-export async function unregisterServerToken(): Promise<boolean> {
-  try {
-    const client = createTRPCClient();
-    const result = await withTimeout(
-      client.notifications.unregisterPushToken.mutate(),
-      UNREGISTER_TIMEOUT_MS,
-    );
-    return result !== null;
-  } catch {
-    return false;
-  }
-}
+import { PENDING_UNREGISTER_KEY, unregisterServerToken } from "./push-unregister";
 
 export function isPushSupported(): boolean {
   return (
@@ -89,7 +72,7 @@ export async function disablePush(): Promise<void> {
   } catch (e) {
     console.error("[web-push] unsubscribe failed", e);
   }
-  const ok = await unregisterServerToken();
+  const ok = await unregisterServerToken(createTRPCClient());
   localStorage.removeItem(PENDING_UNREGISTER_KEY);
   if (!ok) localStorage.setItem(PENDING_UNREGISTER_KEY, "1");
 }

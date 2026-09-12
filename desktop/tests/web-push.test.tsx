@@ -7,11 +7,15 @@ vi.mock("../src/lib/trpc", () => ({
   }),
 }));
 
+import { disablePush } from "../src/lib/web-push";
 import {
-  disablePush,
   unregisterServerToken,
   PENDING_UNREGISTER_KEY,
-} from "../src/lib/web-push";
+} from "../src/lib/push-unregister";
+
+const fakeClient = () => ({
+  notifications: { unregisterPushToken: { mutate: mockUnregisterMutate } },
+});
 
 function stubPushSupport() {
   Object.defineProperty(window.navigator, "serviceWorker", {
@@ -61,10 +65,10 @@ describe("disablePush unregister retry flag", () => {
 
   it("unregisterServerToken resolves true on success, false on timeout", async () => {
     mockUnregisterMutate.mockResolvedValue({ accepted: true });
-    await expect(unregisterServerToken()).resolves.toBe(true);
+    await expect(unregisterServerToken(fakeClient())).resolves.toBe(true);
     vi.useFakeTimers();
     mockUnregisterMutate.mockReturnValue(new Promise(() => {}));
-    const pending = unregisterServerToken();
+    const pending = unregisterServerToken(fakeClient());
     await vi.advanceTimersByTimeAsync(5000);
     await expect(pending).resolves.toBe(false);
   });

@@ -1,7 +1,7 @@
 import { storage } from "./storage";
 import { createTRPCClient } from "./lib/trpc";
 import { resolveEventRoute } from "./lib/notification-routing";
-import { unregisterServerToken, PENDING_UNREGISTER_KEY } from "./lib/web-push";
+import { unregisterServerToken, PENDING_UNREGISTER_KEY } from "./lib/push-unregister";
 import { withTimeout } from "../../lib/with-timeout";
 
 const TIMEOUT_MS = 4000;
@@ -101,7 +101,7 @@ async function runSyncDesktopNotifications(): Promise<void> {
     const pendingHealthEvents = await storage.getPendingHealthEvents();
 
     if (localStorage.getItem(PENDING_UNREGISTER_KEY) === "1") {
-      const unregistered = await unregisterServerToken();
+      const unregistered = await unregisterServerToken(createTRPCClient());
       if (unregistered) localStorage.removeItem(PENDING_UNREGISTER_KEY);
     }
 

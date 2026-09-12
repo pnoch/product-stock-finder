@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getApiBaseUrl, getAppId, getOAuthPortalUrl } from "../lib/api-base";
 import { getDesktopDeviceId } from "../lib/device-id";
-import { unregisterServerToken, PENDING_UNREGISTER_KEY } from "../lib/web-push";
+import { unregisterServerToken, PENDING_UNREGISTER_KEY } from "../lib/push-unregister";
 
 const SESSION_TOKEN_KEY = "desktop_session_token";
 const USER_INFO_KEY = "desktop_user_info";
@@ -287,8 +287,15 @@ export function useAuth() {
 
   const logout = useCallback(() => {
     void (async () => {
-      const ok = await unregisterServerToken();
-      if (!ok) localStorage.setItem(PENDING_UNREGISTER_KEY, "1");
+      // Dynamic import: a static import of ../lib/trpc here would reintroduce
+      // the use-auth ↔ trpc cycle that push-unregister was created to break.
+      try {
+        const { createTRPCClient } = await import("../lib/trpc");
+        const ok = await unregisterServerToken(createTRPCClient());
+        if (!ok) localStorage.setItem(PENDING_UNREGISTER_KEY, "1");
+      } catch {
+        localStorage.setItem(PENDING_UNREGISTER_KEY, "1");
+      }
     })();
     removeSessionToken();
     clearUserInfo();

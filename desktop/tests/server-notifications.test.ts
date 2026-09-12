@@ -50,7 +50,7 @@ vi.mock("../src/notifications", () => ({
 
 import { syncDesktopNotifications } from "../src/server-notifications";
 import { sendDesktopNotification } from "../src/notifications";
-import { PENDING_UNREGISTER_KEY } from "../src/lib/web-push";
+import { PENDING_UNREGISTER_KEY } from "../src/lib/push-unregister";
 
 function useSyncLocalStorage() {
   const store = new Map<string, string>();
