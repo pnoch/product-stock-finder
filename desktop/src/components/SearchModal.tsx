@@ -7,6 +7,7 @@ import { storage } from "../storage";
 import { Modal } from "./Modal";
 import { ProductImage } from "./ProductImage";
 import { discoverProduct, toDiscoverErrorState } from "../../../lib/llm-discovery";
+import { customProductSlug } from "../../../lib/listing-discovery";
 import { useToast } from "../hooks/use-toast";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import type { TagDefinition } from "../../../lib/types";
@@ -234,7 +235,11 @@ export function SearchModal({
       showToast("Name and model required");
       return;
     }
-    const id = `manual-${Date.now()}`;
+    const id = customProductSlug(manualModel.trim());
+    if (trackedIds.has(id)) {
+      showToast("Already Tracked — that model number is already in your watchlist.");
+      return;
+    }
     const product = { id, name: manualName.trim(), modelNumber: manualModel.trim(), brand: manualBrand.trim() || "Unknown", category: manualCategory.trim() || categories[0] || "Other", description: "" };
     try {
       await storage.addToWatchlist({ ...product, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
