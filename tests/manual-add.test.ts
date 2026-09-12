@@ -52,6 +52,11 @@ describe("manualAddProduct", () => {
     await manualAddProduct({ ...d, input, onProgress });
     expect(onProgress).toHaveBeenCalledWith(1, 2);
   });
+  it("carries tags into the created product", async () => {
+    const d = deps();
+    await manualAddProduct({ ...d, input: { ...input, tags: ["t1"] } });
+    expect(d.storage.addToWatchlist).toHaveBeenCalledWith(expect.objectContaining({ tags: ["t1"] }));
+  });
 });
 
 describe("rediscoverProduct", () => {

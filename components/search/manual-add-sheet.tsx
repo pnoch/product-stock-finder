@@ -16,7 +16,7 @@ import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { showAlert } from "@/lib/alert";
 import { addToWatchlist, updateProductListings } from "@/lib/storage";
-import { withTimeoutReject } from "@/lib/with-timeout";
+import { DISCOVER_TIMEOUT_MS, manualAddProduct } from "@/lib/manual-add";
 import { fetchParsedProduct } from "@/lib/server-product-parse";
 import {
   customProductSlug,
@@ -52,8 +52,6 @@ function fieldStyle(colors: ReturnType<typeof useColors>) {
     marginBottom: 12,
   };
 }
-
-const DISCOVER_TIMEOUT_MS = 15_000;
 
 export function ManualAddSheet({
   visible,
@@ -183,43 +181,37 @@ export function ManualAddSheet({
     setAdding(true);
     let active = true;
     try {
-      await addToWatchlist({
-        id,
-        name,
-        modelNumber,
-        brand: draft.brand.trim(),
-        category: draft.category.trim() || "Other",
-        description: draft.description.trim(),
-        isWatched: true,
-        addedAt: new Date().toISOString(),
-        listings: [],
-      });
       if (active && activeRef.current) setProgress("Searching distributors 0/…");
-      let listings: Awaited<ReturnType<typeof discoverListings>>;
-      try {
-        listings = await withTimeoutReject(
-          discoverListings(modelNumber, {
-            productId: id,
-            onProgress: (done, total) => {
-              if (active && activeRef.current) setProgress(`Searching distributors ${done}/${total}…`);
-            },
-          }),
-          DISCOVER_TIMEOUT_MS,
-        );
-      } catch (e) {
-        if (e instanceof Error && e.message === "timeout") {
-          listings = [];
-        } else {
-          throw e;
-        }
-      }
+      const result = await manualAddProduct({
+        storage: { addToWatchlist, updateProductListings },
+        trackedIds,
+        discover: discoverListings,
+        input: {
+          id,
+          name,
+          modelNumber,
+          brand: draft.brand.trim(),
+          category: draft.category.trim() || "Other",
+          description: draft.description.trim(),
+        },
+        onProgress: (done, total) => {
+          if (active && activeRef.current) setProgress(`Searching distributors ${done}/${total}…`);
+        },
+        timeoutMs: DISCOVER_TIMEOUT_MS,
+      });
       if (!active || !activeRef.current) return;
-      await updateProductListings(id, listings);
+      if (result.status === "duplicate") {
+        showAlert(
+          "Already Tracked",
+          "That model number is already in your watchlist.",
+        );
+        return;
+      }
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showAlert(
         "Product Added",
-        listings.length > 0
-          ? `Added "${name}" — found prices at ${listings.length} distributor${listings.length === 1 ? "" : "s"}.`
+        result.discovered > 0
+          ? `Added "${name}" — found prices at ${result.discovered} distributor${result.discovered === 1 ? "" : "s"}.`
           : `Added "${name}". No distributor had it yet — we'll keep watching.`,
       );
       reset();

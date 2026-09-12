@@ -8,6 +8,7 @@ import { Modal } from "./Modal";
 import { ProductImage } from "./ProductImage";
 import { discoverProduct, toDiscoverErrorState } from "../../../lib/llm-discovery";
 import { discoverListings, customProductSlug } from "../../../lib/listing-discovery";
+import { manualAddProduct, rediscoverProduct } from "../../../lib/manual-add";
 import { useToast } from "../hooks/use-toast";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import type { TagDefinition } from "../../../lib/types";
@@ -103,6 +104,8 @@ export function SearchModal({
   const [manualDescription, setManualDescription] = useState("");
   const [manualDiscovering, setManualDiscovering] = useState(false);
   const [manualProgress, setManualProgress] = useState<string | null>(null);
+  const [manualTimedOut, setManualTimedOut] = useState<{ id: string; name: string; modelNumber: string } | null>(null);
+  const [manualRetrying, setManualRetrying] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [catalogSort, setCatalogSort] = useState<CatalogSort>("relevance");
@@ -246,35 +249,80 @@ export function SearchModal({
     if (manualDiscovering) return;
     const id = slug;
     const product = { id, name: manualName.trim(), modelNumber: manualModel.trim(), brand: manualBrand.trim() || "Unknown", category: manualCategory.trim() || categories[0] || "Other", description: manualDescription.trim() };
-    try {
-      await storage.addToWatchlist({ ...product, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
-      setTrackedIds((prev) => new Set([...prev, id]));
-      const model = manualModel.trim();
-      let discovered = 0;
-      if (model) {
-        setManualDiscovering(true);
-        try {
-          const found = await discoverListings(model, {
-            productId: id,
-            onProgress: (done, total) => setManualProgress(`Discovering ${done}/${total}…`),
-          });
-          discovered = found.length;
-          if (found.length > 0) await storage.updateProductListings(id, found);
-        } catch {
-          // Best-effort: keep the product with no listings (today's behavior).
-        } finally {
-          setManualDiscovering(false);
-          setManualProgress(null);
-        }
-      }
+    const resetManualForm = () => {
       setManualOpen(false);
       setManualName(""); setManualModel(""); setManualBrand(""); setManualCategory(""); setManualDescription("");
-      setManualProgress(null);
-      showToast(discovered > 0 || !model ? `Added ${product.name}` : `Added ${product.name} with no listings — discovery found nothing`);
+      setManualProgress(null); setManualTimedOut(null);
+    };
+    let created = false;
+    setManualDiscovering(true);
+    try {
+      const result = await manualAddProduct({
+        storage: {
+          addToWatchlist: async (p) => { const r = await storage.addToWatchlist(p); created = true; return r; },
+          updateProductListings: (pid, listings) => storage.updateProductListings(pid, listings),
+        },
+        trackedIds,
+        discover: discoverListings,
+        input: { ...product, tags: [] },
+        onProgress: (done, total) => setManualProgress(`Discovering ${done}/${total}…`),
+      });
+      if (result.status === "duplicate") {
+        showToast("Already Tracked — that model number is already in your watchlist.");
+        return;
+      }
+      setTrackedIds((prev) => new Set([...prev, id]));
+      if (result.timedOut) {
+        setManualTimedOut({ id, name: product.name, modelNumber: product.modelNumber });
+        showToast(`Added ${product.name} with no listings — discovery found nothing`);
+        return;
+      }
+      resetManualForm();
+      showToast(result.discovered > 0 ? `Added ${product.name}` : `Added ${product.name} with no listings — discovery found nothing`);
     } catch (e) {
-      showToast(e instanceof Error ? e.message : "Failed to add");
+      if (created) {
+        // Best-effort: keep the product with no listings (today's behavior).
+        setTrackedIds((prev) => new Set([...prev, id]));
+        resetManualForm();
+        showToast(`Added ${product.name} with no listings — discovery found nothing`);
+      } else {
+        showToast(e instanceof Error ? e.message : "Failed to add");
+      }
+    } finally {
+      setManualDiscovering(false);
+      setManualProgress(null);
     }
   };
+  const handleManualRetry = async () => {
+    if (!manualTimedOut || manualRetrying) return;
+    const { id, name, modelNumber } = manualTimedOut;
+    setManualRetrying(true);
+    try {
+      const res = await rediscoverProduct({
+        storage: { updateProductListings: (pid, listings) => storage.updateProductListings(pid, listings) },
+        discover: discoverListings,
+        productId: id,
+        modelNumber,
+        onProgress: (done, total) => setManualProgress(`Discovering ${done}/${total}…`),
+      });
+      if (res.timedOut) {
+        showToast(`Added ${name} with no listings — discovery found nothing`);
+      } else {
+        setManualTimedOut(null);
+        setManualOpen(false);
+        setManualName(""); setManualModel(""); setManualBrand(""); setManualCategory(""); setManualDescription("");
+        setManualProgress(null);
+        showToast(res.discovered > 0 ? `Added ${name}` : `Added ${name} with no listings — discovery found nothing`);
+      }
+    } catch {
+      showToast("Discovery failed — try again");
+    } finally {
+      setManualRetrying(false);
+      setManualProgress(null);
+    }
+  };
+  const openManualSheet = () => { setManualTimedOut(null); setManualOpen(true); };
+  const closeManualSheet = () => { setManualTimedOut(null); setManualOpen(false); };
 
   return (
     <>
@@ -283,7 +331,7 @@ export function SearchModal({
           <button onClick={() => setBulkOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700" aria-label="Bulk import">
             <Upload className="w-4 h-4" /> Bulk Import
           </button>
-          <button onClick={() => setManualOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700" aria-label="Manual add">
+          <button onClick={openManualSheet} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700" aria-label="Manual add">
             <PenLine className="w-4 h-4" /> Manual Add
           </button>
         </div>
@@ -495,9 +543,19 @@ export function SearchModal({
 
       {/* Manual Add Sheet */}
       {manualOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setManualOpen(false)}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={closeManualSheet}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-semibold mb-3">Manual Add</h3>
+            {manualTimedOut && (
+              <div role="alert" className="mb-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-left">
+                <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">Discovery timed out</p>
+                <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">Added {manualTimedOut.name} — listings can be retried.</p>
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => void handleManualRetry()} disabled={manualRetrying} aria-label="Retry discovery" className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-medium hover:bg-amber-700 disabled:opacity-50">{manualRetrying ? "Retrying…" : "Retry"}</button>
+                  <button onClick={closeManualSheet} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">Done</button>
+                </div>
+              </div>
+            )}
             {manualProgress && <p className="text-xs text-gray-500 mb-2">{manualProgress}</p>}
             <div className="space-y-3">
               <input value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Product name *" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" />
@@ -509,7 +567,7 @@ export function SearchModal({
               <textarea value={manualDescription} onChange={(e) => setManualDescription(e.target.value)} placeholder="Description" aria-label="Description" rows={2} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" />
             </div>
             <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setManualOpen(false)} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">Cancel</button>
+              <button onClick={closeManualSheet} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">Cancel</button>
               <button onClick={handleManualAdd} disabled={manualDiscovering} aria-label="Add manual product" className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-50">{manualDiscovering ? "Discovering…" : "Add"}</button>
             </div>
           </div>

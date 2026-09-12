@@ -10,6 +10,7 @@ export interface ManualAddInput {
   brand: string;
   category: string;
   description: string;
+  tags?: string[];
 }
 
 export type ManualAddResult =

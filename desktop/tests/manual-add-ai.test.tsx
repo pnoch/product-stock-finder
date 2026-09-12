@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
+import { DISCOVER_TIMEOUT_MS } from "../../lib/manual-add";
 
 const mockStorage = vi.hoisted(() => ({
   getWatchlist: vi.fn(),
@@ -77,6 +78,7 @@ const listingB = {
 };
 
 beforeEach(() => {
+  vi.useRealTimers();
   vi.clearAllMocks();
   mockStorage.getWatchlist.mockResolvedValue([]);
   mockStorage.getSettings.mockResolvedValue({ displayCurrency: "USD" });
@@ -345,6 +347,78 @@ describe("manual add AI assist", () => {
     ).toBeInTheDocument();
     expect(mockStorage.addToWatchlist).toHaveBeenCalledTimes(1);
   });
+
+  it("times out hung discovery, keeps the product, and stays open with Retry", async () => {
+    vi.useFakeTimers();
+    try {
+      mockDiscoverListings.mockImplementation(() => new Promise<never>(() => {}));
+      renderSearch();
+      openManualModal();
+
+      fireEvent.change(screen.getByPlaceholderText("Product name *"), {
+        target: { value: "Hung Gadget" },
+      });
+      fireEvent.change(screen.getByPlaceholderText("Model number *"), {
+        target: { value: "HG-1" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Add manual product" }));
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(DISCOVER_TIMEOUT_MS + 100);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const slug = customProductSlug("HG-1");
+    expect(mockStorage.addToWatchlist).toHaveBeenCalledWith(
+      expect.objectContaining({ id: slug, listings: [] }),
+    );
+    expect(mockStorage.updateProductListings).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText("Added Hung Gadget with no listings — discovery found nothing"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry discovery" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add manual product" })).not.toBeDisabled();
+    expect(screen.getByPlaceholderText("Product name *")).toBeInTheDocument();
+  });
+
+  it("retries discovery after timeout without duplicating", async () => {
+    vi.useFakeTimers();
+    try {
+      mockDiscoverListings.mockImplementation(() => new Promise<never>(() => {}));
+      renderSearch();
+      openManualModal();
+
+      fireEvent.change(screen.getByPlaceholderText("Product name *"), {
+        target: { value: "Retry Gadget" },
+      });
+      fireEvent.change(screen.getByPlaceholderText("Model number *"), {
+        target: { value: "RG-2" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Add manual product" }));
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(DISCOVER_TIMEOUT_MS + 100);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(await screen.findByRole("button", { name: "Retry discovery" })).toBeInTheDocument();
+    mockDiscoverListings.mockResolvedValue([listingA, listingB]);
+    fireEvent.click(screen.getByRole("button", { name: "Retry discovery" }));
+
+    const slug = customProductSlug("RG-2");
+    await waitFor(() => {
+      expect(mockStorage.updateProductListings).toHaveBeenCalledWith(slug, [listingA, listingB]);
+    });
+    expect(mockStorage.addToWatchlist).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Add manual product" })).not.toBeInTheDocument();
+    });
+    expect(await screen.findByText("Added Retry Gadget")).toBeInTheDocument();
+  });
 });
 
 describe("SearchModal manual add discovery parity", () => {
@@ -439,5 +513,66 @@ describe("SearchModal manual add discovery parity", () => {
         "Added Modal Gadget with no listings — discovery found nothing",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("times out hung discovery and stays open with Retry", async () => {
+    vi.useFakeTimers();
+    try {
+      mockDiscoverListings.mockImplementation(() => new Promise<never>(() => {}));
+      renderModal();
+      openModalManualSheet();
+      fillModalManualForm();
+      fireEvent.click(screen.getByRole("button", { name: "Add manual product" }));
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(DISCOVER_TIMEOUT_MS + 100);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const slug = customProductSlug("MG-7");
+    expect(mockStorage.addToWatchlist).toHaveBeenCalledWith(
+      expect.objectContaining({ id: slug, listings: [] }),
+    );
+    expect(mockStorage.updateProductListings).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(
+        "Added Modal Gadget with no listings — discovery found nothing",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry discovery" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add manual product" })).not.toBeDisabled();
+  });
+
+  it("retries discovery after timeout without duplicating", async () => {
+    vi.useFakeTimers();
+    try {
+      mockDiscoverListings.mockImplementation(() => new Promise<never>(() => {}));
+      renderModal();
+      openModalManualSheet();
+      fillModalManualForm();
+      fireEvent.click(screen.getByRole("button", { name: "Add manual product" }));
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(DISCOVER_TIMEOUT_MS + 100);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(await screen.findByRole("button", { name: "Retry discovery" })).toBeInTheDocument();
+    mockDiscoverListings.mockResolvedValue([listingA, listingB]);
+    fireEvent.click(screen.getByRole("button", { name: "Retry discovery" }));
+
+    const slug = customProductSlug("MG-7");
+    await waitFor(() => {
+      expect(mockStorage.updateProductListings).toHaveBeenCalledWith(slug, [listingA, listingB]);
+    });
+    expect(mockStorage.addToWatchlist).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Add manual product" })).not.toBeInTheDocument();
+    });
+    expect(await screen.findByText("Added Modal Gadget")).toBeInTheDocument();
   });
 });
