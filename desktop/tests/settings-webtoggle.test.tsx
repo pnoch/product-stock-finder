@@ -233,4 +233,52 @@ describe("Settings web notifications toggle", () => {
       body: "CRS804 is $89",
     });
   });
+
+  it("does not show a web notification when the setting is off", async () => {
+    vi.mocked(invoke).mockRejectedValue(new Error("no tauri"));
+    mockStorage.getSettings.mockResolvedValue({
+      theme: "auto",
+      displayCurrency: "USD",
+      checkInterval: "manual",
+      notificationsEnabled: true,
+      stockAlerts: true,
+      priceAlerts: true,
+      webNotificationsEnabled: false,
+    });
+    const notifyCtor = vi.fn();
+    Object.defineProperty(window, "Notification", {
+      writable: true,
+      configurable: true,
+      value: Object.assign(notifyCtor, {
+        permission: "granted",
+        requestPermission: vi.fn().mockResolvedValue("granted"),
+      }),
+    });
+    await sendDesktopNotification("Price drop!", "CRS804 is $89");
+    expect(notifyCtor).not.toHaveBeenCalled();
+  });
+
+  it("does not show a web notification when permission is not granted", async () => {
+    vi.mocked(invoke).mockRejectedValue(new Error("no tauri"));
+    mockStorage.getSettings.mockResolvedValue({
+      theme: "auto",
+      displayCurrency: "USD",
+      checkInterval: "manual",
+      notificationsEnabled: true,
+      stockAlerts: true,
+      priceAlerts: true,
+      webNotificationsEnabled: true,
+    });
+    const notifyCtor = vi.fn();
+    Object.defineProperty(window, "Notification", {
+      writable: true,
+      configurable: true,
+      value: Object.assign(notifyCtor, {
+        permission: "denied",
+        requestPermission: vi.fn().mockResolvedValue("denied"),
+      }),
+    });
+    await sendDesktopNotification("Price drop!", "CRS804 is $89");
+    expect(notifyCtor).not.toHaveBeenCalled();
+  });
 });

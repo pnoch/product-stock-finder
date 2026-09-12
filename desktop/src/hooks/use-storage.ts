@@ -73,20 +73,10 @@ export function useSettings() {
   }, [refresh]);
 
   const update = useCallback(async (partial: Partial<AppSettings>) => {
-    let snapshot: AppSettings | null = null;
-    let updated: AppSettings | null = null;
-    setSettings((prev) => {
-      snapshot = prev;
-      if (!prev) return prev;
-      updated = { ...prev, ...partial };
-      return updated;
-    });
-    if (!updated) return;
-    try {
-      await storage.saveSettings(updated);
-    } catch {
-      setSettings(snapshot);
-    }
+    const current = await storage.getSettings();
+    const updated = { ...current, ...partial };
+    setSettings(updated);
+    await storage.saveSettings(updated);
   }, []);
 
   return { settings, loading, refresh, update };

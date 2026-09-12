@@ -353,14 +353,9 @@ export function Settings() {
   }, [pushBusy, showToast]);
 
   const handleWebToggle = useCallback(async (v: boolean) => {
-    // Persist via read-modify-write so the save happens even when React
-    // defers the update() below (updater side-effects don't run inside act);
-    // update() then syncs local state for the controlled checkbox.
     if (v) {
       const permission = await requestWebNotificationPermission();
       const enabled = permission === "granted";
-      const current = await storage.getSettings();
-      await storage.saveSettings({ ...current, webNotificationsEnabled: enabled });
       await update({ webNotificationsEnabled: enabled });
       setWebNotifHint(
         enabled
@@ -370,8 +365,6 @@ export function Settings() {
             : "Allow notifications in your browser to receive alerts.",
       );
     } else {
-      const current = await storage.getSettings();
-      await storage.saveSettings({ ...current, webNotificationsEnabled: false });
       await update({ webNotificationsEnabled: false });
       setWebNotifHint(null);
     }
