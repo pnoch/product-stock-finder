@@ -7,7 +7,7 @@ import { storage } from "../storage";
 import { Modal } from "./Modal";
 import { ProductImage } from "./ProductImage";
 import { discoverProduct, toDiscoverErrorState } from "../../../lib/llm-discovery";
-import { customProductSlug } from "../../../lib/listing-discovery";
+import { discoverListings, customProductSlug } from "../../../lib/listing-discovery";
 import { useToast } from "../hooks/use-toast";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import type { TagDefinition } from "../../../lib/types";
@@ -100,6 +100,9 @@ export function SearchModal({
   const [manualModel, setManualModel] = useState("");
   const [manualBrand, setManualBrand] = useState("");
   const [manualCategory, setManualCategory] = useState("");
+  const [manualDescription, setManualDescription] = useState("");
+  const [manualDiscovering, setManualDiscovering] = useState(false);
+  const [manualProgress, setManualProgress] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [catalogSort, setCatalogSort] = useState<CatalogSort>("relevance");
@@ -235,18 +238,39 @@ export function SearchModal({
       showToast("Name and model required");
       return;
     }
-    const id = customProductSlug(manualModel.trim());
-    if (trackedIds.has(id)) {
+    const slug = customProductSlug(manualModel.trim());
+    if (trackedIds.has(slug)) {
       showToast("Already Tracked — that model number is already in your watchlist.");
       return;
     }
-    const product = { id, name: manualName.trim(), modelNumber: manualModel.trim(), brand: manualBrand.trim() || "Unknown", category: manualCategory.trim() || categories[0] || "Other", description: "" };
+    if (manualDiscovering) return;
+    const id = slug;
+    const product = { id, name: manualName.trim(), modelNumber: manualModel.trim(), brand: manualBrand.trim() || "Unknown", category: manualCategory.trim() || categories[0] || "Other", description: manualDescription.trim() };
     try {
       await storage.addToWatchlist({ ...product, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
       setTrackedIds((prev) => new Set([...prev, id]));
+      const model = manualModel.trim();
+      let discovered = 0;
+      if (model) {
+        setManualDiscovering(true);
+        try {
+          const found = await discoverListings(model, {
+            productId: id,
+            onProgress: (done, total) => setManualProgress(`Discovering ${done}/${total}…`),
+          });
+          discovered = found.length;
+          if (found.length > 0) await storage.updateProductListings(id, found);
+        } catch {
+          // Best-effort: keep the product with no listings (today's behavior).
+        } finally {
+          setManualDiscovering(false);
+          setManualProgress(null);
+        }
+      }
       setManualOpen(false);
-      setManualName(""); setManualModel(""); setManualBrand(""); setManualCategory("");
-      showToast(`Added ${product.name}`);
+      setManualName(""); setManualModel(""); setManualBrand(""); setManualCategory(""); setManualDescription("");
+      setManualProgress(null);
+      showToast(discovered > 0 || !model ? `Added ${product.name}` : `Added ${product.name} with no listings — discovery found nothing`);
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Failed to add");
     }
@@ -474,6 +498,7 @@ export function SearchModal({
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setManualOpen(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-semibold mb-3">Manual Add</h3>
+            {manualProgress && <p className="text-xs text-gray-500 mb-2">{manualProgress}</p>}
             <div className="space-y-3">
               <input value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Product name *" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" />
               <input value={manualModel} onChange={(e) => setManualModel(e.target.value)} placeholder="Model number *" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" />
@@ -481,10 +506,11 @@ export function SearchModal({
               <datalist id="brand-list">{brands.map((b) => <option key={b} value={b} />)}</datalist>
               <input value={manualCategory} onChange={(e) => setManualCategory(e.target.value)} placeholder="Category" list="cat-list" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" />
               <datalist id="cat-list">{categories.map((c) => <option key={c} value={c} />)}</datalist>
+              <textarea value={manualDescription} onChange={(e) => setManualDescription(e.target.value)} placeholder="Description" aria-label="Description" rows={2} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" />
             </div>
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => setManualOpen(false)} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">Cancel</button>
-              <button onClick={handleManualAdd} className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium">Add</button>
+              <button onClick={handleManualAdd} disabled={manualDiscovering} aria-label="Add manual product" className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-50">{manualDiscovering ? "Discovering…" : "Add"}</button>
             </div>
           </div>
         </div>

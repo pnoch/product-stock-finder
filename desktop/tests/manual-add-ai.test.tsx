@@ -26,6 +26,7 @@ vi.mock("../../lib/listing-discovery", async (importOriginal) => {
 });
 
 import { Search } from "../src/pages/Search";
+import { SearchModal } from "../src/components/SearchModal";
 import { DiscoveryAuthError, DiscoveryError } from "../../lib/llm-discovery";
 import { customProductSlug } from "../../lib/listing-discovery";
 
@@ -343,5 +344,100 @@ describe("manual add AI assist", () => {
       await screen.findByText("Already Tracked — that model number is already in your watchlist."),
     ).toBeInTheDocument();
     expect(mockStorage.addToWatchlist).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("SearchModal manual add discovery parity", () => {
+  function renderModal() {
+    return render(
+      <MemoryRouter>
+        <SearchModal open onClose={() => {}} />
+      </MemoryRouter>,
+    );
+  }
+
+  function openModalManualSheet() {
+    fireEvent.click(screen.getByRole("button", { name: "Manual add" }));
+  }
+
+  function fillModalManualForm() {
+    fireEvent.change(screen.getByPlaceholderText("Product name *"), {
+      target: { value: "Modal Gadget" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Model number *"), {
+      target: { value: "MG-7" },
+    });
+  }
+
+  it("discovers listings post-add and persists them", async () => {
+    mockDiscoverListings.mockResolvedValue([listingA, listingB]);
+    const slug = customProductSlug("MG-7");
+
+    renderModal();
+    openModalManualSheet();
+    fillModalManualForm();
+    fireEvent.click(screen.getByRole("button", { name: "Add manual product" }));
+
+    await waitFor(() => {
+      expect(mockStorage.addToWatchlist).toHaveBeenCalledWith(
+        expect.objectContaining({ id: slug, modelNumber: "MG-7", listings: [] }),
+      );
+    });
+    await waitFor(() => {
+      expect(mockDiscoverListings).toHaveBeenCalledWith(
+        "MG-7",
+        expect.objectContaining({ productId: slug }),
+      );
+    });
+    await waitFor(() => {
+      expect(mockStorage.updateProductListings).toHaveBeenCalledWith(slug, [
+        listingA,
+        listingB,
+      ]);
+    });
+    expect(await screen.findByText("Added Modal Gadget")).toBeInTheDocument();
+  });
+
+  it("carries the description into the created product", async () => {
+    renderModal();
+    openModalManualSheet();
+    fillModalManualForm();
+    fireEvent.change(screen.getByPlaceholderText("Description"), {
+      target: { value: "A very useful gadget" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add manual product" }));
+
+    await waitFor(() => {
+      expect(mockStorage.addToWatchlist).toHaveBeenCalledWith(
+        expect.objectContaining({ description: "A very useful gadget" }),
+      );
+    });
+  });
+
+  it("keeps the product when discovery fails", async () => {
+    mockDiscoverListings.mockRejectedValue(new Error("network down"));
+
+    renderModal();
+    openModalManualSheet();
+    fillModalManualForm();
+    fireEvent.click(screen.getByRole("button", { name: "Add manual product" }));
+
+    await waitFor(() => {
+      expect(mockStorage.addToWatchlist).toHaveBeenCalledWith(
+        expect.objectContaining({ modelNumber: "MG-7" }),
+      );
+    });
+    await waitFor(() => {
+      expect(mockDiscoverListings).toHaveBeenCalledWith(
+        "MG-7",
+        expect.objectContaining({ productId: customProductSlug("MG-7") }),
+      );
+    });
+    expect(mockStorage.updateProductListings).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(
+        "Added Modal Gadget with no listings — discovery found nothing",
+      ),
+    ).toBeInTheDocument();
   });
 });
