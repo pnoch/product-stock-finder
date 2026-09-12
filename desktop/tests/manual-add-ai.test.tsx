@@ -20,12 +20,14 @@ vi.mock("../../lib/llm-discovery", async (importOriginal) => {
   return { ...mod, discoverProduct: mockDiscoverProduct };
 });
 
-vi.mock("../../lib/listing-discovery", () => ({
-  discoverListings: mockDiscoverListings,
-}));
+vi.mock("../../lib/listing-discovery", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("../../lib/listing-discovery")>();
+  return { ...mod, discoverListings: mockDiscoverListings };
+});
 
 import { Search } from "../src/pages/Search";
 import { DiscoveryAuthError, DiscoveryError } from "../../lib/llm-discovery";
+import { customProductSlug } from "../../lib/listing-discovery";
 
 function renderSearch() {
   return render(
@@ -211,5 +213,76 @@ describe("manual add AI assist", () => {
     expect(
       screen.queryByRole("button", { name: "Add manual product" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("fetches from a distributor URL", async () => {
+    mockDiscoverProduct.mockResolvedValue({ product: discoveredProduct, retailers: [] });
+
+    renderSearch();
+    openManualModal();
+
+    const urlInput = screen.getByLabelText("Distributor URL");
+    const fetchButton = screen.getByRole("button", { name: "Fetch from URL" });
+    expect(fetchButton).toBeDisabled();
+
+    fireEvent.change(urlInput, { target: { value: "not a url" } });
+    expect(screen.getByRole("button", { name: "Fetch from URL" })).toBeDisabled();
+
+    fireEvent.change(urlInput, { target: { value: "https://example.com/product/crs326" } });
+    expect(screen.getByRole("button", { name: "Fetch from URL" })).not.toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Fetch from URL" }));
+
+    await waitFor(() => {
+      expect(mockDiscoverProduct).toHaveBeenCalledWith("https://example.com/product/crs326");
+    });
+    expect(await screen.findByDisplayValue("CRS326 Switch")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Model number *")).toHaveValue("CRS326-24G");
+  });
+
+  it("carries the description into the created product", async () => {
+    renderSearch();
+    openManualModal();
+
+    fireEvent.change(screen.getByPlaceholderText("Product name *"), {
+      target: { value: "Described Gadget" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Model number *"), {
+      target: { value: "DG-9" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Description"), {
+      target: { value: "A very useful gadget" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add manual product" }));
+
+    await waitFor(() => {
+      expect(mockStorage.addToWatchlist).toHaveBeenCalledWith(
+        expect.objectContaining({ description: "A very useful gadget" }),
+      );
+    });
+  });
+
+  it("blocks duplicate models with Already Tracked", async () => {
+    const dupSlug = customProductSlug("CRS326-24G");
+    mockStorage.getWatchlist.mockResolvedValue([{ id: dupSlug } as never]);
+
+    renderSearch();
+    openManualModal();
+
+    await waitFor(() => {
+      expect(mockStorage.getWatchlist).toHaveBeenCalled();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText("Product name *"), {
+      target: { value: "CRS326 Switch" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Model number *"), {
+      target: { value: "CRS326-24G" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add manual product" }));
+
+    expect(
+      await screen.findByText("Already Tracked — that model number is already in your watchlist."),
+    ).toBeInTheDocument();
+    expect(mockStorage.addToWatchlist).not.toHaveBeenCalled();
   });
 });
