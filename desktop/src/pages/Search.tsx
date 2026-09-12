@@ -6,6 +6,7 @@ import Fuse from "fuse.js";
 import { storage } from "../storage";
 import { ProductImage } from "../components/ProductImage";
 import { discoverProduct, toDiscoverErrorState } from "../../../lib/llm-discovery";
+import { discoverListings } from "../../../lib/listing-discovery";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import type { TagDefinition } from "../../../lib/types";
 import { TagFilterRow } from "../components/TagFilterRow";
@@ -98,6 +99,11 @@ export function Search() {
   const [manualModel, setManualModel] = useState("");
   const [manualBrand, setManualBrand] = useState("");
   const [manualCategory, setManualCategory] = useState("");
+  const [pasteText, setPasteText] = useState("");
+  const [manualParsing, setManualParsing] = useState(false);
+  const [manualDiscovering, setManualDiscovering] = useState(false);
+  const [manualProgress, setManualProgress] = useState<string | null>(null);
+  const [manualError, setManualError] = useState<{ title: string; message: string; retry: boolean } | null>(null);
   const [searchTagIds, setSearchTagIds] = useState<string[]>([]);
   const [searchTagMode, setSearchTagMode] = useState<"any" | "all">("any");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -226,13 +232,51 @@ export function Search() {
       showToast(`Imported ${bulkNew.length}`);
     } finally { setBulkImporting(false); }
   };
+  const handleManualParse = async () => {
+    if (!pasteText.trim() || manualParsing) return;
+    setManualParsing(true);
+    setManualError(null);
+    try {
+      const res = await discoverProduct(pasteText.trim());
+      if (res) {
+        setManualName(res.product.name ?? "");
+        setManualModel(res.product.modelNumber ?? "");
+        setManualBrand(res.product.brand ?? "");
+        setManualCategory(res.product.category ?? "");
+      } else {
+        setManualError({ title: "Discovery Failed", message: "We couldn't find that product. Try again.", retry: true });
+      }
+    } catch (e) {
+      setManualError(toDiscoverErrorState(e));
+    } finally {
+      setManualParsing(false);
+    }
+  };
   const handleManualAdd = async () => {
     if (!manualName.trim() || !manualModel.trim()) { showToast("Name and model required"); return; }
+    if (manualDiscovering) return;
     const id = `manual-${Date.now()}`;
     const prod = { id, name: manualName.trim(), modelNumber: manualModel.trim(), brand: manualBrand.trim() || "Unknown", category: manualCategory.trim() || categories[0] || "Other", description: "" };
     await storage.addToWatchlist({ ...prod, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
     setTrackedIds((prev) => new Set([...prev, id]));
+    const model = manualModel.trim();
+    if (model) {
+      setManualDiscovering(true);
+      try {
+        const found = await discoverListings(model, {
+          productId: id,
+          onProgress: (done, total) => setManualProgress(`Discovering ${done}/${total}…`),
+        });
+        if (found.length > 0) await storage.updateProductListings(id, found);
+      } catch {
+        // Best-effort: keep the product with no listings (today's behavior).
+      } finally {
+        setManualDiscovering(false);
+        setManualProgress(null);
+      }
+    }
     setManualOpen(false); setManualName(""); setManualModel(""); setManualBrand(""); setManualCategory("");
+    setPasteText(""); setManualError(null); setManualProgress(null);
     showToast(`Added ${prod.name}`);
   };
 
@@ -242,7 +286,7 @@ export function Search() {
         <h1 className="text-2xl font-bold">Search Products</h1>
         <div className="flex items-center gap-2">
           <button onClick={() => setBulkOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700"><Upload className="w-4 h-4" /> Bulk Import</button>
-          <button onClick={() => { setManualModel(query); setManualOpen(true); }} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700"><PenLine className="w-4 h-4" /> Manual Add</button>
+          <button onClick={() => { setManualModel(query); setPasteText(""); setManualError(null); setManualProgress(null); setManualOpen(true); }} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700"><PenLine className="w-4 h-4" /> Manual Add</button>
         </div>
       </div>
 
@@ -382,13 +426,23 @@ export function Search() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setManualOpen(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-semibold mb-3">Manual Add</h3>
+            <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)} rows={3} placeholder="Paste a model number, product name, or spec paragraph…" aria-label="Paste product text" className="w-full px-3 py-2 rounded-lg border text-sm mb-2" />
+            <button onClick={handleManualParse} disabled={!pasteText.trim() || manualParsing} className="w-full mb-3 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50">{manualParsing ? "Parsing…" : "Parse with AI"}</button>
+            {manualError && (
+              <div role="alert" className="mb-3 p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-left">
+                <p className="text-sm font-semibold text-red-700 dark:text-red-300">{manualError.title}</p>
+                <p className="text-sm text-red-600 dark:text-red-400 mt-1">{manualError.message}</p>
+                {manualError.retry && <button onClick={() => void handleManualParse()} className="mt-2 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700">Retry</button>}
+              </div>
+            )}
+            {manualProgress && <p className="text-xs text-gray-500 mb-2">{manualProgress}</p>}
             <div className="space-y-3">
               <input value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Product name *" className="w-full px-3 py-2 rounded-lg border text-sm" />
               <input value={manualModel} onChange={(e) => setManualModel(e.target.value)} placeholder="Model number *" className="w-full px-3 py-2 rounded-lg border text-sm" />
               <input value={manualBrand} onChange={(e) => setManualBrand(e.target.value)} placeholder="Brand" list="b-list" className="w-full px-3 py-2 rounded-lg border text-sm" /><datalist id="b-list">{brands.map((b) => <option key={b} value={b} />)}</datalist>
               <input value={manualCategory} onChange={(e) => setManualCategory(e.target.value)} placeholder="Category" list="c-list" className="w-full px-3 py-2 rounded-lg border text-sm" /><datalist id="c-list">{categories.map((c) => <option key={c} value={c} />)}</datalist>
             </div>
-            <div className="flex justify-end gap-2 mt-4"><button onClick={() => setManualOpen(false)} className="px-3 py-2 rounded-lg border text-sm">Cancel</button><button onClick={handleManualAdd} className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm">Add</button></div>
+            <div className="flex justify-end gap-2 mt-4"><button onClick={() => setManualOpen(false)} className="px-3 py-2 rounded-lg border text-sm">Cancel</button><button onClick={handleManualAdd} disabled={manualDiscovering} aria-label="Add manual product" className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm disabled:opacity-50">{manualDiscovering ? "Discovering…" : "Add"}</button></div>
           </div>
         </div>
       )}
