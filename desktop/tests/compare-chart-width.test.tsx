@@ -82,6 +82,14 @@ afterEach(() => {
   (window as unknown as { ResizeObserver?: unknown }).ResizeObserver = SavedRO;
 });
 
+describe("compare default time range", () => {
+  it("defaults to the 3M range", async () => {
+    renderCompare();
+    const chip = await screen.findByRole("button", { name: "Select time range: 3M" });
+    expect(chip.className).toContain("bg-brand-600");
+  });
+});
+
 describe("clampChartWidth", () => {
   it("clamps below 320 up to 320", () => {
     expect(clampChartWidth(200)).toBe(320);

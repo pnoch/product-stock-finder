@@ -730,7 +730,7 @@ function AlertRow({
           )}
           {alert.distributorId ? (
             <span className="ml-1.5 text-xs text-gray-400 font-normal">
-              at {alert.distributorId}
+              at {(() => { const d = getDistributorById(alert.distributorId!); return d ? `${d.countryFlag} ${d.name}` : alert.distributorId; })()}
             </span>
           ) : null}
           {isSnoozed && <span className="ml-2 text-xs font-semibold text-amber-600 dark:text-amber-400">Snoozed until {new Date(alert.snoozedUntil!).toLocaleDateString()}</span>}

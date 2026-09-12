@@ -244,7 +244,7 @@ export function Compare() {
   const { id } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState("all");
+  const [timeRange, setTimeRange] = useState("3m");
   const [sortBy, setSortBy] = useState<"name" | "price" | "trend">("name");
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [searchParams] = useSearchParams();

@@ -91,6 +91,23 @@ describe("deal sort persistence", () => {
   });
 });
 
+describe("alert distributor names", () => {
+  it("shows flagged distributor names on alert rows", async () => {
+    const now = new Date().toISOString();
+    mockStorage.getAlerts.mockResolvedValue([
+      { id: "a1", productId: "p1", distributorId: "balticnetworks-us", targetPrice: 100, currency: "USD", isActive: true, createdAt: now },
+      { id: "a2", productId: "p1", distributorId: "xxq", targetPrice: 100, currency: "USD", isActive: true, createdAt: now },
+    ]);
+    const qc = renderAlerts();
+    try {
+      await waitFor(() => expect(screen.getByText(/Baltic Networks/)).toBeTruthy());
+      expect(screen.getByText(/🇺🇸 Baltic Networks/)).toBeTruthy();
+      expect(screen.getByText(/at xxq/)).toBeTruthy();
+    } finally {
+      qc.clear();
+    }
+  });
+});
 describe("notifications refresh", () => {
   it("refreshes notifications on demand", async () => {
     mockStorage.getNotificationHistory.mockResolvedValue([]);
