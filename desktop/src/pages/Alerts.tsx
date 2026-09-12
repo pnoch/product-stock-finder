@@ -860,10 +860,15 @@ function RemindersTab({
             Date Reminders
           </h2>
           <div className="space-y-2">
-            {reminders.map((r, idx) => (
+            {reminders.map((r, idx) => {
+              const reminderDate = new Date(r.reminderDate);
+              const startOfToday = new Date();
+              startOfToday.setHours(0, 0, 0, 0);
+              const isPast = reminderDate < startOfToday;
+              return (
               <div
                 key={r.id}
-                className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow animate-fadeIn"
+                className={`flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border hover:shadow-sm transition-shadow animate-fadeIn ${isPast ? "border-amber-300 dark:border-amber-700" : "border-gray-200 dark:border-gray-700"}`}
                 style={{ animationDelay: `${idx * 60}ms` } as React.CSSProperties}
               >
                 <div className="flex items-center justify-center w-9 h-9 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 shrink-0">
@@ -871,7 +876,12 @@ function RemindersTab({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{r.productName}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {isPast && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 text-xs font-semibold mt-1">
+                      Past Due
+                    </span>
+                  )}
+                  <p className={`text-sm ${isPast ? "text-amber-700 dark:text-amber-300" : "text-gray-500 dark:text-gray-400"}`}>
                     {r.distributorName} · Due{" "}
                     {new Date(r.reminderDate).toLocaleDateString()}
                   </p>
@@ -893,7 +903,8 @@ function RemindersTab({
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

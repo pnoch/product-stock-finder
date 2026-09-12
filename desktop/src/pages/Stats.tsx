@@ -53,6 +53,7 @@ export function Stats() {
   const [basketSheetOpen, setBasketSheetOpen] = useState(false);
   const [basketDraft, setBasketDraft] = useState("");
   const [days, setDays] = useState<MoversWindow>(30);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const { pathname } = useLocation();
@@ -628,6 +629,8 @@ export function Stats() {
                   role="gridcell"
                   title={label}
                   aria-label={label}
+                  aria-pressed={selectedKey === key}
+                  onClick={() => setSelectedKey((k) => (k === key ? null : key))}
                   className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium ${
                     "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
                   }`}
@@ -647,6 +650,18 @@ export function Stats() {
             );
           })}
         </div>
+        {selectedKey && dropCalendar.byDay.get(selectedKey) && (
+          <div className="mt-2">
+            <p>Drops on {selectedKey}</p>
+            {dropCalendar.byDay.get(selectedKey)!.drops.map((drop) => (
+              <Link key={`${drop.productId}-${drop.from}-${drop.to}`} to={`/product/${drop.productId}`} className="flex items-center gap-2 py-1 text-sm hover:underline">
+                <span className="truncate">{drop.name}</span>
+                <span>{formatPrice(drop.from, displayCurrency)} → {formatPrice(drop.to, displayCurrency)}</span>
+                <span>{drop.percent.toFixed(0)}%</span>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
