@@ -115,6 +115,7 @@ describe("converted row prices", () => {
     expect(converted).not.toBeNull();
     expect(screen.getByText(`≈ ${formatPrice(converted as number, "USD")}`)).toBeInTheDocument();
 
-    expect(screen.getAllByText(/≈/).length).toBe(1);
+    // Header converter (Task 4) adds its own ≈ line alongside the single row-level one.
+    expect(screen.getAllByText(/≈/).length).toBe(2);
   });
 });

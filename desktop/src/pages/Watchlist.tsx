@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useSearchParams, Link } from "react-router";
 import {
   RefreshCw,
   Share2,
@@ -931,6 +931,15 @@ export function Watchlist() {
             <p className="text-lg font-semibold">{summary.listingCount}</p>
             <p className="text-xs text-gray-500">Listings</p>
           </div>
+        </div>
+        <div className="mt-3 flex justify-end">
+          <Link
+            to="/stats"
+            aria-label="View statistics"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            View statistics
+          </Link>
         </div>
       </div>
 

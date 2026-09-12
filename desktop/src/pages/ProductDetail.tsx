@@ -748,6 +748,28 @@ export function ProductDetail() {
               {product.description}
             </p>
           )}
+          {bestListing && displayCurrency !== bestListing.currency && (() => {
+            const converted = convertPrice(bestListing.price, bestListing.currency, displayCurrency);
+            if (converted === null) return null;
+            const rate = convertPrice(1, bestListing.currency, displayCurrency);
+            return (
+              <>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                  {formatPrice(bestListing.price, bestListing.currency)} ≈ {formatPrice(converted, displayCurrency)}
+                </p>
+                {rate !== null ? (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    1 {bestListing.currency} = {rate.toFixed(4)} {displayCurrency}
+                  </p>
+                ) : null}
+              </>
+            );
+          })()}
+          {bestDistributor?.paymentMethods && bestDistributor.paymentMethods.length > 0 && (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              💳 {bestDistributor.paymentMethods.join(" · ")}
+            </p>
+          )}
         </div>
         <button
           onClick={() => {
