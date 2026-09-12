@@ -108,6 +108,9 @@ fn show_notification(
         let title = title.to_owned();
         let body = body.to_owned();
         let route = route.to_owned();
+        // Blocking wait is acceptable: alerts are rare (price/health transitions),
+        // and Tokio's blocking pool (512 threads) cannot be exhausted by notification
+        // bursts. No timeout — a late click still deep-links correctly.
         tauri::async_runtime::spawn_blocking(move || {
             let mut n = notify_rust::Notification::new();
             n.summary(&title).body(&body);
@@ -132,6 +135,9 @@ fn show_notification(
         return Ok(());
     }
     #[cfg(not(target_os = "linux"))]
+    // macOS/Windows: notify-rust backends expose no click-callback API, so the
+    // route is intentionally dropped here — the toast focuses the app via OS
+    // default. Full deep-linking is Linux-only (see spawn path below).
     let _ = route;
     use tauri_plugin_notification::NotificationExt;
 
