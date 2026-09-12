@@ -97,6 +97,43 @@ const notesStore = {
   },
 };
 
+async function checkNotificationPermission(): Promise<boolean> {
+  try {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "granted") return true;
+      if (Notification.permission === "denied") return false;
+      const result = await Notification.requestPermission();
+      return result === "granted";
+    }
+  } catch {
+    // fall through to granted for Tauri
+  }
+  return true;
+}
+
+async function createPriceAlert(input: {
+  productId: string;
+  distributorId: string;
+  targetPrice: number;
+  currency: string;
+  direction: "drop" | "rise";
+}): Promise<{ ok: boolean; id: string }> {
+  const granted = await checkNotificationPermission();
+  if (!granted) return { ok: false, id: "" };
+  const id = `alert-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  await storage.addAlert({
+    id,
+    productId: input.productId,
+    direction: input.direction,
+    distributorId: input.distributorId,
+    targetPrice: input.targetPrice,
+    currency: input.currency,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  });
+  return { ok: true, id };
+}
+
 export function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -357,48 +394,28 @@ export function ProductDetail() {
     }
   };
 
-  const checkNotificationPermission = async (): Promise<boolean> => {
-    try {
-      if (typeof window !== "undefined" && "Notification" in window) {
-        if (Notification.permission === "granted") return true;
-        if (Notification.permission === "denied") return false;
-        const result = await Notification.requestPermission();
-        return result === "granted";
-      }
-    } catch {
-      // fall through to granted for Tauri
-    }
-    return true;
-  };
-
   const handleSaveAlert = async () => {
     if (!product || !alertPrice) return;
     const price = parseFloat(alertPrice);
     if (isNaN(price) || price <= 0) return;
 
-    const granted = await checkNotificationPermission();
-    if (!granted) {
-      setAlertError("Please enable notifications in your system settings to receive price alerts.");
-      return;
-    }
-    setAlertError(null);
     const distributorId = alertDistributorId ?? bestListing?.distributorId;
     if (!distributorId) {
       showToast("No distributor available");
       return;
     }
-    const direction = alertDirection;
-
-    await storage.addAlert({
-      id: `alert-${Date.now()}`,
+    const { ok } = await createPriceAlert({
       productId: product.id,
-      direction,
       distributorId,
       targetPrice: price,
       currency: alertCurrency,
-      isActive: true,
-      createdAt: new Date().toISOString(),
+      direction: alertDirection,
     });
+    if (!ok) {
+      setAlertError("Please enable notifications in your system settings to receive price alerts.");
+      return;
+    }
+    setAlertError(null);
 
     setAlertSaved(true);
     setTimeout(() => {
@@ -467,21 +484,17 @@ export function ProductDetail() {
       showToast("No distributor available");
       return;
     }
-    const granted = await checkNotificationPermission();
-    if (!granted) {
-      showToast("Enable notifications to receive alerts");
-      return;
-    }
-    await storage.addAlert({
-      id: `alert-${Date.now()}`,
+    const { ok } = await createPriceAlert({
       productId: product.id,
-      direction: inlineAlertDirection,
       distributorId,
       targetPrice: price,
       currency: inlineAlertCurrency,
-      isActive: true,
-      createdAt: new Date().toISOString(),
+      direction: inlineAlertDirection,
     });
+    if (!ok) {
+      showToast("Please enable notifications in your system settings to receive price alerts.");
+      return;
+    }
     setInlineAlertPrice("");
     showToast("Alert created");
   };
@@ -621,21 +634,17 @@ export function ProductDetail() {
     if (!product || !perListingAlertId) return;
     const price = parseFloat(perListingAlertPrice);
     if (isNaN(price) || price <= 0) return;
-    const granted = await checkNotificationPermission();
-    if (!granted) {
-      showToast("Enable notifications to receive alerts");
-      return;
-    }
-    await storage.addAlert({
-      id: `alert-${Date.now()}`,
+    const { ok } = await createPriceAlert({
       productId: product.id,
-      direction: perListingAlertDirection,
       distributorId: perListingAlertId,
       targetPrice: price,
       currency: perListingAlertCurrency,
-      isActive: true,
-      createdAt: new Date().toISOString(),
+      direction: perListingAlertDirection,
     });
+    if (!ok) {
+      showToast("Please enable notifications in your system settings to receive price alerts.");
+      return;
+    }
     setPerListingAlertId(null);
     setPerListingAlertPrice("");
     showToast("Alert set for distributor");
@@ -643,22 +652,18 @@ export function ProductDetail() {
 
   const handleQuickAlert = async () => {
     if (!product || !bestListing) return;
-    const granted = await checkNotificationPermission();
-    if (!granted) {
-      showToast("Enable notifications to receive alerts");
-      return;
-    }
     const suggested = Math.round(bestListing.price * 0.95 * 100) / 100;
-    await storage.addAlert({
-      id: `alert-${Date.now()}`,
+    const { ok } = await createPriceAlert({
       productId: product.id,
-      direction: "drop",
       distributorId: bestListing.distributorId,
       targetPrice: suggested,
       currency: bestListing.currency,
-      isActive: true,
-      createdAt: new Date().toISOString(),
+      direction: "drop",
     });
+    if (!ok) {
+      showToast("Please enable notifications in your system settings to receive price alerts.");
+      return;
+    }
     showToast(`Alert set at ${formatPrice(suggested, bestListing.currency)}`);
   };
 

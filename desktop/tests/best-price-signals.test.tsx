@@ -170,4 +170,36 @@ describe("best-price signals", () => {
       await screen.findByText(`Alert set at ${formatPrice(suggested, "USD")}`),
     ).toBeInTheDocument();
   });
+
+  it("creates two distinct alerts on rapid double-tap", async () => {
+    mockStorage.getWatchlist.mockResolvedValue([
+      makeProduct([
+        { price: 100, date: "2026-06-01T00:00:00.000Z" },
+        { price: 90, date: "2026-09-01T00:00:00.000Z" },
+      ]),
+    ]);
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1726000000000);
+    try {
+      renderProductDetail();
+
+      const suggested = Math.round(90 * 0.95 * 100) / 100;
+      const label = `Set Alert at ${formatPrice(suggested, "USD")} (−5%)`;
+      const button = await screen.findByRole("button", { name: label });
+      fireEvent.click(button);
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        expect(mockStorage.addAlert).toHaveBeenCalledTimes(2);
+      });
+      const ids = mockStorage.addAlert.mock.calls.map(
+        (c) => (c[0] as { id: string }).id,
+      );
+      expect(ids[0]).not.toBe(ids[1]);
+      for (const alertId of ids) {
+        expect(alertId).toMatch(/^alert-1726000000000-[a-z0-9]{6}$/);
+      }
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
 });
