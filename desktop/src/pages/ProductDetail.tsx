@@ -641,6 +641,27 @@ export function ProductDetail() {
     showToast("Alert set for distributor");
   };
 
+  const handleQuickAlert = async () => {
+    if (!product || !bestListing) return;
+    const granted = await checkNotificationPermission();
+    if (!granted) {
+      showToast("Enable notifications to receive alerts");
+      return;
+    }
+    const suggested = Math.round(bestListing.price * 0.95 * 100) / 100;
+    await storage.addAlert({
+      id: `alert-${Date.now()}`,
+      productId: product.id,
+      direction: "drop",
+      distributorId: bestListing.distributorId,
+      targetPrice: suggested,
+      currency: bestListing.currency,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    });
+    showToast(`Alert set at ${formatPrice(suggested, bestListing.currency)}`);
+  };
+
   if (loading)
     return (
       <div className="p-6 space-y-6 max-w-4xl animate-fadeIn">
@@ -826,6 +847,52 @@ export function ProductDetail() {
               <PriceSparkline history={bestListing.priceHistory} currency={bestListing.currency} />
             </div>
           </div>
+          {(() => {
+            const hist = bestListing.priceHistory;
+            if (!hist || hist.length < 2) return null;
+            const sorted = [...hist].sort((a, b) => +new Date(a.date) - +new Date(b.date));
+            const oldest = sorted[0].price;
+            const current = sorted[sorted.length - 1].price;
+            if (current === oldest) return null;
+            const pct = Math.round((Math.abs(oldest - current) / oldest) * 100);
+            const down = current < oldest;
+            return (
+              <p
+                className={`mt-1 text-sm font-medium ${down ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}
+              >
+                {down ? "▼" : "▲"} {pct}%
+              </p>
+            );
+          })()}
+          {(() => {
+            const hist = bestListing.priceHistory;
+            if (!hist || hist.length < 2) return null;
+            const priorMin =
+              Math.min(
+                ...hist.slice(0, -1).map((p) => convertPrice(p.price, p.currency, "USD") ?? Infinity),
+              );
+            const currentUsd = convertPrice(bestListing.price, bestListing.currency, "USD");
+            if (currentUsd === null) return null;
+            return currentUsd < priorMin ? (
+              <p className="mt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
+                Lowest Price Ever
+              </p>
+            ) : null;
+          })()}
+          {(() => {
+            const suggested = Math.round(bestListing.price * 0.95 * 100) / 100;
+            const label = `Set Alert at ${formatPrice(suggested, bestListing.currency)} (−5%)`;
+            return (
+              <button
+                type="button"
+                onClick={() => void handleQuickAlert()}
+                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-emerald-600 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
+                aria-label={label}
+              >
+                <Bell className="w-3.5 h-3.5" /> {label}
+              </button>
+            );
+          })()}
           {livePriceLoading ? (
             <button
               type="button"
