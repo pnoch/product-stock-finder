@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import {
   Bell,
   BellRing,
@@ -50,7 +50,8 @@ const TYPE_ICONS = {
 
 export function Alerts() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("alerts");
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => (searchParams.get("tab") === "reminders" ? "reminders" : "alerts"));
   const {
     alerts,
     loading: alertsLoading,

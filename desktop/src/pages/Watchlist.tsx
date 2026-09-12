@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import {
   RefreshCw,
   Share2,
@@ -176,6 +176,7 @@ export function Watchlist() {
   }, [loading, products.length]);
   const { settings } = useSettings();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortAsc, setSortAsc] = useState(true);
   const [groupMode, setGroupMode] = useState<WatchlistGroup>("off");
@@ -191,7 +192,8 @@ export function Watchlist() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagMatchMode, setTagMatchMode] = useState<"any" | "all">("any");
   const [query, setQuery] = useState("");
-  const [inStockOnly, setInStockOnly] = useState(false);
+  const [inStockOnly, setInStockOnly] = useState(() => searchParams.get("inStock") === "1");
+  const inStockParamRef = useRef(searchParams.get("inStock") === "1");
   const [priceMinInput, setPriceMinInput] = useState("");
   const [priceMaxInput, setPriceMaxInput] = useState("");
   const priceRange = useMemo<[number, number] | undefined>(() => {
@@ -251,7 +253,7 @@ export function Watchlist() {
       const defs = (s.tagDefinitions ?? {}) as Record<string, TagDefinition>;
       setTagDefinitions(defs);
       setSelectedTagIds((prev) => prev.filter((id) => Object.prototype.hasOwnProperty.call(defs, id)));
-      setInStockOnly(s.watchlistInStockOnly ?? false);
+      if (!inStockParamRef.current) setInStockOnly(s.watchlistInStockOnly ?? false);
       setGroupMode(s.watchlistGroup ?? "off");
       setSortKey(s.watchlistSortKey ?? "name");
       setSortAsc(s.watchlistSortAsc ?? true);

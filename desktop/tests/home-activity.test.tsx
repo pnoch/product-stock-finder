@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Routes, Route, useSearchParams } from "react-router";
 import { Home } from "../src/pages/Home";
 import { RestockWatches } from "../src/pages/RestockWatches";
+import { formatLastRefreshed } from "../../lib/last-refreshed";
 
 const mockStorage = vi.hoisted(() => ({
   getWatchlist: vi.fn(),
@@ -128,7 +130,7 @@ describe("home recent activity", () => {
     expect(dominantCount).toBe(1);
   });
 
-  it("excludes listing-less products without crashing", async () => {
+  it("renders listing-less products in activity", async () => {
     const good = makeProduct("p-good", "Good Product", [
       makeListing("p-good", "d1", FRESH),
     ]);
@@ -150,15 +152,61 @@ describe("home recent activity", () => {
       const activityLinks = screen.getAllByRole("link", {
         name: / at .* details$/i,
       });
-      expect(activityLinks).toHaveLength(1);
+      expect(activityLinks).toHaveLength(2);
     });
 
-    const activityLinks = screen.getAllByRole("link", {
-      name: / at .* details$/i,
-    });
-    const names = activityLinks.map((l) => l.getAttribute("aria-label") ?? "");
-    expect(names.some((n) => n.includes("Empty Product"))).toBe(false);
+    const names = screen
+      .getAllByRole("link", { name: / at .* details$/i })
+      .map((l) => l.getAttribute("aria-label") ?? "");
+    expect(names.some((n) => n.includes("Empty Product"))).toBe(true);
     expect(names.some((n) => n.includes("Good Product"))).toBe(true);
+
+    // Null row keeps its product link, shows unknown status + added-at time.
+    const emptyLink = screen.getByRole("link", {
+      name: "View Empty Product at unknown details",
+    });
+    expect(emptyLink).toHaveAttribute("href", "/product/p-empty");
+    expect(emptyLink).toHaveTextContent("Unknown");
+    expect(emptyLink).toHaveTextContent(formatLastRefreshed(empty.addedAt));
+  });
+});
+
+describe("home stat card links", () => {
+  function Probe({ label }: { label: string }) {
+    const [params] = useSearchParams();
+    return <div>{`${label}:${params.toString() || "none"}`}</div>;
+  }
+
+  it("stat cards link with params", async () => {
+    const good = makeProduct("p-good", "Good Product", [
+      makeListing("p-good", "d1", FRESH),
+    ]);
+    mockStorage.getWatchlist.mockResolvedValue([good]);
+    const cases = [
+      { card: "Total Tracked", path: "watchlist", expected: "none" },
+      { card: "In Stock", path: "watchlist", expected: "inStock=1" },
+      { card: "Alerts Active", path: "alerts", expected: "tab=alerts" },
+      { card: "Reminders", path: "alerts", expected: "tab=reminders" },
+    ];
+    for (const c of cases) {
+      const { unmount } = render(
+        <MemoryRouter initialEntries={["/"]}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/watchlist" element={<Probe label="watchlist" />} />
+            <Route path="/alerts" element={<Probe label="alerts" />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      const button = await screen.findByRole("button", { name: c.card });
+      await userEvent.click(button);
+      await waitFor(() =>
+        expect(
+          screen.getByText(`${c.path}:${c.expected}`),
+        ).toBeInTheDocument(),
+      );
+      unmount();
+    }
   });
 });
 

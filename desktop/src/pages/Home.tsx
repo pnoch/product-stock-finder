@@ -22,7 +22,7 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
 import { TrendingSection } from "../components/TrendingSection";
 import { ProductImage } from "../components/ProductImage";
-import type { StockStatus } from "../../../lib/types";
+import type { StockStatus, DistributorListing, Product } from "../../../lib/types";
 
 const STOCK_ORDER: Record<StockStatus, number> = {
   in_stock: 0,
@@ -153,9 +153,14 @@ export function Home() {
   const loading = watchlistLoading || alertsLoading;
 
   const recentActivity = useMemo(() => {
-    const withTime = products.flatMap((p) => {
+    const withTime: { product: Product; listing: DistributorListing | null; sortTime: number }[] = [];
+    for (const p of products) {
       const listings = p.listings ?? [];
-      if (listings.length === 0) return [];
+      if (listings.length === 0) {
+        const addedTime = new Date(p.addedAt).getTime();
+        withTime.push({ product: p, listing: null, sortTime: isNaN(addedTime) ? 0 : addedTime });
+        continue;
+      }
       let best = listings[0]!;
       let bestTime = isNaN(new Date(best.lastChecked).getTime())
         ? 0
@@ -169,8 +174,8 @@ export function Home() {
           bestTime = t;
         }
       }
-      return [{ product: p, listing: best, sortTime: bestTime }];
-    });
+      withTime.push({ product: p, listing: best, sortTime: bestTime });
+    }
     withTime.sort((a, b) => b.sortTime - a.sortTime);
     return withTime.slice(0, 5).map(({ product, listing }) => ({ product, listing }));
   }, [products]);
@@ -274,21 +279,21 @@ export function Home() {
           label="In Stock"
           value={inStockCount}
           delay={80}
-          onClick={() => navigate("/watchlist")}
+          onClick={() => navigate("/watchlist?inStock=1")}
         />
         <StatCard
           icon={<Bell className="w-5 h-5" />}
           label="Alerts Active"
           value={activeAlerts}
           delay={160}
-          onClick={() => navigate("/alerts")}
+          onClick={() => navigate("/alerts?tab=alerts")}
         />
         <StatCard
           icon={<Clock className="w-5 h-5" />}
           label="Reminders"
           value={reminderCount}
           delay={240}
-          onClick={() => navigate("/alerts")}
+          onClick={() => navigate("/alerts?tab=reminders")}
         />
       </div>
 
@@ -298,36 +303,41 @@ export function Home() {
         <h2 className="text-lg font-semibold mb-3">Recent Activity</h2>
         <div className="space-y-2">
           {recentActivity.map(({ product, listing }, idx) => {
-            const distributor = getDistributorById(listing.distributorId);
-            const timeAgo = formatLastRefreshed(listing.lastChecked);
+            const distributor = listing ? getDistributorById(listing.distributorId) : undefined;
+            const distributorLabel = distributor ? `${distributor.countryFlag} ${distributor.name}` : (listing?.distributorId ?? "unknown");
+            const timeAgo = formatLastRefreshed(listing?.lastChecked ?? product.addedAt);
             return (
               <Link
-                key={`${product.id}-${listing.distributorId}-${idx}`}
+                key={`${product.id}-${listing?.distributorId ?? "unknown"}-${idx}`}
                 to={`/product/${product.id}`}
                 className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 transition-colors duration-150 cursor-pointer animate-fadeIn motion-reduce:animate-none"
                 style={{ animationDelay: `${150 + idx * 60}ms` } as React.CSSProperties}
-                aria-label={`View ${product.name} at ${distributor?.name ?? listing.distributorId} details`}
+                aria-label={`View ${product.name} at ${distributor?.name ?? listing?.distributorId ?? "unknown"} details`}
               >
                 <div className="flex items-center flex-1 min-w-0">
                   <ProductImage productId={product.id} size={36} />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{product.name}</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {product.brand} · {product.modelNumber} · {distributor ? `${distributor.countryFlag} ${distributor.name}` : listing.distributorId}
+                      {product.brand} · {product.modelNumber} · {distributorLabel}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 ml-4">
                   <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                    {(() => {
-                      const conv = convertPrice(listing.price, listing.currency, displayCurrency);
-                      if (conv !== null && Number.isFinite(conv)) {
-                        return formatPrice(conv, displayCurrency);
-                      }
-                      return formatPrice(listing.price, listing.currency);
-                    })()}
+                    {listing ? (
+                      (() => {
+                        const conv = convertPrice(listing.price, listing.currency, displayCurrency);
+                        if (conv !== null && Number.isFinite(conv)) {
+                          return formatPrice(conv, displayCurrency);
+                        }
+                        return formatPrice(listing.price, listing.currency);
+                      })()
+                    ) : (
+                      "No price"
+                    )}
                   </span>
-                  <StockBadge status={listing.stockStatus} />
+                  <StockBadge status={listing?.stockStatus ?? "unknown"} />
                   <span className="text-xs text-gray-400 whitespace-nowrap">
                     {timeAgo}
                   </span>

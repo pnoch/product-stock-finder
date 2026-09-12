@@ -32,15 +32,15 @@ vi.mock("../src/storage", () => ({ storage: mockStorage }));
 import { Alerts } from "../src/pages/Alerts";
 import { Watchlist } from "../src/pages/Watchlist";
 
-function renderAlerts() {
+function renderAlerts(initialEntry = "/alerts") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(<QueryClientProvider client={qc}><MemoryRouter><Alerts /></MemoryRouter></QueryClientProvider>);
+  render(<QueryClientProvider client={qc}><MemoryRouter initialEntries={[initialEntry]}><Alerts /></MemoryRouter></QueryClientProvider>);
   return qc;
 }
 
-function renderWatchlist() {
+function renderWatchlist(initialEntry = "/watchlist") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(<QueryClientProvider client={qc}><MemoryRouter><Watchlist /></MemoryRouter></QueryClientProvider>);
+  render(<QueryClientProvider client={qc}><MemoryRouter initialEntries={[initialEntry]}><Watchlist /></MemoryRouter></QueryClientProvider>);
   return qc;
 }
 
@@ -121,6 +121,95 @@ describe("notifications refresh", () => {
       const refreshButton = await screen.findByRole("button", { name: /refresh notifications/i });
       fireEvent.click(refreshButton);
       await waitFor(() => expect(mockStorage.getNotificationHistory).toHaveBeenCalledTimes(1));
+    } finally {
+      qc.clear();
+    }
+  });
+});
+
+describe("query-param intakes", () => {
+  function makeListing(status: "in_stock" | "out_of_stock") {
+    return {
+      distributorId: "d1",
+      productId: "p",
+      price: 100,
+      currency: "USD",
+      stockStatus: status,
+      url: "https://example.com",
+      lastChecked: new Date().toISOString(),
+      priceHistory: [],
+    };
+  }
+
+  it("applies ?inStock=1 on watchlist mount", async () => {
+    mockStorage.getWatchlist.mockResolvedValue([
+      {
+        id: "p-in",
+        name: "In Stock Switch",
+        modelNumber: "IN-1",
+        brand: "MikroTik",
+        category: "Switch",
+        description: "",
+        addedAt: new Date().toISOString(),
+        isWatched: true,
+        listings: [{ ...makeListing("in_stock"), productId: "p-in" }],
+      },
+      {
+        id: "p-out",
+        name: "Out Of Stock Switch",
+        modelNumber: "OUT-1",
+        brand: "MikroTik",
+        category: "Switch",
+        description: "",
+        addedAt: new Date().toISOString(),
+        isWatched: true,
+        listings: [{ ...makeListing("out_of_stock"), productId: "p-out" }],
+      },
+    ]);
+    mockStorage.getSettings.mockResolvedValue({ displayCurrency: "USD" });
+    const qc = renderWatchlist("/watchlist?inStock=1");
+    try {
+      const checkbox = await screen.findByLabelText("In stock only");
+      await waitFor(() => expect(checkbox).toBeChecked());
+      // Filter applied: header shows the reduced visible count.
+      await waitFor(() => expect(screen.getByText(/1 shown/)).toBeInTheDocument());
+    } finally {
+      qc.clear();
+    }
+  });
+
+  it("opens the reminders tab with ?tab=reminders", async () => {
+    const now = new Date().toISOString();
+    mockStorage.getAlerts.mockResolvedValue([]);
+    mockStorage.getBackOrderReminders.mockResolvedValue([
+      {
+        id: "r1",
+        productId: "p1",
+        productName: "Reminder Product",
+        distributorId: "d1",
+        distributorName: "Test Distributor",
+        reminderDate: new Date(Date.now() + 86400000).toISOString(),
+        createdAt: now,
+      },
+    ]);
+    mockStorage.getStockWatches.mockResolvedValue([]);
+    const qc = renderAlerts("/alerts?tab=reminders");
+    try {
+      await waitFor(() => expect(screen.getByText("Date Reminders")).toBeInTheDocument());
+      expect(screen.getByText("Reminder Product")).toBeInTheDocument();
+    } finally {
+      qc.clear();
+    }
+  });
+
+  it("falls back to alerts for unknown ?tab values", async () => {
+    mockStorage.getAlerts.mockResolvedValue([]);
+    mockStorage.getBackOrderReminders.mockResolvedValue([]);
+    mockStorage.getStockWatches.mockResolvedValue([]);
+    const qc = renderAlerts("/alerts?tab=zzz");
+    try {
+      await waitFor(() => expect(screen.getByText("No price alerts")).toBeInTheDocument());
+      expect(screen.queryByText("Date Reminders")).not.toBeInTheDocument();
     } finally {
       qc.clear();
     }
