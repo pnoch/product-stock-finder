@@ -70,6 +70,7 @@ import { backfillLocalHistory } from "@/lib/history-sync";
 import { syncServerNotifications } from "@/lib/server-notifications";
 import { registerPushToken } from "@/lib/push-token";
 import { loadFxRates, maybeRefreshFxRates } from "@/lib/fx";
+import { notificationRouteFor } from "@/lib/notification-routing";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -124,15 +125,7 @@ export default function RootLayout() {
         if (oldest) handledResponses.delete(oldest);
       }
       const data = dataForId;
-      if (data.productId) {
-        router.push(`/product/${data.productId}`);
-      } else if (data.type === "digest") {
-        router.push("/stats");
-      } else if (data.type?.startsWith("health")) {
-        router.push("/health");
-      } else {
-        router.push("/(tabs)");
-      }
+      router.push((notificationRouteFor(data) ?? "/(tabs)") as Parameters<typeof router.push>[0]);
     };
     const responseSubscription =
       Notifications.addNotificationResponseReceivedListener(
