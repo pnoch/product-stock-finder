@@ -9,8 +9,13 @@ type UnregisterClient = {
 export async function unregisterServerToken(client: UnregisterClient): Promise<boolean> {
   try {
     const result = await withTimeout(client.notifications.unregisterPushToken.mutate(), 5000);
-    return result !== null;
-  } catch {
+    if (result === null) {
+      console.error("[push-unregister] timed out after 5000ms");
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("[push-unregister] unregister failed", e);
     return false;
   }
 }

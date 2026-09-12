@@ -72,4 +72,23 @@ describe("disablePush unregister retry flag", () => {
     await vi.advanceTimersByTimeAsync(5000);
     await expect(pending).resolves.toBe(false);
   });
+
+  it("logs the cause when unregister fails", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockUnregisterMutate.mockRejectedValue(new Error("offline"));
+    await expect(unregisterServerToken(fakeClient())).resolves.toBe(false);
+    expect(err).toHaveBeenCalledWith(expect.stringContaining("[push-unregister]"), expect.anything());
+    err.mockRestore();
+  });
+
+  it("logs the cause when unregister times out", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.useFakeTimers();
+    mockUnregisterMutate.mockReturnValue(new Promise(() => {}));
+    const pending = unregisterServerToken(fakeClient());
+    await vi.advanceTimersByTimeAsync(5000);
+    await expect(pending).resolves.toBe(false);
+    expect(err).toHaveBeenCalledWith(expect.stringContaining("[push-unregister]"));
+    err.mockRestore();
+  });
 });
