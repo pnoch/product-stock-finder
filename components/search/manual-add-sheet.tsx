@@ -54,14 +54,14 @@ function fieldStyle(colors: ReturnType<typeof useColors>) {
 
 const DISCOVER_TIMEOUT_MS = 15_000;
 
-// Reject-semantics variant (shared withTimeout resolves null instead):
 function withTimeoutReject<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), ms),
-    ),
-  ]);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("timeout")), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer !== undefined) clearTimeout(timer);
+  });
 }
 
 export function ManualAddSheet({
