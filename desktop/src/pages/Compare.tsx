@@ -580,7 +580,10 @@ export function Compare() {
                     </span>
                   </div>
                   <span className={`text-sm font-semibold ${i === 0 ? "text-emerald-700 dark:text-emerald-300" : ""}`}>
-                    {formatPrice(item.converted, displayCurrency)}
+                    {formatPrice(item.listing.price, item.listing.currency)}
+                    {item.listing.currency !== displayCurrency && (
+                      <> ≈ {formatPrice(item.converted, displayCurrency)}</>
+                    )}
                   </span>
                 </div>
               );

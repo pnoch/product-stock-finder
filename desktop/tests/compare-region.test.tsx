@@ -91,7 +91,7 @@ describe("cheapest by region card", () => {
     // Out-of-stock $90 listing is skipped: North America shows the $100 in-stock row
     expect(q.getByText("$100.00")).toBeTruthy();
     // €80 → ≈ $86.96 converted, overall cheapest
-    expect(q.getByText("$86.96")).toBeTruthy();
+    expect(q.getByText(/\$86\.96/)).toBeTruthy();
     expect(q.getByText("BEST")).toBeTruthy();
     // BEST badge sits on the overall-cheapest (Europe) row
     expect(q.getByText("BEST").closest("div")?.textContent).toContain("Europe");
@@ -99,6 +99,19 @@ describe("cheapest by region card", () => {
     // Cheapest-first order: Europe (≈$86.96) before North America ($100)
     const body = card.textContent ?? "";
     expect(body.indexOf("Europe")).toBeLessThan(body.indexOf("North America"));
+  });
+
+  it("shows native price alongside converted", async () => {
+    mockStorage.getWatchlist.mockResolvedValue([regionProduct]);
+    renderCompare();
+
+    expect(await screen.findByText("Cheapest by Region")).toBeTruthy();
+    const card = screen.getByText("Cheapest by Region").closest("div") as HTMLElement;
+    const body = card.textContent ?? "";
+    // Europe row: €80 native + ≈ $86.96 converted (fixture's real numbers)
+    expect(body).toContain("€80.00");
+    expect(body).toContain("$86.96");
+    expect(body).toContain("≈");
   });
 
   it("shows the empty state with no buyable listings", async () => {
