@@ -10,6 +10,8 @@ export function previewStockScore(productId: string): number {
   return inStock * 10 + listings.length;
 }
 
+// Unscored ids (unknown to SAMPLE_LISTINGS, e.g. AI-discovered) tie at 0 and
+// keep their input order (stable sort) after scored items — no fake scores.
 export function sortPreviewByStock<T extends { id: string }>(items: T[]): T[] {
   return [...items].sort((a, b) => previewStockScore(b.id) - previewStockScore(a.id));
 }

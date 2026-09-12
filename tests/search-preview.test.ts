@@ -32,4 +32,12 @@ describe("preview ordering", () => {
   it("scores unknown products as zero", () => {
     expect(previewStockScore("no-such-product")).toBe(0);
   });
+
+  it("documents unscored tail stability", () => {
+    // unscored items keep catalog order after scored ones (stable sort over ties at 0)
+    const scored = PRODUCT_CATALOG.map((p) => p.id).find((id) => previewStockScore(id) > 0)!;
+    const input = [{ id: "no-such-1" }, { id: scored }, { id: "no-such-2" }];
+    const out = sortPreviewByStock(input);
+    expect(out.map((i) => i.id)).toEqual([scored, "no-such-1", "no-such-2"]);
+  });
 });
