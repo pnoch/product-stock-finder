@@ -337,6 +337,37 @@ export function ProductDetail() {
     [product, displayCurrency],
   );
 
+  const headerConversion = useMemo(() => {
+    if (!bestListing || displayCurrency === bestListing.currency) return null;
+    const converted = convertPrice(bestListing.price, bestListing.currency, displayCurrency);
+    if (converted === null) return null;
+    const rate = convertPrice(1, bestListing.currency, displayCurrency);
+    return { converted, rate, price: bestListing.price, currency: bestListing.currency };
+  }, [bestListing, displayCurrency]);
+
+  const trendSignal = useMemo(() => {
+    const hist = bestListing?.priceHistory;
+    if (!hist || hist.length < 2) return null;
+    const sorted = [...hist].sort((a, b) => +new Date(a.date) - +new Date(b.date));
+    const oldest = sorted[0].price;
+    const current = sorted[sorted.length - 1].price;
+    if (current === oldest) return null;
+    const pct = Math.round((Math.abs(oldest - current) / oldest) * 100);
+    const down = current < oldest;
+    return { down, pct };
+  }, [bestListing]);
+
+  const isLowestEver = useMemo(() => {
+    const hist = bestListing?.priceHistory;
+    if (!bestListing || !hist || hist.length < 2) return false;
+    const priorMin = Math.min(
+      ...hist.slice(0, -1).map((p) => convertPrice(p.price, p.currency, "USD") ?? Infinity),
+    );
+    const currentUsd = convertPrice(bestListing.price, bestListing.currency, "USD");
+    if (currentUsd === null) return false;
+    return currentUsd < priorMin;
+  }, [bestListing]);
+
   const [alertError, setAlertError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
 
@@ -753,23 +784,18 @@ export function ProductDetail() {
               {product.description}
             </p>
           )}
-          {bestListing && displayCurrency !== bestListing.currency && (() => {
-            const converted = convertPrice(bestListing.price, bestListing.currency, displayCurrency);
-            if (converted === null) return null;
-            const rate = convertPrice(1, bestListing.currency, displayCurrency);
-            return (
-              <>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                  {formatPrice(bestListing.price, bestListing.currency)} ≈ {formatPrice(converted, displayCurrency)}
+          {headerConversion && (
+            <>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                {formatPrice(headerConversion.price, headerConversion.currency)} ≈ {formatPrice(headerConversion.converted, displayCurrency)}
+              </p>
+              {headerConversion.rate !== null ? (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  1 {headerConversion.currency} = {headerConversion.rate.toFixed(4)} {displayCurrency}
                 </p>
-                {rate !== null ? (
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    1 {bestListing.currency} = {rate.toFixed(4)} {displayCurrency}
-                  </p>
-                ) : null}
-              </>
-            );
-          })()}
+              ) : null}
+            </>
+          )}
           {bestDistributor?.paymentMethods && bestDistributor.paymentMethods.length > 0 && (
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               💳 {bestDistributor.paymentMethods.join(" · ")}
@@ -874,38 +900,18 @@ export function ProductDetail() {
               <PriceSparkline history={bestListing.priceHistory} currency={bestListing.currency} />
             </div>
           </div>
-          {(() => {
-            const hist = bestListing.priceHistory;
-            if (!hist || hist.length < 2) return null;
-            const sorted = [...hist].sort((a, b) => +new Date(a.date) - +new Date(b.date));
-            const oldest = sorted[0].price;
-            const current = sorted[sorted.length - 1].price;
-            if (current === oldest) return null;
-            const pct = Math.round((Math.abs(oldest - current) / oldest) * 100);
-            const down = current < oldest;
-            return (
-              <p
-                className={`mt-1 text-sm font-medium ${down ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}
-              >
-                {down ? "▼" : "▲"} {pct}%
-              </p>
-            );
-          })()}
-          {(() => {
-            const hist = bestListing.priceHistory;
-            if (!hist || hist.length < 2) return null;
-            const priorMin =
-              Math.min(
-                ...hist.slice(0, -1).map((p) => convertPrice(p.price, p.currency, "USD") ?? Infinity),
-              );
-            const currentUsd = convertPrice(bestListing.price, bestListing.currency, "USD");
-            if (currentUsd === null) return null;
-            return currentUsd < priorMin ? (
-              <p className="mt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
-                Lowest Price Ever
-              </p>
-            ) : null;
-          })()}
+          {trendSignal && (
+            <p
+              className={`mt-1 text-sm font-medium ${trendSignal.down ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}
+            >
+              {trendSignal.down ? "▼" : "▲"} {trendSignal.pct}%
+            </p>
+          )}
+          {isLowestEver ? (
+            <p className="mt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
+              Lowest Price Ever
+            </p>
+          ) : null}
           {(() => {
             const suggested = Math.round(bestListing.price * 0.95 * 100) / 100;
             const label = `Set Alert at ${formatPrice(suggested, bestListing.currency)} (−5%)`;
