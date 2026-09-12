@@ -288,6 +288,8 @@ export function useAuth() {
   const logout = useCallback(async () => {
     // Dynamic import: a static import of ../lib/trpc here would reintroduce
     // the use-auth ↔ trpc cycle that push-unregister was created to break.
+    clearUserInfo();
+    notify();
     try {
       const { createTRPCClient } = await import("../lib/trpc");
       const ok = await unregisterServerToken(createTRPCClient());
@@ -296,8 +298,6 @@ export function useAuth() {
       localStorage.setItem(PENDING_UNREGISTER_KEY, "1");
     }
     removeSessionToken();
-    clearUserInfo();
-    notify();
   }, []);
 
   return {

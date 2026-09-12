@@ -171,4 +171,58 @@ describe("desktop auth malformed user", () => {
     expect(getSessionToken()).toBeNull();
     expect(getUserInfo()).toBeNull();
   });
+
+  it("updates the UI before unregister settles", async () => {
+    let resolveMutate!: (value: unknown) => void;
+    mockUnregisterMutate.mockImplementation(
+      () => new Promise((resolve) => { resolveMutate = resolve; }),
+    );
+    setSessionToken("token-1");
+    setUserInfo({
+      id: 1,
+      openId: "o1",
+      name: "Test",
+      email: "t@example.com",
+      loginMethod: "email",
+      lastSignedIn: new Date().toISOString(),
+    });
+    const { result } = renderHook(() => useAuth());
+    expect(result.current.isAuthenticated).toBe(true);
+    let logoutPromise!: Promise<void>;
+    act(() => {
+      logoutPromise = result.current.logout();
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(mockUnregisterMutate).toHaveBeenCalledTimes(1);
+    expect(getUserInfo()).toBeNull();
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(getSessionToken()).toBe("token-1");
+    await act(async () => {
+      resolveMutate({ accepted: true });
+      await logoutPromise;
+    });
+    expect(getSessionToken()).toBeNull();
+  });
+
+  it("still clears storage after unregister settles", async () => {
+    mockUnregisterMutate.mockResolvedValue({ accepted: true });
+    setSessionToken("token-1");
+    setUserInfo({
+      id: 1,
+      openId: "o1",
+      name: "Test",
+      email: "t@example.com",
+      loginMethod: "email",
+      lastSignedIn: new Date().toISOString(),
+    });
+    const { result } = renderHook(() => useAuth());
+    await act(async () => {
+      await result.current.logout();
+    });
+    expect(getSessionToken()).toBeNull();
+    expect(getUserInfo()).toBeNull();
+    expect(localStorage.getItem(PENDING_UNREGISTER_KEY)).toBeNull();
+  });
 });
