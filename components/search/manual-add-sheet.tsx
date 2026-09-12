@@ -16,6 +16,7 @@ import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { showAlert } from "@/lib/alert";
 import { addToWatchlist, updateProductListings } from "@/lib/storage";
+import { withTimeoutReject } from "@/lib/with-timeout";
 import { fetchParsedProduct } from "@/lib/server-product-parse";
 import {
   customProductSlug,
@@ -53,16 +54,6 @@ function fieldStyle(colors: ReturnType<typeof useColors>) {
 }
 
 const DISCOVER_TIMEOUT_MS = 15_000;
-
-function withTimeoutReject<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error("timeout")), ms);
-  });
-  return Promise.race([promise, timeout]).finally(() => {
-    if (timer !== undefined) clearTimeout(timer);
-  });
-}
 
 export function ManualAddSheet({
   visible,

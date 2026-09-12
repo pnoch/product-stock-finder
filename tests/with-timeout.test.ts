@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { withTimeout } from "../lib/with-timeout";
+import { withTimeout, withTimeoutReject } from "../lib/with-timeout";
 
 describe("withTimeout", () => {
   afterEach(() => {
@@ -21,6 +21,22 @@ describe("withTimeout", () => {
     const p = withTimeout(Promise.resolve(1), 4000);
     expect(vi.getTimerCount()).toBe(1);
     await expect(p).resolves.toBe(1);
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+});
+
+describe("withTimeoutReject", () => {
+  it("resolves fast values", async () => {
+    await expect(withTimeoutReject(Promise.resolve(3), 15000)).resolves.toBe(3);
+  });
+  it("rejects with timeout error and clears its timer", async () => {
+    vi.useFakeTimers();
+    const p = withTimeoutReject(new Promise<string>(() => {}), 15000);
+    expect(vi.getTimerCount()).toBe(1);
+    const assertion = expect(p).rejects.toThrow("timeout");
+    await vi.advanceTimersByTimeAsync(15100);
+    await assertion;
     expect(vi.getTimerCount()).toBe(0);
     vi.useRealTimers();
   });
