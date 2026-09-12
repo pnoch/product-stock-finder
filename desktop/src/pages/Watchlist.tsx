@@ -928,10 +928,10 @@ export function Watchlist() {
                   : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
               }`}
             >
-              <p className={`text-lg font-semibold ${item.valueClass}`}>
+              <span className={`block text-lg font-semibold ${item.valueClass}`}>
                 {item.value}
-              </p>
-              <p className="text-xs text-gray-500">{item.label}</p>
+              </span>
+              <span className="block text-xs text-gray-500">{item.label}</span>
             </button>
           ))}
         </div>

@@ -174,6 +174,22 @@ describe("converted row prices", () => {
     );
     expect(rowSparkline).toBeDefined();
 
+    // Empty-history row renders NO sparkline button — only the single
+    // history sparkline across rows; the Server2U row falls back to a link.
+    const allHistoryButtons = screen.getAllByRole("button", {
+      name: /view .* price history/i,
+    });
+    const sparklineButtons = allHistoryButtons.filter((b) =>
+      b.querySelector('svg[role="img"]'),
+    );
+    expect(sparklineButtons.length).toBe(1);
+    expect(
+      screen.queryByRole("button", { name: /view server2u price history/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /view server2u price history/i }),
+    ).toBeInTheDocument();
+
     expect(
       screen.getByRole("link", { name: /price history/i }),
     ).toBeInTheDocument();
