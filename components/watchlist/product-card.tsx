@@ -13,6 +13,7 @@ import { Product, TagDefinition } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { convertPrice, getBestPrice } from "@/lib/currency";
 import { StockBadge } from "@/components/stock-badge";
+import { PriceSparkline } from "@/components/price-sparkline";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { fetchProductImage } from "@/lib/server-images";
 import {
@@ -85,6 +86,11 @@ export const ProductCard = memo(function ProductCard({
     if (Math.abs(pct) < 0.5) return null;
     return { pct, isDown: pct < 0 };
   }, [bestPrice, product.listings, currency]);
+  const sparklineData = useMemo(() => {
+    const all = (product.listings ?? []).flatMap((l) => l.priceHistory ?? []);
+    if (all.length < 2) return null;
+    return all;
+  }, [product.listings]);
   const refreshColorKey = useMemo(
     () => getLastRefreshedColor(product.lastRefreshed),
     [product.lastRefreshed],
@@ -320,6 +326,9 @@ export const ProductCard = memo(function ProductCard({
             >
               {formatPrice(bestPrice.price, bestPrice.currency)}
             </Text>
+          )}
+          {sparklineData && (
+            <PriceSparkline data={sparklineData} width={64} height={24} />
           )}
           {priceChange && (
             <Animated.Text
