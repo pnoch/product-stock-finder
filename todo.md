@@ -1484,3 +1484,9 @@
 - [x] Root cause `a494438` added `SharedLinksList` (`trpc.sharedWatchlists.list.useQuery`) to `desktop/src/pages/Settings.tsx` without a test-provider mock — every desktop test that renders `Settings` throws `Unable to find tRPC Context` and renders empty `<div/>`, so `findByRole("checkbox", "Enable web notifications")` times out; local `pnpm test` showed 10 failures across `settings-webtoggle` (2), `settings-push` (7), `error-paths-safety` discovery+Settings (2) — the initial 2 were not isolated
 - [x] Fix: stub `../src/lib/trpc` (`trpc.sharedWatchlists.list/extend/revoke` + `createTRPCClient`) in all 3 `desktop/tests/*.test.tsx` that render `Settings` (same shape as the `sharedWatchlists` client mocks in `src/pages/Settings.tsx:61-63,602-633`); no `Settings.tsx` change needed — `trpc` must be mocked when `SharedLinksList` is mounted without a provider
 - [x] E2E: root `tsc 0`, desktop `tsc 0`, lint clean, root `257 passed | 1 skipped` files / `1682 passed` tests, desktop `42 passed` files / `217 passed` tests
+
+## Phase 200: Railway MySQL provision + 0023 migrate
+
+- [x] New Railway project `product-stock-finder` (`4bea2d05...`) + MySQL-NtCC + app (node:20-alpine) provisioned; `railway init` + `railway add --database mysql` + `railway add --service app --image node:20-alpine`; linked `DATABASE_URL=${{MySQL-NtCC.MYSQL_URL}}` on app
+- [x] `0023_quiet_hours` applied via `railway ssh --service app` (internal `mysql-ntcc.railway.internal:3306`); verified `SHOW TABLES` 21, `__drizzle_migrations` id 23 hash `3ec4ce26...`, `SHOW COLUMNS device_notification_configs LIKE "quietHours"` JSON NULL; re-run `npx drizzle-kit migrate` exits 0
+- [x] Scratch local MySQL 8.0 also verified 0000→0023 clean; Railway internal host not reachable locally — requires TCP proxy (Networking → Public Networking) for local `DATABASE_URL` pushes; app `JWT_SECRET` set dummy on Railway, needs real secret before prod
