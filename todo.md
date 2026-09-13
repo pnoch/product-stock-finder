@@ -1427,3 +1427,27 @@
 - [x] Spec (`docs/superpowers/specs/2026-09-10-product-gaps-design.md`) + plan (`docs/superpowers/plans/2026-09-10-product-gaps.md`)
 - [x] Past-due + calendar (`8bf8625`); summary + sparklines (`ce237af`); markup + assertion nits (`877341a`)
 - [x] Guards (`desktop/tests/reminders-calendar.test.tsx`); E2E: `tsc 0`, root `231 passed` files / `1604 passed` tests, desktop `42 passed` files / `217 passed` tests
+
+## Phase 191: Bulk CSV import + watchlist sparklines
+
+- [x] Bulk import `model,targetPrice,currency,tags` (500-row cap, BOM/quoted handling, chunked 50) — `lib/csv.ts:parseBulkImportCsv`, mobile import button (`components/watchlist/watchlist-header.tsx`, `app/(tabs)/watchlist.tsx`), desktop parity (`desktop/src/pages/Watchlist.tsx`) (`4564e20`, `ae93efa`)
+- [x] Inline `PriceSparkline` (64x24, last 10 points) on watchlist cards + desktop SVG parity in price cell (`cf742a0`, `eb3bca1`); package bumped to 5.15.0 (`9762dc7`)
+- [x] Guards (`tests/bulk-csv.test.ts`); E2E: `tsc 0` (`pnpm check`, `pnpm lint`)
+
+## Phase 192: Distributor export + digest quiet-hours
+
+- [x] Distributor analysis Export CSV (detailed) via Share (`app/distributor-analysis.tsx`) (`66c469a`); E2E: `tsc 0`, `1654 passed` tests
+- [x] Price digest respects quiet hours — `maybeSendDigest` defers via `isInQuietHours`, groups with next price-check tick (`lib/price-digest.ts`) (`281c150`); E2E: `tsc 0`, `1656 passed` tests
+- [x] Guards (`tests/digest-quiet-hours.test.ts`)
+
+## Phase 193: Watchlist share link
+
+- [x] Watchlist header Share prefers server `/w/` link when signed in (`sharedWatchlists.create`), falls back to local text summary when signed out/offline — mobile (`app/(tabs)/watchlist.tsx`) + desktop (`desktop/src/pages/Watchlist.tsx`) parity (`1053a95`)
+- [x] `buildWatchlistShareMessage` helper (`lib/watchlist-share.ts`); detailed CSV carries `# Share: <url>` provenance header, parser round-trips it (`lib/csv.ts`, viewer exports on both surfaces)
+- [x] Guards (`tests/watchlist-share-message.test.ts`, `tests/csv-share-header.test.ts`); E2E: `tsc 0`, lint clean, `1661 passed` tests
+
+## Phase 194: Rates window toggle
+
+- [x] 1W/1M/All toggle on Rates (compare-chart pill idiom) — windowed sparkline history + first-to-last windowed % change (`eed2a44`)
+- [x] `sliceFxHistoryByRange` + `getFxWindowChange` (`lib/fx-history.ts`); existing `getFxChange` untouched; mobile (`app/(tabs)/rates.tsx`) + desktop (`desktop/src/pages/Rates.tsx`) parity, defaults to All (prior behavior)
+- [x] Guards (`tests/fx-window.test.ts` — RED watched failing first); E2E: `tsc 0`, lint clean, `1666 passed` tests

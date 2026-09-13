@@ -215,7 +215,7 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 ## Reference Docs
 
 - `design.md` — full UI/UX design spec (screen list, flows, component design, distributor catalog)
-- `todo.md` — phase-by-phase feature history (53 phases through v5.1)
+- `todo.md` — phase-by-phase feature history (194 phases through 5.15.0 + unreleased)
 - `server/README.md` — backend guide (auth, DB, tRPC, storage, LLM, image gen) — read only if adding backend features
 - `docs/superpowers/` — design specs (`specs/`) and implementation plans (`plans/`) for recent phases
 - `references/periodic-updates.md` — reference doc on periodic updates
