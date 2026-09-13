@@ -61,7 +61,7 @@ describe("sync router", () => {
   it("push accepts nothing when DB is unavailable", async () => {
     const caller = appRouter.createCaller(createAuthContext());
     const result = await caller.sync.push({ items: [] });
-    expect(result).toEqual({ accepted: 0, stamped: [] });
+    expect(result).toEqual({ accepted: 0, stamped: [], rejected: [] });
   });
 
   it("rate limits pull after the per-minute budget", async () => {

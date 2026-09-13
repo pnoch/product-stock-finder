@@ -79,7 +79,7 @@ import { getProductImage } from "./product-images";
 import { discoveryRouter } from "./routers/discovery";
 import { trendingRouter } from "./routers/trending";
 import { parseProductText } from "./product-parse";
-import type { SyncStampedItem } from "../lib/types";
+import type { SyncRejectedItem, SyncStampedItem } from "../lib/types";
 import { upsertDeviceConfig, pullPendingEvents } from "./notifications";
 import { upsertPushToken, pruneDeviceToken } from "./push-notifications";
 import {
@@ -194,9 +194,10 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) {
           console.warn("[Sync] Database not available; accepting nothing");
-          return { accepted: 0, stamped: [] };
+          return { accepted: 0, stamped: [], rejected: [] as SyncRejectedItem[] };
         }
         const stamped: SyncStampedItem[] = [];
+        const rejected: SyncRejectedItem[] = [];
         let accepted = 0;
         for (const item of input.items) {
           const result = await upsertSyncItem(ctx.user.id, item);
@@ -206,6 +207,12 @@ export const appRouter = router({
               collection: item.collection,
               id: item.id,
               updatedAt: result.updatedAt,
+            });
+          } else {
+            rejected.push({
+              collection: item.collection,
+              id: item.id,
+              reason: result.reason ?? "stale_write",
             });
           }
         }
@@ -217,7 +224,7 @@ export const appRouter = router({
             now - TOMBSTONE_PURGE_WINDOW_MS,
           );
         }
-        return { accepted, stamped };
+        return { accepted, stamped, rejected };
       }),
   }),
 

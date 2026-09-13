@@ -137,15 +137,25 @@ export async function listChangedItems(
 export async function upsertSyncItem(
   userId: number,
   item: SyncItem,
-): Promise<{ accepted: boolean; updatedAt: number }> {
+): Promise<{
+  accepted: boolean;
+  updatedAt: number;
+  reason?: "stale_write" | "validation_error";
+}> {
   if (item.collection === "settings" && item.id !== "settings") {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Invalid settings id",
-    });
+    return {
+      accepted: false,
+      updatedAt: item.updatedAt,
+      reason: "validation_error",
+    };
   }
   const db = await getDb();
-  if (!db) return { accepted: false, updatedAt: item.updatedAt };
+  if (!db)
+    return {
+      accepted: false,
+      updatedAt: item.updatedAt,
+      reason: "validation_error",
+    };
   const stampedAt = Date.now();
 
   // Single LWW admission condition shared by all guarded columns below.
@@ -202,7 +212,11 @@ export async function upsertSyncItem(
       const accepted =
         row[0]?.updatedAtMs === stampedAt &&
         row[0]?.clientUpdatedAtMs === item.updatedAt;
-      return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
+      return {
+        accepted,
+        updatedAt: row[0]?.updatedAtMs ?? stampedAt,
+        reason: accepted ? undefined : "stale_write",
+      };
     }
     case "alerts": {
       await db
@@ -231,7 +245,11 @@ export async function upsertSyncItem(
       const accepted =
         row[0]?.updatedAtMs === stampedAt &&
         row[0]?.clientUpdatedAtMs === item.updatedAt;
-      return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
+      return {
+        accepted,
+        updatedAt: row[0]?.updatedAtMs ?? stampedAt,
+        reason: accepted ? undefined : "stale_write",
+      };
     }
     case "reminders": {
       await db
@@ -263,7 +281,11 @@ export async function upsertSyncItem(
       const accepted =
         row[0]?.updatedAtMs === stampedAt &&
         row[0]?.clientUpdatedAtMs === item.updatedAt;
-      return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
+      return {
+        accepted,
+        updatedAt: row[0]?.updatedAtMs ?? stampedAt,
+        reason: accepted ? undefined : "stale_write",
+      };
     }
     case "settings": {
       await db
@@ -289,10 +311,18 @@ export async function upsertSyncItem(
       const accepted =
         row[0]?.updatedAtMs === stampedAt &&
         row[0]?.clientUpdatedAtMs === item.updatedAt;
-      return { accepted, updatedAt: row[0]?.updatedAtMs ?? stampedAt };
+      return {
+        accepted,
+        updatedAt: row[0]?.updatedAtMs ?? stampedAt,
+        reason: accepted ? undefined : "stale_write",
+      };
     }
     default:
-      return { accepted: false, updatedAt: stampedAt };
+      return {
+        accepted: false,
+        updatedAt: stampedAt,
+        reason: "validation_error",
+      };
   }
 }
 

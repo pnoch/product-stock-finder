@@ -176,6 +176,14 @@ export interface SyncStampedItem {
   updatedAt: number;
 }
 
+export type SyncRejectionReason = "stale_write" | "validation_error";
+
+export interface SyncRejectedItem {
+  collection: Collection;
+  id: string;
+  reason: SyncRejectionReason;
+}
+
 export interface SyncMeta {
   lastSyncedAt: number;
   lastSyncOkAt?: number;

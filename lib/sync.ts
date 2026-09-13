@@ -7,6 +7,8 @@ import type {
   Product,
   SyncItem,
   SyncMeta,
+  SyncRejectedItem,
+  SyncRejectionReason,
   SyncStampedItem,
 } from "./types";
 import { PRICE_HISTORY_DAYS, PRICE_HISTORY_SYNC_DAYS } from "@/shared/const";
@@ -24,7 +26,11 @@ export interface SyncNowOptions {
   }>;
   push: (
     items: SyncItem[],
-  ) => Promise<{ accepted: number; stamped: SyncStampedItem[] }>;
+  ) => Promise<{
+    accepted: number;
+    stamped: SyncStampedItem[];
+    rejected?: SyncRejectedItem[];
+  }>;
   now?: () => number;
 }
 
@@ -157,12 +163,14 @@ async function doSync(
   const nextCursor = pulled.lastSyncedAt;
   const stampedKeys = new Set<string>();
   const stampedTombstones: Array<{ collection: Collection; id: string }> = [];
-  let rejected = 0;
+  let rejected: Array<{ collection: Collection; id: string; reason: SyncRejectionReason }> = [];
+  let rejectedValidation = 0;
   if (dirty.length > 0) {
     let stamped: SyncStampedItem[] = [];
     try {
       const result = await opts.push(dirty);
       stamped = result.stamped;
+      rejected = (result.rejected ?? []) as typeof rejected;
     } catch (error) {
       console.warn("[Sync] Push failed; local changes kept", error);
       await storage.saveSyncMeta({
@@ -177,11 +185,33 @@ async function doSync(
       stamped.map((s) => [`${s.collection}:${s.id}`, s.updatedAt]),
     );
     const metaAfter = await storage.getSyncMeta();
+    // Partition rejections: stale LWW losses are safe to clear (pull
+    // convergence recreates newer remote), validation failures stay dirty
+    // for a visible retry instead of silently dropping local edits.
+    const rejectedByKey = new Map(
+      rejected.map((r) => [`${r.collection}:${r.id}`, r.reason]),
+    );
+    // Stale tombstones must be cleared via a direct delete after the
+    // merged save (persistSyncMeta merges per-item, so a missing key in
+    // the snapshot would be resurrected from the stored copy).
+    const staleTombstonesToClear: Array<{ collection: Collection; id: string }> = [];
     for (const item of dirty) {
       const key = `${item.collection}:${item.id}`;
       const stampedAt = stampedByKey.get(key);
       if (stampedAt === undefined) {
-        rejected += 1;
+        const reason = rejectedByKey.get(key);
+        if (reason === "stale_write") {
+          // Tombstones that lost LWW can be cleared; live items converge
+          // via the next pull (remote is newer, so local will be overwritten).
+          if (item.deletedAt !== null) {
+            staleTombstonesToClear.push({ collection: item.collection, id: item.id });
+          }
+        } else if (reason === "validation_error") {
+          rejectedValidation += 1;
+        } else if (reason === undefined) {
+          // No verdict — treat as transient and keep dirty for retry.
+          rejectedValidation += 1;
+        }
         continue;
       }
       stampedKeys.add(key);
@@ -197,12 +227,18 @@ async function doSync(
     // leave server-stamped entries under an old cursor, causing duplicate
     // re-pushes on the next sync.
     metaAfter.lastSyncedAt = nextCursor;
+    const totalRejected = dirty.length - stampedKeys.size;
     metaAfter.lastSyncError =
-      rejected > 0
-        ? `Push partially rejected (${rejected} item(s) not accepted)`
+      totalRejected > 0
+        ? rejectedValidation > 0
+          ? `Push partially rejected (${rejectedValidation} validation error(s))`
+          : `Push partially rejected (${totalRejected} stale write(s) — cleared)`
         : (inheritedError ?? null);
     metaAfter.lastSyncOkAt = opts.now?.() ?? Date.now();
     await storage.saveSyncMeta(metaAfter);
+    for (const { collection, id } of staleTombstonesToClear) {
+      await storage.clearItemSyncMeta(collection, id);
+    }
   }
 
   // Clear tombstone meta only for tombstones pushed + stamped in this pass.

@@ -77,6 +77,26 @@ async function startServer() {
     res.json({ ok: true, timestamp: Date.now() });
   });
 
+  app.get("/api/healthz", async (_req, res) => {
+    try {
+      const { getDb } = await import("../db");
+      const db = await getDb();
+      if (!db) {
+        res.json({ ok: true, db: "not_configured", timestamp: Date.now() });
+        return;
+      }
+      await db.execute("SELECT 1" as never);
+      res.json({ ok: true, db: "ok", timestamp: Date.now() });
+    } catch (e) {
+      res.status(503).json({
+        ok: false,
+        db: "error",
+        error: e instanceof Error ? e.message : String(e),
+        timestamp: Date.now(),
+      });
+    }
+  });
+
   app.use(
     "/api/trpc",
     createExpressMiddleware({
