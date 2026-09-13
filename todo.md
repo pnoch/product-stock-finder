@@ -1409,3 +1409,21 @@
 - [x] Spec (`docs/superpowers/specs/2026-09-10-discovery-compare-design.md`) + plan (`docs/superpowers/plans/2026-09-10-discovery-compare.md`)
 - [x] URL/description/dup-guard (`547c999`); slug ids both surfaces (`22c590f`, `d80747b`); region card (`1d80357`); modal discovery parity (`be37c9a`)
 - [x] Guards (`desktop/tests/manual-add-ai.test.tsx` extended, `desktop/tests/compare-region.test.tsx`); E2E: `tsc 0`, root `229 passed` files / `1591 passed` tests, desktop `40 passed` files / `204 passed` tests
+
+## Phase 188: Discovery hardening
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-discovery-hardening-design.md`) + plan (`docs/superpowers/plans/2026-09-10-discovery-hardening.md`)
+- [x] Shared reject-timeout + guard retarget (`bb0b0ed`); manualAddProduct + rediscoverProduct (`fa0aab4`); 3-flow adoption + desktop retry boxes (`cb90917`)
+- [x] Guards (`tests/manual-add.test.ts`, `desktop/tests/manual-add-ai.test.tsx` extended); E2E: `tsc 0`, root `231 passed` files / `1604 passed` tests, desktop `42 passed` files / `217 passed` tests
+
+## Phase 189: Small correctness leftovers
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-small-correctness-design.md`) + plan (`docs/superpowers/plans/2026-09-10-small-correctness.md`)
+- [x] Shared search chrome (`a63f0ba`); ids + currency-correct trend (`3388d02`); native region prices (`1907dc8`); guard retarget fix (`211a49f`)
+- [x] Guards (`tests/desktop-search-chrome-guard.test.ts`, `tests/desktop-recents-guard.test.ts` retargeted, `desktop/tests/creation-ids.test.tsx`, `desktop/tests/compare-region.test.tsx` extended); E2E: `tsc 0`, root `231 passed` files / `1604 passed` tests, desktop `42 passed` files / `217 passed` tests
+
+## Phase 190: Product gaps bundle
+
+- [x] Spec (`docs/superpowers/specs/2026-09-10-product-gaps-design.md`) + plan (`docs/superpowers/plans/2026-09-10-product-gaps.md`)
+- [x] Past-due + calendar (`8bf8625`); summary + sparklines (`ce237af`); markup + assertion nits (`877341a`)
+- [x] Guards (`desktop/tests/reminders-calendar.test.tsx`); E2E: `tsc 0`, root `231 passed` files / `1604 passed` tests, desktop `42 passed` files / `217 passed` tests
