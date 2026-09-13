@@ -121,13 +121,18 @@ Fix in `e71cbc8`: promoted the generated snapshot to `drizzle/meta/0023_snapshot
      `sw.js` `notificationclick` opens `/`; server payload carries only eventId).
      Focused tab → no OS toast, foreground pull covers it (60s poll + focus tick,
      `web-push-shown` dedup via `displayed_event_ids`).
-   - **Pre-QA fixes:** (a) `desktop/src-tauri/tauri.conf.json` + `Cargo.toml` are
+   - **Pre-QA fixes:** ~~(a) `desktop/src-tauri/tauri.conf.json` + `Cargo.toml` are
      stuck at `5.12.0` (bundle shows stale version; root + `desktop/package.json`
      are `5.16.0`; no sync script exists). (b) `public/sw.js` precache hashes are
      stale (`entry-7673a051`/`browser-1e07bb39` vs dist's `entry-d938f2ab`/
      `browser-9e2bcd96`) — `addAll` fails silently (caught), so offline cold start
      won't serve shell JS from precache. Decide: regenerate hashes per export or
-     drop precache (runtime cache-first for `/_expo/static/` still works).
+     drop precache (runtime cache-first for `/_expo/static/` still works).~~
+     **BOTH FIXED 2026-09-13 (Phase 202):** (a) tauri.conf + `Cargo.toml` +
+     `Cargo.lock` bumped to `5.16.0` (`cargo metadata --offline` clean) +
+     `tauri-version-lockstep` test guards the parity; (b) precache now stable URLs
+     only (`/index.html`, `/manifest.json`, `/favicon.ico`), cache `precache-v3`,
+     + `sw-precache` test (no hashed entries, every URL resolves).
 5. ~~**Orphaned Railway MySQL services** — see §3.~~ **DONE 2026-09-13** — see §3.
 6. **Prod secrets review.** `VAPID_*` were generated this session; confirm they are the
    intended long-term keys. `EXPO_PUBLIC_*` are baked at build time — re-run

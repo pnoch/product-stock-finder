@@ -1498,3 +1498,11 @@
 - [x] Root cause: `0023_quiet_hours` was hand-written in `b09ae3e` without committing `drizzle/meta/0023_snapshot.json`, so `drizzle-kit generate` diffed from `0022` and emitted a duplicate `0024_swift_kate_bishop.sql` (`ADD quietHours` → `ER_DUP_FIELDNAME` on `pnpm db:push`)
 - [x] Fix: promoted generated snapshot to `drizzle/meta/0023_snapshot.json` (verified its only diff from `0022` is the `quietHours` json column and `prevId` chains to `0022`), removed `0024` SQL + journal entry; `drizzle-kit generate` now reports "No schema changes"; `pnpm db:push` → "No schema changes, nothing to migrate" + migrations applied
 - [x] E2E: root `tsc 0`, desktop `tsc 0`, lint clean, `257 passed | 1 skipped` files / `1682 passed` tests
+
+## Phase 202: Device-QA prep fixes (Tauri version lockstep + SW precache)
+
+- [x] Static review of tray/deep-link + web-push seams (recorded in `docs/HANDOVER.md` §8): tray left-click restore, Linux-only notification deep-link by design, web-push click lands on `/`, SW focused-client skip + dedup coherent; only OS/browser integration points left for device QA
+- [x] Tauri version drift: `desktop/src-tauri/tauri.conf.json` + `Cargo.toml` + `Cargo.lock` were stuck at `5.12.0` while root + `desktop/package.json` are `5.16.0`; bumped all three to `5.16.0`, validated with `cargo metadata --offline`
+- [x] Stale SW precache: `public/sw.js` listed dead hashed `/_expo/static/*` bundles + missing `/icon.png`, so `cache.addAll` always rejected and offline cold start never precached; precache now stable URLs only (`/index.html`, `/manifest.json`, `/favicon.ico`, hashed bundles stay on the runtime cache-first handler), cache bumped to `precache-v3`
+- [x] Regression tests: `tests/tauri-version-lockstep.test.ts` (root/desktop/tauri.conf/Cargo.toml version parity), `tests/sw-precache.test.ts` (no `_expo`/hash entries, every URL resolves to a real file)
+- [x] E2E: root `tsc 0`, lint clean, `259 passed | 1 skipped` files / `1685 passed` tests

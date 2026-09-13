@@ -129,7 +129,7 @@ desktop/              Tauri desktop app (Vite + React 19 + Tailwind 4) — versi
                       lockstep with root package.json; `desktop/src/` mirrors mobile
                       surfaces (Watchlist, Settings, Rates), `desktop/tests/` vitest suite
 shared/               Cross-platform types/consts; shared/_core/ — don't modify
-tests/                vitest (~255 files: ~224 root + 31 scrapers, ~1682 tests, incl. per-scraper tests under tests/scrapers/)
+tests/                vitest (~259 files: ~226 root + 31 scrapers, ~1685 tests, incl. per-scraper tests under tests/scrapers/)
 docs/superpowers/     Design specs (specs/) + implementation plans (plans/)
 scripts/              load-env.js, generate_qr.mjs, reset-project.js
 references/           periodic-updates.md (reference docs)
@@ -176,7 +176,7 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 - **Scraping:** New distributors go in `lib/scrapers/` as typed `DistributorParser`s registered in `lib/scrapers/registry.ts`, with a test under `tests/scrapers/`. Parsers MUST thread the requested model through `parsePrice(html, model?)` and gate on `modelMismatch` (helpers in `lib/scrapers/utils.ts`) so wrong-product search results are rejected as misses. Blocked detection lives in `resilient.ts` (`classifyFetchStatus`, `BLOCKED_MARKERS`) — do not re-implement marker lists elsewhere. Playwright escalation lives in `lib/scrapers/browser.ts` (node-only); `browser.web.ts` is the web stub with the same export surface so `expo export -p web` stays playwright-free — `tests/scrapers/browser-web.test.ts` guards both surface parity and that only `browser.ts` statically imports playwright.
 - **No comments** unless explaining non-obvious logic. Existing code uses `// ─── Section ───` banners in storage/notifications — match that style for section dividers.
 - **Commit style:** Checkpoint commits follow `Checkpoint: vX.Y: <features>. TypeScript: 0 errors.` — match this when committing.
-- **Tests:** vitest. ~255 test files under `tests/` (~224 root + 31 scrapers, ~1682 tests). DB-backed tests are gated on `RUN_DB_TESTS` + `TEST_DATABASE_URL`. Add new tests mirroring existing `*.test.ts`.
+- **Tests:** vitest. ~259 test files under `tests/` (~226 root + 31 scrapers, ~1685 tests). DB-backed tests are gated on `RUN_DB_TESTS` + `TEST_DATABASE_URL`. Add new tests mirroring existing `*.test.ts`.
 
 ## Brand / Theme (theme.config.js)
 
