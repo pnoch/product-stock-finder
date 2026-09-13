@@ -39,7 +39,7 @@ import { TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import { createTRPCClient } from "../lib/trpc";
 import { fetchListingsWithTimeout } from "../lib/server-prices";
 import { composeLiveListings } from "../../../lib/live-prices";
-import { buildWatchlistShareText } from "../../../lib/watchlist-share";
+import { buildWatchlistShareMessage } from "../../../lib/watchlist-share";
 import { copyTextWithFallback } from "../lib/share";
 import { isFreshPriceSnapshot } from "../../../lib/price-freshness";
 import { parseBulkImportCsv } from "../../../lib/csv";
@@ -445,8 +445,17 @@ export function Watchlist() {
 
   const handleShare = useCallback(async () => {
     if (products.length === 0) return;
-    const message = buildWatchlistShareText({ watchlist: products, displayCurrency, days: 30, now: Date.now() });
-    if (await copyTextWithFallback(message)) showToast("Copied to clipboard");
+    // Prefer a server /w/ link (signed-in) so recipients can open the full
+    // list; fall back to the local text summary when signed out or offline.
+    let shareUrl: string | undefined;
+    try {
+      const res = await createTRPCClient().sharedWatchlists.create.mutate({});
+      shareUrl = res.shareUrl;
+    } catch {
+      shareUrl = undefined;
+    }
+    const message = buildWatchlistShareMessage({ shareUrl, watchlist: products, displayCurrency, days: 30, now: Date.now() });
+    if (await copyTextWithFallback(message)) showToast(shareUrl ? "Share link copied" : "Copied to clipboard");
     else showToast("Couldn't copy share text");
   }, [products, displayCurrency, showToast]);
 

@@ -74,7 +74,10 @@ export default function SharedWatchlistScreen() {
 
   const handleExportDetailedCsv = async () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const csv = watchlistToDetailedCsv(rawProducts as Product[]);
+    // Stamp the source link so re-imports keep provenance (the CSV parser
+    // skips /w/ deep-link lines on import).
+    const shareUrl = Platform.OS === "web" && typeof window !== "undefined" ? window.location.href : undefined;
+    const csv = watchlistToDetailedCsv(rawProducts as Product[], shareUrl ? { shareUrl } : undefined);
     if (Platform.OS === "web") {
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);

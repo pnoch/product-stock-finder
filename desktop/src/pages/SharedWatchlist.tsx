@@ -92,7 +92,9 @@ export function SharedWatchlist() {
 
   const handleExportCsv = useCallback(() => {
     const products = (data?.products ?? []) as SharedProduct[];
-    const csv = watchlistToDetailedCsv(products as never[]);
+    // Stamp the source link so re-imports keep provenance (the CSV parser
+    // skips /w/ deep-link lines on import).
+    const csv = watchlistToDetailedCsv(products as never[], { shareUrl: window.location.href });
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

@@ -21,10 +21,12 @@ import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { useAuth } from "@/hooks/use-auth";
 import { useLiveWatchlist } from "@/hooks/use-live-prices";
 import { useConnection } from "@/hooks/use-connection";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { buildWatchlistShareText } from "@/lib/watchlist-share";
+import { buildWatchlistShareMessage } from "@/lib/watchlist-share";
+import { trpc } from "@/lib/trpc";
 import { parseBulkImportCsv } from "@/lib/csv";
 import { PRODUCT_CATALOG } from "@shared/catalog";
 import {
@@ -83,6 +85,8 @@ export default function WatchlistScreen() {
     reload,
     refreshAll,
   } = useLiveWatchlist();
+  const { isAuthenticated } = useAuth();
+  const createShareLink = trpc.sharedWatchlists.create.useMutation();
   const [sortMode, setSortMode] = useState<WatchlistSort>("recent");
   const [groupMode, setGroupMode] = useState<WatchlistGroup>("off");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -457,12 +461,24 @@ export default function WatchlistScreen() {
   const handleShareWatchlist = useCallback(async () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      const message = buildWatchlistShareText({ watchlist, displayCurrency, days: 30, now: Date.now() });
+      // Prefer a server /w/ link when signed in so recipients can open the
+      // full list; fall back to the local text summary when signed out or
+      // offline. Link creation must never break sharing.
+      let shareUrl: string | undefined;
+      if (isAuthenticated) {
+        try {
+          const res = await createShareLink.mutateAsync({});
+          shareUrl = res.shareUrl;
+        } catch {
+          shareUrl = undefined;
+        }
+      }
+      const message = buildWatchlistShareMessage({ shareUrl, watchlist, displayCurrency, days: 30, now: Date.now() });
       await Share.share({ message, title: "My Watchlist" });
     } catch (e) {
       LOG_ERROR("[Watchlist] share failed", e);
     }
-  }, [watchlist, displayCurrency]);
+  }, [watchlist, displayCurrency, isAuthenticated, createShareLink]);
 
   const handleImportCsv = useCallback(async () => {
     try {

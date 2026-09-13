@@ -20,6 +20,18 @@ function windowLabel(days: MoversWindow): string {
   return "all time";
 }
 
+export interface WatchlistShareMessageInput extends WatchlistShareInput {
+  shareUrl?: string;
+}
+
+export function buildWatchlistShareMessage(
+  input: WatchlistShareMessageInput,
+): string {
+  const { shareUrl, ...summary } = input;
+  const text = buildWatchlistShareText(summary);
+  if (!shareUrl) return text;
+  return `${shareUrl}\n\n${text}`;
+}
 export function buildWatchlistShareText(input: WatchlistShareInput): string {
   const { watchlist, displayCurrency, days } = input;
 

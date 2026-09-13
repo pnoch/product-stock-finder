@@ -54,8 +54,13 @@ export function watchlistToCsv(products: Product[], currency: string): string {
   return lines.join("\n");
 }
 
-export function watchlistToDetailedCsv(products: Product[]): string {
-  const lines: string[] = [LISTINGS_HEADER];
+export function watchlistToDetailedCsv(
+  products: Product[],
+  opts?: { shareUrl?: string },
+): string {
+  const lines: string[] = [];
+  if (opts?.shareUrl) lines.push(`# Share: ${opts.shareUrl}`);
+  lines.push(LISTINGS_HEADER);
   for (const p of products) {
     const listings = p.listings ?? [];
     if (listings.length === 0) {
