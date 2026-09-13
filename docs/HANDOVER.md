@@ -1,7 +1,7 @@
 # Handover — Product Stock Finder
 
-**Date:** 2026-09-13
-**Branch:** `main` @ `e71cbc8` (7 commits ahead of `origin/main`, **unpushed**)
+**Date:** 2026-09-13 (continued — open items worked, see §7)
+**Branch:** `main` @ `da1f64d` (in sync with `origin/main` — 8 commits pushed this session)
 **Version:** `5.16.0` (root `package.json`, `app.config.ts`, `desktop/package.json` in lockstep)
 **Repo state:** clean working tree
 
@@ -65,14 +65,16 @@ locally (`pnpm db:push`) or in-container (`railway ssh --service app -- npx driz
 
 ### ⚠️ Orphaned services — clean up
 
-Three accidental MySQL services were created by the failed `railway add --database mysql`
-attempts and are **still running** (wasting resources):
+~~Three accidental MySQL services were created by the failed `railway add --database mysql`
+attempts and are **still running** (wasting resources):~~ **DELETED 2026-09-13** via
+GraphQL `serviceDelete` (all returned `true`; project now holds only `app` + `MySQL-NtCC`,
+prod `/api/health` still 200 afterwards):
 
-- `MySQL` — `59be744a-2d12-40dc-9a2f-d83eaab69d6c`
-- `MySQL-oXpb` — `a88e8142-e3f4-4df2-88d7-b7976c5db67d`
-- `MySQL-Qy70` — `f89eeb72-4a9e-484f-8056-4eea3b0ac055`
+- ~~`MySQL` — `59be744a-2d12-40dc-9a2f-d83eaab69d6c`~~
+- ~~`MySQL-oXpb` — `a88e8142-e3f4-4df2-88d7-b7976c5db67d`~~
+- ~~`MySQL-Qy70` — `f89eeb72-4a9e-484f-8056-4eea3b0ac055`~~
 
-Delete these in the Railway dashboard (or GraphQL `serviceDelete`). Only `MySQL-NtCC` is in use.
+~~Delete these in the Railway dashboard (or GraphQL `serviceDelete`). Only `MySQL-NtCC` is in use.~~
 
 ---
 
@@ -95,20 +97,36 @@ Fix in `e71cbc8`: promoted the generated snapshot to `drizzle/meta/0023_snapshot
 
 ## 5. Open items (need a human)
 
-1. **Push the 7 unpushed commits.** `git push origin main` (nothing has been pushed this session).
+1. ~~**Push the 7 unpushed commits.** `git push origin main` (nothing has been pushed this session).~~
+   **DONE 2026-09-13** — pushed `b09ae3e..da1f64d` (8 commits incl. the handover note itself);
+   `main` is now in sync with `origin/main`.
 2. **CI is billing-blocked.** Every GitHub Actions run on `main` dies in ~3s with 0 steps:
    *"recent account payments have failed or your spending limit needs to be increased"*
    (annotation on run `34754705704`). Fix GitHub → Settings → Billing & plans, then re-run
    the failed workflows. Not a code problem.
+   (Push just triggered a fresh run — it will hit the same billing wall until fixed.)
 3. **Release tagging stalled at `v5.5.2`.** `5.16.0` is bumped in the manifests but untagged.
    Decide policy (catch-up tag vs. abandon) before tagging.
 4. **Real-device QA not done** (cannot be verified headless):
    - Tauri tray-click deep-links.
    - Web push over HTTPS (needs a real browser + push service).
-5. **Orphaned Railway MySQL services** — see §3.
+5. ~~**Orphaned Railway MySQL services** — see §3.~~ **DONE 2026-09-13** — see §3.
 6. **Prod secrets review.** `VAPID_*` were generated this session; confirm they are the
    intended long-term keys. `EXPO_PUBLIC_*` are baked at build time — re-run
    `expo export -p web --clear` after changing them.
+
+---
+
+## 7. Continuation session (2026-09-13)
+
+- Pushed 8 commits to `origin/main` (`b09ae3e..da1f64d`); branch in sync.
+- Re-verified: prod `GET /api/health` → 200 `{ok:true}`;
+  `npx drizzle-kit generate` → "No schema changes, nothing to migrate" (snapshot chain still clean).
+- Deleted the 3 orphaned MySQL services via GraphQL `serviceDelete`
+  (token from `~/.railway/config.json`, `User-Agent: railway-cli/4.15.0` header required).
+  Project now contains only `app` + `MySQL-NtCC`.
+- Remaining for a human: CI billing (§5.2), release tag policy (§5.3),
+  real-device QA (§5.4), secrets review (§5.6).
 
 ---
 
