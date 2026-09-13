@@ -42,6 +42,8 @@ import { composeLiveListings } from "../../../lib/live-prices";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
 import { copyTextWithFallback } from "../lib/share";
 import { isFreshPriceSnapshot } from "../../../lib/price-freshness";
+import { parseBulkImportCsv } from "../../../lib/csv";
+import { PRODUCT_CATALOG } from "@shared/catalog";
 import type { Product, StockStatus, TagDefinition, WatchlistGroup } from "../../../lib/types";
 
 type SortKey = "name" | "price" | "deal" | "trend" | "lastUpdated";
@@ -447,6 +449,55 @@ export function Watchlist() {
     if (await copyTextWithFallback(message)) showToast("Copied to clipboard");
     else showToast("Couldn't copy share text");
   }, [products, displayCurrency, showToast]);
+
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const handleImportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const rows = parseBulkImportCsv(text);
+      if (rows.length === 0) {
+        showToast("No valid rows — expected header: model,targetPrice,currency,tags");
+        return;
+      }
+      const byModel = new Map(PRODUCT_CATALOG.map((p) => [p.modelNumber.toLowerCase(), p] as const));
+      let added = 0;
+      let skipped = 0;
+      for (let i = 0; i < rows.length; i += 50) {
+        const chunk = rows.slice(i, i + 50);
+        for (const row of chunk) {
+          const hit = byModel.get(row.model.toLowerCase());
+          const product = hit
+            ? ({ ...hit, tags: row.tags.length ? row.tags : (hit as unknown as { tags?: string[] }).tags, isWatched: true, addedAt: new Date().toISOString() } as unknown as Product)
+            : ({ id: row.model, name: row.model, modelNumber: row.model, brand: "Unknown", category: "Switch", description: "", isWatched: true, addedAt: new Date().toISOString(), listings: [], tags: row.tags } as unknown as Product);
+          try {
+            await storage.addToWatchlist(product as Product);
+            if (row.targetPrice !== null) {
+              await storage.addAlert({
+                id: `alert-${product.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                productId: product.id,
+                targetPrice: row.targetPrice,
+                currency: row.currency,
+                createdAt: new Date().toISOString(),
+                isActive: true,
+              } as never);
+            }
+            added += 1;
+          } catch {
+            skipped += 1;
+          }
+        }
+        await new Promise<void>((r) => setTimeout(r, 0));
+      }
+      await refresh();
+      showToast(`Added ${added} product${added !== 1 ? "s" : ""}${skipped ? `, ${skipped} skipped` : ""}`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : String(err));
+    } finally {
+      if (importInputRef.current) importInputRef.current.value = "";
+    }
+  }, [refresh, showToast]);
 
   const handleCheckNow = useCallback(async () => {
     if (checkingRef.current || products.length === 0) return;
@@ -864,6 +915,14 @@ export function Watchlist() {
             >
               <Share2 className="w-4 h-4" />
               Share
+            </button>
+            <input ref={importInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImportFile} aria-hidden />
+            <button
+              onClick={() => importInputRef.current?.click()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium"
+              aria-label="Import CSV"
+            >
+              Import CSV
             </button>
             <button
               onClick={handleCheckNow}
