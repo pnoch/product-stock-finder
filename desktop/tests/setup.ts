@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom/vitest";
 
+// React Native global used by shared lib modules (lib/_core/auth.ts, api.ts).
+// Mirrors root tests/setup.ts. The vite `define` for __DEV__ does not reliably
+// reach ../lib/* modules under vitest (worker-dependent transform path), which
+// caused flaky `ReferenceError: __DEV__ is not defined` suite failures.
+(globalThis as Record<string, unknown>).__DEV__ = true;
+
 if (typeof window !== "undefined") {
   Object.defineProperty(window, "matchMedia", {
     writable: true,

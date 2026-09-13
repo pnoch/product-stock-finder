@@ -1506,3 +1506,10 @@
 - [x] Stale SW precache: `public/sw.js` listed dead hashed `/_expo/static/*` bundles + missing `/icon.png`, so `cache.addAll` always rejected and offline cold start never precached; precache now stable URLs only (`/index.html`, `/manifest.json`, `/favicon.ico`, hashed bundles stay on the runtime cache-first handler), cache bumped to `precache-v3`
 - [x] Regression tests: `tests/tauri-version-lockstep.test.ts` (root/desktop/tauri.conf/Cargo.toml version parity), `tests/sw-precache.test.ts` (no `_expo`/hash entries, every URL resolves to a real file)
 - [x] E2E: root `tsc 0`, lint clean, `259 passed | 1 skipped` files / `1685 passed` tests
+
+## Phase 203: Stabilize desktop __DEV__ flake (release prep)
+
+- [x] Symptom: desktop suite failed ~1/8 runs with `Failed Suites 4-5, Tests 0-1 failed` — suite-level collection errors, never assertion failures
+- [x] Root cause: `ReferenceError: __DEV__ is not defined` at `lib/_core/auth.ts:6` (via `lib/device-revoked.ts`). Root vitest defines `__DEV__` in `tests/setup.ts`, but `desktop/tests/setup.ts` never did; desktop relied on vite `define: { __DEV__: "import.meta.env.DEV" }`, which does not reliably reach `../lib/*` modules under vitest (worker-dependent transform path)
+- [x] Fix: `(globalThis).__DEV__ = true` in `desktop/tests/setup.ts` (mirrors root) + `desktop/tests/setup-globals.test.ts` live guard; verified 10/10 green runs (43 files / 218 tests)
+- [x] E2E: desktop `tsc 0`, lint clean
