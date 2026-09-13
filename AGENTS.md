@@ -200,9 +200,16 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 ## Web Build
 
 - The web export is an SPA: `app.config.ts` sets `web.output: "single"`, so
-  `expo export -p web` emits a single `dist/index.html`. Hosts must fall back to
-  `index.html` for unknown paths (deep links like `/product/[id]`) and serve
-  `dist/sw.js` for web push. There is no per-route server-rendered HTML.
+  `pnpm build:web` (`expo export -p web --output-dir dist-web`) emits a single
+  `dist-web/index.html`. The API server hosts it same-origin: `server/spa.ts`
+  (`registerSpa`, called from `server/_core/index.ts` after the `/api/*` routes)
+  serves `dist-web/` statically with an `index.html` fallback for unknown paths
+  (deep links like `/product/[id]`) and `dist-web/sw.js` for web push. Without a
+  web export present the server runs API-only. There is no per-route
+  server-rendered HTML.
+- `pnpm build` chains the server bundle (`dist/`) and the web export
+  (`dist-web/`); the two outdirs must stay separate (both default to `dist/`).
+  `registerSpa` never intercepts `/api/*` (mounted earlier) or non-GET requests.
 - Do not switch back to `output: "static"`: NativeWind 4's
   `react-native-css-interop` emits different classNames in SSR vs client
   hydration, causing React hydration error #418 on every interop-wrapped route.

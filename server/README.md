@@ -59,9 +59,12 @@ deviceLabels, revokedDevices. Migrations in `drizzle/migrations/`; apply with `p
 ## Web Build
 
 The web app exports as an SPA (`web.output: "single"` in `app.config.ts`), so
-`expo export -p web` produces a single `dist/index.html`. Hosts must fall back
-to `index.html` for unknown paths (SPA routing) and serve `dist/sw.js` for web
-push. There is no per-route server-rendered HTML.
+`pnpm build:web` produces a single `dist-web/index.html`. The API server hosts
+it same-origin via `server/spa.ts` (`registerSpa`, mounted after `/api/*`):
+static files served directly (`dist-web/sw.js` for web push, hashed
+`/_expo/static/*` immutable, shell + SW `no-store`), unknown GET paths fall
+back to `index.html` (SPA routing). There is no per-route server-rendered HTML.
+Without a web export the server runs API-only.
 
 ## Web Push (VAPID)
 
@@ -78,7 +81,7 @@ and the app keeps working (foreground pull only).
 
 ## Running & Testing
 
-- Dev: `pnpm dev:server` (tsx watch). Build: `pnpm build` (esbuild → `dist/`). Prod: `pnpm start`.
+- Dev: `pnpm dev:server` (tsx watch). Build: `pnpm build` (esbuild → `dist/` + web export → `dist-web/`). Prod: `pnpm start`.
 - Tests: `pnpm test` (vitest). DB-backed tests are gated on `RUN_DB_TESTS=1` + `TEST_DATABASE_URL`
   (e.g. `tests/sync-db.test.ts`, `tests/sync-e2e.test.ts`). Router tests use `appRouter.createCaller(ctx)`
   with a mock context (see `tests/*-router.test.ts`).

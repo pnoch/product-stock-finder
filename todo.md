@@ -1513,3 +1513,11 @@
 - [x] Root cause: `ReferenceError: __DEV__ is not defined` at `lib/_core/auth.ts:6` (via `lib/device-revoked.ts`). Root vitest defines `__DEV__` in `tests/setup.ts`, but `desktop/tests/setup.ts` never did; desktop relied on vite `define: { __DEV__: "import.meta.env.DEV" }`, which does not reliably reach `../lib/*` modules under vitest (worker-dependent transform path)
 - [x] Fix: `(globalThis).__DEV__ = true` in `desktop/tests/setup.ts` (mirrors root) + `desktop/tests/setup-globals.test.ts` live guard; verified 10/10 green runs (43 files / 218 tests)
 - [x] E2E: desktop `tsc 0`, lint clean
+
+## Phase 204: EAS scaffolding + web-via-Express (release prep)
+
+- [x] EAS: added `eas.json` (dev/preview/production profiles, appVersionSource remote) — `EXPO_PUBLIC_EXPO_PROJECT_ID` already wired via `app.config.ts:extra`; `npx eas project:init` still manual (needs linked Expo account + credentials), so no projectId committed; mobile builds remain `npx eas build --platform android|ios` after linking
+- [x] Web via Express: `server/spa.ts` (`resolveWebDist`, `hasWebDist`, `cacheControlFor`, `registerSpa`) mounts same-origin SPA after `/api/*` (static + GET fallback to `index.html`), `no-store` for shell/SW, immutable for hashed `/_expo/static/*`; `pnpm build` now chains `esbuild → dist/` + `expo export → dist-web/`, `dist-web/` git-ignored
+- [x] Docs: `AGENTS.md` Web Build + `server/README.md` updated; `.gitignore` adds `dist-web/`
+- [x] Regression tests: `tests/spa.test.ts` (cache headers, WEB_DIST default, API-only fallback, live HTTP: shell at `/` + deep links, SW/bundle cache headers, API + non-GET passthrough)
+- [x] E2E: `tsc 0`, `check:desktop 0`, lint clean, `desktop build` (`1.6MB chunk` OK), `4 + 14` new focused tests; full suite to run before checkpoint commit

@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { registerSpa } from "../spa";
 import { startWarmer } from "../prices";
 import { closeDb } from "../db";
 
@@ -104,6 +105,10 @@ async function startServer() {
       createContext,
     }),
   );
+
+  // Same-origin web hosting: serves the `expo export` SPA (incl. /sw.js) when
+  // a web export is present; API-only otherwise. Mounted after /api/* routes.
+  registerSpa(app);
 
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
