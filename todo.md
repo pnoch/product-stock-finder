@@ -1469,5 +1469,5 @@
 
 - [x] Version lockstep `5.16.0`: root `package.json` renamed `app-template` → `product-stock-finder` + bumped, `app.config.ts` + `desktop/package.json` aligned (`5.12.0` → `5.16.0`) (`cd9fedb`)
 - [x] `AGENTS.md` drift fixes: `lib/storage/` dir layout, `desktop/` + `server/notifications/` + `server/routers/` sections, drizzle 15 → 20 tables, tests 80+ → ~255 files / ~1682 tests, `product/[id].tsx` ~410 lines, 25 registered parsers, todo ref 196 phases
-- [x] `0023_quiet_hours` wiring verified (SQL + journal + `drizzle/schema.ts` + client upload + digest hold-and-flush); prod `pnpm db:push` still needs `DATABASE_URL`
+- [x] `0023_quiet_hours` wiring verified (SQL + journal + `drizzle/schema.ts` + client upload + digest hold-and-flush); full 0000→0023 chain applied cleanly on scratch MySQL 8.0 (`quietHours` JSON NULL present, 20 tables) — container torn down; prod `pnpm db:push` still needs prod `DATABASE_URL` (local `.env` points at localhost, no server running)
 - [x] CI note: main runs fail at job start with 0 steps — account billing/spending-limit failure (annotation on run `34754705704`), not code; local E2E: `tsc 0`, lint clean, `1682 passed` tests
