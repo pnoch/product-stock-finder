@@ -1521,3 +1521,8 @@
 - [x] Docs: `AGENTS.md` Web Build + `server/README.md` updated; `.gitignore` adds `dist-web/`
 - [x] Regression tests: `tests/spa.test.ts` (cache headers, WEB_DIST default, API-only fallback, live HTTP: shell at `/` + deep links, SW/bundle cache headers, API + non-GET passthrough)
 - [x] E2E: `tsc 0`, `check:desktop 0`, lint clean, `desktop build` (`1.6MB chunk` OK), `4 + 14` new focused tests; full suite to run before checkpoint commit
+
+## Phase 205: Desktop identifier alignment + release smoke
+
+- [x] Desktop `identifier` drift: `tauri.conf.json` was `com.app.stockfinder`, app bundle is `com.app.stock_tracker_pro` (`app.config.ts` / `AGENTS.md`). Aligned to `com.app.stock_tracker_pro` pre-first-release (no shipped installs to migrate); `cargo check` green
+- [x] Desktop smoke: `pnpm --dir desktop build` green (`454k gzip`), `cargo check` green, `tsc` 0; Tauri bundle (`pnpm tauri build`) still manual — needs system webkit + signing, run on release machine
