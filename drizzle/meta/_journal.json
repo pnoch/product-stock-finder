@@ -162,6 +162,13 @@
       "when": 1788534268760,
       "tag": "0022_orange_black_widow",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "5",
+      "when": 1788534268760,
+      "tag": "0023_quiet_hours",
+      "breakpoints": true
     }
   ]
 }

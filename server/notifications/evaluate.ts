@@ -15,6 +15,13 @@ import {
 } from "./memory-store";
 import { draftToEvent, rowToConfig } from "./mappers";
 import { buildEvents, dedupKeyFor } from "./build-events";
+import {
+  buildDigestDraft,
+  holdForDigest,
+  scopeKeyForDevice,
+  scopeKeyForUser,
+  takeDigestHeld,
+} from "./digest";
 
 function isDuplicateKeyError(error: unknown): boolean {
   const err = error as { code?: string; errno?: number; message?: string };
@@ -64,6 +71,7 @@ async function evaluateConfigPage(
     alerts: unknown;
     stockWatches: unknown;
     dateReminders: unknown;
+    quietHours?: unknown;
   }>,
   now: number,
 ): Promise<void> {
@@ -131,9 +139,20 @@ async function evaluateAnonMemory(
       .map((e) => dedupKeyFor(e)),
   );
   const drafts = await buildEvents(config, now);
+  const scopeKey = scopeKeyForDevice(deviceId);
+  if (holdForDigest(scopeKey, [config], drafts, now)) return;
+  const held = takeDigestHeld(scopeKey);
+  let toDeliver = drafts;
+  if (held.length > 0) {
+    const digest = buildDigestDraft([...held, ...drafts], scopeKey, now);
+    toDeliver =
+      digest && !blocked.has(digest.dedupKey)
+        ? [digest]
+        : [...held, ...drafts];
+  }
   const added: NotificationEvent[] = [];
   const seen = new Set<string>();
-  for (const draft of drafts) {
+  for (const draft of toDeliver) {
     if (blocked.has(draft.dedupKey) || seen.has(draft.dedupKey)) continue;
     seen.add(draft.dedupKey);
     const event = { ...draftToEvent(draft), userId: null, deviceId };
@@ -161,9 +180,28 @@ async function evaluateUserMemory(
       .map((e) => dedupKeyFor(e)),
   );
   const drafts = await buildEvents(config, now);
+  const scopeKey = scopeKeyForUser(userId);
+  if (
+    holdForDigest(
+      scopeKey,
+      devices.map((d) => d.config),
+      drafts,
+      now,
+    )
+  )
+    return;
+  const held = takeDigestHeld(scopeKey);
+  let toDeliver = drafts;
+  if (held.length > 0) {
+    const digest = buildDigestDraft([...held, ...drafts], scopeKey, now);
+    toDeliver =
+      digest && !blocked.has(digest.dedupKey)
+        ? [digest]
+        : [...held, ...drafts];
+  }
   const added: NotificationEvent[] = [];
   const seen = new Set<string>();
-  for (const draft of drafts) {
+  for (const draft of toDeliver) {
     if (blocked.has(draft.dedupKey) || seen.has(draft.dedupKey)) continue;
     seen.add(draft.dedupKey);
     const event = { ...draftToEvent(draft), userId, deviceId: null };
@@ -230,7 +268,18 @@ async function evaluateConfigDb(
       .map((e) => e.dedupKey),
   );
   const drafts = await buildEvents(config, now);
-  const filtered = drafts.filter((d) => !blocked.has(d.dedupKey));
+  const scopeKey = scopeKeyForDevice(deviceId);
+  if (holdForDigest(scopeKey, [config], drafts, now)) return;
+  const held = takeDigestHeld(scopeKey);
+  let combined = drafts;
+  if (held.length > 0) {
+    const digest = buildDigestDraft([...held, ...drafts], scopeKey, now);
+    combined =
+      digest && !blocked.has(digest.dedupKey)
+        ? [digest]
+        : [...held, ...drafts];
+  }
+  const filtered = combined.filter((d) => !blocked.has(d.dedupKey));
   const deduped = [...new Map(filtered.map((d) => [d.dedupKey, d])).values()];
   const toInsert = deduped.map((d) => ({ ...d, deviceId, userId: null }));
   if (toInsert.length > 0) {
@@ -283,7 +332,26 @@ async function evaluateUserDb(
       .map((e) => e.dedupKey),
   );
   const drafts = await buildEvents(config, now);
-  const filtered = drafts.filter((d) => !pending.has(d.dedupKey));
+  const scopeKey = scopeKeyForUser(userId);
+  if (
+    holdForDigest(
+      scopeKey,
+      devices.map((d) => d.config),
+      drafts,
+      now,
+    )
+  )
+    return;
+  const held = takeDigestHeld(scopeKey);
+  let combined = drafts;
+  if (held.length > 0) {
+    const digest = buildDigestDraft([...held, ...drafts], scopeKey, now);
+    combined =
+      digest && !pending.has(digest.dedupKey)
+        ? [digest]
+        : [...held, ...drafts];
+  }
+  const filtered = combined.filter((d) => !pending.has(d.dedupKey));
   const deduped = [...new Map(filtered.map((d) => [d.dedupKey, d])).values()];
   const toInsert = deduped.map((d) => ({ ...d, userId, deviceId: null }));
   if (toInsert.length > 0) {

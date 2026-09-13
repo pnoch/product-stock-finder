@@ -369,6 +369,12 @@ export const appRouter = router({
               }),
             )
             .optional(),
+          quietHours: z
+            .object({
+              start: z.string().regex(/^\d{2}:\d{2}$/),
+              end: z.string().regex(/^\d{2}:\d{2}$/),
+            })
+            .optional(),
         }),
       )
       .mutation(async ({ input, ctx }) => {
@@ -387,6 +393,7 @@ export const appRouter = router({
             stockWatches: input.stockWatches,
             dateReminders: input.dateReminders,
             healthEvents: input.healthEvents,
+            quietHours: input.quietHours,
           },
           ctx.user.id,
         );

@@ -153,6 +153,9 @@ export async function upsertDeviceConfig(
     dateReminders: config.dateReminders,
     updatedAt: Date.now(),
   };
+  // Only overwrite prefs when the client sent them; older clients that never
+  // upload quiet hours must not wipe a newer client's setting.
+  if (config.quietHours !== undefined) set.quietHours = config.quietHours;
   if (userId !== null) set.userId = userId;
   await db
     .insert(deviceNotificationConfigs)
@@ -162,6 +165,9 @@ export async function upsertDeviceConfig(
       alerts: config.alerts,
       stockWatches: config.stockWatches,
       dateReminders: config.dateReminders,
+      ...(config.quietHours !== undefined
+        ? { quietHours: config.quietHours }
+        : {}),
       updatedAt: Date.now(),
     })
     .onDuplicateKeyUpdate({ set });

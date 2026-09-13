@@ -31,11 +31,15 @@ export interface NotificationConfig {
     body: string;
     createdAt: number;
   }>;
+  // Quiet-hours digest batching: when set and covering now, the warmer holds
+  // fresh events and flushes one grouped digest at the window end instead of
+  // pushing immediately. Evaluated in server-local time.
+  quietHours?: { start: string; end: string };
 }
 
 export interface NotificationEvent {
   id: string;
-  type: "price_drop" | "price_rise" | "restock" | "reminder";
+  type: "price_drop" | "price_rise" | "restock" | "reminder" | "digest";
   title: string;
   body: string;
   alertId?: string;

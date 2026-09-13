@@ -142,7 +142,12 @@ async function runSyncServerNotifications(): Promise<void> {
       }));
 
     const uploadOk = await uploadNotificationConfig(
-      { alerts: activeAlerts, stockWatches, dateReminders },
+      {
+        alerts: activeAlerts,
+        stockWatches,
+        dateReminders,
+        quietHours: settings.quietHours ?? undefined,
+      },
       settings.healthAlerts && pendingHealthEvents.length > 0
         ? pendingHealthEvents.map((e) => ({
             id: `health-${e.distributorId}-${e.status}-${e.createdAt}`,

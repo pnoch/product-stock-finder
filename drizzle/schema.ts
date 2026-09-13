@@ -189,6 +189,7 @@ export const deviceNotificationConfigs = mysqlTable(
     alerts: json("alerts"),
     stockWatches: json("stockWatches"),
     dateReminders: json("dateReminders"),
+    quietHours: json("quietHours"),
     updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
   },
 );

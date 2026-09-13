@@ -1451,3 +1451,16 @@
 - [x] 1W/1M/All toggle on Rates (compare-chart pill idiom) — windowed sparkline history + first-to-last windowed % change (`eed2a44`)
 - [x] `sliceFxHistoryByRange` + `getFxWindowChange` (`lib/fx-history.ts`); existing `getFxChange` untouched; mobile (`app/(tabs)/rates.tsx`) + desktop (`desktop/src/pages/Rates.tsx`) parity, defaults to All (prior behavior)
 - [x] Guards (`tests/fx-window.test.ts` — RED watched failing first); E2E: `tsc 0`, lint clean, `1666 passed` tests
+
+## Phase 195: Share-link expiry management
+
+- [x] `sharedWatchlists.list` (owner's links, newest-first, with `shareUrl`) + `sharedWatchlists.extend` (owner-only, +30d, `NOT_FOUND` otherwise) (`server/routers.ts`) (`a494438`)
+- [x] Owner link list with Copy / Extend 30d / Revoke in Settings — mobile (`app/(tabs)/settings.tsx`) + desktop (`desktop/src/pages/Settings.tsx`) parity
+- [x] Guards (`tests/shared-watchlist-expiry.test.ts` — RED watched failing first); E2E: `tsc 0`, lint clean, `1671 passed` tests
+
+## Phase 196: Server quiet-hours digest batching
+
+- [x] `quietHours` prefs plumbing: `NotificationConfig` + `uploadConfig` schema + `device_notification_configs.quietHours` JSON column (migration `0023_quiet_hours`) + client upload from settings (`lib/server-notifications.ts`)
+- [x] Warmer hold-and-flush (`server/notifications/digest.ts`, all 4 evaluate paths): holds drafts in quiet window (all bound configs must opt in), flushes one day-scoped `digest` event at window end, then resumes individual delivery
+- [x] Client renders `digest` history entries (`lib/types.ts`, `TYPE_ICONS` + `chart.bar.fill`)
+- [x] Guards (`tests/server-digest.test.ts` — RED watched failing first); E2E: `tsc 0`, lint clean, `1682 passed` tests

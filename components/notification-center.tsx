@@ -33,6 +33,7 @@ type TypeIconName =
   | "chart.line.uptrend.xyaxis"
   | "checkmark.circle.fill"
   | "clock.fill"
+  | "chart.bar.fill"
   | "exclamationmark.triangle.fill";
 
 const TYPE_ICONS: Record<HistoryType, TypeIconName> = {
@@ -41,6 +42,7 @@ const TYPE_ICONS: Record<HistoryType, TypeIconName> = {
   restock: "checkmark.circle.fill",
   reminder: "clock.fill",
   health: "exclamationmark.triangle.fill",
+  digest: "chart.bar.fill",
 };
 
 export function NotificationCenter({

@@ -4,13 +4,22 @@ export function rowToConfig(row: {
   alerts: unknown;
   stockWatches: unknown;
   dateReminders: unknown;
+  quietHours?: unknown;
 }): NotificationConfig {
+  const quietHours = row.quietHours as
+    | { start?: unknown; end?: unknown }
+    | null
+    | undefined;
   return {
     alerts: (row.alerts as NotificationConfig["alerts"]) ?? [],
     stockWatches:
       (row.stockWatches as NotificationConfig["stockWatches"]) ?? [],
     dateReminders:
       (row.dateReminders as NotificationConfig["dateReminders"]) ?? [],
+    ...(typeof quietHours?.start === "string" &&
+    typeof quietHours?.end === "string"
+      ? { quietHours: { start: quietHours.start, end: quietHours.end } }
+      : {}),
   };
 }
 

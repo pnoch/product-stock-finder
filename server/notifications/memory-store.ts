@@ -1,4 +1,4 @@
-import type { MemoryEvent, NotificationConfig, NotificationEvent } from "./types";
+import type { EventDraft, MemoryEvent, NotificationConfig, NotificationEvent } from "./types";
 
 export const memoryConfigs = new Map<
   string,
@@ -6,6 +6,9 @@ export const memoryConfigs = new Map<
 >();
 export const memoryEvents = new Map<string, MemoryEvent>();
 export const memoryDeliveries = new Map<string, Set<string>>();
+// Held-event buffers for quiet-hours digest batching, keyed by digest scope
+// (`d:<deviceId>` / `u:<userId>`) then dedupKey. See digest.ts.
+export const digestBuffers = new Map<string, Map<string, EventDraft>>();
 
 export function deliveryCount(eventId: string): number {
   let count = 0;
@@ -19,6 +22,7 @@ export function clearNotificationsForTests(): void {
   memoryConfigs.clear();
   memoryEvents.clear();
   memoryDeliveries.clear();
+  digestBuffers.clear();
 }
 
 export function listMemoryConfigDevices(): Array<{
