@@ -5,6 +5,7 @@ import {
   View,
   TouchableOpacity,
   Platform,
+  Share,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -18,6 +19,7 @@ import {
   DistributorAnalysis,
 } from "@/lib/distributor-analysis";
 import { formatPrice } from "@shared/currency";
+import { watchlistToDetailedCsv } from "@/lib/csv";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SkeletonList } from "@/components/ui/skeleton";
 
@@ -45,6 +47,16 @@ export default function DistributorAnalysisScreen() {
     }
   }, []);
 
+  const handleExport = useCallback(async () => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      const watchlist = await getWatchlist();
+      if (watchlist.length === 0) return;
+      const csv = watchlistToDetailedCsv(watchlist);
+      await Share.share({ message: csv, title: "Distributor Analysis CSV" });
+    } catch {}
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -53,7 +65,8 @@ export default function DistributorAnalysisScreen() {
 
   return (
     <ScreenContainer>
-      <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", padding: 16, justifyContent: "space-between" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
         <TouchableOpacity activeOpacity={0.85}
           accessibilityLabel="Go back"
           accessibilityRole="button"
@@ -70,6 +83,17 @@ export default function DistributorAnalysisScreen() {
         >
           Distributor Analysis
         </Text>
+        </View>
+        {analysis.length > 0 && (
+          <TouchableOpacity activeOpacity={0.85}
+            onPress={handleExport}
+            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 }}
+            accessibilityLabel="Export CSV"
+            accessibilityRole="button"
+          >
+            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>Export CSV</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {loading ? (
