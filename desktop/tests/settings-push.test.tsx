@@ -75,6 +75,30 @@ vi.mock("../src/lib/web-push", () => ({
   hasVapidKey: vi.fn().mockReturnValue(true),
 }));
 
+vi.mock("../src/lib/trpc", () => ({
+  trpc: {
+    sharedWatchlists: {
+      list: {
+        useQuery: () => ({
+          data: { links: [] },
+          isLoading: false,
+          isError: false,
+          refetch: vi.fn(),
+        }),
+      },
+      extend: { useMutation: () => ({ mutateAsync: vi.fn() }) },
+      revoke: { useMutation: () => ({ mutateAsync: vi.fn() }) },
+    },
+  },
+  createTRPCClient: () => ({
+    devices: {
+      rename: { mutate: vi.fn() },
+      signOut: { mutate: vi.fn() },
+    },
+    sharedWatchlists: { create: { mutate: vi.fn() } },
+  }),
+}));
+
 function renderSettingsWithProviders() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },

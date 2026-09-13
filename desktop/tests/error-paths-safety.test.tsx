@@ -93,6 +93,30 @@ vi.mock("@tanstack/react-virtual", async (importOriginal) => {
   };
 });
 
+vi.mock("../src/lib/trpc", () => ({
+  trpc: {
+    sharedWatchlists: {
+      list: {
+        useQuery: () => ({
+          data: { links: [] },
+          isLoading: false,
+          isError: false,
+          refetch: vi.fn(),
+        }),
+      },
+      extend: { useMutation: () => ({ mutateAsync: vi.fn() }) },
+      revoke: { useMutation: () => ({ mutateAsync: vi.fn() }) },
+    },
+  },
+  createTRPCClient: () => ({
+    devices: {
+      rename: { mutate: vi.fn() },
+      signOut: { mutate: vi.fn() },
+    },
+    sharedWatchlists: { create: { mutate: vi.fn() } },
+  }),
+}));
+
 import { Alerts } from "../src/pages/Alerts";
 import { Watchlist } from "../src/pages/Watchlist";
 import { RestockWatches } from "../src/pages/RestockWatches";

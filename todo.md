@@ -1477,4 +1477,10 @@
 - [x] `server/sync-db.ts`: dropped unused `TRPCError` import (TS6133 under desktop tsconfig which covers `../server`)
 - [x] `desktop/src/pages/Alerts.tsx`: added missing `digest: BarChart3` to `TYPE_ICONS` (parity with mobile `chart.bar.fill` from Phase 196; lucide 0.400.0 has no `ChartColumn`)
 - [x] E2E: root `tsc 0`, desktop `tsc 0`, lint clean, root `1682 passed` tests
-- [x] Known pre-existing (out of scope): `desktop/tests/settings-webtoggle.test.tsx` 2 failures — empty Settings render, fails on clean tree, no dependency on touched files
+- [x] Desktop red was pre-existing: `desktop/tests/settings-webtoggle.test.tsx` flagged as known failure but was 10 failures across 3 files (`settings-webtoggle`, `settings-push`, `error-paths-safety`); `pnpm check:desktop` had not been run in CI locally
+
+## Phase 199: Desktop Settings trpc harness
+
+- [x] Root cause `a494438` added `SharedLinksList` (`trpc.sharedWatchlists.list.useQuery`) to `desktop/src/pages/Settings.tsx` without a test-provider mock — every desktop test that renders `Settings` throws `Unable to find tRPC Context` and renders empty `<div/>`, so `findByRole("checkbox", "Enable web notifications")` times out; local `pnpm test` showed 10 failures across `settings-webtoggle` (2), `settings-push` (7), `error-paths-safety` discovery+Settings (2) — the initial 2 were not isolated
+- [x] Fix: stub `../src/lib/trpc` (`trpc.sharedWatchlists.list/extend/revoke` + `createTRPCClient`) in all 3 `desktop/tests/*.test.tsx` that render `Settings` (same shape as the `sharedWatchlists` client mocks in `src/pages/Settings.tsx:61-63,602-633`); no `Settings.tsx` change needed — `trpc` must be mocked when `SharedLinksList` is mounted without a provider
+- [x] E2E: root `tsc 0`, desktop `tsc 0`, lint clean, root `257 passed | 1 skipped` files / `1682 passed` tests, desktop `42 passed` files / `217 passed` tests
