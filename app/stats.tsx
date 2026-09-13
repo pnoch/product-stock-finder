@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
+import { goBackOrHome } from "@/lib/navigation";
 import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -198,7 +199,7 @@ export default function StatsScreen() {
           onPress={() => {
             if (Platform.OS !== "web")
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
+            goBackOrHome(router);
           }}
           style={{ padding: 4 }}
         >
@@ -276,7 +277,7 @@ export default function StatsScreen() {
                 ctaLabel="Go to Settings"
                 onCtaPress={() => {
                   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push("/settings");
+                  router.push("/(tabs)/settings");
                 }}
               />
             </View>

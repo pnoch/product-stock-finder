@@ -33,6 +33,10 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
+  // Trust first proxy (gateway/LB) so req.protocol/ip and
+  // X-Forwarded-* are honored for Secure cookies + rate-limit IP.
+  app.set("trust proxy", 1);
+
   // Enable CORS for all routes - only allow known frontend origins to support credentials
   const allowedOrigins = new Set(
     (process.env.CORS_ALLOWED_ORIGINS ?? "")

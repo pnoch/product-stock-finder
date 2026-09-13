@@ -1,4 +1,5 @@
 import { Stack, useLocalSearchParams, router } from "expo-router";
+import { goBackOrHome } from "@/lib/navigation";
 import { ScrollView, Text, View, TouchableOpacity, Platform, Animated, Share } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCallback, useEffect, useState, useMemo, useRef } from "react";
@@ -22,7 +23,7 @@ import { computeDealScore, dealBandLabel } from "@/lib/deal-score";
 import { findBestDeal } from "@/lib/best-deal";
 import { fetchPriceInsight } from "@/lib/server-insights";
 import { fetchProductImage } from "@/lib/server-images";
-import { schedulePriceAlert, scheduleStockAlert, scheduleBackOrderReminder, cancelNotification, requestNotificationPermissions } from "@/lib/notifications";
+import { schedulePriceAlert, scheduleStockAlert, scheduleBackOrderReminder, cancelNotification, ensureNotificationPermission } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
 import { ProductInfoCard, DistributorListingSection, ReminderDatePickerModal } from "./_components";
 import { PriceAlert, DistributorListing } from "@/lib/types";
@@ -131,10 +132,10 @@ export default function ProductDetailScreen() {
 
   const handleSetBestAlert = useCallback(async (listing: DistributorListing) => {
     if (!id) return;
-    const granted = await requestNotificationPermissions();
+    const granted = await ensureNotificationPermission();
     if (!granted) {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showAlert("Permission Denied", "Please enable notifications in your device settings to receive price alerts.");
+      showAlert("Permission Denied", Platform.OS === "web" ? "Please allow notifications in your browser to receive price alerts." : "Please enable notifications in your device settings to receive price alerts.");
       return;
     }
     try {
@@ -176,10 +177,10 @@ export default function ProductDetailScreen() {
         showAlert("Couldn't remove watch", "We couldn't remove that restock watch. Please try again.");
       }
     } else {
-      const granted = await requestNotificationPermissions();
+      const granted = await ensureNotificationPermission();
       if (!granted) {
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        showAlert("Permission Denied", "Please enable notifications to watch for restocks.");
+        showAlert("Permission Denied", Platform.OS === "web" ? "Please allow notifications in your browser to watch for restocks." : "Please enable notifications to watch for restocks.");
         return;
       }
       try {
@@ -210,10 +211,10 @@ export default function ProductDetailScreen() {
   const handleSetReminder = useCallback(async () => {
     const listing = reminderListing;
     if (!id || !listing) return;
-    const granted = await requestNotificationPermissions();
+    const granted = await ensureNotificationPermission();
     if (!granted) {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showAlert("Permission Denied", "Please enable notifications in your device settings to set reminders.");
+      showAlert("Permission Denied", Platform.OS === "web" ? "Please allow notifications in your browser to set reminders." : "Please enable notifications in your device settings to set reminders.");
       return;
     }
     try {
@@ -301,7 +302,7 @@ export default function ProductDetailScreen() {
           ctaLabel="Try Again"
           onCtaPress={() => refresh()}
           secondaryLabel="Go back"
-          onSecondaryPress={() => router.back()}
+          onSecondaryPress={() => goBackOrHome(router)}
         />
       </ScreenContainer>
     );

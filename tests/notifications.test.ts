@@ -132,7 +132,7 @@ describe("evaluateNotifications", () => {
       select: vi.fn(() => ({
         from: vi.fn((table: unknown) => {
           if (table === deviceNotificationConfigs) {
-            return [
+            const rows = [
               {
                 deviceId: "dev-1",
                 alerts: [
@@ -148,6 +148,13 @@ describe("evaluateNotifications", () => {
                 updatedAt: Date.now(),
               },
             ];
+            return {
+              orderBy: vi.fn(() => ({
+                limit: vi.fn(() => ({
+                  offset: vi.fn(async () => rows),
+                })),
+              })),
+            };
           }
           if (table === priceCache) {
             return {
@@ -638,7 +645,7 @@ describe("user-scoped notifications (database)", () => {
       select: vi.fn(() => ({
         from: vi.fn((table: unknown) => {
           if (table === deviceNotificationConfigs) {
-            return [
+            const rows = [
               {
                 deviceId: "dev-1",
                 userId: 7,
@@ -670,6 +677,13 @@ describe("user-scoped notifications (database)", () => {
                 updatedAt: Date.now(),
               },
             ];
+            return {
+              orderBy: vi.fn(() => ({
+                limit: vi.fn(() => ({
+                  offset: vi.fn(async () => rows),
+                })),
+              })),
+            };
           }
           if (table === notificationEvents) {
             return { where: vi.fn(async () => []) };

@@ -15,8 +15,12 @@ import {
 } from "react-native";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import {
+  resolveToastColors,
+  type ToastType,
+} from "@/lib/toast-colors";
 
-type ToastType = "success" | "info" | "error";
+export { resolveToastColors, type ToastType };
 
 type ToastState = {
   message: string;
@@ -91,14 +95,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const bgColor =
-    toast.type === "success"
-      ? colors.foreground
-      : toast.type === "error"
-        ? colors.error
-        : colors.primary;
-
-  const textColor = "#fff";
+  const { bg: bgColor, text: textColor } = resolveToastColors(colors, toast.type);
   const iconName =
     toast.type === "success"
       ? "checkmark.circle.fill"
@@ -146,6 +143,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <Text
               style={{ color: textColor, fontSize: 14, fontWeight: "600", flexShrink: 1 }}
               numberOfLines={2}
+              accessible
+              accessibilityLiveRegion="polite"
             >
               {toast.message}
             </Text>

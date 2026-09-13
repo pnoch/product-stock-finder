@@ -126,16 +126,20 @@ export default function WatchlistScreen() {
     void refreshQueue();
     const interval = setInterval(refreshQueue, 30000);
     const onFocus = () => void refreshQueue();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void refreshQueue();
+    };
     if (Platform.OS === "web") {
       window.addEventListener("focus", onFocus);
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") void refreshQueue();
-      });
+      document.addEventListener("visibilitychange", onVisibilityChange);
     }
     return () => {
       cancelled = true;
       clearInterval(interval);
-      if (Platform.OS === "web") window.removeEventListener("focus", onFocus);
+      if (Platform.OS === "web") {
+        window.removeEventListener("focus", onFocus);
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+      }
     };
   }, [watchlist.length]);
 

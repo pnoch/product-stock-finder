@@ -1,4 +1,4 @@
-import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
+import { router, adminProcedure, publicProcedure } from "../_core/trpc";
 import { checkRateLimit } from "../rate-limit";
 import { getDb } from "../db";
 import { trendingProducts } from "../../drizzle/schema";
@@ -80,8 +80,52 @@ ${itemText}
 Return ONLY valid JSON array, no markdown.`;
 }
 
+export interface TrendingLlmRow {
+  name: unknown;
+  brand: unknown;
+  category: unknown;
+  estimatedPrice: unknown;
+  reason: unknown;
+  source: unknown;
+}
+
+export interface SanitizedTrendingRow {
+  name: string;
+  brand: string;
+  category: string;
+  estimatedPrice: string;
+  reason: string;
+  source: string;
+}
+
+function cleanStr(value: unknown, max: number): string {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, max);
+}
+
+// Bounds raw LLM output to the trendingProducts column limits so an
+// over-long or non-finite model reply fails safe instead of 500ing the
+// insert (name 255, brand/category 100, price decimal(10,2), source 255).
+export function sanitizeTrendingRows(rows: TrendingLlmRow[]): SanitizedTrendingRow[] {
+  return rows.map((p) => {
+    const price =
+      typeof p.estimatedPrice === "number" && Number.isFinite(p.estimatedPrice)
+        ? Math.min(Math.max(p.estimatedPrice, 0), 99999999.99)
+        : 0;
+    return {
+      name: cleanStr(p.name, 255),
+      brand: cleanStr(p.brand, 100),
+      category: cleanStr(p.category, 100),
+      estimatedPrice: price.toFixed(2),
+      reason: cleanStr(p.reason, 1000),
+      source: cleanStr(p.source, 255),
+    };
+  });
+}
+
 export const trendingRouter = router({
-  get: publicProcedure.query(async () => {
+  get: publicProcedure.query(async ({ ctx }) => {
+    checkRateLimit(ctx, "trending.get", 30, 60_000);
     const db = await getDb();
     if (!db) return [];
     const now = new Date();
@@ -92,8 +136,8 @@ export const trendingRouter = router({
     return rows.slice(0, 10);
   }),
 
-  refresh: protectedProcedure.mutation(async ({ ctx }) => {
-    checkRateLimit(ctx, "trending.refresh", 5, 60_000);
+  refresh: adminProcedure.mutation(async ({ ctx }) => {
+    checkRateLimit(ctx, "trending.refresh", 2, 60_000);
     const items = await fetchRssFeeds();
     if (items.length === 0) return { count: 0 };
 
@@ -116,40 +160,35 @@ export const trendingRouter = router({
     const aiData = await aiRes.json();
     const content = aiData.choices?.[0]?.message?.content ?? "[]";
 
-    let products: Array<{
-      name: string;
-      brand: string;
-      category: string;
-      estimatedPrice: number;
-      reason: string;
-      source: string;
-    }>;
+    let products: TrendingLlmRow[];
 
     try {
-      products = JSON.parse(content);
+      const raw: unknown = JSON.parse(content);
+      if (!Array.isArray(raw)) return { count: 0 };
+      products = raw as TrendingLlmRow[];
     } catch {
       return { count: 0 };
     }
-
-    if (!Array.isArray(products)) return { count: 0 };
 
     const db = await getDb();
     if (!db) return { count: 0 };
 
     const nowMs = Date.now();
     const expiresAt = new Date(nowMs + 6 * 60 * 60 * 1000);
-    const rows = products.slice(0, 10).map((p) => ({
-      id: crypto.randomUUID(),
-      name: p.name,
-      brand: p.brand,
-      category: p.category,
-      estimatedPrice: String(p.estimatedPrice),
-      currency: "USD",
-      reason: p.reason,
-      source: p.source,
-      fetchedAt: new Date(nowMs),
-      expiresAt,
-    }));
+    const rows = sanitizeTrendingRows(products.slice(0, 10))
+      .filter((p) => p.name.length > 0)
+      .map((p) => ({
+        id: crypto.randomUUID(),
+        name: p.name,
+        brand: p.brand,
+        category: p.category,
+        estimatedPrice: p.estimatedPrice,
+        currency: "USD",
+        reason: p.reason,
+        source: p.source,
+        fetchedAt: new Date(nowMs),
+        expiresAt,
+      }));
 
     await db.delete(trendingProducts);
     if (rows.length > 0) {

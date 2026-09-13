@@ -4,13 +4,13 @@ import { flytecParser, scrapeFlytec } from "../../lib/scrapers/flytec";
 describe("Flytec Parser", () => {
   it("should have correct parser config", () => {
     expect(flytecParser.id).toBe("flytec-us");
-    expect(flytecParser.baseUrl).toBe("https://flytechelectronics.com");
+    expect(flytecParser.baseUrl).toBe("https://flyteccomputers.com");
     expect(flytecParser.rateLimitMs).toBe(3000);
   });
 
   it("should build correct search URL", () => {
     const url = flytecParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://flytechelectronics.com/search?q=hAP%20ac3");
+    expect(url).toBe("https://flyteccomputers.com/search?q=hAP%20ac3");
   });
 
   it("should return null for invalid HTML", () => {

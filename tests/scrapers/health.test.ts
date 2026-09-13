@@ -436,26 +436,28 @@ describe("timelineSegments", () => {
     ).toEqual([{ status: "working", weight: 1 }]);
   });
 
-  it("weights are proportional to time gaps", () => {
+  it("weights are proportional to time gaps and sum to 1", () => {
     const segments = timelineSegments([
       sample("working", "2026-08-01T00:00:00Z"),
       sample("blocked", "2026-08-01T01:00:00Z"),
       sample("error", "2026-08-01T03:00:00Z"),
     ]);
-    // spans: 1h, 2h -> total 3h -> weights 1/3, 2/3, 2/3 (last reuses previous span)
-    expect(segments[0].weight).toBeCloseTo(1 / 3, 5);
-    expect(segments[1].weight).toBeCloseTo(2 / 3, 5);
-    expect(segments[2].weight).toBeCloseTo(2 / 3, 5);
+    // trapezoidal intervals over 3h: 0.5h, 1.5h, 1h -> 1/6, 1/2, 1/3
+    expect(segments[0].weight).toBeCloseTo(1 / 6, 5);
+    expect(segments[1].weight).toBeCloseTo(1 / 2, 5);
+    expect(segments[2].weight).toBeCloseTo(1 / 3, 5);
+    expect(
+      segments.reduce((sum, s) => sum + s.weight, 0),
+    ).toBeCloseTo(1, 5);
   });
 
-  it("last segment has equal-duration fallback weight when no following span", () => {
+  it("splits the single span evenly for two samples", () => {
     const segments = timelineSegments([
       sample("working", "2026-08-01T00:00:00Z"),
       sample("blocked", "2026-08-01T01:00:00Z"),
     ]);
-    // spans: 1h -> total 1h -> weights 1, 1 (last reuses previous span)
-    expect(segments[0].weight).toBeCloseTo(1, 5);
-    expect(segments[1].weight).toBeCloseTo(1, 5);
+    expect(segments[0].weight).toBeCloseTo(1 / 2, 5);
+    expect(segments[1].weight).toBeCloseTo(1 / 2, 5);
   });
 
   it("equal weights when all timestamps identical", () => {
@@ -467,7 +469,7 @@ describe("timelineSegments", () => {
     expect(segments.map((s) => s.weight)).toEqual([1 / 3, 1 / 3, 1 / 3]);
   });
 
-  it("weights sum with total denominator", () => {
+  it("weights sum to 1", () => {
     const segments = timelineSegments([
       sample("working", "2026-08-01T00:00:00Z"),
       sample("blocked", "2026-08-01T02:00:00Z"),
@@ -475,8 +477,14 @@ describe("timelineSegments", () => {
       sample("working", "2026-08-01T05:00:00Z"),
     ]);
     const total = segments.reduce((sum, s) => sum + s.weight, 0);
-    // spans 2h,1h,2h total 5h -> weights 2/5,1/5,2/5,2/5 sum 1.4 (last reuses previous span without extending denominator)
-    expect(total).toBeCloseTo(1.4, 5);
+    // trapezoidal intervals over 5h: 1h, 1.5h, 1.5h, 1h -> 0.2, 0.3, 0.3, 0.2
+    expect(segments.map((s) => s.weight)).toEqual([
+      expect.closeTo(0.2, 5),
+      expect.closeTo(0.3, 5),
+      expect.closeTo(0.3, 5),
+      expect.closeTo(0.2, 5),
+    ]);
+    expect(total).toBeCloseTo(1, 5);
   });
 });
 

@@ -40,10 +40,10 @@ function parseHtml(
 
 export const flytecParser: DistributorParser = {
   id: "flytec-us",
-  baseUrl: "https://flytechelectronics.com",
+  baseUrl: "https://flyteccomputers.com",
   buildSearchUrl: (model) =>
-    `https://flytechelectronics.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://flytechelectronics.com", model),
+    `https://flyteccomputers.com/search?q=${encodeURIComponent(model)}`,
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://flyteccomputers.com", model),
   rateLimitMs: 3000,
 };
 

@@ -15,36 +15,62 @@ import {
 } from "./sync-db";
 import { sharedWatchlists, sharedWatchlistMembers, watchlistItems } from "../drizzle/schema";
 
-function getOrigin(req?: { headers: Record<string, unknown> }): string {
-  const envWeb = process.env.EXPO_PUBLIC_WEB_URL?.replace(/\/$/, "");
+const LOCAL_ORIGIN_FALLBACK = "http://localhost:8081";
+
+function cleanHttpUrl(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim().replace(/\/$/, "");
+  try {
+    const u = new URL(trimmed);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return null;
+  }
+}
+
+// Share URLs must never be built from attacker-controlled Origin/Referer
+// headers (phishing via a poisoned link host). Only deployment config is
+// trusted; otherwise fall back to localhost.
+export function getOrigin(req?: { headers: Record<string, unknown> }): string {
+  void req;
+  const envWeb = cleanHttpUrl(process.env.EXPO_PUBLIC_WEB_URL);
   if (envWeb) return envWeb;
-  const envApi = process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "");
+  const envApi = process.env.EXPO_PUBLIC_API_BASE_URL;
   if (envApi) {
     try {
-      const u = new URL(envApi);
-      if (u.port === "3000") u.port = "8081";
-      return `${u.protocol}//${u.host}`;
+      const u = new URL(envApi.trim());
+      if (u.protocol === "http:" || u.protocol === "https:") {
+        if (u.port === "3000") u.port = "8081";
+        return `${u.protocol}//${u.host}`;
+      }
     } catch {
-      return envApi;
+      // fall through to localhost
     }
   }
-  const h = req?.headers as Record<string, string | undefined> | undefined;
-  const origin = h?.origin ?? h?.referer;
-  if (origin) {
-    try {
-      const u = new URL(origin);
-      return `${u.protocol}//${u.host}`;
-    } catch {
-      return origin.replace(/\/$/, "");
-    }
-  }
-  return "http://localhost:8081";
+  return LOCAL_ORIGIN_FALLBACK;
 }
 
 let lastTombstonePurgeAt = 0;
 const TOMBSTONE_PURGE_INTERVAL_MS = 60 * 60 * 1000;
 import { getPrice } from "./prices";
 import { checkAllDistributors } from "./health";
+
+// Short server cache: one health.check fans out to ~25 distributor scrapes,
+// so repeat calls within the window reuse the previous result instead of
+// re-scraping (rate limiting alone still allows 125 scrapes/min/IP).
+const HEALTH_CACHE_TTL_MS = 5 * 60 * 1000;
+let healthCache: {
+  at: number;
+  result: Awaited<ReturnType<typeof checkAllDistributors>> | null;
+} = {
+  at: 0,
+  result: null,
+};
+
+export function clearHealthCacheForTests(): void {
+  healthCache = { at: 0, result: null };
+}
 import { getFxRates } from "./fx";
 import { mergeHistory } from "./price-history";
 import { checkRateLimit } from "./rate-limit";
@@ -128,9 +154,43 @@ export const appRouter = router({
         return { lastSyncedAt, items, fullResyncSince };
       }),
     push: protectedProcedure
-      .input(z.object({ items: z.array(syncItemSchema).max(500) }))
+      .input(z.object({ items: z.array(syncItemSchema).max(200) }))
       .mutation(async ({ ctx, input }) => {
         checkRateLimit(ctx, "sync.push", 30, 60_000);
+        // Total-payload cap: 200 items × 100KB per item would let one push
+        // force ~20MB of upserts. Real clients send a handful of small rows.
+        let totalBytes = 0;
+        try {
+          for (const item of input.items) {
+            totalBytes += JSON.stringify(item.data ?? null).length;
+          }
+        } catch {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Unserializable sync data",
+          });
+        }
+        if (totalBytes > 5_000_000) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Sync payload too large",
+          });
+        }
+        // Future-dated stamps win LWW forever; legit clients use
+        // skew-corrected server time, so anything beyond clock tolerance is
+        // rejected instead of poisoning conflict resolution.
+        const maxStamp = Date.now() + 5 * 60_000;
+        for (const item of input.items) {
+          if (
+            item.updatedAt > maxStamp ||
+            (item.deletedAt !== null && item.deletedAt > maxStamp)
+          ) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Sync timestamp too far in the future",
+            });
+          }
+        }
         const db = await getDb();
         if (!db) {
           console.warn("[Sync] Database not available; accepting nothing");
@@ -165,8 +225,8 @@ export const appRouter = router({
     get: publicProcedure
       .input(
         z.object({
-          distributorId: z.string().min(1),
-          modelNumber: z.string().min(1),
+          distributorId: z.string().min(1).max(64),
+          modelNumber: z.string().min(1).max(128),
         }),
       )
       .query(async ({ ctx, input }) => {
@@ -211,7 +271,16 @@ export const appRouter = router({
   health: router({
     check: publicProcedure.query(async ({ ctx }) => {
       checkRateLimit(ctx, "health.check", 5, 60_000);
-      return checkAllDistributors();
+      const now = Date.now();
+      if (
+        healthCache.result !== null &&
+        now - healthCache.at < HEALTH_CACHE_TTL_MS
+      ) {
+        return healthCache.result;
+      }
+      const result = await checkAllDistributors();
+      healthCache = { at: now, result };
+      return result;
     }),
   }),
 
@@ -224,7 +293,7 @@ export const appRouter = router({
 
   insights: router({
     get: publicProcedure
-      .input(z.object({ productId: z.string().min(1) }))
+      .input(z.object({ productId: z.string().min(1).max(191) }))
       .query(async ({ ctx, input }) => {
         checkRateLimit(ctx, "insights.get", 30, 60_000);
         return getInsight(input.productId);
@@ -233,7 +302,7 @@ export const appRouter = router({
 
   images: router({
     get: publicProcedure
-      .input(z.object({ productId: z.string().min(1) }))
+      .input(z.object({ productId: z.string().min(1).max(191) }))
       .query(async ({ ctx, input }) => {
         checkRateLimit(ctx, "images.get", 30, 60_000);
         return getProductImage(input.productId);
@@ -296,6 +365,7 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input, ctx }) => {
+        checkRateLimit(ctx, "notifications.uploadConfig", 30, 60_000);
         if (!ctx.deviceId) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -316,6 +386,7 @@ export const appRouter = router({
         return { accepted: true } as const;
       }),
     pull: protectedProcedure.input(z.object({})).query(async ({ ctx }) => {
+      checkRateLimit(ctx, "notifications.pull", 60, 60_000);
       if (!ctx.deviceId) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -334,6 +405,7 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input, ctx }) => {
+        checkRateLimit(ctx, "notifications.registerPushToken", 10, 60_000);
         if (!ctx.deviceId) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -345,6 +417,7 @@ export const appRouter = router({
         return { accepted: true } as const;
       }),
     unregisterPushToken: protectedProcedure.mutation(async ({ ctx }) => {
+      checkRateLimit(ctx, "notifications.unregisterPushToken", 10, 60_000);
       if (!ctx.deviceId) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -363,12 +436,14 @@ export const appRouter = router({
 
   devices: router({
     list: protectedProcedure.query(async ({ ctx }) => {
+      checkRateLimit(ctx, "devices.list", 30, 60_000);
       const devices = await listDevicesForUser(ctx.user.id);
       return { devices };
     }),
     current: protectedProcedure
       .input(z.object({ deviceId: z.string().min(1).max(128) }))
       .query(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "devices.current", 30, 60_000);
         const { userId } = await getDeviceBinding(input.deviceId);
         // Only reveal binding to its owner; enumeration without auth is denied
         // by protectedProcedure, and cross-user checks avoid leaking existence.
@@ -385,6 +460,7 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "devices.rename", 10, 60_000);
         const renamed = await renameDevice(
           ctx.user.id,
           input.deviceId,
@@ -395,10 +471,12 @@ export const appRouter = router({
     signOut: protectedProcedure
       .input(z.object({ deviceId: z.string().min(1).max(128) }))
       .mutation(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "devices.signOut", 10, 60_000);
         const signedOut = await signOutDevice(ctx.user.id, input.deviceId);
         return { signedOut };
       }),
     cleanupStale: protectedProcedure.mutation(async ({ ctx }) => {
+      checkRateLimit(ctx, "devices.cleanupStale", 10, 60_000);
       const removed = await cleanupStaleDevices(
         ctx.user.id,
         Date.now() - STALE_DEVICE_MS,

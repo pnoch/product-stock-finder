@@ -9,9 +9,33 @@ export interface ParsedProduct {
   description: string;
 }
 
-function isUrlLike(raw: string): boolean {
-  const trimmed = raw.trim();
-  return /^https?:\/\/\S+/i.test(trimmed);
+function isPrivateHostname(hostname: string): boolean {
+  const host = hostname.trim().toLowerCase().replace(/\.$/, "").replace(/^\[|\]$/g, "");
+  if (!host) return true;
+  if (host === "localhost" || host === "metadata.google.internal") return true;
+  if (host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".localhost")) return true;
+  if (host === "::1" || host === "::" || host === "0.0.0.0") return true;
+  if (/^127\./.test(host)) return true;
+  if (/^10\./.test(host)) return true;
+  if (/^192\.168\./.test(host)) return true;
+  if (/^169\.254\./.test(host)) return true;
+  const m172 = host.match(/^172\.(\d+)\./);
+  if (m172 && Number(m172[1]) >= 16 && Number(m172[1]) <= 31) return true;
+  if (/^0\./.test(host)) return true;
+  return false;
+}
+
+function isBlockedUrl(raw: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(raw.trim());
+  } catch {
+    return true;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return true;
+  if (url.username || url.password) return true;
+  if (isPrivateHostname(url.hostname)) return true;
+  return false;
 }
 
 function parseFromHtml(html: string, url: string): ParsedProduct | null {
@@ -59,12 +83,14 @@ function parseFromHtml(html: string, url: string): ParsedProduct | null {
 
 async function tryParseUrl(raw: string): Promise<ParsedProduct | null> {
   const url = raw.trim();
-  if (!isUrlLike(url)) return null;
+  if (!/^https?:\/\/\S+/i.test(url)) return null;
+  if (isBlockedUrl(url)) return null;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 6000);
     const res = await fetch(url, {
       signal: controller.signal,
+      redirect: "error",
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; ProductStockFinder/1.0)",
         Accept: "text/html,application/xhtml+xml",
@@ -73,7 +99,7 @@ async function tryParseUrl(raw: string): Promise<ParsedProduct | null> {
     clearTimeout(timeout);
     if (!res.ok) return null;
     const html = await res.text();
-    if (!html || html.length < 200) return null;
+    if (!html || html.length < 200 || html.length > 1_000_000) return null;
     return parseFromHtml(html, url);
   } catch {
     return null;

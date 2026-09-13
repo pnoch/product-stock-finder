@@ -1,11 +1,27 @@
 import type { Express } from "express";
 import { ENV } from "./env";
 
+const MAX_STORAGE_KEY_LENGTH = 512;
+
+// Object keys only: no traversal, absolute paths, URLs, backslashes, or
+// control characters. Without this the proxy forwards an attacker-controlled
+// `path` to the forge presign endpoint and 307-redirects to the result.
+export function isValidStorageKey(key: string): boolean {
+  if (!key || key.length > MAX_STORAGE_KEY_LENGTH) return false;
+  if (key.includes("\0")) return false;
+  if (key.startsWith("/") || key.includes("\\")) return false;
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(key)) return false;
+  const segments = key.split("/");
+  if (segments.some((s) => s === "" || s === "." || s === "..")) return false;
+  if (!/^[A-Za-z0-9._\-/~]+$/.test(key)) return false;
+  return true;
+}
+
 export function registerStorageProxy(app: Express) {
   app.get("/storage/*", async (req, res) => {
     const key = (req.params as Record<string, string>)[0];
-    if (!key) {
-      res.status(400).send("Missing storage key");
+    if (!key || !isValidStorageKey(key)) {
+      res.status(400).send("Invalid storage key");
       return;
     }
 

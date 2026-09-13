@@ -279,7 +279,7 @@ export default function HomeScreen() {
               status={connection.status}
               onPress={
                 connection.status === "signed-out"
-                  ? () => router.push("/settings")
+                  ? () => router.push("/(tabs)/settings")
                   : undefined
               }
             />
@@ -695,7 +695,7 @@ export default function HomeScreen() {
             })}
             {watchlist.length > 3 && (
               <TouchableOpacity activeOpacity={0.7}
-                onPress={() => router.push("/watchlist")}
+                onPress={() => router.push("/(tabs)/watchlist")}
                 accessibilityLabel={`View all ${watchlist.length} products`}
                 accessibilityRole="button"
                 style={{ alignItems: "center", paddingVertical: 8 }}

@@ -24,7 +24,11 @@ export interface OAuthStatePayload {
 const usedStateNonces = new Map<string, number>();
 
 function stateSecret(): string {
-  return process.env.JWT_SECRET ?? "dev-secret-change-in-production";
+  const secret = process.env.JWT_SECRET;
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production")
+    throw new Error("JWT_SECRET must be set in production");
+  return "dev-secret-change-in-production";
 }
 
 function pruneExpiring<K>(map: Map<K, number>, now: number) {
@@ -717,8 +721,19 @@ export function registerOAuthRoutes(app: Express) {
 
   app.post("/api/auth/change-password", async (req: Request, res: Response) => {
     try {
+      const ip = getClientIp(req);
+      if (!checkAuthRateLimit(ip)) {
+        res.status(429).json({ error: "Too many requests. Try again shortly." });
+        return;
+      }
       const user = await sdk.authenticateRequest(req);
       if (!(await assertDeviceAllowed(res, user.id, deviceIdFromReq(req)))) return;
+      // Per-account bucket: rotating source addresses must not allow
+      // brute-forcing one account's current password.
+      if (!checkAuthRateLimit(`changepw:${user.id}`)) {
+        res.status(429).json({ error: "Too many requests. Try again shortly." });
+        return;
+      }
       const { currentPassword, newPassword } = req.body ?? {};
       if (!currentPassword || typeof currentPassword !== "string" || !currentPassword.trim()) {
         res.status(400).json({ error: "currentPassword is required" });
@@ -752,7 +767,7 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       console.error("[Auth] change-password failed", e);
-      res.status(400).json({ error: msg });
+      res.status(400).json({ error: "Request failed. Please try again." });
     }
   });
 
@@ -793,6 +808,12 @@ export function registerOAuthRoutes(app: Express) {
         res.json({ success: true, alreadyVerified: true });
         return;
       }
+      // Per-account bucket alongside the per-IP one above: an authenticated
+      // caller rotating egress addresses must not spam token issuance.
+      if (!checkAuthRateLimit(`resend:${user.id}`)) {
+        res.status(429).json({ error: "Too many requests. Try again shortly." });
+        return;
+      }
       const email = (user as any).email ?? "";
       const token = randomUUID();
       const expiresAt = Date.now() + PASSWORD_RESET_TTL_MS;
@@ -808,7 +829,7 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       console.error("[Auth] resend-verification failed", e);
-      res.status(400).json({ error: msg });
+      res.status(400).json({ error: "Request failed. Please try again." });
     }
   });
 

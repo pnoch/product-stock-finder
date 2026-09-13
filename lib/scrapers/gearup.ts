@@ -38,10 +38,10 @@ function parseHtml(
 
 export const gearupParser: DistributorParser = {
   id: "gearup-ae",
-  baseUrl: "https://gearup.me",
+  baseUrl: "https://gear-up.me",
   buildSearchUrl: (model) =>
-    `https://gearup.me/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://gearup.me", model),
+    `https://gear-up.me/search?q=${encodeURIComponent(model)}`,
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://gear-up.me", model),
   rateLimitMs: 3000,
 };
 

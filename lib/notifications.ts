@@ -59,6 +59,20 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   return status === "granted";
 }
 
+// Cross-platform entry point for alert/watch/reminder flows: native uses
+// expo-notifications, web uses the Notification API + push subscription path.
+// Callers must not use requestNotificationPermissions() directly — it always
+// returns false on web, stranding web users at "Permission Denied".
+export async function ensureNotificationPermission(): Promise<boolean> {
+  if (Platform.OS === "web") {
+    const { requestWebNotificationPermission } = await import(
+      "./web-notifications"
+    );
+    return (await requestWebNotificationPermission()) === "granted";
+  }
+  return requestNotificationPermissions();
+}
+
 // ─── Schedule a stock-available notification ──────────────────────────────────
 export async function scheduleStockAlert(
   productName: string,

@@ -19,6 +19,7 @@ import * as Linking from "expo-linking";
 import { buildShareText } from "@/lib/price-share";
 import { captureAndShareImage } from "@/lib/share-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { goBackOrHome } from "@/lib/navigation";
 import * as Haptics from "expo-haptics";
 import { showAlert } from "@/lib/alert";
 
@@ -33,7 +34,7 @@ import { useLiveProduct } from "@/hooks/use-live-prices";
 import { addAlert, getSettings } from "@/lib/storage";
 import {
   schedulePriceAlert,
-  requestNotificationPermissions,
+  ensureNotificationPermission,
 } from "@/lib/notifications";
 import { PriceAlert } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
@@ -181,11 +182,13 @@ export default function CompareScreen() {
       return;
     }
     const targetPrice = parseFloat((bestPrice * 0.95).toFixed(2));
-    const granted = await requestNotificationPermissions();
+    const granted = await ensureNotificationPermission();
     if (!granted) {
       showAlert(
         "Permission Denied",
-        "Please enable notifications in your device settings to receive price alerts.",
+        Platform.OS === "web"
+          ? "Please allow notifications in your browser to receive price alerts."
+          : "Please enable notifications in your device settings to receive price alerts.",
       );
       return;
     }
@@ -333,7 +336,7 @@ export default function CompareScreen() {
           ctaLabel="Try Again"
           onCtaPress={() => refresh()}
           secondaryLabel="Go back"
-          onSecondaryPress={() => router.back()}
+          onSecondaryPress={() => goBackOrHome(router)}
         />
       ) : (
         <>
@@ -377,7 +380,7 @@ export default function CompareScreen() {
               productName={productName}
               isRefreshing={isRefreshingAny}
               onRefresh={refresh}
-              onBack={() => router.back()}
+              onBack={() => goBackOrHome(router)}
             />
 
             <View

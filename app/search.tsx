@@ -9,6 +9,7 @@ import {
   Keyboard,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { goBackOrHome } from "@/lib/navigation";
 import * as Haptics from "expo-haptics";
 import { showAlert } from "@/lib/alert";
 import { useToast } from "@/components/ui/toast";
@@ -332,7 +333,7 @@ export default function SearchScreen() {
         if (pending.length > 0) {
           setPostAddProduct(product);
         } else {
-          router.back();
+          goBackOrHome(router, "/(tabs)/watchlist");
         }
       } catch (e) {
         console.error("[Search] addToWatchlist failed", e);
@@ -368,7 +369,7 @@ export default function SearchScreen() {
           gap: 12,
         }}
       >
-        <TouchableOpacity activeOpacity={0.7} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button" style={{ padding: 4 }} hitSlop={12}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => goBackOrHome(router)} accessibilityLabel="Go back" accessibilityRole="button" style={{ padding: 4 }} hitSlop={12}>
           <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
         </TouchableOpacity>
         <Text
@@ -611,7 +612,7 @@ export default function SearchScreen() {
           product={postAddProduct}
           onClose={() => {
             setPostAddProduct(null);
-            router.back();
+            goBackOrHome(router, "/(tabs)/watchlist");
           }}
           onChanged={() => {
             loadData();

@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import {
   deviceNotificationConfigs,
   notificationEvents,
@@ -38,7 +38,35 @@ export async function evaluateNotifications(now: number): Promise<void> {
     await evaluateMemory(now);
     return;
   }
-  const rows = await db.select().from(deviceNotificationConfigs);
+  // Paged: device rows are unbounded while a tick must stay short. New rows
+  // inserted mid-tick order after the cursor and are picked up next tick.
+  const PAGE_SIZE = 500;
+  let offset = 0;
+  for (;;) {
+    const rows = await db
+      .select()
+      .from(deviceNotificationConfigs)
+      .orderBy(asc(deviceNotificationConfigs.deviceId))
+      .limit(PAGE_SIZE)
+      .offset(offset);
+    if (rows.length === 0) break;
+    await evaluateConfigPage(db, rows, now);
+    if (rows.length < PAGE_SIZE) break;
+    offset += rows.length;
+  }
+}
+
+async function evaluateConfigPage(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  rows: Array<{
+    deviceId: string;
+    userId: number | null;
+    alerts: unknown;
+    stockWatches: unknown;
+    dateReminders: unknown;
+  }>,
+  now: number,
+): Promise<void> {
   const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> =
     [];
   const userDevices = new Map<

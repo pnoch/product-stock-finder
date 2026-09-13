@@ -187,23 +187,20 @@ export function timelineSegments(samples: HealthSample[]): TimelineSegment[] {
     (a, b) => new Date(a.at).getTime() - new Date(b.at).getTime(),
   );
   if (sorted.length === 1) return [{ status: sorted[0].status, weight: 1 }];
-  const spans: number[] = [];
-  for (let i = 0; i < sorted.length - 1; i++) {
-    spans.push(
-      new Date(sorted[i + 1].at).getTime() - new Date(sorted[i].at).getTime(),
-    );
-  }
-  const total = spans.reduce((sum, s) => sum + s, 0);
+  const times = sorted.map((s) => new Date(s.at).getTime());
+  const total = times[times.length - 1]! - times[0]!;
   if (total <= 0) {
     return sorted.map((s) => ({ status: s.status, weight: 1 / sorted.length }));
   }
-  return sorted.map((s, i) => ({
-    status: s.status,
-    weight:
-      i < spans.length
-        ? Math.min(Math.max(spans[i] / total, 0), 1)
-        : Math.min(Math.max(spans[spans.length - 1] / total, 0), 1),
-  }));
+  // Trapezoidal (nearest-neighbor) intervals: each sample owns half the gap
+  // on either side, so weights always sum to 1. The old scheme reused the
+  // last span for the final sample and overflowed (e.g. summed to 1.4).
+  return sorted.map((s, i) => {
+    const prev = i === 0 ? times[i]! : times[i - 1]!;
+    const next = i === times.length - 1 ? times[i]! : times[i + 1]!;
+    const weight = (next - prev) / 2 / total;
+    return { status: s.status, weight: Math.min(Math.max(weight, 0), 1) };
+  });
 }
 
 export interface DayGroup {

@@ -1,4 +1,4 @@
-import { and, eq, lt } from "drizzle-orm";
+import { and, asc, eq, lt } from "drizzle-orm";
 import { priceCache, type PriceCacheRow } from "../drizzle/schema";
 import { getDb } from "./db";
 import type { PriceSnapshot, StockStatus } from "../lib/types";
@@ -80,15 +80,21 @@ export async function setCachedPrice(
     });
 }
 
+// Bounded per tick: the warmer refreshes a few rows every 5 minutes, so an
+// unbounded scan would re-fetch an ever-growing table in one tick.
+const NEAR_EXPIRY_PER_TICK = 100;
+
 export async function listNearExpiry(
   now: number,
   thresholdMs: number,
+  limit: number = NEAR_EXPIRY_PER_TICK,
 ): Promise<Array<{ distributorId: string; modelNumber: string }>> {
   const cutoff = now - thresholdMs;
   const db = await getDb();
   if (!db) {
     const entries: Array<{ distributorId: string; modelNumber: string }> = [];
     for (const [key, snap] of memoryCache) {
+      if (entries.length >= limit) break;
       if (snap.fetchedAt < cutoff) {
         const sep = key.indexOf(":");
         if (sep === -1) continue;
@@ -105,11 +111,21 @@ export async function listNearExpiry(
       modelNumber: priceCache.modelNumber,
     })
     .from(priceCache)
-    .where(lt(priceCache.fetchedAt, cutoff));
+    .where(lt(priceCache.fetchedAt, cutoff))
+    .orderBy(asc(priceCache.fetchedAt))
+    .limit(limit);
   return rows;
 }
 
-export async function getAllFetchedAt(): Promise<
+// Safety valve: priceCache rows are keyed by distributor/model and the table
+// grows with every distinct model ever requested, while the warmer only needs
+// staleness info. Cap the scan well above catalog scale; rows beyond the cap
+// read as never-fetched and are warmed first (safe direction).
+const FETCHED_AT_SCAN_CAP = 5000;
+
+export async function getAllFetchedAt(
+  limit: number = FETCHED_AT_SCAN_CAP,
+): Promise<
   Array<{ distributorId: string; modelNumber: string; fetchedAt: number }>
 > {
   const db = await getDb();
@@ -120,6 +136,7 @@ export async function getAllFetchedAt(): Promise<
       fetchedAt: number;
     }> = [];
     for (const [key, snap] of memoryCache) {
+      if (entries.length >= limit) break;
       const sep = key.indexOf(":");
       if (sep === -1) continue;
       const distributorId = key.slice(0, sep);
@@ -134,7 +151,9 @@ export async function getAllFetchedAt(): Promise<
       modelNumber: priceCache.modelNumber,
       fetchedAt: priceCache.fetchedAt,
     })
-    .from(priceCache);
+    .from(priceCache)
+    .orderBy(asc(priceCache.fetchedAt))
+    .limit(limit);
   return rows;
 }
 

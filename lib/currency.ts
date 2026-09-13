@@ -41,11 +41,19 @@ export function getExchangeRate(currency: string): number | null {
   return rates[currency] ?? null;
 }
 
+// Cheapest purchasable listing: in_stock and back_order are orderable, while
+// out_of_stock is unavailable and unknown-availability must not anchor digest,
+// basket, or sort decisions. Alert detection (price-check.ts) independently
+// restricts to in_stock.
 export function getBestPrice(
   listings: { price: number; currency: string; stockStatus: string }[],
   displayCurrency: string,
 ): { price: number; currency: string } | null {
-  const available = listings.filter((l) => l.stockStatus !== "out_of_stock" && l.price > 0);
+  const available = listings.filter(
+    (l) =>
+      (l.stockStatus === "in_stock" || l.stockStatus === "back_order") &&
+      l.price > 0,
+  );
   if (!available.length) return null;
   const converted = available
     .map((l) => {

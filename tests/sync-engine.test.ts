@@ -387,7 +387,7 @@ describe("syncNow", () => {
         _items: SyncItem[],
       ): Promise<{ accepted: number; stamped: SyncStampedItem[] }> => ({
         accepted: 1,
-        stamped: [{ collection: "watchlist", id: "p1", updatedAt: 2500 }],
+        stamped: [{ collection: "watchlist" as const, id: "p1", updatedAt: 2500 }],
       }),
     );
     await syncNow({
@@ -475,7 +475,10 @@ describe("syncNow", () => {
       storage,
       isSignedIn: () => true,
       pull: vi.fn(async () => ({ lastSyncedAt: 4000, items: [] })),
-      push: vi.fn(async (_items: SyncItem[]) => ({ accepted: 1, stamped: [] })),
+      push: vi.fn(async (_items: SyncItem[]) => ({
+        accepted: 1,
+        stamped: [{ collection: "watchlist" as const, id: "p1", updatedAt: 4500 }],
+      })),
       now: () => 5000,
     });
     const meta = await storage.getSyncMeta();
@@ -513,7 +516,10 @@ describe("syncNow", () => {
     await storage.markItemDeleted("watchlist", "p1", 2000);
     await storage.addToWatchlist(makeProduct("p1"));
     const pull = vi.fn(async () => ({ lastSyncedAt: 1500, items: [] }));
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1, stamped: [] }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({
+      accepted: 1,
+      stamped: [{ collection: "watchlist" as const, id: "p1", updatedAt: 2500 }],
+    }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -683,7 +689,10 @@ describe("syncNow", () => {
     await storage.removeFromWatchlist("p1");
     await storage.markItemDeleted("watchlist", "p1", 2000);
     const pull = vi.fn(async () => ({ lastSyncedAt: 1500, items: [] }));
-    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 1, stamped: [] }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({
+      accepted: 1,
+      stamped: [{ collection: "watchlist" as const, id: "p1", updatedAt: 2500 }],
+    }));
     await syncNow({
       storage,
       isSignedIn: () => true,
@@ -709,7 +718,7 @@ describe("syncNow", () => {
         _items: SyncItem[],
       ): Promise<{ accepted: number; stamped: SyncStampedItem[] }> => ({
         accepted: 1,
-        stamped: [{ collection: "watchlist", id: "p1", updatedAt: 2500 }],
+        stamped: [{ collection: "watchlist" as const, id: "p1", updatedAt: 2500 }],
       }),
     );
     await syncNow({
@@ -752,7 +761,7 @@ describe("syncNow", () => {
         _items: SyncItem[],
       ): Promise<{ accepted: number; stamped: SyncStampedItem[] }> => ({
         accepted: 1,
-        stamped: [{ collection: "watchlist", id: "p1", updatedAt: 2500 }],
+        stamped: [{ collection: "watchlist" as const, id: "p1", updatedAt: 2500 }],
       }),
     );
     await syncNow({
@@ -820,7 +829,7 @@ describe("syncNow", () => {
         _items: SyncItem[],
       ): Promise<{ accepted: number; stamped: SyncStampedItem[] }> => ({
         accepted: 1,
-        stamped: [],
+        stamped: [{ collection: "watchlist", id: "p1", updatedAt: now + 3_600_000 }],
       }),
     );
     await syncNow({
@@ -897,7 +906,7 @@ describe("syncNow", () => {
         _items: SyncItem[],
       ): Promise<{ accepted: number; stamped: SyncStampedItem[] }> => ({
         accepted: 1,
-        stamped: [{ collection: "watchlist", id: "p1", updatedAt: 2500 }],
+        stamped: [{ collection: "watchlist" as const, id: "p1", updatedAt: 2500 }],
       }),
     );
     await syncNow({

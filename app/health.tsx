@@ -10,6 +10,7 @@ import {
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import { goBackOrHome } from "@/lib/navigation";
 import Svg, { Polyline } from "react-native-svg";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -149,7 +150,7 @@ export default function HealthScreen() {
           accessibilityRole="button"
           onPress={() => {
             if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
+            goBackOrHome(router);
           }}
           style={{ marginRight: 12 }}
         >

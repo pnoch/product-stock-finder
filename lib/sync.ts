@@ -54,7 +54,12 @@ export async function syncNow(opts: SyncNowOptions): Promise<void> {
   return promise;
 }
 
-async function doSync(opts: SyncNowOptions): Promise<void> {
+async function doSync(
+  opts: SyncNowOptions,
+  attempt = 0,
+  skipKeys: Set<string> = new Set(),
+  inheritedError: string | null = null,
+): Promise<void> {
   const storage = opts.storage;
   const meta = await storage.getSyncMeta();
   const oldCursor = meta.lastSyncedAt || 0;
@@ -141,9 +146,18 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     }
   }
 
-  const { dirty, pendingClearMeta } = await collectDirty(storage, oldCursor, applied, pulled.lastSyncedAt);
+  const { dirty } = await collectDirty(
+    storage,
+    oldCursor,
+    applied,
+    pulled.lastSyncedAt,
+    skipKeys,
+  );
 
   const nextCursor = pulled.lastSyncedAt;
+  const stampedKeys = new Set<string>();
+  const stampedTombstones: Array<{ collection: Collection; id: string }> = [];
+  let rejected = 0;
   if (dirty.length > 0) {
     let stamped: SyncStampedItem[] = [];
     try {
@@ -164,8 +178,14 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     );
     const metaAfter = await storage.getSyncMeta();
     for (const item of dirty) {
-      const stampedAt = stampedByKey.get(`${item.collection}:${item.id}`);
-      if (stampedAt === undefined) continue;
+      const key = `${item.collection}:${item.id}`;
+      const stampedAt = stampedByKey.get(key);
+      if (stampedAt === undefined) {
+        rejected += 1;
+        continue;
+      }
+      stampedKeys.add(key);
+      if (item.deletedAt !== null) stampedTombstones.push({ collection: item.collection, id: item.id });
       const col = metaAfter.items[item.collection] ?? {};
       col[item.id] = {
         updatedAt: stampedAt,
@@ -177,12 +197,19 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     // leave server-stamped entries under an old cursor, causing duplicate
     // re-pushes on the next sync.
     metaAfter.lastSyncedAt = nextCursor;
-    metaAfter.lastSyncError = null;
+    metaAfter.lastSyncError =
+      rejected > 0
+        ? `Push partially rejected (${rejected} item(s) not accepted)`
+        : (inheritedError ?? null);
     metaAfter.lastSyncOkAt = opts.now?.() ?? Date.now();
     await storage.saveSyncMeta(metaAfter);
   }
 
-  for (const { collection, id } of pendingClearMeta) {
+  // Clear tombstone meta only for tombstones pushed + stamped in this pass.
+  // Stale tombstone entries (older than the cursor, never pushed) used to be
+  // garbage-collected here; after a rejected run that drops deletes without
+  // the server ever seeing them, so they are retained instead.
+  for (const { collection, id } of stampedTombstones) {
     await storage.clearItemSyncMeta(collection, id);
   }
 
@@ -190,9 +217,41 @@ async function doSync(opts: SyncNowOptions): Promise<void> {
     await storage.saveSyncMeta({
       ...(await storage.getSyncMeta()),
       lastSyncedAt: nextCursor,
-      lastSyncError: null,
+      lastSyncError: inheritedError ?? null,
       lastSyncOkAt: opts.now?.() ?? Date.now(),
     });
+  }
+
+  // Follow-up pass: local edits that landed mid-sync (after the dirty
+  // snapshot, newer than this pass's cursor, unstamped and unapplied) would
+  // otherwise read as already-synced on the next run and never be pushed.
+  // Re-run once, skipping keys this pass already resolved. JS is
+  // single-threaded so the only interleaving windows are the awaits above.
+  if (attempt < 1) {
+    const fresh = await storage.getSyncMeta();
+    let leftover = false;
+    for (const col of Object.keys(fresh.items) as Collection[]) {
+      const entries = fresh.items[col] ?? {};
+      for (const [id, entry] of Object.entries(entries)) {
+        const key = `${col}:${id}`;
+        if (skipKeys.has(key) || stampedKeys.has(key) || applied.has(key)) {
+          continue;
+        }
+        if (entry.updatedAt > oldCursor) {
+          leftover = true;
+          break;
+        }
+      }
+      if (leftover) break;
+    }
+    if (leftover) {
+      await doSync(
+        opts,
+        attempt + 1,
+        new Set([...skipKeys, ...stampedKeys, ...applied]),
+        (await storage.getSyncMeta()).lastSyncError,
+      );
+    }
   }
 }
 
@@ -201,13 +260,13 @@ async function collectDirty(
   oldCursor: number,
   applied: Set<string>,
   _now: number,
-): Promise<{ dirty: SyncItem[]; pendingClearMeta: Array<{ collection: Collection; id: string }> }> {
+  skipKeys: Set<string> = new Set(),
+): Promise<{ dirty: SyncItem[] }> {
   const meta = await storage.getSyncMeta();
   const dirty: SyncItem[] = [];
   const keyOf = (c: Collection, id: string) => `${c}:${id}`;
   const local = await collectLocalState(storage);
   const pendingSetMeta: Array<{ collection: Collection; id: string }> = [];
-  const pendingClearMeta: Array<{ collection: Collection; id: string }> = [];
   const rawServerNow = await serverNow(storage);
   // NOTE: stamps deliberately use the per-item skew-corrected estimate, not
   // the just-observed server cursor. Flooring at the cursor would falsify
@@ -218,7 +277,7 @@ async function collectDirty(
   for (const collection of COLLECTIONS) {
     if (collection === "settings") {
       const key = keyOf("settings", SETTINGS_ID);
-      if (applied.has(key)) continue;
+      if (applied.has(key) || skipKeys.has(key)) continue;
       const entry = meta.items.settings?.[SETTINGS_ID];
       if (entry && entry.updatedAt > oldCursor) {
         dirty.push({
@@ -234,7 +293,7 @@ async function collectDirty(
     const items = local[collection] as { id: string }[];
     for (const item of items) {
       const key = keyOf(collection, item.id);
-      if (applied.has(key)) continue;
+      if (applied.has(key) || skipKeys.has(key)) continue;
       const entry = meta.items[collection]?.[item.id];
       if (!entry || entry.updatedAt > oldCursor || entry.deleted) {
         dirty.push({
@@ -257,7 +316,7 @@ async function collectDirty(
     for (const [id, entry] of Object.entries(colMeta)) {
       if (!entry.deleted) continue;
       const key = keyOf(collection, id);
-      if (applied.has(key)) continue;
+      if (applied.has(key) || skipKeys.has(key)) continue;
       if (localItems.some((item) => item.id === id)) continue;
       if (entry.updatedAt > oldCursor) {
         dirty.push({
@@ -267,9 +326,9 @@ async function collectDirty(
           updatedAt: entry.updatedAt,
           deletedAt: entry.updatedAt,
         });
-      } else {
-        pendingClearMeta.push({ collection, id });
       }
+      // Older tombstones are intentionally left alone: clearing meta for a
+      // tombstone the server never confirmed resurrects the row on next pull.
     }
   }
 
@@ -277,7 +336,7 @@ async function collectDirty(
     await storage.setItemSyncMeta(collection, id, freshServerNow);
   }
 
-  return { dirty, pendingClearMeta };
+  return { dirty };
 }
 
 async function collectLocalState(storage: Storage): Promise<{

@@ -8,13 +8,13 @@ const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 describe("Gearup Parser", () => {
   it("should have correct parser config", () => {
     expect(gearupParser.id).toBe("gearup-ae");
-    expect(gearupParser.baseUrl).toBe("https://gearup.me");
+    expect(gearupParser.baseUrl).toBe("https://gear-up.me");
     expect(gearupParser.rateLimitMs).toBe(3000);
   });
 
   it("should build correct search URL", () => {
     const url = gearupParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://gearup.me/search?q=hAP%20ac3");
+    expect(url).toBe("https://gear-up.me/search?q=hAP%20ac3");
   });
 
   it("should return null for 404 page fixture", () => {

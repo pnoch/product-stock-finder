@@ -90,6 +90,11 @@ export async function mergeHistory(
   });
 }
 
+// Batched: a single unbounded DELETE would hold a long lock once history
+// grows. The remainder drains on subsequent ticks (self-draining).
+const PURGE_BATCH_SIZE = 1000;
+const PURGE_MAX_BATCHES_PER_TICK = 10;
+
 export async function purgeOldHistory(now: number): Promise<void> {
   const cutoff = new Date(now);
   cutoff.setUTCDate(cutoff.getUTCDate() - HISTORY_DAYS);
@@ -103,7 +108,16 @@ export async function purgeOldHistory(now: number): Promise<void> {
     }
     return;
   }
-  await db.delete(priceHistory).where(lt(priceHistory.date, cutoffDay));
+  for (let batch = 0; batch < PURGE_MAX_BATCHES_PER_TICK; batch++) {
+    const result = await db
+      .delete(priceHistory)
+      .where(lt(priceHistory.date, cutoffDay))
+      .limit(PURGE_BATCH_SIZE);
+    const affected = Number(
+      (result as { affectedRows?: unknown }).affectedRows ?? 0,
+    );
+    if (!Number.isFinite(affected) || affected < PURGE_BATCH_SIZE) break;
+  }
 }
 
 export function clearHistoryForTests(): void {

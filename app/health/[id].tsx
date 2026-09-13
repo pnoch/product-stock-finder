@@ -3,6 +3,7 @@ import { ActivityIndicator, ScrollView, Text, View, TouchableOpacity, Platform }
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { goBackOrHome } from "@/lib/navigation";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -65,7 +66,7 @@ export default function HealthDetailScreen() {
           ctaLabel="Go back"
           onCtaPress={() => {
             if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
+            goBackOrHome(router, "/health");
           }}
         />
       </ScreenContainer>
@@ -87,7 +88,7 @@ export default function HealthDetailScreen() {
           accessibilityRole="button"
           onPress={() => {
             if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
+            goBackOrHome(router, "/health");
           }}
           style={{ marginRight: 12 }}
         >
