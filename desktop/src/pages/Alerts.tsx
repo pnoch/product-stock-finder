@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import {
+  BarChart3,
   Bell,
   BellRing,
   Calendar,
@@ -46,6 +47,7 @@ const TYPE_ICONS = {
   restock: CircleCheck,
   reminder: Clock,
   health: TriangleAlert,
+  digest: BarChart3,
 } as const;
 
 export function Alerts() {

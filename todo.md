@@ -1471,3 +1471,10 @@
 - [x] `AGENTS.md` drift fixes: `lib/storage/` dir layout, `desktop/` + `server/notifications/` + `server/routers/` sections, drizzle 15 → 20 tables, tests 80+ → ~255 files / ~1682 tests, `product/[id].tsx` ~410 lines, 25 registered parsers, todo ref 196 phases
 - [x] `0023_quiet_hours` wiring verified (SQL + journal + `drizzle/schema.ts` + client upload + digest hold-and-flush); full 0000→0023 chain applied cleanly on scratch MySQL 8.0 (`quietHours` JSON NULL present, 20 tables) — container torn down; prod `pnpm db:push` still needs prod `DATABASE_URL` (local `.env` points at localhost, no server running)
 - [x] CI note: main runs fail at job start with 0 steps — account billing/spending-limit failure (annotation on run `34754705704`), not code; local E2E: `tsc 0`, lint clean, `1682 passed` tests
+
+## Phase 198: Desktop check green
+
+- [x] `server/sync-db.ts`: dropped unused `TRPCError` import (TS6133 under desktop tsconfig which covers `../server`)
+- [x] `desktop/src/pages/Alerts.tsx`: added missing `digest: BarChart3` to `TYPE_ICONS` (parity with mobile `chart.bar.fill` from Phase 196; lucide 0.400.0 has no `ChartColumn`)
+- [x] E2E: root `tsc 0`, desktop `tsc 0`, lint clean, root `1682 passed` tests
+- [x] Known pre-existing (out of scope): `desktop/tests/settings-webtoggle.test.tsx` 2 failures — empty Settings render, fails on clean tree, no dependency on touched files

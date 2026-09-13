@@ -1,5 +1,4 @@
 import { and, eq, gt, lt, or, sql, type SQLWrapper } from "drizzle-orm";
-import { TRPCError } from "@trpc/server";
 import {
   appSettings,
   backOrderReminders,
