@@ -107,9 +107,27 @@ Fix in `e71cbc8`: promoted the generated snapshot to `drizzle/meta/0023_snapshot
    (Push just triggered a fresh run — it will hit the same billing wall until fixed.)
 3. **Release tagging stalled at `v5.5.2`.** `5.16.0` is bumped in the manifests but untagged.
    Decide policy (catch-up tag vs. abandon) before tagging.
-4. **Real-device QA not done** (cannot be verified headless):
-   - Tauri tray-click deep-links.
-   - Web push over HTTPS (needs a real browser + push service).
+4. **Real-device QA not done** (cannot be verified headless) — narrowed by static
+   review 2026-09-13 (see §8). Unit/integration seams are already tested
+   (`sw-notificationclick`, `desktop-sw-guard`, `web-push`, `notification-routing`,
+   `server-notifications`); only the OS/browser integration points below need a device:
+   - **Desktop tray:** left-click restores/focuses main window (`lib.rs:1431-44`);
+     menu Open / Check Now / Quit. No close-to-tray (no `close_requested` handler).
+   - **Desktop notification deep-link is Linux-only by design** (`lib.rs:105-141`):
+     Linux click → `notification-activated` → `navigate(/product/:id)`; macOS/Windows
+     drop the route, toast only focuses. Confirm this asymmetry is acceptable.
+   - **Web push (real browser + HTTPS + push service):** subscribe in Settings →
+     background/unfocused toast → click focuses window at `/` (no product deep-link:
+     `sw.js` `notificationclick` opens `/`; server payload carries only eventId).
+     Focused tab → no OS toast, foreground pull covers it (60s poll + focus tick,
+     `web-push-shown` dedup via `displayed_event_ids`).
+   - **Pre-QA fixes:** (a) `desktop/src-tauri/tauri.conf.json` + `Cargo.toml` are
+     stuck at `5.12.0` (bundle shows stale version; root + `desktop/package.json`
+     are `5.16.0`; no sync script exists). (b) `public/sw.js` precache hashes are
+     stale (`entry-7673a051`/`browser-1e07bb39` vs dist's `entry-d938f2ab`/
+     `browser-9e2bcd96`) — `addAll` fails silently (caught), so offline cold start
+     won't serve shell JS from precache. Decide: regenerate hashes per export or
+     drop precache (runtime cache-first for `/_expo/static/` still works).
 5. ~~**Orphaned Railway MySQL services** — see §3.~~ **DONE 2026-09-13** — see §3.
 6. **Prod secrets review.** `VAPID_*` were generated this session; confirm they are the
    intended long-term keys. `EXPO_PUBLIC_*` are baked at build time — re-run
@@ -126,7 +144,36 @@ Fix in `e71cbc8`: promoted the generated snapshot to `drizzle/meta/0023_snapshot
   (token from `~/.railway/config.json`, `User-Agent: railway-cli/4.15.0` header required).
   Project now contains only `app` + `MySQL-NtCC`.
 - Remaining for a human: CI billing (§5.2), release tag policy (§5.3),
-  real-device QA (§5.4), secrets review (§5.6).
+  real-device QA (§5.4 + §8), secrets review (§5.6).
+
+---
+
+## 8. Device-QA prep — static review (2026-09-13)
+
+**Desktop tray + deep-link** (`desktop/src-tauri/src/lib.rs`, `desktop/src/notifications.ts`,
+`desktop/src/App.tsx` `NotificationRouter`):
+- Tray left-click (`Button::Left` + `Up`) → `show()` + `set_focus()` on `main` window.
+  Menu: Open (same), Check Now (`run_full_price_check`), Quit (`app.exit(0)`).
+- No `close_requested` prevention, no `hide()`, no single-instance or deep-link
+  protocol plugin — closing the window quits; "deep-link" = notification-click route only.
+- Route flow: `notification_route_for_product` → `/product/{id}` →
+  `activation_payload({route})` → `notification-activated` event → `navigate(route)`
+  (frontend guards `startsWith("/")`, falls back to `/`). Linux-only; other OSes drop it.
+- Nothing here looks broken; QA is confirm-on-device, plus the 5.12.0→5.16.0 version bump.
+
+**Web push** (`lib/web-push.ts`, `lib/web-notifications.ts`, `public/sw.js`,
+`server/web-push.ts`, `server/push-notifications.ts`):
+- Subscribe requires `EXPO_PUBLIC_VAPID_PUBLIC_KEY` baked at build time
+  (Metro `--clear` needed after rotation) + `Notification.permission === "granted"`;
+  untested-seam risk is only the real push service + HTTPS secure context.
+- Server silently no-ops without `VAPID_*`; prunes subscription on 410/404. OK.
+- SW `push`: skips `showNotification` when a window client is focused (foreground pull
+  covers it); posts `web-push-shown` → `recordDisplayedEventId` dedup. Coherent.
+- SW `notificationclick`: focus existing `/`-scope window else `openWindow("/")`.
+  No product deep-link — document as expected behavior or extend payload with a route.
+- `public/sw.js` stale precache hashes (see §5.4) — harmless at runtime (caught warn)
+  but offline cold start is degraded until fixed. `desktop/public/sw.js` is a separate
+  precache-free SW and is clean.
 
 ---
 
