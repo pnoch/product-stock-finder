@@ -15,6 +15,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system";
 import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -23,11 +25,14 @@ import { useLiveWatchlist } from "@/hooks/use-live-prices";
 import { useConnection } from "@/hooks/use-connection";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { buildWatchlistShareText } from "@/lib/watchlist-share";
+import { parseBulkImportCsv } from "@/lib/csv";
+import { PRODUCT_CATALOG } from "@shared/catalog";
 import {
   getSettings,
   saveSettings,
   getTagDefinitions,
   addToWatchlist,
+  addAlert,
   removeFromWatchlist,
   getSyncMeta,
 } from "@/lib/storage";
@@ -459,6 +464,83 @@ export default function WatchlistScreen() {
     }
   }, [watchlist, displayCurrency]);
 
+  const handleImportCsv = useCallback(async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: ["text/csv", "text/comma-separated-values", "application/vnd.ms-excel"],
+        copyToCacheDirectory: true,
+      });
+      if (res.canceled || !res.assets?.[0]) return;
+      const asset = res.assets[0];
+      let csv = "";
+      if (Platform.OS === "web" && asset.uri) {
+        const fetched = await fetch(asset.uri);
+        csv = await fetched.text();
+      } else if (asset.uri) {
+        csv = await FileSystem.readAsStringAsync(asset.uri, { encoding: "utf8" });
+      } else if ((asset as unknown as { file?: File }).file) {
+        csv = await (asset as unknown as { file: File }).file.text();
+      }
+      if (!csv.trim()) {
+        showAlert("Import failed", "CSV file is empty.");
+        return;
+      }
+      const rows = parseBulkImportCsv(csv);
+      if (rows.length === 0) {
+        showAlert("Import failed", "No valid rows found. Expected header: model,targetPrice,currency,tags");
+        return;
+      }
+      const byModel = new Map(PRODUCT_CATALOG.map((p) => [p.modelNumber.toLowerCase(), p] as const));
+      let added = 0;
+      let skipped = 0;
+      // Process in chunks of 50 to keep UI responsive and respect sync 200 cap via queue.
+      for (let i = 0; i < rows.length; i += 50) {
+        const chunk = rows.slice(i, i + 50);
+        for (const row of chunk) {
+          const catalogHit = byModel.get(row.model.toLowerCase());
+          const product = catalogHit
+            ? { ...catalogHit, tags: row.tags.length > 0 ? row.tags : catalogHit.tags, isWatched: true, addedAt: new Date().toISOString() } as unknown as Product
+            : ({
+                id: row.model,
+                name: row.model,
+                modelNumber: row.model,
+                brand: "Unknown",
+                category: "Switch",
+                description: "",
+                isWatched: true,
+                addedAt: new Date().toISOString(),
+                listings: [],
+                tags: row.tags,
+              } as unknown as Product);
+          try {
+            await addToWatchlist(product as Product);
+            if (row.targetPrice !== null) {
+              await addAlert({
+                id: `alert-${product.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                productId: product.id,
+                targetPrice: row.targetPrice,
+                currency: row.currency,
+                createdAt: new Date().toISOString(),
+                isActive: true,
+              } as unknown as never);
+            }
+            added += 1;
+          } catch {
+            skipped += 1;
+          }
+        }
+        // Yield to event loop between chunks.
+        await new Promise<void>((r) => setTimeout(r, 0));
+      }
+      await reload();
+      await loadData();
+      showAlert("Import complete", `Added ${added} product${added !== 1 ? "s" : ""}${skipped > 0 ? `, ${skipped} skipped` : ""}.`);
+    } catch (e) {
+      LOG_ERROR("[Watchlist] import failed", e);
+      showAlert("Import failed", e instanceof Error ? e.message : String(e));
+    }
+  }, [reload, loadData]);
+
   const persistChainRef = useRef(Promise.resolve<void>(undefined));
   const sortModeRef = useRef(sortMode);
   const groupModeRef = useRef(groupMode);
@@ -564,6 +646,7 @@ export default function WatchlistScreen() {
           onRefresh={handleRefreshAll}
           onCheckNow={handleCheckNow}
           onAdd={() => router.push("/search")}
+          onImport={handleImportCsv}
           onBulkDelete={handleBulkDelete}
           onBulkTag={() => setBulkTagVisible(true)}
           onExitSelection={exitSelection}

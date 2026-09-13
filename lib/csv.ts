@@ -265,6 +265,53 @@ export function parseWatchlistDetailedCsv(csv: string): Product[] {
   return detailedCsvToProducts(parseDetailedCsv(csv));
 }
 
+// ─── Bulk import (model,targetPrice,currency,tags) ──────────────────────────
+export type BulkImportRow = {
+  model: string;
+  targetPrice: number | null;
+  currency: string;
+  tags: string[];
+};
+
+const BULK_MAX_ROWS = 500;
+
+export function parseBulkImportCsv(csv: string): BulkImportRow[] {
+  const rows = parseCsvRows(csv);
+  if (rows.length === 0) return [];
+  const header = rows[0].map((h) => h.trim().toLowerCase());
+  const hasHeader = header.includes("model") || header.includes("modelnumber");
+  const dataRows = hasHeader ? rows.slice(1) : rows;
+  const modelIdx = hasHeader ? header.indexOf("model") : 0;
+  const modelAltIdx = hasHeader ? header.indexOf("modelnumber") : -1;
+  const effectiveModelIdx = modelIdx >= 0 ? modelIdx : modelAltIdx >= 0 ? modelAltIdx : 0;
+  const priceIdx = hasHeader ? header.indexOf("targetprice") : 1;
+  const currencyIdx = hasHeader ? header.indexOf("currency") : 2;
+  const tagsIdx = hasHeader ? header.indexOf("tags") : 3;
+
+  const out: BulkImportRow[] = [];
+  for (const cols of dataRows) {
+    if (out.length >= BULK_MAX_ROWS) break;
+    const get = (idx: number) => (idx >= 0 && idx < cols.length ? (cols[idx] ?? "") : "");
+    const rawModel = get(effectiveModelIdx).trim();
+    if (!rawModel) continue;
+    const rawPrice = get(priceIdx).trim();
+    const num = rawPrice ? Number(rawPrice) : NaN;
+    const targetPrice = Number.isFinite(num) && num > 0 ? num : null;
+    const rawCurrency = get(currencyIdx).trim() || "USD";
+    const currency = rawCurrency.toUpperCase().slice(0, 8);
+    const rawTags = get(tagsIdx).trim();
+    const tags = rawTags
+      ? rawTags
+          .split(/[;,]/)
+          .map((t) => t.trim())
+          .filter(Boolean)
+          .slice(0, 10)
+      : [];
+    out.push({ model: rawModel, targetPrice, currency, tags });
+  }
+  return out;
+}
+
 // Unified per-distributor import entry point: handles BOM, share deep-link header,
 // and invite/ACL collision dedup. Auto-detects detailed vs summary format.
 export function parseWatchlistCsv(csv: string): Product[] {

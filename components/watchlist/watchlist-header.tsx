@@ -15,6 +15,7 @@ type WatchlistHeaderProps = {
   onRefresh: () => void;
   onCheckNow: () => void;
   onAdd: () => void;
+  onImport?: () => void;
   onBulkDelete: () => void;
   onBulkTag: () => void;
   onExitSelection: () => void;
@@ -33,6 +34,7 @@ export function WatchlistHeader({
   onRefresh,
   onCheckNow,
   onAdd,
+  onImport,
   onBulkDelete,
   onBulkTag,
   onExitSelection,
@@ -259,6 +261,27 @@ export function WatchlistHeader({
             accessibilityRole="button"
           >
           <IconSymbol name="square.and.arrow.up" size={18} color={colors.primary} />
+        </TouchableOpacity>
+          <TouchableOpacity activeOpacity={0.85}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 20,
+              width: 40,
+              minHeight: 40,
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+            onPress={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onImport?.();
+            }}
+            accessibilityLabel="Import CSV"
+            accessibilityRole="button"
+          >
+          <IconSymbol name="square.and.arrow.down" size={18} color={colors.primary} />
         </TouchableOpacity>
           <TouchableOpacity activeOpacity={0.85}
             style={{
