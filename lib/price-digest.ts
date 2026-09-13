@@ -1,5 +1,6 @@
 import { formatPrice } from "@shared/currency";
 import { getBestPrice } from "./currency";
+import { isInQuietHours } from "./quiet-hours";
 import type { AppSettings, PriceAlert, Product, StockStatus } from "./types";
 
 export interface DigestProductState {
@@ -285,6 +286,10 @@ export async function maybeSendDigest(
   try {
     const frequency = settings.digestFrequency ?? "off";
     if (frequency === "off") return null;
+
+    // Respect quiet hours: defer digest until the window ends, so it groups
+    // with other alerts and doesn't wake the user. Next tick will retry.
+    if (isInQuietHours(settings, new Date(now))) return null;
 
     const intervalMs = frequency === "weekly" ? 7 * 86400000 : 86400000;
     if (previous) {
