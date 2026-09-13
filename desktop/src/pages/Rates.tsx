@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { EXCHANGE_RATES } from "@shared/currency";
 import { storage } from "../storage";
-import { getFxChange } from "../../../lib/fx-history";
+import { FX_WINDOWS, getFxWindowChange, sliceFxHistoryByRange, type FxWindow } from "../../../lib/fx-history";
 import { maybeRefreshFxRates, refreshFxRates } from "../../../lib/fx";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import type { FxHistory } from "../../../lib/storage/fx-history";
@@ -52,6 +52,7 @@ export function Rates() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [range, setRange] = useState<FxWindow>("All");
 
   const loadData = useCallback(async () => {
     try {
@@ -94,7 +95,8 @@ export function Rates() {
       )
     : (EXCHANGE_RATES as Record<string, number>);
 
-  const change = history ? getFxChange(history) : {};
+  const change = history ? getFxWindowChange(history, range) : {};
+  const slicedRates = history ? sliceFxHistoryByRange(history, range).rates : {};
 
   const currencies = Object.keys(CURRENCY_INFO);
 
@@ -139,11 +141,30 @@ export function Rates() {
         </div>
       )}
 
+      <div className="flex items-center gap-1" role="radiogroup" aria-label="Time range">
+        {FX_WINDOWS.map((r) => (
+          <button
+            key={r}
+            onClick={() => setRange(r)}
+            role="radio"
+            aria-checked={r === range}
+            aria-label={`Select ${r} time range`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+              r === range
+                ? "bg-brand-600 text-white"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+            }`}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {currencies.map((code) => {
           const rate = currentRates[code] ?? 1;
           const ch = change[code] ?? 0;
-          const hist = history?.rates[code] ?? [];
+          const hist = slicedRates[code] ?? [];
           const chColor = ch > 0 ? "text-emerald-600" : ch < 0 ? "text-red-500" : "text-gray-500";
           return (
             <div key={code} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">

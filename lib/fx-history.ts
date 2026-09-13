@@ -97,8 +97,7 @@ export function appendFxHistory(
 
 export function getFxChange(
   history: FxHistory,
-): Record<string, number | null> {
-  const change: Record<string, number | null> = {};
+): Record<string, number | null> {  const change: Record<string, number | null> = {};
   for (const [code] of Object.entries(history.rates)) {
     const safeRates = (history?.rates[code] ?? []) as (number | null)[];
     if (safeRates.length < 2) {
@@ -112,6 +111,59 @@ export function getFxChange(
         change[code] = (prev as number) !== 0 ? (((curr as number) - (prev as number)) / Math.abs(prev as number)) * 100 : 0;
       }
     }
+  }
+  return change;
+}
+
+// ─── Windowed views (Rates 1W/1M/All toggle) ────────────────────────────────
+export type FxWindow = "1W" | "1M" | "All";
+export const FX_WINDOWS: FxWindow[] = ["1W", "1M", "All"];
+
+const FX_WINDOW_DAYS: Record<FxWindow, number> = {
+  "1W": 7,
+  "1M": 30,
+  All: 9999,
+};
+
+export function sliceFxHistoryByRange(
+  history: FxHistory,
+  range: FxWindow,
+): FxHistory {
+  if (range === "All") return history;
+  const ts = history.timestamps ?? [];
+  if (ts.length === 0) return history;
+  const anchor = Math.min(Date.now(), Math.max(...ts));
+  const cutoff = anchor - FX_WINDOW_DAYS[range] * 86400000;
+  const keep = ts.map((t) => t >= cutoff);
+  return {
+    rates: Object.fromEntries(
+      Object.entries(history.rates ?? {}).map(([code, arr]) => [
+        code,
+        (arr ?? []).filter((_, i) => keep[i] ?? false),
+      ]),
+    ),
+    timestamps: ts.filter((_, i) => keep[i]),
+  };
+}
+
+export function getFxWindowChange(
+  history: FxHistory,
+  range: FxWindow,
+): Record<string, number | null> {
+  const sliced = sliceFxHistoryByRange(history, range);
+  const change: Record<string, number | null> = {};
+  for (const [code, arr] of Object.entries(sliced.rates ?? {})) {
+    const valid = (arr ?? []).filter(
+      (v): v is number => v !== null && Number.isFinite(v),
+    );
+    if (valid.length < 2) {
+      change[code] = null;
+      continue;
+    }
+    const first = valid[0];
+    const last = valid[valid.length - 1];
+    change[code] =
+      first !== 0 ? ((last - first) / Math.abs(first)) * 100 : 0;
   }
   return change;
 }
