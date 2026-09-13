@@ -702,10 +702,10 @@ export default function WatchlistScreen() {
         keyExtractor={(item: Product & { _sectionKey?: string }) => `${item.id}-${item._sectionKey ?? ''}`}
         extraData={groupMode}
         initialNumToRender={8}
-        windowSize={5}
+        windowSize={7}
         maxToRenderPerBatch={8}
         updateCellsBatchingPeriod={50}
-        removeClippedSubviews={false}
+        removeClippedSubviews={Platform.OS === "android"}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingHorizontal: 20,
