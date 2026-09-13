@@ -1464,3 +1464,10 @@
 - [x] Warmer hold-and-flush (`server/notifications/digest.ts`, all 4 evaluate paths): holds drafts in quiet window (all bound configs must opt in), flushes one day-scoped `digest` event at window end, then resumes individual delivery
 - [x] Client renders `digest` history entries (`lib/types.ts`, `TYPE_ICONS` + `chart.bar.fill`)
 - [x] Guards (`tests/server-digest.test.ts` — RED watched failing first); E2E: `tsc 0`, lint clean, `1682 passed` tests
+
+## Phase 197: v5.16 hygiene — version lockstep + AGENTS fixes
+
+- [x] Version lockstep `5.16.0`: root `package.json` renamed `app-template` → `product-stock-finder` + bumped, `app.config.ts` + `desktop/package.json` aligned (`5.12.0` → `5.16.0`) (`cd9fedb`)
+- [x] `AGENTS.md` drift fixes: `lib/storage/` dir layout, `desktop/` + `server/notifications/` + `server/routers/` sections, drizzle 15 → 20 tables, tests 80+ → ~255 files / ~1682 tests, `product/[id].tsx` ~410 lines, 25 registered parsers, todo ref 196 phases
+- [x] `0023_quiet_hours` wiring verified (SQL + journal + `drizzle/schema.ts` + client upload + digest hold-and-flush); prod `pnpm db:push` still needs `DATABASE_URL`
+- [x] CI note: main runs fail at job start with 0 steps — account billing/spending-limit failure (annotation on run `34754705704`), not code; local E2E: `tsc 0`, lint clean, `1682 passed` tests
