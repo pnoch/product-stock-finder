@@ -54,6 +54,81 @@ const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 const QUIET_HOURS_OPTIONS = ["Off", "22:00–07:00", "23:00–07:00", "00:00–08:00"] as const;
 
+type SharedLink = { token: string; title: string; shareUrl: string; expiresAt: string | null };
+
+function SharedLinksList() {
+  const { showToast } = useToast();
+  const listQuery = trpc.sharedWatchlists.list.useQuery();
+  const extendMutation = trpc.sharedWatchlists.extend.useMutation();
+  const revokeMutation = trpc.sharedWatchlists.revoke.useMutation();
+  const [busyToken, setBusyToken] = useState<string | null>(null);
+  const links = ((listQuery.data?.links ?? []) as SharedLink[]);
+
+  const runFor = async (token: string, action: "copy" | "extend" | "revoke") => {
+    if (busyToken) return;
+    if (action === "copy") {
+      const link = links.find((l) => l.token === token);
+      if (!link) return;
+      try {
+        await navigator.clipboard.writeText(link.shareUrl);
+        showToast("Copied");
+      } catch {
+        showToast("Couldn't copy link");
+      }
+      return;
+    }
+    setBusyToken(token);
+    try {
+      if (action === "extend") {
+        const res = await extendMutation.mutateAsync({ token });
+        await listQuery.refetch();
+        showToast(`Extended to ${new Date(res.expiresAt).toLocaleDateString()}`);
+      } else {
+        await revokeMutation.mutateAsync({ token });
+        await listQuery.refetch();
+        showToast("Link revoked");
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Action failed");
+    } finally {
+      setBusyToken(null);
+    }
+  };
+
+  if (listQuery.isLoading) return <LoadingSpinner />;
+  if (listQuery.isError || links.length === 0) return null;
+
+  return (
+    <div className="mt-3 space-y-2">
+      {links.map((link) => {
+        const busy = busyToken === link.token;
+        const expired = link.expiresAt ? new Date(link.expiresAt).getTime() < Date.now() : false;
+        return (
+          <div key={link.token} className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
+            <p className="text-sm font-semibold truncate">{link.title}</p>
+            <p className={`text-xs mt-0.5 ${expired ? "text-red-500" : "text-gray-500"}`}>
+              {link.expiresAt ? `${expired ? "Expired" : "Expires"} ${new Date(link.expiresAt).toLocaleDateString()}` : "No expiry"}
+            </p>
+            <div className="flex gap-2 mt-2">
+              {([["copy", "Copy"], ["extend", "Extend 30d"], ["revoke", "Revoke"]] as const).map(([action, label]) => (
+                <button
+                  key={action}
+                  onClick={() => void runFor(link.token, action)}
+                  disabled={busy}
+                  aria-label={`${label} share link ${link.title}`}
+                  className={`text-xs px-2 py-1 rounded border bg-white dark:bg-gray-800 disabled:opacity-50 ${action === "revoke" ? "text-red-500" : "text-brand-600"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Settings() {
   const { settings, loading, update } = useSettings();
   const navigate = useNavigate();
@@ -1157,6 +1232,7 @@ export function Settings() {
               </div>
             )}
             {shareError && <p className="text-sm text-amber-600 mt-2">{shareError}</p>}
+            <SharedLinksList />
           </>
         )}
       </div>

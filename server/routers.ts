@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -558,6 +558,42 @@ export const appRouter = router({
           .delete(sharedWatchlists)
           .where(and(eq(sharedWatchlists.token, input.token), eq(sharedWatchlists.ownerId, ctx.user.id)));
         return { revoked: true } as const;
+      }),
+    list: protectedProcedure.query(async ({ ctx }) => {
+      checkRateLimit(ctx, "sharedWatchlists.list", 30, 60_000);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      const rows = await db
+        .select()
+        .from(sharedWatchlists)
+        .where(eq(sharedWatchlists.ownerId, ctx.user.id))
+        .orderBy(desc(sharedWatchlists.createdAt));
+      const origin = getOrigin(ctx.req as unknown as { headers: Record<string, unknown> });
+      return {
+        links: (rows as unknown as { token: string; title: string; createdAt: Date | null; expiresAt: Date | null }[]).map((r) => ({
+          token: r.token,
+          title: r.title,
+          shareUrl: `${origin}/w/${r.token}`,
+          createdAt: r.createdAt?.toISOString?.() ?? null,
+          expiresAt: r.expiresAt ? new Date(r.expiresAt).toISOString() : null,
+        })),
+      } as const;
+    }),
+    extend: protectedProcedure
+      .input(z.object({ token: z.string().min(1).max(64) }))
+      .mutation(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "sharedWatchlists.extend", 10, 60_000);
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
+        const row = rows[0] as unknown as { ownerId: number } | undefined;
+        if (!row || row.ownerId !== ctx.user.id) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        await db
+          .update(sharedWatchlists)
+          .set({ expiresAt })
+          .where(and(eq(sharedWatchlists.token, input.token), eq(sharedWatchlists.ownerId, ctx.user.id)));
+        return { expiresAt: expiresAt.toISOString() } as const;
       }),
     invite: protectedProcedure
       .input(z.object({ token: z.string().min(1).max(64), userId: z.number().int().positive(), role: z.enum(["viewer", "editor"]).default("viewer") }))
