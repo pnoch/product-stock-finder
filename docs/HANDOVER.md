@@ -17,14 +17,14 @@ continuation note, not a replacement.
 | `pnpm check` (root tsc) | 0 errors |
 | `pnpm check:desktop` | 0 errors |
 | `pnpm lint` | clean |
-| `pnpm test` (root) | 260 passed / 1 skipped files, 1693 passed / 10 skipped tests |
+| `pnpm test` (root) | 262 passed / 1 skipped files, 1702 passed / 10 skipped tests |
 | `pnpm test` (desktop) | 43 passed files, 218 passed tests (flake fixed) |
 | `pnpm --dir desktop build` | ok (454k gzip) |
 | `cargo check` (tauri) | ok |
 | `pnpm db:push` | "No schema changes, nothing to migrate" |
-| Prod API | `GET https://app-production-263c.up.railway.app/api/health` → 200 (not rechecked this session — TCP proxy still at switchyard.proxy.rlwy.net:58169) |
+| Prod API | `GET https://app-production-263c.up.railway.app/api/health` → 200 (live on Phases 206-207) |
 
-`todo.md` through **Phase 205**, all `[x]`. `v5.16.0` tagged (was stalled at `v5.5.2`).
+`todo.md` through **Phase 207**, all `[x]`. `v5.16.0` tagged (was stalled at `v5.5.2`).
 
 ---
 
@@ -218,3 +218,21 @@ railway up --service app --ci
   `User-Agent` header; use `railway-cli/4.15.0`.
 - The Railway MySQL internal host (`mysql-ntcc.railway.internal`) is not resolvable from
   this machine — use the TCP proxy for local work.
+
+---
+
+## 10. Production audit + Railway recovery (2026-09-14, Phases 206-207)
+
+**Phase 206 — production audit fixes** (audit score 68 → ~86):
+- IP spoofing: rate limits keyed on the spoofable leftmost `X-Forwarded-For`; now `req.ip` (trusted hop only) in `server/rate-limit.ts` + `server/_core/oauth.ts`
+- Paid-endpoint spend guard: `server/spend-budget.ts` (per-process hourly caps, `SPEND_BUDGET_*` overrides) wired into `products.parse` / `insights.get` / `images.get`
+- Email delivery: `server/email.ts` (Resend HTTP) + `RESEND_API_KEY`/`EMAIL_FROM`; reset + verification now send real links; new `app/verify-email.tsx`
+- SPA fallback 404s unmatched `/api/*` + `/storage/*`; `purgeOldNotificationEvents` (30d) in the warmer; empty-`name` sessions no longer lock users out; prod binds `PORT` directly + exits 1 on bind failure
+
+**Phase 207 — prod outage + fix:**
+- Setting env vars triggered a redeploy; the `app` service source was a bare `node:20-alpine` image (`repo: null`), so deploys skipped the build (0 build logs, `duration: 0`) and crashed → 502. Rolled back to the last good image (prod restored), then reconnected the service to `pnoch/product-stock-finder@main` via GraphQL `serviceConnect`
+- Reconnected build then failed at `expo export`: `Failed to get the SHA-1 for .../react-native-css-interop/.cache/web.css`. NativeWind `forceWriteFileSystem` writes `web.css` during transform, but Metro only hashes files from its initial crawl; on a clean install (no stale cache) the web export fails. Only surfaced now because Phase 204 added `expo export` to the Railway build
+- Fix: `metro.config.js` pre-creates `.cache/web.css` + adds the dir to `watchFolders`; verified from a clean cache
+- **Prod now live on Phases 206-207** (`f30d4074`, SUCCESS): `/api/health` 200, `/` SPA 200, deep link 200, `/sw.js` `no-store`, unmatched `/api/*` JSON 404, `POST /api/auth/forgot` → `{success:true}` with email sent
+
+**Railway notes for next time:** the `app` service must stay connected to the GitHub repo (not an image). Deploys are triggered by `serviceInstanceDeployV2` or a push to `main`. `RESEND_API_KEY` is a send-only key (`restricted_api_key`); `EMAIL_FROM=onboarding@resend.dev` only delivers to the Resend account owner — set a verified domain before real users.
