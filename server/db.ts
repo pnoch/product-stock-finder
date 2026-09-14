@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, lt, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { InsertUser, emailVerificationTokens, passwordResetTokens, users } from "../drizzle/schema";
@@ -307,6 +307,55 @@ export async function setUserEmailVerified(id: number) {
 
 export function __clearEmailVerificationTokensForTest() {
   memVerifyTokens.clear();
+}
+
+// ─── Token retention ────────────────────────────────────────────────────────
+// Reset/verification tokens are single-use and short-lived, but rows were never
+// removed, so both tables grew without bound. Expired-or-used rows are deleted
+// in bounded batches (called from the warmer tick).
+const TOKEN_PURGE_BATCH_SIZE = 1000;
+const TOKEN_PURGE_MAX_BATCHES_PER_TICK = 10;
+
+export async function purgeExpiredAuthTokens(now: number): Promise<void> {
+  for (const [key, row] of memTokens) {
+    if (row.expiresAt <= now || row.usedAt !== null) memTokens.delete(key);
+  }
+  for (const [key, row] of memVerifyTokens) {
+    if (row.expiresAt <= now || row.usedAt !== null) memVerifyTokens.delete(key);
+  }
+  const db = await getDb();
+  if (!db) return;
+  for (let batch = 0; batch < TOKEN_PURGE_MAX_BATCHES_PER_TICK; batch++) {
+    const result = await db
+      .delete(passwordResetTokens)
+      .where(
+        or(
+          lt(passwordResetTokens.expiresAt, now),
+          // usedAt is nullable; `lt` on a non-null value only matches used rows.
+          lt(passwordResetTokens.usedAt, now),
+        ),
+      )
+      .limit(TOKEN_PURGE_BATCH_SIZE);
+    const affected = Number(
+      (result as { affectedRows?: unknown }).affectedRows ?? 0,
+    );
+    if (!Number.isFinite(affected) || affected < TOKEN_PURGE_BATCH_SIZE) break;
+  }
+  for (let batch = 0; batch < TOKEN_PURGE_MAX_BATCHES_PER_TICK; batch++) {
+    const result = await db
+      .delete(emailVerificationTokens)
+      .where(
+        or(
+          lt(emailVerificationTokens.expiresAt, now),
+          lt(emailVerificationTokens.usedAt, now),
+        ),
+      )
+      .limit(TOKEN_PURGE_BATCH_SIZE);
+    const affected = Number(
+      (result as { affectedRows?: unknown }).affectedRows ?? 0,
+    );
+    if (!Number.isFinite(affected) || affected < TOKEN_PURGE_BATCH_SIZE) break;
+  }
 }
 
 // TODO: add feature queries here as your schema grows.

@@ -15,6 +15,7 @@ import { getAllFetchedAt } from "./price-cache";
 import { getProductImage, listProductsMissingImage } from "./product-images";
 import { evaluateNotifications } from "./notifications";
 import { purgeOldNotificationEvents } from "./notifications";
+import { purgeExpiredAuthTokens } from "./db";
 import { PRICE_SNAPSHOT_TTL_MS } from "../shared/const";
 
 export const PRICE_TTL_MS = PRICE_SNAPSHOT_TTL_MS; // 1 hour
@@ -25,6 +26,35 @@ const IMAGES_PER_TICK = 2;
 
 const inFlight = new Map<string, Promise<PriceSnapshot | null>>();
 const breakerStore = createMemoryBreakerStore();
+
+// `prices.get` is public and triggers a real outbound scrape on a cache miss.
+// Per-IP rate limits bound one caller, but rotating IPs could still fan out to
+// unbounded concurrent scrapes (each up to 25 distributors). This global
+// semaphore caps total in-flight scrapes per process; excess requests queue
+// rather than being dropped, and the single-flight map still dedupes identical
+// (distributor, model) requests.
+const MAX_CONCURRENT_SCRAPES = 6;
+let activeScrapes = 0;
+const scrapeQueue: Array<() => void> = [];
+
+function acquireScrapeSlot(): Promise<void> {
+  if (activeScrapes < MAX_CONCURRENT_SCRAPES) {
+    activeScrapes++;
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    scrapeQueue.push(() => {
+      activeScrapes++;
+      resolve();
+    });
+  });
+}
+
+function releaseScrapeSlot(): void {
+  activeScrapes--;
+  const next = scrapeQueue.shift();
+  if (next) next();
+}
 
 function cacheKey(distributorId: string, modelNumber: string): string {
   return `${distributorId}:${modelNumber}`;
@@ -62,9 +92,12 @@ function refreshSingleFlight(
   const key = cacheKey(distributorId, modelNumber);
   const existing = inFlight.get(key);
   if (existing) return existing;
-  const promise = refreshPrice(distributorId, modelNumber).finally(() => {
-    inFlight.delete(key);
-  });
+  const promise = acquireScrapeSlot()
+    .then(() => refreshPrice(distributorId, modelNumber))
+    .finally(() => {
+      releaseScrapeSlot();
+      inFlight.delete(key);
+    });
   inFlight.set(key, promise);
   return promise;
 }
@@ -166,6 +199,7 @@ export async function runWarmerTick(): Promise<void> {
     await evaluateNotifications(Date.now());
     await purgeOldHistory(Date.now());
     await purgeOldNotificationEvents(Date.now());
+    await purgeExpiredAuthTokens(Date.now());
   } catch (error) {
     console.warn("[Prices] Warmer tick failed:", error);
   } finally {

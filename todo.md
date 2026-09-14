@@ -1551,3 +1551,10 @@
 - [x] Error leakage: register/login/oauth-consume/forgot/reset/verify/delete-account returned raw `error.message`/`String(e)` (DB driver errors, stack text). Added `safeAuthErrorMessage` — only deliberate `HttpError` messages pass, everything else is logged and replaced with a generic message
 - [x] Warmer cost: `buildEvents` read the same (distributor, model) row once per device per tick. Added `createPriceLookup()` memoization (one per tick, misses cached too) threaded through all evaluators
 - [x] Tests: `notification-dedup-grace.test.ts`, `auth-error-leak.test.ts`, `price-lookup.test.ts`, updated `oauth-handlers.test.ts` to the real `HttpError` contract; E2E root `tsc 0`, desktop `tsc 0`, lint clean, `265 passed | 1 skipped` / `1713 passed`
+
+## Phase 209: Same-class bug sweep (tRPC leak, token growth, scrape fan-out)
+
+- [x] tRPC error leakage (same class as Phase 208's HTTP routes): tRPC's default error shape forwards the thrown message verbatim and the UI renders `error.message`, so an unexpected DB/driver error reached users. Added `redactErrorShape` via `errorFormatter` in `server/_core/trpc.ts` — deliberate `TRPCError`s (no `cause`) pass through (incl. the client-matched `10001/10002/10003` codes), anything with a `cause` becomes a generic message
+- [x] Unbounded token tables: `password_reset_tokens` + `email_verification_tokens` were never purged. Added `purgeExpiredAuthTokens` (expired-or-used, batched, memory fallback too) called from the warmer tick
+- [x] Scrape fan-out: public `prices.get` triggers a real outbound scrape on a cache miss; rotating IPs could fan out unbounded. Added a global `MAX_CONCURRENT_SCRAPES = 6` semaphore around `refreshSingleFlight` (queues, doesn't drop; single-flight dedup preserved)
+- [x] Tests: `trpc-error-redaction.test.ts`, `auth-token-purge.test.ts`, `scrape-concurrency.test.ts` (verified the concurrency test fails at cap=100 → not vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint clean, `268 passed | 1 skipped` / `1719 passed`
