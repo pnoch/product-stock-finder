@@ -1558,3 +1558,9 @@
 - [x] Unbounded token tables: `password_reset_tokens` + `email_verification_tokens` were never purged. Added `purgeExpiredAuthTokens` (expired-or-used, batched, memory fallback too) called from the warmer tick
 - [x] Scrape fan-out: public `prices.get` triggers a real outbound scrape on a cache miss; rotating IPs could fan out unbounded. Added a global `MAX_CONCURRENT_SCRAPES = 6` semaphore around `refreshSingleFlight` (queues, doesn't drop; single-flight dedup preserved)
 - [x] Tests: `trpc-error-redaction.test.ts`, `auth-token-purge.test.ts`, `scrape-concurrency.test.ts` (verified the concurrency test fails at cap=100 → not vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint clean, `268 passed | 1 skipped` / `1719 passed`
+
+## Phase 210: Share-link rate limit + orphan-row purge
+
+- [x] `sharedWatchlists.get` is public (share-link design) but had no rate limit; a leaked token could be scraped at unbounded rate from rotating IPs. Added per-IP (`60/min`) + new `checkRateLimitByKey` per-token (`120/min`) budgets in `server/rate-limit.ts`
+- [x] `price_insights` / `product_images` rows are keyed by productId and bounded by the catalog, but a product removed from the catalog left its row forever. Added `purgeOrphanedInsights` / `purgeOrphanedImages` (delete rows outside the catalog; no-op on empty catalog; memory fallback too) called from the warmer tick
+- [x] Tests: `rate-limit-by-key.test.ts`, `orphan-purge.test.ts`; E2E root `tsc 0`, desktop `tsc 0`, lint clean, `270 passed | 1 skipped` / `1723 passed`

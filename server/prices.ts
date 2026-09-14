@@ -12,7 +12,8 @@ import {
 } from "./price-history";
 import { buildCatalogPairs, pickPairsToWarm } from "./catalog-warmer";
 import { getAllFetchedAt } from "./price-cache";
-import { getProductImage, listProductsMissingImage } from "./product-images";
+import { getProductImage, listProductsMissingImage, purgeOrphanedImages } from "./product-images";
+import { purgeOrphanedInsights } from "./price-insights";
 import { evaluateNotifications } from "./notifications";
 import { purgeOldNotificationEvents } from "./notifications";
 import { purgeExpiredAuthTokens } from "./db";
@@ -200,6 +201,8 @@ export async function runWarmerTick(): Promise<void> {
     await purgeOldHistory(Date.now());
     await purgeOldNotificationEvents(Date.now());
     await purgeExpiredAuthTokens(Date.now());
+    await purgeOrphanedInsights();
+    await purgeOrphanedImages();
   } catch (error) {
     console.warn("[Prices] Warmer tick failed:", error);
   } finally {

@@ -73,7 +73,7 @@ export function clearHealthCacheForTests(): void {
 }
 import { getFxRates } from "./fx";
 import { mergeHistory } from "./price-history";
-import { checkRateLimit } from "./rate-limit";
+import { checkRateLimit, checkRateLimitByKey } from "./rate-limit";
 import { getInsight } from "./price-insights";
 import { getProductImage } from "./product-images";
 import { discoveryRouter } from "./routers/discovery";
@@ -531,7 +531,15 @@ export const appRouter = router({
       }),
     get: publicProcedure
       .input(z.object({ token: z.string().min(1).max(64) }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
+        // Public share links: bound both the caller (IP) and the token itself,
+        // so a leaked token cannot be scraped at unbounded rate from rotating IPs.
+        checkRateLimit(ctx, "sharedWatchlists.get", 60, 60_000);
+        checkRateLimitByKey(
+          `sharedWatchlists.get:token:${input.token}`,
+          120,
+          60_000,
+        );
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const rows = await db

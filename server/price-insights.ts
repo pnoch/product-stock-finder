@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, notInArray } from "drizzle-orm";
 import { priceInsights, type PriceInsightsRow } from "../drizzle/schema";
 import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
 import { getDistributorById } from "../shared/src/distributors.js";
@@ -175,6 +175,22 @@ async function generateInsight(
 
 export function clearInsightsForTests(): void {
   memoryInsights.clear();
+}
+
+// Rows are keyed by productId and bounded by the catalog, but a product removed
+// from the catalog would leave its row behind forever. Drop orphans (called
+// from the warmer tick). No-op when the catalog is empty to avoid wiping all.
+export async function purgeOrphanedInsights(): Promise<void> {
+  const ids = PRODUCT_CATALOG.map((p) => p.id);
+  if (ids.length === 0) return;
+  const db = await getDb();
+  if (!db) {
+    for (const key of memoryInsights.keys()) {
+      if (!ids.includes(key)) memoryInsights.delete(key);
+    }
+    return;
+  }
+  await db.delete(priceInsights).where(notInArray(priceInsights.productId, ids));
 }
 
 function rowToInsight(row: PriceInsightsRow): PriceInsight {

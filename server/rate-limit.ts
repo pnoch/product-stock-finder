@@ -41,8 +41,21 @@ export function checkRateLimit(
 ): void {
   // Skip in test to avoid flaky cross-test bucket pollution (tests mock context with static ip)
   if (process.env.NODE_ENV === "test" && clientKey(ctx) === "unknown") return;
+  consumeBucket(`${endpoint}:${clientKey(ctx)}`, limit, windowMs);
+}
+
+// Rate limit keyed on an arbitrary value (e.g. a share token) rather than the
+// client IP, so a caller rotating source addresses still hits one budget.
+export function checkRateLimitByKey(
+  key: string,
+  limit: number,
+  windowMs: number,
+): void {
+  consumeBucket(key, limit, windowMs);
+}
+
+function consumeBucket(key: string, limit: number, windowMs: number): void {
   pruneStale(windowMs);
-  const key = `${endpoint}:${clientKey(ctx)}`;
   const now = Date.now();
   const windowStart = now - windowMs;
   const timestamps = buckets.get(key) ?? [];

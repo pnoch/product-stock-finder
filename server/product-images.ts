@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, notInArray } from "drizzle-orm";
 import { productImages } from "../drizzle/schema";
 import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
 import { getDb } from "./db";
@@ -107,4 +107,20 @@ export async function listProductsMissingImage(): Promise<string[]> {
 export function clearImagesForTests(): void {
   memoryImages.clear();
   inFlight.clear();
+}
+
+// Rows are keyed by productId and bounded by the catalog, but a product removed
+// from the catalog would leave its row behind forever. Drop orphans (called
+// from the warmer tick). No-op when the catalog is empty to avoid wiping all.
+export async function purgeOrphanedImages(): Promise<void> {
+  const ids = PRODUCT_CATALOG.map((p) => p.id);
+  if (ids.length === 0) return;
+  const db = await getDb();
+  if (!db) {
+    for (const key of memoryImages.keys()) {
+      if (!ids.includes(key)) memoryImages.delete(key);
+    }
+    return;
+  }
+  await db.delete(productImages).where(notInArray(productImages.productId, ids));
 }
