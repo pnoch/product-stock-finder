@@ -14,7 +14,12 @@ import {
   memoryEvents,
 } from "./memory-store";
 import { draftToEvent, rowToConfig } from "./mappers";
-import { buildEvents, dedupKeyFor } from "./build-events";
+import {
+  buildEvents,
+  createPriceLookup,
+  dedupKeyFor,
+  type PriceLookup,
+} from "./build-events";
 import {
   buildDigestDraft,
   holdForDigest,
@@ -39,10 +44,29 @@ function isDuplicateKeyError(error: unknown): boolean {
 // resume afterwards.
 const EVENT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
+// An event also stays blocked until every bound device has pulled it, so a
+// device that binds later still catches up. That wait must be bounded: a stale
+// or abandoned device binding would otherwise suppress the same condition
+// forever (its delivery count never reaches the bound count).
+const DELIVERY_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function isEventBlocking(
+  createdAt: number,
+  deliveredCount: number,
+  boundCount: number,
+  now: number,
+): boolean {
+  if (now - createdAt < EVENT_COOLDOWN_MS) return true;
+  return deliveredCount < boundCount && now - createdAt < DELIVERY_GRACE_MS;
+}
+
 export async function evaluateNotifications(now: number): Promise<void> {
+  // One memoized price lookup per tick: every device evaluation shares it, so
+  // the same (distributor, model) row is read at most once per tick.
+  const getPrice = createPriceLookup();
   const db = await getDb();
   if (!db) {
-    await evaluateMemory(now);
+    await evaluateMemory(now, getPrice);
     return;
   }
   // Paged: device rows are unbounded while a tick must stay short. New rows
@@ -57,7 +81,7 @@ export async function evaluateNotifications(now: number): Promise<void> {
       .limit(PAGE_SIZE)
       .offset(offset);
     if (rows.length === 0) break;
-    await evaluateConfigPage(db, rows, now);
+    await evaluateConfigPage(db, rows, now, getPrice);
     if (rows.length < PAGE_SIZE) break;
     offset += rows.length;
   }
@@ -74,6 +98,7 @@ async function evaluateConfigPage(
     quietHours?: unknown;
   }>,
   now: number,
+  getPrice: PriceLookup,
 ): Promise<void> {
   const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> =
     [];
@@ -92,14 +117,17 @@ async function evaluateConfigPage(
     }
   }
   for (const { deviceId, config } of anonDevices) {
-    await evaluateConfigDb(db, deviceId, config, now);
+    await evaluateConfigDb(db, deviceId, config, now, getPrice);
   }
   for (const [userId, devices] of userDevices) {
-    await evaluateUserDb(db, userId, devices, now);
+    await evaluateUserDb(db, userId, devices, now, getPrice);
   }
 }
 
-async function evaluateMemory(now: number): Promise<void> {
+async function evaluateMemory(
+  now: number,
+  getPrice: PriceLookup,
+): Promise<void> {
   const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> =
     [];
   const userDevices = new Map<
@@ -116,10 +144,10 @@ async function evaluateMemory(now: number): Promise<void> {
     }
   }
   for (const { deviceId, config } of anonDevices) {
-    await evaluateAnonMemory(deviceId, config, now);
+    await evaluateAnonMemory(deviceId, config, now, getPrice);
   }
   for (const [userId, devices] of userDevices) {
-    await evaluateUserMemory(userId, devices, now);
+    await evaluateUserMemory(userId, devices, now, getPrice);
   }
 }
 
@@ -127,18 +155,23 @@ async function evaluateAnonMemory(
   deviceId: string,
   config: NotificationConfig,
   now: number,
+  getPrice: PriceLookup,
 ): Promise<void> {
   const delivered = memoryDeliveries.get(deviceId) ?? new Set<string>();
   const blocked = new Set(
     [...memoryEvents.values()]
       .filter((e) => e.deviceId === deviceId)
-      .filter(
-        (e) =>
-          !delivered.has(e.id) || now - e.createdAt < EVENT_COOLDOWN_MS,
+      .filter((e) =>
+        isEventBlocking(
+          e.createdAt,
+          delivered.has(e.id) ? 1 : 0,
+          1,
+          now,
+        ),
       )
       .map((e) => dedupKeyFor(e)),
   );
-  const drafts = await buildEvents(config, now);
+  const drafts = await buildEvents(config, now, getPrice);
   const scopeKey = scopeKeyForDevice(deviceId);
   if (holdForDigest(scopeKey, [config], drafts, now)) return;
   const held = takeDigestHeld(scopeKey);
@@ -166,20 +199,19 @@ async function evaluateUserMemory(
   userId: number,
   devices: Array<{ deviceId: string; config: NotificationConfig }>,
   now: number,
+  getPrice: PriceLookup,
 ): Promise<void> {
   const boundCount = devices.length;
   const config = aggregateConfigs(devices.map((d) => d.config));
   const blocked = new Set(
     [...memoryEvents.values()]
       .filter((e) => e.userId === userId)
-      .filter(
-        (e) =>
-          deliveryCount(e.id) < boundCount ||
-          now - e.createdAt < EVENT_COOLDOWN_MS,
+      .filter((e) =>
+        isEventBlocking(e.createdAt, deliveryCount(e.id), boundCount, now),
       )
       .map((e) => dedupKeyFor(e)),
   );
-  const drafts = await buildEvents(config, now);
+  const drafts = await buildEvents(config, now, getPrice);
   const scopeKey = scopeKeyForUser(userId);
   if (
     holdForDigest(
@@ -245,6 +277,7 @@ async function evaluateConfigDb(
   deviceId: string,
   config: NotificationConfig,
   now: number,
+  getPrice: PriceLookup,
 ): Promise<void> {
   const existing = await db
     .select({
@@ -261,13 +294,17 @@ async function evaluateConfigDb(
   const deliveredSet = new Set(delivered.map((d) => d.eventId));
   const blocked = new Set(
     existing
-      .filter(
-        (e) =>
-          !deliveredSet.has(e.id) || now - e.createdAt < EVENT_COOLDOWN_MS,
+      .filter((e) =>
+        isEventBlocking(
+          e.createdAt,
+          deliveredSet.has(e.id) ? 1 : 0,
+          1,
+          now,
+        ),
       )
       .map((e) => e.dedupKey),
   );
-  const drafts = await buildEvents(config, now);
+  const drafts = await buildEvents(config, now, getPrice);
   const scopeKey = scopeKeyForDevice(deviceId);
   if (holdForDigest(scopeKey, [config], drafts, now)) return;
   const held = takeDigestHeld(scopeKey);
@@ -300,6 +337,7 @@ async function evaluateUserDb(
   userId: number,
   devices: Array<{ deviceId: string; config: NotificationConfig }>,
   now: number,
+  getPrice: PriceLookup,
 ): Promise<void> {
   const boundCount = devices.length;
   const config = aggregateConfigs(devices.map((d) => d.config));
@@ -324,14 +362,17 @@ async function evaluateUserDb(
   }
   const pending = new Set(
     existing
-      .filter(
-        (e) =>
-          (deliveryCounts.get(e.id) ?? 0) < boundCount ||
-          now - e.createdAt < EVENT_COOLDOWN_MS,
+      .filter((e) =>
+        isEventBlocking(
+          e.createdAt,
+          deliveryCounts.get(e.id) ?? 0,
+          boundCount,
+          now,
+        ),
       )
       .map((e) => e.dedupKey),
   );
-  const drafts = await buildEvents(config, now);
+  const drafts = await buildEvents(config, now, getPrice);
   const scopeKey = scopeKeyForUser(userId);
   if (
     holdForDigest(

@@ -1544,3 +1544,10 @@
 - [x] Reconnected build then failed at `expo export`: `Failed to get the SHA-1 for .../react-native-css-interop/.cache/web.css`. Root cause: NativeWind `forceWriteFileSystem` writes `web.css` during transform, but Metro only hashes files from its initial crawl; on a clean install (no stale cache) the file is unknown → web export fails. Only surfaced now because Phase 204 added `expo export` to the Railway build
 - [x] Fix: `metro.config.js` pre-creates `.cache/web.css` (mirrors the interop package's native stubs) and adds the cache dir to `watchFolders`; verified `rm -rf .cache dist-web && pnpm build:web` succeeds from clean
 - [x] E2E: `tsc 0`, lint clean
+
+## Phase 208: Remaining audit fixes (dedup grace, error leakage, warmer cost)
+
+- [x] Dedup blocked forever: user events stayed blocked until every bound device pulled; an abandoned device binding suppressed the condition permanently. Added `isEventBlocking` with a 7-day `DELIVERY_GRACE_MS` (cooldown still 24h) in `server/notifications/evaluate.ts` (all 4 evaluators)
+- [x] Error leakage: register/login/oauth-consume/forgot/reset/verify/delete-account returned raw `error.message`/`String(e)` (DB driver errors, stack text). Added `safeAuthErrorMessage` — only deliberate `HttpError` messages pass, everything else is logged and replaced with a generic message
+- [x] Warmer cost: `buildEvents` read the same (distributor, model) row once per device per tick. Added `createPriceLookup()` memoization (one per tick, misses cached too) threaded through all evaluators
+- [x] Tests: `notification-dedup-grace.test.ts`, `auth-error-leak.test.ts`, `price-lookup.test.ts`, updated `oauth-handlers.test.ts` to the real `HttpError` contract; E2E root `tsc 0`, desktop `tsc 0`, lint clean, `265 passed | 1 skipped` / `1713 passed`

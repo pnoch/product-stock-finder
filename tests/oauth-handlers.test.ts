@@ -147,7 +147,8 @@ describe("POST /api/auth/register", () => {
 
   it("returns 400 when registration fails (duplicate email)", async () => {
     const postHandler = setupRoutes();
-    mockedRegister.mockRejectedValue(new Error("Email already registered"));
+    const { ForbiddenError } = await import("../shared/_core/errors");
+    mockedRegister.mockRejectedValue(ForbiddenError("Email already registered"));
 
     const res = makeRes();
     await postHandler("POST", "/api/auth/register")(
@@ -157,6 +158,22 @@ describe("POST /api/auth/register", () => {
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ error: "Email already registered" });
+  });
+
+  it("hides a raw driver error behind a generic message", async () => {
+    const postHandler = setupRoutes();
+    mockedRegister.mockRejectedValue(
+      new Error("ER_DUP_ENTRY: Duplicate entry 'x' for key 'users.email'"),
+    );
+
+    const res = makeRes();
+    await postHandler("POST", "/api/auth/register")(
+      makeReq({ email: "test@example.com", password: "password123" }),
+      res,
+    );
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "Registration failed" });
   });
 });
 
@@ -209,7 +226,8 @@ describe("POST /api/auth/login", () => {
 
   it("returns 401 on invalid credentials", async () => {
     const postHandler = setupRoutes();
-    mockedLogin.mockRejectedValue(new Error("Invalid email or password"));
+    const { ForbiddenError } = await import("../shared/_core/errors");
+    mockedLogin.mockRejectedValue(ForbiddenError("Invalid email or password"));
 
     const res = makeRes();
     await postHandler("POST", "/api/auth/login")(
@@ -219,6 +237,22 @@ describe("POST /api/auth/login", () => {
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ error: "Invalid email or password" });
+  });
+
+  it("hides a raw driver error behind a generic login message", async () => {
+    const postHandler = setupRoutes();
+    mockedLogin.mockRejectedValue(
+      new Error("connect ECONNREFUSED 127.0.0.1:3306"),
+    );
+
+    const res = makeRes();
+    await postHandler("POST", "/api/auth/login")(
+      makeReq({ email: "test@example.com", password: "password123" }),
+      res,
+    );
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: "Login failed" });
   });
 });
 

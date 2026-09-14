@@ -36,9 +36,30 @@ export function dedupKeyFor(event: NotificationEvent): string {
   return `reminder:${event.reminderId}`;
 }
 
+export type PriceLookup = (
+  distributorId: string,
+  modelNumber: string,
+) => Promise<Awaited<ReturnType<typeof getCachedPrice>>>;
+
+// One warmer tick evaluates every device, and each alert scans up to 25
+// distributors. Without memoization the same (distributor, model) row is read
+// from the DB once per device per tick. This caches per tick; callers create a
+// fresh lookup each tick so price changes are still picked up.
+export function createPriceLookup(): PriceLookup {
+  const cache = new Map<string, Awaited<ReturnType<typeof getCachedPrice>>>();
+  return async (distributorId, modelNumber) => {
+    const key = `${distributorId}:${modelNumber}`;
+    if (cache.has(key)) return cache.get(key)!;
+    const value = await getCachedPrice(distributorId, modelNumber);
+    cache.set(key, value);
+    return value;
+  };
+}
+
 export async function buildEvents(
   config: NotificationConfig,
   now: number,
+  getPrice: PriceLookup = getCachedPrice,
 ): Promise<EventDraft[]> {
   const events: EventDraft[] = [];
 
@@ -54,7 +75,7 @@ export async function buildEvents(
     let bestPrice: number | null = null;
     let bestDistributor: string | null = null;
     for (const distributorId of distributorIds) {
-      const snapshot = await getCachedPrice(distributorId, product.modelNumber);
+      const snapshot = await getPrice(distributorId, product.modelNumber);
       if (!snapshot || snapshot.stockStatus !== "in_stock") continue;
       const converted = convertPrice(
         snapshot.price,
@@ -97,10 +118,7 @@ export async function buildEvents(
     const product = PRODUCT_CATALOG.find((p) => p.id === watch.productId);
     if (!product) continue;
     if (watch.lastKnownStatus === "in_stock") continue;
-    const snapshot = await getCachedPrice(
-      watch.distributorId,
-      product.modelNumber,
-    );
+    const snapshot = await getPrice(watch.distributorId, product.modelNumber);
     if (!snapshot || snapshot.stockStatus !== "in_stock") continue;
     const distributorName =
       getDistributorById(watch.distributorId)?.name ?? watch.distributorId;

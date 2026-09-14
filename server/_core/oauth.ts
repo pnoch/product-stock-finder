@@ -7,6 +7,19 @@ import bcrypt from "bcryptjs";
 import * as db from "../db";
 import { isDeviceRevoked, unrevokeDevice } from "../devices";
 import { sendEmail } from "../email";
+import { HttpError } from "../../shared/_core/errors.js";
+
+// Only messages the auth layer deliberately raises (HttpError, e.g. "Invalid
+// email or password") are safe to return. Anything else — a DB driver error, a
+// bcrypt failure — is logged server-side and replaced with a generic message so
+// internals never reach the client.
+function safeAuthErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
+  if (error instanceof HttpError && error.message) return error.message;
+  return fallback;
+}
 
 // ─── Signed OAuth state + single-use tickets ────────────────────────────────
 // The client must never accept a raw session token from a URL (login CSRF /
@@ -277,7 +290,9 @@ export function registerOAuthRoutes(app: Express) {
       res.json({ user: buildUserResponse(result.user), sessionToken: result.sessionToken });
     } catch (error: any) {
       console.error("[Auth] Register failed:", error);
-      res.status(400).json({ error: error.message || "Registration failed" });
+      res
+        .status(400)
+        .json({ error: safeAuthErrorMessage(error, "Registration failed") });
     }
   });
 
@@ -312,7 +327,9 @@ export function registerOAuthRoutes(app: Express) {
       res.json({ user: buildUserResponse(result.user), sessionToken: result.sessionToken });
     } catch (error: any) {
       console.error("[Auth] Login failed:", error);
-      res.status(401).json({ error: error.message || "Login failed" });
+      res
+        .status(401)
+        .json({ error: safeAuthErrorMessage(error, "Login failed") });
     }
   });
 
@@ -589,7 +606,9 @@ export function registerOAuthRoutes(app: Express) {
       res.json({ sessionToken, user: buildUserResponse(user) });
     } catch (error) {
       console.error("[Auth] OAuth consume failed", error);
-      res.status(400).json({ error: String(error) });
+      res
+        .status(400)
+        .json({ error: safeAuthErrorMessage(error, "Sign-in failed") });
     }
   });
 
@@ -702,7 +721,9 @@ export function registerOAuthRoutes(app: Express) {
       res.json({ success: true });
     } catch (e: unknown) {
       console.error("[Auth] forgot failed", e);
-      res.status(400).json({ error: String(e) });
+      res
+        .status(400)
+        .json({ error: safeAuthErrorMessage(e, "Request failed. Please try again.") });
     }
   });
 
@@ -735,7 +756,9 @@ export function registerOAuthRoutes(app: Express) {
       res.json({ success: true });
     } catch (e: unknown) {
       console.error("[Auth] reset failed", e);
-      res.status(400).json({ error: String(e) });
+      res
+        .status(400)
+        .json({ error: safeAuthErrorMessage(e, "Password reset failed") });
     }
   });
 
@@ -811,7 +834,9 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       console.error("[Auth] delete-account failed", e);
-      res.status(400).json({ error: msg });
+      res
+        .status(400)
+        .json({ error: safeAuthErrorMessage(e, "Request failed. Please try again.") });
     }
   });
 
@@ -894,7 +919,9 @@ export function registerOAuthRoutes(app: Express) {
       res.json({ success: true });
     } catch (e: unknown) {
       console.error("[Auth] verify failed", e);
-      res.status(400).json({ error: String(e) });
+      res
+        .status(400)
+        .json({ error: safeAuthErrorMessage(e, "Verification failed") });
     }
   });
 }
