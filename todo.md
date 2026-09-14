@@ -1537,3 +1537,10 @@
 - [x] Session: `verifySession` no longer rejects an empty `name` (null-name OAuth accounts were locked out permanently)
 - [x] Prod startup: `server/_core/index.ts` binds `PORT` directly in production (no port scan) + `server.on("error")` exits 1
 - [x] Tests: `spend-budget.test.ts`, `email.test.ts`, `spa.test.ts` (+404 case), `rate-limit.test.ts`, `session-binding.test.ts`; E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `262 passed | 1 skipped` / `1702 passed`, desktop `43 passed` / `218 passed`
+
+## Phase 207: Fix clean-install web export (Railway build blocker)
+
+- [x] Prod outage: setting env vars triggered a redeploy; the `app` service source was a bare `node:20-alpine` image (`repo: null`), so deploys skipped the build (0 build logs, `duration: 0`) and crashed → 502. Rolled back to the last good image (prod restored), then reconnected the service to `pnoch/product-stock-finder@main` via `serviceConnect`
+- [x] Reconnected build then failed at `expo export`: `Failed to get the SHA-1 for .../react-native-css-interop/.cache/web.css`. Root cause: NativeWind `forceWriteFileSystem` writes `web.css` during transform, but Metro only hashes files from its initial crawl; on a clean install (no stale cache) the file is unknown → web export fails. Only surfaced now because Phase 204 added `expo export` to the Railway build
+- [x] Fix: `metro.config.js` pre-creates `.cache/web.css` (mirrors the interop package's native stubs) and adds the cache dir to `watchFolders`; verified `rm -rf .cache dist-web && pnpm build:web` succeeds from clean
+- [x] E2E: `tsc 0`, lint clean
