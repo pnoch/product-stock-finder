@@ -31,6 +31,8 @@ export const BUDGETS = {
   "products.parse": { name: "products.parse", limit: envLimit("products.parse", 300), windowMs: 60 * 60 * 1000 },
   "insights.get": { name: "insights.get", limit: envLimit("insights.get", 300), windowMs: 60 * 60 * 1000 },
   "images.get": { name: "images.get", limit: envLimit("images.get", 200), windowMs: 60 * 60 * 1000 },
+  "discovery.discover": { name: "discovery.discover", limit: envLimit("discovery.discover", 200), windowMs: 60 * 60 * 1000 },
+  "trending.refresh": { name: "trending.refresh", limit: envLimit("trending.refresh", 20), windowMs: 60 * 60 * 1000 },
 } as const satisfies Record<string, BudgetSpec>;
 
 export type BudgetName = keyof typeof BUDGETS;

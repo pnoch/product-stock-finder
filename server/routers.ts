@@ -122,6 +122,7 @@ export const appRouter = router({
       } as const;
     }),
     deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
+      checkRateLimit(ctx, "auth.deleteAccount", 5, 60_000);
       const { deleteUserById } = await import("./db.js");
       await deleteUserById(ctx.user.id);
       const cookieOptions = getSessionCookieOptions(ctx.req);
@@ -263,6 +264,7 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "prices.uploadHistory", 30, 60_000);
         // History is global per distributor/model; writes are protected to
         // prevent anonymous pollution. No per-user ownership check needed.
         void ctx.user.id;
@@ -329,45 +331,55 @@ export const appRouter = router({
     uploadConfig: protectedProcedure
       .input(
         z.object({
-          alerts: z.array(
-            z.object({
-              id: z.string().min(1).max(191),
-              productId: z.string().min(1).max(191),
-              targetPrice: z.number().finite().positive(),
-              currency: z.string().min(1).max(8),
-              distributorId: z.string().max(64).optional(),
-              direction: z.enum(["drop", "rise"]).optional(),
-              snoozedUntil: z.string().optional(),
-            }),
-          ),
-          stockWatches: z.array(
-            z.object({
-              id: z.string().min(1),
-              productId: z.string().min(1),
-              distributorId: z.string().min(1),
-              lastKnownStatus: z.string().optional(),
-            }),
-          ),
-          dateReminders: z.array(
-            z.object({
-              id: z.string().min(1),
-              productId: z.string().min(1),
-              distributorId: z.string().min(1),
-              reminderDate: z.string().min(1),
-            }),
-          ),
+          // Bounded: these arrays are persisted verbatim as JSON columns, so an
+          // unbounded upload would let one device store an arbitrarily large
+          // config (and the warmer would iterate it every tick).
+          alerts: z
+            .array(
+              z.object({
+                id: z.string().min(1).max(191),
+                productId: z.string().min(1).max(191),
+                targetPrice: z.number().finite().positive(),
+                currency: z.string().min(1).max(8),
+                distributorId: z.string().max(64).optional(),
+                direction: z.enum(["drop", "rise"]).optional(),
+                snoozedUntil: z.string().optional(),
+              }),
+            )
+            .max(200),
+          stockWatches: z
+            .array(
+              z.object({
+                id: z.string().min(1).max(191),
+                productId: z.string().min(1).max(191),
+                distributorId: z.string().min(1).max(64),
+                lastKnownStatus: z.string().max(32).optional(),
+              }),
+            )
+            .max(200),
+          dateReminders: z
+            .array(
+              z.object({
+                id: z.string().min(1).max(191),
+                productId: z.string().min(1).max(191),
+                distributorId: z.string().min(1).max(64),
+                reminderDate: z.string().min(1).max(64),
+              }),
+            )
+            .max(200),
           healthEvents: z
             .array(
               z.object({
-                id: z.string().min(1),
-                distributorId: z.string().min(1),
-                distributorName: z.string().min(1),
+                id: z.string().min(1).max(191),
+                distributorId: z.string().min(1).max(64),
+                distributorName: z.string().min(1).max(128),
                 status: z.enum(["blocked", "error"]),
-                title: z.string().min(1),
-                body: z.string().min(1),
+                title: z.string().min(1).max(255),
+                body: z.string().min(1).max(1000),
                 createdAt: z.number(),
               }),
             )
+            .max(100)
             .optional(),
           quietHours: z
             .object({
@@ -626,6 +638,7 @@ export const appRouter = router({
     members: protectedProcedure
       .input(z.object({ token: z.string().min(1).max(64) }))
       .query(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "sharedWatchlists.members", 30, 60_000);
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
@@ -651,6 +664,7 @@ export const appRouter = router({
     leave: protectedProcedure
       .input(z.object({ token: z.string().min(1).max(64) }))
       .mutation(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "sharedWatchlists.leave", 20, 60_000);
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         await db.delete(sharedWatchlistMembers).where(and(eq(sharedWatchlistMembers.token, input.token), eq(sharedWatchlistMembers.userId, ctx.user.id)));

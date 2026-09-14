@@ -1,8 +1,21 @@
 import { router, adminProcedure, publicProcedure } from "../_core/trpc";
 import { checkRateLimit } from "../rate-limit";
+import { tryConsumeBudget } from "../spend-budget";
 import { getDb } from "../db";
 import { trendingProducts } from "../../drizzle/schema";
 import { gte } from "drizzle-orm";
+
+// External feeds and the OpenAI call must not hang a request forever.
+const FETCH_TIMEOUT_MS = 8000;
+const LLM_TIMEOUT_MS = 20_000;
+
+function fetchWithTimeout(url: string, init: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  return fetch(url, { ...init, signal: controller.signal }).finally(() =>
+    clearTimeout(timer),
+  );
+}
 
 const RSS_FEEDS = [
   { name: "r/buildapcsales", url: "https://www.reddit.com/r/buildapcsales/.rss", type: "xml" as const },
@@ -50,7 +63,7 @@ export async function fetchRssFeeds(): Promise<RssItem[]> {
   const allItems: RssItem[] = [];
   const results = await Promise.allSettled(
     RSS_FEEDS.map(async (feed) => {
-      const res = await fetch(feed.url, {
+      const res = await fetchWithTimeout(feed.url, {
         headers: { "User-Agent": "ProductStockFinder/1.0" },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -138,22 +151,34 @@ export const trendingRouter = router({
 
   refresh: adminProcedure.mutation(async ({ ctx }) => {
     checkRateLimit(ctx, "trending.refresh", 2, 60_000);
+    // Process-wide cap on the paid OpenAI call (admin-only, but still billable).
+    if (!tryConsumeBudget("trending.refresh")) {
+      return { count: 0 };
+    }
     const items = await fetchRssFeeds();
     if (items.length === 0) return { count: 0 };
 
     const prompt = buildTrendingPrompt(items, []);
-    const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.3,
-      }),
-    });
+    const aiController = new AbortController();
+    const aiTimer = setTimeout(() => aiController.abort(), LLM_TIMEOUT_MS);
+    let aiRes: Response;
+    try {
+      aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.3,
+        }),
+        signal: aiController.signal,
+      });
+    } finally {
+      clearTimeout(aiTimer);
+    }
 
     if (!aiRes.ok) return { count: 0 };
 
@@ -218,7 +243,7 @@ export async function getTrending(): Promise<
   }>
 > {
   try {
-    const res = await fetch(TRENDING_CACHE_URL);
+    const res = await fetchWithTimeout(TRENDING_CACHE_URL);
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data) ? data : [];

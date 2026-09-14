@@ -1564,3 +1564,11 @@
 - [x] `sharedWatchlists.get` is public (share-link design) but had no rate limit; a leaked token could be scraped at unbounded rate from rotating IPs. Added per-IP (`60/min`) + new `checkRateLimitByKey` per-token (`120/min`) budgets in `server/rate-limit.ts`
 - [x] `price_insights` / `product_images` rows are keyed by productId and bounded by the catalog, but a product removed from the catalog left its row forever. Added `purgeOrphanedInsights` / `purgeOrphanedImages` (delete rows outside the catalog; no-op on empty catalog; memory fallback too) called from the warmer tick
 - [x] Tests: `rate-limit-by-key.test.ts`, `orphan-purge.test.ts`; E2E root `tsc 0`, desktop `tsc 0`, lint clean, `270 passed | 1 skipped` / `1723 passed`
+
+## Phase 211: Second same-class sweep (unbudgeted LLMs, missing limits, unbounded arrays)
+
+- [x] Unbudgeted paid LLM calls (same class as Phase 206): `discovery.discover` (`invokeLLM`) and `trending.refresh` (raw OpenAI fetch) had no process-wide spend cap. Added `discovery.discover` (200/h) + `trending.refresh` (20/h) budgets in `server/spend-budget.ts`; discovery throws TOO_MANY_REQUESTS, trending returns `{count:0}`
+- [x] Missing rate limits: `auth.deleteAccount`, `prices.uploadHistory`, `sharedWatchlists.members`, `sharedWatchlists.leave` had none
+- [x] Missing fetch timeouts: `trending` RSS feeds + OpenAI call + `getTrending` self-fetch could hang a request forever; added `fetchWithTimeout` (8s) + 20s LLM abort
+- [x] Unbounded JSON-column writes: `notifications.uploadConfig` accepted unbounded `alerts`/`stockWatches`/`dateReminders`/`healthEvents` arrays persisted verbatim (and iterated by the warmer every tick); capped at 200/200/200/100 with per-field length bounds
+- [x] Tests: `discovery-spend-budget.test.ts`, `trending-spend-budget.test.ts`, `upload-config-bounds.test.ts`; E2E root `tsc 0`, desktop `tsc 0`, lint clean, `273 passed | 1 skipped` / `1728 passed`
