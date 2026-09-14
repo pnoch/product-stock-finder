@@ -1,8 +1,8 @@
 # Handover — Product Stock Finder
 
-**Date:** 2026-09-13 (continued — open items worked, see §7)
-**Branch:** `main` @ `da1f64d` (in sync with `origin/main` — 8 commits pushed this session)
-**Version:** `5.16.0` (root `package.json`, `app.config.ts`, `desktop/package.json` in lockstep)
+**Date:** 2026-09-13 (continued — Phases 202-205, see §7)
+**Branch:** `main` @ `c1e0478` (`v5.16.0` tagged) in sync with `origin/main`
+**Version:** `5.16.0` (root `package.json`, `app.config.ts`, `desktop/package.json`, `tauri.conf.json`/`Cargo.toml` in lockstep)
 **Repo state:** clean working tree
 
 Read `AGENTS.md` first — it is the canonical project guide. This file is a session-to-session
@@ -17,12 +17,14 @@ continuation note, not a replacement.
 | `pnpm check` (root tsc) | 0 errors |
 | `pnpm check:desktop` | 0 errors |
 | `pnpm lint` | clean |
-| `pnpm test` (root) | 257 passed / 1 skipped files, 1682 passed / 10 skipped tests |
-| `pnpm test` (desktop) | 42 passed files, 217 passed tests |
-| `pnpm db:push` | "No schema changes, nothing to migrate" + applied |
-| Prod API | `GET https://app-production-263c.up.railway.app/api/health` → 200 `{ok:true}` |
+| `pnpm test` (root) | 260 passed / 1 skipped files, 1693 passed / 10 skipped tests |
+| `pnpm test` (desktop) | 43 passed files, 218 passed tests (flake fixed) |
+| `pnpm --dir desktop build` | ok (454k gzip) |
+| `cargo check` (tauri) | ok |
+| `pnpm db:push` | "No schema changes, nothing to migrate" |
+| Prod API | `GET https://app-production-263c.up.railway.app/api/health` → 200 (not rechecked this session — TCP proxy still at switchyard.proxy.rlwy.net:58169) |
 
-Feature backlog is empty: `todo.md` runs through **Phase 201**, all `[x]`.
+`todo.md` through **Phase 205**, all `[x]`. `v5.16.0` tagged (was stalled at `v5.5.2`).
 
 ---
 
@@ -105,8 +107,8 @@ Fix in `e71cbc8`: promoted the generated snapshot to `drizzle/meta/0023_snapshot
    (annotation on run `34754705704`). Fix GitHub → Settings → Billing & plans, then re-run
    the failed workflows. Not a code problem.
    (Push just triggered a fresh run — it will hit the same billing wall until fixed.)
-3. **Release tagging stalled at `v5.5.2`.** `5.16.0` is bumped in the manifests but untagged.
-   Decide policy (catch-up tag vs. abandon) before tagging.
+3. ~~**Release tagging stalled at `v5.5.2`.** `5.16.0` is bumped in the manifests but untagged.
+   Decide policy (catch-up tag vs. abandon) before tagging.~~ **DONE 2026-09-13** — `v5.16.0` tagged at `c1e0478` after Phase 205 identifier fix.
 4. **Real-device QA not done** (cannot be verified headless) — narrowed by static
    review 2026-09-13 (see §8). Unit/integration seams are already tested
    (`sw-notificationclick`, `desktop-sw-guard`, `web-push`, `notification-routing`,
@@ -148,12 +150,21 @@ Fix in `e71cbc8`: promoted the generated snapshot to `drizzle/meta/0023_snapshot
 - Deleted the 3 orphaned MySQL services via GraphQL `serviceDelete`
   (token from `~/.railway/config.json`, `User-Agent: railway-cli/4.15.0` header required).
   Project now contains only `app` + `MySQL-NtCC`.
-- Remaining for a human: CI billing (§5.2), release tag policy (§5.3),
-  real-device QA (§5.4 + §8), secrets review (§5.6).
+- Remaining for a human: CI billing — **deferred until after first-release dev** per your direction (so tag is local-first; no CI verification yet), real-device QA (§5.4 + §8), secrets review (§5.6).
 
 ---
 
-## 8. Device-QA prep — static review (2026-09-13)
+## 9. First-release dev pass (2026-09-13, Phases 203-205)
+
+Scope per your picks: **Desktop + Mobile stores + Web via Express**, stabilize desktop flake.
+
+- **Phase 203 — desktop flake:** `ReferenceError: __DEV__ is not defined` at `lib/_core/auth.ts:6` via `lib/device-revoked.ts`; desktop `tests/setup.ts` relied on vite `define` which is worker-flaky for `../lib/*`. Fixed with `(globalThis).__DEV__ = true` + `setup-globals` guard; 10/10 green (43 files / 218 tests).
+- **Phase 204 — EAS + web-via-Express:** added `eas.json` (dev/preview/production, `appVersionSource: remote`; `EXPO_PUBLIC_EXPO_PROJECT_ID` already wired, `eas project:init` still manual — needs Expo account + credentials). Web: `server/spa.ts` (`registerSpa` after `/api/*`, `dist-web/` via `pnpm build:web`, `no-store` for shell/SW, immutable for hashed bundles) + `tests/spa.test.ts` live-HTTP checks; smoke-verified `GET /`, `/product/[id]` SPA fallback, `/sw.js`, `/_expo/static/*`, `/api/health`, non-GET passthrough. `pnpm build` now chains `dist/` + `dist-web`; `dist-web/` git-ignored.
+- **Phase 205 — desktop pre-release:** aligned `tauri.conf.json` identifier `com.app.stockfinder` → `com.app.stock_tracker_pro` (matches `app.config.ts` bundleId / AGENTS.md; pre-first-install so no migration); `cargo check` + `pnpm --dir desktop build` green; full Tauri bundle still manual (needs webkit + signing on release machine).
+
+---
+
+## 8. Device-QA prep — static review (2026-09-13, still current after Phases 203-205)
 
 **Desktop tray + deep-link** (`desktop/src-tauri/src/lib.rs`, `desktop/src/notifications.ts`,
 `desktop/src/App.tsx` `NotificationRouter`):
