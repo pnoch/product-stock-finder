@@ -219,6 +219,7 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 ## Environment
 
 - No `.env` committed. Backend needs `DATABASE_URL`, `EXPO_PUBLIC_OAUTH_*`, `EXPO_PUBLIC_API_BASE_URL` for full functionality. Web push needs `VAPID_SUBJECT`/`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` (server) and `EXPO_PUBLIC_VAPID_PUBLIC_KEY` (client); without them the app runs local-only and web notifications fall back to foreground pull. End-to-end web push can't be verified in headless Chromium (no push service) — use a real browser over HTTPS.
+- Transactional email (password reset / verification) uses the Resend HTTP API: `RESEND_API_KEY` + `EMAIL_FROM` (see `server/email.ts`). Unset → sends are skipped and logged. Paid LLM/image endpoints are capped per process by `server/spend-budget.ts` (`SPEND_BUDGET_*` env overrides).
 - DB-backed tests use `TEST_DATABASE_URL` + `RUN_DB_TESTS=1` (see `pnpm test`).
 - `scripts/load-env.js` loads env with system > `.env` priority.
 

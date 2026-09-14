@@ -18,20 +18,10 @@ function pruneStale(maxAge: number) {
 }
 
 function getClientIp(req: TrpcContext["req"]): string {
-  const forwarded = req.headers["x-forwarded-for"];
-  if (typeof forwarded === "string" && forwarded.trim()) {
-    // Only trust X-Forwarded-For if Express trust proxy is configured
-    const trustProxy = (
-      req as unknown as { app?: { get?: (k: string) => unknown } }
-    ).app?.get?.("trust proxy");
-    if (trustProxy) {
-      const ips = forwarded
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      if (ips[0]) return ips[0];
-    }
-  }
+  // Express resolves `req.ip` from the socket address, and — only when
+  // `trust proxy` is configured — from X-Forwarded-For, taking the address
+  // added by the trusted hop. Reading the raw leftmost XFF entry here would
+  // let a client spoof its own key and bypass every bucket.
   return (
     (req as unknown as { ip?: string }).ip ??
     (req.socket as unknown as { remoteAddress?: string })?.remoteAddress ??

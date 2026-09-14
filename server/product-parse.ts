@@ -1,4 +1,5 @@
 import { invokeLLM, type InvokeParams } from "./_core/llm";
+import { tryConsumeBudget } from "./spend-budget";
 import * as cheerio from "cheerio";
 
 export interface ParsedProduct {
@@ -132,6 +133,8 @@ export async function parseProductText(
 ): Promise<ParsedProduct | null> {
   const urlResult = await tryParseUrl(raw);
   if (urlResult) return urlResult;
+  // Only the LLM path is billable; the deterministic URL scrape above is free.
+  if (!tryConsumeBudget("products.parse")) return null;
   try {
     const result = await invoke({
       messages: [

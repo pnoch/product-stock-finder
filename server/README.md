@@ -55,6 +55,13 @@ deviceLabels, revokedDevices. Migrations in `drizzle/migrations/`; apply with `p
   served from a different origin than the API (cross-origin dev). Not needed if
   the web build is hosted behind the same origin as the API.
 - Expo runtime: `EXPO_PUBLIC_APP_ID`, `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_OAUTH_PORTAL_URL`
+- Transactional email: `RESEND_API_KEY` + `EMAIL_FROM` (Resend HTTP API, no SDK).
+  Without them password-reset and email-verification sends are skipped (logged),
+  so production must set both. `EXPO_PUBLIC_WEB_URL` builds the reset/verify links.
+- Spend budgets: `SPEND_BUDGET_PRODUCTS_PARSE`, `SPEND_BUDGET_INSIGHTS_GET`,
+  `SPEND_BUDGET_IMAGES_GET` override the per-process hourly caps for the paid
+  LLM/image endpoints (defaults 300/300/200). In-memory, so a multi-replica
+  deploy multiplies the ceiling by replica count.
 
 ## Web Build
 

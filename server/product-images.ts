@@ -3,6 +3,7 @@ import { productImages } from "../drizzle/schema";
 import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
 import { getDb } from "./db";
 import { generateImage } from "./_core/imageGeneration";
+import { tryConsumeBudget } from "./spend-budget";
 
 type CatalogProduct = (typeof PRODUCT_CATALOG)[number];
 
@@ -35,6 +36,8 @@ async function getProductImageInner(
   if (cached) return { imageUrl: cached };
   const product = PRODUCT_CATALOG.find((p) => p.id === productId);
   if (!product) return null;
+  // Budget is checked only on the billable path (cache hits returned earlier).
+  if (!tryConsumeBudget("images.get")) return null;
   const url = await generateImageForProduct(product);
   if (!url) return null;
   await writeCached(productId, url);

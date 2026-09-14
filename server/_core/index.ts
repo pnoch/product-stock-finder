@@ -111,11 +111,21 @@ async function startServer() {
   registerSpa(app);
 
   const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
+  // In production the platform routes to exactly one port; silently binding a
+  // different one makes the health check fail with no clear cause. Fail fast.
+  const port =
+    process.env.NODE_ENV === "production"
+      ? preferredPort
+      : await findAvailablePort(preferredPort);
 
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
+
+  server.on("error", (error: NodeJS.ErrnoException) => {
+    console.error(`[api] failed to bind port ${port}:`, error.message);
+    process.exit(1);
+  });
 
   server.listen(port, () => {
     console.log(`[api] server listening on port ${port}`);

@@ -1526,3 +1526,14 @@
 
 - [x] Desktop `identifier` drift: `tauri.conf.json` was `com.app.stockfinder`, app bundle is `com.app.stock_tracker_pro` (`app.config.ts` / `AGENTS.md`). Aligned to `com.app.stock_tracker_pro` pre-first-release (no shipped installs to migrate); `cargo check` green
 - [x] Desktop smoke: `pnpm --dir desktop build` green (`454k gzip`), `cargo check` green, `tsc` 0; Tauri bundle (`pnpm tauri build`) still manual — needs system webkit + signing, run on release machine
+
+## Phase 206: Production audit fixes (security + ops)
+
+- [x] IP spoofing: `server/rate-limit.ts` + `server/_core/oauth.ts` keyed on the spoofable leftmost `X-Forwarded-For` entry; now use Express-resolved `req.ip` (trusted-hop only). Tests updated (`rate-limit.test.ts` spoof case)
+- [x] Paid-endpoint spend guard: `server/spend-budget.ts` caps per-process hourly LLM/image calls (`products.parse` 300, `insights.get` 300, `images.get` 200; `SPEND_BUDGET_*` overrides); wired into `product-parse.ts`, `price-insights.ts`, `product-images.ts` on the billable path only (cache hits/single-flight unaffected); degrades to null/stale, never errors
+- [x] Email delivery: `server/email.ts` (Resend HTTP, no new dep) + `RESEND_API_KEY`/`EMAIL_FROM`; password-reset and resend-verification now send real links (`EXPO_PUBLIC_WEB_URL`); new `app/verify-email.tsx` landing route; unconfigured → skip + log
+- [x] SPA fallback: unmatched `/api/*` and `/storage/*` GETs now 404 JSON instead of returning the HTML shell with 200 (`server/spa.ts`)
+- [x] Notification retention: `purgeOldNotificationEvents` (30d, batched, deliveries cascade) called from the warmer tick
+- [x] Session: `verifySession` no longer rejects an empty `name` (null-name OAuth accounts were locked out permanently)
+- [x] Prod startup: `server/_core/index.ts` binds `PORT` directly in production (no port scan) + `server.on("error")` exits 1
+- [x] Tests: `spend-budget.test.ts`, `email.test.ts`, `spa.test.ts` (+404 case), `rate-limit.test.ts`, `session-binding.test.ts`; E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `262 passed | 1 skipped` / `1702 passed`, desktop `43 passed` / `218 passed`

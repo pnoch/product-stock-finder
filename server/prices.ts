@@ -14,6 +14,7 @@ import { buildCatalogPairs, pickPairsToWarm } from "./catalog-warmer";
 import { getAllFetchedAt } from "./price-cache";
 import { getProductImage, listProductsMissingImage } from "./product-images";
 import { evaluateNotifications } from "./notifications";
+import { purgeOldNotificationEvents } from "./notifications";
 import { PRICE_SNAPSHOT_TTL_MS } from "../shared/const";
 
 export const PRICE_TTL_MS = PRICE_SNAPSHOT_TTL_MS; // 1 hour
@@ -164,6 +165,7 @@ export async function runWarmerTick(): Promise<void> {
     await warmProductImages(IMAGES_PER_TICK);
     await evaluateNotifications(Date.now());
     await purgeOldHistory(Date.now());
+    await purgeOldNotificationEvents(Date.now());
   } catch (error) {
     console.warn("[Prices] Warmer tick failed:", error);
   } finally {

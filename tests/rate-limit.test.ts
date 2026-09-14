@@ -130,32 +130,12 @@ describe("rate-limit", () => {
     ).not.toThrow();
   });
 
-  it("honors X-Forwarded-For with trust proxy", () => {
-    const ctxForwarded = makeCtx({
-      ip: "1.2.3.4",
-      xff: "9.9.9.9",
-      trustProxy: true,
-    });
-    const ctxDirect = makeCtx({ ip: "9.9.9.9" });
-    checkRateLimit(ctxForwarded, "xff-honored", 1, 60_000);
-    // Effective IP 9.9.9.9 is shared between the forwarded and direct ctx.
-    expectTooManyRequests(() =>
-      checkRateLimit(ctxDirect, "xff-honored", 1, 60_000),
-    );
-  });
-
-  it("uses the first IP in X-Forwarded-For with trust proxy", () => {
-    const ctxList = makeCtx({
-      ip: "1.2.3.4",
-      xff: "5.5.5.5, 6.6.6.6",
-      trustProxy: 1,
-    });
-    const ctxFirst = makeCtx({ ip: "5.5.5.5" });
-    const ctxSecond = makeCtx({ ip: "6.6.6.6" });
-    checkRateLimit(ctxList, "xff-first", 1, 60_000);
-    expectTooManyRequests(() => checkRateLimit(ctxFirst, "xff-first", 1, 60_000));
-    expect(() =>
-      checkRateLimit(ctxSecond, "xff-first", 1, 60_000),
-    ).not.toThrow();
+  it("keys on the trusted req.ip, never the spoofable leftmost XFF entry", () => {
+    // With trust proxy on, Express sets req.ip to the trusted-hop address.
+    // A client-controlled XFF prefix must not change the bucket key.
+    const ctxA = makeCtx({ ip: "203.0.113.7", xff: "9.9.9.9", trustProxy: true });
+    const ctxB = makeCtx({ ip: "203.0.113.7", xff: "8.8.8.8", trustProxy: true });
+    checkRateLimit(ctxA, "xff-spoof", 1, 60_000);
+    expectTooManyRequests(() => checkRateLimit(ctxB, "xff-spoof", 1, 60_000));
   });
 });

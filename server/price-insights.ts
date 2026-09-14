@@ -8,6 +8,7 @@ import { getCachedPrice } from "./price-cache";
 import { getHistory } from "./price-history";
 import { getDb } from "./db";
 import { invokeLLM } from "./_core/llm";
+import { tryConsumeBudget } from "./spend-budget";
 import type { DistributorListing } from "../lib/types";
 
 export const INSIGHT_TTL_MS = 24 * 60 * 60 * 1000;
@@ -48,6 +49,8 @@ async function generateFreshInsight(
 ): Promise<PriceInsight | null> {
   const context = await buildInsightContext(productId);
   if (!context) return null;
+  // Budget is checked only on the billable path (cache hits returned earlier).
+  if (!tryConsumeBudget("insights.get")) return stale;
   const text = await generateInsight(context);
   if (!text) {
     // LLM failed: serve stale cache if available rather than null

@@ -6,6 +6,7 @@ import { randomUUID, createHash, createHmac } from "crypto";
 import bcrypt from "bcryptjs";
 import * as db from "../db";
 import { isDeviceRevoked, unrevokeDevice } from "../devices";
+import { sendEmail } from "../email";
 
 // ─── Signed OAuth state + single-use tickets ────────────────────────────────
 // The client must never accept a raw session token from a URL (login CSRF /
@@ -138,12 +139,34 @@ function redeemOAuthTicket(
 }
 
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
-function sendPasswordResetEmail(email: string) {
-  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
-    console.log(`[PasswordReset] Sending reset email to ${email}`);
-  } else {
-    console.log(`[PasswordReset] No SMTP configured — reset link generated for ${email}`);
-  }
+
+function webBaseUrl(): string {
+  return (
+    process.env.EXPO_PUBLIC_WEB_URL?.replace(/\/$/, "") ||
+    process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ||
+    ""
+  );
+}
+
+async function sendPasswordResetEmail(email: string, token: string): Promise<void> {
+  const base = webBaseUrl();
+  const link = base ? `${base}/reset-password?token=${encodeURIComponent(token)}` : "";
+  await sendEmail({
+    to: email,
+    subject: "Reset your Product Stock Finder password",
+    text:
+      `We received a request to reset your password.\n\n` +
+      (link
+        ? `Reset it here (expires in 1 hour): ${link}\n\n`
+        : `Open the app and use this reset token (expires in 1 hour): ${token}\n\n`) +
+      `If you did not request this, you can ignore this email.`,
+    html:
+      `<p>We received a request to reset your password.</p>` +
+      (link
+        ? `<p><a href="${link}">Reset your password</a> (expires in 1 hour).</p>`
+        : `<p>Use this reset token in the app (expires in 1 hour): <code>${token}</code></p>`) +
+      `<p>If you did not request this, you can ignore this email.</p>`,
+  });
 }
 const authBuckets = new Map<string, number[]>();
 const AUTH_RATE_LIMIT = 10;
@@ -174,14 +197,10 @@ function checkAuthRateLimit(key: string): boolean {
 }
 
 function getClientIp(req: Request): string {
-  const xf = req.headers["x-forwarded-for"];
-  // Only trust X-Forwarded-For when Express trust proxy is enabled;
-  // otherwise a client can spoof its IP and bypass rate limits.
-  const trustProxy = (req as unknown as { app?: { get?: (k: string) => unknown } }).app?.get?.("trust proxy");
-  if (trustProxy && typeof xf === "string") {
-    const forwarded = xf.split(",")[0]?.trim();
-    if (forwarded) return forwarded;
-  }
+  // Express resolves `req.ip` from the socket address, and — only when
+  // `trust proxy` is configured — from X-Forwarded-For, taking the address
+  // added by the trusted hop. Reading the raw leftmost XFF entry here would
+  // let a client spoof its own key and bypass every auth rate limit.
   return req.ip ?? "unknown";
 }
 
@@ -677,7 +696,8 @@ export function registerOAuthRoutes(app: Express) {
         const token = randomUUID();
         const expiresAt = Date.now() + PASSWORD_RESET_TTL_MS;
         await db.createPasswordResetToken(user.id, hashToken(token), expiresAt);
-        sendPasswordResetEmail(normalized);
+        // Send the plaintext token only over email; the DB stores its hash.
+        await sendPasswordResetEmail(normalized, token);
       }
       res.json({ success: true });
     } catch (e: unknown) {
@@ -818,9 +838,28 @@ export function registerOAuthRoutes(app: Express) {
       const token = randomUUID();
       const expiresAt = Date.now() + PASSWORD_RESET_TTL_MS;
       await db.createEmailVerificationToken(user.id, hashToken(token), expiresAt);
-      // NOTE: no SMTP sender is wired up yet — the token is stored (hashed)
-      // so verification works end to end once delivery exists. Never log it.
-      console.log(`[EmailVerify] Verification token issued for ${email}`);
+      if (email) {
+        const base = webBaseUrl();
+        const link = base
+          ? `${base}/verify-email?token=${encodeURIComponent(token)}`
+          : "";
+        await sendEmail({
+          to: email,
+          subject: "Verify your Product Stock Finder email",
+          text:
+            `Confirm your email address.\n\n` +
+            (link
+              ? `Verify here (expires in 1 hour): ${link}\n\n`
+              : `Use this verification token in the app (expires in 1 hour): ${token}\n\n`) +
+            `If you did not request this, you can ignore this email.`,
+          html:
+            `<p>Confirm your email address.</p>` +
+            (link
+              ? `<p><a href="${link}">Verify your email</a> (expires in 1 hour).</p>`
+              : `<p>Use this verification token in the app (expires in 1 hour): <code>${token}</code></p>`) +
+            `<p>If you did not request this, you can ignore this email.</p>`,
+        });
+      }
       res.json({ success: true });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);

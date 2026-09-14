@@ -43,4 +43,10 @@ describe("session device binding", () => {
     const session = await sdk.verifySession(token);
     expect(session?.deviceId).toBeNull();
   });
+
+  it("accepts an empty name so null-name accounts are not locked out", async () => {
+    const token = await sdk.createSessionToken("open-1", { name: "" });
+    const session = await sdk.verifySession(token);
+    expect(session).toMatchObject({ openId: "open-1", name: "" });
+  });
 });

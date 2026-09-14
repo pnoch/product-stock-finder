@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 import {
   deviceNotificationConfigs,
   notificationEvents,
@@ -227,4 +227,36 @@ export async function pullPendingEvents(
       .onDuplicateKeyUpdate({ set: { deliveredAt: sql`deliveredAt` } });
   }
   return rows.map(rowToEvent);
+}
+
+// Notification events and their delivery receipts accumulate forever otherwise:
+// they are only removed when a device is unbound. Batched like
+// purgeOldHistory so a large table never holds a long lock; the remainder
+// drains on later warmer ticks.
+const EVENT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+const EVENT_PURGE_BATCH_SIZE = 1000;
+const EVENT_PURGE_MAX_BATCHES_PER_TICK = 10;
+
+export async function purgeOldNotificationEvents(now: number): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    const cutoff = now - EVENT_RETENTION_MS;
+    for (const [id, event] of memoryEvents) {
+      if (event.createdAt < cutoff) memoryEvents.delete(id);
+    }
+    return;
+  }
+  const cutoff = now - EVENT_RETENTION_MS;
+  for (let batch = 0; batch < EVENT_PURGE_MAX_BATCHES_PER_TICK; batch++) {
+    // Deliveries cascade from notification_events (FK onDelete cascade), so
+    // deleting the event row is sufficient.
+    const result = await db
+      .delete(notificationEvents)
+      .where(lt(notificationEvents.createdAt, cutoff))
+      .limit(EVENT_PURGE_BATCH_SIZE);
+    const affected = Number(
+      (result as { affectedRows?: unknown }).affectedRows ?? 0,
+    );
+    if (!Number.isFinite(affected) || affected < EVENT_PURGE_BATCH_SIZE) break;
+  }
 }

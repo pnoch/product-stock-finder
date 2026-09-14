@@ -45,11 +45,17 @@ export function registerSpa(app: Express, webDist = resolveWebDist()): boolean {
     }),
   );
   // SPA fallback: unknown GET paths serve index.html. API routes are mounted
-  // before this runs, so /api/* never reaches here; static files (/_expo/*,
-  // /sw.js, /assets/*) are already served above.
+  // before this runs, so a matched /api/* request never reaches here — but an
+  // *unmatched* /api/* or /storage/* path must 404 as an API miss instead of
+  // returning the HTML shell with 200 (which hides typos and breaks clients
+  // that expect JSON errors).
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (req.method !== "GET") {
       next();
+      return;
+    }
+    if (req.path.startsWith("/api/") || req.path.startsWith("/storage/")) {
+      res.status(404).json({ error: "Not found" });
       return;
     }
     res.sendFile(path.join(webDist, "index.html"));

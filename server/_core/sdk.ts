@@ -153,11 +153,10 @@ class SDKServer {
       });
       const { openId, appId, name } = payload as Record<string, unknown>;
 
-      if (
-        !isNonEmptyString(openId) ||
-        !isNonEmptyString(appId) ||
-        !isNonEmptyString(name)
-      ) {
+      // `name` is display-only and may legitimately be empty (e.g. an OAuth
+      // account with no profile name). Requiring it here would mint tokens the
+      // server then rejects, locking the user out permanently.
+      if (!isNonEmptyString(openId) || !isNonEmptyString(appId)) {
         console.warn("[Auth] Session payload missing required fields");
         return null;
       }
@@ -165,7 +164,7 @@ class SDKServer {
       return {
         openId,
         appId,
-        name,
+        name: typeof name === "string" ? name : "",
         deviceId:
           typeof payload.deviceId === "string" ? payload.deviceId : null,
       };

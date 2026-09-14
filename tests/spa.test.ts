@@ -109,4 +109,12 @@ describe("spa http behavior", () => {
     const post = await fetch(`${base}/product/abc`, { method: "POST" });
     expect(post.status).toBe(404);
   });
+
+  it("404s unmatched API and storage paths instead of serving the shell", async () => {
+    for (const path of ["/api/does-not-exist", "/storage/foo/bar"]) {
+      const res = await fetch(`${base}${path}`);
+      expect(res.status).toBe(404);
+      expect(await res.json()).toEqual({ error: "Not found" });
+    }
+  });
 });
