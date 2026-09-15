@@ -1584,3 +1584,7 @@
 - [x] Same class: `sync.push` caps at 200 items server-side, but `syncNow` pushed the entire dirty set in one call — a user with >200 dirty items could never sync. `syncNow` now batches to `SYNC_PUSH_MAX_ITEMS` and merges verdicts (a failed batch aborts the rest, local changes stay dirty)
 - [x] Client pending-health-event buffer was unbounded and persisted to AsyncStorage; capped at `MAX_UPLOAD_HEALTH_EVENTS` (keeps newest) so it can't grow forever and then fail to upload
 - [x] Tests: `pending-health-buffer.test.ts`, `upload-config-client-trim.test.ts`, `sync-push-batching.test.ts` (both trim + batching verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint clean, `276 passed | 1 skipped` / `1734 passed`
+
+## Phase 214: Document client/server payload-cap convention
+
+- [x] Added an AGENTS.md convention: any server-side `.max()`/limit on a client-sent payload must live in `shared/const.ts` and the client must trim/batch to it (the Phase 211/213 failure mode); refreshed the test-count references (~277 files / ~1734 tests)
