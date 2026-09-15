@@ -1577,3 +1577,10 @@
 
 - [x] `sharedWatchlists.get` (public) read the owner's entire watchlist with no limit. Capped at `SHARED_WATCHLIST_MAX_ITEMS = 500` and added a `truncated` flag to the response; clients ignore the extra field (backward compatible)
 - [x] Test: `shared-watchlists.test.ts` cap + truncation case; E2E root `tsc 0`, desktop `tsc 0`, lint clean, `273 passed | 1 skipped` / `1729 passed`
+
+## Phase 213: Client/server cap drift (uploadConfig + sync.push)
+
+- [x] Regression from Phase 211: the server caps `notifications.uploadConfig` arrays (200/200/200/100) but the client sent every active alert/watch/reminder and every buffered health event, so any user over a cap had their whole config rejected (silently disabling server-side notifications). Caps moved to `shared/const.ts` (`MAX_UPLOAD_*`) and the client now trims to them before upload
+- [x] Same class: `sync.push` caps at 200 items server-side, but `syncNow` pushed the entire dirty set in one call — a user with >200 dirty items could never sync. `syncNow` now batches to `SYNC_PUSH_MAX_ITEMS` and merges verdicts (a failed batch aborts the rest, local changes stay dirty)
+- [x] Client pending-health-event buffer was unbounded and persisted to AsyncStorage; capped at `MAX_UPLOAD_HEALTH_EVENTS` (keeps newest) so it can't grow forever and then fail to upload
+- [x] Tests: `pending-health-buffer.test.ts`, `upload-config-client-trim.test.ts`, `sync-push-batching.test.ts` (both trim + batching verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint clean, `276 passed | 1 skipped` / `1734 passed`

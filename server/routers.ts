@@ -2,7 +2,14 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { COOKIE_NAME } from "../shared/const.js";
+import {
+  COOKIE_NAME,
+  MAX_UPLOAD_ALERTS,
+  MAX_UPLOAD_DATE_REMINDERS,
+  MAX_UPLOAD_HEALTH_EVENTS,
+  MAX_UPLOAD_STOCK_WATCHES,
+  SYNC_PUSH_MAX_ITEMS,
+} from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -159,7 +166,7 @@ export const appRouter = router({
         return { lastSyncedAt, items, fullResyncSince };
       }),
     push: protectedProcedure
-      .input(z.object({ items: z.array(syncItemSchema).max(200) }))
+      .input(z.object({ items: z.array(syncItemSchema).max(SYNC_PUSH_MAX_ITEMS) }))
       .mutation(async ({ ctx, input }) => {
         checkRateLimit(ctx, "sync.push", 30, 60_000);
         // Total-payload cap: 200 items × 100KB per item would let one push
@@ -350,7 +357,7 @@ export const appRouter = router({
                 snoozedUntil: z.string().optional(),
               }),
             )
-            .max(200),
+            .max(MAX_UPLOAD_ALERTS),
           stockWatches: z
             .array(
               z.object({
@@ -360,7 +367,7 @@ export const appRouter = router({
                 lastKnownStatus: z.string().max(32).optional(),
               }),
             )
-            .max(200),
+            .max(MAX_UPLOAD_STOCK_WATCHES),
           dateReminders: z
             .array(
               z.object({
@@ -370,7 +377,7 @@ export const appRouter = router({
                 reminderDate: z.string().min(1).max(64),
               }),
             )
-            .max(200),
+            .max(MAX_UPLOAD_DATE_REMINDERS),
           healthEvents: z
             .array(
               z.object({
@@ -383,7 +390,7 @@ export const appRouter = router({
                 createdAt: z.number(),
               }),
             )
-            .max(100)
+            .max(MAX_UPLOAD_HEALTH_EVENTS)
             .optional(),
           quietHours: z
             .object({

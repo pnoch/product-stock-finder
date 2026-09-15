@@ -11,7 +11,11 @@ import type {
   SyncRejectionReason,
   SyncStampedItem,
 } from "./types";
-import { PRICE_HISTORY_DAYS, PRICE_HISTORY_SYNC_DAYS } from "@/shared/const";
+import {
+  PRICE_HISTORY_DAYS,
+  PRICE_HISTORY_SYNC_DAYS,
+  SYNC_PUSH_MAX_ITEMS,
+} from "@/shared/const";
 import { mergePriceHistory } from "@/lib/price-history";
 
 export interface SyncNowOptions {
@@ -168,9 +172,18 @@ async function doSync(
   if (dirty.length > 0) {
     let stamped: SyncStampedItem[] = [];
     try {
-      const result = await opts.push(dirty);
-      stamped = result.stamped;
-      rejected = (result.rejected ?? []) as typeof rejected;
+      // The server rejects a push over SYNC_PUSH_MAX_ITEMS outright, so a user
+      // with more dirty items than the cap would never sync. Send in batches
+      // and merge the verdicts; a failed batch aborts the rest (local changes
+      // stay dirty for the next sync).
+      for (let i = 0; i < dirty.length; i += SYNC_PUSH_MAX_ITEMS) {
+        const batch = dirty.slice(i, i + SYNC_PUSH_MAX_ITEMS);
+        const result = await opts.push(batch);
+        stamped = stamped.concat(result.stamped);
+        rejected = rejected.concat(
+          (result.rejected ?? []) as typeof rejected,
+        );
+      }
     } catch (error) {
       console.warn("[Sync] Push failed; local changes kept", error);
       await storage.saveSyncMeta({

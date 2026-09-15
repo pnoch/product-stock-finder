@@ -1,4 +1,10 @@
 import { createTRPCClient } from "./trpc";
+import {
+  MAX_UPLOAD_ALERTS,
+  MAX_UPLOAD_DATE_REMINDERS,
+  MAX_UPLOAD_HEALTH_EVENTS,
+  MAX_UPLOAD_STOCK_WATCHES,
+} from "../shared/const";
 import type {
   NotificationConfig,
   NotificationEvent,
@@ -46,7 +52,14 @@ export async function uploadHealthEventToServer(event: {
   const { getPendingHealthEvents, savePendingHealthEvents } = await import("./storage");
   const pending = await getPendingHealthEvents();
   pending.push(event);
-  await savePendingHealthEvents(pending);
+  // Bound the buffer at the upload cap (keep the newest): it is persisted to
+  // AsyncStorage, and the server rejects uploads larger than the cap — so an
+  // uncapped buffer would grow forever and then fail to upload at all.
+  const trimmed =
+    pending.length > MAX_UPLOAD_HEALTH_EVENTS
+      ? pending.slice(pending.length - MAX_UPLOAD_HEALTH_EVENTS)
+      : pending;
+  await savePendingHealthEvents(trimmed);
 }
 
 export async function pullNotificationEvents(): Promise<NotificationEvent[]> {
@@ -143,21 +156,25 @@ async function runSyncServerNotifications(): Promise<void> {
 
     const uploadOk = await uploadNotificationConfig(
       {
-        alerts: activeAlerts,
-        stockWatches,
-        dateReminders,
+        // Trim to the server's schema caps: sending more than the limit makes
+        // the whole upload fail, silently disabling server-side notifications.
+        alerts: activeAlerts.slice(0, MAX_UPLOAD_ALERTS),
+        stockWatches: stockWatches.slice(0, MAX_UPLOAD_STOCK_WATCHES),
+        dateReminders: dateReminders.slice(0, MAX_UPLOAD_DATE_REMINDERS),
         quietHours: settings.quietHours ?? undefined,
       },
       settings.healthAlerts && pendingHealthEvents.length > 0
-        ? pendingHealthEvents.map((e) => ({
-            id: `health-${e.distributorId}-${e.status}-${e.createdAt}`,
-            distributorId: e.distributorId,
-            distributorName: e.distributorName,
-            status: e.status,
-            title: e.title,
-            body: e.body,
-            createdAt: e.createdAt,
-          }))
+        ? pendingHealthEvents
+            .slice(0, MAX_UPLOAD_HEALTH_EVENTS)
+            .map((e) => ({
+              id: `health-${e.distributorId}-${e.status}-${e.createdAt}`,
+              distributorId: e.distributorId,
+              distributorName: e.distributorName,
+              status: e.status,
+              title: e.title,
+              body: e.body,
+              createdAt: e.createdAt,
+            }))
         : undefined,
     );
 

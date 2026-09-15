@@ -10,3 +10,15 @@ export const PRICE_HISTORY_DAYS = 365;
 // How long a server price snapshot counts as fresh. Shared by the server
 // cache (server/prices.ts) and every client consumer so the TTL cannot drift.
 export const PRICE_SNAPSHOT_TTL_MS = 60 * 60 * 1000;
+
+// Upload caps for notifications.uploadConfig. The server rejects payloads over
+// these, so the client must trim to the same bounds before sending — otherwise
+// a user with more items than the cap has their entire config rejected.
+export const MAX_UPLOAD_ALERTS = 200;
+export const MAX_UPLOAD_STOCK_WATCHES = 200;
+export const MAX_UPLOAD_DATE_REMINDERS = 200;
+export const MAX_UPLOAD_HEALTH_EVENTS = 100;
+
+// Max items per sync.push call. The client batches dirty items to this size so
+// a large local change set is never rejected as one oversized payload.
+export const SYNC_PUSH_MAX_ITEMS = 200;
