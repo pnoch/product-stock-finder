@@ -41,23 +41,31 @@ async function runCheckRestocks(): Promise<void> {
     const newStatus = currentListing.stockStatus;
 
     if (prevStatus !== "in_stock" && newStatus === "in_stock") {
-      // Back in stock — fire notification and remove watch
+      // Back in stock — notify, then remove the watch. The watch is only
+      // removed once the notification actually fired: deleting it on a failed
+      // send would silently lose the restock alert forever.
       const notificationsEnabled =
         settings.notificationsEnabled !== false &&
         settings.stockAlerts !== false;
+      let notified = true;
       if (notificationsEnabled && Platform.OS !== "web") {
         try {
           const distrib = getDistributorById(watch.distributorId);
-          await scheduleStockAlert(
+          const id = await scheduleStockAlert(
             watch.productName,
             distrib?.name ?? watch.distributorName,
             currentListing.price,
             currentListing.currency,
             watch.productId,
           );
+          notified = id !== null;
         } catch {
-          // Notification failure must not prevent watch removal
+          notified = false;
         }
+      }
+      if (!notified) {
+        // Keep the watch so the next cycle retries the notification.
+        continue;
       }
       try {
         await removeStockWatch(watch.id);

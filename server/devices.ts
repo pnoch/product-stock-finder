@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, or } from "drizzle-orm";
 import {
   deviceLabels,
   deviceNotificationConfigs,
@@ -274,6 +274,29 @@ export async function cleanupStaleDevices(
     }
   }
   return removed;
+}
+
+// revoked_devices rows are only removed on unrevoke (sign-in) or user deletion,
+// so devices that never sign back in accumulate forever and feed the
+// per-request isDeviceRevoked scan. Drop rows past the retention window.
+const REVOKED_DEVICE_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+const REVOKED_DEVICE_PURGE_BATCH = 1000;
+
+export async function purgeOldRevokedDevices(now: number): Promise<void> {
+  const cutoff = now - REVOKED_DEVICE_RETENTION_MS;
+  const db = await getDb();
+  if (!db) {
+    for (const key of memoryRevokedDevices) {
+      // Keys are `userId:deviceId` or `*:deviceId`; no timestamp in memory, so
+      // leave them (test-only path).
+      void key;
+    }
+    return;
+  }
+  await db
+    .delete(revokedDevices)
+    .where(lt(revokedDevices.revokedAt, cutoff))
+    .limit(REVOKED_DEVICE_PURGE_BATCH);
 }
 
 export async function isDeviceRevoked(

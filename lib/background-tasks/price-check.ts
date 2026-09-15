@@ -12,7 +12,7 @@ import {
 } from "../storage";
 import { formatPrice } from "@shared/currency";
 import { convertPrice, getBestPrice } from "../currency";
-import { requestNotificationPermissions } from "../notifications";
+import { requestNotificationPermissions, channelIdFor } from "../notifications";
 import { checkRestocks } from "../restock";
 import { maybeSendDigest } from "../price-digest";
 import { syncServerNotifications } from "../server-notifications";
@@ -102,6 +102,7 @@ export async function runPriceCheckCore(opts?: {
               body: `Watchlist value ${formatPrice(total, "USD")} dropped below your ${formatPrice(threshold, "USD")} threshold.`,
               data: { type: "digest" },
               sound: true,
+              ...(channelIdFor("digest") ? { channelId: channelIdFor("digest") } : {}),
             },
             trigger: null,
           });
@@ -179,6 +180,7 @@ export async function runPriceCheckCore(opts?: {
               isRise ? "above" : "below"
             } your target of ${formatPrice(alert.targetPrice, alert.currency)}!`,
             sound: true,
+            ...(channelIdFor("price") ? { channelId: channelIdFor("price") } : {}),
           },
           trigger: null,
         });

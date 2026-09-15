@@ -4,7 +4,7 @@ import {
   resilientFetch,
 } from "../lib/scrapers/resilient";
 import type { PriceSnapshot, ServerPriceResult } from "../lib/types";
-import { getCachedPrice, setCachedPrice, listNearExpiry } from "./price-cache";
+import { getCachedPrice, setCachedPrice, listNearExpiry, purgeStalePriceCache } from "./price-cache";
 import {
   getHistory,
   recordHistoryPoint,
@@ -17,6 +17,7 @@ import { purgeOrphanedInsights } from "./price-insights";
 import { evaluateNotifications } from "./notifications";
 import { purgeOldNotificationEvents } from "./notifications";
 import { purgeExpiredAuthTokens } from "./db";
+import { purgeOldRevokedDevices } from "./devices";
 import { PRICE_SNAPSHOT_TTL_MS } from "../shared/const";
 
 export const PRICE_TTL_MS = PRICE_SNAPSHOT_TTL_MS; // 1 hour
@@ -203,6 +204,8 @@ export async function runWarmerTick(): Promise<void> {
     await purgeExpiredAuthTokens(Date.now());
     await purgeOrphanedInsights();
     await purgeOrphanedImages();
+    await purgeStalePriceCache(Date.now());
+    await purgeOldRevokedDevices(Date.now());
   } catch (error) {
     console.warn("[Prices] Warmer tick failed:", error);
   } finally {

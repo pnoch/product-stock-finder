@@ -8,6 +8,7 @@ const state = vi.hoisted(() => ({
   scheduledNotifications: [] as unknown[],
   permissionGranted: true,
   taskRegistered: false,
+  taskInterval: null as number | null,
   settingsStore: {
     theme: "auto",
     displayCurrency: "USD",
@@ -44,12 +45,18 @@ vi.mock("../lib/storage", () => ({
   updateProductListings: vi.fn(async () => {}),
   getPriceDigestSnapshot: vi.fn(async () => null),
   savePriceDigestSnapshot: vi.fn(async () => {}),
+  rearmAlert: vi.fn(async () => {}),
+  getBackgroundTaskInterval: vi.fn(async () => state.taskInterval),
+  saveBackgroundTaskInterval: vi.fn(async (minutes: number | null) => {
+    state.taskInterval = minutes;
+  }),
 }));
 
 vi.mock("../lib/notifications", () => ({
   requestNotificationPermissions: vi.fn(async () => state.permissionGranted),
   scheduleHealthAlert: vi.fn(async () => "notif-id"),
   scheduleHealthRecovery: vi.fn(async () => "notif-id"),
+  channelIdFor: vi.fn(() => undefined),
 }));
 
 vi.mock("../lib/restock", () => ({
@@ -312,6 +319,7 @@ describe("registerHealthProbeTask", () => {
     vi.mocked(BackgroundTask.registerTaskAsync).mockClear();
     vi.mocked(BackgroundTask.unregisterTaskAsync).mockClear();
     state.taskRegistered = false;
+    state.taskInterval = null;
     state.settingsStore = { ...state.settingsStore, checkInterval: "manual" };
   });
 
@@ -339,6 +347,27 @@ describe("registerHealthProbeTask", () => {
     expect(BackgroundTask.unregisterTaskAsync).toHaveBeenCalledWith("health-probe");
     expect(BackgroundTask.registerTaskAsync).not.toHaveBeenCalled();
   });
+
+  it("does not re-register when already registered with the same interval", async () => {
+    // Re-registering on every launch resets the OS scheduling window (iOS).
+    state.settingsStore = { ...state.settingsStore, checkInterval: "hourly" };
+    state.taskRegistered = true;
+    state.taskInterval = 60;
+    await registerHealthProbeTask();
+    expect(BackgroundTask.unregisterTaskAsync).not.toHaveBeenCalled();
+    expect(BackgroundTask.registerTaskAsync).not.toHaveBeenCalled();
+  });
+
+  it("re-registers when the interval changed", async () => {
+    state.settingsStore = { ...state.settingsStore, checkInterval: "daily" };
+    state.taskRegistered = true;
+    state.taskInterval = 60;
+    await registerHealthProbeTask();
+    expect(BackgroundTask.unregisterTaskAsync).toHaveBeenCalledWith("health-probe");
+    expect(BackgroundTask.registerTaskAsync).toHaveBeenCalledWith("health-probe", {
+      minimumInterval: 1440,
+    });
+  });
 });
 
 describe("syncBackgroundTasks", () => {
@@ -346,6 +375,7 @@ describe("syncBackgroundTasks", () => {
     vi.mocked(BackgroundTask.registerTaskAsync).mockClear();
     vi.mocked(BackgroundTask.unregisterTaskAsync).mockClear();
     state.taskRegistered = false;
+    state.taskInterval = null;
     state.settingsStore = { ...state.settingsStore, checkInterval: "manual" };
   });
 

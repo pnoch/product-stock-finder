@@ -16,6 +16,7 @@ export const STORAGE_KEYS = {
   FX_RATE_HISTORY: "fx_rate_history",
   DISCOVERED_PRODUCTS: "discovered_products",
   DISCOVERED_DISTRIBUTORS: "discovered_distributors",
+  BACKGROUND_TASK_INTERVAL: "background_task_interval",
 };
 
 export interface StorageContext {

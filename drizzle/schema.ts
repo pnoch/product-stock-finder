@@ -137,6 +137,9 @@ export const priceCache = mysqlTable(
   },
   (table) => [
     primaryKey({ columns: [table.distributorId, table.modelNumber] }),
+    // listNearExpiry / getAllFetchedAt order by fetchedAt; without this index
+    // every warmer tick full-scans + filesorts the whole table.
+    index("idx_price_cache_fetched").on(table.fetchedAt),
   ],
 );
 

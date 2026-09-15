@@ -1681,3 +1681,13 @@
 - [x] Tray "Check Now" passed an empty API base, forcing local scrapers. The last base passed by the renderer is now stored and reused
 - [x] Snooze comparison was lexicographic while JS writes millis and Rust omits them, so an alert could fire slightly early. Added `parse_iso_to_epoch_ms` (civil-date conversion) and compare instants
 - [x] Tests: 14 Rust tests (`cargo test`) incl. model-gating decoy, ISO parse parity, snooze ordering; E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `289 passed | 1 skipped` / `1770 passed`, desktop `43 passed` / `218 passed`
+
+## Phase 219: Notification channels, restock retention, digest delivery, retention purges
+
+- [x] Android notification channels were created but never referenced: every `scheduleNotificationAsync` omitted `channelId`, so all alerts landed on the default channel and the configured HIGH importance/sound/vibration were ignored. Added `channelIdFor()` and applied it to all 11 call sites (stock/price/digest)
+- [x] A failed restock notification still deleted the watch, so the user never learned the item was back and the watch was gone. `runCheckRestocks` now keeps the watch when `scheduleStockAlert` returns null
+- [x] The digest snapshot advanced even when nothing was delivered (permission denied / web / quiet hours), delaying the next digest a full interval. `sendPriceDigestNotification` now returns whether it scheduled, `DigestSender` returns boolean, and `maybeSendDigest` returns null on non-delivery
+- [x] `price_cache` had no delete path and `listNearExpiry`/`getAllFetchedAt` sorted an unindexed `fetchedAt` (full scan + filesort every warmer tick). Added `purgeStalePriceCache` (30d, batched) + `idx_price_cache_fetched`
+- [x] `revoked_devices` rows were only removed on unrevoke/user-deletion, feeding the per-request `isDeviceRevoked` scan. Added `purgeOldRevokedDevices` (90d)
+- [x] Background tasks re-registered on every launch, resetting the OS scheduling window (iOS) and potentially deferring them indefinitely. Added a persisted interval marker so registration only happens when missing or changed
+- [x] Tests: `retention-purges`, restock retention case in `restock.test.ts`, digest non-delivery in `price-digest.test.ts`, task-interval cases in `price-check.test.ts` (restock case verified non-vacuous); migration `0025`; E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `290 passed | 1 skipped` / `1776 passed`, desktop `43 passed` / `218 passed`

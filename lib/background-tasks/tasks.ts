@@ -1,7 +1,7 @@
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 import { Platform } from "react-native";
-import { getSettings } from "../storage";
+import { getSettings, getBackgroundTaskInterval, saveBackgroundTaskInterval } from "../storage";
 import { healthService } from "./instances";
 import { checkHealthAlerts } from "./health-alerts";
 import { runPriceCheckCore } from "./price-check";
@@ -41,22 +41,25 @@ export async function registerPriceCheckTask() {
       if (isRegistered) {
         await BackgroundTask.unregisterTaskAsync(PRICE_CHECK_TASK);
       }
+      await saveBackgroundTaskInterval(null);
       return;
     }
 
     const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
+    const lastInterval = await getBackgroundTaskInterval();
 
-    if (!isRegistered) {
-      await BackgroundTask.registerTaskAsync(PRICE_CHECK_TASK, {
-        minimumInterval: intervalMinutes,
-      });
-    } else {
-      // Re-register to update the interval if it changed
+    // Only (re)register when the task is missing or the interval changed.
+    // Re-registering on every launch resets the OS scheduling window (iOS) and
+    // can defer the task indefinitely.
+    if (isRegistered && lastInterval === intervalMinutes) return;
+
+    if (isRegistered) {
       await BackgroundTask.unregisterTaskAsync(PRICE_CHECK_TASK);
-      await BackgroundTask.registerTaskAsync(PRICE_CHECK_TASK, {
-        minimumInterval: intervalMinutes,
-      });
     }
+    await BackgroundTask.registerTaskAsync(PRICE_CHECK_TASK, {
+      minimumInterval: intervalMinutes,
+    });
+    await saveBackgroundTaskInterval(intervalMinutes);
   } catch {
     // Background tasks not available on simulator/web — silently ignore
   }
@@ -77,17 +80,19 @@ export async function registerHealthProbeTask() {
     }
 
     const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
+    // Shares the interval marker with the price task: both use the same
+    // setting, so one marker is sufficient and avoids a second key.
+    const lastInterval = await getBackgroundTaskInterval();
 
-    if (!isRegistered) {
-      await BackgroundTask.registerTaskAsync(HEALTH_PROBE_TASK, {
-        minimumInterval: intervalMinutes,
-      });
-    } else {
+    if (isRegistered && lastInterval === intervalMinutes) return;
+
+    if (isRegistered) {
       await BackgroundTask.unregisterTaskAsync(HEALTH_PROBE_TASK);
-      await BackgroundTask.registerTaskAsync(HEALTH_PROBE_TASK, {
-        minimumInterval: intervalMinutes,
-      });
     }
+    await BackgroundTask.registerTaskAsync(HEALTH_PROBE_TASK, {
+      minimumInterval: intervalMinutes,
+    });
+    await saveBackgroundTaskInterval(intervalMinutes);
   } catch {
     // Background tasks not available on simulator/web — silently ignore
   }

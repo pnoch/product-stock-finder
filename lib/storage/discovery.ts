@@ -85,3 +85,38 @@ export function createDiscoveryStorage(ctx: StorageContext) {
     addDiscoveredDistributor,
   };
 }
+
+// ─── Background task interval ────────────────────────────────────────────────
+// Remembers the last registered background-task interval so a launch only
+// re-registers when it actually changed. Re-registering on every launch resets
+// the OS scheduling window (iOS) and can defer the task indefinitely.
+export function createBackgroundTaskStorage(ctx: StorageContext) {
+  const { adapter, KEYS } = ctx;
+
+  async function getBackgroundTaskInterval(): Promise<number | null> {
+    try {
+      const raw = await adapter.getItem(KEYS.BACKGROUND_TASK_INTERVAL);
+      if (!raw) return null;
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function saveBackgroundTaskInterval(
+    minutes: number | null,
+  ): Promise<void> {
+    try {
+      if (minutes === null) {
+        await adapter.removeItem(KEYS.BACKGROUND_TASK_INTERVAL);
+      } else {
+        await adapter.setItem(KEYS.BACKGROUND_TASK_INTERVAL, String(minutes));
+      }
+    } catch {
+      // best effort
+    }
+  }
+
+  return { getBackgroundTaskInterval, saveBackgroundTaskInterval };
+}

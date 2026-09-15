@@ -162,4 +162,20 @@ describe("checkRestocks", () => {
     expect(state.removed).toEqual([]);
     expect(state.updated).toEqual([]);
   });
+
+  it("keeps the watch when the notification fails to schedule", async () => {
+    const { scheduleStockAlert } = await import("../lib/notifications");
+    vi.mocked(scheduleStockAlert).mockResolvedValueOnce(null);
+    state.watches = [makeWatch()];
+    state.watchlist = [
+      {
+        id: "p1",
+        listings: [{ distributorId: "d1", stockStatus: "in_stock" }],
+      },
+    ];
+    await checkRestocks();
+    expect(state.scheduled).toHaveLength(0);
+    // Notification failed → the watch must survive so the next cycle retries.
+    expect(state.removed).toEqual([]);
+  });
 });

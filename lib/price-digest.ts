@@ -54,7 +54,7 @@ export interface DigestResult {
   }[];
 }
 
-export type DigestSender = (title: string, body: string) => Promise<void>;
+export type DigestSender = (title: string, body: string) => Promise<boolean>;
 
 function productState(
   product: Product,
@@ -279,7 +279,7 @@ export async function maybeSendDigest(
   alerts: PriceAlert[],
   send: DigestSender = async (title, body) => {
     const { sendPriceDigestNotification } = await import("./notifications");
-    await sendPriceDigestNotification(title, body);
+    return sendPriceDigestNotification(title, body);
   },
   now = new Date().toISOString(),
 ): Promise<DigestSnapshot | null> {
@@ -322,7 +322,11 @@ export async function maybeSendDigest(
 
     const result = computeDigest(previous, watchlist, settings, alerts);
     const { title, body } = formatDigestNotification(result);
-    await send(title, body);
+    // Do not advance the snapshot when nothing was delivered (permission
+    // denied, web, quiet hours): advancing would delay the next digest a full
+    // interval even though the user never saw this one.
+    const delivered = await send(title, body);
+    if (!delivered) return null;
 
     const displayCurrency = settings.displayCurrency;
     return buildDigestSnapshot(watchlist, displayCurrency, now);

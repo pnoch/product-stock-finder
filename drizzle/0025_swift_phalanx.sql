@@ -1,0 +1,1 @@
+CREATE INDEX `idx_price_cache_fetched` ON `price_cache` (`fetchedAt`);

@@ -284,7 +284,7 @@ describe("formatDigestNotification", () => {
 
 describe("maybeSendDigest", () => {
   it("returns null when digestFrequency is off", async () => {
-    const send = vi.fn(async () => {});
+    const send = vi.fn(async () => true);
     const result = await maybeSendDigest(
       null,
       [],
@@ -302,7 +302,7 @@ describe("maybeSendDigest", () => {
       lastDigestAt: "2026-08-11T10:00:00.000Z", // 2h before NOW
       products: [],
     };
-    const send = vi.fn(async () => {});
+    const send = vi.fn(async () => true);
     const result = await maybeSendDigest(
       previous,
       [],
@@ -320,7 +320,7 @@ describe("maybeSendDigest", () => {
       lastDigestAt: "2026-08-09T12:00:00.000Z", // 48h before NOW → due for daily
       products: [],
     };
-    const send = vi.fn(async () => {});
+    const send = vi.fn(async () => true);
     const watchlist = [
       makeProduct("p1", "CRS804", [
         { price: 95, currency: "USD", stockStatus: "in_stock" },
@@ -346,7 +346,7 @@ describe("maybeSendDigest", () => {
       lastDigestAt: "2026-08-09T12:00:00.000Z",
       products: [],
     };
-    const send = vi.fn(async () => {});
+    const send = vi.fn(async () => true);
     const result = await maybeSendDigest(
       previous,
       [],
@@ -392,7 +392,7 @@ describe("maybeSendDigest", () => {
       lastDigestAt: "2026-08-04T12:00:00.000Z", // 7 days before NOW → due for weekly
       products: [],
     };
-    const send = vi.fn(async () => {});
+    const send = vi.fn(async () => true);
     // NOW (2026-08-11) is a Tuesday → weekday 2
     const result = await maybeSendDigest(
       previous,
@@ -490,7 +490,7 @@ describe("digest enhancements", () => {
 
 describe("digest schedule", () => {
   it("weekly fires only on the chosen weekday", async () => {
-    const send = vi.fn(async () => {});
+    const send = vi.fn(async () => true);
     const previous: DigestSnapshot = {
       lastDigestAt: "2026-08-10T12:00:00.000Z", // Monday
       products: [],
@@ -524,7 +524,7 @@ describe("digest schedule", () => {
   });
 
   it("daily ignores the weekday gate", async () => {
-    const send = vi.fn(async () => {});
+    const send = vi.fn(async () => true);
     const previous: DigestSnapshot = {
       lastDigestAt: "2026-08-10T12:00:00.000Z",
       products: [],
@@ -623,7 +623,7 @@ describe("digest currency handling", () => {
   });
 
   it("records the display currency in the new snapshot", async () => {
-    const send = vi.fn(async () => {});
+    const send = vi.fn(async () => true);
     const watchlist = [
       makeProduct("p1", "A", [{ price: 92, currency: "EUR", stockStatus: "in_stock" }]),
     ];
@@ -636,5 +636,24 @@ describe("digest currency handling", () => {
       NOW,
     );
     expect(snapshot?.displayCurrency).toBe("EUR");
+  });
+
+  it("does not advance the snapshot when the send is not delivered", async () => {
+    // Permission denied / web / quiet hours → send returns false. Advancing the
+    // snapshot would delay the next digest a full interval.
+    const send = vi.fn(async () => false);
+    const watchlist = [
+      makeProduct("p1", "A", [{ price: 92, currency: "USD", stockStatus: "in_stock" }]),
+    ];
+    const snapshot = await maybeSendDigest(
+      null,
+      watchlist,
+      makeSettings({ digestFrequency: "daily" }),
+      [],
+      send,
+      NOW,
+    );
+    expect(send).toHaveBeenCalled();
+    expect(snapshot).toBeNull();
   });
 });

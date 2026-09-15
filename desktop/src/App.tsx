@@ -294,7 +294,7 @@ export default function App() {
           await storage.getAlerts(),
           async (title, body) => {
             const { sendDesktopNotification } = await import("./notifications");
-            await sendDesktopNotification(title, body, "/stats");
+            return sendDesktopNotification(title, body, "/stats");
           },
         );
         if (nextDigest) await storage.savePriceDigestSnapshot(nextDigest);

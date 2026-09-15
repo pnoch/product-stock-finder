@@ -21,7 +21,7 @@ function product(id: string, price: number) {
 
 describe("maybeSendDigest quietHours", () => {
   it("defers digest when in quiet hours", async () => {
-    const send = vi.fn(async () => {});
+    const send = vi.fn(async () => true);
     const now = new Date("2026-08-04T23:30:00");
     const qh = { start: "22:00", end: "07:00" };
     const result = await maybeSendDigest(null, [product("p1", 100)], settings({ quietHours: qh }), [], send, now.toISOString());
@@ -30,7 +30,7 @@ describe("maybeSendDigest quietHours", () => {
   });
 
   it("sends digest when outside quiet hours", async () => {
-    const send = vi.fn(async () => {});
+    const send = vi.fn(async () => true);
     const now = new Date("2026-08-04T08:00:00");
     const qh = { start: "22:00", end: "07:00" };
     const result = await maybeSendDigest(null, [product("p1", 100)], settings({ quietHours: qh }), [], send, now.toISOString());

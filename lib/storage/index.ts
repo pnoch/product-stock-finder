@@ -11,7 +11,7 @@ import { createDigestFxStorage } from "./digest-fx";
 import { createFxHistoryStorage } from "./fx-history";
 import { createSyncMetaStorage } from "./sync-meta";
 import { createNotificationsStorage } from "./notifications";
-import { createDiscoveryStorage } from "./discovery";
+import { createDiscoveryStorage, createBackgroundTaskStorage } from "./discovery";
 
 export { DISTRIBUTOR_BREAKER_KEY };
 export type { StorageAdapter };
@@ -70,6 +70,7 @@ export function createStorage(
     ...createSyncMetaStorage(ctx),
     ...createNotificationsStorage(ctx),
     ...createDiscoveryStorage(ctx),
+    ...createBackgroundTaskStorage(ctx),
     setOnChange: ctx.setOnChange,
     setChangeSuppressed: ctx.setChangeSuppressed,
     clearAllData,
@@ -181,4 +182,9 @@ export const {
   getDiscoveredDistributors,
   saveDiscoveredDistributors,
   addDiscoveredDistributor,
+} = defaultStorage;
+// ─── Background tasks ──────────────────────────────────────────────────
+export const {
+  getBackgroundTaskInterval,
+  saveBackgroundTaskInterval,
 } = defaultStorage;

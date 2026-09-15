@@ -161,6 +161,35 @@ export function clearPriceCacheForTests(): void {
   memoryCache.clear();
 }
 
+// price_cache rows are keyed by (distributor, model) and grow with every
+// distinct model ever requested via the public prices.get, with no delete path.
+// Drop rows not refreshed within the retention window (batched, called from the
+// warmer tick); a purged row simply reads as a cache miss and is re-warmed.
+const PRICE_CACHE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+const PRICE_CACHE_PURGE_BATCH = 1000;
+const PRICE_CACHE_PURGE_MAX_BATCHES = 10;
+
+export async function purgeStalePriceCache(now: number): Promise<void> {
+  const cutoff = now - PRICE_CACHE_RETENTION_MS;
+  const db = await getDb();
+  if (!db) {
+    for (const [key, snap] of memoryCache) {
+      if (snap.fetchedAt < cutoff) memoryCache.delete(key);
+    }
+    return;
+  }
+  for (let batch = 0; batch < PRICE_CACHE_PURGE_MAX_BATCHES; batch++) {
+    const result = await db
+      .delete(priceCache)
+      .where(lt(priceCache.fetchedAt, cutoff))
+      .limit(PRICE_CACHE_PURGE_BATCH);
+    const affected = Number(
+      (result as { affectedRows?: unknown }).affectedRows ?? 0,
+    );
+    if (!Number.isFinite(affected) || affected < PRICE_CACHE_PURGE_BATCH) break;
+  }
+}
+
 function rowToSnapshot(row: PriceCacheRow): PriceSnapshot {
   return {
     price: typeof row.price === "string" ? parseFloat(row.price) : row.price,

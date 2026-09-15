@@ -22,6 +22,21 @@ if (Platform.OS !== "web") {
 }
 
 // ─── Android Channel Setup ────────────────────────────────────────────────────
+export const NOTIFICATION_CHANNELS = {
+  stock: "stock-alerts",
+  price: "price-alerts",
+  digest: "digest",
+} as const;
+
+// Android ignores per-notification importance/sound/vibration unless the
+// notification names a channel; without this every alert landed on the default
+// channel and the configured HIGH importance was never applied.
+export function channelIdFor(
+  kind: keyof typeof NOTIFICATION_CHANNELS,
+): string | undefined {
+  return Platform.OS === "android" ? NOTIFICATION_CHANNELS[kind] : undefined;
+}
+
 export async function setupAndroidNotificationChannel(): Promise<void> {
   if (Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync("stock-alerts", {
@@ -89,6 +104,7 @@ export async function scheduleStockAlert(
         body: `${productName} is now available at ${distributorName} for ${currency} ${price.toFixed(2)}`,
         data: { type: "stock_alert", productName, distributorName, productId },
         sound: "default",
+        ...(channelIdFor("stock") ? { channelId: channelIdFor("stock") } : {}),
       },
       trigger: null, // immediate
     });
@@ -114,6 +130,7 @@ export async function scheduleStockWatchConfirmation(
         body: `We'll notify you when ${productName} is back in stock at ${distributorName}.`,
         data: { type: "stock_watch_set" },
         sound: "default",
+        ...(channelIdFor("stock") ? { channelId: channelIdFor("stock") } : {}),
       },
       trigger: null, // immediate
     });
@@ -155,6 +172,7 @@ export async function scheduleHealthAlert(
           body,
           data: { type: "health_alert", distributorName: displayName, status },
           sound: "default",
+          ...(channelIdFor("stock") ? { channelId: channelIdFor("stock") } : {}),
         },
         trigger: null, // immediate
       });
@@ -206,6 +224,7 @@ export async function scheduleHealthRecovery(
           body,
           data: { type: "health_recovery", distributorName: displayName, status },
           sound: "default",
+          ...(channelIdFor("stock") ? { channelId: channelIdFor("stock") } : {}),
         },
         trigger: null, // immediate
       });
@@ -242,6 +261,7 @@ export async function schedulePriceAlert(
         body: `You'll be notified when ${productName} drops below ${currency} ${targetPrice.toFixed(2)}`,
         data: { type: "price_alert", productName, targetPrice, currency, productId },
         sound: "default",
+        ...(channelIdFor("price") ? { channelId: channelIdFor("price") } : {}),
       },
       trigger: null, // immediate confirmation notification
     });
@@ -263,6 +283,7 @@ export async function sendTestNotification(): Promise<boolean> {
         body: "Product Stock Finder will alert you when prices drop or items come back in stock.",
         data: { type: "test" },
         sound: "default",
+        ...(channelIdFor("price") ? { channelId: channelIdFor("price") } : {}),
       },
       trigger: null,
     });
@@ -289,6 +310,7 @@ export async function scheduleBackOrderReminder(
         body: `Check ${distributorName} for ${productName} — your reminder date is here!`,
         data: { type: "back_order_reminder", productName, distributorName, productId },
         sound: "default",
+        ...(channelIdFor("price") ? { channelId: channelIdFor("price") } : {}),
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -314,19 +336,21 @@ export async function cancelNotification(
 }
 
 // ─── Send a price digest notification ────────────────────────────────────────
+// Returns true only when a notification was actually scheduled, so the caller
+// can avoid advancing the digest snapshot on a skipped/failed send.
 export async function sendPriceDigestNotification(
   title: string,
   body: string,
-): Promise<void> {
+): Promise<boolean> {
   try {
     const settings = await getSettings();
-    if (isInQuietHours(settings)) return;
+    if (isInQuietHours(settings)) return false;
   } catch (e) {
     LOG_ERROR("[Notifications] settings read failed, sending anyway", e);
   }
-  if (Platform.OS === "web") return;
+  if (Platform.OS === "web") return false;
   const granted = await requestNotificationPermissions();
-  if (!granted) return;
+  if (!granted) return false;
   try {
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -334,11 +358,14 @@ export async function sendPriceDigestNotification(
         body,
         data: { type: "digest" },
         sound: "default",
+        ...(channelIdFor("digest") ? { channelId: channelIdFor("digest") } : {}),
       },
       trigger: null, // immediate
     });
+    return true;
   } catch {
     // digest failures are non-fatal
+    return false;
   }
 }
 
@@ -365,6 +392,7 @@ export async function scheduleServerEventNotification(
         title,
         body,
         data: { type: "server_event", ...(data ?? {}) },
+        ...(channelIdFor("price") ? { channelId: channelIdFor("price") } : {}),
         sound: "default",
       },
       trigger: null, // immediate
