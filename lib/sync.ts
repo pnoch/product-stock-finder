@@ -240,6 +240,16 @@ async function doSync(
     // leave server-stamped entries under an old cursor, causing duplicate
     // re-pushes on the next sync.
     metaAfter.lastSyncedAt = nextCursor;
+    // Rejected items keep their old meta stamp, which is <= the new cursor, so
+    // `entry.updatedAt > oldCursor` would never re-collect them and the edit
+    // would be silently lost. Track them explicitly so the next sync retries.
+    const rejectedKeys = dirty
+      .filter((item) => !stampedKeys.has(`${item.collection}:${item.id}`))
+      .map((item) => `${item.collection}:${item.id}`);
+    const carriedRetries = (meta.retryKeys ?? []).filter(
+      (key) => !stampedKeys.has(key) && !rejectedKeys.includes(key),
+    );
+    metaAfter.retryKeys = [...new Set([...carriedRetries, ...rejectedKeys])];
     const totalRejected = dirty.length - stampedKeys.size;
     metaAfter.lastSyncError =
       totalRejected > 0
@@ -268,6 +278,9 @@ async function doSync(
       lastSyncedAt: nextCursor,
       lastSyncError: inheritedError ?? null,
       lastSyncOkAt: opts.now?.() ?? Date.now(),
+      // No dirty items means no retryable local item remains (collectDirty
+      // would have produced one), so any leftover retry key is obsolete.
+      retryKeys: [],
     });
   }
 
@@ -278,12 +291,21 @@ async function doSync(
   // single-threaded so the only interleaving windows are the awaits above.
   if (attempt < 1) {
     const fresh = await storage.getSyncMeta();
+    // Rejected items are deliberately deferred to the next sync (retrying them
+    // in this pass would loop against the same server verdict), so exclude them
+    // from the mid-sync leftover scan.
+    const deferred = new Set(fresh.retryKeys ?? []);
     let leftover = false;
     for (const col of Object.keys(fresh.items) as Collection[]) {
       const entries = fresh.items[col] ?? {};
       for (const [id, entry] of Object.entries(entries)) {
         const key = `${col}:${id}`;
-        if (skipKeys.has(key) || stampedKeys.has(key) || applied.has(key)) {
+        if (
+          skipKeys.has(key) ||
+          stampedKeys.has(key) ||
+          applied.has(key) ||
+          deferred.has(key)
+        ) {
           continue;
         }
         if (entry.updatedAt > oldCursor) {
@@ -297,7 +319,7 @@ async function doSync(
       await doSync(
         opts,
         attempt + 1,
-        new Set([...skipKeys, ...stampedKeys, ...applied]),
+        new Set([...skipKeys, ...stampedKeys, ...applied, ...deferred]),
         (await storage.getSyncMeta()).lastSyncError,
       );
     }
@@ -314,6 +336,7 @@ async function collectDirty(
   const meta = await storage.getSyncMeta();
   const dirty: SyncItem[] = [];
   const keyOf = (c: Collection, id: string) => `${c}:${id}`;
+  const retryKeys = new Set(meta.retryKeys ?? []);
   const local = await collectLocalState(storage);
   const pendingSetMeta: Array<{ collection: Collection; id: string }> = [];
   const rawServerNow = await serverNow(storage);
@@ -328,12 +351,14 @@ async function collectDirty(
       const key = keyOf("settings", SETTINGS_ID);
       if (applied.has(key) || skipKeys.has(key)) continue;
       const entry = meta.items.settings?.[SETTINGS_ID];
-      if (entry && entry.updatedAt > oldCursor) {
+      const isRetry = retryKeys.has(key);
+      if ((entry && entry.updatedAt > oldCursor) || isRetry) {
         dirty.push({
           collection: "settings",
           id: SETTINGS_ID,
           data: local.settings,
-          updatedAt: entry ? entry.updatedAt : freshServerNow,
+          updatedAt:
+            entry && !isRetry ? entry.updatedAt : freshServerNow,
           deletedAt: null,
         });
       }
@@ -344,12 +369,18 @@ async function collectDirty(
       const key = keyOf(collection, item.id);
       if (applied.has(key) || skipKeys.has(key)) continue;
       const entry = meta.items[collection]?.[item.id];
-      if (!entry || entry.updatedAt > oldCursor || entry.deleted) {
+      // `retryKeys` holds items the server rejected earlier: their stamp is
+      // <= the cursor, so the normal freshness check would skip them forever.
+      const isRetry = retryKeys.has(key);
+      if (!entry || entry.updatedAt > oldCursor || entry.deleted || isRetry) {
         dirty.push({
           collection,
           id: item.id,
           data: serializeItem(collection, item),
-          updatedAt: entry && !entry.deleted ? entry.updatedAt : freshServerNow,
+          updatedAt:
+            entry && !entry.deleted && !isRetry
+              ? entry.updatedAt
+              : freshServerNow,
           deletedAt: null,
         });
         if (entry?.deleted) {

@@ -18,7 +18,9 @@ function BestDistributorCard({
   displayCurrency = "USD",
 }: {
   listing: DistributorListing;
-  onSetAlert: () => void;
+  // Receives the suggested target (5% below the current price) so the created
+  // alert matches the label the user tapped.
+  onSetAlert: (targetPrice: number) => void;
   product: { name: string } | null;
   displayCurrency?: string;
 }) {
@@ -267,7 +269,7 @@ function BestDistributorCard({
         const suggestedPrice = Math.round(listing.price * 0.95 * 100) / 100;
         return (
           <Pressable
-            onPress={onSetAlert}
+            onPress={() => onSetAlert(suggestedPrice)}
             android_ripple={{ color: colors.primary + "22" }}
             style={({ pressed }) => ({
               marginTop: 10,

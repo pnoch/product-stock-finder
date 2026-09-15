@@ -118,12 +118,12 @@ describe("uploadServerHistory", () => {
     });
   });
 
-  it("swallows errors", async () => {
+  it("returns false on error instead of throwing", async () => {
     const mutation = vi.fn().mockRejectedValue(new Error("network"));
     mockClient(vi.fn(), mutation);
     await expect(
       uploadServerHistory("server2u-my", "CRS804", []),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(false);
   });
 });
 

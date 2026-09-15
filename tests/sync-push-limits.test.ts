@@ -67,11 +67,12 @@ describe("sync.push quotas", () => {
     });
   });
 
-  it("rejects items dated far in the future", async () => {
+  it("clamps items dated far in the future instead of rejecting the batch", async () => {
     const caller = appRouter.createCaller(ctx("10.10.0.3"));
     const items = [item("a", Date.now() + 60 * 60 * 1000)];
-    await expect(caller.sync.push({ items })).rejects.toMatchObject({
-      code: "BAD_REQUEST",
+    // Clamping (not rejecting) keeps sync working for a client with a bad clock.
+    await expect(caller.sync.push({ items })).resolves.toMatchObject({
+      accepted: 0,
     });
   });
 });

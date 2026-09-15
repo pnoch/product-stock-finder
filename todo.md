@@ -1588,3 +1588,39 @@
 ## Phase 214: Document client/server payload-cap convention
 
 - [x] Added an AGENTS.md convention: any server-side `.max()`/limit on a client-sent payload must live in `shared/const.ts` and the client must trim/batch to it (the Phase 211/213 failure mode); refreshed the test-count references (~277 files / ~1734 tests)
+
+## Phase 215: Whole-app bug + edge-case review (4 parallel audits)
+
+**Storage / web adapter**
+- [x] Web data loss on upgrade: the IndexedDB adapter returned `null` on an IDB *miss* without consulting localStorage, so every pre-IDB web user lost watchlist/alerts/settings on first launch after the switch (and could push the empty state to the server). `getItem` now adopts a legacy localStorage value on an IDB miss and migrates it into IDB
+- [x] Split-brain store: `setItem` fell back to localStorage on any IDB error, but reads only checked IDB on a miss → writes became invisible. Writes now keep the two stores consistent and reads fall back on error
+- [x] Tag definitions never marked settings dirty, so create/rename/recolor/delete never synced (products referenced orphaned tag ids elsewhere). `updateTagDefinitions` now notifies the settings collection
+- [x] `clearAllData` omitted `distributor_health` / `distributor_health_history`
+- [x] Discovery arrays were unbounded; capped at 200 (newest kept)
+
+**Sync engine**
+- [x] Full resync after >30d offline deleted untouched *live* items: the server returned an incremental pull (omitting unchanged rows) while the client dropped anything absent. Server now returns the complete state (`since = null`) when the cursor predates the tombstone window
+- [x] Rejected push items were never retried: the cursor advanced past their stamp, so `entry.updatedAt > oldCursor` never re-collected them. Added `SyncMeta.retryKeys`, re-collected on the next sync and deferred within the same pass
+- [x] A future-dated stamp wedged sync permanently (server rejected the whole batch, client re-sent the same stamp). Server now clamps to `now` instead of rejecting
+
+**Scrapers / pricing**
+- [x] Winncom parsed the model number as the price (`804` for `CRS804-4DDQ-hRM`): the selector included `.product-link` and the bare `.nobr` class (which on Winncom is the model-code cell). Now uses price-only selectors
+- [x] `parsePriceFromText` read dot-thousands as decimals (`1.299` → `1.299`, not `1299`) — wrong for European EUR distributors. Dot-only groups of three are now thousands; also rejects non-finite digit runs
+- [x] `inferStockStatus` classified "not in stock" as `in_stock` (substring of "in stock")
+- [x] `getBestPrice` diverged between `lib/currency.ts` (orderable only) and `shared/src/currency.ts` (included `unknown`), so desktop could surface unknown-availability listings; shared now matches lib
+- [x] `modelMismatch` walked up into page-level containers, so a search-results header naming the model validated any price on the page; the walk now stops at `body`/`html` and prefers the product card
+
+**UI**
+- [x] "Set Alert at X (−5%)" created the alert at the *current* price (handler ignored the suggested target); the target now flows through to `schedulePriceAlert`/`addPriceAlert`
+- [x] Sort dropdown was rendered outside its own full-screen `Modal`, so on web (portaled above it) and native the options were unreachable; options moved inside the Modal
+- [x] CSV import used the deprecated `expo-file-system` root API (throws at runtime) → `/legacy`
+- [x] Notification center routed digest/product-less events to `/product/undefined`; now uses `notificationRouteFor`
+- [x] 8 icons were unmapped on Android/web (rendered "?"); the `as IconMapping` cast hid them from `tsc`. Removed the cast so unmapped names fail typecheck, added the missing mappings
+- [x] Product detail / live-prices hooks hung on the loading skeleton forever if a storage read rejected; reads now degrade
+- [x] "Delete My Data" reported success even when the server delete failed; now distinguishes local-only deletion
+
+**Payload caps**
+- [x] `prices.uploadHistory` (200-point server cap) was sent the full 500-point local history by both backfill and the background refresh; trimmed to `MAX_UPLOAD_HISTORY_POINTS`; `uploadServerHistory` returns success so the backfill counts real uploads
+- [x] Desktop pending-health buffer was unbounded (mobile was capped); capped at `MAX_UPLOAD_HEALTH_EVENTS`
+
+- [x] Tests: `sync-retry-rejected`, `sync-future-stamp`, `history-sync-cap`, `discovery-buffer-caps`, updated `idb-adapter`/`storage`/`sync-router`/`winncom`/`utils`/`scraping-integration`/`history-sync`/`server-prices`/`sync-push-limits`; E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `280 passed | 1 skipped` / `1753 passed`, desktop `43 passed` / `218 passed`

@@ -78,6 +78,26 @@ describe("Scraping Integration", () => {
       expect(parsePriceFromText("R 12 345.67")).toBe(12345.67);
       expect(parsePriceFromText("12 345,67 Kč")).toBe(12345.67);
     });
+
+    it("parsePriceFromText should treat dot-only groups of three as thousands", () => {
+      // European whole-euro prices: "1.299" is 1299, not 1.299.
+      expect(parsePriceFromText("1.299")).toBe(1299);
+      expect(parsePriceFromText("1.299 €")).toBe(1299);
+      expect(parsePriceFromText("1.234.567")).toBe(1234567);
+      // A genuine 3-decimal value is not a valid currency price and is
+      // normalized as thousands (documented trade-off).
+      expect(parsePriceFromText("1,299.00")).toBe(1299);
+    });
+
+    it("parsePriceFromText rejects non-finite digit runs", () => {
+      expect(parsePriceFromText("9".repeat(400))).toBeNull();
+    });
+
+    it("inferStockStatus should treat 'not in stock' as out of stock", () => {
+      expect(inferStockStatus("Not in stock")).toBe("out_of_stock");
+      expect(inferStockStatus("Currently not in stock")).toBe("out_of_stock");
+      expect(inferStockStatus("Temporarily not in stock")).toBe("out_of_stock");
+    });
   });
 
   describe("Full Scrape Cycle", () => {

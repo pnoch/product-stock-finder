@@ -38,6 +38,9 @@ export function createSyncMetaStorage(ctx: StorageContext) {
             ? meta.lastSyncError
             : undefined,
         items: (meta.items ?? {}) as SyncMeta["items"],
+        retryKeys: Array.isArray(meta.retryKeys)
+          ? meta.retryKeys.filter((k): k is string => typeof k === "string")
+          : undefined,
       };
     } catch {
       await quarantinePayload(adapter, KEYS.SYNC_META, raw);
@@ -70,6 +73,8 @@ export function createSyncMetaStorage(ctx: StorageContext) {
             ? meta.lastSyncError
             : existing.lastSyncError,
         items: merged,
+        retryKeys:
+          meta.retryKeys !== undefined ? meta.retryKeys : existing.retryKeys,
       }),
     );
   }

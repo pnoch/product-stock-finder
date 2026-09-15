@@ -107,72 +107,70 @@ export function SortGroupBar({
       </View>
 
       {sortMenuOpen && (
-        <>
-          <Modal
-            transparent
-            visible={sortMenuOpen}
-            animationType="fade"
-            onRequestClose={onSortMenuToggle}
+        <Modal
+          transparent
+          visible={sortMenuOpen}
+          animationType="fade"
+          onRequestClose={onSortMenuToggle}
+        >
+          <Pressable
+            onPress={onSortMenuToggle}
+            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.32)" }}
+            accessibilityLabel="Dismiss sort menu"
           >
-            <Pressable
-              onPress={onSortMenuToggle}
-              style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.32)" }}
-              accessibilityLabel="Dismiss sort menu"
-            />
-          </Modal>
-          <View
-            style={{
-              position: "absolute",
-              top: 40,
-              left: 16,
-              right: 16,
-              borderRadius: 12,
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-              overflow: "hidden",
-              zIndex: 30,
-              elevation: 8,
-              shadowColor: "#000",
-              shadowOpacity: 0.15,
-              shadowRadius: 8,
-              shadowOffset: { width: 0, height: 4 },
-            }}
-          >
-            {SORT_OPTIONS.map((opt) => {
-              const active = sortMode === opt.key;
-              return (
-                <TouchableOpacity activeOpacity={0.85}
-                  key={opt.key}
-                  onPress={() => {
-                    throttledHaptic();
-                    onSortModeChange(opt.key);
-                  }}
-                style={{
-                  paddingVertical: 10,
-                  paddingHorizontal: 14,
-                  backgroundColor: active
-                    ? colors.primary + "18"
-                    : "transparent",
-                }}
-                accessibilityLabel={`Sort by ${opt.label}`}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: active }}
-              >
-                <Text
-                  style={{
-                    color: active ? colors.primary : colors.foreground,
-                    fontWeight: "600",
-                    fontSize: 14,
-                  }}
-                >
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-              );
-            })}
-          </View>
-        </>
+            {/* Options must live INSIDE the Modal: a sibling absolutely
+                positioned View renders behind the modal overlay on both web
+                (react-native-web portals the modal above it) and native, so
+                taps never reach the options. */}
+            <View
+              style={{
+                position: "absolute",
+                top: 40,
+                left: 16,
+                right: 16,
+                borderRadius: 12,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                overflow: "hidden",
+              }}
+            >
+              {SORT_OPTIONS.map((opt) => {
+                const active = sortMode === opt.key;
+                return (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    key={opt.key}
+                    onPress={() => {
+                      throttledHaptic();
+                      onSortModeChange(opt.key);
+                    }}
+                    style={{
+                      paddingVertical: 10,
+                      paddingHorizontal: 14,
+                      backgroundColor: active
+                        ? colors.primary + "18"
+                        : "transparent",
+                    }}
+                    accessibilityLabel={`Sort by ${opt.label}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                  >
+                    <Text
+                      style={{
+                        color: active ? colors.primary : colors.foreground,
+                        fontWeight: "600",
+                        fontSize: 14,
+                      }}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </Pressable>
+        </Modal>
       )}
     </View>
   );

@@ -18,9 +18,10 @@ export function getRandomUserAgent(): string {
 export function inferStockStatus(text: string): StockStatus {
   const lower = text.toLowerCase();
   // Negative markers must win over substring matches like "available" in
-  // "unavailable" or weak signals like "Backorder available".
+  // "unavailable" or "in stock" in "not in stock".
   if (
     lower.includes("out of stock") ||
+    lower.includes("not in stock") ||
     lower.includes("unavailable") ||
     lower.includes("not available") ||
     lower.includes("sold out")
@@ -77,11 +78,21 @@ export function parsePriceFromText(text: string): number | null {
     // Comma is the decimal separator (e.g. "1.234,56", "12,5"); the
     // groups-of-three exception keeps US thousands like "12,345" intact.
     normalized = raw.replace(/\./g, "").replace(/,/g, ".");
+  } else if (
+    lastComma === -1 &&
+    /^\d{1,3}(\.\d{3})+$/.test(raw)
+  ) {
+    // Dot-only groups of three ("1.299", "1.234.567") are thousands separators,
+    // not decimals — European distributors render whole-euro prices this way,
+    // and a currency price with 3+ decimals is implausible.
+    normalized = raw.replace(/\./g, "");
   } else {
     normalized = raw.replace(/,/g, "");
   }
   const num = parseFloat(normalized);
-  return isNaN(num) || num === 0 ? null : num;
+  // Reject non-finite (a long digit run overflows to Infinity) as well as
+  // zero, which is never a valid price.
+  return !Number.isFinite(num) || num === 0 ? null : num;
 }
 
 export async function fetchWithParser(
@@ -180,9 +191,31 @@ export function modelMismatch(
   model?: string,
 ): boolean {
   if (!model) return false;
+  // Prefer the product card boundary. Walking above the card reaches page-level
+  // containers (a search-results header naming the model, the <body>), whose
+  // text would satisfy the model check for *any* price on the page — letting a
+  // decoy price through. If a card exists, the verdict must come from it alone.
+  const card = $el
+    .closest(
+      "tr, article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .item, .product-card, li",
+    )
+    .first() as unknown as Cheerio<Element>;
+  if (card.length > 0) {
+    const { text, href } = productRowContext(card);
+    if (text.trim() || href) {
+      return !(matchesModel(text, model) || matchesModel(href, model));
+    }
+  }
   let node: Cheerio<Element> | null = $el;
   let sawContent = false;
+  // Walk up to the product container, but never past page-level structure:
+  // `body`/`html` text includes headers ("Search results for <model>") that
+  // would validate any price on the page. A product page's own container
+  // (e.g. `.product-detail`) is reached well before `body`, so its heading
+  // still counts.
   for (let depth = 0; depth < 4 && node && node.length > 0; depth++) {
+    const tag = (node.get(0) as Element | undefined)?.tagName?.toLowerCase();
+    if (tag === "body" || tag === "html") break;
     const { text, href } = productRowContext(node);
     if (text.trim() || href) {
       sawContent = true;

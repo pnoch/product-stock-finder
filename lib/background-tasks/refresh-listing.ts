@@ -3,6 +3,7 @@ import { isFreshPriceSnapshot } from "../price-freshness";
 import { getParserByDistributorId } from "../scrapers/registry";
 import { resilientFetch } from "../scrapers/resilient";
 import { appendPricePoint, mergePriceHistory } from "../price-history";
+import { MAX_UPLOAD_HISTORY_POINTS } from "@/shared/const";
 import { PRICE_HISTORY_DAYS } from "@/shared/const";
 import type { DistributorListing, PricePoint, Product } from "../types";
 import { breakerStore } from "./instances";
@@ -33,10 +34,15 @@ export async function refreshListing(
       serverResult.history,
     );
     if (serverResult.history.length < listing.priceHistory.length) {
+      // Trim to the server cap (newest first) or the upload is rejected whole.
+      const points =
+        listing.priceHistory.length > MAX_UPLOAD_HISTORY_POINTS
+          ? listing.priceHistory.slice(-MAX_UPLOAD_HISTORY_POINTS)
+          : listing.priceHistory;
       void uploadServerHistory(
         listing.distributorId,
         product.modelNumber,
-        listing.priceHistory,
+        points,
       ).catch(() => {});
     }
     return {

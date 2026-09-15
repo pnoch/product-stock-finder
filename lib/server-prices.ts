@@ -35,7 +35,7 @@ export async function uploadServerHistory(
   distributorId: string,
   modelNumber: string,
   points: PricePoint[],
-): Promise<void> {
+): Promise<boolean> {
   try {
     const client = createTRPCClient();
     await client.prices.uploadHistory.mutate({
@@ -43,7 +43,10 @@ export async function uploadServerHistory(
       modelNumber,
       points,
     });
+    return true;
   } catch {
-    // Swallow — history upload is best-effort
+    // Swallow — history upload is best-effort. Return false so callers can
+    // distinguish a real upload from a failed attempt.
+    return false;
   }
 }

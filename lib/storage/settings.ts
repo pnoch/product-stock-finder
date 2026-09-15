@@ -90,6 +90,10 @@ export function createSettingsStorage(
         JSON.stringify({ ...settings, tagDefinitions: next }),
       );
     });
+    // Tag definitions live in the settings collection, so the change must mark
+    // settings dirty or it never syncs to other devices (products would then
+    // reference tag ids that don't exist there and be silently ignored).
+    notify("settings", "settings");
     return next;
   }
 

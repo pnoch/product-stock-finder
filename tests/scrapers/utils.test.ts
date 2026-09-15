@@ -129,6 +129,28 @@ describe("modelMismatch", () => {
       false,
     );
   });
+
+  it("rejects a decoy price when only <body> names the model", () => {
+    // A search-results page whose <h1> names the model must not validate a
+    // price that has no product card of its own.
+    const $ = cheerio.load(`<html><body>
+      <h1>Search results for CRS804-4DDQ-hRM</h1>
+      <div><span class="price">$1.00</span></div>
+    </body></html>`);
+    expect(modelMismatch($("span.price").first(), "CRS804-4DDQ-hRM")).toBe(
+      true,
+    );
+  });
+
+  it("still accepts a product container heading above the price", () => {
+    const $ = cheerio.load(`<html><body><div class="product-detail">
+      <h1>MikroTik CRS804-4DDQ-hRM</h1>
+      <span class="price-tag">1.181,67 EUR</span>
+    </div></body></html>`);
+    expect(modelMismatch($("span.price-tag").first(), "CRS804-4DDQ-hRM")).toBe(
+      false,
+    );
+  });
 });
 
 describe("findPriceElement", () => {

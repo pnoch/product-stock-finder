@@ -537,6 +537,32 @@ describe("onChange callback", () => {
     await storage.saveWatchlist([makeProduct("p1")]);
     expect(calls).toEqual([]);
   });
+
+  it("fires onChange for tag mutations so settings sync", async () => {
+    const calls: Array<[string, string]> = [];
+    const localStore = new Map<string, string>();
+    const storage = createStorage(
+      {
+        getItem: async (k) => localStore.get(k) ?? null,
+        setItem: async (k, v) => {
+          localStore.set(k, v);
+        },
+        removeItem: async (k) => {
+          localStore.delete(k);
+        },
+        multiRemove: async (keys) => {
+          keys.forEach((k) => localStore.delete(k));
+        },
+      },
+      { onChange: (collection, itemId) => calls.push([collection, itemId]) },
+    );
+    const tag = await storage.createTag("Backhaul", "#00C896");
+    await storage.renameTag(tag.id, "Uplink");
+    expect(calls).toEqual([
+      ["settings", "settings"],
+      ["settings", "settings"],
+    ]);
+  });
 });
 
 describe("clearAllData", () => {

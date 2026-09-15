@@ -7,6 +7,7 @@ import {
   MAX_UPLOAD_ALERTS,
   MAX_UPLOAD_DATE_REMINDERS,
   MAX_UPLOAD_HEALTH_EVENTS,
+  MAX_UPLOAD_HISTORY_POINTS,
   MAX_UPLOAD_STOCK_WATCHES,
   SYNC_PUSH_MAX_ITEMS,
 } from "../shared/const.js";
@@ -155,14 +156,20 @@ export const appRouter = router({
         // Capture the cursor before the SELECT so writes committed during
         // the query are not missed on the next pull.
         const lastSyncedAt = Date.now();
-        const items = await listChangedItems(ctx.user.id, input.since);
         // Tombstones older than the retention window are purged, so a client
         // whose cursor predates the window cannot distinguish "deleted long
-        // ago" from "never existed". Signal a full resync so it drops stale
-        // local items instead of resurrecting them via push.
+        // ago" from "unchanged since before the cursor" using an incremental
+        // pull. On a full resync, return the *complete* current state (plus
+        // recent tombstones) so the client can safely drop anything absent —
+        // an incremental pull would omit untouched live rows and the client
+        // would delete them.
         const cutoff = lastSyncedAt - TOMBSTONE_PURGE_WINDOW_MS;
-        const fullResyncSince =
-          input.since != null && input.since < cutoff ? cutoff : null;
+        const needsFullResync = input.since != null && input.since < cutoff;
+        const items = await listChangedItems(
+          ctx.user.id,
+          needsFullResync ? null : input.since,
+        );
+        const fullResyncSince = needsFullResync ? cutoff : null;
         return { lastSyncedAt, items, fullResyncSince };
       }),
     push: protectedProcedure
@@ -188,21 +195,24 @@ export const appRouter = router({
             message: "Sync payload too large",
           });
         }
-        // Future-dated stamps win LWW forever; legit clients use
-        // skew-corrected server time, so anything beyond clock tolerance is
-        // rejected instead of poisoning conflict resolution.
+        // Future-dated stamps win LWW forever, so a client with a bad clock
+        // must not be able to poison conflict resolution. Clamp rather than
+        // reject the whole batch: rejecting wedged sync permanently (the
+        // client re-sends the same future stamp every retry), whereas clamping
+        // lets the server stamp win and the client self-heal.
         const maxStamp = Date.now() + 5 * 60_000;
-        for (const item of input.items) {
-          if (
-            item.updatedAt > maxStamp ||
-            (item.deletedAt !== null && item.deletedAt > maxStamp)
-          ) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Sync timestamp too far in the future",
-            });
-          }
-        }
+        const nowMs = Date.now();
+        const items = input.items.map((item) => {
+          const updatedAt =
+            item.updatedAt > maxStamp ? nowMs : item.updatedAt;
+          const deletedAt =
+            item.deletedAt !== null && item.deletedAt > maxStamp
+              ? nowMs
+              : item.deletedAt;
+          return updatedAt === item.updatedAt && deletedAt === item.deletedAt
+            ? item
+            : { ...item, updatedAt, deletedAt };
+        });
         const db = await getDb();
         if (!db) {
           console.warn("[Sync] Database not available; accepting nothing");
@@ -211,7 +221,7 @@ export const appRouter = router({
         const stamped: SyncStampedItem[] = [];
         const rejected: SyncRejectedItem[] = [];
         let accepted = 0;
-        for (const item of input.items) {
+        for (const item of items) {
           const result = await upsertSyncItem(ctx.user.id, item);
           if (result.accepted) {
             accepted += 1;
@@ -271,7 +281,7 @@ export const appRouter = router({
                 ]),
               }),
             )
-            .max(200),
+            .max(MAX_UPLOAD_HISTORY_POINTS),
         }),
       )
       .mutation(async ({ ctx, input }) => {

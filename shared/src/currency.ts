@@ -72,8 +72,12 @@ export function getBestPrice(
   listings: { price: number; currency: string; stockStatus: string }[],
   displayCurrency: string,
 ): { price: number; currency: string } | null {
+  // Must match lib/currency.ts: only orderable statuses count, so
+  // unknown-availability listings never anchor best-price/sort decisions.
   const available = listings.filter(
-    (l) => l.stockStatus !== "out_of_stock" && l.price > 0,
+    (l) =>
+      (l.stockStatus === "in_stock" || l.stockStatus === "back_order") &&
+      l.price > 0,
   );
   if (!available.length) return null;
   const converted = available

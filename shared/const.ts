@@ -22,3 +22,7 @@ export const MAX_UPLOAD_HEALTH_EVENTS = 100;
 // Max items per sync.push call. The client batches dirty items to this size so
 // a large local change set is never rejected as one oversized payload.
 export const SYNC_PUSH_MAX_ITEMS = 200;
+
+// Max price-history points per prices.uploadHistory call. The client must trim
+// to this (keeping the newest) or the whole upload is rejected.
+export const MAX_UPLOAD_HISTORY_POINTS = 200;

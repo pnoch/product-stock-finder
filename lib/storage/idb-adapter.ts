@@ -40,45 +40,74 @@ function withStore<T>(mode: string, fn: (store: any) => any): Promise<T> {
   );
 }
 
+function readLocalStorage(key: string): string | null {
+  try {
+    return typeof localStorage !== "undefined" ? localStorage.getItem(key) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalStorage(key: string, value: string): void {
+  try {
+    if (typeof localStorage !== "undefined") localStorage.setItem(key, value);
+  } catch (e) {
+    console.warn("[idb-adapter] localStorage write failed", e);
+  }
+}
+
+function removeLocalStorage(key: string): void {
+  try {
+    if (typeof localStorage !== "undefined") localStorage.removeItem(key);
+  } catch (e) {
+    console.warn("[idb-adapter] localStorage remove failed", e);
+  }
+}
+
 export function createIDBAdapter(): StorageAdapter {
   return {
     async getItem(key: string): Promise<string | null> {
+      let idbValue: string | null = null;
       try {
         const result = await withStore<{ key: string; value: string } | undefined>("readonly", (s) =>
           s.get(key),
         );
-        return result?.value ?? null;
+        idbValue = result?.value ?? null;
       } catch {
-        try {
-          return typeof localStorage !== "undefined" ? localStorage.getItem(key) : null;
-        } catch {
-          return null;
-        }
+        // IDB unavailable this call — fall back to localStorage only.
+        return readLocalStorage(key);
       }
+      if (idbValue !== null) return idbValue;
+      // IDB miss: the value may predate the IndexedDB switch (AsyncStorage on
+      // web is localStorage-backed) or have been written by the fallback path
+      // below. Adopt it into IDB so subsequent reads are consistent, and keep
+      // the localStorage copy until the write succeeds.
+      const legacy = readLocalStorage(key);
+      if (legacy === null) return null;
+      try {
+        await withStore("readwrite", (s) => s.put({ key, value: legacy }));
+        removeLocalStorage(key);
+      } catch {
+        // Migration write failed; still return the value so the app works.
+      }
+      return legacy;
     },
     async setItem(key: string, value: string): Promise<void> {
       try {
         await withStore("readwrite", (s) => s.put({ key, value }));
+        // Keep the two stores from diverging if a legacy copy exists.
+        removeLocalStorage(key);
       } catch {
-        try {
-          if (typeof localStorage !== "undefined") localStorage.setItem(key, value);
-        } catch (e) {
-          console.warn("[idb-adapter] setItem fallback failed", e);
-          throw e;
-        }
+        writeLocalStorage(key, value);
       }
     },
     async removeItem(key: string): Promise<void> {
       try {
         await withStore("readwrite", (s) => s.delete(key));
       } catch {
-        try {
-          if (typeof localStorage !== "undefined") localStorage.removeItem(key);
-        } catch (e) {
-          console.warn("[idb-adapter] removeItem fallback failed", e);
-          throw e;
-        }
+        // Fall through to the localStorage delete below.
       }
+      removeLocalStorage(key);
     },
     async multiRemove(keys: string[]): Promise<void> {
       try {
@@ -97,13 +126,9 @@ export function createIDBAdapter(): StorageAdapter {
           };
         });
       } catch {
-        try {
-          if (typeof localStorage !== "undefined") keys.forEach((k) => localStorage.removeItem(k));
-        } catch (e) {
-          console.warn("[idb-adapter] multiRemove fallback failed", e);
-          throw e;
-        }
+        // Fall through to the localStorage deletes below.
       }
+      keys.forEach(removeLocalStorage);
     },
   };
 }

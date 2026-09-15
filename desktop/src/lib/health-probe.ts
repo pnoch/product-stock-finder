@@ -10,6 +10,7 @@ import {
 import type { StorageAdapter } from "../../../lib/storage/adapter";
 import type { PendingHealthEvent } from "../../../lib/storage/notifications";
 import { isInQuietHours } from "../../../lib/quiet-hours";
+import { MAX_UPLOAD_HEALTH_EVENTS } from "../../../shared/const";
 import { storage } from "../storage";
 import { createTRPCClient } from "./trpc";
 import { sendDesktopNotification } from "../notifications";
@@ -118,7 +119,15 @@ export async function runHealthProbeIfDue(now = Date.now()): Promise<void> {
     }
     if (pending.length > 0) {
       const existing = await storage.getPendingHealthEvents();
-      await storage.savePendingHealthEvents([...existing, ...pending]);
+      const merged = [...existing, ...pending];
+      // Bound the persisted buffer at the upload cap (keep newest): the server
+      // rejects an oversized upload, so an uncapped buffer would grow forever
+      // and then never upload.
+      await storage.savePendingHealthEvents(
+        merged.length > MAX_UPLOAD_HEALTH_EVENTS
+          ? merged.slice(merged.length - MAX_UPLOAD_HEALTH_EVENTS)
+          : merged,
+      );
     }
     // Pending events upload on the next syncDesktopNotifications tick —
     // no direct call here to avoid coupling.

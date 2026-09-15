@@ -61,12 +61,15 @@ export default function ProductDetailScreen() {
     setInsight(null);
     setInsightLoading(true);
     setProductImage(null);
-    const [settingsData, stockWatchesData, insightData, imageData] = await Promise.all([
-      getSettings(),
-      getStockWatches(),
-      fetchPriceInsight(id).catch(() => null),
-      fetchProductImage(id).catch(() => null),
-    ]);
+    // Storage reads can reject; without a catch the setters below never run and
+    // the screen hangs on the loading skeleton forever.
+    const [settingsData, stockWatchesData, insightData, imageData] =
+      await Promise.all([
+        getSettings().catch(() => null),
+        getStockWatches().catch(() => []),
+        fetchPriceInsight(id).catch(() => null),
+        fetchProductImage(id).catch(() => null),
+      ]);
     if (signal?.cancelled) return;
     if (settingsData?.displayCurrency) setDisplayCurrency(settingsData.displayCurrency);
     if (settingsData?.shippingRegion) setShippingRegion(settingsData.shippingRegion);
@@ -85,7 +88,7 @@ export default function ProductDetailScreen() {
     setInsightLoading(true);
     setProductImage(null);
     const signal = { cancelled: false };
-    loadData(signal);
+    void loadData(signal);
     return () => { signal.cancelled = true; };
   }, [loadData]);
 
@@ -130,7 +133,7 @@ export default function ProductDetailScreen() {
     [bestInStockListing, sortedListings],
   );
 
-  const handleSetBestAlert = useCallback(async (listing: DistributorListing) => {
+  const handleSetBestAlert = useCallback(async (listing: DistributorListing, targetPrice: number) => {
     if (!id) return;
     const granted = await ensureNotificationPermission();
     if (!granted) {
@@ -139,19 +142,19 @@ export default function ProductDetailScreen() {
       return;
     }
     try {
-      await schedulePriceAlert(product?.name ?? "Product", listing.price, listing.currency, id);
+      await schedulePriceAlert(product?.name ?? "Product", targetPrice, listing.currency, id);
       const alert: PriceAlert = {
         id: `alert-${id}-${listing.distributorId}-${Date.now()}`,
         productId: id,
         distributorId: listing.distributorId,
-        targetPrice: listing.price,
+        targetPrice,
         currency: listing.currency,
         createdAt: new Date().toISOString(),
         isActive: true,
       };
       await addAlert(alert);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showToast(`Alert created — you'll be notified below ${formatPrice(listing.price, listing.currency)}`, "success");
+      showToast(`Alert created — you'll be notified below ${formatPrice(targetPrice, listing.currency)}`, "success");
     } catch {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showAlert("Couldn't create alert", "We couldn't save your price alert. Please try again.");

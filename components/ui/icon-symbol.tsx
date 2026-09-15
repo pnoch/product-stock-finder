@@ -4,9 +4,11 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { SymbolViewProps, SymbolWeight } from "expo-symbols";
 import { ComponentProps } from "react";
 import { OpaqueColorValue, type StyleProp, type TextStyle } from "react-native";
-type IconMapping = Record<
-  SymbolViewProps["name"],
-  ComponentProps<typeof MaterialIcons>["name"]
+type IconMapping = Partial<
+  Record<
+    SymbolViewProps["name"],
+    ComponentProps<typeof MaterialIcons>["name"]
+  >
 >;
 type IconSymbolName = keyof typeof MAPPING;
 
@@ -14,6 +16,11 @@ type IconSymbolName = keyof typeof MAPPING;
  * Add your SF Symbols to Material Icons mappings here.
  * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
+ *
+ * NOTE: intentionally NOT cast to `IconMapping`. The cast widened the key type
+ * to every SF Symbol, so an unmapped name type-checked and silently rendered a
+ * "help" glyph on Android/web. Without it, `IconSymbolName` is exactly the keys
+ * below and TypeScript rejects an unmapped name at the call site.
  */
 const MAPPING = {
   "house.fill": "home",
@@ -90,7 +97,15 @@ const MAPPING = {
   "lightbulb.fill": "lightbulb",
   "line.3.horizontal.decrease.circle": "filter-list",
   link: "link",
-} as IconMapping;
+  photo: "image",
+  "wifi.slash": "wifi-off",
+  "exclamationmark.triangle": "warning-amber",
+  "heart.slash": "heart-broken",
+  mail: "mail-outline",
+  "chart.line.downtrend.xyaxis": "trending-down",
+  "arrow.down.circle.fill": "arrow-circle-down",
+  clock: "schedule",
+} satisfies IconMapping;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.

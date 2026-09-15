@@ -192,6 +192,9 @@ export interface SyncMeta {
     string,
     Record<string, { updatedAt: number; deleted: boolean }>
   >;
+  // `collection:id` keys the server rejected (validation/transient). Their meta
+  // stamp is <= the cursor, so they must be retried explicitly on the next sync.
+  retryKeys?: string[];
 }
 
 export interface TrendingProduct {

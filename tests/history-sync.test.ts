@@ -18,6 +18,7 @@ vi.mock("../lib/server-prices", () => ({
   uploadServerHistory: vi.fn(
     async (distributorId: string, modelNumber: string, points: unknown[]) => {
       state.uploaded.push({ distributorId, modelNumber, points });
+      return true;
     },
   ),
 }));
@@ -91,12 +92,12 @@ describe("backfillLocalHistory", () => {
     expect(count).toBe(0);
   });
 
-  it("swallows upload errors", async () => {
+  it("does not count a failed upload", async () => {
     state.watchlistStore = [makeProduct("CRS804", 1)];
     state.uploaded = [];
     const { uploadServerHistory } = await import("../lib/server-prices");
     vi.mocked(uploadServerHistory).mockRejectedValueOnce(new Error("network"));
     const count = await backfillLocalHistory();
-    expect(count).toBe(1);
+    expect(count).toBe(0);
   });
 });

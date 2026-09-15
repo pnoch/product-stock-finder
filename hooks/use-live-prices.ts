@@ -21,7 +21,9 @@ export function useLiveProduct(productId: string) {
 
   const loadSeed = useCallback(async () => {
     const gen = ++generationRef.current;
-    const watchlist = await getWatchlist();
+    // A storage read failure must still mark the hook loaded, or the screen
+    // hangs on its skeleton forever.
+    const watchlist = await getWatchlist().catch(() => []);
     if (gen !== generationRef.current) return;
     const found = watchlist.find((p) => p.id === productId);
     const sample = SAMPLE_LISTINGS[productId] ?? [];
@@ -148,7 +150,9 @@ export function useLiveWatchlist() {
 
   const reload = useCallback(async () => {
     const gen = ++generationRef.current;
-    const list = await getWatchlist();
+    // A storage read failure must still mark the hook loaded, or the screen
+    // hangs on its skeleton forever.
+    const list = await getWatchlist().catch(() => []);
     if (gen !== generationRef.current) return;
     setProducts(list);
     setLoaded(true);

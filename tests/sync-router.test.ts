@@ -111,4 +111,27 @@ describe("sync pull cursor", () => {
     // lastSyncedAt must be captured before the 50ms query delay, not after
     expect(result.lastSyncedAt).toBeLessThanOrEqual(before + 5);
   });
+
+  it("returns the full state (since=null) when the cursor predates the tombstone window", async () => {
+    mockedGetDb.mockResolvedValue({} as never);
+    mockedListChanged.mockResolvedValue([]);
+    const caller = appRouter.createCaller(createAuthContext());
+    // A cursor older than the 30-day retention window triggers a full resync.
+    const staleSince = Date.now() - 40 * 24 * 60 * 60 * 1000;
+    const result = await caller.sync.pull({ since: staleSince });
+    expect(result.fullResyncSince).not.toBeNull();
+    // Must query with `since = null` (complete state), not the stale cursor —
+    // otherwise untouched live rows are omitted and the client deletes them.
+    expect(mockedListChanged).toHaveBeenCalledWith(1, null);
+  });
+
+  it("uses the incremental cursor when it is inside the retention window", async () => {
+    mockedGetDb.mockResolvedValue({} as never);
+    mockedListChanged.mockResolvedValue([]);
+    const caller = appRouter.createCaller(createAuthContext());
+    const recentSince = Date.now() - 60_000;
+    const result = await caller.sync.pull({ since: recentSince });
+    expect(result.fullResyncSince).toBeNull();
+    expect(mockedListChanged).toHaveBeenCalledWith(1, recentSince);
+  });
 });

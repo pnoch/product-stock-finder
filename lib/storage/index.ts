@@ -46,6 +46,10 @@ export function createStorage(
       STORAGE_KEYS.PENDING_HEALTH_EVENTS,
       STORAGE_KEYS.DISCOVERED_PRODUCTS,
       STORAGE_KEYS.DISCOVERED_DISTRIBUTORS,
+      // Distributor health telemetry lives under its own keys (not in
+      // STORAGE_KEYS); omitting them left health data behind after a wipe.
+      "distributor_health",
+      "distributor_health_history",
       "recently_viewed",
       "distributor_watches",
       "triggered_alert_history",

@@ -70,4 +70,17 @@ describe("model verification", () => {
   it("ignores verification when no model is passed", () => {
     expect(winncomParser.parsePrice(MISMATCH_HTML)?.price).toBe(480);
   });
+
+  it("does not parse the model number as the price when the title link precedes it", () => {
+    // Regression: the selector used to include `.product-link` and the bare
+    // `.nobr` class (which on Winncom is the model-code cell), so the model
+    // text ("CRS804-4DDQ-hRM") was parsed as the price (804).
+    const html = `<html><body><div class="product">
+      <a class="product-link" href="/p/crs804-4ddq-hrm">MikroTik CRS804-4DDQ-hRM</a>
+      <span class="nobr itcode">CRS804-4DDQ-hRM</span>
+      <span class="product-price" data-product-price>$480.00</span>
+    </div></body></html>`;
+    const result = winncomParser.parsePrice(html, MODEL);
+    expect(result?.price).toBe(480);
+  });
 });

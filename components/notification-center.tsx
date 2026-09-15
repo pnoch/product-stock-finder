@@ -17,6 +17,7 @@ import {
   healthIcon,
 } from "@/lib/notification-center-helpers";
 import { formatRelativeTime } from "@/lib/relative-time";
+import { notificationRouteFor } from "@/lib/notification-routing";
 import { syncServerNotifications } from "@/lib/server-notifications";
 import {
   getNotificationHistory,
@@ -99,11 +100,13 @@ export function NotificationCenter({
           prev.map((e) => (e.id === item.id ? { ...e, read: true } : e)),
         );
       }
-      if (item.type === "health") {
-        router.push(`/health/${item.distributorId}`);
-      } else {
-        router.push(`/product/${item.productId}`);
-      }
+      // Route via the shared helper so digest (productId: "") and health
+      // events land on the right screen instead of /product/undefined.
+      const route = notificationRouteFor({
+        productId: item.productId || undefined,
+        type: item.type,
+      });
+      if (route) router.push(route as never);
     },
     [router, unreadCount, applyUnread],
   );

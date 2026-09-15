@@ -1,6 +1,11 @@
 import type { Product, Distributor } from "../types";
 import type { StorageContext } from "./context";
 
+// Discovery results are persisted to AsyncStorage with no UI to prune them, so
+// bound the arrays (keep the newest) like every other stored collection.
+const MAX_DISCOVERED_PRODUCTS = 200;
+const MAX_DISCOVERED_DISTRIBUTORS = 200;
+
 export function createDiscoveryStorage(ctx: StorageContext) {
   const { adapter, KEYS, enqueue, readList } = ctx;
 
@@ -24,7 +29,12 @@ export function createDiscoveryStorage(ctx: StorageContext) {
     await enqueue(KEYS.DISCOVERED_PRODUCTS, async () => {
       const existing = await getDiscoveredProducts();
       if (existing.some((p) => p.id === product.id)) return;
-      await persistDiscoveredProducts([...existing, product]);
+      const next = [...existing, product];
+      await persistDiscoveredProducts(
+        next.length > MAX_DISCOVERED_PRODUCTS
+          ? next.slice(next.length - MAX_DISCOVERED_PRODUCTS)
+          : next,
+      );
     });
   }
 
@@ -57,7 +67,12 @@ export function createDiscoveryStorage(ctx: StorageContext) {
     await enqueue(KEYS.DISCOVERED_DISTRIBUTORS, async () => {
       const existing = await getDiscoveredDistributors();
       if (existing.some((d) => d.id === distributor.id)) return;
-      await persistDiscoveredDistributors([...existing, distributor]);
+      const next = [...existing, distributor];
+      await persistDiscoveredDistributors(
+        next.length > MAX_DISCOVERED_DISTRIBUTORS
+          ? next.slice(next.length - MAX_DISCOVERED_DISTRIBUTORS)
+          : next,
+      );
     });
   }
 

@@ -30,7 +30,7 @@ interface DistributorListingSectionProps {
   id: string;
   displayCurrency: string;
   onSetRegionFilter: (region: string) => void;
-  onSetBestAlert: (listing: DistributorListing) => void;
+  onSetBestAlert: (listing: DistributorListing, targetPrice: number) => void;
   onToggleStockWatch: (listing: DistributorListing) => void;
   onOpenChart: (listing: DistributorListing) => void;
   onRemind?: (listing: DistributorListing) => void;
@@ -214,7 +214,9 @@ export function DistributorListingSection({
             <BestDistributorCard
               listing={globalBestInStockListing}
               product={product}
-              onSetAlert={() => onSetBestAlert(globalBestInStockListing)}
+              onSetAlert={(targetPrice) =>
+                onSetBestAlert(globalBestInStockListing, targetPrice)
+              }
               displayCurrency={displayCurrency}
             />
           )}

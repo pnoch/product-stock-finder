@@ -97,6 +97,7 @@ export function AboutSection() {
             if (deleting) return;
             setDeleting(true);
             try {
+              let serverDeleteFailed = false;
               if (isAuthenticated) {
                 const baseUrl = getApiBaseUrl();
                 if (baseUrl) {
@@ -106,14 +107,18 @@ export function AboutSection() {
                       const token = await Auth.getSessionToken();
                       if (token) headers.Authorization = `Bearer ${token}`;
                     }
-                    await fetch(`${baseUrl}/api/auth/delete-account`, {
+                    const res = await fetch(`${baseUrl}/api/auth/delete-account`, {
                       method: "POST",
                       headers,
                       body: JSON.stringify({ confirm: "DELETE" }),
                       credentials: "include",
                     });
+                    // A failed server delete leaves the account and its data
+                    // intact; reporting success would be a false promise.
+                    if (!res.ok) serverDeleteFailed = true;
                   } catch (e) {
                     console.warn("[AboutSection] server delete failed", e);
+                    serverDeleteFailed = true;
                   }
                 }
                 try {
@@ -123,7 +128,14 @@ export function AboutSection() {
                 }
               }
               await clearAllData();
-              showAlert("Data Deleted", "All local data has been cleared.");
+              if (serverDeleteFailed) {
+                showAlert(
+                  "Local Data Deleted",
+                  "Your local data was cleared, but we couldn't delete your account on the server. Please try again when you're online.",
+                );
+              } else {
+                showAlert("Data Deleted", "All local data has been cleared.");
+              }
             } catch (e) {
               showAlert("Delete Failed", e instanceof Error ? e.message : String(e));
             } finally {
