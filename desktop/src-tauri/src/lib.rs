@@ -77,6 +77,16 @@ fn activation_payload(route: &str) -> serde_json::Value {
 // ─── Global State ────────────────────────────────────────────────────────────
 
 static POLLER_RUNNING: Mutex<bool> = Mutex::new(false);
+// Bumped on every start/stop. A poller loop captures its generation and exits
+// as soon as it changes, so a stop+start cannot leave the old loop running
+// alongside the new one (the old loop may be parked in `interval.tick()` for
+// up to the full interval before it would otherwise notice).
+static POLLER_GENERATION: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
+// Last API base URL the renderer passed (poller start / price check). The tray
+// menu has no renderer context, so "Check Now" reads it from here instead of
+// passing an empty base (which forced the local scrapers).
+static LAST_API_BASE_URL: Mutex<Option<String>> = Mutex::new(None);
 // Serializes the full price-check pipeline so a poller tick, manual "Check Now",
 // and a direct check_price_drops invoke can't race on the shared JSON files.
 static PRICE_CHECK_LOCK: std::sync::LazyLock<tokio::sync::Mutex<()>> =
@@ -340,13 +350,13 @@ fn validate_import_schema(data: &ExportData) -> Result<(), String> {
 // API (was `setValueForKey`). Server DB pool uses `mysql.createPool(url)`
 // string form (not `{ uri: url }` object form) — see `server/db.ts`.
 #[tauri::command]
-fn read_watchlist(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+async fn read_watchlist(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     read_json_file(&data_dir, "watchlist_products")
 }
 
 #[tauri::command]
-fn write_watchlist(app: tauri::AppHandle, value: serde_json::Value) -> Result<(), String> {
+async fn write_watchlist(app: tauri::AppHandle, value: serde_json::Value) -> Result<(), String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     write_json_file(&data_dir, "watchlist_products", &value)
 }
@@ -355,14 +365,14 @@ fn write_watchlist(app: tauri::AppHandle, value: serde_json::Value) -> Result<()
 // Previously `setValueForKey` (camelCase) which Tauri does not expose; corrected
 // to `set_value_for_key`. Uses string key directly (not object wrapper).
 #[tauri::command]
-fn set_value_for_key(app: tauri::AppHandle, key: String, value: serde_json::Value) -> Result<(), String> {
+async fn set_value_for_key(app: tauri::AppHandle, key: String, value: serde_json::Value) -> Result<(), String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     // key is a plain string (e.g. "watchlist_products"), not an object like `{ key: "..." }`
     write_json_file(&data_dir, &key, &value)
 }
 
 #[tauri::command]
-fn export_watchlist(
+async fn export_watchlist(
     app: tauri::AppHandle,
     format: String,
 ) -> Result<String, String> {
@@ -395,7 +405,7 @@ fn export_watchlist(
 }
 
 #[tauri::command]
-fn import_watchlist(
+async fn import_watchlist(
     app: tauri::AppHandle,
     content: String,
     format: String,
@@ -509,33 +519,48 @@ async fn start_oauth(login_url: String) -> Result<serde_json::Value, String> {
         .await
         .map_err(|e| format!("Failed to respond to OAuth callback: {e}"))?;
 
-    let session_token = params.get("sessionToken").cloned().unwrap_or_default();
-    if session_token.is_empty() {
-        return Err("OAuth callback did not include a session token".to_string());
+    // Only accept the single-use, server-issued ticket — never a raw session
+    // token from the URL (attacker-controllable: login CSRF / session fixation).
+    // Mirrors lib/oauth-callback.ts.
+    let ticket = params.get("ticket").cloned().unwrap_or_default();
+    if ticket.is_empty() {
+        return Err("OAuth callback did not include a ticket".to_string());
     }
-
-    let user = params.get("user").cloned().unwrap_or_default();
-    Ok(serde_json::json!({ "sessionToken": session_token, "user": user }))
+    Ok(serde_json::json!({ "ticket": ticket }))
 }
 
 // ─── Background Polling ──────────────────────────────────────────────────────
 
 #[tauri::command]
 async fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64, api_base_url: String) -> Result<String, String> {
+    // A zero interval would panic `tokio::time::interval`.
+    if interval_minutes == 0 {
+        return Err("interval_minutes must be greater than 0".to_string());
+    }
+    if !api_base_url.is_empty() {
+        if let Ok(mut stored) = LAST_API_BASE_URL.lock() {
+            *stored = Some(api_base_url.clone());
+        }
+    }
     let mut running = POLLER_RUNNING.lock().map_err(|e| e.to_string())?;
     if *running {
         return Ok("Poller already running".to_string());
     }
     *running = true;
     drop(running);
+    let generation = POLLER_GENERATION.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
 
     let handle = app.clone();
-    let backfill_url = api_base_url.clone();
     tauri::async_runtime::spawn(async move {
-        let _ = backfill_local_history(handle.clone(), backfill_url.clone()).await;
+        // Backfill is handled by the renderer (lib/history-sync.ts), which has
+        // the session token; the Rust path is a no-op without one.
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(interval_minutes * 60));
         interval.tick().await;
         loop {
+            // Exit if stopped, or if a newer poller generation has started.
+            if POLLER_GENERATION.load(std::sync::atomic::Ordering::SeqCst) != generation {
+                break;
+            }
             {
                 let running = POLLER_RUNNING.lock().unwrap();
                 if !*running {
@@ -582,7 +607,6 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
     let mut triggered: Vec<(usize, f64)> = Vec::new();
     let mut notifications: Vec<(String, String, Option<String>)> = Vec::new();
     let mut events: Vec<serde_json::Value> = Vec::new();
-    let now_ts = current_iso_timestamp();
 
     for (idx, alert) in alerts.iter().enumerate() {
         let is_active = alert.get("isActive").and_then(|v| v.as_bool()).unwrap_or(false);
@@ -591,8 +615,13 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
             continue;
         }
         if let Some(snoozed_until) = alert.get("snoozedUntil").and_then(|v| v.as_str()) {
-            if snoozed_until > now_ts.as_str() {
-                continue;
+            // Parse rather than compare strings: JS writes millis
+            // ("...12:00:00.000Z") while current_iso_timestamp() omits them, so
+            // a lexicographic compare misfires at equal instants.
+            if let Some(snooze_ms) = parse_iso_to_epoch_ms(snoozed_until) {
+                if snooze_ms > now_epoch_ms() {
+                    continue;
+                }
             }
         }
 
@@ -671,6 +700,9 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
 fn stop_price_poller() -> Result<String, String> {
     let mut running = POLLER_RUNNING.lock().map_err(|e| e.to_string())?;
     *running = false;
+    // Invalidate the running loop so it exits at its next wake-up instead of
+    // continuing if start_price_poller flips the flag back to true first.
+    POLLER_GENERATION.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
     Ok("Price poller stopped".to_string())
 }
 
@@ -730,8 +762,15 @@ async fn check_all_prices(products: Vec<WatchedProduct>, api_base_url: String) -
 }
 
 #[tauri::command]
-async fn backfill_local_history(app: tauri::AppHandle, api_base_url: String) -> Result<u64, String> {
-    if api_base_url.is_empty() {
+async fn backfill_local_history(
+    app: tauri::AppHandle,
+    api_base_url: String,
+    session_token: String,
+) -> Result<u64, String> {
+    // prices.uploadHistory is a protectedProcedure, so without a session token
+    // every upload would 401. The renderer normally backfills via the TS path
+    // (lib/history-sync.ts); skip honestly rather than reporting failures.
+    if api_base_url.is_empty() || session_token.is_empty() {
         return Ok(0);
     }
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
@@ -754,7 +793,7 @@ async fn backfill_local_history(app: tauri::AppHandle, api_base_url: String) -> 
             if distributor_id.is_empty() || history.is_empty() {
                 continue;
             }
-            if upload_server_history(&api_base_url, distributor_id, model_number, &history).await.is_ok() {
+            if upload_server_history(&api_base_url, &session_token, distributor_id, model_number, &history).await.is_ok() {
                 uploaded += 1;
             }
         }
@@ -826,11 +865,12 @@ async fn fetch_product_image(api_base_url: String, product_id: String) -> Result
 
 async fn upload_server_history(
     api_base_url: &str,
+    session_token: &str,
     distributor_id: &str,
     model_number: &str,
     points: &[serde_json::Value],
 ) -> Result<(), String> {
-    if api_base_url.is_empty() {
+    if api_base_url.is_empty() || session_token.is_empty() {
         return Ok(());
     }
     let input = serde_json::json!({
@@ -847,6 +887,7 @@ async fn upload_server_history(
     let client = reqwest::Client::new();
     let resp = client
         .post(&url)
+        .header("Authorization", format!("Bearer {}", session_token))
         .json(&input)
         .timeout(std::time::Duration::from_secs(8))
         .send()
@@ -1208,15 +1249,53 @@ fn write_json_file(
     fs::create_dir_all(data_dir).map_err(|e| e.to_string())?;
     let path = data_dir.join(format!("{}.json", key));
     let content = serde_json::to_string_pretty(value).map_err(|e| e.to_string())?;
-    fs::write(path, content).map_err(|e| e.to_string())
+    // Atomic write: a crash mid-`fs::write` (truncate + write) would leave a
+    // truncated file that `read_json_file` then fails to parse, aborting the
+    // poller/alert/tray paths. Write to a temp file and rename over the target.
+    let tmp = data_dir.join(format!("{}.json.tmp", key));
+    fs::write(&tmp, content).map_err(|e| e.to_string())?;
+    fs::rename(&tmp, &path).map_err(|e| e.to_string())
 }
 
 fn export_to_csv(_export: &ExportData) -> Result<String, String> {
     Err("CSV export not yet implemented".to_string())
 }
 
-fn current_iso_timestamp() -> String {
-    let now = std::time::SystemTime::now()
+fn now_epoch_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
+
+/// Parses an ISO-8601 UTC timestamp ("YYYY-MM-DDTHH:MM:SS[.mmm]Z") to epoch ms.
+/// Returns None for anything unparseable so callers can fall back safely.
+fn parse_iso_to_epoch_ms(value: &str) -> Option<i64> {
+    let bytes = value.as_bytes();
+    if bytes.len() < 20 || bytes[4] != b'-' || bytes[7] != b'-' || bytes[10] != b'T' {
+        return None;
+    }
+    let year: i64 = value.get(0..4)?.parse().ok()?;
+    let month: i64 = value.get(5..7)?.parse().ok()?;
+    let day: i64 = value.get(8..10)?.parse().ok()?;
+    let hour: i64 = value.get(11..13)?.parse().ok()?;
+    let minute: i64 = value.get(14..16)?.parse().ok()?;
+    let second: i64 = value.get(17..19)?.parse().ok()?;
+    if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
+        return None;
+    }
+    // Days since epoch via a civil-date conversion (Howard Hinnant's algorithm).
+    let y = if month <= 2 { year - 1 } else { year };
+    let era = if y >= 0 { y } else { y - 399 } / 400;
+    let yoe = y - era * 400;
+    let mp = (month + 9) % 12;
+    let doy = (153 * mp + 2) / 5 + day - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    let days = era * 146097 + doe - 719468;
+    Some(((days * 86400) + hour * 3600 + minute * 60 + second) * 1000)
+}
+
+fn current_iso_timestamp() -> String {    let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default();
     let secs = now.as_secs();
@@ -1337,7 +1416,7 @@ fn append_price_point_with_retention(
 // ─── Tray Badge ──────────────────────────────────────────────────────────────
 
 #[tauri::command]
-fn update_tray_badge(app: tauri::AppHandle) -> Result<String, String> {
+async fn update_tray_badge(app: tauri::AppHandle) -> Result<String, String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let alerts_val = read_json_file(&data_dir, "price_alerts")?;
     let reminders_val = read_json_file(&data_dir, "back_order_reminders")?;
@@ -1408,11 +1487,10 @@ pub fn run() {
                 .item(&quit_item)
                 .build()?;
 
-            let _tray = TrayIconBuilder::new()
+            let _tray = TrayIconBuilder::with_id("main")
                 // Fixed id: update_tray_badge looks the tray up by "main".
-                // TrayIconBuilder's default id is unique per process, so
+                // TrayIconBuilder::new() assigns a unique per-process id, so
                 // without this the badge/tooltip updates silently no-op.
-                .with_id("main")
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .on_menu_event(|app: &tauri::AppHandle, event| match event.id.as_ref() {
@@ -1425,7 +1503,15 @@ pub fn run() {
                     "check_now" => {
                         let app_handle = app.clone();
                         tauri::async_runtime::spawn(async move {
-                            let _ = run_full_price_check(app_handle, String::new()).await;
+                            // Use the last known API base so the server-first
+                            // price path is used; an empty base forced the
+                            // local scrapers.
+                            let base = LAST_API_BASE_URL
+                                .lock()
+                                .ok()
+                                .and_then(|b| b.clone())
+                                .unwrap_or_default();
+                            let _ = run_full_price_check(app_handle, base).await;
                         });
                     }
                     "quit" => {
@@ -1576,5 +1662,36 @@ mod tests {
     fn notification_activated_payload_shape() {
         let v = super::activation_payload("/health");
         assert_eq!(v["route"], "/health");
+    }
+
+    #[test]
+    fn parse_iso_to_epoch_ms_handles_millis_and_plain() {
+        // 2026-08-11T00:00:00Z = 1786406400000 ms
+        assert_eq!(
+            parse_iso_to_epoch_ms("2026-08-11T00:00:00Z"),
+            Some(1786406400000)
+        );
+        // Millis form (what JS writes) parses to the same instant.
+        assert_eq!(
+            parse_iso_to_epoch_ms("2026-08-11T00:00:00.000Z"),
+            Some(1786406400000)
+        );
+        assert_eq!(parse_iso_to_epoch_ms("not-a-date"), None);
+        assert_eq!(parse_iso_to_epoch_ms(""), None);
+    }
+
+    #[test]
+    fn snooze_comparison_is_not_lexicographic() {
+        // JS writes millis; the Rust timestamp omits them. At the same instant
+        // the millis string sorts BEFORE the plain one, so a string compare
+        // would treat a still-snoozed alert as not snoozed.
+        let js = "2026-08-11T00:00:00.000Z";
+        let rust = "2026-08-11T00:00:00Z";
+        assert!(js < rust, "precondition: lexicographic order differs");
+        assert_eq!(
+            parse_iso_to_epoch_ms(js),
+            parse_iso_to_epoch_ms(rust),
+            "parsed instants must be equal"
+        );
     }
 }

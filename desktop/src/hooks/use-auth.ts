@@ -47,13 +47,17 @@ export function clearUserInfo(): void {
   localStorage.removeItem(USER_INFO_KEY);
 }
 
-export function buildLoginUrl(): string {
+export async function buildLoginUrl(): Promise<string> {
   const portal = getOAuthPortalUrl();
   if (!portal) return "";
   const redirectUri = "http://localhost:3420/callback";
+  // A deviceId makes the server issue a device-bound ticket (and marks the
+  // callback native) instead of a cookie-based web session.
+  const deviceId = await getDesktopDeviceId().catch(() => undefined);
   const url = new URL(`${portal}/app-auth`);
   url.searchParams.set("appId", getAppId());
   url.searchParams.set("redirectUri", redirectUri);
+  if (deviceId) url.searchParams.set("deviceId", deviceId);
   url.searchParams.set("state", btoa(redirectUri));
   url.searchParams.set("type", "signIn");
   return url.toString();
@@ -244,27 +248,30 @@ export function useAuth() {
         window.location.href = webUrl;
         return true;
       }
-      const result = await invoke<{ sessionToken: string; user: string }>(
+      const result = await invoke<{ ticket: string }>(
         "start_oauth",
         { loginUrl },
       );
-      if (!result?.sessionToken) {
+      if (!result?.ticket) {
+        setError("Sign-in failed: no ticket returned");
+        return false;
+      }
+      // Redeem the single-use ticket server-side (never trust a raw token from
+      // the callback URL).
+      const { redeemOAuthTicket } = await import("../../../lib/oauth-callback");
+      const deviceId = await getDesktopDeviceId().catch(() => undefined);
+      const redeemed = await redeemOAuthTicket(result.ticket, {
+        baseUrl: getApiBaseUrl(),
+        deviceId,
+      });
+      if (!redeemed?.sessionToken) {
         setError("Sign-in failed: no session token returned");
         return false;
       }
-      setSessionToken(result.sessionToken);
-      if (result.user) {
+      setSessionToken(redeemed.sessionToken);
+      if (redeemed.user) {
         try {
-          const decoded = JSON.parse(atob(result.user)) as {
-            id?: number;
-            openId?: string;
-            name?: string | null;
-            email?: string | null;
-            emailVerified?: number | boolean | null;
-            loginMethod?: string | null;
-            lastSignedIn?: string;
-          };
-          setUserInfo(mapUser(decoded));
+          setUserInfo(mapUser(redeemed.user as Parameters<typeof mapUser>[0]));
         } catch {
           // A token without a usable user profile must not leave a stale
           // signed-in session behind.

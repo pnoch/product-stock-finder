@@ -201,7 +201,7 @@ export function Settings() {
         })();
 
   const handleSignIn = async () => {
-    await login(buildLoginUrl());
+    await login(await buildLoginUrl());
   };
 
   const [syncing, setSyncing] = useState(false);

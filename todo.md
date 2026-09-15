@@ -1668,3 +1668,16 @@
 - [x] `computeHealthSummary` threw on an unparseable sample date (blanked the Health detail screen); now ignores invalid dates
 
 - [x] Tests: `quiet-hours-offset`, `csv-injection`, `watchlist-filter-missing-metadata`, `drop-calendar-dst`, `health-summary-invalid-date`, `tombstone-purge-scope` (all verified non-vacuous); updated `devices`/`oauth-handlers`/`sync-db`/desktop `health-probe-upload`; E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `289 passed | 1 skipped` / `1770 passed`, desktop `43 passed` / `218 passed`
+
+## Phase 218: Rust/Tauri fixes (scraper gating, poller, OAuth, IO)
+
+- [x] Local Rust scrapers did not model-gate: each selected the first `.price` on the *search-results* page, so an unrelated product's price could be recorded. Added `parse_price_page` + `price_element_matches_model` in `scrapers/mod.rs` (card-boundary walk, mirrors the mobile `modelMismatch` guard) and rewrote all 25 parsers to use it; added Rust tests incl. a decoy-first-result case
+- [x] Shared HTTP client had no timeout, so one unresponsive host could hang the 25-distributor sequential health check forever. Added 15s request / 10s connect timeouts
+- [x] `stop_price_poller` only cleared a flag while the loop could be parked in `interval.tick()` for the full interval; a stop+start left two pollers running. Added a `POLLER_GENERATION` token the loop checks each wake-up; also guards `interval_minutes == 0` (would panic `tokio::time::interval`)
+- [x] Desktop OAuth accepted a raw `sessionToken` from the callback URL (login CSRF / session fixation) and ignored `state`. Now accepts only the single-use server ticket, redeems it via `redeemOAuthTicket`, and `buildLoginUrl` sends a `deviceId` so the server issues a device-bound ticket
+- [x] `write_json_file` used truncate-then-write, so a crash mid-write left an unparseable file that aborted the poller/alert/tray paths. Now writes to a temp file and renames
+- [x] Blocking FS/JSON commands (`read_watchlist`, `write_watchlist`, `set_value_for_key`, `export_watchlist`, `import_watchlist`, `update_tray_badge`) ran on the main thread (UI jank, up to 10MB JSON parse). Made async
+- [x] `upload_server_history` POSTed to a `protectedProcedure` with no `Authorization` header, so backfill always failed. Now requires a session token (skips honestly without one); the renderer's TS path remains the real backfill
+- [x] Tray "Check Now" passed an empty API base, forcing local scrapers. The last base passed by the renderer is now stored and reused
+- [x] Snooze comparison was lexicographic while JS writes millis and Rust omits them, so an alert could fire slightly early. Added `parse_iso_to_epoch_ms` (civil-date conversion) and compare instants
+- [x] Tests: 14 Rust tests (`cargo test`) incl. model-gating decoy, ISO parse parity, snooze ordering; E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `289 passed | 1 skipped` / `1770 passed`, desktop `43 passed` / `218 passed`
