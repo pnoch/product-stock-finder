@@ -236,3 +236,15 @@ railway up --service app --ci
 - **Prod now live on Phases 206-207** (`f30d4074`, SUCCESS): `/api/health` 200, `/` SPA 200, deep link 200, `/sw.js` `no-store`, unmatched `/api/*` JSON 404, `POST /api/auth/forgot` → `{success:true}` with email sent
 
 **Railway notes for next time:** the `app` service must stay connected to the GitHub repo (not an image). Deploys are triggered by `serviceInstanceDeployV2` or a push to `main`. `RESEND_API_KEY` is a send-only key (`restricted_api_key`); `EMAIL_FROM=onboarding@resend.dev` only delivers to the Resend account owner — set a verified domain before real users.
+
+---
+
+## 11. Whole-app review rounds (2026-09-15, Phases 215-217)
+
+Three parallel-audit rounds (storage/sync, scrapers/pricing, UI, desktop, notifications, server data). Every high-severity finding was reproduced before fixing.
+
+- **Phase 215** — web IDB migration (pre-IDB users lost all data), sync full-resync deleting live items after >30d offline, rejected-push retries, future-stamp wedge, winncom model-as-price, dot-thousands parsing, "not in stock", `getBestPrice` divergence, `modelMismatch` page-header decoy, alert −5% price, sort menu outside its Modal, CSV import FS API, digest routing, 8 unmapped icons, storage-read hangs, delete-data false success, uploadHistory cap drift, unbounded discovery/desktop-health buffers, `clearAllData` health keys
+- **Phase 216** — settings per-field merge (was whole-row LWW), `appendPricePoint` ordering, breaker store cross-instance serialization, money rounding at the comparison boundary
+- **Phase 217** — desktop: `withGlobalTauri` (all `__TAURI__` branches were dead), tray id, `fs:allow-write-file`, mirror all four storage keys to Rust files, `run_full_price_check` for Refresh, upload caps, sync registration, Compare hooks crash, devices proxy; notifications: restock false-fire, sign-out push unregister, push routing data + SW deep-link, quiet-hours UTC offset, basket threshold; server: tombstone purge scope, OAuth email/openId linking, uploadHistory date validation, `device_labels` cleanup, three indexes (migration `0024`, applied to prod); UI: drop-calendar DST, filter crash on missing metadata, sparkline currency mixing, CSV formula injection, health summary invalid dates
+
+**Prod state:** deploy `588d8ba4` SUCCESS, `/api/health` 200, migration `0024` applied (verified the three indexes exist).
