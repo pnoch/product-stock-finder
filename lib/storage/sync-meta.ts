@@ -41,6 +41,12 @@ export function createSyncMetaStorage(ctx: StorageContext) {
         retryKeys: Array.isArray(meta.retryKeys)
           ? meta.retryKeys.filter((k): k is string => typeof k === "string")
           : undefined,
+        settingsSnapshot:
+          meta.settingsSnapshot &&
+          typeof meta.settingsSnapshot === "object" &&
+          !Array.isArray(meta.settingsSnapshot)
+            ? (meta.settingsSnapshot as SyncMeta["settingsSnapshot"])
+            : undefined,
       };
     } catch {
       await quarantinePayload(adapter, KEYS.SYNC_META, raw);
@@ -75,6 +81,10 @@ export function createSyncMetaStorage(ctx: StorageContext) {
         items: merged,
         retryKeys:
           meta.retryKeys !== undefined ? meta.retryKeys : existing.retryKeys,
+        settingsSnapshot:
+          meta.settingsSnapshot !== undefined
+            ? meta.settingsSnapshot
+            : existing.settingsSnapshot,
       }),
     );
   }

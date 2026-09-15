@@ -61,6 +61,20 @@ export function createMemoryBreakerStore(): BreakerStateStore {
   };
 }
 
+// Read-modify-write serialization for the persisted breaker list. The queue is
+// module-level (keyed by storage key) because the app creates several breaker
+// stores over the same `distributor_breaker` key (health probes, background
+// refresh, price-source); a per-instance queue would let concurrent writers
+// from different instances clobber each other's entries.
+const breakerQueues = new Map<string, Promise<unknown>>();
+
+function serializeByKey<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const prev = breakerQueues.get(key) ?? Promise.resolve();
+  const next = prev.then(fn, fn);
+  breakerQueues.set(key, next.catch(() => {}));
+  return next;
+}
+
 export function createStorageBreakerStore(
   adapter: Pick<StorageAdapter, "getItem" | "setItem">,
 ): BreakerStateStore {
@@ -75,24 +89,15 @@ export function createStorageBreakerStore(
     }
   }
 
-  // Concurrent fetches of different distributors share one persisted list;
-  // serialize read-modify-write so parallel sets cannot lose each other.
-  let queue: Promise<unknown> = Promise.resolve();
-  function serialize<T>(fn: () => Promise<T>): Promise<T> {
-    const next = queue.then(fn, fn);
-    queue = next.catch(() => {});
-    return next;
-  }
-
   return {
     get(distributorId) {
-      return serialize(async () => {
+      return serializeByKey(DISTRIBUTOR_BREAKER_KEY, async () => {
         const list = await readList();
         return list.find((e) => e.distributorId === distributorId) ?? null;
       });
     },
     set(entry) {
-      return serialize(async () => {
+      return serializeByKey(DISTRIBUTOR_BREAKER_KEY, async () => {
         try {
           const list = await readList();
           const next = list.filter(

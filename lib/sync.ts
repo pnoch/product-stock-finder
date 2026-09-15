@@ -258,6 +258,8 @@ async function doSync(
           : `Push partially rejected (${totalRejected} stale write(s) — cleared)`
         : (inheritedError ?? null);
     metaAfter.lastSyncOkAt = opts.now?.() ?? Date.now();
+    // Base for the next settings per-field merge (post-merge local state).
+    metaAfter.settingsSnapshot = await storage.getSettings();
     await storage.saveSyncMeta(metaAfter);
     for (const { collection, id } of staleTombstonesToClear) {
       await storage.clearItemSyncMeta(collection, id);
@@ -281,6 +283,8 @@ async function doSync(
       // No dirty items means no retryable local item remains (collectDirty
       // would have produced one), so any leftover retry key is obsolete.
       retryKeys: [],
+      // Base for the next settings per-field merge.
+      settingsSnapshot: await storage.getSettings(),
     });
   }
 
@@ -542,7 +546,28 @@ async function applyLocalItem(
       break;
     }
     case "settings": {
-      await storage.saveSettings(data as AppSettings);
+      // Per-field merge: settings is a single row, so a whole-row overwrite
+      // loses a field another device changed while this one was offline. Using
+      // the last-synced snapshot as the base, keep the local value for any
+      // field the local device changed since that snapshot and take the
+      // incoming value otherwise. Without a snapshot (first sync after
+      // upgrade) there is no base, so fall back to whole-row LWW.
+      const incoming = data as AppSettings;
+      const base = (await storage.getSyncMeta()).settingsSnapshot;
+      if (!base) {
+        await storage.saveSettings(incoming);
+        break;
+      }
+      const local = await storage.getSettings();
+      const merged: AppSettings = { ...incoming };
+      for (const key of Object.keys(local) as (keyof AppSettings)[]) {
+        const localChanged =
+          JSON.stringify(local[key]) !== JSON.stringify(base[key]);
+        if (localChanged) {
+          (merged as unknown as Record<string, unknown>)[key] = local[key];
+        }
+      }
+      await storage.saveSettings(merged);
       break;
     }
   }

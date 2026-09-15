@@ -32,9 +32,14 @@ export function appendPricePoint(
   cutoff.setUTCDate(cutoff.getUTCDate() - maxDays);
   const cutoffDay = cutoff.toISOString().slice(0, 10);
 
-  const filtered = result.filter(
-    (p) => !Number.isNaN(Date.parse(p.date)) && p.date.slice(0, 10) >= cutoffDay,
-  );
+  const filtered = result
+    .filter(
+      (p) => !Number.isNaN(Date.parse(p.date)) && p.date.slice(0, 10) >= cutoffDay,
+    )
+    // Sort chronologically: an out-of-order point would otherwise make the
+    // 500-point cap drop arbitrary (positionally-last) entries instead of the
+    // oldest, and violate the documented ordering contract.
+    .sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
   return filtered.length > MAX_HISTORY_POINTS ? filtered.slice(-MAX_HISTORY_POINTS) : filtered;
 }
 

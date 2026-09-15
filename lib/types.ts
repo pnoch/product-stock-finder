@@ -195,6 +195,9 @@ export interface SyncMeta {
   // `collection:id` keys the server rejected (validation/transient). Their meta
   // stamp is <= the cursor, so they must be retried explicitly on the next sync.
   retryKeys?: string[];
+  // Settings as of the last successful sync. Used as the merge base so a pull
+  // can keep local-only field edits instead of overwriting the whole row.
+  settingsSnapshot?: Partial<AppSettings>;
 }
 
 export interface TrendingProduct {

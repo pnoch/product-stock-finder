@@ -36,6 +36,13 @@ export function hasExchangeRate(currency: string): boolean {
   return currency in effectiveRates();
 }
 
+// Money is displayed and compared at 2 decimals. Rounding at the comparison
+// boundary (not inside convertPrice, which feeds arithmetic chains) keeps
+// best-price selection stable and the returned value display-ready.
+export function roundMoney(amount: number): number {
+  return Math.round(amount * 100) / 100;
+}
+
 export function getExchangeRate(currency: string): number | null {
   const rates = effectiveRates();
   return rates[currency] ?? null;
@@ -58,7 +65,9 @@ export function getBestPrice(
   const converted = available
     .map((l) => {
       const price = convertPrice(l.price, l.currency, displayCurrency);
-      return price === null ? null : { price, currency: displayCurrency };
+      return price === null
+        ? null
+        : { price: roundMoney(price), currency: displayCurrency };
     })
     .filter((v): v is { price: number; currency: string } => v !== null);
   if (!converted.length) return null;

@@ -1624,3 +1624,11 @@
 - [x] Desktop pending-health buffer was unbounded (mobile was capped); capped at `MAX_UPLOAD_HEALTH_EVENTS`
 
 - [x] Tests: `sync-retry-rejected`, `sync-future-stamp`, `history-sync-cap`, `discovery-buffer-caps`, updated `idb-adapter`/`storage`/`sync-router`/`winncom`/`utils`/`scraping-integration`/`history-sync`/`server-prices`/`sync-push-limits`; E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `280 passed | 1 skipped` / `1753 passed`, desktop `43 passed` / `218 passed`
+
+## Phase 216: Follow-up fixes for the flagged lower-risk items
+
+- [x] Settings whole-row LWW: two devices editing different fields while apart lost one edit. Added a last-synced `settingsSnapshot` to `SyncMeta` and a 3-way per-field merge on pull (keep local value where the local device changed a field since the snapshot, take remote otherwise). No snapshot (first sync after upgrade) falls back to whole-row LWW
+- [x] `appendPricePoint` did not sort, so an out-of-order point made the 500-point cap drop arbitrary positional entries instead of the oldest. Now sorts chronologically before capping
+- [x] Breaker store serialization was per-instance while all instances write the same `distributor_breaker` key, so concurrent health-probe/background writes could clobber each other. Queue is now module-level keyed by storage key
+- [x] `convertPrice` left unrounded floats in best-price comparisons; added `roundMoney` applied at the `getBestPrice` boundary (not inside `convertPrice`, which feeds arithmetic chains)
+- [x] Tests: `price-history-order`, `settings-field-merge`, `breaker-cross-instance` (all verified non-vacuous by reverting); E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `283 passed | 1 skipped` / `1759 passed`, desktop `43 passed` / `218 passed`
