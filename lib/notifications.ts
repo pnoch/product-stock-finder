@@ -145,7 +145,7 @@ export async function scheduleHealthAlert(
   distributorId: string,
   status: HealthStatus,
   reason?: string,
-): Promise<string | null> {
+): Promise<{ notificationId: string | null; eventId: string } | null> {
   try {
     const settings = await getSettings();
     if (isInQuietHours(settings)) return null;
@@ -191,14 +191,16 @@ export async function scheduleHealthAlert(
     createdAt: Date.now(),
   });
   await recordDisplayedEventId(eventId);
-  return id;
+  // Return the event id so the caller uploads the *same* id to the server;
+  // otherwise the server mints a different one and the event is delivered twice.
+  return { notificationId: id, eventId };
 }
 
 // ─── Schedule a distributor recovery notification ────────────────────────────
 export async function scheduleHealthRecovery(
   distributorId: string,
   status: HealthStatus,
-): Promise<string | null> {
+): Promise<{ notificationId: string | null; eventId: string } | null> {
   try {
     const settings = await getSettings();
     if (isInQuietHours(settings)) return null;
@@ -243,7 +245,7 @@ export async function scheduleHealthRecovery(
     createdAt: Date.now(),
   });
   await recordDisplayedEventId(recoveryEventId);
-  return id;
+  return { notificationId: id, eventId: recoveryEventId };
 }
 
 // ─── Schedule a price-drop notification ──────────────────────────────────────

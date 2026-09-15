@@ -47,21 +47,35 @@ async function runCheckRestocks(): Promise<void> {
       const notificationsEnabled =
         settings.notificationsEnabled !== false &&
         settings.stockAlerts !== false;
-      let notified = true;
-      if (notificationsEnabled && Platform.OS !== "web") {
+      let notified = false;
+      if (notificationsEnabled) {
         try {
           const distrib = getDistributorById(watch.distributorId);
-          const id = await scheduleStockAlert(
-            watch.productName,
-            distrib?.name ?? watch.distributorName,
-            currentListing.price,
-            currentListing.currency,
-            watch.productId,
-          );
-          notified = id !== null;
+          if (Platform.OS === "web") {
+            // No local scheduling on web; show a foreground web notification
+            // so the watch isn't consumed without any user-visible alert.
+            const { displayWebNotification } = await import("./web-notifications");
+            displayWebNotification(
+              "🟢 Back In Stock!",
+              `${watch.productName} is now available at ${distrib?.name ?? watch.distributorName}.`,
+            );
+            notified = true;
+          } else {
+            const id = await scheduleStockAlert(
+              watch.productName,
+              distrib?.name ?? watch.distributorName,
+              currentListing.price,
+              currentListing.currency,
+              watch.productId,
+            );
+            notified = id !== null;
+          }
         } catch {
           notified = false;
         }
+      } else {
+        // Alerts disabled: nothing to deliver, so consuming the watch is fine.
+        notified = true;
       }
       if (!notified) {
         // Keep the watch so the next cycle retries the notification.

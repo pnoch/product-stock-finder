@@ -25,9 +25,15 @@ export async function checkHealthAlerts(
       const name = distributor?.name ?? distributorId;
       if (detectHealthAlert(samples)) {
         const latest = samples[samples.length - 1];
-        await scheduleHealthAlert(distributorId, latest.status, latest.reason);
+        const scheduled = await scheduleHealthAlert(
+          distributorId,
+          latest.status,
+          latest.reason,
+        );
         const { uploadHealthEventToServer } = await import("../server-notifications");
         void uploadHealthEventToServer({
+          // Reuse the local event id so the server event dedupes against it.
+          id: scheduled?.eventId,
           distributorId,
           distributorName: name,
           status: latest.status as "blocked" | "error",
@@ -41,9 +47,10 @@ export async function checkHealthAlerts(
       }
       if (detectHealthRecovery(samples)) {
         const prev = samples[samples.length - 2];
-        await scheduleHealthRecovery(distributorId, prev.status);
+        const scheduled = await scheduleHealthRecovery(distributorId, prev.status);
         const { uploadHealthEventToServer } = await import("../server-notifications");
         void uploadHealthEventToServer({
+          id: scheduled?.eventId,
           distributorId,
           distributorName: name,
           status: prev.status as "blocked" | "error",

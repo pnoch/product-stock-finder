@@ -32,24 +32,17 @@ function getParentDomain(hostname: string): string | undefined {
     return undefined;
   }
 
-  const parts = hostname.split(".");
-
-  if (parts.length < 3) {
-    return undefined;
+  // The web app is served same-origin by the API server, so a host-only cookie
+  // is correct and avoids the public-suffix problem entirely. A shared parent
+  // domain is only used when explicitly configured (e.g. api.example.com +
+  // app.example.com), because guessing it breaks on hosts like
+  // `myapp.vercel.app` / `user.github.io` where the browser rejects a cookie
+  // whose Domain is a public suffix (login appears to succeed but never sticks).
+  const configured = process.env.COOKIE_DOMAIN?.trim();
+  if (configured) {
+    return configured.startsWith(".") ? configured : `.${configured}`;
   }
-
-  // Avoid returning a public suffix (e.g. co.uk) as the cookie domain.
-  // For known two-label public suffixes, use the last 3 labels.
-  const publicSuffixes = new Set(["co.uk", "com.au"]);
-  const lastTwo = parts.slice(-2).join(".").toLowerCase();
-  if (publicSuffixes.has(lastTwo)) {
-    if (parts.length < 4) return undefined;
-    return "." + parts.slice(-3).join(".");
-  }
-
-  if (parts.length > 3) return undefined;
-
-  return "." + parts.slice(-2).join(".");
+  return undefined;
 }
 
 export function getSessionCookieOptions(

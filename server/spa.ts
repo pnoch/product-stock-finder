@@ -58,6 +58,11 @@ export function registerSpa(app: Express, webDist = resolveWebDist()): boolean {
       res.status(404).json({ error: "Not found" });
       return;
     }
+    // The shell must revalidate: `res.sendFile` bypasses express.static's
+    // setHeaders, so without this the fallback served index.html with
+    // `public, max-age=0` and a browser could retain a stale shell referencing
+    // old hashed bundles after a deploy.
+    res.setHeader("Cache-Control", cacheControlFor("/index.html"));
     res.sendFile(path.join(webDist, "index.html"));
   });
   console.log(`[spa] serving web export from ${webDist}`);

@@ -5,6 +5,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface DropEvent {
   productId: string;
+  distributorId: string;
   name: string;
   from: number;
   to: number;
@@ -53,7 +54,6 @@ export function computeDropCalendar(
   const cutoff = now - days * DAY_MS;
   const byDay = new Map<string, DropDay>();
   let totalDrops = 0;
-  const seenByDay = new Map<string, Set<string>>();
 
   for (const product of watchlist) {
     for (const listing of product.listings) {
@@ -73,10 +73,8 @@ export function computeDropCalendar(
 
         const key = dateKey(curr.t);
         const dedupeKey = `${product.id}::${listing.distributorId}`;
-        const seen = seenByDay.get(key) ?? new Set<string>();
-        if (seen.has(dedupeKey)) continue;
-        seen.add(dedupeKey);
-        seenByDay.set(key, seen);
+        const percent =
+          Math.round(((curr.v! - prev.v!) / prev.v!) * 1000) / 10;
 
         const day = byDay.get(key) ?? {
           dateKey: key,
@@ -84,11 +82,33 @@ export function computeDropCalendar(
           biggestPct: null,
           drops: [],
         };
-        const percent =
-          Math.round(((curr.v! - prev.v!) / prev.v!) * 1000) / 10;
+        const existingIdx = day.drops.findIndex(
+          (d) => `${d.productId}::${d.distributorId}` === dedupeKey,
+        );
+        if (existingIdx >= 0) {
+          // One entry per product/distributor per day, but keep the *largest*
+          // drop: a 5% then 20% move the same day must report -20%, not -5%.
+          if (percent < day.drops[existingIdx]!.percent) {
+            day.drops[existingIdx] = {
+              productId: product.id,
+              distributorId: listing.distributorId,
+              name: product.name,
+              from: prev.v!,
+              to: curr.v!,
+              percent,
+            };
+            if (day.biggestPct === null || percent < day.biggestPct) {
+              day.biggestPct = percent;
+            }
+          }
+          byDay.set(key, day);
+          continue;
+        }
+
         day.dropCount += 1;
         day.drops.push({
           productId: product.id,
+          distributorId: listing.distributorId,
           name: product.name,
           from: prev.v!,
           to: curr.v!,

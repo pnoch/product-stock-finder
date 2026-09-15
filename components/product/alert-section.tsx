@@ -12,11 +12,16 @@ export function AlertSection({ productId, productName, displayCurrency = "USD" }
   const colors = useColors();
   const { showToast } = useToast();
   const [price, setPrice] = useState("");
+  const [adding, setAdding] = useState(false);
   const currency = displayCurrency;
   const onAdd = async () => {
     Keyboard.dismiss();
+    // Guard against double-submit: the button and onSubmitEditing both call
+    // this, and each call would mint a new alert id.
+    if (adding) return;
     const targetPrice = parseFloat(price);
     if (!Number.isFinite(targetPrice) || targetPrice <= 0) { showAlert("Invalid price", "Please enter a valid target price."); return; }
+    setAdding(true);
     try {
       const alert = { id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, targetPrice, currency, isActive: true, createdAt: new Date().toISOString(), direction: "drop" as const };
       await addAlert(alert);
@@ -27,6 +32,8 @@ export function AlertSection({ productId, productName, displayCurrency = "USD" }
     } catch {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showAlert("Couldn't create alert", "We couldn't save your price alert. Please try again.");
+    } finally {
+      setAdding(false);
     }
   };
   return (

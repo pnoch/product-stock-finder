@@ -8,6 +8,20 @@ let _pool: ReturnType<typeof mysql.createPool> | null = null;
 let creatingPool: Promise<ReturnType<typeof mysql.createPool>> | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
+// Drizzle's mysql2 driver resolves a delete to the raw mysql2 tuple
+// `[ResultSetHeader, FieldPacket[]]`, so `.affectedRows` on the result itself is
+// always undefined. Reading it directly made every batched purge stop after its
+// first batch. Accept both shapes so a future driver change is still handled.
+export function affectedRowsOf(result: unknown): number {
+  if (Array.isArray(result)) {
+    const header = result[0] as { affectedRows?: unknown } | undefined;
+    const n = Number(header?.affectedRows);
+    return Number.isFinite(n) ? n : 0;
+  }
+  const n = Number((result as { affectedRows?: unknown })?.affectedRows);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export async function getDb() {
   if (_db) return _db;
   const url = process.env.DATABASE_URL;
@@ -428,9 +442,7 @@ export async function purgeExpiredAuthTokens(now: number): Promise<void> {
         ),
       )
       .limit(TOKEN_PURGE_BATCH_SIZE);
-    const affected = Number(
-      (result as { affectedRows?: unknown }).affectedRows ?? 0,
-    );
+    const affected = affectedRowsOf(result);
     if (!Number.isFinite(affected) || affected < TOKEN_PURGE_BATCH_SIZE) break;
   }
   for (let batch = 0; batch < TOKEN_PURGE_MAX_BATCHES_PER_TICK; batch++) {
@@ -443,9 +455,7 @@ export async function purgeExpiredAuthTokens(now: number): Promise<void> {
         ),
       )
       .limit(TOKEN_PURGE_BATCH_SIZE);
-    const affected = Number(
-      (result as { affectedRows?: unknown }).affectedRows ?? 0,
-    );
+    const affected = affectedRowsOf(result);
     if (!Number.isFinite(affected) || affected < TOKEN_PURGE_BATCH_SIZE) break;
   }
 }

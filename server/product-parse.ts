@@ -10,12 +10,40 @@ export interface ParsedProduct {
   description: string;
 }
 
+// Expands an IPv6 literal to its 8 hextets, or null if not IPv6.
+function parseIpv6(host: string): number[] | null {
+  if (!host.includes(":")) return null;
+  let h = host;
+  const zone = h.indexOf("%");
+  if (zone >= 0) h = h.slice(0, zone);
+  // Trailing IPv4 form (e.g. ::ffff:127.0.0.1) → convert to two hextets.
+  const v4 = h.match(/^(.*:)(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+  if (v4) {
+    const parts = v4[2].split(".").map(Number);
+    if (parts.some((p) => p > 255)) return null;
+    const hi = ((parts[0] << 8) | parts[1]).toString(16);
+    const lo = ((parts[2] << 8) | parts[3]).toString(16);
+    h = `${v4[1]}${hi}:${lo}`;
+  }
+  const dbl = h.split("::");
+  if (dbl.length > 2) return null;
+  const head = dbl[0] ? dbl[0].split(":") : [];
+  const tail = dbl.length === 2 && dbl[1] ? dbl[1].split(":") : [];
+  const missing = 8 - head.length - tail.length;
+  if (missing < 0) return null;
+  const hextets = [...head, ...Array(dbl.length === 2 ? missing : 0).fill("0"), ...tail];
+  if (hextets.length !== 8) return null;
+  const nums = hextets.map((x) => parseInt(x || "0", 16));
+  if (nums.some((n) => Number.isNaN(n) || n < 0 || n > 0xffff)) return null;
+  return nums;
+}
+
 function isPrivateHostname(hostname: string): boolean {
   const host = hostname.trim().toLowerCase().replace(/\.$/, "").replace(/^\[|\]$/g, "");
   if (!host) return true;
   if (host === "localhost" || host === "metadata.google.internal") return true;
   if (host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".localhost")) return true;
-  if (host === "::1" || host === "::" || host === "0.0.0.0") return true;
+  if (host === "0.0.0.0") return true;
   if (/^127\./.test(host)) return true;
   if (/^10\./.test(host)) return true;
   if (/^192\.168\./.test(host)) return true;
@@ -23,10 +51,33 @@ function isPrivateHostname(hostname: string): boolean {
   const m172 = host.match(/^172\.(\d+)\./);
   if (m172 && Number(m172[1]) >= 16 && Number(m172[1]) <= 31) return true;
   if (/^0\./.test(host)) return true;
+
+  // IPv6 (and IPv4-mapped IPv6, which Node normalizes to hex form such as
+  // [::ffff:7f00:1]). Without this, http://[::ffff:127.0.0.1]/ and the cloud
+  // metadata address [::ffff:169.254.169.254] bypassed the IPv4 checks.
+  const v6 = parseIpv6(host);
+  if (v6) {
+    const [a, b, c, d, e, f, g, h] = v6;
+    const allZero = v6.every((x) => x === 0);
+    if (allZero) return true; // ::
+    if (v6.slice(0, 7).every((x) => x === 0) && h === 1) return true; // ::1
+    // IPv4-mapped (::ffff:0:0/96) and IPv4-compatible (::/96): re-check the
+    // embedded IPv4 address against the IPv4 rules.
+    if (v6.slice(0, 5).every((x) => x === 0) && (f === 0xffff || f === 0)) {
+      const embedded = `${g >> 8}.${g & 0xff}.${h >> 8}.${h & 0xff}`;
+      if (isPrivateHostname(embedded)) return true;
+    }
+    // Unique local (fc00::/7) and link-local (fe80::/10).
+    if ((a & 0xfe00) === 0xfc00) return true;
+    if ((a & 0xffc0) === 0xfe80) return true;
+    // Multicast (ff00::/8) and unspecified.
+    if ((a & 0xff00) === 0xff00) return true;
+    void b; void c; void d; void e;
+  }
   return false;
 }
 
-function isBlockedUrl(raw: string): boolean {
+export function isBlockedUrl(raw: string): boolean {
   let url: URL;
   try {
     url = new URL(raw.trim());

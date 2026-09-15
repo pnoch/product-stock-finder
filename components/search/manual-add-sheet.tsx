@@ -112,7 +112,11 @@ export function ManualAddSheet({
   };
 
   const handleForceClose = () => {
-    if (adding) return;
+    // Abort an in-flight discovery: clearing activeRef makes handleAdd discard
+    // its result, so the user isn't locked in until DISCOVER_TIMEOUT_MS.
+    activeRef.current = false;
+    setAdding(false);
+    setProgress(null);
     reset();
     onClose();
   };
@@ -521,11 +525,9 @@ export function ManualAddSheet({
               {adding ? (
                 <TouchableOpacity activeOpacity={0.7}
                   onPress={handleForceClose}
-                  disabled={adding}
-                  style={{ alignItems: "center", paddingVertical: 10, opacity: 0.5 }}
+                  style={{ alignItems: "center", paddingVertical: 10 }}
                   accessibilityLabel="Cancel"
                   accessibilityRole="button"
-                  accessibilityState={{ disabled: true }}
                 >
                   <Text style={{ color: colors.muted, fontSize: 13 }}>
                     Cancel

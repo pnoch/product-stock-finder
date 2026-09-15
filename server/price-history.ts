@@ -1,6 +1,6 @@
 import { and, eq, lt, sql } from "drizzle-orm";
 import { priceHistory, type PriceHistoryRow } from "../drizzle/schema";
-import { getDb } from "./db";
+import { getDb, affectedRowsOf } from "./db";
 import type { PricePoint, PriceSnapshot, StockStatus } from "../lib/types";
 
 const HISTORY_DAYS = 90;
@@ -113,9 +113,7 @@ export async function purgeOldHistory(now: number): Promise<void> {
       .delete(priceHistory)
       .where(lt(priceHistory.date, cutoffDay))
       .limit(PURGE_BATCH_SIZE);
-    const affected = Number(
-      (result as { affectedRows?: unknown }).affectedRows ?? 0,
-    );
+    const affected = affectedRowsOf(result);
     if (!Number.isFinite(affected) || affected < PURGE_BATCH_SIZE) break;
   }
 }

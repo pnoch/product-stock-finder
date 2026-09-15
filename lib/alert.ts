@@ -15,7 +15,31 @@ export function showAlert(
     showWebAlert(title, message, buttons);
     return;
   }
+  // Android's Alert supports at most 3 buttons; extras are silently dropped.
+  // Fall back to a sequential choice so every option stays reachable.
+  if (Platform.OS === "android" && buttons && buttons.length > 3) {
+    showAndroidChoice(title, message, buttons);
+    return;
+  }
   Alert.alert(title, message, buttons);
+}
+
+function showAndroidChoice(
+  title: string,
+  message: string | undefined,
+  buttons: AlertButton[],
+): void {
+  const [first, second, ...rest] = buttons;
+  const cancel = rest.find((b) => b.style === "cancel");
+  const more = rest.filter((b) => b !== cancel);
+  const primary = second ?? more.shift();
+  const options: AlertButton[] = [
+    ...(first ? [first] : []),
+    ...(primary ? [primary] : []),
+    { text: "More…", onPress: () => showAndroidChoice(title, message, more) },
+  ];
+  if (cancel) options.push(cancel);
+  Alert.alert(title, message, options);
 }
 
 function showWebAlert(

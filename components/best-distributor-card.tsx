@@ -38,8 +38,9 @@ function BestDistributorCard({
       success22: colors.success + "22",
       success44: colors.success + "44",
       error22: colors.error + "22",
+      warning22: colors.warning + "22",
     }),
-    [colors.primary, colors.success, colors.error],
+    [colors.primary, colors.success, colors.error, colors.warning],
   );
 
   // Price-drop indicator: compare oldest vs current price in history
@@ -115,7 +116,11 @@ function BestDistributorCard({
           </Text>
         </View>
         <Text style={{ color: colors.muted, fontSize: 12, flex: 1 }}>
-          Cheapest in-stock option
+          {listing.stockStatus === "in_stock"
+            ? "Cheapest in-stock option"
+            : listing.stockStatus === "back_order"
+              ? "Cheapest orderable option"
+              : "Cheapest available option"}
         </Text>
         {priceTrend && (
           <View
@@ -193,16 +198,30 @@ function BestDistributorCard({
         </View>
         <View
           style={{
-            backgroundColor: derivedColors.success22,
+            backgroundColor:
+              listing.stockStatus === "in_stock"
+                ? derivedColors.success22
+                : derivedColors.warning22,
             borderRadius: 12,
             paddingHorizontal: 10,
             paddingVertical: 4,
           }}
         >
           <Text
-            style={{ color: colors.success, fontSize: 12, fontWeight: "600" }}
+            style={{
+              color:
+                listing.stockStatus === "in_stock"
+                  ? colors.success
+                  : colors.warning,
+              fontSize: 12,
+              fontWeight: "600",
+            }}
           >
-            ● In Stock
+            {listing.stockStatus === "in_stock"
+              ? "● In Stock"
+              : listing.stockStatus === "back_order"
+                ? "● Back Order"
+                : "● Availability Unknown"}
           </Text>
         </View>
       </View>

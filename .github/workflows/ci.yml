@@ -20,5 +20,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      - run: pnpm check:desktop
       - run: pnpm lint
       - run: pnpm test
+      - run: pnpm --dir desktop test
+      # Verify the deployable artifacts build (web export + server bundle).
+      - run: pnpm build

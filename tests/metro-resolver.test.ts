@@ -32,6 +32,25 @@ describe("resolveBrowserModulePath", () => {
     ).toBeNull();
   });
 
+  it("redirects ./browser from any lib/scrapers module (resilient.ts dynamic import)", () => {
+    // resilient.ts does `await import("./browser")`; without this Metro bundles
+    // the Playwright-backed module into native builds.
+    expect(
+      resolveBrowserModulePath(
+        "android",
+        "./browser",
+        "/repo/lib/scrapers/resilient.ts",
+      ),
+    ).toBe(BROWSER_STUB_PATH);
+    expect(
+      resolveBrowserModulePath(
+        "ios",
+        "./browser",
+        "/repo/lib/scrapers/resilient.ts",
+      ),
+    ).toBe(BROWSER_STUB_PATH);
+  });
+
   it("leaves web alone", () => {
     expect(resolveBrowserModulePath("web", request)).toBeNull();
     expect(resolveBrowserModulePath("web", "./browser", utilsOrigin)).toBeNull();

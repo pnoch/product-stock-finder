@@ -90,8 +90,12 @@ export function useAlertsData() {
     async (alertId: string) => {
       if (Platform.OS !== "web")
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await toggleAlert(alertId);
-      await loadData();
+      try {
+        await toggleAlert(alertId);
+        await loadData();
+      } catch {
+        showAlert("Update failed", "We couldn't update that alert. Please try again.");
+      }
     },
     [loadData],
   );
@@ -106,8 +110,12 @@ export function useAlertsData() {
           onPress: async () => {
             if (Platform.OS !== "web")
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            await removeAlert(alertId);
-            await loadData();
+            try {
+              await removeAlert(alertId);
+              await loadData();
+            } catch {
+              showAlert("Delete failed", "We couldn't delete that alert. Please try again.");
+            }
           },
         },
       ]);

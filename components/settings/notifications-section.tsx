@@ -73,7 +73,7 @@ export function NotificationsSection({
                 <Switch
                   value={!!settings.webNotificationsEnabled}
                   onValueChange={(v) => {
-                    void setWebNotificationsEnabled(v).then((permission) => {
+                    void setWebNotificationsEnabled(v).catch(() => "denied").then((permission) => {
                       const enabled = v && permission === "granted";
                       setSettings((prev) => ({
                         ...prev,

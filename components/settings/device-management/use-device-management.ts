@@ -74,7 +74,14 @@ export function useDeviceManagement({
                 Haptics.notificationAsync(
                   Haptics.NotificationFeedbackType.Warning,
                 );
-              await signOutDevice(device.deviceId);
+              const ok = await signOutDevice(device.deviceId);
+              if (!ok) {
+                showAlert(
+                  "Sign out failed",
+                  "We couldn't sign that device out. Please try again.",
+                );
+                return;
+              }
               await loadDevices();
             },
           },
@@ -97,7 +104,11 @@ export function useDeviceManagement({
     if (!label) return;
     setRenaming(true);
     try {
-      await renameDevice(renameTarget.deviceId, label);
+      const ok = await renameDevice(renameTarget.deviceId, label);
+      if (!ok) {
+        showAlert("Rename failed", "We couldn't rename that device. Please try again.");
+        return;
+      }
       setRenameTarget(null);
       await loadDevices();
     } finally {

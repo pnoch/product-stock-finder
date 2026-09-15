@@ -266,7 +266,12 @@ export const TrendingSection = memo(function TrendingSection() {
       listings: fallbackListings,
       tags: [] as string[],
     };
-    await addToWatchlist(newProduct as never);
+    try {
+      await addToWatchlist(newProduct as never);
+    } catch {
+      showToast("Couldn't add to watchlist", "error");
+      return;
+    }
     setWatchlistIds((prev) => new Set([...prev, product.id]));
     showToast("Added — tap tag to organize", "success");
     setPickerProduct(product);

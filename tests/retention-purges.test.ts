@@ -5,14 +5,16 @@ const dbStub = {
   delete: vi.fn(() => ({
     where: vi.fn((cond: unknown) => {
       whereCalls.push(cond);
-      return { limit: vi.fn(async () => ({ affectedRows: 0 })) };
+      // Real mysql2 shape: [ResultSetHeader, fields].
+      return { limit: vi.fn(async () => [{ affectedRows: 0 }, []]) };
     }),
   })),
 };
 
-vi.mock("../server/db", () => ({
-  getDb: vi.fn(async () => dbStub),
-}));
+vi.mock("../server/db", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../server/db")>();
+  return { ...actual, getDb: vi.fn(async () => dbStub) };
+});
 
 import { purgeStalePriceCache } from "../server/price-cache";
 import { purgeOldRevokedDevices } from "../server/devices";

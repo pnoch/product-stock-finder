@@ -1708,3 +1708,41 @@
 - [x] Watchlist summary "Total Value" summed every listing (25 distributors × a product), reading as a basket total. Renamed to "All Listings Value" and documented the distinction from `computeBasketValue`
 - [x] `computeBasketValue` counted only `in_stock` while `getBestPrice` also counts `back_order`, so the basket total disagreed with per-product "Best Price". Aligned to the orderable set (in_stock + back_order)
 - [x] Tests: `share-text` (4 cases), backup default-preservation cases, basket back-order/unknown cases (all verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `293 passed | 1 skipped` / `1790 passed`, desktop `43 passed` / `218 passed`
+
+## Phase 222: Whole-app review round 3 (security, retention, build, UI)
+
+**Security**
+- [x] `auth.me` returned the raw user row (passwordHash, openId, role). Now returns the same safe shape as REST `/api/auth/me`
+- [x] SSRF: `isPrivateHostname` string-matched IPv4 only, so `[::ffff:127.0.0.1]`, `[::ffff:169.254.169.254]` (cloud metadata), `[fd00::1]`, `[fe80::1]` bypassed it. Added a real IPv6 parser (incl. IPv4-mapped/compatible, ULA, link-local, multicast)
+- [x] Open redirect: `/\evil.com` passed the `/`-prefix check and browsers resolve it to `https://evil.com`. Now rejected
+- [x] Apple OAuth was broken: `response_mode=form_post` POSTs the callback but only `app.get` was registered. Both methods now share one handler
+- [x] Account pre-hijack: OAuth auto-linked to an existing email account without checking the provider's `email_verified`, letting an attacker pre-register a victim's email. Now links only when verified, else refuses
+- [x] Cookie domain guessed a parent domain, which is a public suffix on hosts like `myapp.vercel.app`/`user.github.io` (browser drops the cookie → login never persists). Now host-only unless `COOKIE_DOMAIN` is set
+
+**Data / retention**
+- [x] `affectedRows` was read off the drizzle result, but mysql2 resolves deletes to `[ResultSetHeader, fields]` → always `undefined` → **every batched purge stopped after one batch** (5 call sites). Added `affectedRowsOf` and fixed all sites; tests now use the real driver shape
+- [x] Health alerts were delivered twice: the local event id and the server-minted id never matched (different `Date.now()`, case). `scheduleHealthAlert`/`Recovery` now return the event id and the upload reuses it
+- [x] `rowToConfig` dropped `utcOffsetMinutes`, so DB-backed quiet hours ran in the server timezone. Preserved
+- [x] `atAllTimeLow` compared the current best (min) against the all-listing average; now compares best-vs-best (`bestPricePoints`)
+- [x] Drop calendar kept only the first intraday drop per product/distributor, under-reporting `biggestPct`/`totalDrops`. Now keeps the largest
+- [x] Web restock watches were consumed with no notification; now shows a web notification (or keeps the watch if alerts are off)
+- [x] Movers were dropped when an edge point had an unrated currency; now uses the oldest/newest convertible points
+- [x] `computeDigest` could emit `Infinity%` (0 baseline) and crashed on a product without `listings`; both guarded
+
+**Build / CI**
+- [x] Metro resolver only redirected `./browser` from `utils.ts`, so `resilient.ts`'s dynamic import bundled Playwright into native builds. Now redirects from any `lib/scrapers/` module
+- [x] CI never ran `check:desktop`, desktop tests, or a build; `pnpm lint` only covered `app/`+`components/`. Widened lint to `app components lib hooks server shared scripts` (0 errors) and added desktop check/test + `pnpm build` to CI
+- [x] SPA fallback served `index.html` via `res.sendFile`, bypassing the `no-store` header (stale shell across deploys). Header now set explicitly
+
+**UI**
+- [x] "Best Price" card hardcoded "In Stock" even for back-order/unknown listings; now derives the label/colour from `stockStatus`
+- [x] Web date pickers were no-ops (`@react-native-community/datetimepicker` has no web impl); added `CrossPlatformDatePicker` (native input on web) used by reminder + reschedule modals
+- [x] `ReminderSection` used `requestNotificationPermissions` (always false on web) instead of `ensureNotificationPermission`
+- [x] Android silently dropped snooze options beyond 3 buttons; `showAlert` now chains a "More…" chooser
+- [x] Device rename/sign-out ignored the boolean result (silent failure); now surfaces an error
+- [x] Unhandled rejections in trending add / alert toggle+delete / web-notification toggle; guarded
+- [x] Duplicate price alerts on double-tap; added an in-flight guard
+- [x] Manual-add "Cancel" was disabled while adding (locked until timeout); now aborts
+- [x] iOS "Rate the App" used the bundle id as an App Store id; now uses `EXPO_PUBLIC_IOS_APP_ID` or a store search
+
+- [x] Tests: `affected-rows`, `insights-drop-calendar`, `quiet-hours-mapper`, SSRF cases, metro-resolver dynamic import, SPA fallback cache header (all verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `296 passed | 1 skipped` / `1800 passed`, desktop `43 passed` / `218 passed`, `pnpm build` green

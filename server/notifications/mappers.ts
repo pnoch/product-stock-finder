@@ -7,7 +7,7 @@ export function rowToConfig(row: {
   quietHours?: unknown;
 }): NotificationConfig {
   const quietHours = row.quietHours as
-    | { start?: unknown; end?: unknown }
+    | { start?: unknown; end?: unknown; utcOffsetMinutes?: unknown }
     | null
     | undefined;
   return {
@@ -18,7 +18,17 @@ export function rowToConfig(row: {
       (row.dateReminders as NotificationConfig["dateReminders"]) ?? [],
     ...(typeof quietHours?.start === "string" &&
     typeof quietHours?.end === "string"
-      ? { quietHours: { start: quietHours.start, end: quietHours.end } }
+      ? {
+          quietHours: {
+            start: quietHours.start,
+            end: quietHours.end,
+            // Preserve the client's UTC offset; dropping it made the server
+            // evaluate quiet hours in the server process timezone.
+            ...(typeof quietHours.utcOffsetMinutes === "number"
+              ? { utcOffsetMinutes: quietHours.utcOffsetMinutes }
+              : {}),
+          },
+        }
       : {}),
   };
 }

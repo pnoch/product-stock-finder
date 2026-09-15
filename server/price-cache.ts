@@ -1,6 +1,6 @@
 import { and, asc, eq, lt } from "drizzle-orm";
 import { priceCache, type PriceCacheRow } from "../drizzle/schema";
-import { getDb } from "./db";
+import { getDb, affectedRowsOf } from "./db";
 import type { PriceSnapshot, StockStatus } from "../lib/types";
 
 const memoryCache = new Map<string, PriceSnapshot>();
@@ -183,9 +183,7 @@ export async function purgeStalePriceCache(now: number): Promise<void> {
       .delete(priceCache)
       .where(lt(priceCache.fetchedAt, cutoff))
       .limit(PRICE_CACHE_PURGE_BATCH);
-    const affected = Number(
-      (result as { affectedRows?: unknown }).affectedRows ?? 0,
-    );
+    const affected = affectedRowsOf(result);
     if (!Number.isFinite(affected) || affected < PRICE_CACHE_PURGE_BATCH) break;
   }
 }

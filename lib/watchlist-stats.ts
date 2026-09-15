@@ -82,11 +82,22 @@ export function computeMovers(
         cutoff !== null ? points.filter((p) => p.t >= cutoff) : points;
       if (windowed.length < 2) continue;
 
-      const oldest = windowed[0];
-      const newest = windowed[windowed.length - 1];
-      const oldConverted = convertToDisplay(oldest.price, oldest.currency, displayCurrency);
-      const newConverted = convertToDisplay(newest.price, newest.currency, displayCurrency);
-      if (oldConverted === null || newConverted === null) continue;
+      // Use the oldest/newest points that actually have a usable rate. A
+      // single unrated-currency point at the window edge would otherwise hide
+      // a real mover entirely.
+      const convertible = windowed
+        .map((p) => ({
+          t: p.t,
+          v: convertToDisplay(p.price, p.currency, displayCurrency),
+        }))
+        .filter((p): p is { t: number; v: number } => p.v !== null);
+      if (convertible.length < 2) continue;
+
+      const oldest = convertible[0];
+      const newest = convertible[convertible.length - 1];
+      const oldConverted = oldest.v;
+      const newConverted = newest.v;
+      if (oldConverted === 0) continue;
 
       const changePct = Math.round(((newConverted - oldConverted) / oldConverted) * 100);
       if (changePct === 0) continue;

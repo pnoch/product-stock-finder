@@ -2,6 +2,9 @@ import type { NotificationHistoryEntry } from "../types";
 import type { StorageContext } from "./context";
 
 export type PendingHealthEvent = {
+  // Shared with the locally-recorded notification event id, so the server
+  // stores the same id and the pulled event dedupes against the local one.
+  id?: string;
   distributorId: string;
   distributorName: string;
   status: "blocked" | "error";

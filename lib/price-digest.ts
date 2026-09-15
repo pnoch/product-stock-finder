@@ -60,19 +60,22 @@ function productState(
   product: Product,
   displayCurrency: string,
 ): DigestProductState {
-  const best = getBestPrice(product.listings, displayCurrency);
-  const inStock = product.listings.some(
+  // Guard against a malformed/corrupted row: other modules defensively use
+  // `?? []`, and app/stats.tsx calls computeDigest directly with no try/catch.
+  const listings = product.listings ?? [];
+  const best = getBestPrice(listings, displayCurrency);
+  const inStock = listings.some(
     (l) => l.stockStatus === "in_stock" && l.price > 0,
   );
-  const backOrder = product.listings.some(
+  const backOrder = listings.some(
     (l) => l.stockStatus === "back_order",
   );
   const stockStatus: StockStatus = inStock
     ? "in_stock"
     : backOrder
       ? "back_order"
-      : product.listings.length === 0 ||
-          product.listings.some((l) => l.stockStatus === "unknown")
+      : listings.length === 0 ||
+          listings.some((l) => l.stockStatus === "unknown")
         ? "unknown"
         : "out_of_stock";
   return {
@@ -139,7 +142,9 @@ export function computeDigest(
     ) {
       const from = prev.bestPrice;
       const to = state.bestPrice;
-      if (from !== to) {
+      // `from` can round to 0 for sub-cent prices; a 0 baseline would yield
+      // Infinity and render as "+Infinity%".
+      if (from !== to && from > 0) {
         priceChanges.push({
           productId: state.productId,
           name: state.name,

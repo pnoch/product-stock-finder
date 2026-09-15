@@ -42,6 +42,7 @@ export async function uploadNotificationConfig(
 }
 
 export async function uploadHealthEventToServer(event: {
+  id?: string;
   distributorId: string;
   distributorName: string;
   status: "blocked" | "error";
@@ -174,7 +175,9 @@ async function runSyncServerNotifications(): Promise<void> {
         ? pendingHealthEvents
             .slice(0, MAX_UPLOAD_HEALTH_EVENTS)
             .map((e) => ({
-              id: `health-${e.distributorId}-${e.status}-${e.createdAt}`,
+              // Prefer the id shared with the local notification event so the
+              // server event dedupes against it; fall back to a derived id.
+              id: e.id ?? `health-${e.distributorId}-${e.status}-${e.createdAt}`,
               distributorId: e.distributorId,
               distributorName: e.distributorName,
               status: e.status,

@@ -7,8 +7,8 @@ import {
   View,
   TouchableOpacity,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { useColors } from "@/hooks/use-colors";
+import { CrossPlatformDatePicker } from "@/components/ui/cross-platform-date-picker";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BackOrderReminder } from "@/lib/types";
 import { showAlert } from "@/lib/alert";
@@ -141,14 +141,12 @@ export function RescheduleModal({
               <IconSymbol name="chevron.right" size={16} color={colors.muted} />
             </TouchableOpacity>
             {showPicker && (
-              <DateTimePicker
+              <CrossPlatformDatePicker
                 value={date}
-                mode="date"
-                display={Platform.OS === "ios" ? "inline" : "default"}
                 minimumDate={startOfToday()}
-                onChange={(_, selected) => {
+                onChange={(selected) => {
                   onShowPicker(Platform.OS === "ios");
-                  if (selected) onDateChange(selected);
+                  onDateChange(selected);
                 }}
               />
             )}

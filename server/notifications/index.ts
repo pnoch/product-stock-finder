@@ -5,7 +5,7 @@ import {
   notificationEventDeliveries,
   type InsertDeviceNotificationConfigRow,
 } from "../../drizzle/schema";
-import { getDb } from "../db";
+import { getDb, affectedRowsOf } from "../db";
 import { sendPushForUser } from "../push-notifications";
 import { dedupKeyForHealth } from "./build-events";
 import type {
@@ -254,9 +254,7 @@ export async function purgeOldNotificationEvents(now: number): Promise<void> {
       .delete(notificationEvents)
       .where(lt(notificationEvents.createdAt, cutoff))
       .limit(EVENT_PURGE_BATCH_SIZE);
-    const affected = Number(
-      (result as { affectedRows?: unknown }).affectedRows ?? 0,
-    );
+    const affected = affectedRowsOf(result);
     if (!Number.isFinite(affected) || affected < EVENT_PURGE_BATCH_SIZE) break;
   }
 }

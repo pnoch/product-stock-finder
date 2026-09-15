@@ -365,7 +365,15 @@ export function registerOAuthRoutes(app: Express) {
     const trimmed = input.trim();
     if (!trimmed) return "/";
     // Relative app paths and the native deep-link scheme are always safe.
-    if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return trimmed;
+    // Reject backslash-prefixed paths: browsers treat "\" as "/" for special
+    // schemes, so "/\evil.com" resolves to https://evil.com (open redirect).
+    if (
+      trimmed.startsWith("/") &&
+      !trimmed.startsWith("//") &&
+      !trimmed.startsWith("/\\")
+    ) {
+      return trimmed;
+    }
     if (trimmed.startsWith("productstockfinder:")) return trimmed;
     try {
       const url = new URL(trimmed);
@@ -414,7 +422,7 @@ export function registerOAuthRoutes(app: Express) {
   async function exchangeGoogleCode(
     code: string,
     redirectUri: string,
-  ): Promise<{ sub: string; email: string; name: string } | null> {
+  ): Promise<{ sub: string; email: string; name: string; emailVerified: boolean } | null> {
     const { clientId, clientSecret } = googleOAuthConfig();
     if (!clientId || !clientSecret) return null;
     try {
@@ -440,9 +448,15 @@ export function registerOAuthRoutes(app: Express) {
         sub?: string;
         email?: string;
         name?: string;
+        email_verified?: boolean;
       };
       if (!profile.sub || !profile.email) return null;
-      return { sub: profile.sub, email: profile.email, name: profile.name ?? profile.email };
+      return {
+        sub: profile.sub,
+        email: profile.email,
+        name: profile.name ?? profile.email,
+        emailVerified: profile.email_verified === true,
+      };
     } catch {
       return null;
     }
@@ -450,7 +464,7 @@ export function registerOAuthRoutes(app: Express) {
 
   async function exchangeAppleCode(
     code: string,
-  ): Promise<{ sub: string; email: string; name: string } | null> {
+  ): Promise<{ sub: string; email: string; name: string; emailVerified: boolean } | null> {
     const config = appleOAuthConfig();
     if (!config.configured) return null;
     try {
@@ -489,7 +503,14 @@ export function registerOAuthRoutes(app: Express) {
       const sub = payload.sub;
       const email = payload.email;
       if (typeof sub !== "string" || typeof email !== "string") return null;
-      return { sub, email, name: email };
+      return {
+        sub,
+        email,
+        name: email,
+        // Apple sends email_verified as a string ("true") or boolean.
+        emailVerified:
+          payload.email_verified === true || payload.email_verified === "true",
+      };
     } catch {
       return null;
     }
@@ -500,16 +521,20 @@ export function registerOAuthRoutes(app: Express) {
     res.redirect(302, `/oauth/callback?${params.toString()}`);
   }
 
-  app.get("/api/oauth/callback", async (req: Request, res: Response) => {
+  // Apple uses response_mode=form_post, so the authorization response arrives
+  // as a POST body; Google uses a GET query. Accept both with one handler.
+  const oauthCallbackHandler = async (req: Request, res: Response) => {
     try {
       const ip = getClientIp(req);
       if (!checkAuthRateLimit(ip)) {
         errorRedirect(res, "rate_limited");
         return;
       }
-      const providerError =
-        typeof req.query.error === "string" ? req.query.error : undefined;
-      const rawState = typeof req.query.state === "string" ? req.query.state : "";
+      const src = { ...(req.query as Record<string, unknown>), ...(req.body as Record<string, unknown> ?? {}) };
+      const pick = (k: string): string | undefined =>
+        typeof src[k] === "string" ? (src[k] as string) : undefined;
+      const providerError = pick("error");
+      const rawState = pick("state") ?? "";
       const state = verifyOAuthState(rawState);
       if (!state) {
         errorRedirect(res, "invalid_state");
@@ -519,7 +544,7 @@ export function registerOAuthRoutes(app: Express) {
         errorRedirect(res, providerError);
         return;
       }
-      const code = typeof req.query.code === "string" ? req.query.code : "";
+      const code = pick("code") ?? "";
       if (!code) {
         errorRedirect(res, "missing_code");
         return;
@@ -540,11 +565,23 @@ export function registerOAuthRoutes(app: Express) {
       const existingByEmail = await db.getUserByEmail(
         profile.email.toLowerCase(),
       );
-      if (existingByEmail && existingByEmail.openId !== openId) {
+      // Only link when the provider vouches for the email. Linking on an
+      // unverified email lets an attacker pre-register a victim's address and
+      // then share the account once the victim signs in with OAuth.
+      if (
+        existingByEmail &&
+        existingByEmail.openId !== openId &&
+        profile.emailVerified
+      ) {
         await db.linkUserOpenIdByEmail(
           profile.email.toLowerCase(),
           openId,
         );
+      } else if (existingByEmail && existingByEmail.openId !== openId) {
+        // Unverified email collides with an existing account: refuse rather
+        // than silently creating a second row that violates the unique index.
+        errorRedirect(res, "email_in_use");
+        return;
       }
       await db.upsertUser({
         openId,
@@ -584,7 +621,9 @@ export function registerOAuthRoutes(app: Express) {
       console.error("[Auth] OAuth callback failed", error);
       errorRedirect(res, "callback_failed");
     }
-  });
+  };
+  app.get("/api/oauth/callback", oauthCallbackHandler);
+  app.post("/api/oauth/callback", oauthCallbackHandler);
 
   app.post("/api/auth/oauth/consume", async (req: Request, res: Response) => {
     try {

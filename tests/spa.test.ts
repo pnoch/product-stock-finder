@@ -91,6 +91,15 @@ describe("spa http behavior", () => {
     }
   });
 
+  it("sends no-store for the SPA fallback shell (deep links)", async () => {
+    // res.sendFile bypasses express.static's setHeaders; without an explicit
+    // header a stale shell could be cached across deploys.
+    for (const path of ["/", "/product/abc"]) {
+      const res = await fetch(`${base}${path}`);
+      expect(res.headers.get("cache-control")).toBe("no-store");
+    }
+  });
+
   it("serves sw.js uncached and hashed bundles immutably", async () => {
     const sw = await fetch(`${base}/sw.js`);
     expect(sw.status).toBe(200);

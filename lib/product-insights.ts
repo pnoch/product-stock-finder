@@ -60,6 +60,31 @@ export function mergedPoints(
     }));
 }
 
+// Best (minimum) in-stock price per timestamp. Used for the all-time-low check
+// so it compares like with like: `currentBest` is the minimum current in-stock
+// price, whereas `mergedPoints` averages every listing (including
+// out-of-stock), which made the comparison meaningless for multi-distributor
+// products.
+export function bestPricePoints(
+  listings: DistributorListing[],
+  displayCurrency: string,
+): MergedPoint[] {
+  const bestByTime = new Map<number, number>();
+  for (const l of listings ?? []) {
+    if (l.stockStatus !== "in_stock") continue;
+    for (const p of l.priceHistory ?? []) {
+      const t = Date.parse(p.date);
+      const v = convertPricePoint(p.price, p.currency, displayCurrency);
+      if (!Number.isFinite(t) || v === null) continue;
+      const existing = bestByTime.get(t);
+      if (existing === undefined || v < existing) bestByTime.set(t, v);
+    }
+  }
+  return Array.from(bestByTime.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([t, v]) => ({ t, v }));
+}
+
 export function dropStreak(values: number[]): number {
   let streak = 0;
   for (let i = values.length - 1; i > 0; i--) {
@@ -95,10 +120,17 @@ export function computeProductInsights(
     const currentBest =
       inStockPrices.length > 0 ? Math.min(...inStockPrices) : null;
 
+    // Compare the current best in-stock price against the historical best
+    // in-stock price (both minimums), not the all-listing average.
+    const bestHistory = bestPricePoints(
+      product.listings ?? [],
+      displayCurrency,
+    ).map((p) => p.v);
+
     const atAllTimeLow =
-      points.length > 0 &&
+      bestHistory.length > 0 &&
       currentBest !== null &&
-      Math.abs(currentBest - Math.min(...points)) < 0.01;
+      currentBest <= Math.min(...bestHistory) + 0.01;
 
     const dropStreakCount = dropStreak(points);
 

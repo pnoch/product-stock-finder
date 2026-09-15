@@ -13,10 +13,13 @@ function isBrowserModule(request, originModulePath) {
   if (normalized.endsWith("/scrapers/browser") || normalized === "browser") {
     return true;
   }
+  // Any module inside lib/scrapers/ importing "./browser" (e.g. resilient.ts's
+  // dynamic `await import("./browser")`) must also be redirected, or Metro
+  // bundles the Playwright-backed module into native builds.
   return (
     request === "./browser" &&
     typeof originModulePath === "string" &&
-    originModulePath.replace(/\\/g, "/").endsWith("/lib/scrapers/utils.ts")
+    originModulePath.replace(/\\/g, "/").includes("/lib/scrapers/")
   );
 }
 

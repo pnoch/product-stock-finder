@@ -54,16 +54,26 @@ export function AboutSection() {
   const handleRateApp = async () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const androidUrl = "market://details?id=com.app.stock_tracker_pro";
-    const iosUrl = "itms-apps://itunes.apple.com/app/idcom.app.stock_tracker_pro";
-    const webFallback = "https://play.google.com/store/apps/details?id=com.app.stock_tracker_pro";
+    const androidWebUrl = "https://play.google.com/store/apps/details?id=com.app.stock_tracker_pro";
+    // iOS requires a numeric App Store id, not the bundle id. Set
+    // EXPO_PUBLIC_IOS_APP_ID once the app is on the store; until then fall back
+    // to a store search rather than a malformed itms-apps URL.
+    const iosAppId = process.env.EXPO_PUBLIC_IOS_APP_ID?.trim();
+    const iosUrl = iosAppId ? `itms-apps://itunes.apple.com/app/id${iosAppId}` : null;
+    const iosWebUrl = iosAppId
+      ? `https://apps.apple.com/app/id${iosAppId}`
+      : "https://apps.apple.com/search?term=Product+Stock+Finder";
+    const webFallback = Platform.OS === "ios" ? iosWebUrl : androidWebUrl;
     try {
       if (Platform.OS === "ios") {
-        const canOpen = await Linking.canOpenURL(iosUrl);
-        if (canOpen) {
-          await Linking.openURL(iosUrl);
-          return;
+        if (iosUrl) {
+          const canOpen = await Linking.canOpenURL(iosUrl);
+          if (canOpen) {
+            await Linking.openURL(iosUrl);
+            return;
+          }
         }
-        await Linking.openURL(webFallback);
+        await Linking.openURL(iosWebUrl);
         return;
       }
       if (Platform.OS === "android") {

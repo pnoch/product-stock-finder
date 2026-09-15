@@ -6,8 +6,8 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { useColors } from "@/hooks/use-colors";
+import { CrossPlatformDatePicker } from "@/components/ui/cross-platform-date-picker";
 import { DistributorListing } from "@/lib/types";
 import { getDistributorById } from "@shared/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -139,14 +139,12 @@ export function ReminderDatePickerModal({
           </TouchableOpacity>
           {showDatePicker && (
             <ScrollView style={{ maxHeight: 380, marginBottom: 12 }} showsVerticalScrollIndicator={false}>
-              <DateTimePicker
+              <CrossPlatformDatePicker
                 value={reminderDate}
-                mode="date"
-                display={Platform.OS === "ios" ? "inline" : "default"}
                 minimumDate={new Date(Date.now() + 86400000)}
-                onChange={(_, selected) => {
+                onChange={(selected) => {
                   setShowDatePicker(Platform.OS === "ios");
-                  if (selected) setReminderDate(selected);
+                  setReminderDate(selected);
                 }}
               />
             </ScrollView>
