@@ -1700,3 +1700,11 @@
 - [x] Password reset consumed the one-time token, then updated the hash separately; a failure after consumption burned the token. Added `resetPasswordWithToken` (consume + apply in one transaction)
 - [x] CSV parser split on newlines before quote-aware parsing, so an exported value containing a newline could not be re-imported. Replaced with an RFC4180-correct tokenizer (quoted commas/newlines, CRLF, escaped quotes)
 - [x] Tests: `csv-quoted-newline`, `sync-pull-paging`, DST weekly case in `price-digest.test.ts` (all verified non-vacuous); updated `password-reset`/`sync-router` mocks; E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `292 passed | 1 skipped` / `1782 passed`, desktop `43 passed` / `218 passed`
+
+## Phase 221: Web share fallback, backup defaults, value labels, basket alignment
+
+- [x] Share buttons were silent no-ops on web (react-native-web's `Share.share` rejects without the Web Share API, which desktop Chrome/Firefox lack). Added `lib/share-text.ts` (Web Share → clipboard → failed) and wired it into stats, watchlist, product, compare, settings, and distributor-analysis with user feedback on copy/failure
+- [x] Backup import clobbered local settings fields missing from `SETTING_DEFAULTS` (`shippingRegion`, `watchlistSort`, `watchlistGroup`, `webNotificationsEnabled`) with the exporter's default. Completed the defaults map to match `DEFAULT_SETTINGS`
+- [x] Watchlist summary "Total Value" summed every listing (25 distributors × a product), reading as a basket total. Renamed to "All Listings Value" and documented the distinction from `computeBasketValue`
+- [x] `computeBasketValue` counted only `in_stock` while `getBestPrice` also counts `back_order`, so the basket total disagreed with per-product "Best Price". Aligned to the orderable set (in_stock + back_order)
+- [x] Tests: `share-text` (4 cases), backup default-preservation cases, basket back-order/unknown cases (all verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `293 passed | 1 skipped` / `1790 passed`, desktop `43 passed` / `218 passed`

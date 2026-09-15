@@ -10,7 +10,10 @@ export const BACKUP_VERSION = 1;
 
 // Baseline used to tell "explicitly customized on the exporting device" apart
 // from "merely carried along at its default value": default-valued fields in a
-// backup never clobber local customizations during import.
+// backup never clobber local customizations during import. Must list every
+// AppSettings field that has a default (see lib/storage/settings.ts
+// DEFAULT_SETTINGS) — a field missing here is always taken from the backup,
+// silently overwriting the local value with the exporter's default.
 const SETTING_DEFAULTS: Record<string, unknown> = {
   theme: "auto",
   displayCurrency: "USD",
@@ -19,6 +22,10 @@ const SETTING_DEFAULTS: Record<string, unknown> = {
   stockAlerts: true,
   priceAlerts: true,
   healthAlerts: true,
+  shippingRegion: "Asia-Pacific",
+  webNotificationsEnabled: false,
+  watchlistSort: "recent",
+  watchlistGroup: "off",
 };
 
 export interface BackupInput {

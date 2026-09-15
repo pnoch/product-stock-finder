@@ -10,7 +10,6 @@ import {
   Platform,
   TouchableOpacity,
   Switch,
-  Share,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -26,6 +25,7 @@ import { useLiveWatchlist } from "@/hooks/use-live-prices";
 import { useConnection } from "@/hooks/use-connection";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { buildWatchlistShareMessage } from "@/lib/watchlist-share";
+import { shareText } from "@/lib/share-text";
 import { trpc } from "@/lib/trpc";
 import { parseBulkImportCsv } from "@/lib/csv";
 import { PRODUCT_CATALOG } from "@shared/catalog";
@@ -474,7 +474,9 @@ export default function WatchlistScreen() {
         }
       }
       const message = buildWatchlistShareMessage({ shareUrl, watchlist, displayCurrency, days: 30, now: Date.now() });
-      await Share.share({ message, title: "My Watchlist" });
+      const result = await shareText(message, "My Watchlist");
+      if (result === "copied") showAlert("Copied", "Watchlist copied to your clipboard.");
+      else if (result === "failed") showAlert("Share unavailable", "Sharing isn't supported in this browser.");
     } catch (e) {
       LOG_ERROR("[Watchlist] share failed", e);
     }

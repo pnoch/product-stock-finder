@@ -149,6 +149,33 @@ describe("computeBasketValue", () => {
       excludedCount: 1,
     });
   });
+
+  it("counts a back-order listing (matches getBestPrice orderability)", () => {
+    const wl = [
+      product("p1", [
+        listing({ distributorId: "a", stockStatus: "back_order", price: 80 }),
+      ]),
+    ];
+    // back_order is orderable, so the product is not excluded.
+    expect(computeBasketValue(wl, "USD")).toEqual({
+      total: 80,
+      productCount: 1,
+      excludedCount: 0,
+    });
+  });
+
+  it("excludes an unknown-availability listing", () => {
+    const wl = [
+      product("p1", [
+        listing({ distributorId: "a", stockStatus: "unknown", price: 80 }),
+      ]),
+    ];
+    expect(computeBasketValue(wl, "USD")).toEqual({
+      total: 0,
+      productCount: 0,
+      excludedCount: 1,
+    });
+  });
 });
 
 describe("computeStockHealth", () => {

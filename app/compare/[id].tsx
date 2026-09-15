@@ -12,11 +12,11 @@ import {
   useWindowDimensions,
   Text,
   TouchableOpacity,
-  Share,
   Animated,
 } from "react-native";
 import * as Linking from "expo-linking";
 import { buildShareText } from "@/lib/price-share";
+import { shareText as shareTextCrossPlatform } from "@/lib/share-text";
 import { captureAndShareImage } from "@/lib/share-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { goBackOrHome } from "@/lib/navigation";
@@ -289,14 +289,16 @@ export default function CompareScreen() {
     } catch (e) {
       LOG_ERROR("[Compare] image share failed, falling back to text", e);
     }
-    try {
-      const result = await Share.share({ message, title: product.name });
-      if ((result as unknown as { action: string })?.action === Share.dismissedAction) return;
-    } catch {
+    const result = await shareTextCrossPlatform(message, product.name);
+    if (result === "dismissed") return;
+    if (result === "copied") {
+      showToast("Copied to clipboard", "success");
+    } else if (result === "failed") {
+      showAlert("Share unavailable", "Sharing isn't supported in this browser.");
       return;
     }
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, [product, listings, displayCurrency, id, shareScale]);
+  }, [product, listings, displayCurrency, id, shareScale, showToast]);
 
   const chartSeries = useMemo(() => {
     const selectedListings = listings.filter(

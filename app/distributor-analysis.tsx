@@ -5,7 +5,6 @@ import {
   View,
   TouchableOpacity,
   Platform,
-  Share,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -20,6 +19,7 @@ import {
 } from "@/lib/distributor-analysis";
 import { formatPrice } from "@shared/currency";
 import { watchlistToDetailedCsv } from "@/lib/csv";
+import { shareText } from "@/lib/share-text";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SkeletonList } from "@/components/ui/skeleton";
 
@@ -53,7 +53,10 @@ export default function DistributorAnalysisScreen() {
       const watchlist = await getWatchlist();
       if (watchlist.length === 0) return;
       const csv = watchlistToDetailedCsv(watchlist);
-      await Share.share({ message: csv, title: "Distributor Analysis CSV" });
+      // Web has no Web Share API in most desktop browsers; shareText falls
+      // back to the clipboard and reports the outcome instead of no-op'ing.
+      const result = await shareText(csv, "Distributor Analysis CSV");
+      if (result === "copied") setError(null);
     } catch {}
   }, []);
 

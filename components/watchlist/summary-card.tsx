@@ -46,7 +46,7 @@ export function SummaryCard({
         }}
       >
         <Text style={{ color: colors.muted, fontSize: 12 }}>
-          Total Value
+          All Listings Value
         </Text>
         <Text
           style={{

@@ -127,7 +127,15 @@ export function computeBasketValue(
   for (const product of watchlist) {
     let best: number | null = null;
     for (const listing of product.listings ?? []) {
-      if (listing.stockStatus !== "in_stock") continue;
+      // Match getBestPrice: in_stock and back_order are orderable, while
+      // out_of_stock and unknown-availability are not. Using a different rule
+      // here made the basket total disagree with the per-product "Best Price".
+      if (
+        listing.stockStatus !== "in_stock" &&
+        listing.stockStatus !== "back_order"
+      ) {
+        continue;
+      }
       const converted = convertToDisplay(listing.price, listing.currency, displayCurrency);
       if (converted !== null && (best === null || converted < best)) best = converted;
     }

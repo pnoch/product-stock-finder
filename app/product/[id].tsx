@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, router } from "expo-router";
 import { goBackOrHome } from "@/lib/navigation";
-import { ScrollView, Text, View, TouchableOpacity, Platform, Animated, Share } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Platform, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import * as Haptics from "expo-haptics";
@@ -11,6 +11,7 @@ import { ReminderSection } from "@/components/product/reminder-section";
 import { useColors } from "@/hooks/use-colors";
 import { useLiveProduct } from "@/hooks/use-live-prices";
 import { buildShareText } from "@/lib/price-share";
+import { shareText as shareTextCrossPlatform } from "@/lib/share-text";
 import * as Linking from "expo-linking";
 import { captureAndShareImage } from "@/lib/share-image";
 import { getSettings, getStockWatches, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch } from "@/lib/storage";
@@ -272,14 +273,16 @@ export default function ProductDetailScreen() {
     } catch (e) {
       LOG_ERROR("[Product] image share failed, falling back to text", e);
     }
-    try {
-      const result = await Share.share({ message, title: product.name });
-      if ((result as unknown as { action: string })?.action === Share.dismissedAction) return;
-    } catch {
+    const result = await shareTextCrossPlatform(message, product.name);
+    if (result === "dismissed") return;
+    if (result === "copied") {
+      showToast("Copied to clipboard", "success");
+    } else if (result === "failed") {
+      showAlert("Share unavailable", "Sharing isn't supported in this browser.");
       return;
     }
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, [product, id, sortedListings, effectiveCurrency, shareScale]);
+  }, [product, id, sortedListings, effectiveCurrency, shareScale, showToast]);
 
   if (!loaded || !isSettingsLoaded) {
     return (

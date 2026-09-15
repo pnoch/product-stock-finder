@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, View, Platform, ActivityIndicator, Share, TouchableOpacity } from "react-native";
+import { ScrollView, Text, View, Platform, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { trpc } from "@/lib/trpc";
@@ -19,6 +19,7 @@ import { formatSyncStatus, getSyncSetup } from "@/lib/sync";
 import { maybeRefreshFxRates } from "@/lib/fx";
 import { AppSettings, Product, DistributorListing, SyncMeta } from "@/lib/types";
 import { showAlert } from "@/lib/alert";
+import { shareText } from "@/lib/share-text";
 import { sendTestNotification } from "@/lib/notifications";
 import { syncBackgroundTasks } from "@/lib/background-price-check";
 
@@ -48,7 +49,11 @@ function SharedLinksList() {
     if (busyToken) return;
     if (action === "copy") {
       const link = links.find((l) => l.token === token);
-      if (link) await Share.share({ message: link.shareUrl });
+      if (link) {
+        const result = await shareText(link.shareUrl);
+        if (result === "copied") showAlert("Copied", "Share link copied to your clipboard.");
+        else if (result === "failed") showAlert("Copy failed", "Couldn't copy the link in this browser.");
+      }
       return;
     }
     setBusyToken(token);
@@ -142,7 +147,8 @@ function ShareWatchlistButton() {
     setSharing(true);
     try {
       const res = await createMutation.mutateAsync({});
-      await Share.share({ message: res.shareUrl });
+      const result = await shareText(res.shareUrl);
+      if (result === "copied") showAlert("Copied", "Share link copied to your clipboard.");
     } catch (e) {
       showAlert("Share failed", e instanceof Error ? e.message : String(e));
     } finally {

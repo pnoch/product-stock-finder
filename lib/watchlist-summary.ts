@@ -2,6 +2,9 @@ import type { Product } from "./types";
 import { convertPrice, hasExchangeRate } from "./currency";
 
 export interface WatchlistSummary {
+  // Sum of every listing's converted price (all distributors, all stock
+  // statuses). Labelled "All Listings Value" in the UI — it is NOT the basket
+  // value (see computeBasketValue, which uses one best price per product).
   totalValue: number;
   listingCount: number;
   inStock: number;

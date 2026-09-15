@@ -214,4 +214,52 @@ describe("applyBackup merge-by-id", () => {
     expect(result.settingsApplied).toBe(false);
     expect(result.settings.theme).toBe("auto");
   });
+
+  it("does not clobber a local customization with the exporter's default", () => {
+    // The backup carries the exporter's default shippingRegion/watchlistSort;
+    // the importing device has customized both. Default-valued fields must not
+    // overwrite local values.
+    const backup = parseBackup(
+      buildBackup({
+        watchlist: [],
+        alerts: [],
+        reminders: [],
+        stockWatches: [],
+        settings: { ...DEFAULT_SETTINGS },
+      }),
+    )!;
+    const result = applyBackup(backup, {
+      watchlist: [],
+      alerts: [],
+      reminders: [],
+      stockWatches: [],
+      settings: {
+        ...DEFAULT_SETTINGS,
+        shippingRegion: "Europe",
+        watchlistSort: "best_price",
+      },
+    });
+    expect(result.settings.shippingRegion).toBe("Europe");
+    expect(result.settings.watchlistSort).toBe("best_price");
+  });
+
+  it("still applies a non-default value from the backup", () => {
+    const backup = parseBackup(
+      buildBackup({
+        watchlist: [],
+        alerts: [],
+        reminders: [],
+        stockWatches: [],
+        settings: { ...DEFAULT_SETTINGS, shippingRegion: "Americas" },
+      }),
+    )!;
+    const result = applyBackup(backup, {
+      watchlist: [],
+      alerts: [],
+      reminders: [],
+      stockWatches: [],
+      settings: { ...DEFAULT_SETTINGS, shippingRegion: "Europe" },
+    });
+    expect(result.settings.shippingRegion).toBe("Americas");
+  });
 });

@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Platform,
   ScrollView,
-  Share,
   Text,
   TouchableOpacity,
   View,
@@ -36,6 +35,7 @@ import {
 import { DigestCard } from "@/components/stats/digest-card";
 import { rankDeals } from "@/lib/deal-score";
 import { buildWatchlistShareText } from "@/lib/watchlist-share";
+import { shareText } from "@/lib/share-text";
 import { captureAndShareImage } from "@/lib/share-image";
 import { StatsShareCard } from "@/components/share/stats-share-card";
 import { showAlert } from "@/lib/alert";
@@ -148,17 +148,14 @@ export default function StatsScreen() {
   const shareCardRef = useRef<View>(null);
 
   const shareAsText = async () => {
-    try {
-      await Share.share({
-        message: buildWatchlistShareText({
-          watchlist,
-          displayCurrency,
-          days,
-        }),
-        title: "My Watchlist",
-      });
-    } catch {
-      // User cancelled share
+    const result = await shareText(
+      buildWatchlistShareText({ watchlist, displayCurrency, days }),
+      "My Watchlist",
+    );
+    if (result === "copied") {
+      showAlert("Copied", "Watchlist summary copied to your clipboard.");
+    } else if (result === "failed") {
+      showAlert("Share unavailable", "Sharing isn't supported in this browser.");
     }
   };
 
