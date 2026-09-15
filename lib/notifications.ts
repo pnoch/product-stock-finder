@@ -98,6 +98,31 @@ export async function scheduleStockAlert(
   }
 }
 
+// ─── Confirm a restock watch was set ──────────────────────────────────────────
+// Distinct from scheduleStockAlert (the real "back in stock" alert): enabling a
+// watch must NOT fire a restock notification, or the user is told the item is
+// available the moment they set the watch.
+export async function scheduleStockWatchConfirmation(
+  productName: string,
+  distributorName: string,
+): Promise<string | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Restock watch set",
+        body: `We'll notify you when ${productName} is back in stock at ${distributorName}.`,
+        data: { type: "stock_watch_set" },
+        sound: "default",
+      },
+      trigger: null, // immediate
+    });
+    return id;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Schedule a distributor health alert ─────────────────────────────────────
 export async function scheduleHealthAlert(
   distributorId: string,

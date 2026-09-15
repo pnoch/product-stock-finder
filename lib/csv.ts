@@ -9,10 +9,14 @@ const HISTORY_HEADER = "product,model,date,price,currency,stockStatus";
 const VALID_STOCK: Set<string> = new Set(["in_stock", "back_order", "out_of_stock", "unknown"]);
 
 function escapeCsv(value: string): string {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
+  // Neutralize spreadsheet formula injection: a cell starting with =, +, -, @,
+  // tab, or CR is executed as a formula by Excel/Sheets. Prefix with a single
+  // quote (the standard mitigation) before quoting.
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  if (/[",\n]/.test(safe)) {
+    return `"${safe.replace(/"/g, '""')}"`;
   }
-  return value;
+  return safe;
 }
 
 function resolveStockStatus(product: Product): string {

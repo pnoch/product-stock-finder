@@ -13,9 +13,26 @@ const localStorageAdapter = {
 
 // When running inside Tauri, the Rust backend owns JSON files in app_data_dir
 // (see desktop/src-tauri/src/lib.rs read_json_file/write_json_file). To avoid
-// split-brain divergence between localStorage and those files, prefer the file
-// for the watchlist key when Tauri is available, falling back to localStorage
-// (e.g. web preview or tests) if the invoke fails.
+// split-brain divergence between localStorage and those files, mirror every key
+// the Rust side reads (watchlist, alerts, reminders, settings) into the file
+// store, falling back to localStorage (web preview/tests) if the invoke fails.
+const TAURI_MIRRORED_KEYS = new Set([
+  "watchlist_products",
+  "price_alerts",
+  "back_order_reminders",
+  "app_settings",
+]);
+
+async function mirrorToFile(key: string, value: unknown): Promise<void> {
+  if (!isTauri || !TAURI_MIRRORED_KEYS.has(key)) return;
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("set_value_for_key", { key, value });
+  } catch {
+    // best-effort — localStorage still updated
+  }
+}
+
 const tauriAwareAdapter = {
   getItem: async (key: string): Promise<string | null> => {
     if (isTauri && key === "watchlist_products") {
@@ -37,32 +54,28 @@ const tauriAwareAdapter = {
   },
   setItem: async (key: string, value: string) => {
     localStorage.setItem(key, value);
-    if (isTauri && key === "watchlist_products") {
+    if (isTauri && TAURI_MIRRORED_KEYS.has(key)) {
       try {
-        const { invoke } = await import("@tauri-apps/api/core");
-        const parsed = JSON.parse(value);
-        await invoke("write_watchlist", { value: parsed });
+        await mirrorToFile(key, JSON.parse(value));
       } catch {
-        // best-effort — localStorage still updated
+        // non-JSON value — nothing to mirror
       }
     }
   },
   removeItem: async (key: string) => {
     localStorage.removeItem(key);
-    if (isTauri && key === "watchlist_products") {
-      try {
-        const { invoke } = await import("@tauri-apps/api/core");
-        await invoke("write_watchlist", { value: [] });
-      } catch {}
+    if (isTauri && TAURI_MIRRORED_KEYS.has(key)) {
+      await mirrorToFile(key, key === "watchlist_products" ? [] : null);
     }
   },
   multiRemove: async (keys: string[]) => {
     keys.forEach((k) => localStorage.removeItem(k));
-    if (isTauri && keys.includes("watchlist_products")) {
-      try {
-        const { invoke } = await import("@tauri-apps/api/core");
-        await invoke("write_watchlist", { value: [] });
-      } catch {}
+    if (isTauri) {
+      for (const key of keys) {
+        if (TAURI_MIRRORED_KEYS.has(key)) {
+          await mirrorToFile(key, key === "watchlist_products" ? [] : null);
+        }
+      }
     }
   },
 };

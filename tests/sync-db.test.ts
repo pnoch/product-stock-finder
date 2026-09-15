@@ -143,7 +143,7 @@ describe.skipIf(!runDbTests)("sync-db", () => {
       userA,
       item({ id: "recent", updatedAt: recent, deletedAt: recent }),
     );
-    await purgeOldTombstones(userA, Date.now() - TOMBSTONE_PURGE_WINDOW_MS);
+    await purgeOldTombstones(Date.now() - TOMBSTONE_PURGE_WINDOW_MS);
     const changed = await listChangedItems(userA, null);
     expect(changed.map((i) => i.id)).toEqual(["recent"]);
   });

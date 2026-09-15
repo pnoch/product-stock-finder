@@ -36,6 +36,7 @@ import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { getSyncSetup } from "../../../lib/sync";
+import type { DeviceInfo } from "../../../server/devices";
 import { buildBackup, parseBackup, applyBackup } from "../../../lib/backup";
 import { watchlistToCsv } from "../../../lib/csv";
 import type { AppSettings, Product, DistributorListing } from "../../../lib/types";
@@ -355,7 +356,7 @@ export function Settings() {
   }, [syncing]);
 
   // Device management — desktop port of mobile DeviceManagementSection
-  const [devices, setDevices] = useState<{ deviceId: string; label: string | null; lastActiveAt: string | null }[] | null>(null);
+  const [devices, setDevices] = useState<DeviceInfo[] | null>(null);
   const [devicesLoading, setDevicesLoading] = useState(false);
   const [devicesError, setDevicesError] = useState<string | null>(null);
   const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
@@ -366,7 +367,6 @@ export function Settings() {
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
-  const trpcClient = trpc as any;
 
   const [pushState, setPushState] = useState<"unknown" | "on" | "off">("unknown");
   const [pushBusy, setPushBusy] = useState(false);
@@ -575,7 +575,9 @@ export function Settings() {
     setDevicesError(null);
     try {
       const [devRes, curId] = await Promise.all([
-        (trpcClient.devices?.list ? trpcClient.devices.list.query() : (await import("../lib/trpc")).createTRPCClient().devices.list.query()) as Promise<{ devices: { deviceId: string; label: string | null; lastActiveAt: string | null }[] }>,
+        // Use the imperative client: `trpc.devices.list` is a React hook proxy
+        // (no `.query()`), so calling it here always threw.
+        (await import("../lib/trpc")).createTRPCClient().devices.list.query(),
         getDesktopDeviceId(),
       ]);
       setDevices(devRes?.devices ?? []);
@@ -1175,7 +1177,7 @@ export function Settings() {
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{d.label ?? `${d.deviceId.slice(0, 12)}…`}{isCurrent && " (current)"}</p>
                       <p className="text-xs text-gray-500 truncate">{d.deviceId}</p>
-                      {d.lastActiveAt && <p className="text-xs text-gray-400">Active {new Date(d.lastActiveAt).toLocaleDateString()}</p>}
+                      {d.lastSeenAt > 0 && <p className="text-xs text-gray-400">Active {new Date(d.lastSeenAt).toLocaleDateString()}</p>}
                     </div>
                     <div className="flex items-center gap-1 ml-2">
                       <button onClick={() => { setRenameTarget(d); setRenameLabel(d.label ?? ""); }} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-600" aria-label={`Rename ${d.label ?? d.deviceId}`} title="Rename">

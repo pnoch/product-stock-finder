@@ -89,6 +89,14 @@ export function useAuth(options?: UseAuthOptions) {
 
   const logout = useCallback(async () => {
     try {
+      // Retract the server-side push binding first: otherwise the account's
+      // alerts keep being pushed to this now-signed-out device.
+      const { unregisterPushToken } = await import("@/lib/push-token");
+      await unregisterPushToken();
+    } catch (err) {
+      console.error("[Auth] Push unregister failed:", err);
+    }
+    try {
       await Api.logout();
     } catch (err) {
       console.error("[Auth] Logout API call failed:", err);

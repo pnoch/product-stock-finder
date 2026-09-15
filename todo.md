@@ -1632,3 +1632,39 @@
 - [x] Breaker store serialization was per-instance while all instances write the same `distributor_breaker` key, so concurrent health-probe/background writes could clobber each other. Queue is now module-level keyed by storage key
 - [x] `convertPrice` left unrounded floats in best-price comparisons; added `roundMoney` applied at the `getBestPrice` boundary (not inside `convertPrice`, which feeds arithmetic chains)
 - [x] Tests: `price-history-order`, `settings-field-merge`, `breaker-cross-instance` (all verified non-vacuous by reverting); E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `283 passed | 1 skipped` / `1759 passed`, desktop `43 passed` / `218 passed`
+
+## Phase 217: Whole-app review round 2 (desktop, notifications, server data, UI)
+
+**Desktop (Tauri)**
+- [x] `withGlobalTauri` was unset, so every `window.__TAURI__` feature probe returned false: the Rust JSON files were never written (Rust price/alert/tray pipeline was a no-op) and OAuth took the web branch. Enabled it
+- [x] Tray had no fixed id (`TrayIconBuilder` default is unique per process) while `update_tray_badge` looks up `"main"` → badge/tooltip never updated. Added `.with_id("main")`
+- [x] `fs:default` does not grant `write_file`, so every file export/backup was ACL-denied. Added `fs:allow-write-file`
+- [x] Only `watchlist_products` was mirrored to the Rust files; alerts/reminders/settings were localStorage-only while Rust read the files (alerts never fired, tray count always 0, export produced nulls). Now mirrors all four keys via `set_value_for_key`
+- [x] Watchlist "Refresh" called `check_all_prices` (scrapes but never persists) and reported success; now calls `run_full_price_check` (registered as a command)
+- [x] `server-notifications` uploaded untrimmed arrays and omitted `direction`/`snoozedUntil`/`quietHours` + the alert toggles; now matches mobile (caps + fields + gating)
+- [x] "Sync now" was a silent no-op (`registerSyncSetup` never called); now registered/unregistered in App
+- [x] `Compare`'s `SeriesChart` returned before `useState`/`useMemo` → "more hooks than previous render" crash on empty→non-empty; hooks now run unconditionally
+- [x] Device Management called `.query()` on the React hook proxy (always truthy, no `.query`) → always errored; now uses the imperative client and the real `DeviceInfo` shape
+
+**Notifications**
+- [x] Enabling a restock watch called `scheduleStockAlert` (the real "Back In Stock!" alert) → immediate false notification; added `scheduleStockWatchConfirmation`
+- [x] Mobile sign-out never unregistered the push token, so the server kept pushing the account's alerts to a signed-out device; `logout` now unregisters
+- [x] Push payloads carried only `eventId`, so tapping a background push always opened Home; Expo + web push now include `type`/`productId`/`distributorId` and the SW deep-links
+- [x] Server quiet hours were evaluated in the server process timezone; the client now sends `utcOffsetMinutes` and `isInQuietHours` honors it
+- [x] Basket alert cleared the threshold even when permission was denied or scheduling threw (silent loss); now clears only after a successful send
+
+**Server data layer**
+- [x] Tombstone purge was scoped to the triggering user while gated globally → every other account's tombstones accumulated forever; now purges all users
+- [x] `upsertUser` with a new openId + existing email matched the email index and left the old openId, permanently locking out OAuth sign-in for email-registered accounts; OAuth now links the openId by email first
+- [x] `prices.uploadHistory` accepted non-ISO and future-dated points (a year-3000 point wins every LWW merge forever); now requires strict ISO-8601 UTC and rejects >1 day future
+- [x] `device_labels` were not deleted on unbind, so a re-bound deviceId inherited the previous owner's label; `unbindDevice` now deletes them
+- [x] Added indexes: `revoked_devices.deviceId` (auth hot path), `device_notification_configs.userId`, `device_push_tokens.userId` (migration `0024`)
+
+**UI / libs**
+- [x] Drop calendar built its grid with fixed 24h steps → a day vanished across DST; now uses calendar-date arithmetic
+- [x] Watchlist filter/search crashed on products with undefined brand/model/category (CSV import produces them); now null-safe
+- [x] Watchlist sparkline flattened all listings' histories without conversion, mixing USD/MYR; now converts to the display currency
+- [x] CSV export allowed formula injection (`=`, `+`, `-`, `@`); now prefixed with a single quote
+- [x] `computeHealthSummary` threw on an unparseable sample date (blanked the Health detail screen); now ignores invalid dates
+
+- [x] Tests: `quiet-hours-offset`, `csv-injection`, `watchlist-filter-missing-metadata`, `drop-calendar-dst`, `health-summary-invalid-date`, `tombstone-purge-scope` (all verified non-vacuous); updated `devices`/`oauth-handlers`/`sync-db`/desktop `health-probe-upload`; E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `289 passed | 1 skipped` / `1770 passed`, desktop `43 passed` / `218 passed`

@@ -9,6 +9,9 @@ export interface WebPushEvent {
   id: string;
   title: string;
   body: string;
+  type?: string;
+  productId?: string;
+  distributorId?: string;
 }
 
 let vapidConfigured = false;
@@ -33,6 +36,10 @@ export async function sendWebPush(
         title: event.title,
         body: event.body,
         eventId: event.id,
+        // Routing data for the service worker / client deep-link.
+        type: event.type,
+        productId: event.productId || undefined,
+        distributorId: event.distributorId,
       }),
     );
   } catch (error) {

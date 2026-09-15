@@ -11,6 +11,9 @@ export interface PushableEvent {
   id: string;
   title: string;
   body: string;
+  type?: string;
+  productId?: string;
+  distributorId?: string;
 }
 
 const memoryTokens = new Map<
@@ -97,7 +100,14 @@ export async function sendPushForDevice(
       to: token,
       title: e.title,
       body: e.body,
-      data: { eventId: e.id },
+      // Routing data: without productId/type the client cannot deep-link a
+      // background push (it falls back to Home).
+      data: {
+        eventId: e.id,
+        type: e.type,
+        productId: e.productId || undefined,
+        distributorId: e.distributorId,
+      },
     }));
     for (const chunk of expo.chunkPushNotifications(messages)) {
       const tickets = await expo.sendPushNotificationsAsync(chunk);

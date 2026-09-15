@@ -95,17 +95,24 @@ export async function runPriceCheckCore(opts?: {
     if (total > 0 && total <= threshold) {
       const granted = await requestNotificationPermissions();
       if (granted) {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: "🧺 Basket Alert",
-            body: `Watchlist value ${formatPrice(total, "USD")} dropped below your ${formatPrice(threshold, "USD")} threshold.`,
-            data: { type: "digest" },
-            sound: true,
-          },
-          trigger: null,
-        });
+        try {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: "🧺 Basket Alert",
+              body: `Watchlist value ${formatPrice(total, "USD")} dropped below your ${formatPrice(threshold, "USD")} threshold.`,
+              data: { type: "digest" },
+              sound: true,
+            },
+            trigger: null,
+          });
+          // Only clear the threshold once the alert actually fired; clearing it
+          // when permission is denied (or scheduling throws) silently loses the
+          // alert forever.
+          await saveSettings({ ...settings, basketAlertThreshold: null });
+        } catch {
+          // Leave the threshold set so the next run retries.
+        }
       }
-      await saveSettings({ ...settings, basketAlertThreshold: null });
     }
   }
 

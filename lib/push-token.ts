@@ -29,3 +29,20 @@ export async function registerPushToken(): Promise<void> {
     // push registration is best-effort
   }
 }
+
+// Called on sign-out. Without this the server keeps the device bound to the
+// account and keeps pushing that account's alerts to a signed-out device.
+export async function unregisterPushToken(): Promise<void> {
+  try {
+    if (Platform.OS === "web") return;
+    const client = createTRPCClient();
+    await Promise.race([
+      client.notifications.unregisterPushToken.mutate(),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), TIMEOUT_MS),
+      ),
+    ]);
+  } catch {
+    // best-effort — the server also prunes on device cleanup
+  }
+}

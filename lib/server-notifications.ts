@@ -161,7 +161,14 @@ async function runSyncServerNotifications(): Promise<void> {
         alerts: activeAlerts.slice(0, MAX_UPLOAD_ALERTS),
         stockWatches: stockWatches.slice(0, MAX_UPLOAD_STOCK_WATCHES),
         dateReminders: dateReminders.slice(0, MAX_UPLOAD_DATE_REMINDERS),
-        quietHours: settings.quietHours ?? undefined,
+        quietHours: settings.quietHours
+          ? {
+              ...settings.quietHours,
+              // Send the device's UTC offset so the server evaluates quiet
+              // hours in the user's timezone, not the server's.
+              utcOffsetMinutes: new Date().getTimezoneOffset(),
+            }
+          : undefined,
       },
       settings.healthAlerts && pendingHealthEvents.length > 0
         ? pendingHealthEvents

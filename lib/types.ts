@@ -154,7 +154,7 @@ export interface AppSettings {
   llmApiKey?: string;
   llmModel?: string;
   llmOllamaUrl?: string;
-  quietHours?: { start: string; end: string };
+  quietHours?: { start: string; end: string; utcOffsetMinutes?: number };
   watchlistPriceRange?: [number, number] | null;
   watchlistInStockOnly?: boolean;
   retentionDays?: number;

@@ -534,6 +534,18 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       const openId = `${state.provider}:${profile.sub}`;
+      // If an account already exists for this email (e.g. registered with a
+      // password), link the OAuth identity to it instead of letting the unique
+      // email index silently update the row and leave the old openId.
+      const existingByEmail = await db.getUserByEmail(
+        profile.email.toLowerCase(),
+      );
+      if (existingByEmail && existingByEmail.openId !== openId) {
+        await db.linkUserOpenIdByEmail(
+          profile.email.toLowerCase(),
+          openId,
+        );
+      }
       await db.upsertUser({
         openId,
         email: profile.email.toLowerCase(),

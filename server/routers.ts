@@ -241,10 +241,7 @@ export const appRouter = router({
         const now = Date.now();
         if (now - lastTombstonePurgeAt > TOMBSTONE_PURGE_INTERVAL_MS) {
           lastTombstonePurgeAt = now;
-          await purgeOldTombstones(
-            ctx.user.id,
-            now - TOMBSTONE_PURGE_WINDOW_MS,
-          );
+          await purgeOldTombstones(now - TOMBSTONE_PURGE_WINDOW_MS);
         }
         return { accepted, stamped, rejected };
       }),
@@ -270,7 +267,23 @@ export const appRouter = router({
           points: z
             .array(
               z.object({
-                date: z.string().refine((v) => !Number.isNaN(Date.parse(v))),
+                // Must be a strict ISO-8601 UTC instant: the column is a
+                // varchar(10) day key compared lexicographically, and a
+                // future-dated point would win every LWW merge forever
+                // (purgeOldHistory only removes past rows).
+                date: z
+                  .string()
+                  .regex(
+                    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/,
+                    "date must be an ISO-8601 UTC timestamp",
+                  )
+                  .refine(
+                    (v) => {
+                      const t = Date.parse(v);
+                      return !Number.isNaN(t) && t <= Date.now() + 86_400_000;
+                    },
+                    "date must not be in the future",
+                  ),
                 price: z.number().finite().positive(),
                 currency: z.string().min(1).max(8),
                 stockStatus: z.enum([
@@ -406,6 +419,9 @@ export const appRouter = router({
             .object({
               start: z.string().regex(/^\d{2}:\d{2}$/),
               end: z.string().regex(/^\d{2}:\d{2}$/),
+              // Minutes to add to local time to get UTC (Date.getTimezoneOffset).
+              // Lets the server evaluate quiet hours in the user's timezone.
+              utcOffsetMinutes: z.number().int().min(-840).max(840).optional(),
             })
             .optional(),
         }),

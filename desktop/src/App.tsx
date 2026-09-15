@@ -31,7 +31,7 @@ import { onNotificationActivated } from "./notifications";
 import { maybeSendDigest } from "../../lib/price-digest";
 import { useAuth } from "./hooks/use-auth";
 import { trpc, createTRPCClient } from "./lib/trpc";
-import { setupSync, type SyncSetup } from "../../lib/sync";
+import { setupSync, registerSyncSetup, type SyncSetup } from "../../lib/sync";
 import { storage } from "./storage";
 import { syncDesktopNotifications } from "./server-notifications";
 import { runHealthProbeIfDue } from "./lib/health-probe";
@@ -255,6 +255,12 @@ export default function App() {
       pull: (since) => trpcClient.sync.pull.query({ since }),
       push: (items) => trpcClient.sync.push.mutate({ items }),
     });
+    // Register the setup so the Settings "Sync now" button (getSyncSetup) works.
+    const unregister = registerSyncSetup(syncRef.current);
+    return () => {
+      unregister();
+      syncRef.current = null;
+    };
   }, [trpcClient]);
 
   useEffect(() => {

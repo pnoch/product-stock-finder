@@ -87,10 +87,18 @@ export const ProductCard = memo(function ProductCard({
     return { pct, isDown: pct < 0 };
   }, [bestPrice, product.listings, currency]);
   const sparklineData = useMemo(() => {
-    const all = (product.listings ?? []).flatMap((l) => l.priceHistory ?? []);
+    // Convert each listing's history into the display currency before
+    // flattening: mixing raw USD and MYR points draws a meaningless chart that
+    // contradicts the converted "Best Price" next to it.
+    const all = (product.listings ?? []).flatMap((l) =>
+      (l.priceHistory ?? []).map((p) => {
+        const converted = convertPrice(p.price, p.currency, currency);
+        return converted === null ? null : { ...p, price: converted, currency };
+      }),
+    ).filter((p): p is NonNullable<typeof p> => p !== null);
     if (all.length < 2) return null;
     return all;
-  }, [product.listings]);
+  }, [product.listings, currency]);
   const refreshColorKey = useMemo(
     () => getLastRefreshedColor(product.lastRefreshed),
     [product.lastRefreshed],

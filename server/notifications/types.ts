@@ -34,7 +34,7 @@ export interface NotificationConfig {
   // Quiet-hours digest batching: when set and covering now, the warmer holds
   // fresh events and flushes one grouped digest at the window end instead of
   // pushing immediately. Evaluated in server-local time.
-  quietHours?: { start: string; end: string };
+  quietHours?: { start: string; end: string; utcOffsetMinutes?: number };
 }
 
 export interface NotificationEvent {

@@ -3,6 +3,12 @@ import { createTRPCClient } from "./lib/trpc";
 import { resolveEventRoute } from "./lib/notification-routing";
 import { unregisterServerToken, PENDING_UNREGISTER_KEY } from "./lib/push-unregister";
 import { withTimeout } from "../../lib/with-timeout";
+import {
+  MAX_UPLOAD_ALERTS,
+  MAX_UPLOAD_DATE_REMINDERS,
+  MAX_UPLOAD_HEALTH_EVENTS,
+  MAX_UPLOAD_STOCK_WATCHES,
+} from "../../shared/const";
 
 const TIMEOUT_MS = 4000;
 
@@ -13,6 +19,8 @@ interface PushConfig {
     targetPrice: number;
     currency: string;
     distributorId?: string;
+    direction?: "drop" | "rise";
+    snoozedUntil?: string;
   }>;
   stockWatches: Array<{
     id: string;
@@ -26,6 +34,7 @@ interface PushConfig {
     distributorId: string;
     reminderDate: string;
   }>;
+  quietHours?: { start: string; end: string; utcOffsetMinutes?: number };
   healthEvents?: Array<{
     id: string;
     distributorId: string;
@@ -117,22 +126,28 @@ async function runSyncDesktopNotifications(): Promise<void> {
     }
 
     const alerts = await storage.getAlerts();
-    const activeAlerts = alerts
-      .filter((a) => a.isActive && !a.triggeredAt)
-      .map((a) => ({
-        id: a.id,
-        productId: a.productId,
-        targetPrice: a.targetPrice,
-        currency: a.currency,
-        distributorId: a.distributorId,
-      }));
+    const activeAlerts = settings.priceAlerts
+      ? alerts
+          .filter((a) => a.isActive && !a.triggeredAt)
+          .map((a) => ({
+            id: a.id,
+            productId: a.productId,
+            targetPrice: a.targetPrice,
+            currency: a.currency,
+            distributorId: a.distributorId,
+            direction: a.direction,
+            snoozedUntil: a.snoozedUntil,
+          }))
+      : [];
     const activeAlertIds = new Set(activeAlerts.map((a) => a.id));
-    const stockWatches = (await storage.getStockWatches()).map((w) => ({
-      id: w.id,
-      productId: w.productId,
-      distributorId: w.distributorId,
-      lastKnownStatus: w.lastKnownStatus,
-    }));
+    const stockWatches = settings.stockAlerts
+      ? (await storage.getStockWatches()).map((w) => ({
+          id: w.id,
+          productId: w.productId,
+          distributorId: w.distributorId,
+          lastKnownStatus: w.lastKnownStatus,
+        }))
+      : [];
     const dateReminders = (await storage.getBackOrderReminders())
       .filter((r) => r.reminderType === "date")
       .map((r) => ({
@@ -154,11 +169,22 @@ async function runSyncDesktopNotifications(): Promise<void> {
       };
     });
 
+    // Trim to the server's schema caps: sending more makes the whole upload
+    // fail, silently disabling server-side notifications (mirrors mobile).
     const uploadOk = await uploadConfig({
-      alerts: activeAlerts,
-      stockWatches,
-      dateReminders,
-      healthEvents: healthEvents.length > 0 ? healthEvents : undefined,
+      alerts: activeAlerts.slice(0, MAX_UPLOAD_ALERTS),
+      stockWatches: stockWatches.slice(0, MAX_UPLOAD_STOCK_WATCHES),
+      dateReminders: dateReminders.slice(0, MAX_UPLOAD_DATE_REMINDERS),
+      quietHours: settings.quietHours
+        ? {
+            ...settings.quietHours,
+            utcOffsetMinutes: new Date().getTimezoneOffset(),
+          }
+        : undefined,
+      healthEvents:
+        settings.healthAlerts && healthEvents.length > 0
+          ? healthEvents.slice(0, MAX_UPLOAD_HEALTH_EVENTS)
+          : undefined,
     });
     if (uploadOk && pendingHealthEvents.length > 0) {
       await storage.clearPendingHealthEvents();

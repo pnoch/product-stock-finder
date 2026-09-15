@@ -400,16 +400,12 @@ export function Watchlist() {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         const raw = await storage.getWatchlist();
-        const products = raw
-          .map((p) => ({
-            id: p.id,
-            model_number: p.modelNumber,
-            distributor_ids: p.listings.map((l) => l.distributorId),
-          }))
-          .filter((p) => p.distributor_ids.length > 0);
-        if (products.length > 0) {
-          await invoke("check_all_prices", {
-            products,
+        if (raw.length > 0) {
+          // run_full_price_check scrapes AND persists the updated listings +
+          // price history + tray badge. check_all_prices only returns results
+          // without writing, so the UI would report a refresh that never
+          // happened.
+          await invoke("run_full_price_check", {
             apiBaseUrl: getApiBaseUrl(),
           });
           viaTauri = true;

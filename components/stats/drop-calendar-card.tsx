@@ -9,10 +9,11 @@ import type {
   DropDay,
 } from "@/lib/drop-calendar";
 
-const DAY = 86400000;
 
 // Trailing `days` grid ending today: leading blanks for weekday offset,
-// then one cell per day anchored to local midnight.
+// then one cell per day anchored to local midnight. Uses calendar-date
+// arithmetic (setDate) rather than fixed 24h steps so a DST transition cannot
+// skip a day or shift the grid.
 function buildGridCells(days: number, now: number): (number | null)[] {
   const cells: (number | null)[] = [];
   const nowDate = new Date(now);
@@ -20,11 +21,19 @@ function buildGridCells(days: number, now: number): (number | null)[] {
     nowDate.getFullYear(),
     nowDate.getMonth(),
     nowDate.getDate(),
-  ).getTime();
-  const startTs = todayMidnight - (days - 1) * DAY;
-  const startOffset = new Date(startTs).getDay(); // local 0=Sun
+  );
+  const dayTs: number[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(
+      todayMidnight.getFullYear(),
+      todayMidnight.getMonth(),
+      todayMidnight.getDate() - i,
+    );
+    dayTs.push(d.getTime());
+  }
+  const startOffset = new Date(dayTs[0]!).getDay(); // local 0=Sun
   for (let i = 0; i < startOffset; i++) cells.push(null);
-  for (let i = 0; i < days; i++) cells.push(startTs + i * DAY);
+  for (const ts of dayTs) cells.push(ts);
   return cells;
 }
 

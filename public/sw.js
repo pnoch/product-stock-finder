@@ -87,6 +87,14 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const data = event.notification.data || {};
+  // Deep-link to the product when the payload carries one; digest/health fall
+  // back to their own routes. Without this every push opened Home.
+  let route = "/";
+  if (data.productId) route = `/product/${data.productId}`;
+  else if (data.type === "digest") route = "/stats";
+  else if (typeof data.type === "string" && data.type.startsWith("health"))
+    route = "/health";
   event.waitUntil(
     (async () => {
       const clients = await self.clients.matchAll({
@@ -96,10 +104,17 @@ self.addEventListener("notificationclick", (event) => {
       for (const client of clients) {
         if ("focus" in client) {
           client.focus();
+          if ("navigate" in client && route !== "/") {
+            try {
+              await client.navigate(route);
+            } catch {
+              // navigation is best-effort
+            }
+          }
           return;
         }
       }
-      await self.clients.openWindow("/");
+      await self.clients.openWindow(route);
     })(),
   );
 });

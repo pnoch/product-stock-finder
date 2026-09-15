@@ -124,6 +124,22 @@ export async function getUserByEmail(email: string) {
   return rows[0] ?? null;
 }
 
+// Links an OAuth identity to an existing email/password account. Without this,
+// `upsertUser` with a new openId + an existing email matches the email unique
+// index, updates that row, and leaves its original openId — so the subsequent
+// getUserByOpenId(newOpenId) returns undefined and sign-in fails permanently.
+export async function linkUserOpenIdByEmail(
+  email: string,
+  openId: string,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(users)
+    .set({ openId, lastSignedIn: new Date() } as never)
+    .where(eq(users.email, email));
+}
+
 export async function updateUserPasswordHash(openId: string, passwordHash: string) {
   const db = await getDb();
   if (!db) return;

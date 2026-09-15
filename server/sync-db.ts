@@ -326,48 +326,29 @@ export async function upsertSyncItem(
 }
 
 /** Hard-deletes tombstoned rows older than the cutoff (epoch ms). Batch-limited to avoid long locks; schedule via cron for full purge. */
-export async function purgeOldTombstones(
-  userId: number,
-  cutoff: number,
-): Promise<void> {
+// Purges tombstones older than `cutoff`. The caller gates this on a global
+// interval, so it must purge ALL users — filtering to the triggering user left
+// every other account's tombstones to accumulate forever. `deletedAtMs` is
+// NULL for live rows, so `lt(deletedAtMs, cutoff)` only matches tombstones.
+export async function purgeOldTombstones(cutoff: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await Promise.all([
     db
       .delete(watchlistItems)
-      .where(
-        and(
-          eq(watchlistItems.userId, userId),
-          lt(watchlistItems.deletedAtMs, cutoff),
-        ),
-      )
+      .where(lt(watchlistItems.deletedAtMs, cutoff))
       .limit(1000),
     db
       .delete(priceAlerts)
-      .where(
-        and(
-          eq(priceAlerts.userId, userId),
-          lt(priceAlerts.deletedAtMs, cutoff),
-        ),
-      )
+      .where(lt(priceAlerts.deletedAtMs, cutoff))
       .limit(1000),
     db
       .delete(backOrderReminders)
-      .where(
-        and(
-          eq(backOrderReminders.userId, userId),
-          lt(backOrderReminders.deletedAtMs, cutoff),
-        ),
-      )
+      .where(lt(backOrderReminders.deletedAtMs, cutoff))
       .limit(1000),
     db
       .delete(appSettings)
-      .where(
-        and(
-          eq(appSettings.userId, userId),
-          lt(appSettings.deletedAtMs, cutoff),
-        ),
-      )
+      .where(lt(appSettings.deletedAtMs, cutoff))
       .limit(1000),
   ]);
 }

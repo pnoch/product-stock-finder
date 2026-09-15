@@ -160,9 +160,15 @@ export function computeHealthSummary(
   if (samples.length === 0) {
     return { count: 0, firstAt: null, lastAt: null, avgResponseTimeMs: null };
   }
-  const times = samples.map((s) => new Date(s.at).getTime());
-  const firstAt = samples[times.indexOf(Math.min(...times))].at;
-  const lastAt = samples[times.indexOf(Math.max(...times))].at;
+  // Ignore unparseable dates: Math.min over NaN yields NaN, indexOf returns -1,
+  // and samples[-1] throws (blanking the Health detail screen).
+  const valid = samples.filter((s) => !Number.isNaN(new Date(s.at).getTime()));
+  if (valid.length === 0) {
+    return { count: samples.length, firstAt: null, lastAt: null, avgResponseTimeMs: null };
+  }
+  const times = valid.map((s) => new Date(s.at).getTime());
+  const firstAt = valid[times.indexOf(Math.min(...times))].at;
+  const lastAt = valid[times.indexOf(Math.max(...times))].at;
   const withResponse = samples.filter(
     (s) => typeof s.responseTimeMs === "number",
   );

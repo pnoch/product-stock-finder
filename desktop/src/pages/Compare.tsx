@@ -87,23 +87,14 @@ function SeriesChart({
       if (c !== null && Number.isFinite(c)) allPrices.push(c);
     }
   }
-  if (allPrices.length === 0) return <div className="text-center text-sm text-gray-400 py-8">No data</div>;
-  const globalMin = Math.min(...allPrices);
-  const globalMax = Math.max(...allPrices);
-  const range = globalMax - globalMin || 1;
-  const allDates: number[] = [];
-  for (const s of series) for (const p of s.data) allDates.push(new Date(p.date).getTime());
-  const minDate = Math.min(...allDates);
-  const maxDate = Math.max(...allDates);
-  const dateRange = maxDate - minDate || 1;
-  const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency;
+  // Hooks must run unconditionally: an early return before useState/useMemo
+  // makes React throw "Rendered more hooks than during the previous render"
+  // when the chart transitions from empty to non-empty.
   const [hover, setHover] = useState<{ x: number; y: number; idx: number } | null>(null);
-
   const sortedSeries = series.map((s) => ({
     ...s,
     sorted: [...s.data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
   }));
-
   const chartA11yLabel = useMemo(() => {
     let up = 0;
     let down = 0;
@@ -123,6 +114,19 @@ function SeriesChart({
     return `Price history, ${n} distributor${n === 1 ? "" : "s"}, trending ${direction}`;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [series, displayCurrency]);
+
+  if (allPrices.length === 0) {
+    return <div className="text-center text-sm text-gray-400 py-8">No data</div>;
+  }
+  const globalMin = Math.min(...allPrices);
+  const globalMax = Math.max(...allPrices);
+  const range = globalMax - globalMin || 1;
+  const allDates: number[] = [];
+  for (const s of series) for (const p of s.data) allDates.push(new Date(p.date).getTime());
+  const minDate = Math.min(...allDates);
+  const maxDate = Math.max(...allDates);
+  const dateRange = maxDate - minDate || 1;
+  const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency;
 
   return (
     <div ref={wrapRef} className="w-full">

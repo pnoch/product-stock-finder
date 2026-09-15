@@ -1042,6 +1042,7 @@ async fn check_distributor_health(app: tauri::AppHandle) -> Result<Vec<Distribut
 
 // ─── Full Price Check (scrape → compare → notify → update tray) ─────────────
 
+#[tauri::command]
 async fn run_full_price_check(app: tauri::AppHandle, api_base_url: String) -> Result<String, String> {
     let _guard = PRICE_CHECK_LOCK.lock().await;
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
@@ -1408,6 +1409,10 @@ pub fn run() {
                 .build()?;
 
             let _tray = TrayIconBuilder::new()
+                // Fixed id: update_tray_badge looks the tray up by "main".
+                // TrayIconBuilder's default id is unique per process, so
+                // without this the badge/tooltip updates silently no-op.
+                .with_id("main")
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .on_menu_event(|app: &tauri::AppHandle, event| match event.id.as_ref() {
@@ -1462,6 +1467,7 @@ pub fn run() {
             stop_price_poller,
             update_tray_badge,
             check_all_prices,
+            run_full_price_check,
             backfill_local_history,
             fetch_price_insight,
             fetch_product_image,

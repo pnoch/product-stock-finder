@@ -22,6 +22,8 @@ vi.mock("../server/db", () => ({
     updatedAt: new Date(),
     lastSignedIn: new Date(),
   })),
+  getUserByEmail: vi.fn(async () => null),
+  linkUserOpenIdByEmail: vi.fn(async () => {}),
   upsertUser: vi.fn(async () => {}),
 }));
 

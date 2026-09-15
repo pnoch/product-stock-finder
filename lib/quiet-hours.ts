@@ -19,7 +19,17 @@ export function isInQuietHours(
   const end = parseQuietTime(qh.end);
   if (start === null || end === null) return false;
   if (start === end) return false;
-  const cur = now.getHours() * 60 + now.getMinutes();
+  // `utcOffsetMinutes` lets the server evaluate the window in the *user's*
+  // local time instead of the server process timezone. The client sends its
+  // offset (Date.getTimezoneOffset() semantics: minutes to add to local to get
+  // UTC), so local = utc - offset.
+  const offset =
+    typeof qh.utcOffsetMinutes === "number" ? qh.utcOffsetMinutes : null;
+  const cur =
+    offset === null
+      ? now.getHours() * 60 + now.getMinutes()
+      : ((now.getUTCHours() * 60 + now.getUTCMinutes() - offset) % 1440 + 1440) %
+        1440;
   if (start < end) {
     return cur >= start && cur < end;
   }

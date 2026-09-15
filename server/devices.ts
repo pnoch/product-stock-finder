@@ -176,6 +176,9 @@ export async function unbindDevice(
   await db
     .delete(notificationEvents)
     .where(eq(notificationEvents.deviceId, deviceId));
+  // Labels have no FK to users, so they must be removed explicitly or a
+  // re-bound deviceId would inherit the previous owner's label.
+  await db.delete(deviceLabels).where(eq(deviceLabels.deviceId, deviceId));
   return true;
 }
 
@@ -232,7 +235,7 @@ export async function signOutDevice(
     .onDuplicateKeyUpdate({ set: { revokedAt: Date.now() } });
   const unbound = await unbindDevice(userId, deviceId);
   if (!unbound) return false;
-  await db.delete(deviceLabels).where(eq(deviceLabels.deviceId, deviceId));
+  // deviceLabels is deleted by unbindDevice.
   return true;
 }
 

@@ -41,6 +41,9 @@ vi.mock("../src/storage", () => ({
   storage: {
     getSettings: async () => ({
       notificationsEnabled: state.notificationsEnabled,
+      priceAlerts: true,
+      stockAlerts: true,
+      healthAlerts: true,
     }),
     getAlerts: async () => [],
     getStockWatches: async () => [],

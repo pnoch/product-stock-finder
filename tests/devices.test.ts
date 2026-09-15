@@ -348,6 +348,7 @@ describe("devices (database backend)", () => {
       devicePushTokens,
       notificationEventDeliveries,
       notificationEvents,
+      deviceLabels,
     ]);
     mockedGetDb.mockResolvedValue(null);
   });

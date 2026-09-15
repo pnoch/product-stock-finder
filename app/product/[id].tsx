@@ -23,7 +23,7 @@ import { computeDealScore, dealBandLabel } from "@/lib/deal-score";
 import { findBestDeal } from "@/lib/best-deal";
 import { fetchPriceInsight } from "@/lib/server-insights";
 import { fetchProductImage } from "@/lib/server-images";
-import { schedulePriceAlert, scheduleStockAlert, scheduleBackOrderReminder, cancelNotification, ensureNotificationPermission } from "@/lib/notifications";
+import { schedulePriceAlert, scheduleStockWatchConfirmation, scheduleBackOrderReminder, cancelNotification, ensureNotificationPermission } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
 import { ProductInfoCard, DistributorListingSection, ReminderDatePickerModal } from "./_components";
 import { PriceAlert, DistributorListing } from "@/lib/types";
@@ -188,7 +188,7 @@ export default function ProductDetailScreen() {
       }
       try {
         const distributor = getDistributorById(listing.distributorId);
-        const notificationId = await scheduleStockAlert(product?.name ?? "Product", distributor?.name ?? listing.distributorId, listing.price, listing.currency, id);
+        const notificationId = await scheduleStockWatchConfirmation(product?.name ?? "Product", distributor?.name ?? listing.distributorId);
         await addStockWatch({
           id: `${id}-${listing.distributorId}`,
           productId: id,

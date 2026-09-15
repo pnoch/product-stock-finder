@@ -192,6 +192,10 @@ export const deviceNotificationConfigs = mysqlTable(
     quietHours: json("quietHours"),
     updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
   },
+  (t) => ({
+    // listDevicesForUser scans by userId.
+    idxUser: index("device_notification_configs_user").on(t.userId),
+  }),
 );
 
 export type DeviceNotificationConfigRow =
@@ -243,13 +247,20 @@ export type NotificationEventDeliveryRow =
 export type InsertNotificationEventDeliveryRow =
   typeof notificationEventDeliveries.$inferInsert;
 
-export const devicePushTokens = mysqlTable("device_push_tokens", {
-  deviceId: varchar("deviceId", { length: 128 }).notNull().primaryKey(),
-  userId: int("userId").references(() => users.id, { onDelete: "cascade" }),
-  token: text("token").notNull(),
-  platform: varchar("platform", { length: 16 }).notNull(),
-  updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
-});
+export const devicePushTokens = mysqlTable(
+  "device_push_tokens",
+  {
+    deviceId: varchar("deviceId", { length: 128 }).notNull().primaryKey(),
+    userId: int("userId").references(() => users.id, { onDelete: "cascade" }),
+    token: text("token").notNull(),
+    platform: varchar("platform", { length: 16 }).notNull(),
+    updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
+  },
+  (t) => ({
+    // sendPushForUser scans by userId on every warmer tick.
+    idxUser: index("device_push_tokens_user").on(t.userId),
+  }),
+);
 
 export type DevicePushTokenRow = typeof devicePushTokens.$inferSelect;
 export type InsertDevicePushTokenRow = typeof devicePushTokens.$inferInsert;
@@ -276,6 +287,9 @@ export const revokedDevices = mysqlTable(
       t.userId,
       t.deviceId,
     ),
+    // isDeviceRevoked runs on every authenticated request and filters by
+    // deviceId alone (the userId branch is an OR), so it needs its own index.
+    idxDevice: index("revoked_devices_device").on(t.deviceId),
   }),
 );
 
