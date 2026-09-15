@@ -510,8 +510,12 @@ export function Watchlist() {
     setChecking(true);
     setCheckProgress({ current: 0, total: products.length });
     try {
-      const { checkPriceDropsNow } = await import("../../../lib/background-price-check");
-      await checkPriceDropsNow((current, total) => setCheckProgress({ current, total }));
+      // Must use the Rust pipeline: the mobile `checkPriceDropsNow` reads the
+      // module-level defaultStorage (IndexedDB in a Tauri webview), which is a
+      // different store from the desktop localStorage/Rust-file adapter, so it
+      // saw an empty watchlist and did nothing.
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("run_full_price_check", { apiBaseUrl: getApiBaseUrl() });
       await refresh();
     } catch {
       showToast("Couldn't complete price check");

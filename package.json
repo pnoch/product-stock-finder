@@ -14,6 +14,7 @@
     "lint": "expo lint app components lib hooks server shared scripts",
     "format": "prettier --write .",
     "test": "vitest run",
+    "smoke:web": "node scripts/smoke-web.mjs",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "android": "expo start --android",
     "ios": "expo start --ios",

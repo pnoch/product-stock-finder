@@ -33,7 +33,8 @@ export function convertPrice(amount: number, fromCurrency: string, toCurrency: s
 }
 
 export function hasExchangeRate(currency: string): boolean {
-  return currency in effectiveRates();
+  // Own-property check: `in` would accept prototype keys like "toString".
+  return Object.prototype.hasOwnProperty.call(effectiveRates(), currency);
 }
 
 // Money is displayed and compared at 2 decimals. Rounding at the comparison
@@ -45,7 +46,9 @@ export function roundMoney(amount: number): number {
 
 export function getExchangeRate(currency: string): number | null {
   const rates = effectiveRates();
-  return rates[currency] ?? null;
+  if (!Object.prototype.hasOwnProperty.call(rates, currency)) return null;
+  const rate = rates[currency];
+  return typeof rate === "number" ? rate : null;
 }
 
 // Cheapest purchasable listing: in_stock and back_order are orderable, while

@@ -13,6 +13,12 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        // shared/const.ts lives outside shared/src; resolve it first so
+        // `@shared/const` doesn't become shared/src/const (missing).
+        find: "@shared/const",
+        replacement: path.resolve(__dirname, "../shared/const.ts"),
+      },
+      {
         find: "@shared",
         replacement: path.resolve(__dirname, "../shared/src"),
       },

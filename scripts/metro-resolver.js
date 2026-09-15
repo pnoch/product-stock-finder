@@ -7,6 +7,27 @@
 const path = require("path");
 
 const STUB_PATH = path.join(__dirname, "..", "lib", "scrapers", "browser.web.ts");
+// cheerio's default entry pulls in node:stream, which Hermes cannot resolve.
+// Its browser build is dependency-free and has the same API surface.
+const CHEERIO_BROWSER_PATH = path.join(
+  __dirname,
+  "..",
+  "node_modules",
+  "cheerio",
+  "dist",
+  "browser",
+  "index.js",
+);
+
+function isCheerioModule(request) {
+  return request === "cheerio" || request.startsWith("cheerio/");
+}
+
+function resolveCheerioPath(platform, request) {
+  if (platform !== "ios" && platform !== "android") return null;
+  if (!isCheerioModule(request)) return null;
+  return CHEERIO_BROWSER_PATH;
+}
 
 function isBrowserModule(request, originModulePath) {
   const normalized = String(request).replace(/\.ts$/, "").replace(/\.js$/, "");
@@ -30,4 +51,6 @@ function resolveBrowserModulePath(platform, request, originModulePath) {
 }
 
 module.exports.BROWSER_STUB_PATH = STUB_PATH;
+module.exports.CHEERIO_BROWSER_PATH = CHEERIO_BROWSER_PATH;
 module.exports.resolveBrowserModulePath = resolveBrowserModulePath;
+module.exports.resolveCheerioPath = resolveCheerioPath;

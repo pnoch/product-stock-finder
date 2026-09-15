@@ -1,17 +1,10 @@
 import type { TrendingProduct } from "@/lib/types";
 
 function getApiBase(): string {
-  // Supports both Expo (process.env.EXPO_PUBLIC_API_BASE_URL) and Vite/desktop
-  // (import.meta.env.VITE_API_BASE_URL). Falls back to the server default port 3000.
-  const viteBase =
-    typeof import.meta !== "undefined" &&
-    (import.meta as unknown as { env?: Record<string, string | undefined> }).env
-      ?.VITE_API_BASE_URL;
-  if (viteBase) return (viteBase as string).replace(/\/$/, "");
-  const expoBase =
-    typeof process !== "undefined"
-      ? (process.env as Record<string, string | undefined>).EXPO_PUBLIC_API_BASE_URL
-      : undefined;
+  // Static member access only: Expo inlines literal `process.env.EXPO_PUBLIC_*`
+  // expressions, and `import.meta` is unsupported by Hermes and breaks the
+  // classic-script web bundle. The desktop build provides its own base URL.
+  const expoBase = process.env.EXPO_PUBLIC_API_BASE_URL;
   if (expoBase) return expoBase.replace(/\/$/, "");
   return "http://localhost:3000";
 }

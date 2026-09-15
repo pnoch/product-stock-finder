@@ -54,6 +54,12 @@ const tauriAwareAdapter = {
   },
   setItem: async (key: string, value: string) => {
     localStorage.setItem(key, value);
+    // Same-document writes do not fire a `storage` event, so notify listeners
+    // (e.g. use-theme) explicitly. Without this, changing the theme in Settings
+    // updated the setting but never re-applied the CSS class.
+    if (typeof window !== "undefined" && key === "app_settings") {
+      window.dispatchEvent(new Event("app_settings:changed"));
+    }
     if (isTauri && TAURI_MIRRORED_KEYS.has(key)) {
       try {
         await mirrorToFile(key, JSON.parse(value));

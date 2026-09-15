@@ -26,3 +26,6 @@ jobs:
       - run: pnpm --dir desktop test
       # Verify the deployable artifacts build (web export + server bundle).
       - run: pnpm build
+      # The web export compiles even when it renders a blank page at runtime;
+      # this catches that class (e.g. import.meta in a classic script).
+      - run: pnpm smoke:web

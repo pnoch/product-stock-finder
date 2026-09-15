@@ -1,4 +1,4 @@
-import { eq, lt, or } from "drizzle-orm";
+import { eq, inArray, lt, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { InsertUser, emailVerificationTokens, passwordResetTokens, users } from "../drizzle/schema";
@@ -212,15 +212,37 @@ export async function deleteUserById(id: number) {
   // Cascade deletes watchlist_items, price_alerts, back_order_reminders, app_settings,
   // device_notification_configs, notification_events, device_push_tokens, password_reset_tokens,
   // shared_watchlists via FK onDelete cascade. Clean up tables without FK.
+  // device_labels has no FK to users, so collect this user's device ids and
+  // delete their labels explicitly. Otherwise a later account binding the same
+  // device id inherits the deleted user's label (cross-account leak).
   try {
-    const { revokedDevices } = await import("../drizzle/schema");
+    const { revokedDevices, deviceLabels, deviceNotificationConfigs, devicePushTokens } =
+      await import("../drizzle/schema");
+    const deviceIds = new Set<string>();
+    for (const row of await db
+      .select({ deviceId: deviceNotificationConfigs.deviceId })
+      .from(deviceNotificationConfigs)
+      .where(eq(deviceNotificationConfigs.userId, id))) {
+      deviceIds.add(row.deviceId);
+    }
+    for (const row of await db
+      .select({ deviceId: devicePushTokens.deviceId })
+      .from(devicePushTokens)
+      .where(eq(devicePushTokens.userId, id))) {
+      deviceIds.add(row.deviceId);
+    }
+    if (deviceIds.size > 0) {
+      await db
+        .delete(deviceLabels)
+        .where(inArray(deviceLabels.deviceId, [...deviceIds]));
+    }
     try {
       await db.delete(revokedDevices).where(eq(revokedDevices.userId, id));
     } catch (e) {
       console.error("[Database] Failed to clean up revoked devices for user", id, e);
     }
   } catch (e) {
-    console.error("[Database] Failed to load revoked devices schema", e);
+    console.error("[Database] Failed to clean up device rows for user", id, e);
   }
   await db.delete(users).where(eq(users.id, id));
 }

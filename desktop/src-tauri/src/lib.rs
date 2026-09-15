@@ -62,8 +62,8 @@ fn format_price(amount: f64, currency: &str) -> String {
     format!("{}{:.2}", symbol, amount)
 }
 
-fn trigger_event_json(product_id: &str, product_name: &str, best_price: f64, currency: &str, target_price: f64) -> serde_json::Value {
-    serde_json::json!({ "productId": product_id, "productName": product_name, "bestPrice": best_price, "currency": currency, "targetPrice": target_price })
+fn trigger_event_json(alert_id: &str, product_id: &str, product_name: &str, best_price: f64, currency: &str, target_price: f64) -> serde_json::Value {
+    serde_json::json!({ "alertId": alert_id, "productId": product_id, "productName": product_name, "bestPrice": best_price, "currency": currency, "targetPrice": target_price })
 }
 
 fn notification_route_for_product(product_id: &str) -> String {
@@ -592,6 +592,32 @@ async fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
 fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result<String, String> {
     let alerts_val = read_json_file(data_dir, "price_alerts")?;
     let watchlist_val = read_json_file(data_dir, "watchlist_products")?;
+    let settings_val = read_json_file(data_dir, "app_settings")?;
+
+    // Mirror the mobile gate: price alerts must be enabled and we must be
+    // outside quiet hours, or the poller/tray would notify against the user's
+    // settings.
+    let notifications_enabled = settings_val
+        .get("notificationsEnabled")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+    let price_alerts_enabled = settings_val
+        .get("priceAlerts")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+    if !notifications_enabled || !price_alerts_enabled {
+        return Ok("Price alerts disabled".to_string());
+    }
+    if let Some(qh) = settings_val.get("quietHours") {
+        let start = qh.get("start").and_then(|v| v.as_str());
+        let end = qh.get("end").and_then(|v| v.as_str());
+        let offset = qh.get("utcOffsetMinutes").and_then(|v| v.as_i64());
+        if let (Some(start), Some(end)) = (start, end) {
+            if is_in_quiet_hours(start, end, offset, now_epoch_ms()) {
+                return Ok("Quiet hours".to_string());
+            }
+        }
+    }
 
     let alerts: Vec<serde_json::Value> = alerts_val
         .as_array()
@@ -628,6 +654,10 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
         let product_id = alert.get("productId").and_then(|v| v.as_str()).unwrap_or("");
         let target_price = alert.get("targetPrice").and_then(|v| v.as_f64()).unwrap_or(0.0);
         let alert_currency = alert.get("currency").and_then(|v| v.as_str()).unwrap_or("USD");
+        // "rise" alerts fire when the price goes ABOVE the target.
+        let is_rise = alert.get("direction").and_then(|v| v.as_str()) == Some("rise");
+        // Per-distributor alerts only consider that distributor's listing.
+        let scoped_distributor = alert.get("distributorId").and_then(|v| v.as_str());
 
         let product = watchlist.iter().find(|p| {
             p.get("id").and_then(|v| v.as_str()) == Some(product_id)
@@ -639,7 +669,16 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
 
         let listings = product.get("listings").and_then(|v| v.as_array()).cloned().unwrap_or_default();
         let best_price = listings.iter().filter(|l| {
-            l.get("stockStatus").and_then(|v| v.as_str()) != Some("out_of_stock")
+            // Only in-stock listings can anchor a price alert (matches mobile).
+            if l.get("stockStatus").and_then(|v| v.as_str()) != Some("in_stock") {
+                return false;
+            }
+            if let Some(dist) = scoped_distributor {
+                if l.get("distributorId").and_then(|v| v.as_str()) != Some(dist) {
+                    return false;
+                }
+            }
+            true
         }).fold(f64::INFINITY, |best, listing| {
             let price = listing.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0);
             if price <= 0.0 {
@@ -653,20 +692,32 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
             if converted < best { converted } else { best }
         });
 
-        if best_price.is_finite() && best_price <= target_price {
+        let hit = best_price.is_finite()
+            && if is_rise {
+                best_price >= target_price
+            } else {
+                best_price <= target_price
+            };
+        if hit {
             let product_name = product.get("name").and_then(|v| v.as_str()).unwrap_or("Unknown Product");
             let body = format!(
-                "{} is now {} — below your target of {}!",
+                "{} is now {} — {} your target of {}!",
                 product_name,
                 format_price(best_price, alert_currency),
+                if is_rise { "above" } else { "below" },
                 format_price(target_price, alert_currency)
             );
             notifications.push((
-                "💸 Price Drop Alert!".to_string(),
+                if is_rise {
+                    "📈 Price Increase Alert!".to_string()
+                } else {
+                    "💸 Price Drop Alert!".to_string()
+                },
                 body,
                 Some(notification_route_for_product(product_id)),
             ));
-            events.push(trigger_event_json(product_id, product_name, best_price, alert_currency, target_price));
+            let alert_id = alert.get("id").and_then(|v| v.as_str()).unwrap_or("");
+            events.push(trigger_event_json(alert_id, product_id, product_name, best_price, alert_currency, target_price));
             triggered.push((idx, best_price));
         }
     }
@@ -1261,6 +1312,44 @@ fn export_to_csv(_export: &ExportData) -> Result<String, String> {
     Err("CSV export not yet implemented".to_string())
 }
 
+/// Mirrors lib/quiet-hours.ts: the window is evaluated in the user's local time
+/// when `utc_offset_minutes` is present (Date.getTimezoneOffset semantics:
+/// local = utc - offset), else in the process's local time.
+fn is_in_quiet_hours(
+    start: &str,
+    end: &str,
+    utc_offset_minutes: Option<i64>,
+    now_ms: i64,
+) -> bool {
+    fn parse_hhmm(v: &str) -> Option<i64> {
+        let (h, m) = v.split_once(':')?;
+        let h: i64 = h.trim().parse().ok()?;
+        let m: i64 = m.trim().parse().ok()?;
+        if !(0..24).contains(&h) || !(0..60).contains(&m) {
+            return None;
+        }
+        Some(h * 60 + m)
+    }
+    let (Some(start), Some(end)) = (parse_hhmm(start), parse_hhmm(end)) else {
+        return false;
+    };
+    if start == end {
+        return false;
+    }
+    let minutes_utc = (now_ms / 60_000) % 1440;
+    // The client always sends its offset; without one, evaluate in UTC (std has
+    // no tz database, and guessing a local offset would be wrong).
+    let cur = match utc_offset_minutes {
+        Some(off) => ((minutes_utc - off) % 1440 + 1440) % 1440,
+        None => (minutes_utc % 1440 + 1440) % 1440,
+    };
+    if start < end {
+        cur >= start && cur < end
+    } else {
+        cur >= start || cur < end
+    }
+}
+
 fn now_epoch_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -1646,7 +1735,8 @@ mod tests {
 
     #[test]
     fn trigger_event_json_shape() {
-        let v = trigger_event_json("p1", "Widget", 88.5, "USD", 100.0);
+        let v = trigger_event_json("a1", "p1", "Widget", 88.5, "USD", 100.0);
+        assert_eq!(v["alertId"], "a1");
         assert_eq!(v["productId"], "p1");
         assert_eq!(v["bestPrice"], 88.5);
         assert_eq!(v["currency"], "USD");

@@ -2,7 +2,7 @@ const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
 const fs = require("fs");
 const path = require("path");
-const { resolveBrowserModulePath } = require("./scripts/metro-resolver");
+const { resolveBrowserModulePath, resolveCheerioPath } = require("./scripts/metro-resolver");
 
 const config = getDefaultConfig(__dirname);
 
@@ -27,6 +27,10 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   const redirected = resolveBrowserModulePath(platform, moduleName, context.originModulePath);
   if (redirected) {
     return { type: "sourceFile", filePath: redirected };
+  }
+  const cheerio = resolveCheerioPath(platform, moduleName);
+  if (cheerio) {
+    return { type: "sourceFile", filePath: cheerio };
   }
   return context.resolveRequest(context, moduleName, platform);
 };

@@ -165,8 +165,16 @@ export const appRouter = router({
       .input(
         z.object({
           since: z.number().finite().nonnegative().nullable(),
-          // Page continuation cursor (newest stamp from the previous page).
-          cursor: z.number().finite().nonnegative().nullable().optional(),
+          // Composite page cursor (stamp + collection + id) from the previous
+          // page. A stamp alone cannot page correctly when rows share a stamp.
+          cursor: z
+            .object({
+              stamp: z.number().finite().nonnegative(),
+              collection: z.string().min(1).max(32),
+              id: z.string().min(1).max(191),
+            })
+            .nullable()
+            .optional(),
         }),
       )
       .query(async ({ ctx, input }) => {
@@ -193,17 +201,43 @@ export const appRouter = router({
         // tells the client to re-pull with the returned cursor.
         // On a continuation page, re-include rows at the cursor (inclusive) so
         // a boundary cannot skip an item; the client dedupes by key.
-        const pageSince = input.cursor ?? (needsFullResync ? null : input.since);
+        const pageSince = needsFullResync ? null : input.since;
         const items = await listChangedItems(
           ctx.user.id,
           pageSince,
           SYNC_PULL_MAX_ITEMS + 1,
-          input.cursor != null,
+          input.cursor ?? null,
         );
-        const hasMore = items.length > SYNC_PULL_MAX_ITEMS;
-        const page = hasMore ? items.slice(0, SYNC_PULL_MAX_ITEMS) : items;
+        // The four per-collection queries are each ordered, but the merged
+        // list is not: sort globally by the same (stamp, collection, id) key
+        // the cursor uses, then take a prefix.
+        const COLLECTION_ORDER = ["watchlist", "alerts", "reminders", "settings"];
+        const stampOf = (i: (typeof items)[number]) =>
+          Math.max(i.updatedAt, i.deletedAt ?? 0);
+        const sorted = [...items].sort((a, b) => {
+          const sa = stampOf(a);
+          const sb = stampOf(b);
+          if (sa !== sb) return sa - sb;
+          const ca = COLLECTION_ORDER.indexOf(a.collection);
+          const cb = COLLECTION_ORDER.indexOf(b.collection);
+          if (ca !== cb) return ca - cb;
+          return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+        });
+        const hasMore = sorted.length > SYNC_PULL_MAX_ITEMS;
+        const page = hasMore ? sorted.slice(0, SYNC_PULL_MAX_ITEMS) : sorted;
+        // The cursor is the last item of the page in the deterministic
+        // (stamp, collection, id) order the query uses.
+        const last = page[page.length - 1];
+        const nextCursor =
+          hasMore && last
+            ? {
+                stamp: Math.max(last.updatedAt, last.deletedAt ?? 0),
+                collection: last.collection,
+                id: last.id,
+              }
+            : null;
         const fullResyncSince = needsFullResync ? cutoff : null;
-        return { lastSyncedAt, items: page, fullResyncSince, hasMore };
+        return { lastSyncedAt, items: page, fullResyncSince, hasMore, nextCursor };
       }),
     push: protectedProcedure
       .input(z.object({ items: z.array(syncItemSchema).max(SYNC_PUSH_MAX_ITEMS) }))
@@ -437,7 +471,9 @@ export const appRouter = router({
           healthEvents: z
             .array(
               z.object({
-                id: z.string().min(1).max(191),
+                // notification_events.id is varchar(128); a longer id would
+                // fail the insert and 500 the whole upload.
+                id: z.string().min(1).max(128),
                 distributorId: z.string().min(1).max(64),
                 distributorName: z.string().min(1).max(128),
                 status: z.enum(["blocked", "error"]),

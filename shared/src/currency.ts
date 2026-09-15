@@ -51,11 +51,14 @@ export function convertPrice(
 }
 
 export function hasExchangeRate(currency: string): boolean {
-  return currency in EXCHANGE_RATES;
+  // Own-property check: `in` would accept prototype keys like "toString".
+  return Object.prototype.hasOwnProperty.call(EXCHANGE_RATES, currency);
 }
 
 export function getExchangeRate(currency: string): number | null {
-  return EXCHANGE_RATES[currency] ?? null;
+  if (!Object.prototype.hasOwnProperty.call(EXCHANGE_RATES, currency)) return null;
+  const rate = EXCHANGE_RATES[currency];
+  return typeof rate === "number" ? rate : null;
 }
 
 export function getCurrencySymbol(currency: string): string {

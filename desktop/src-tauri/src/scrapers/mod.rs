@@ -75,23 +75,74 @@ pub async fn fetch_html(url: &str, rate_limit_ms: u64) -> Result<String, reqwest
 
 pub fn infer_stock_status(text: &str) -> String {
     let lower = text.to_lowercase();
-    if lower.contains("in stock") || lower.contains("available") || lower.contains("add to cart") {
-        "in_stock".to_string()
-    } else if lower.contains("back order") || lower.contains("backorder") || lower.contains("pre-order") {
-        "back_order".to_string()
-    } else if lower.contains("out of stock") || lower.contains("unavailable") || lower.contains("sold out") {
-        "out_of_stock".to_string()
-    } else {
-        "unknown".to_string()
+    // Negative markers must win over substring matches like "available" in
+    // "unavailable" or "in stock" in "not in stock" (mirrors the mobile
+    // inferStockStatus ordering).
+    if lower.contains("out of stock")
+        || lower.contains("not in stock")
+        || lower.contains("unavailable")
+        || lower.contains("not available")
+        || lower.contains("sold out")
+    {
+        return "out_of_stock".to_string();
     }
+    if lower.contains("back order")
+        || lower.contains("backorder")
+        || lower.contains("pre-order")
+        || lower.contains("preorder")
+    {
+        return "back_order".to_string();
+    }
+    if lower.contains("in stock") || lower.contains("available") || lower.contains("add to cart") {
+        return "in_stock".to_string();
+    }
+    "unknown".to_string()
 }
 
 pub fn parse_price_from_text(text: &str) -> Option<f64> {
-    let cleaned: String = text.chars()
+    // Mirror lib/scrapers/utils.ts: handle EU separators ("1.234,56") and
+    // dot-only thousands ("1.299" → 1299) instead of stripping to a naive
+    // float (which produced factor-100/1000 errors).
+    let digits: String = text
+        .chars()
         .filter(|c| c.is_ascii_digit() || *c == '.' || *c == ',')
         .collect();
-    let cleaned = cleaned.replace(',', "");
-    cleaned.parse::<f64>().ok()
+    if digits.is_empty() {
+        return None;
+    }
+    let last_dot = digits.rfind('.');
+    let last_comma = digits.rfind(',');
+    let groups_of_three = |s: &str, sep: char| {
+        let parts: Vec<&str> = s.split(sep).collect();
+        parts.len() > 1
+            && parts[0].len() >= 1
+            && parts[0].len() <= 3
+            && parts[1..].iter().all(|p| p.len() == 3)
+    };
+    let normalized = if let (Some(c), Some(d)) = (last_comma, last_dot) {
+        if c > d {
+            // Comma is the decimal separator ("1.234,56").
+            digits.replace('.', "").replace(',', ".")
+        } else {
+            digits.replace(',', "")
+        }
+    } else if last_comma.is_some() {
+        if groups_of_three(&digits, ',') {
+            digits.replace(',', "")
+        } else {
+            digits.replace(',', ".")
+        }
+    } else if last_dot.is_some() && groups_of_three(&digits, '.') {
+        digits.replace('.', "")
+    } else {
+        digits
+    };
+    let value = normalized.parse::<f64>().ok()?;
+    if !value.is_finite() || value == 0.0 {
+        None
+    } else {
+        Some(value)
+    }
 }
 
 /// Normalizes a model number for comparison: lowercase, alphanumerics only.
@@ -218,6 +269,23 @@ mod tests {
         )
         .expect("should find the matching card");
         assert_eq!(result.price, 480.0);
+    }
+
+    #[test]
+    fn parse_price_from_text_handles_eu_separators() {
+        assert_eq!(parse_price_from_text("1.234,56"), Some(1234.56));
+        assert_eq!(parse_price_from_text("1.299"), Some(1299.0));
+        assert_eq!(parse_price_from_text("12,5"), Some(12.5));
+        assert_eq!(parse_price_from_text("1,299.00"), Some(1299.0));
+        assert_eq!(parse_price_from_text("no price"), None);
+    }
+
+    #[test]
+    fn infer_stock_status_negatives_win() {
+        assert_eq!(infer_stock_status("Not in stock"), "out_of_stock");
+        assert_eq!(infer_stock_status("Unavailable"), "out_of_stock");
+        assert_eq!(infer_stock_status("In stock"), "in_stock");
+        assert_eq!(infer_stock_status("Back order"), "back_order");
     }
 
     #[test]

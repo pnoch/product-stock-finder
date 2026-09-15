@@ -71,8 +71,12 @@ export function bestPricePoints(
 ): MergedPoint[] {
   const bestByTime = new Map<number, number>();
   for (const l of listings ?? []) {
-    if (l.stockStatus !== "in_stock") continue;
     for (const p of l.priceHistory ?? []) {
+      // Use the point's own stock status, not the listing's current status: a
+      // distributor that is out of stock *now* may have had the cheapest
+      // in-stock price historically, and excluding it would inflate the
+      // historical best and fire false "all-time low" badges.
+      if (p.stockStatus !== "in_stock") continue;
       const t = Date.parse(p.date);
       const v = convertPricePoint(p.price, p.currency, displayCurrency);
       if (!Number.isFinite(t) || v === null) continue;

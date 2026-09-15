@@ -1746,3 +1746,39 @@
 - [x] iOS "Rate the App" used the bundle id as an App Store id; now uses `EXPO_PUBLIC_IOS_APP_ID` or a store search
 
 - [x] Tests: `affected-rows`, `insights-drop-calendar`, `quiet-hours-mapper`, SSRF cases, metro-resolver dynamic import, SPA fallback cache header (all verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `296 passed | 1 skipped` / `1800 passed`, desktop `43 passed` / `218 passed`, `pnpm build` green
+
+## Phase 223: Whole-app review round 4 (blank web app, sync paging, desktop)
+
+**Critical (shipping blockers)**
+- [x] **The exported web app was a blank page.** `constants/oauth.ts` + `shared/src/trending.ts` used `import.meta`, which Babel leaves in the bundle; `index.html` loads it as a classic script, so every load threw `Cannot use 'import.meta' outside a module`. Verified with a headless-Chromium smoke test (body length 0). Replaced with static `process.env.EXPO_PUBLIC_*` access (which Expo inlines)
+- [x] **Native (iOS/Android) bundling was broken.** `import.meta` is unsupported by Hermes; after fixing that, `cheerio` pulled `node:stream` into the native bundle. Added a native alias to cheerio's dependency-free browser build. Both `expo export -p ios` and `-p android` now succeed
+- [x] Added `scripts/smoke-web.mjs` + `pnpm smoke:web` (headless render check) and `tests/web-export-invariants.test.ts`; wired into CI after `pnpm build`. Verified the smoke test fails on the injected regression
+
+**Sync**
+- [x] Pull paging was unsound: `listChangedItems` had no `ORDER BY`, so a `LIMIT` returned an arbitrary subset and the client's max-stamp cursor could skip rows (silent data loss on large accounts, and a full resync could delete live rows on other devices). Now orders by `(effectiveStamp, id)` and pages with a composite `(stamp, collection, id)` cursor
+- [x] `retryKeys` included `stale_write` live items, so a losing edit was re-pushed with a bumped stamp and reverted the newer remote value. Now only validation/transient rejections retry
+- [x] Settings merge base went stale after a failed push, making merged fields look locally-edited forever. The push-failure path now refreshes `settingsSnapshot`
+
+**Desktop**
+- [x] "Check Now" called the mobile `checkPriceDropsNow`, which reads the module-level IndexedDB store (empty in a Tauri webview) → no-op. Now uses the Rust `run_full_price_check`
+- [x] Rust alert evaluation ignored `direction`, `distributorId`, notification settings, and quiet hours, and used the wrong stock filter. Aligned with mobile (rise/drop, per-distributor scope, settings+quiet-hours gate, in-stock only) and added `is_in_quiet_hours`
+- [x] Rust alert deactivation was invisible to the desktop store (one-way mirroring) → the UI/server kept the alert active and could re-fire it. The `price-drops-triggered` event now carries `alertId` and the client calls `deactivateAlert`
+- [x] Settings theme buttons didn't apply the theme: `saveSettings` wrote localStorage without dispatching the `app_settings:changed` event the theme hook listens for. Now dispatched
+- [x] Rust `parse_price_from_text`/`infer_stock_status` diverged from mobile (EU separators, "not in stock"); aligned + Rust tests
+
+**Server / data**
+- [x] `deleteUserById` left `device_labels` orphaned (no FK) → a later account binding the same device id inherited the deleted user's label. Now deletes labels for the user's device ids
+- [x] Health event `id` zod cap (191) exceeded `notification_events.id varchar(128)` → 500 on upload. Capped at 128
+- [x] `x-device-id` header was unbounded vs `deviceId varchar(128)`; now bounded
+- [x] Added indexes for the hot purge scans: `price_history.date`, `revoked_devices.revokedAt`, `password_reset_tokens.expiresAt`, `email_verification_tokens.expiresAt` (migration `0026`)
+
+**Shared / config**
+- [x] `hasExchangeRate`/`getExchangeRate` accepted prototype keys (`"toString"`) via `in`; now own-property checks
+- [x] `cheapestByRegion` included `unknown`-availability listings; now matches `getBestPrice` (in_stock/back_order)
+- [x] `@shared/const` alias was broken under vitest and Vite (points at `shared/src`, but the file is `shared/const.ts`); added a specific alias
+- [x] `decodeOAuthState` threw on malformed base64; now returns empty state
+- [x] Android `showAlert` could still pass 4 buttons (cancel + 3) and could recurse forever on an empty remainder; fixed
+- [x] Web restock watches were consumed even when `displayWebNotification` no-oped; it now returns whether it displayed
+- [x] `bestPricePoints` filtered by the listing's *current* status instead of each point's status, inflating the historical best and firing false "all-time low"
+
+- [x] Tests: `web-export-invariants`, updated `sync-pull-paging`/`sync-router`/`delete-user-cleanup`/`desktop-web-globals`, Rust parser tests; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `297 passed | 1 skipped` / `1805 passed`, desktop `43 passed` / `218 passed`, `cargo test` 16 passed, `pnpm build` + `pnpm smoke:web` green

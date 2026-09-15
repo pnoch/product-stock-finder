@@ -6,17 +6,14 @@ import { readFile } from "node:fs/promises";
 // app on load (blank page). These guards failed silently until a real
 // headless-Chromium smoke test caught them.
 describe("desktop web-bundle globals", () => {
-  it("constants/oauth.ts guards process access", async () => {
+  it("constants/oauth.ts uses only static, inlinable env access", async () => {
     const text = await readFile("constants/oauth.ts", "utf8");
-    expect(text).toContain("typeof process");
-    // No bare process.env outside the guard.
-    const bare = text
-      .split("\n")
-      .filter(
-        (line) =>
-          /[^_.a-zA-Z]process\./.test(line) && !line.includes("typeof process"),
-      );
-    expect(bare).toEqual([]);
+    // Expo only inlines literal `process.env.EXPO_PUBLIC_*` member expressions;
+    // computed access (`process.env[key]`) is left as a runtime reference and
+    // crashes the browser bundle. `import.meta` is also unsupported by Hermes.
+    expect(text).not.toContain("import.meta");
+    expect(text).not.toMatch(/process\.env\[/);
+    expect(text).toContain("process.env.EXPO_PUBLIC_API_BASE_URL");
   });
 
   it("vite defines __DEV__ for shared React Native modules", async () => {

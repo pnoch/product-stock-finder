@@ -161,6 +161,9 @@ export const priceHistory = mysqlTable(
     primaryKey({
       columns: [table.distributorId, table.modelNumber, table.date],
     }),
+    // purgeOldHistory runs `DELETE ... WHERE date < ?` every warmer tick; the
+    // PK's leading columns are distributor/model, so `date` needs its own index.
+    index("idx_price_history_date").on(table.date),
   ],
 );
 
@@ -293,34 +296,49 @@ export const revokedDevices = mysqlTable(
     // isDeviceRevoked runs on every authenticated request and filters by
     // deviceId alone (the userId branch is an OR), so it needs its own index.
     idxDevice: index("revoked_devices_device").on(t.deviceId),
+    // purgeOldRevokedDevices filters by revokedAt.
+    idxRevokedAt: index("revoked_devices_revoked_at").on(t.revokedAt),
   }),
 );
 
 export type RevokedDeviceRow = typeof revokedDevices.$inferSelect;
 export type InsertRevokedDeviceRow = typeof revokedDevices.$inferInsert;
 
-export const passwordResetTokens = mysqlTable("password_reset_tokens", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  token: varchar("token", { length: 128 }).notNull().unique(),
-  expiresAt: bigint("expiresAt", { mode: "number" }).notNull(),
-  usedAt: bigint("usedAt", { mode: "number" }),
-});
+export const passwordResetTokens = mysqlTable(
+  "password_reset_tokens",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: varchar("token", { length: 128 }).notNull().unique(),
+    expiresAt: bigint("expiresAt", { mode: "number" }).notNull(),
+    usedAt: bigint("usedAt", { mode: "number" }),
+  },
+  (t) => ({
+    // purgeExpiredAuthTokens filters by expiresAt/usedAt.
+    idxExpiresAt: index("password_reset_tokens_expires_at").on(t.expiresAt),
+  }),
+);
 
 export type PasswordResetTokenRow = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetTokenRow = typeof passwordResetTokens.$inferInsert;
 
-export const emailVerificationTokens = mysqlTable("email_verification_tokens", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  token: varchar("token", { length: 128 }).notNull().unique(),
-  expiresAt: bigint("expiresAt", { mode: "number" }).notNull(),
-  usedAt: bigint("usedAt", { mode: "number" }),
-});
+export const emailVerificationTokens = mysqlTable(
+  "email_verification_tokens",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: varchar("token", { length: 128 }).notNull().unique(),
+    expiresAt: bigint("expiresAt", { mode: "number" }).notNull(),
+    usedAt: bigint("usedAt", { mode: "number" }),
+  },
+  (t) => ({
+    idxExpiresAt: index("email_verification_tokens_expires_at").on(t.expiresAt),
+  }),
+);
 
 export type EmailVerificationTokenRow = typeof emailVerificationTokens.$inferSelect;
 export type InsertEmailVerificationTokenRow = typeof emailVerificationTokens.$inferInsert;

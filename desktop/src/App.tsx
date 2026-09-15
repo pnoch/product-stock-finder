@@ -311,6 +311,16 @@ export default function App() {
   useEffect(() => {
     const unlistenPromise = onPriceDropsTriggered(async (events) => {
       for (const e of events ?? []) {
+        // The Rust poller deactivated the alert in its own file store; mirror
+        // that into the desktop store so the UI/server don't treat it as active
+        // (and re-fire it).
+        if (e.alertId) {
+          try {
+            await storage.deactivateAlert(e.alertId, e.bestPrice);
+          } catch {
+            // best effort
+          }
+        }
         try {
           await storage.recordNotificationEvent({
             id: `price-drop-${e.productId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,

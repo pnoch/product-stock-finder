@@ -54,7 +54,14 @@ export function cheapestByRegion(
   const inStockMap = new Map<string, { listing: DistributorListing; converted: number; usd: number }>();
   const fallbackMap = new Map<string, { listing: DistributorListing; converted: number; usd: number }>();
   for (const l of listings) {
-    if (l.stockStatus === "out_of_stock" || l.price <= 0) continue;
+    // Only orderable statuses: unknown availability must not anchor a
+    // "cheapest region" recommendation (matches getBestPrice).
+    if (
+      (l.stockStatus !== "in_stock" && l.stockStatus !== "back_order") ||
+      l.price <= 0
+    ) {
+      continue;
+    }
     const dist = getDistributorById(l.distributorId);
     if (!dist) continue;
     const region = dist.region ?? "Other";

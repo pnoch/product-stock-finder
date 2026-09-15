@@ -122,7 +122,7 @@ describe("sync pull cursor", () => {
     expect(result.fullResyncSince).not.toBeNull();
     // Must query with `since = null` (complete state), not the stale cursor —
     // otherwise untouched live rows are omitted and the client deletes them.
-    expect(mockedListChanged).toHaveBeenCalledWith(1, null, 501, false);
+    expect(mockedListChanged).toHaveBeenCalledWith(1, null, 501, null);
   });
 
   it("uses the incremental cursor when it is inside the retention window", async () => {
@@ -132,6 +132,6 @@ describe("sync pull cursor", () => {
     const recentSince = Date.now() - 60_000;
     const result = await caller.sync.pull({ since: recentSince });
     expect(result.fullResyncSince).toBeNull();
-    expect(mockedListChanged).toHaveBeenCalledWith(1, recentSince, 501, false);
+    expect(mockedListChanged).toHaveBeenCalledWith(1, recentSince, 501, null);
   });
 });

@@ -23,12 +23,13 @@ export interface SyncNowOptions {
   isSignedIn: () => boolean;
   pull: (
     since: number | null,
-    cursor?: number | null,
+    cursor?: { stamp: number; collection: string; id: string } | null,
   ) => Promise<{
     lastSyncedAt: number;
     items: SyncItem[];
     fullResyncSince?: number | null;
     hasMore?: boolean;
+    nextCursor?: { stamp: number; collection: string; id: string } | null;
   }>;
   push: (
     items: SyncItem[],
@@ -82,6 +83,7 @@ async function doSync(
     items: SyncItem[];
     fullResyncSince?: number | null;
     hasMore?: boolean;
+    nextCursor?: { stamp: number; collection: string; id: string } | null;
   };
   try {
     pulled = await opts.pull(since);
@@ -90,19 +92,16 @@ async function doSync(
     // stamp seen so far, and the server re-includes rows at that stamp so a
     // page boundary cannot skip an item (the client dedupes by key).
     let guard = 0;
-    while (pulled.hasMore && guard < 50) {
+    while (pulled.hasMore && pulled.nextCursor && guard < 50) {
       guard += 1;
-      const cursor = pulled.items.reduce(
-        (max, item) => Math.max(max, item.updatedAt, item.deletedAt ?? 0),
-        since ?? 0,
-      );
-      const next = await opts.pull(since, cursor);
+      const next = await opts.pull(since, pulled.nextCursor);
       if (next.items.length === 0) break;
       pulled = {
         lastSyncedAt: next.lastSyncedAt,
         items: [...pulled.items, ...next.items],
         fullResyncSince: pulled.fullResyncSince ?? next.fullResyncSince,
         hasMore: next.hasMore,
+        nextCursor: next.nextCursor,
       };
     }
   } catch (error) {
@@ -214,6 +213,11 @@ async function doSync(
         lastSyncError: `Push failed: ${
           error instanceof Error ? error.message : String(error)
         }`,
+        // The pull above may have merged settings (applyLocalItem). Refresh the
+        // merge base to the post-merge state; otherwise every merged field
+        // looks "locally edited" against the stale base and later remote
+        // changes to those fields are ignored indefinitely.
+        settingsSnapshot: await storage.getSettings(),
       });
       return;
     }
@@ -266,8 +270,17 @@ async function doSync(
     // Rejected items keep their old meta stamp, which is <= the new cursor, so
     // `entry.updatedAt > oldCursor` would never re-collect them and the edit
     // would be silently lost. Track them explicitly so the next sync retries.
+    //
+    // Only validation/transient rejections are retried. A `stale_write` means
+    // the server had a newer value: re-pushing it with a bumped stamp would
+    // beat the remote edit in LWW and revert it. Live stale items converge via
+    // the next pull; stale tombstones are cleared above.
     const rejectedKeys = dirty
       .filter((item) => !stampedKeys.has(`${item.collection}:${item.id}`))
+      .filter((item) => {
+        const reason = rejectedByKey.get(`${item.collection}:${item.id}`);
+        return reason !== "stale_write";
+      })
       .map((item) => `${item.collection}:${item.id}`);
     const carriedRetries = (meta.retryKeys ?? []).filter(
       (key) => !stampedKeys.has(key) && !rejectedKeys.includes(key),

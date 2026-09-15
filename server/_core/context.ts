@@ -29,7 +29,12 @@ export async function createContext(
   }
 
   const rawDeviceId = opts.req.headers["x-device-id"];
-  const headerDeviceId = typeof rawDeviceId === "string" ? rawDeviceId : null;
+  // Bound the header to the deviceId column width (varchar(128)); an unbounded
+  // value would fail inserts downstream with a 500 instead of a clean reject.
+  const headerDeviceId =
+    typeof rawDeviceId === "string" && rawDeviceId.length > 0 && rawDeviceId.length <= 128
+      ? rawDeviceId
+      : null;
   const claimDeviceId = user?.sessionDeviceId ?? null;
   const effectiveDeviceId = user ? (claimDeviceId ?? headerDeviceId) : null;
 

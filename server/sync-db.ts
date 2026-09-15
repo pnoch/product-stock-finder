@@ -36,21 +36,80 @@ export function shouldAcceptSyncWrite(
 // unbounded full-resync read from loading an entire account into memory.
 const DEFAULT_LIST_LIMIT = 5000;
 
+export interface SyncCursor {
+  stamp: number;
+  collection: string;
+  id: string;
+}
+
+// Deterministic global page order is (effectiveStamp, collection, id) ascending.
+// A stamp-only cursor cannot page correctly: many rows can share a stamp (bulk
+// edits, tombstones), so `>= stamp` would return the same page forever and the
+// client would stop with rows undelivered. The composite cursor makes the order
+// total, so each page is strictly after the previous one.
+function afterCursor(
+  stampExpr: SQLWrapper,
+  collection: string,
+  idExpr: SQLWrapper,
+  cursor: SyncCursor | null,
+): SQLWrapper | undefined {
+  if (!cursor) return undefined;
+  if (collection > cursor.collection) {
+    // Later collection: any row at the same stamp sorts after the cursor.
+    return gte(stampExpr, cursor.stamp);
+  }
+  if (collection === cursor.collection) {
+    return or(
+      gt(stampExpr, cursor.stamp),
+      and(eq(stampExpr, cursor.stamp), gt(idExpr, cursor.id)),
+    );
+  }
+  // Earlier collection: only strictly newer stamps come after the cursor.
+  return gt(stampExpr, cursor.stamp);
+}
+
 export async function listChangedItems(
   userId: number,
   since: number | null,
   limit?: number,
-  inclusive = false,
+  cursor: SyncCursor | null = null,
 ): Promise<SyncItem[]> {
   const db = await getDb();
   if (!db) return [];
   const sinceMs = since ?? 0;
-  // `inclusive` is used for page continuation: re-including rows exactly at the
-  // cursor guarantees no item is skipped at a page boundary (the client dedupes
-  // by key, so a few re-sends are harmless).
-  const cmp = inclusive ? gte : gt;
   const changed = (updatedAtMs: SQLWrapper, deletedAtMs: SQLWrapper) =>
-    or(cmp(updatedAtMs, sinceMs), cmp(deletedAtMs, sinceMs));
+    or(gt(updatedAtMs, sinceMs), gt(deletedAtMs, sinceMs));
+  const effectiveStamp = (updatedAtMs: SQLWrapper, deletedAtMs: SQLWrapper) =>
+    sql`GREATEST(${updatedAtMs}, COALESCE(${deletedAtMs}, 0))`;
+
+  const perCollection = limit ?? DEFAULT_LIST_LIMIT;
+  const watchlistAfter = afterCursor(
+    effectiveStamp(watchlistItems.updatedAtMs, watchlistItems.deletedAtMs),
+    "watchlist",
+    watchlistItems.productId,
+    cursor,
+  );
+  const alertsAfter = afterCursor(
+    effectiveStamp(priceAlerts.updatedAtMs, priceAlerts.deletedAtMs),
+    "alerts",
+    priceAlerts.alertId,
+    cursor,
+  );
+  const remindersAfter = afterCursor(
+    effectiveStamp(
+      backOrderReminders.updatedAtMs,
+      backOrderReminders.deletedAtMs,
+    ),
+    "reminders",
+    backOrderReminders.reminderId,
+    cursor,
+  );
+  const settingsAfter = afterCursor(
+    effectiveStamp(appSettings.updatedAtMs, appSettings.deletedAtMs),
+    "settings",
+    sql`'settings'`,
+    cursor,
+  );
 
   const [watchlist, alerts, reminders, settings] = await Promise.all([
     db
@@ -60,9 +119,14 @@ export async function listChangedItems(
         and(
           eq(watchlistItems.userId, userId),
           changed(watchlistItems.updatedAtMs, watchlistItems.deletedAtMs),
+          ...(watchlistAfter ? [watchlistAfter] : []),
         ),
       )
-      .limit(limit ?? DEFAULT_LIST_LIMIT),
+      .orderBy(
+        effectiveStamp(watchlistItems.updatedAtMs, watchlistItems.deletedAtMs),
+        watchlistItems.productId,
+      )
+      .limit(perCollection),
     db
       .select()
       .from(priceAlerts)
@@ -70,9 +134,14 @@ export async function listChangedItems(
         and(
           eq(priceAlerts.userId, userId),
           changed(priceAlerts.updatedAtMs, priceAlerts.deletedAtMs),
+          ...(alertsAfter ? [alertsAfter] : []),
         ),
       )
-      .limit(limit ?? DEFAULT_LIST_LIMIT),
+      .orderBy(
+        effectiveStamp(priceAlerts.updatedAtMs, priceAlerts.deletedAtMs),
+        priceAlerts.alertId,
+      )
+      .limit(perCollection),
     db
       .select()
       .from(backOrderReminders)
@@ -83,9 +152,17 @@ export async function listChangedItems(
             backOrderReminders.updatedAtMs,
             backOrderReminders.deletedAtMs,
           ),
+          ...(remindersAfter ? [remindersAfter] : []),
         ),
       )
-      .limit(limit ?? DEFAULT_LIST_LIMIT),
+      .orderBy(
+        effectiveStamp(
+          backOrderReminders.updatedAtMs,
+          backOrderReminders.deletedAtMs,
+        ),
+        backOrderReminders.reminderId,
+      )
+      .limit(perCollection),
     db
       .select()
       .from(appSettings)
@@ -93,9 +170,11 @@ export async function listChangedItems(
         and(
           eq(appSettings.userId, userId),
           changed(appSettings.updatedAtMs, appSettings.deletedAtMs),
+          ...(settingsAfter ? [settingsAfter] : []),
         ),
       )
-      .limit(limit ?? DEFAULT_LIST_LIMIT),
+      .orderBy(effectiveStamp(appSettings.updatedAtMs, appSettings.deletedAtMs))
+      .limit(perCollection),
   ]);
 
   const items: SyncItem[] = [];

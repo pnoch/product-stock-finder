@@ -16,11 +16,17 @@ vi.mock("mysql2/promise", () => ({
 
 vi.mock("drizzle-orm/mysql2", () => ({
   drizzle: vi.fn(() => ({
+    // Device-id lookups (select) return none, so the label cleanup is skipped.
+    select: () => ({
+      from: () => ({ where: async () => [] }),
+    }),
     delete: (_table: unknown) => {
       deleteCall += 1;
       const call = deleteCall;
       return {
         where: async () => {
+          // First delete is the revoked-devices cleanup; make it fail to
+          // exercise the error path.
           if (call === 1) throw new Error("boom");
           return [];
         },
@@ -47,6 +53,7 @@ describe("deleteUserById", () => {
         expect.anything(),
         expect.anything()
       );
+      // revoked_devices cleanup (fails) + users delete.
       expect(deleteCall).toBe(2);
     } finally {
       err.mockRestore();

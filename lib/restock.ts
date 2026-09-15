@@ -55,11 +55,10 @@ async function runCheckRestocks(): Promise<void> {
             // No local scheduling on web; show a foreground web notification
             // so the watch isn't consumed without any user-visible alert.
             const { displayWebNotification } = await import("./web-notifications");
-            displayWebNotification(
+            notified = displayWebNotification(
               "🟢 Back In Stock!",
               `${watch.productName} is now available at ${distrib?.name ?? watch.distributorName}.`,
             );
-            notified = true;
           } else {
             const id = await scheduleStockAlert(
               watch.productName,

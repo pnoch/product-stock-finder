@@ -29,6 +29,8 @@ function item(id: string, updatedAt: number): SyncItem {
   };
 }
 
+type Cursor = { stamp: number; collection: string; id: string };
+
 describe("sync pull paging", () => {
   it("drains every page until hasMore is false", async () => {
     const storage = createStorage(adapter());
@@ -38,20 +40,24 @@ describe("sync pull paging", () => {
       [item("d", 40)],
     ];
     let call = 0;
-    const pull = vi.fn(async (_since: number | null, cursor?: number | null) => {
-      const idx = call++;
-      void cursor;
-      return {
-        lastSyncedAt: 100,
-        items: pages[idx] ?? [],
-        hasMore: idx < pages.length - 1,
-      };
-    });
+    const pull = vi.fn(
+      async (_since: number | null, _cursor?: Cursor | null) => {
+        const idx = call++;
+        return {
+          lastSyncedAt: 100,
+          items: pages[idx] ?? [],
+          hasMore: idx < pages.length - 1,
+          nextCursor:
+            idx < pages.length - 1
+              ? { stamp: idx * 10, collection: "watchlist", id: `p${idx}` }
+              : null,
+        };
+      },
+    );
     const push = vi.fn(async () => ({ accepted: 0, stamped: [] }));
 
     await syncNow({ storage, isSignedIn: () => true, pull, push, now: () => 1000 });
 
-    // 3 pages → 3 pull calls (the loop stops once hasMore is false).
     expect(pull).toHaveBeenCalledTimes(3);
     const watchlist = await storage.getWatchlist();
     expect(watchlist.map((p) => p.id).sort()).toEqual(["a", "b", "c", "d"]);
@@ -66,12 +72,26 @@ describe("sync pull paging", () => {
         lastSyncedAt: 100,
         items: call === 1 ? [item("a", 10)] : [],
         hasMore: true,
+        nextCursor: { stamp: call, collection: "watchlist", id: `p${call}` },
       };
     });
     const push = vi.fn(async () => ({ accepted: 0, stamped: [] }));
 
     await syncNow({ storage, isSignedIn: () => true, pull, push, now: () => 1000 });
-    // Second call returns empty → loop breaks rather than spinning.
     expect(pull).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops when hasMore is set but no cursor is returned", async () => {
+    const storage = createStorage(adapter());
+    const pull = vi.fn(async () => ({
+      lastSyncedAt: 100,
+      items: [item("a", 10)],
+      hasMore: true,
+      nextCursor: null,
+    }));
+    const push = vi.fn(async () => ({ accepted: 0, stamped: [] }));
+
+    await syncNow({ storage, isSignedIn: () => true, pull, push, now: () => 1000 });
+    expect(pull).toHaveBeenCalledTimes(1);
   });
 });

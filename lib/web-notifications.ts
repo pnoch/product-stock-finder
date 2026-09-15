@@ -28,17 +28,21 @@ export async function requestWebNotificationPermission(): Promise<
   }
 }
 
-export function displayWebNotification(title: string, body: string): void {
-  if (!isWebNotificationsSupported()) return;
-  if (window.Notification.permission !== "granted") return;
+// Returns whether a notification was actually shown, so callers can avoid
+// consuming state (e.g. a restock watch) when nothing was delivered.
+export function displayWebNotification(title: string, body: string): boolean {
+  if (!isWebNotificationsSupported()) return false;
+  if (window.Notification.permission !== "granted") return false;
   try {
     const notification = new window.Notification(title, { body });
     notification.onclick = () => {
       window.focus();
       notification.close();
     };
+    return true;
   } catch (err) {
     console.warn("[web-notifications] display failed", err);
+    return false;
   }
 }
 

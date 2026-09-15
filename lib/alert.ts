@@ -29,16 +29,22 @@ function showAndroidChoice(
   message: string | undefined,
   buttons: AlertButton[],
 ): void {
-  const [first, second, ...rest] = buttons;
-  const cancel = rest.find((b) => b.style === "cancel");
-  const more = rest.filter((b) => b !== cancel);
-  const primary = second ?? more.shift();
-  const options: AlertButton[] = [
-    ...(first ? [first] : []),
-    ...(primary ? [primary] : []),
-    { text: "More…", onPress: () => showAndroidChoice(title, message, more) },
-  ];
-  if (cancel) options.push(cancel);
+  const cancel = buttons.find((b) => b.style === "cancel");
+  const actions = buttons.filter((b) => b !== cancel);
+  // Android shows at most 3 buttons. Reserve one slot for Cancel when present,
+  // so the visible set never exceeds 3 (a 4th is silently dropped).
+  const slots = cancel ? 2 : 3;
+  const shown = actions.slice(0, slots);
+  const remaining = actions.slice(slots);
+  const options: AlertButton[] = [...shown];
+  if (remaining.length > 0) {
+    options.push({
+      text: "More…",
+      onPress: () => showAndroidChoice(title, message, [...remaining, ...(cancel ? [cancel] : [])]),
+    });
+  } else if (cancel) {
+    options.push(cancel);
+  }
   Alert.alert(title, message, options);
 }
 

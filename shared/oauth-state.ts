@@ -27,7 +27,14 @@ export function decodeOAuthState(state: string): {
   redirectUri: string;
   deviceId: string | undefined;
 } {
-  const decoded = atobSafe(state);
+  // atob throws on malformed base64; treat that as "no state" rather than
+  // letting the parser throw at the call site.
+  let decoded = state;
+  try {
+    decoded = atobSafe(state);
+  } catch {
+    return { redirectUri: "", deviceId: undefined };
+  }
   try {
     const parsed = JSON.parse(decoded) as {
       redirectUri?: string;
