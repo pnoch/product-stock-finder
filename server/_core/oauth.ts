@@ -756,15 +756,16 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       const tokenHash = hashToken(token.trim());
-      const row = await db.consumePasswordResetToken(tokenHash);
-      if (!row) {
-        res.status(400).json({ error: "Invalid or expired token" });
-        return;
-      }
       const hashFn = (bcrypt as unknown as { hash?: (p: string, r: number) => Promise<string>; default?: { hash: (p: string, r: number) => Promise<string> } }).hash
         ?? (bcrypt as unknown as { default?: { hash: (p: string, r: number) => Promise<string> } }).default?.hash;
       const hashed = hashFn ? await hashFn(newPassword, 10) : await (bcrypt as unknown as { hash: (p: string, r: number) => Promise<string> }).hash(newPassword, 10);
-      await db.updateUserPasswordHashById(row.userId, hashed);
+      // Consume + apply in one transaction: a failure after consumption would
+      // otherwise burn the one-time token without changing the password.
+      const ok = await db.resetPasswordWithToken(tokenHash, hashed);
+      if (!ok) {
+        res.status(400).json({ error: "Invalid or expired token" });
+        return;
+      }
       res.json({ success: true });
     } catch (e: unknown) {
       console.error("[Auth] reset failed", e);

@@ -299,11 +299,16 @@ export async function maybeSendDigest(
         if (frequency === "weekly") {
           const targetDay = settings.digestDayOfWeek ?? 0;
           if (new Date(now).getDay() !== targetDay) return null;
+          // Compare calendar days, not elapsed 24h periods: across a DST
+          // transition a week is 167 or 169 hours, so `daysDiff` could be 6
+          // (skipping a week) or 7 after only 6 days.
           const lastDay = new Date(lastTime);
           lastDay.setHours(0, 0, 0, 0);
           const nowDay = new Date(nowTime);
           nowDay.setHours(0, 0, 0, 0);
-          const daysDiff = Math.floor((nowDay.getTime() - lastDay.getTime()) / 86400000);
+          const daysDiff = Math.round(
+            (nowDay.getTime() - lastDay.getTime()) / 86400000,
+          );
           if (daysDiff < 7) return null;
         } else {
           const nextEligible = lastTime + intervalMs;

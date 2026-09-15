@@ -9,6 +9,7 @@ import {
   MAX_UPLOAD_HEALTH_EVENTS,
   MAX_UPLOAD_HISTORY_POINTS,
   MAX_UPLOAD_STOCK_WATCHES,
+  SYNC_PULL_MAX_ITEMS,
   SYNC_PUSH_MAX_ITEMS,
 } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -145,7 +146,13 @@ export const appRouter = router({
 
   sync: router({
     pull: protectedProcedure
-      .input(z.object({ since: z.number().finite().nonnegative().nullable() }))
+      .input(
+        z.object({
+          since: z.number().finite().nonnegative().nullable(),
+          // Page continuation cursor (newest stamp from the previous page).
+          cursor: z.number().finite().nonnegative().nullable().optional(),
+        }),
+      )
       .query(async ({ ctx, input }) => {
         checkRateLimit(ctx, "sync.pull", 60, 60_000);
         const db = await getDb();
@@ -165,12 +172,22 @@ export const appRouter = router({
         // would delete them.
         const cutoff = lastSyncedAt - TOMBSTONE_PURGE_WINDOW_MS;
         const needsFullResync = input.since != null && input.since < cutoff;
+        // Page the result: a full resync returns every live row plus
+        // tombstones, so an unbounded payload could be very large. `hasMore`
+        // tells the client to re-pull with the returned cursor.
+        // On a continuation page, re-include rows at the cursor (inclusive) so
+        // a boundary cannot skip an item; the client dedupes by key.
+        const pageSince = input.cursor ?? (needsFullResync ? null : input.since);
         const items = await listChangedItems(
           ctx.user.id,
-          needsFullResync ? null : input.since,
+          pageSince,
+          SYNC_PULL_MAX_ITEMS + 1,
+          input.cursor != null,
         );
+        const hasMore = items.length > SYNC_PULL_MAX_ITEMS;
+        const page = hasMore ? items.slice(0, SYNC_PULL_MAX_ITEMS) : items;
         const fullResyncSince = needsFullResync ? cutoff : null;
-        return { lastSyncedAt, items, fullResyncSince };
+        return { lastSyncedAt, items: page, fullResyncSince, hasMore };
       }),
     push: protectedProcedure
       .input(z.object({ items: z.array(syncItemSchema).max(SYNC_PUSH_MAX_ITEMS) }))

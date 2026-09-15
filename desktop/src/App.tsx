@@ -252,7 +252,7 @@ export default function App() {
     syncRef.current = setupSync({
       storage,
       isSignedIn: () => isAuthenticatedRef.current,
-      pull: (since) => trpcClient.sync.pull.query({ since }),
+      pull: (since, cursor) => trpcClient.sync.pull.query({ since, cursor: cursor ?? null }),
       push: (items) => trpcClient.sync.push.mutate({ items }),
     });
     // Register the setup so the Settings "Sync now" button (getSyncSetup) works.

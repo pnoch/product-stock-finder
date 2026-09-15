@@ -149,39 +149,61 @@ function isShareDeepLinkLine(line: string): boolean {
   return false;
 }
 
-function parseCsvLine(line: string): string[] {
-  const out: string[] = [];
-  let cur = "";
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (line[i + 1] === '"') {
-          cur += '"';
-          i++;
-        } else inQuotes = false;
-      } else cur += ch;
-    } else {
-      if (ch === '"') inQuotes = true;
-      else if (ch === ",") {
-        out.push(cur);
-        cur = "";
-      } else cur += ch;
-    }
-  }
-  out.push(cur);
-  return out;
-}
-
+// RFC4180-correct tokenizer: quoted fields may contain commas AND newlines.
+// The previous implementation split on newlines first, so an exported value
+// containing a newline (which escapeCsv quotes) could not be re-imported.
 function parseCsvRows(csv: string): string[][] {
   const rows: string[][] = [];
-  const lines = stripBom(csv).split(/\r?\n/);
-  for (const raw of lines) {
-    if (raw.trim() === "") continue;
-    if (isShareDeepLinkLine(raw)) continue;
-    rows.push(parseCsvLine(raw));
+  const text = stripBom(csv);
+  let row: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  let sawContent = false;
+
+  const endField = () => {
+    row.push(cur);
+    cur = "";
+  };
+  const endRow = () => {
+    endField();
+    const isBlank = row.length === 1 && row[0]!.trim() === "";
+    const first = row[0] ?? "";
+    if (!isBlank && !isShareDeepLinkLine(first)) rows.push(row);
+    row = [];
+    sawContent = false;
+  };
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]!;
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        cur += ch;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inQuotes = true;
+      sawContent = true;
+    } else if (ch === ",") {
+      endField();
+      sawContent = true;
+    } else if (ch === "\n") {
+      endRow();
+    } else if (ch === "\r") {
+      if (text[i + 1] !== "\n") endRow();
+    } else {
+      cur += ch;
+      sawContent = true;
+    }
   }
+  if (sawContent || cur !== "" || row.length > 0) endRow();
   return rows;
 }
 

@@ -23,10 +23,12 @@ export interface SyncNowOptions {
   isSignedIn: () => boolean;
   pull: (
     since: number | null,
+    cursor?: number | null,
   ) => Promise<{
     lastSyncedAt: number;
     items: SyncItem[];
     fullResyncSince?: number | null;
+    hasMore?: boolean;
   }>;
   push: (
     items: SyncItem[],
@@ -79,9 +81,30 @@ async function doSync(
     lastSyncedAt: number;
     items: SyncItem[];
     fullResyncSince?: number | null;
+    hasMore?: boolean;
   };
   try {
     pulled = await opts.pull(since);
+    // Drain remaining pages. The server caps each pull; without this a large
+    // account would only ever receive the first page. `cursor` is the newest
+    // stamp seen so far, and the server re-includes rows at that stamp so a
+    // page boundary cannot skip an item (the client dedupes by key).
+    let guard = 0;
+    while (pulled.hasMore && guard < 50) {
+      guard += 1;
+      const cursor = pulled.items.reduce(
+        (max, item) => Math.max(max, item.updatedAt, item.deletedAt ?? 0),
+        since ?? 0,
+      );
+      const next = await opts.pull(since, cursor);
+      if (next.items.length === 0) break;
+      pulled = {
+        lastSyncedAt: next.lastSyncedAt,
+        items: [...pulled.items, ...next.items],
+        fullResyncSince: pulled.fullResyncSince ?? next.fullResyncSince,
+        hasMore: next.hasMore,
+      };
+    }
   } catch (error) {
     console.warn("[Sync] Pull failed; skipping sync", error);
     await storage.saveSyncMeta({

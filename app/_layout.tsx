@@ -210,7 +210,7 @@ export default function RootLayout() {
     const setup = setupSync({
       storage: defaultStorage,
       isSignedIn: () => isAuthenticatedRef.current,
-      pull: (since) => trpcClient.sync.pull.query({ since }),
+      pull: (since, cursor) => trpcClient.sync.pull.query({ since, cursor: cursor ?? null }),
       push: (items) => trpcClient.sync.push.mutate({ items }),
     });
     syncRef.current = setup;

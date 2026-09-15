@@ -1691,3 +1691,12 @@
 - [x] `revoked_devices` rows were only removed on unrevoke/user-deletion, feeding the per-request `isDeviceRevoked` scan. Added `purgeOldRevokedDevices` (90d)
 - [x] Background tasks re-registered on every launch, resetting the OS scheduling window (iOS) and potentially deferring them indefinitely. Added a persisted interval marker so registration only happens when missing or changed
 - [x] Tests: `retention-purges`, restock retention case in `restock.test.ts`, digest non-delivery in `price-digest.test.ts`, task-interval cases in `price-check.test.ts` (restock case verified non-vacuous); migration `0025`; E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `290 passed | 1 skipped` / `1776 passed`, desktop `43 passed` / `218 passed`
+
+## Phase 220: DST digest, sync paging, transactional writes, CSV round-trip
+
+- [x] Weekly digest used elapsed-24h day math, so across a DST transition a Sunday-to-Sunday week (167h) computed 6 days and skipped a week. Now compares calendar days with `Math.round`
+- [x] `sync.pull` had no result cap (a full resync returned every live row + tombstone). Added `SYNC_PULL_MAX_ITEMS` (500) with `hasMore`, a `cursor` continuation param, inclusive re-inclusion at the boundary (client dedupes by key), and a client paging loop (bounded at 50 pages)
+- [x] Registration wrote the user row and password hash as two un-transacted writes; a crash between them left an account with `passwordHash = NULL` that could never log in and could not re-register. Added `createUserWithPassword` (single transaction)
+- [x] Password reset consumed the one-time token, then updated the hash separately; a failure after consumption burned the token. Added `resetPasswordWithToken` (consume + apply in one transaction)
+- [x] CSV parser split on newlines before quote-aware parsing, so an exported value containing a newline could not be re-imported. Replaced with an RFC4180-correct tokenizer (quoted commas/newlines, CRLF, escaped quotes)
+- [x] Tests: `csv-quoted-newline`, `sync-pull-paging`, DST weekly case in `price-digest.test.ts` (all verified non-vacuous); updated `password-reset`/`sync-router` mocks; E2E root `tsc 0`, desktop `tsc 0`, lint clean, root `292 passed | 1 skipped` / `1782 passed`, desktop `43 passed` / `218 passed`

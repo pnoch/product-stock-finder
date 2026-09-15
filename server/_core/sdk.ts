@@ -46,15 +46,18 @@ class SDKServer {
     const passwordHash = await bcrypt.hash(req.password, SALT_ROUNDS);
     const openId = `email_${Date.now()}_${randomUUID()}`;
 
-    await db.upsertUser({
-      openId,
-      email: normalizedEmail,
-      name: req.name || normalizedEmail.split("@")[0],
-      loginMethod: "email",
-      lastSignedIn: new Date(),
-    } as any);
-
-    await db.updateUserPasswordHash(openId, passwordHash);
+    // Single transaction: a crash between the insert and the hash update would
+    // otherwise leave an account that can never log in and cannot re-register.
+    await db.createUserWithPassword(
+      {
+        openId,
+        email: normalizedEmail,
+        name: req.name || normalizedEmail.split("@")[0],
+        loginMethod: "email",
+        lastSignedIn: new Date(),
+      } as any,
+      passwordHash,
+    );
 
     const user = await db.getUserByOpenId(openId);
     if (!user) throw ForbiddenError("Registration failed");

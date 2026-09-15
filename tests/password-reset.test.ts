@@ -5,6 +5,7 @@ const sha256 = (s: string) => createHash("sha256").update(s, "utf8").digest("hex
 
 vi.mock("../server/db", () => {
   const store = new Map<string, { userId: number; token: string; expiresAt: number; usedAt: number | null }>();
+  const hashCalls: Array<{ userId: number; passwordHash: string }> = [];
   return {
     getUserByEmail: vi.fn(),
     getUserById: vi.fn(),
@@ -19,7 +20,16 @@ vi.mock("../server/db", () => {
       store.set(token, r);
       return r;
     }),
+    resetPasswordWithToken: vi.fn(async (token: string, passwordHash: string) => {
+      const r = store.get(token);
+      if (!r || r.usedAt !== null || r.expiresAt <= Date.now()) return false;
+      r.usedAt = Date.now();
+      store.set(token, r);
+      hashCalls.push({ userId: r.userId, passwordHash });
+      return true;
+    }),
     updateUserPasswordHashById: vi.fn(),
+    __hashCalls: hashCalls,
     getUserByOpenId: vi.fn(),
     __clearPasswordResetTokensForTest: vi.fn(() => store.clear()),
     __testStore: store,
@@ -185,7 +195,8 @@ describe("POST /api/auth/reset", () => {
     const res = makeRes();
     await handler("POST", "/api/auth/reset")(makeReq({ token, newPassword: "newpass123" }), res);
     expect(bcrypt.hash).toHaveBeenCalled();
-    expect(db.updateUserPasswordHashById).toHaveBeenCalledWith(42, "hashed");
+    const hashCalls = (db as unknown as { __hashCalls: Array<{ userId: number; passwordHash: string }> }).__hashCalls;
+    expect(hashCalls).toContainEqual({ userId: 42, passwordHash: "hashed" });
     expect(res.json).toHaveBeenCalledWith({ success: true });
     // Consumed: a second use must fail.
     const res2 = makeRes();
@@ -241,7 +252,7 @@ describe("POST /api/auth/reset", () => {
     const handler = makeApp();
     const res = makeRes();
     await handler("POST", "/api/auth/reset")(makeReq({ token: "tok-123", newPassword: "newpass123" }), res);
-    const consumed = vi.mocked(db.consumePasswordResetToken).mock.calls[0][0] as string;
+    const consumed = vi.mocked(db.resetPasswordWithToken).mock.calls[0][0] as string;
     expect(consumed).toMatch(/^[0-9a-f]{64}$/);
     expect(consumed).not.toBe("tok-123");
   });

@@ -23,6 +23,11 @@ export const MAX_UPLOAD_HEALTH_EVENTS = 100;
 // a large local change set is never rejected as one oversized payload.
 export const SYNC_PUSH_MAX_ITEMS = 200;
 
+// Max items returned per sync.pull. A full resync returns every live row plus
+// tombstones, so an unbounded result set could be huge; the client pages by
+// re-pulling until `hasMore` is false.
+export const SYNC_PULL_MAX_ITEMS = 500;
+
 // Max price-history points per prices.uploadHistory call. The client must trim
 // to this (keeping the newest) or the whole upload is rejected.
 export const MAX_UPLOAD_HISTORY_POINTS = 200;

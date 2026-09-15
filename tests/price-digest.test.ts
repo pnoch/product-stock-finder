@@ -405,6 +405,26 @@ describe("maybeSendDigest", () => {
     expect(result).not.toBeNull();
     expect(send).toHaveBeenCalledTimes(1);
   });
+
+  it("fires weekly across a DST transition (167h week)", async () => {
+    // America/New_York springs forward 2026-03-08. A Sunday-to-Sunday week is
+    // only 167 hours, so an elapsed-24h check would compute 6 days and skip.
+    const previous: DigestSnapshot = {
+      lastDigestAt: "2026-03-08T14:00:00.000Z",
+      products: [],
+    };
+    const send = vi.fn(async () => true);
+    const result = await maybeSendDigest(
+      previous,
+      [],
+      makeSettings({ digestFrequency: "weekly", digestDayOfWeek: 0 }),
+      [],
+      send,
+      "2026-03-15T14:00:00.000Z", // the following Sunday
+    );
+    expect(result).not.toBeNull();
+    expect(send).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("digest enhancements", () => {

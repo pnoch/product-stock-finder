@@ -1,4 +1,4 @@
-import { and, eq, gt, lt, or, sql, type SQLWrapper } from "drizzle-orm";
+import { and, eq, gt, gte, lt, or, sql, type SQLWrapper } from "drizzle-orm";
 import {
   appSettings,
   backOrderReminders,
@@ -32,15 +32,25 @@ export function shouldAcceptSyncWrite(
  * `since` (epoch ms). `since === null` means first sync (return everything).
  * Tombstoned rows carry `data: null` so the client only needs the deletion.
  */
+// Per-collection cap when no explicit limit is given. Keeps an accidental
+// unbounded full-resync read from loading an entire account into memory.
+const DEFAULT_LIST_LIMIT = 5000;
+
 export async function listChangedItems(
   userId: number,
   since: number | null,
+  limit?: number,
+  inclusive = false,
 ): Promise<SyncItem[]> {
   const db = await getDb();
   if (!db) return [];
   const sinceMs = since ?? 0;
+  // `inclusive` is used for page continuation: re-including rows exactly at the
+  // cursor guarantees no item is skipped at a page boundary (the client dedupes
+  // by key, so a few re-sends are harmless).
+  const cmp = inclusive ? gte : gt;
   const changed = (updatedAtMs: SQLWrapper, deletedAtMs: SQLWrapper) =>
-    or(gt(updatedAtMs, sinceMs), gt(deletedAtMs, sinceMs));
+    or(cmp(updatedAtMs, sinceMs), cmp(deletedAtMs, sinceMs));
 
   const [watchlist, alerts, reminders, settings] = await Promise.all([
     db
@@ -51,7 +61,8 @@ export async function listChangedItems(
           eq(watchlistItems.userId, userId),
           changed(watchlistItems.updatedAtMs, watchlistItems.deletedAtMs),
         ),
-      ),
+      )
+      .limit(limit ?? DEFAULT_LIST_LIMIT),
     db
       .select()
       .from(priceAlerts)
@@ -60,7 +71,8 @@ export async function listChangedItems(
           eq(priceAlerts.userId, userId),
           changed(priceAlerts.updatedAtMs, priceAlerts.deletedAtMs),
         ),
-      ),
+      )
+      .limit(limit ?? DEFAULT_LIST_LIMIT),
     db
       .select()
       .from(backOrderReminders)
@@ -72,7 +84,8 @@ export async function listChangedItems(
             backOrderReminders.deletedAtMs,
           ),
         ),
-      ),
+      )
+      .limit(limit ?? DEFAULT_LIST_LIMIT),
     db
       .select()
       .from(appSettings)
@@ -81,7 +94,8 @@ export async function listChangedItems(
           eq(appSettings.userId, userId),
           changed(appSettings.updatedAtMs, appSettings.deletedAtMs),
         ),
-      ),
+      )
+      .limit(limit ?? DEFAULT_LIST_LIMIT),
   ]);
 
   const items: SyncItem[] = [];

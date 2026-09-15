@@ -146,6 +146,39 @@ export async function updateUserPasswordHash(openId: string, passwordHash: strin
   await db.update(users).set({ passwordHash } as any).where(eq(users.openId, openId));
 }
 
+// Creates the user row and its password hash in one transaction. Doing these as
+// two writes could leave a user row with `passwordHash = NULL` if the process
+// died in between — login always rejects and re-registration is blocked by the
+// "already registered" check, so the account would be permanently unusable.
+export async function createUserWithPassword(
+  user: InsertUser,
+  passwordHash: string,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create user: database not available");
+    return;
+  }
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(users)
+      .values({
+        openId: user.openId,
+        email: user.email ?? null,
+        name: user.name ?? null,
+        loginMethod: user.loginMethod ?? "email",
+        lastSignedIn: user.lastSignedIn ?? new Date(),
+      } as never)
+      .onDuplicateKeyUpdate({
+        set: { lastSignedIn: new Date() },
+      });
+    await tx
+      .update(users)
+      .set({ passwordHash } as never)
+      .where(eq(users.openId, user.openId));
+  });
+}
+
 export async function getUserById(id: number) {
   const db = await getDb();
   if (!db) return null;
@@ -248,6 +281,49 @@ export async function consumePasswordResetToken(token: string) {
 
 export function __clearPasswordResetTokensForTest() {
   memTokens.clear();
+}
+
+// Consumes the token and applies the new password hash in one transaction, so a
+// failure after consumption cannot burn the one-time token without changing the
+// password (which forced the user to restart the whole reset flow).
+export async function resetPasswordWithToken(
+  token: string,
+  passwordHash: string,
+): Promise<boolean> {
+  type Row = { userId: number; token: string; expiresAt: number; usedAt: number | null };
+  const now = Date.now();
+  const db = await getDb();
+  if (!db) {
+    const row = memTokens.get(token);
+    if (!row || row.usedAt !== null || row.expiresAt <= now) return false;
+    row.usedAt = now;
+    memTokens.set(token, row);
+    await updateUserPasswordHashById(row.userId, passwordHash);
+    return true;
+  }
+  try {
+    return await db.transaction(async (tx) => {
+      const rows = await tx
+        .select()
+        .from(passwordResetTokens)
+        .where(eq(passwordResetTokens.token, token))
+        .limit(1)
+        .for("update");
+      const row = rows[0] as unknown as Row | undefined;
+      if (!row || row.usedAt !== null || row.expiresAt <= now) return false;
+      await tx
+        .update(passwordResetTokens)
+        .set({ usedAt: now } as never)
+        .where(eq(passwordResetTokens.token, token));
+      await tx
+        .update(users)
+        .set({ passwordHash } as never)
+        .where(eq(users.id, row.userId));
+      return true;
+    });
+  } catch {
+    return false;
+  }
 }
 
 // ─── Email verification tokens (in-memory fallback when DB unavailable) ─────
