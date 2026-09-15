@@ -53,6 +53,10 @@ export function getOrigin(req?: { headers: Record<string, unknown> }): string {
 
 let lastTombstonePurgeAt = 0;
 const TOMBSTONE_PURGE_INTERVAL_MS = 60 * 60 * 1000;
+
+// Public share links return the owner's watchlist; cap the payload so a very
+// large watchlist can't turn the endpoint into an expensive unbounded read.
+const SHARED_WATCHLIST_MAX_ITEMS = 500;
 import { getPrice } from "./prices";
 import { checkAllDistributors } from "./health";
 
@@ -565,15 +569,19 @@ export const appRouter = router({
           await db.delete(sharedWatchlists).where(eq(sharedWatchlists.token, input.token));
           throw new TRPCError({ code: "NOT_FOUND", message: "Share expired" });
         }
+        // Cap the shared payload: a public endpoint must not return an
+        // arbitrarily large watchlist (or read every row into memory) just
+        // because the owner has thousands of items.
         const items = await db
           .select()
           .from(watchlistItems)
-          .where(eq(watchlistItems.userId, row.ownerId));
+          .where(eq(watchlistItems.userId, row.ownerId))
+          .limit(SHARED_WATCHLIST_MAX_ITEMS);
         const products = items
           .filter((r) => r.deletedAtMs === null || r.deletedAtMs === undefined)
           .map((r) => r.data)
           .filter(Boolean);
-        return { title: row.title, token: row.token, products, createdAt: row.createdAt?.toISOString?.() ?? null, expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null } as const;
+        return { title: row.title, token: row.token, products, truncated: items.length >= SHARED_WATCHLIST_MAX_ITEMS, createdAt: row.createdAt?.toISOString?.() ?? null, expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null } as const;
       }),
     revoke: protectedProcedure
       .input(z.object({ token: z.string().min(1).max(64) }))

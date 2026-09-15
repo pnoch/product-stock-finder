@@ -1572,3 +1572,8 @@
 - [x] Missing fetch timeouts: `trending` RSS feeds + OpenAI call + `getTrending` self-fetch could hang a request forever; added `fetchWithTimeout` (8s) + 20s LLM abort
 - [x] Unbounded JSON-column writes: `notifications.uploadConfig` accepted unbounded `alerts`/`stockWatches`/`dateReminders`/`healthEvents` arrays persisted verbatim (and iterated by the warmer every tick); capped at 200/200/200/100 with per-field length bounds
 - [x] Tests: `discovery-spend-budget.test.ts`, `trending-spend-budget.test.ts`, `upload-config-bounds.test.ts`; E2E root `tsc 0`, desktop `tsc 0`, lint clean, `273 passed | 1 skipped` / `1728 passed`
+
+## Phase 212: Cap public shared-watchlist payload
+
+- [x] `sharedWatchlists.get` (public) read the owner's entire watchlist with no limit. Capped at `SHARED_WATCHLIST_MAX_ITEMS = 500` and added a `truncated` flag to the response; clients ignore the extra field (backward compatible)
+- [x] Test: `shared-watchlists.test.ts` cap + truncation case; E2E root `tsc 0`, desktop `tsc 0`, lint clean, `273 passed | 1 skipped` / `1729 passed`

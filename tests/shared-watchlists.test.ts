@@ -117,6 +117,23 @@ describe("sharedWatchlists router", () => {
     await expect(caller.sharedWatchlists.get({ token: "missing" })).rejects.toThrow(/NOT_FOUND|Share not found/);
   });
 
+  it("caps the returned products and flags truncation", async () => {
+    const watchlistRows = Array.from({ length: 600 }, (_, i) => ({
+      deletedAtMs: null,
+      data: { id: `p${i}`, name: `Product ${i}` },
+    }));
+    mockedGetDb.mockResolvedValue(
+      fakeDb({
+        sharedRows: [{ ownerId: 1, token: "tok123", title: "Big" }],
+        watchlistRows,
+      }) as never,
+    );
+    const caller = appRouter.createCaller(createPublicContext());
+    const res = await caller.sharedWatchlists.get({ token: "tok123" });
+    expect(res.products).toHaveLength(500);
+    expect(res.truncated).toBe(true);
+  });
+
   it("revoke requires auth and returns revoked", async () => {
     mockedGetDb.mockResolvedValue(fakeDb({}) as never);
     const caller = appRouter.createCaller(createAuthedContext(1));
