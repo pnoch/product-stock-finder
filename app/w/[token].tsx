@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, View, TouchableOpacity, Platform, Share } from "react-native";
 import * as Haptics from "expo-haptics";
@@ -7,6 +8,7 @@ import { trpc } from "@/lib/trpc";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { formatPrice } from "@shared/currency";
 import { getBestPrice } from "@/lib/currency";
+import { getSettings } from "@/lib/storage";
 import { StockBadge } from "@/components/stock-badge";
 import { getDistributorById } from "@shared/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -19,10 +21,35 @@ import type { Product } from "@/lib/types";
 export default function SharedWatchlistScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
   const colors = useColors();
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  useEffect(() => {
+    getSettings()
+      .then((s) => {
+        if (s?.displayCurrency) setDisplayCurrency(s.displayCurrency);
+      })
+      .catch(() => {
+        // keep USD on a storage read failure
+      });
+  }, []);
   const query = trpc.sharedWatchlists.get.useQuery(
     { token: token ?? "" },
     { enabled: !!token },
   );
+
+  // A missing token disables the query, so isLoading/isError are both false
+  // and the screen would render an empty "0 products" page.
+  if (!token) {
+    return (
+      <ScreenContainer>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <Text style={{ color: colors.error, fontWeight: "700", fontSize: 16 }}>Invalid link</Text>
+          <Text style={{ color: colors.muted, marginTop: 8, textAlign: "center" }}>
+            This share link is missing its token.
+          </Text>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   if (query.isLoading) {
     return (
@@ -118,7 +145,10 @@ export default function SharedWatchlistScreen() {
         </View>
         <View style={{ marginTop: 16, gap: 12 }}>
           {products.map((product) => {
-            const best = getBestPrice((product.listings ?? []) as never[], "USD");
+            const best = getBestPrice(
+              (product.listings ?? []) as never[],
+              displayCurrency,
+            );
             return (
               <View
                 key={product.id}

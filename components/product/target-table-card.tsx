@@ -94,6 +94,7 @@ export function TargetTableCard({
             ) : (
               <TouchableOpacity activeOpacity={0.85}
                 onPress={() => onSetTarget(listing.distributorId)}
+                hitSlop={10}
                 style={{
                   width: 26,
                   height: 26,

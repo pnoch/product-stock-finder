@@ -238,12 +238,18 @@ export function useAlertsData() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     // Schedule the new notification BEFORE cancelling the old one: cancelling
     // first meant a scheduling failure left the user with no reminder at all.
-    const notifId = await scheduleBackOrderReminder(
-      rescheduleTarget.productName,
-      rescheduleTarget.distributorName,
-      rescheduleDate,
-      rescheduleTarget.productId,
-    );
+    let notifId: string | null = null;
+    try {
+      notifId = await scheduleBackOrderReminder(
+        rescheduleTarget.productName,
+        rescheduleTarget.distributorName,
+        rescheduleDate,
+        rescheduleTarget.productId,
+      );
+    } catch (e) {
+      console.error("[Alerts] reschedule notification failed", e);
+      notifId = null;
+    }
     const notificationFailed = !notifId && Platform.OS !== "web";
     if (!notificationFailed && rescheduleTarget.notificationId) {
       await cancelNotification(rescheduleTarget.notificationId);

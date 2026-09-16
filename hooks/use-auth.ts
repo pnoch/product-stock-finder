@@ -40,10 +40,6 @@ function setShared(patch: Partial<AuthSnapshot>): void {
   for (const fn of authSubscribers) fn(sharedSnapshot);
 }
 
-export function getAuthSnapshot(): AuthSnapshot {
-  return sharedSnapshot;
-}
-
 export function useAuth(options?: UseAuthOptions) {
   const { autoFetch = true } = options ?? {};
   const [snapshot, setSnapshot] = useState<AuthSnapshot>(sharedSnapshot);

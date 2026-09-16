@@ -37,15 +37,17 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const firstRowRef = useRef<View | null>(null);
   const sheetAnim = useRef(new Animated.Value(0)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!visible) return;
+    setLoadFailed(false);
     void getTagDefinitions()
       .then(setDefs)
-      .catch(() => {});
+      .catch(() => setLoadFailed(true));
     setEditingId(null);
     setEditName("");
     setError(null);
@@ -184,7 +186,7 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
             <Text
               style={{ color: colors.muted, fontSize: 14, marginBottom: 12 }}
             >
-              No tags yet. Tag a product from the watchlist to create one.
+              {loadFailed ? "Couldn't load tags. Reopen this sheet to retry." : "No tags yet. Tag a product from the watchlist to create one."}
             </Text>
           )}
           <ScrollView style={{ maxHeight: 360 }}>
@@ -300,6 +302,7 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
                     <TouchableOpacity activeOpacity={0.7}
                       key={color}
                       onPress={() => void handleRecolor(tag, color)}
+                      hitSlop={8}
                       style={{
                         width: 24,
                         height: 24,

@@ -104,9 +104,7 @@ export default function AlertsScreen() {
     if (!editingAlert) return [];
     const productId = editingAlert.productId;
     return (
-      products
-        .find((p) => p.id === productId)
-        ?.listings.map((l) => {
+      (products.find((p) => p.id === productId)?.listings ?? []).map((l) => {
           const d = getDistributorById(l.distributorId);
           return {
             id: l.distributorId,

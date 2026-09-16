@@ -10,7 +10,6 @@ import { useColors } from "@/hooks/use-colors";
 import { useServerConfig } from "@/hooks/use-server-config";
 import {
   getSettings,
-  saveSettings,
   updateSettings,
   getWatchlist,
   updateProductListings,
@@ -204,8 +203,8 @@ export default function SettingsScreen() {
     if (!isAuthenticated) return;
     let cancelled = false;
     const refresh = async () => {
-      const meta = await getSyncMeta();
-      if (!cancelled) {
+      const meta = await getSyncMeta().catch(() => null);
+      if (!cancelled && meta) {
         setSyncMeta(meta);
         setNow(Date.now());
       }
@@ -294,7 +293,7 @@ export default function SettingsScreen() {
         void syncBackgroundTasks();
       }
     },
-    [],
+    [settings],
   );
 
   const handleTestNotification = useCallback(async () => {

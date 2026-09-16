@@ -41,6 +41,7 @@ export function TagPickerSheet({
   const selectedRef = useRef<string[]>([]);
   const [newTagName, setNewTagName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const firstTagRef = useRef<View | null>(null);
   const newTagInputRef = useRef<TextInput | null>(null);
   const sheetAnim = useRef(new Animated.Value(0)).current;
@@ -48,9 +49,10 @@ export function TagPickerSheet({
 
   useEffect(() => {
     if (!visible || !product) return;
+    setLoadFailed(false);
     void getTagDefinitions()
       .then(setDefs)
-      .catch(() => {});
+      .catch(() => setLoadFailed(true));
     const initial = product.tags ?? [];
     selectedRef.current = initial;
     setSelected(initial);
@@ -183,7 +185,7 @@ export function TagPickerSheet({
               <Text
                 style={{ color: colors.muted, fontSize: 14, marginBottom: 12 }}
               >
-                No tags yet — create one below.
+                {loadFailed ? "Couldn't load tags. Reopen this sheet to retry." : "No tags yet — create one below."}
               </Text>
             )}
             {tags.map((tag, idx) => {

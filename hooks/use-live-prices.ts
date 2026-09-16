@@ -97,7 +97,11 @@ export function useLiveProduct(productId: string) {
   }, [loaded, product, productId, persistKey, hasLiveData]);
 
   const refresh = useCallback(async () => {
-    const watchlist = await getWatchlist();
+    // A storage read failure must not reject unhandled from the "Try Again" CTA.
+    const watchlist = await getWatchlist().catch(() => []);
+    if (watchlist.length === 0 && productId) {
+      // fall through: the sample listings still render
+    }
     const found = watchlist.find((p) => p.id === productId);
     const sample = SAMPLE_LISTINGS[productId] ?? [];
     let nextSeed: DistributorListing[];

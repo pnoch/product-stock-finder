@@ -329,7 +329,17 @@ export default function CompareScreen() {
     });
   }, [listings, selected, timeRange]);
 
-  if (!id) return null;
+  if (!id) {
+    return (
+      <ScreenContainer>
+        <EmptyStateView
+          icon="magnifyingglass"
+          title="Product not found"
+          subtitle="This comparison link is missing a product id."
+        />
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>

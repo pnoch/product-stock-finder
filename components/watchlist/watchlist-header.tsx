@@ -231,7 +231,9 @@ export function WatchlistHeader({
           {checking ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <IconSymbol name="arrow.clockwise" size={16} color="#fff" />
+            // Distinct glyph from the adjacent "Refresh all" button, which
+            // also uses arrow.clockwise (the two were identical when compact).
+            <IconSymbol name="bolt.fill" size={16} color="#fff" />
           )}
           {!isCompact && (
             <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>

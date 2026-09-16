@@ -1882,3 +1882,17 @@
 - [x] `web-export-invariants` had an `expect(true).toBe(true)`; now logs when the build artifact is absent
 
 - [x] E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `301 passed | 1 skipped` / `1817 passed`, desktop `43 passed` / `218 passed`
+
+## Phase 227: Review round 6 follow-ups (navigation, error states, a11y)
+
+- [x] Notification tap on cold start could throw ("navigate before Root Layout mounted") or be silently dropped; the route is now buffered until the Stack mounts
+- [x] `notificationRouteFor` threw on a notification without a `data` payload; now tolerates undefined/null
+- [x] `alerts` `editDistributors` crashed on a product without `listings` (legacy/synced rows); now `?? []`
+- [x] `/w/[token]` with a missing token rendered an empty "0 products" page (query disabled → not loading, not error); now shows "Invalid link"
+- [x] `/w/[token]` hardcoded USD for best price, ignoring the user's display currency; now loads it
+- [x] `/compare/[id]` with a missing id rendered a blank screen; now an empty state
+- [x] Unhandled rejections in focus/sync-meta reads, basket-alert save, live-prices refresh, reschedule scheduling, restock remove, and tag-sheet loads; all guarded (tag sheets no longer show a misleading "No tags yet" on a load failure)
+- [x] Compact watchlist header used the same `arrow.clockwise` glyph for "Check Now" and "Refresh all"; Check Now now uses `bolt.fill` (mapping added)
+- [x] Added `hitSlop` to the 26px target "+" button, 24px tag colour swatches, and drop-calendar cells
+- [x] Removed the unused `getAuthSnapshot` export (dead code from the shared-state refactor)
+- [x] Tests: `notification-routing-null`, `clear-account-data` (verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `303 passed | 1 skipped` / `1823 passed`, desktop `43 passed` / `218 passed`

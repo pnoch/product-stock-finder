@@ -64,8 +64,9 @@ export default function RestockWatchesScreen() {
             try {
               await removeStockWatch(id);
               setWatches((prev) => prev.filter((w) => w.id !== id));
-            } catch {
-              // Ignore remove failures — the watch stays in the list
+            } catch (e) {
+              console.error("[Restock] remove failed", e);
+              showAlert("Remove failed", "We couldn't remove that watch. Please try again.");
             }
           },
         },

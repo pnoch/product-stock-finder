@@ -86,6 +86,12 @@ export default function RootLayout() {
   const [insets] = useState<EdgeInsets>(initialInsets);
   const [frame] = useState<Rect>(initialFrame);
   const systemColorScheme = useColorScheme() ?? "light";
+  // Notification taps can arrive before the root layout mounts (cold start);
+  // expo-router throws if we navigate then, so buffer the route.
+  const rootNavigationReadyRef = useRef(false);
+  const pendingRouteRef = useRef<
+    ReturnType<typeof notificationRouteFor> | "/(tabs)" | null
+  >(null);
 
   // Initialize unhandled rejection handler
   useEffect(() => {
@@ -125,7 +131,14 @@ export default function RootLayout() {
         if (oldest) handledResponses.delete(oldest);
       }
       const data = dataForId;
-      router.push(notificationRouteFor(data) ?? "/(tabs)");
+      // expo-router throws if navigation happens before the root layout has
+      // mounted (cold start). Defer until the navigation tree is ready.
+      const route = notificationRouteFor(data) ?? "/(tabs)";
+      if (rootNavigationReadyRef.current) {
+        router.push(route);
+      } else {
+        pendingRouteRef.current = route;
+      }
     };
     const responseSubscription =
       Notifications.addNotificationResponseReceivedListener(
@@ -230,8 +243,9 @@ export default function RootLayout() {
       lastActive = now;
       const setup = getSyncSetup();
       if (!setup) return;
-      const meta = await getSyncMeta();
-      if (meta.lastSyncError) void setup.syncNow();
+      // A storage read failure must not reject unhandled in a focus handler.
+      const meta = await getSyncMeta().catch(() => null);
+      if (meta?.lastSyncError) void setup.syncNow();
     };
     if (Platform.OS === "web") {
       const onVisibility = () => {
@@ -297,6 +311,20 @@ export default function RootLayout() {
       setOnboardingState(seen ? "app" : "intro"),
     );
   }, []);
+
+  // Mark navigation ready and flush any buffered notification route once the
+  // Stack has mounted.
+  useEffect(() => {
+    rootNavigationReadyRef.current = true;
+    const pending = pendingRouteRef.current;
+    if (pending) {
+      pendingRouteRef.current = null;
+      // Defer a tick so the navigator is fully ready.
+      const t = setTimeout(() => router.push(pending), 0);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
 
   if (onboardingState === "checking") {
     return (
