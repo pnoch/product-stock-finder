@@ -1896,3 +1896,11 @@
 - [x] Added `hitSlop` to the 26px target "+" button, 24px tag colour swatches, and drop-calendar cells
 - [x] Removed the unused `getAuthSnapshot` export (dead code from the shared-state refactor)
 - [x] Tests: `notification-routing-null`, `clear-account-data` (verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `303 passed | 1 skipped` / `1823 passed`, desktop `43 passed` / `218 passed`
+
+## Phase 228: Run the DB-gated sync tests + wire them into CI
+
+- [x] The sync/data-loss tests (`sync-e2e`, `sync-db`) are gated on `RUN_DB_TESTS` + `TEST_DATABASE_URL`, which CI never set — so the only end-to-end coverage of sync (cross-device round-trip, tombstones, cross-user isolation, LWW) never ran. Verified they pass against a real MySQL (17 tests)
+- [x] Added DB-level coverage for the Phase 223 paging fix: `listChangedItems` must return rows in ascending effective-stamp order (written with descending server stamps so an unordered LIMIT is detectable) — verified non-vacuous (fails without the ORDER BY)
+- [x] Added DB-level tests for full-resync completeness (a stale cursor returns untouched live rows, not just tombstones) and tombstone propagation without resurrection
+- [x] CI: added a MySQL 8.4 service, `pnpm db:push` against it, and a `pnpm test:db` step with `RUN_DB_TESTS=1`; verified the full clean-DB flow (migrate → 17 tests pass) locally
+- [x] E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `303 passed | 1 skipped` / `1823 passed`, desktop `43 passed` / `218 passed`

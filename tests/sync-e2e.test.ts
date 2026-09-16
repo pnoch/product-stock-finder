@@ -141,7 +141,8 @@ describe.skipIf(!runDbTests)("sync e2e", () => {
     await syncNow({
       storage,
       isSignedIn: () => true,
-      pull: (since) => caller.sync.pull({ since }),
+      pull: (since, cursor) =>
+        caller.sync.pull({ since, cursor: cursor ?? null }),
       push: (items) => caller.sync.push({ items }),
     });
   }
@@ -234,7 +235,8 @@ describe.skipIf(!runDbTests)("sync e2e", () => {
     await syncNow({
       storage: deviceA,
       isSignedIn: () => true,
-      pull: (since) => caller.sync.pull({ since }),
+      pull: (since, cursor) =>
+        caller.sync.pull({ since, cursor: cursor ?? null }),
       push: (items) => caller.sync.push({ items }),
     });
 
@@ -242,9 +244,109 @@ describe.skipIf(!runDbTests)("sync e2e", () => {
     await syncNow({
       storage: otherDevice,
       isSignedIn: () => true,
-      pull: (since) => otherCaller.sync.pull({ since }),
+      pull: (since, cursor) =>
+        otherCaller.sync.pull({ since, cursor: cursor ?? null }),
       push: (items) => otherCaller.sync.push({ items }),
     });
     expect(await otherDevice.getWatchlist()).toEqual([]);
+  });
+
+  it("listChangedItems returns rows in ascending effective-stamp order", async () => {
+    // The paging contract: pages must be monotonic in (stamp, collection, id)
+    // so the client's cursor cannot skip a row. Write rows directly with
+    // controlled server stamps (upsertSyncItem re-stamps with Date.now()) in
+    // DESCENDING order, so an unordered LIMIT would return them out of order.
+    const { listChangedItems } = await import("../server/sync-db");
+    const db = await getDb();
+    if (!db) throw new Error("Test DB not available");
+    const { watchlistItems } = await import("../drizzle/schema");
+    const base = Date.now();
+    const ids = ["ord-a", "ord-b", "ord-c", "ord-d", "ord-e"];
+    for (let i = 0; i < ids.length; i++) {
+      await db.insert(watchlistItems).values({
+        userId,
+        productId: ids[i]!,
+        data: { id: ids[i] },
+        updatedAtMs: base - i * 1000,
+        clientUpdatedAtMs: base - i * 1000,
+        deletedAtMs: null,
+      });
+    }
+
+    const rows = await listChangedItems(userId, null, 100);
+    const stamps = rows
+      .filter((r) => r.collection === "watchlist")
+      .map((r) => Math.max(r.updatedAt, r.deletedAt ?? 0));
+    expect(stamps.length).toBe(ids.length);
+    const sorted = [...stamps].sort((a, b) => a - b);
+    expect(stamps).toEqual(sorted);
+  });
+
+  it("pages a large change set without dropping items", async () => {
+    // More than SYNC_PULL_MAX_ITEMS (500) so the pull must page. Before the
+    // composite-cursor fix an unordered LIMIT could skip rows entirely.
+    const { SYNC_PULL_MAX_ITEMS } = await import("../shared/const");
+    const total = SYNC_PULL_MAX_ITEMS + 25;
+    const deviceA = makeDevice();
+    const products = Array.from({ length: total }, (_, i) =>
+      makeProduct(`bulk-${String(i).padStart(4, "0")}`),
+    );
+    await deviceA.saveWatchlist(products);
+    // Insert with DESCENDING stamps so insertion order is the reverse of the
+    // page order. Without an ORDER BY, MySQL returns insertion order and the
+    // first LIMIT would take the newest rows, making the cursor skip the rest.
+    const base = Date.now();
+    for (let i = 0; i < products.length; i++) {
+      await deviceA.setItemSyncMeta(
+        "watchlist",
+        products[i]!.id,
+        base - i * 1000,
+      );
+    }
+
+    await syncDevice(deviceA);
+
+    const deviceB = makeDevice();
+    await syncDevice(deviceB);
+    const pulled = await deviceB.getWatchlist();
+    expect(pulled).toHaveLength(total);
+    expect(new Set(pulled.map((p) => p.id)).size).toBe(total);
+  });
+
+  it("returns the complete state on a full resync (cursor older than the tombstone window)", async () => {
+    const deviceA = makeDevice();
+    await deviceA.addToWatchlist(makeProduct("keep-1"));
+    await deviceA.addToWatchlist(makeProduct("keep-2"));
+    await syncDevice(deviceA);
+
+    // A cursor far in the past triggers a full resync. The server must return
+    // the untouched live rows too, or the client would delete them.
+    const staleSince = Date.now() - 40 * 24 * 60 * 60 * 1000;
+    const result = await caller.sync.pull({ since: staleSince });
+    expect(result.fullResyncSince).not.toBeNull();
+    const ids = result.items
+      .filter((i) => i.collection === "watchlist")
+      .map((i) => i.id);
+    expect(ids).toContain("keep-1");
+    expect(ids).toContain("keep-2");
+  });
+
+  it("propagates a deletion as a tombstone and does not resurrect it", async () => {
+    const deviceA = makeDevice();
+    const deviceB = makeDevice();
+    await deviceA.addToWatchlist(makeProduct("gone"));
+    await syncDevice(deviceA);
+    await syncDevice(deviceB);
+    expect(await deviceB.getWatchlist()).toHaveLength(1);
+
+    await deviceA.removeFromWatchlist("gone");
+    await deviceA.markItemDeleted("watchlist", "gone", Date.now());
+    await syncDevice(deviceA);
+    await syncDevice(deviceB);
+    expect(await deviceB.getWatchlist()).toEqual([]);
+
+    // A further sync must not resurrect it from B's stale local copy.
+    await syncDevice(deviceB);
+    expect(await deviceB.getWatchlist()).toEqual([]);
   });
 });

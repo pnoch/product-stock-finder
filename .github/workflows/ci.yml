@@ -9,6 +9,19 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: psf_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -24,6 +37,15 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm --dir desktop test
+      # DB-backed sync tests (data-loss path) — gated on RUN_DB_TESTS, so they
+      # were never executed in CI before. A MySQL service is provided below.
+      - run: pnpm db:push
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/psf_test
+      - run: pnpm test:db
+        env:
+          RUN_DB_TESTS: "1"
+          TEST_DATABASE_URL: mysql://root:root@127.0.0.1:3306/psf_test
       # Verify the deployable artifacts build (web export + server bundle).
       - run: pnpm build
       # The web export compiles even when it renders a blank page at runtime;
