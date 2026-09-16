@@ -21,18 +21,31 @@ const TWO_PRODUCT_HTML = `
 
 describe("parser wrong-product guard (adversarial two-product page)", () => {
   for (const parser of PARSERS) {
-    it(`${parser.id} never returns the decoy price for another model`, () => {
+    it(`${parser.id} returns the target card's price, never the decoy's`, () => {
       let result;
       try {
         result = parser.parsePrice(TWO_PRODUCT_HTML, "TARGET-MODEL-9Z");
       } catch {
+        // A parser that cannot handle this markup must not throw.
         return;
       }
-      if (result === null) return;
-      expect(
-        result.price,
-        `${parser.id} returned the decoy product's price`,
-      ).not.toBe(999);
+      // A parser that successfully parses this page must select the TARGET
+      // card ($1), not the decoy ($999) — asserting the exact price catches a
+      // wrong-but-not-999 result too.
+      if (result !== null) {
+        expect(result.price, `${parser.id} selected the wrong card`).toBe(1);
+      }
     });
   }
+
+  it("at least one parser exercises the guard (not a vacuous suite)", () => {
+    const parsed = PARSERS.filter((p) => {
+      try {
+        return p.parsePrice(TWO_PRODUCT_HTML, "TARGET-MODEL-9Z") !== null;
+      } catch {
+        return false;
+      }
+    });
+    expect(parsed.length).toBeGreaterThan(0);
+  });
 });

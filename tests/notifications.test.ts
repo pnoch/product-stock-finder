@@ -60,8 +60,18 @@ describe("upsertDeviceConfig", () => {
       ],
     };
     await upsertDeviceConfig("dev-1", config);
+    // Drive evaluation so a silently-failed store would surface as a missing
+    // event (pullPendingEvents alone returns [] for both stored and dropped).
+    await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
+      price: 480,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://example.com",
+      fetchedAt: Date.now(),
+    });
+    await evaluateNotifications(Date.now());
     const events = await pullPendingEvents("dev-1");
-    expect(events).toEqual([]);
+    expect(events.length).toBeGreaterThan(0);
   });
 });
 

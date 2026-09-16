@@ -154,7 +154,16 @@ export default function WatchlistScreen() {
 
   const hasLoadedSettingsRef = useRef(false);
   const loadData = useCallback(async () => {
-    const settings = await getSettings();
+    // A storage read failure must not reject unhandled or leave the settings
+    // gate closed (which disabled the price filter and prefs silently).
+    let settings: Awaited<ReturnType<typeof getSettings>> | null = null;
+    let defs: Record<string, TagDefinition> = {};
+    try {
+      settings = await getSettings();
+      defs = await getTagDefinitions();
+    } catch (e) {
+      console.error("[Watchlist] settings load failed", e);
+    }
     setDisplayCurrency(settings?.displayCurrency ?? "USD");
     setSortMode(settings?.watchlistSort ?? "recent");
     setGroupMode(settings?.watchlistGroup ?? "off");
@@ -172,7 +181,6 @@ export default function WatchlistScreen() {
       setPriceMinInput("");
       setPriceMaxInput("");
     }
-    const defs = await getTagDefinitions();
     setTagDefinitions(defs);
     setSelectedTagIds((prev) => prev.filter((id) => Object.prototype.hasOwnProperty.call(defs, id)));
     hasLoadedSettingsRef.current = true;
@@ -370,8 +378,13 @@ export default function WatchlistScreen() {
           Haptics.notificationAsync(
             Haptics.NotificationFeedbackType.Warning,
           );
-        await removeFromWatchlist(productId);
-        await reload();
+        try {
+          await removeFromWatchlist(productId);
+          await reload();
+        } catch (e) {
+          console.error("[Watchlist] remove failed", e);
+          showAlert("Remove failed", "We couldn't remove that product. Please try again.");
+        }
       };
       if (Platform.OS === "web") {
         if (
@@ -405,9 +418,14 @@ export default function WatchlistScreen() {
       const doDelete = async () => {
         if (Platform.OS !== "web")
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        await removeFromWatchlist(product.id);
-        await reload();
-        showUndoBar(product);
+        try {
+          await removeFromWatchlist(product.id);
+          await reload();
+          showUndoBar(product);
+        } catch (e) {
+          console.error("[Watchlist] swipe delete failed", e);
+          showAlert("Remove failed", "We couldn't remove that product. Please try again.");
+        }
       };
       if (Platform.OS === "web") {
         if (typeof window !== "undefined" && window.confirm(`Remove "${product.name}" from your watchlist?`)) {
@@ -427,8 +445,13 @@ export default function WatchlistScreen() {
     if (!undoProduct) return;
     if (undoTimer.current) clearTimeout(undoTimer.current);
     setUndoProduct(null);
-    await addToWatchlist(undoProduct);
-    await reload();
+    try {
+      await addToWatchlist(undoProduct);
+      await reload();
+    } catch (e) {
+      console.error("[Watchlist] undo failed", e);
+      showAlert("Undo failed", "We couldn't restore that product. Please try again.");
+    }
   }, [undoProduct, reload]);
 
   useEffect(() => {

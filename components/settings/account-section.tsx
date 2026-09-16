@@ -380,7 +380,20 @@ export function AccountSection({
                   )}
                 </TouchableOpacity>
                 <TouchableOpacity activeOpacity={0.7}
-                  onPress={onSignOut}
+                  onPress={() =>
+                    showAlert(
+                      "Sign out?",
+                      "Signing out removes this device's local watchlist, alerts, reminders, and settings. Anything already synced stays on your account.",
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Sign out",
+                          style: "destructive",
+                          onPress: onSignOut,
+                        },
+                      ],
+                    )
+                  }
                   style={{
                     paddingHorizontal: 12,
                     paddingVertical: 6,

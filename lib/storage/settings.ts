@@ -61,6 +61,22 @@ export function createSettingsStorage(
     notify("settings", "settings");
   }
 
+  // Serialized read-modify-write. Two quick setting changes that each read the
+  // stored value then write the whole object would drop the first change
+  // (the second read sees the pre-change snapshot).
+  async function updateSettings(
+    patch: Partial<AppSettings>,
+  ): Promise<AppSettings> {
+    let next: AppSettings | null = null;
+    await enqueue(KEYS.SETTINGS, async () => {
+      const current = await getSettings();
+      next = { ...current, ...patch };
+      await adapter.setItem(KEYS.SETTINGS, JSON.stringify(next));
+    });
+    notify("settings", "settings");
+    return next ?? (await getSettings());
+  }
+
   // ─── Tags ──────────────────────────────────────────────────────────────────
 
   async function getTagDefinitions(): Promise<Record<string, TagDefinition>> {
@@ -186,6 +202,7 @@ export function createSettingsStorage(
   return {
     getSettings,
     saveSettings,
+    updateSettings,
     getTagDefinitions,
     saveTagDefinitions,
     setProductTags,

@@ -91,9 +91,13 @@ export default function CompareScreen() {
   }, [windowWidth]);
 
   useEffect(() => {
-    getSettings().then((s) => {
-      if (s?.displayCurrency) setDisplayCurrency(s.displayCurrency);
-    });
+    getSettings()
+      .then((s) => {
+        if (s?.displayCurrency) setDisplayCurrency(s.displayCurrency);
+      })
+      .catch(() => {
+        // keep the default currency on a storage read failure
+      });
   }, []);
 
   const selectionInitialized = useRef<string | null>(null);
@@ -204,8 +208,14 @@ export default function CompareScreen() {
       createdAt: new Date().toISOString(),
       isActive: true,
     };
-    await addAlert(alert);
-    await schedulePriceAlert(productName || "Product", targetPrice, displayCurrency, id);
+    try {
+      await addAlert(alert);
+      await schedulePriceAlert(productName || "Product", targetPrice, displayCurrency, id);
+    } catch (e) {
+      console.error("[Compare] alert creation failed", e);
+      showAlert("Couldn't create alert", "We couldn't save your price alert. Please try again.");
+      return;
+    }
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showToast(`Alert created — watching below ${formatPrice(targetPrice, displayCurrency)}`, "success");
   }, [listings, id, productName, displayCurrency, showToast]);

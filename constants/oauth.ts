@@ -73,8 +73,14 @@ export async function getOAuthUrl(provider: OAuthProvider): Promise<string | nul
     if (deviceId && ReactNative.Platform.OS !== "web") {
       params.set("deviceId", deviceId);
     }
+    // The server also reads the device id from this header, which would force
+    // the native ticket branch on web (no cookie, custom-scheme redirect).
+    const sendDeviceHeader =
+      Boolean(deviceId) && ReactNative.Platform.OS !== "web";
     const res = await fetch(`${baseUrl}/api/auth/oauth/start?${params.toString()}`, {
-      headers: deviceId ? { "X-Device-Id": deviceId } : undefined,
+      headers: sendDeviceHeader
+        ? { "X-Device-Id": deviceId as string }
+        : undefined,
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { url?: string };

@@ -96,11 +96,14 @@ export function createAlertsStorage(ctx: StorageContext) {
         if (patch.direction !== undefined) next.direction = patch.direction;
         if (patch.distributorId !== undefined)
           next.distributorId = patch.distributorId ?? undefined;
-        // Field changes re-arm the alert and clear stale trigger info
+        // Field changes re-arm the alert and clear stale trigger info.
+        // Re-stamp createdAt so a stale server event cannot immediately
+        // re-deactivate the edited alert (same guard as rearmAlert).
         next.isActive = true;
         next.triggeredAt = undefined;
         next.triggeredPrice = undefined;
         next.snoozedUntil = undefined;
+        next.createdAt = new Date().toISOString();
         return next;
       });
       await persistAlerts(updated);

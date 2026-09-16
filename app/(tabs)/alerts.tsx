@@ -549,12 +549,18 @@ export default function AlertsScreen() {
             showAlert("Invalid Price", "Please enter a valid target price.");
             return;
           }
-          await handleUpdateAlert(editingAlert.id, {
-            targetPrice: price,
-            currency: editCurrency,
-            direction: editDirection,
-            distributorId: editDistributorId,
-          });
+          try {
+            await handleUpdateAlert(editingAlert.id, {
+              targetPrice: price,
+              currency: editCurrency,
+              direction: editDirection,
+              distributorId: editDistributorId,
+            });
+          } catch (e) {
+            console.error("[Alerts] update failed", e);
+            showAlert("Update failed", "We couldn't save your changes. Please try again.");
+            return;
+          }
           setEditingAlert(null);
           showAlert("Alert Updated", "Your changes have been saved.");
         }}

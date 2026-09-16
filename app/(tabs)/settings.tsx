@@ -11,6 +11,7 @@ import { useServerConfig } from "@/hooks/use-server-config";
 import {
   getSettings,
   saveSettings,
+  updateSettings,
   getWatchlist,
   updateProductListings,
   getSyncMeta,
@@ -274,14 +275,17 @@ export default function SettingsScreen() {
 
   const updateSetting = useCallback(
     async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
-      const current = await getSettings();
-      const updated = { ...current, [key]: value };
-      setSettings(updated);
+      // Serialized read-modify-write: two quick changes used to clobber each
+      // other (both read the same snapshot, the later write dropped the first).
+      const previous = settings;
+      setSettings((prev) => ({ ...prev, [key]: value }));
+      let updated: AppSettings;
       try {
-        await saveSettings(updated);
+        updated = await updateSettings({ [key]: value } as Partial<AppSettings>);
+        setSettings(updated);
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {
-        setSettings(current);
+        setSettings(previous);
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showAlert("Failed to save", "Could not save setting. Please try again.");
         return;
@@ -313,6 +317,10 @@ export default function SettingsScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setReenabling(true);
       try {
+        // Clear the circuit breaker too: updating lastChecked alone left the
+        // distributor in cooldown (still skipped) while the UI showed "OK".
+        const { clearDistributorBreaker } = await import("@/lib/scrapers/breaker-clear");
+        await clearDistributorBreaker(distributorId);
         const nowIso = new Date().toISOString();
         const tasks = products
           .filter((p) => p.listings?.some((l) => l.distributorId === distributorId))

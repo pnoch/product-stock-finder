@@ -1845,3 +1845,40 @@
 - [x] Digest day bucket used UTC while quiet hours use the user's offset; the digest now buckets by the user's local day
 - [x] Locally-fired price/restock notifications were never recorded in the in-app Notification Center (only server events were), so the history and unread badge diverged from what the OS showed; both now record
 - [x] Tests: `revoked-purge-batching`, `device-binding-precedence` (both verified non-vacuous), updated `shared-watchlists` fake DB for the SQL tombstone filter; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `301 passed | 1 skipped` / `1816 passed`, desktop `43 passed` / `218 passed`
+
+## Phase 226: Whole-app review round 6 (screens, tests, a11y, regressions)
+
+**Regressions from Phases 224-225 (fixed)**
+- [x] Web OAuth was still broken: the `deviceId` query param was omitted on web but `X-Device-Id` was still sent, and the server falls back to the header → still took the native ticket branch. Header now suppressed on web too
+- [x] Digest `utcOffsetMinutes` was dropped by `aggregateConfigs`, so the Phase 225 timezone fix was a no-op for signed-in users (the main path). Quiet hours now carried through aggregation
+- [x] `fetchAndParse` passed the resolver's raw (relative) href to `fetch`/Playwright, which reject relative URLs → the new MikroTik-Store two-hop never worked. Now resolved against the search URL
+- [x] `regionSignalsFor` didn't normalize `www.`, so `www.aerial.net` fell back to North America (the exact bug the region change fixed). Normalized
+- [x] `getDeviceBinding` memory path still had the anonymous-config-masks-token bug (only the DB branch was fixed). Fixed
+- [x] Reschedule kept the old notification scheduled but cleared its stored id when the new schedule failed → an uncancellable stale notification. Now keeps the old id
+- [x] `updateAlert` re-armed without re-stamping `createdAt`, so the stale-event guard didn't cover the edit path. Now re-stamps
+
+**Screens**
+- [x] Product detail hung on the skeleton forever if the settings read failed (or `id` was missing); now an explicit `settingsLoaded` flag
+- [x] Notification center hung on the skeleton forever on a storage failure; `load` now has try/finally
+- [x] Watchlist `loadData` could reject unhandled and left the settings gate closed (price filter/prefs silently dead); now caught
+- [x] Watchlist delete/swipe-delete/undo failures were silent unhandled rejections; now surfaced
+- [x] Alerts edit-save, compare cross-alert creation, health "Test All", and settings load failures were unhandled; now surfaced
+- [x] Settings `updateSetting` did an unserialized read-modify-write, so two quick changes clobbered each other; added `updateSettings` (serialized)
+- [x] Sign-out silently deleted all local data with no confirmation (the only destructive action without one); now confirms
+- [x] Sign-out also wiped onboarding/theme/currency via `clearAllData`; added `clearAccountData` that preserves device-local preferences
+
+**UX / a11y**
+- [x] Web `showAlert` collapsed >2 buttons to a single confirm, making "Share as Text" unreachable; now a numbered chooser
+- [x] Settings "Re-enable" distributor only refreshed `lastChecked` and never cleared the circuit breaker, so the UI showed OK while the distributor stayed in cooldown; now clears the breaker
+- [x] Product-detail sticky share had no accessibility label/role; product card announced only the name (no price/status); LLM settings inputs/buttons had no labels; restock empty state rendered a literal `it&apos;s`
+
+**Test quality**
+- [x] `distribute-pricing-regression` referenced a nonexistent function and asserted test-local math; rewritten to exercise the real pricing surfaces
+- [x] `scraping-integration` had a local-array "append" test and a network-failure test that never called the scraper; both now exercise real code
+- [x] `adversarial` parser test returned early for any parser that couldn't parse (24/25 parse it, but the assertion was weak); now asserts the exact target price + a non-vacuity guard
+- [x] `orphan-purge` asserted only call counts; now checks the SQL predicate is a scoped `NOT IN`
+- [x] `launch-seed` asserted only call counts; now asserts the seeded payload (verified non-vacuous)
+- [x] `notifications` "stores a config" asserted the ambient empty state; now drives evaluation
+- [x] `web-export-invariants` had an `expect(true).toBe(true)`; now logs when the build artifact is absent
+
+- [x] E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `301 passed | 1 skipped` / `1817 passed`, desktop `43 passed` / `218 passed`

@@ -152,12 +152,12 @@ export function useAuth(options?: UseAuthOptions) {
     } finally {
       await Auth.removeSessionToken();
       await Auth.clearUserInfo();
-      // Clear local data + sync cursor so the next account on this device does
-      // not inherit the previous account's watchlist/alerts or its
-      // lastSyncedAt (which would make the new account's items look synced).
+      // Clear the previous account's synced data + sync cursor so the next
+      // account on this device does not inherit them. Device-local preferences
+      // (onboarding, theme, currency, notification toggles) are preserved.
       try {
-        const { clearAllData } = await import("@/lib/storage");
-        await clearAllData();
+        const { clearAccountData } = await import("@/lib/storage");
+        await clearAccountData();
       } catch (err) {
         console.error("[Auth] Local data clear on logout failed:", err);
       }

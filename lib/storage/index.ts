@@ -28,6 +28,33 @@ export function createStorage(
 
   // ─── Clear All Data ─────────────────────────────────────────────────────────
 
+  // Sign-out variant: clears the previous account's synced collections and
+  // cursor but keeps device-local preferences (onboarding, theme, currency,
+  // notification toggles) so signing back in doesn't reset the app.
+  async function clearAccountData(): Promise<void> {
+    await ctx.drainQueues();
+    await ctx.adapter.multiRemove([
+      STORAGE_KEYS.WATCHLIST,
+      STORAGE_KEYS.ALERTS,
+      STORAGE_KEYS.REMINDERS,
+      STORAGE_KEYS.STOCK_WATCHES,
+      STORAGE_KEYS.SYNC_META,
+      STORAGE_KEYS.DISPLAYED_EVENT_IDS,
+      STORAGE_KEYS.NOTIFICATION_HISTORY,
+      STORAGE_KEYS.PENDING_HEALTH_EVENTS,
+      STORAGE_KEYS.DISCOVERED_PRODUCTS,
+      STORAGE_KEYS.DISCOVERED_DISTRIBUTORS,
+      "distributor_health",
+      "distributor_health_history",
+      "recently_viewed",
+      "distributor_watches",
+      "triggered_alert_history",
+      "product_notes",
+      "price_digest_snapshot",
+      DISTRIBUTOR_BREAKER_KEY,
+    ]);
+  }
+
   async function clearAllData(): Promise<void> {
     // Drain queued writes first: otherwise an in-flight save started before
     // the clear would land afterwards and resurrect deleted data.
@@ -77,6 +104,7 @@ export function createStorage(
     setOnChange: ctx.setOnChange,
     setChangeSuppressed: ctx.setChangeSuppressed,
     clearAllData,
+    clearAccountData,
   };
 }
 
@@ -88,7 +116,7 @@ export type Storage = ReturnType<typeof createStorage>;
 // 50×25×90 pts (~112k points) would exceed localStorage; capped to maxHistoryPerProduct
 // and spilled to IDB when available (AsyncStorage on web is localStorage-backed).
 
-function getDefaultAdapter(): StorageAdapter {
+export function getDefaultAdapter(): StorageAdapter {
   if (isIndexedDBAvailable()) {
     try {
       // isIndexedDBAvailable already checks window + indexedDB, so this is web with IDB
@@ -144,6 +172,7 @@ export const {
 export const {
   getSettings,
   saveSettings,
+  updateSettings,
   getTagDefinitions,
   saveTagDefinitions,
   setProductTags,
@@ -176,6 +205,7 @@ export const {
   setOnChange,
   setChangeSuppressed,
   clearAllData,
+  clearAccountData,
 } = defaultStorage;
 // ─── Discovery ─────────────────────────────────────────────────────────
 export const {

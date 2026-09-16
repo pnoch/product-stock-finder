@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { showAlert } from "@/lib/alert";
 import {
   ScrollView,
   Text,
@@ -127,6 +128,11 @@ export default function HealthScreen() {
       const history = await healthService.getHealthHistory();
       if (!isMountedRef.current) return;
       setStats(computeHealthStats(history));
+    } catch (e) {
+      console.error("[Health] test all failed", e);
+      if (isMountedRef.current) {
+        showAlert("Test failed", "Couldn't test distributors. Please try again.");
+      }
     } finally {
       if (isMountedRef.current) setTesting(false);
     }
@@ -209,7 +215,7 @@ export default function HealthScreen() {
         accessibilityState={{ disabled: testing }}
         onPress={() => {
           if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          runTest();
+          void runTest();
         }}
         disabled={testing}
         style={{

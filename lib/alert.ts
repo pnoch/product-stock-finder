@@ -65,10 +65,30 @@ function showWebAlert(
     return;
   }
   const cancel = buttons.find((b) => b.style === "cancel");
-  const action =
-    buttons.find((b) => b.style === "destructive") ??
-    buttons.find((b) => b.style !== "cancel") ??
-    buttons[0];
+  const actions = buttons.filter((b) => b.style !== "cancel");
+
+  // More than one real action: window.confirm can only express yes/no, which
+  // silently made every action after the first unreachable (e.g. "Share as
+  // Text" on web). Ask the user which one via a numbered prompt.
+  if (actions.length > 1) {
+    const list = actions
+      .map((b, i) => `${i + 1}. ${b.text}`)
+      .join("\n");
+    const answer = window.prompt(`${text}\n\n${list}\n\nEnter a number:`, "1");
+    if (answer === null) {
+      cancel?.onPress?.();
+      return;
+    }
+    const idx = Number.parseInt(answer, 10) - 1;
+    if (Number.isInteger(idx) && idx >= 0 && idx < actions.length) {
+      actions[idx].onPress?.();
+    } else {
+      cancel?.onPress?.();
+    }
+    return;
+  }
+
+  const action = actions[0] ?? buttons[0];
   if (window.confirm(text)) {
     action.onPress?.();
   } else {

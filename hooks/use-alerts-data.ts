@@ -251,7 +251,12 @@ export function useAlertsData() {
     await addBackOrderReminder({
       ...rescheduleTarget,
       reminderDate: rescheduleDate.toISOString(),
-      notificationId: notifId ?? undefined,
+      // Keep the old notification id when the new schedule failed, so the
+      // still-scheduled notification stays cancellable (otherwise it fires on
+      // the old date and can never be cancelled).
+      notificationId: notificationFailed
+        ? rescheduleTarget.notificationId
+        : (notifId ?? undefined),
     });
     if (Platform.OS !== "web")
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

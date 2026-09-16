@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { PARSERS, getParserByDistributorId } from "../lib/scrapers/registry";
+import { appendPricePoint } from "../lib/price-history";
 import {
   parsePriceFromText,
   inferStockStatus,
@@ -150,9 +151,10 @@ describe("Scraping Integration", () => {
   describe("Error Handling", () => {
     it("should handle network failures gracefully", async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
-
-      const parser = getParserByDistributorId("server2u-my");
-      expect(parser).toBeDefined();
+      // Actually invoke the scrape path so the rejecting fetch is exercised.
+      const { scrapeServer2U } = await import("../lib/scrapers/server2u");
+      const result = await scrapeServer2U("CRS326").catch(() => null);
+      expect(result).toBeNull();
     });
 
     it("should handle 404 responses", async () => {
@@ -258,26 +260,29 @@ describe("Scraping Integration", () => {
   });
 
   describe("Price History", () => {
-    it("should append new price points", () => {
+    it("should append new price points via appendPricePoint", () => {
       const history = [
         {
-          date: "2026-01-01",
+          date: "2026-01-01T00:00:00.000Z",
           price: 100,
           currency: "USD",
           stockStatus: "in_stock" as const,
         },
       ];
-
       const newPoint = {
-        date: "2026-01-02",
+        date: "2026-01-02T00:00:00.000Z",
         price: 95,
         currency: "USD",
         stockStatus: "in_stock" as const,
       };
-
-      history.push(newPoint);
-      expect(history).toHaveLength(2);
-      expect(history[1].price).toBe(95);
+      const result = appendPricePoint(
+        history,
+        newPoint,
+        365,
+        "2026-01-03T00:00:00.000Z",
+      );
+      expect(result).toHaveLength(2);
+      expect(result[1]!.price).toBe(95);
     });
   });
 

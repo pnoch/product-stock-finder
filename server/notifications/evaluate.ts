@@ -275,10 +275,15 @@ function aggregateConfigs(configs: NotificationConfig[]): NotificationConfig {
         dateReminders.set(reminder.id, reminder);
     }
   }
+  // Carry quiet hours through aggregation: the digest day bucket needs the
+  // user's UTC offset, and dropping it made the timezone fix a no-op for
+  // signed-in users (the main path).
+  const quietHours = configs.find((c) => c.quietHours)?.quietHours;
   return {
     alerts: [...alerts.values()],
     stockWatches: [...stockWatches.values()],
     dateReminders: [...dateReminders.values()],
+    ...(quietHours ? { quietHours } : {}),
   };
 }
 

@@ -105,7 +105,7 @@ export default function RestockWatchesScreen() {
               icon="eye.fill"
               iconColor={colors.warning}
               title="No restock watches"
-              subtitle='Open a product and tap "Watch for Restock" to get notified when it&apos;s back in stock.'
+              subtitle={`Open a product and tap "Watch for Restock" to get notified when it's back in stock.`}
               ctaLabel="Browse Products"
               onCtaPress={() => {
                 if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

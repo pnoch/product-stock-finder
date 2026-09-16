@@ -3,10 +3,14 @@ import { convertPrice, getBestPrice } from "../lib/currency";
 import { computePriceVsAverage } from "../lib/price-average";
 import { cheapestByRegion } from "@shared/compare-utils";
 import { computeWatchlistSummary } from "../lib/watchlist-summary";
-import type { DistributorListing } from "../lib/types";
+import type { DistributorListing, Product } from "../lib/types";
 
 function listing(
-  overrides: Partial<DistributorListing> & { price: number; currency: string; stockStatus: string },
+  overrides: Partial<DistributorListing> & {
+    price: number;
+    currency: string;
+    stockStatus: string;
+  },
 ): DistributorListing {
   const { price, currency, stockStatus, priceHistory, ...rest } = overrides;
   return {
@@ -17,16 +21,13 @@ function listing(
     stockStatus: stockStatus as DistributorListing["stockStatus"],
     url: "",
     lastChecked: new Date().toISOString(),
-    priceHistory: (priceHistory as any) ?? [],
+    priceHistory: (priceHistory as DistributorListing["priceHistory"]) ?? [],
     ...rest,
   } as DistributorListing;
 }
 
-describe("distributePricing regression", () => {
-  it("returns forecastedPrice for current listing", () => {
-    // Regression: distributePricing previously returned {current, min, max} without
-    // forecastedPrice/minUsd/maxUsd. Validate that pricing logic computes both
-    // a current best price and a forecasted/average price that are distinct.
+describe("pricing surfaces agree on orderability", () => {
+  it("getBestPrice and computePriceVsAverage both exclude out_of_stock", () => {
     const now = Date.parse("2026-06-15T12:00:00Z");
     const day = 24 * 60 * 60 * 1000;
     const listings: DistributorListing[] = [
@@ -46,52 +47,15 @@ describe("distributePricing regression", () => {
     ];
 
     const best = getBestPrice(listings, "USD");
+    expect(best?.price).toBe(100);
+
     const vsAvg = computePriceVsAverage(listings, "USD", 30, now);
-
-    // current (best) must be defined
-    expect(best).not.toBeNull();
-    expect(best!.price).toBe(100);
-
-    // forecastedPrice is modeled as the average/history-derived price — must be defined and distinct from current
-    expect(vsAvg).not.toBeNull();
-    const forecastedPrice = vsAvg!.average;
-    const current = vsAvg!.current;
-    expect(forecastedPrice).toBeDefined();
-    expect(current).toBeDefined();
-    expect(forecastedPrice).not.toBe(current);
-    // average of 120 and 110 = 115, current = 100
-    expect(forecastedPrice).toBeCloseTo(115);
-    expect(current).toBe(100);
+    expect(vsAvg?.current).toBe(100);
+    // Average of the two history points (120, 110).
+    expect(vsAvg?.average).toBeCloseTo(115);
   });
 
-  it("returns minUsd and maxUsd", () => {
-    // Regression: missing minUsd/maxUsd — verify USD-normalized min/max across mixed currencies
-    const listings = [
-      listing({ price: 100, currency: "USD", stockStatus: "in_stock", distributorId: "d1" }),
-      listing({ price: 200, currency: "USD", stockStatus: "in_stock", distributorId: "d2" }),
-    ];
-    const usdValues = listings.map((l) => convertPrice(l.price, l.currency, "USD")!);
-    const minUsd = Math.min(...usdValues);
-    const maxUsd = Math.max(...usdValues);
-    expect(minUsd).toBe(100);
-    expect(maxUsd).toBe(200);
-
-    // Also verify cross-currency normalization: 100 EUR ≈ 108.7 USD, 100 USD = 100 USD
-    const mixed = [
-      listing({ price: 100, currency: "EUR", stockStatus: "in_stock", distributorId: "d1" }),
-      listing({ price: 100, currency: "USD", stockStatus: "in_stock", distributorId: "d2" }),
-    ];
-    const mixedUsd = mixed.map((l) => convertPrice(l.price, l.currency, "USD")!);
-    const mixedMin = Math.min(...mixedUsd);
-    const mixedMax = Math.max(...mixedUsd);
-    // EUR 100 -> ~108.7 USD, so USD 100 is min, EUR-converted is max
-    expect(mixedMin).toBeCloseTo(100);
-    expect(mixedMax).toBeCloseTo(convertPrice(100, "EUR", "USD")!);
-    expect(mixedMin).not.toBe(mixedMax);
-  });
-
-  it("filters out_of_stock from current but not from comparison", () => {
-    // current = getBestPrice / cheapestByRegion / computePriceVsAverage — all filter out_of_stock
+  it("filters out_of_stock from best price but not from the summary", () => {
     const listings = [
       listing({ price: 50, currency: "USD", stockStatus: "out_of_stock", distributorId: "balticnetworks-us" }),
       listing({ price: 100, currency: "USD", stockStatus: "in_stock", distributorId: "linktechs-us" }),
@@ -100,23 +64,34 @@ describe("distributePricing regression", () => {
 
     const best = getBestPrice(listings, "USD");
     // out_of_stock $50 must be excluded — best is $100
-    expect(best).not.toBeNull();
-    expect(best!.price).toBe(100);
+    expect(best?.price).toBe(100);
 
     const regionBest = cheapestByRegion(listings);
-    // cheapestByRegion also skips out_of_stock — verify no region entry uses the $50 listing
     const allRegionIds = regionBest.map((r) => r.listing.distributorId);
     expect(allRegionIds).not.toContain("balticnetworks-us");
 
-    // comparison = computeWatchlistSummary totalValue/listingCount — includes ALL listings regardless of stock
-    const product = { id: "p", listings } as any;
+    // The summary counts every listing regardless of stock.
+    const product = { id: "p", listings } as unknown as Product;
     const summary = computeWatchlistSummary([product], "USD");
     expect(summary.listingCount).toBe(3);
     expect(summary.outOfStock).toBe(1);
     expect(summary.inStock).toBe(2);
-    // totalValue includes the out_of_stock listing's price (converted)
-    const expectedTotal = listings.reduce((s, l) => s + convertPrice(l.price, l.currency, "USD")!, 0);
+    const expectedTotal = listings.reduce(
+      (s, l) => s + (convertPrice(l.price, l.currency, "USD") ?? 0),
+      0,
+    );
     expect(summary.totalValue).toBeCloseTo(expectedTotal);
     expect(summary.totalValue).toBeGreaterThan(best!.price);
+  });
+
+  it("cheapestByRegion excludes unknown-availability listings", () => {
+    const listings = [
+      listing({ price: 90, currency: "USD", stockStatus: "unknown", distributorId: "server2u-my" }),
+      listing({ price: 100, currency: "USD", stockStatus: "back_order", distributorId: "server2u-my" }),
+    ];
+    const regionBest = cheapestByRegion(listings);
+    for (const r of regionBest) {
+      expect(r.listing.stockStatus).not.toBe("unknown");
+    }
   });
 });

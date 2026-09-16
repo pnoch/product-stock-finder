@@ -106,11 +106,15 @@ export async function getDeviceBinding(
 ): Promise<{ userId: number | null }> {
   const db = await getDb();
   if (!db) {
+    // Mirror the DB branch: an anonymous config (userId null) must not mask a
+    // user-bound push token.
     const config = listMemoryConfigDevices().find(
-      (d) => d.deviceId === deviceId,
+      (d) => d.deviceId === deviceId && d.userId != null,
     );
     if (config) return { userId: config.userId };
-    const token = listMemoryTokenDevices().find((d) => d.deviceId === deviceId);
+    const token = listMemoryTokenDevices().find(
+      (d) => d.deviceId === deviceId && d.userId != null,
+    );
     return { userId: token?.userId ?? null };
   }
   const configRows = await db

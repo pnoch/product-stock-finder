@@ -23,6 +23,8 @@ export interface BreakerEntry {
 export interface BreakerStateStore {
   get(distributorId: string): Promise<BreakerEntry | null>;
   set(entry: BreakerEntry): Promise<void>;
+  /** Clears a distributor's breaker so the next fetch is attempted again. */
+  clear?(distributorId: string): Promise<void>;
 }
 
 export const BLOCKED_MARKERS = [
@@ -57,6 +59,9 @@ export function createMemoryBreakerStore(): BreakerStateStore {
     },
     async set(entry) {
       entries.set(entry.distributorId, entry);
+    },
+    async clear(distributorId) {
+      entries.delete(distributorId);
     },
   };
 }
@@ -104,6 +109,17 @@ export function createStorageBreakerStore(
             (e) => e.distributorId !== entry.distributorId,
           );
           next.push(entry);
+          await adapter.setItem(DISTRIBUTOR_BREAKER_KEY, JSON.stringify(next));
+        } catch {
+          // Ignore persistence errors
+        }
+      });
+    },
+    clear(distributorId) {
+      return serializeByKey(DISTRIBUTOR_BREAKER_KEY, async () => {
+        try {
+          const list = await readList();
+          const next = list.filter((e) => e.distributorId !== distributorId);
           await adapter.setItem(DISTRIBUTOR_BREAKER_KEY, JSON.stringify(next));
         } catch {
           // Ignore persistence errors
@@ -292,7 +308,17 @@ export async function fetchAndParse(
     return { result: null, url: searchUrl, outcome: first };
   }
   if (parser.resolveProductUrl) {
-    const productUrl = parser.resolveProductUrl(first.html, model);
+    const resolved = parser.resolveProductUrl(first.html, model);
+    // Resolvers return the raw href, which is usually relative; fetch() and
+    // Playwright both reject relative URLs.
+    let productUrl = resolved;
+    if (resolved) {
+      try {
+        productUrl = new URL(resolved, searchUrl).toString();
+      } catch {
+        productUrl = resolved;
+      }
+    }
     if (productUrl) {
       const second = await resilientFetch({ parser, url: productUrl, state });
       if (second.status === "ok" && second.html) {

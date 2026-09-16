@@ -65,6 +65,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <TextInput
+              accessibilityLabel="sk-..."
               style={{
                 flex: 1,
                 backgroundColor: colors.surface,
@@ -85,6 +86,8 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
             <TouchableOpacity activeOpacity={0.85}
               onPress={() => setShowApiKey(!showApiKey)}
               style={{ marginLeft: 8, padding: 8 }}
+              accessibilityLabel={showApiKey ? "Hide API key" : "Show API key"}
+              accessibilityRole="button"
             >
               <Text style={{ color: colors.primary, fontSize: 13 }}>
                 {showApiKey ? "Hide" : "Show"}
@@ -96,6 +99,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
             Model
           </Text>
           <TextInput
+              accessibilityLabel="dall-e-3"
             style={{
               backgroundColor: colors.surface,
               borderWidth: 1,
@@ -121,6 +125,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <TextInput
+              accessibilityLabel="ollama_..."
               style={{
                 flex: 1,
                 backgroundColor: colors.surface,
@@ -141,6 +146,8 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
             <TouchableOpacity activeOpacity={0.85}
               onPress={() => setShowApiKey(!showApiKey)}
               style={{ marginLeft: 8, padding: 8 }}
+              accessibilityLabel={showApiKey ? "Hide API key" : "Show API key"}
+              accessibilityRole="button"
             >
               <Text style={{ color: colors.primary, fontSize: 13 }}>
                 {showApiKey ? "Hide" : "Show"}
@@ -152,6 +159,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
             Ollama URL
           </Text>
           <TextInput
+              accessibilityLabel="https://ollama.com"
             style={{
               backgroundColor: colors.surface,
               borderWidth: 1,
@@ -174,6 +182,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
             Model (optional)
           </Text>
           <TextInput
+              accessibilityLabel="gemma4"
             style={{
               backgroundColor: colors.surface,
               borderWidth: 1,
@@ -200,6 +209,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
             Ollama URL
           </Text>
           <TextInput
+              accessibilityLabel="http://localhost:11434"
             style={{
               backgroundColor: colors.surface,
               borderWidth: 1,
@@ -222,6 +232,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
             Model (optional)
           </Text>
           <TextInput
+              accessibilityLabel="llava"
             style={{
               backgroundColor: colors.surface,
               borderWidth: 1,

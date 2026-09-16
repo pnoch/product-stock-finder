@@ -47,6 +47,9 @@ export default function ProductDetailScreen() {
   const [productImage, setProductImage] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState<string | null>(null);
   const [shippingRegion, setShippingRegion] = useState<string | null>(null);
+  // Explicit flag: gating the skeleton on the settings *values* meant a failed
+  // settings read (or a missing id) hung the screen forever.
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
@@ -58,7 +61,10 @@ export default function ProductDetailScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
-    if (!id) return;
+    if (!id) {
+      setSettingsLoaded(true);
+      return;
+    }
     setInsight(null);
     setInsightLoading(true);
     setProductImage(null);
@@ -74,6 +80,7 @@ export default function ProductDetailScreen() {
     if (signal?.cancelled) return;
     if (settingsData?.displayCurrency) setDisplayCurrency(settingsData.displayCurrency);
     if (settingsData?.shippingRegion) setShippingRegion(settingsData.shippingRegion);
+    setSettingsLoaded(true);
     const watchMap: Record<string, boolean> = {};
     for (const w of stockWatchesData) {
       if (w.productId === id) watchMap[w.distributorId] = true;
@@ -111,7 +118,7 @@ export default function ProductDetailScreen() {
   );
   const effectiveCurrency = displayCurrency ?? "USD";
   const effectiveShippingRegion = shippingRegion ?? "Asia-Pacific";
-  const isSettingsLoaded = displayCurrency !== null && shippingRegion !== null;
+  const isSettingsLoaded = settingsLoaded;
   const bestInStockListing = useMemo(() => {
     const inStock = visibleListings.filter((l) => l.stockStatus === "in_stock");
     if (inStock.length === 0) return null;
@@ -353,7 +360,14 @@ export default function ProductDetailScreen() {
           {product.name}
         </Text>
         <View pointerEvents="auto">
-          <TouchableOpacity activeOpacity={0.7} onPress={handleShare} style={{ padding: 4, marginLeft: 8 }}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleShare}
+            style={{ padding: 4, marginLeft: 8 }}
+            accessibilityLabel="Share product"
+            accessibilityRole="button"
+            hitSlop={10}
+          >
             <IconSymbol name="square.and.arrow.up" size={18} color={colors.primary} />
           </TouchableOpacity>
         </View>

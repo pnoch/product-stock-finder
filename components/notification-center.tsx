@@ -67,13 +67,19 @@ export function NotificationCenter({
   );
 
   const load = useCallback(async () => {
-    const [list, unread] = await Promise.all([
-      getNotificationHistory(),
-      getUnreadNotificationCount(),
-    ]);
-    setHistory(list);
-    applyUnread(unread);
-    setLoading(false);
+    try {
+      const [list, unread] = await Promise.all([
+        getNotificationHistory(),
+        getUnreadNotificationCount(),
+      ]);
+      setHistory(list);
+      applyUnread(unread);
+    } catch {
+      // A storage failure must still clear the skeleton, or the tab hangs
+      // forever with no error and no way to recover.
+    } finally {
+      setLoading(false);
+    }
   }, [applyUnread]);
 
   useFocusEffect(

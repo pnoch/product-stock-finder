@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const deleteWhere = vi.fn(async () => ({ affectedRows: 1 }));
+const deleteWhere = vi.fn(async (_cond?: unknown) => ({ affectedRows: 1 }));
 const dbStub = {
   delete: vi.fn(() => ({ where: deleteWhere })),
 };
@@ -15,6 +15,9 @@ vi.mock("../server/_core/imageGeneration", () => ({ generateImage: vi.fn() }));
 
 import { purgeOrphanedInsights } from "../server/price-insights";
 import { purgeOrphanedImages } from "../server/product-images";
+import { MySqlDialect } from "drizzle-orm/mysql-core";
+
+const dialect = new MySqlDialect();
 
 describe("orphan purge", () => {
   beforeEach(() => {
@@ -22,15 +25,20 @@ describe("orphan purge", () => {
     deleteWhere.mockResolvedValue({ affectedRows: 1 });
   });
 
-  it("issues a delete for insight rows outside the catalog", async () => {
+  it("deletes insight rows NOT IN the catalog", async () => {
     await purgeOrphanedInsights();
     expect(dbStub.delete).toHaveBeenCalledTimes(1);
-    expect(deleteWhere).toHaveBeenCalledTimes(1);
+    const { sql } = dialect.sqlToQuery(deleteWhere.mock.calls[0]![0] as never);
+    // Must be a scoped NOT IN, not an unbounded delete.
+    expect(sql).toContain("not in");
+    expect(sql).toContain("productId");
   });
 
-  it("issues a delete for image rows outside the catalog", async () => {
+  it("deletes image rows NOT IN the catalog", async () => {
     await purgeOrphanedImages();
     expect(dbStub.delete).toHaveBeenCalledTimes(1);
-    expect(deleteWhere).toHaveBeenCalledTimes(1);
+    const { sql } = dialect.sqlToQuery(deleteWhere.mock.calls[0]![0] as never);
+    expect(sql).toContain("not in");
+    expect(sql).toContain("productId");
   });
 });

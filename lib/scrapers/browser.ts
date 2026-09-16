@@ -209,9 +209,10 @@ const REGION_SIGNALS: Record<
 
 function regionSignalsFor(url: string) {
   try {
-    const host = extractDomain(url);
+    const norm = (h: string) => h.replace(/^www\./, "");
+    const host = norm(extractDomain(url));
     const dist = DISTRIBUTORS.find((d) =>
-      d.website ? extractDomain(d.website) === host : false,
+      d.website ? norm(extractDomain(d.website)) === host : false,
     );
     return REGION_SIGNALS[dist?.region ?? ""] ?? REGION_SIGNALS["North America"];
   } catch {

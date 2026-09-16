@@ -231,7 +231,17 @@ export const ProductCard = memo(function ProductCard({
       delayLongPress={350}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      accessibilityLabel={product.name}
+      accessibilityLabel={[
+        product.name,
+        bestPrice ? formatPrice(bestPrice.price, bestPrice.currency) : null,
+        (product.listings ?? []).some((l) => l.stockStatus === "in_stock")
+          ? "in stock"
+          : (product.listings ?? []).some((l) => l.stockStatus === "back_order")
+            ? "back order"
+            : "out of stock",
+      ]
+        .filter(Boolean)
+        .join(", ")}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityHint={selectionMode ? (selected ? "Double tap to deselect" : "Double tap to select") : undefined}
