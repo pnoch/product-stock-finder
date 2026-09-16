@@ -203,6 +203,24 @@ export async function runPriceCheckCore(opts?: {
             trigger: null,
           });
         }
+        // Record locally-fired alerts in the in-app history too; otherwise the
+        // Notification Center only shows server events and the counts diverge.
+        try {
+          const { recordNotificationEvent } = await import("../storage");
+          await recordNotificationEvent({
+            id: `local-price-${alert.id}-${Date.now()}`,
+            type: isRise ? "price_rise" : "price_drop",
+            title,
+            body,
+            alertId: alert.id,
+            productId: alert.productId,
+            triggeredPrice: bestPrice,
+            currency: alert.currency,
+            createdAt: Date.now(),
+          });
+        } catch {
+          // history recording never breaks the check
+        }
       } catch {
         // Scheduling failed after a successful claim: re-arm so a later run
         // retries instead of dropping the alert silently. Safe from

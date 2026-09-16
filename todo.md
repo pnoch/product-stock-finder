@@ -1834,3 +1834,14 @@
 - [x] Fixed a pre-existing flaky desktop test (modal focus race) so the new CI desktop step is reliable
 
 - [x] Tests: `parser-host-parity`, `reminder-dedup`, updated ~25 test files for the intentional behavior changes; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `299 passed | 1 skipped` / `1810 passed`, desktop `43 passed` / `218 passed`, `cargo test` 16 passed
+
+## Phase 225: Review round 5 follow-ups (retention, sharing, notifications)
+
+- [x] `purgeOldRevokedDevices` deleted only one 1000-row batch per tick (no drain loop), so a backlog never caught up; now batches like the other retention jobs
+- [x] `getDeviceBinding` returned the first config row even when its `userId` was NULL, masking a user-bound push token → any authenticated user could claim that device. Now prefers a user-bound row across configs and tokens
+- [x] `sharedWatchlists.get` counted tombstones toward the 500-item cap, truncating live products for owners with many deletions; tombstones are now filtered in SQL
+- [x] Expired shares were still joinable/listed (`join`, `members` never checked `expiresAt`); both now reject expired tokens
+- [x] `evaluateUserDb` loaded every retained event + delivery for a user each tick; bounded to the delivery-grace window
+- [x] Digest day bucket used UTC while quiet hours use the user's offset; the digest now buckets by the user's local day
+- [x] Locally-fired price/restock notifications were never recorded in the in-app Notification Center (only server events were), so the history and unread badge diverged from what the OS showed; both now record
+- [x] Tests: `revoked-purge-batching`, `device-binding-precedence` (both verified non-vacuous), updated `shared-watchlists` fake DB for the SQL tombstone filter; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `301 passed | 1 skipped` / `1816 passed`, desktop `43 passed` / `218 passed`

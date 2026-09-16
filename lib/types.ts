@@ -121,6 +121,7 @@ export interface NotificationHistoryEntry {
   type: "price_drop" | "price_rise" | "restock" | "reminder" | "health" | "digest";
   title: string;
   body: string;
+  alertId?: string;
   productId?: string;
   distributorId?: string;
   healthStatus?: "blocked" | "error" | "recovered";

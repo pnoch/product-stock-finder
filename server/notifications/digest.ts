@@ -74,9 +74,16 @@ export function buildDigestDraft(
   held: EventDraft[],
   scopeKey: string,
   nowMs: number,
+  // The client's UTC offset (Date.getTimezoneOffset semantics), so the digest
+  // day bucket matches the user's calendar day rather than UTC.
+  utcOffsetMinutes?: number,
 ): EventDraft | null {
   if (held.length === 0) return null;
-  const day = new Date(nowMs).toISOString().slice(0, 10);
+  const localMs =
+    typeof utcOffsetMinutes === "number"
+      ? nowMs - utcOffsetMinutes * 60_000
+      : nowMs;
+  const day = new Date(localMs).toISOString().slice(0, 10);
   const lines = held
     .slice(0, MAX_DIGEST_LINES)
     .map((d) => `• ${d.title} — ${d.body}`);

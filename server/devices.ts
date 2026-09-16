@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, isNull, lt, or } from "drizzle-orm";
+import { affectedRowsOf } from "./db";
 import {
   deviceLabels,
   deviceNotificationConfigs,
@@ -116,14 +117,18 @@ export async function getDeviceBinding(
     .select()
     .from(deviceNotificationConfigs)
     .where(eq(deviceNotificationConfigs.deviceId, deviceId));
-  if (configRows.length > 0) {
-    return { userId: configRows[0].userId };
+  // A legacy anonymous config (userId NULL) must not mask a user-bound push
+  // token: returning null would let any authenticated user claim the device.
+  const configUserId = configRows.find((r) => r.userId != null)?.userId;
+  if (configUserId != null) {
+    return { userId: configUserId };
   }
   const tokenRows = await db
     .select()
     .from(devicePushTokens)
     .where(eq(devicePushTokens.deviceId, deviceId));
-  return { userId: tokenRows[0]?.userId ?? null };
+  const tokenUserId = tokenRows.find((r) => r.userId != null)?.userId;
+  return { userId: tokenUserId ?? configRows[0]?.userId ?? null };
 }
 
 export async function assertDeviceAccess(
@@ -281,6 +286,7 @@ export async function cleanupStaleDevices(
 // per-request isDeviceRevoked scan. Drop rows past the retention window.
 const REVOKED_DEVICE_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 const REVOKED_DEVICE_PURGE_BATCH = 1000;
+const REVOKED_DEVICE_PURGE_MAX_BATCHES = 10;
 
 export async function purgeOldRevokedDevices(now: number): Promise<void> {
   const cutoff = now - REVOKED_DEVICE_RETENTION_MS;
@@ -293,10 +299,16 @@ export async function purgeOldRevokedDevices(now: number): Promise<void> {
     }
     return;
   }
-  await db
-    .delete(revokedDevices)
-    .where(lt(revokedDevices.revokedAt, cutoff))
-    .limit(REVOKED_DEVICE_PURGE_BATCH);
+  // Drain in batches like the other retention jobs; a single LIMIT would only
+  // remove 1000 rows per tick and never catch up on a large backlog.
+  for (let batch = 0; batch < REVOKED_DEVICE_PURGE_MAX_BATCHES; batch++) {
+    const result = await db
+      .delete(revokedDevices)
+      .where(lt(revokedDevices.revokedAt, cutoff))
+      .limit(REVOKED_DEVICE_PURGE_BATCH);
+    const affected = affectedRowsOf(result);
+    if (affected < REVOKED_DEVICE_PURGE_BATCH) break;
+  }
 }
 
 export async function isDeviceRevoked(

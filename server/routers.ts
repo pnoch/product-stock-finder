@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import {
   COOKIE_NAME,
@@ -679,15 +679,19 @@ export const appRouter = router({
         // Cap the shared payload: a public endpoint must not return an
         // arbitrarily large watchlist (or read every row into memory) just
         // because the owner has thousands of items.
+        // Filter tombstones in SQL: counting them toward the cap truncated the
+        // live products for an owner with many deletions.
         const items = await db
           .select()
           .from(watchlistItems)
-          .where(eq(watchlistItems.userId, row.ownerId))
+          .where(
+            and(
+              eq(watchlistItems.userId, row.ownerId),
+              isNull(watchlistItems.deletedAtMs),
+            ),
+          )
           .limit(SHARED_WATCHLIST_MAX_ITEMS);
-        const products = items
-          .filter((r) => r.deletedAtMs === null || r.deletedAtMs === undefined)
-          .map((r) => r.data)
-          .filter(Boolean);
+        const products = items.map((r) => r.data).filter(Boolean);
         return { title: row.title, token: row.token, products, truncated: items.length >= SHARED_WATCHLIST_MAX_ITEMS, createdAt: row.createdAt?.toISOString?.() ?? null, expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null } as const;
       }),
     revoke: protectedProcedure
@@ -757,8 +761,11 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
-        const row = rows[0] as unknown as { ownerId: number } | undefined;
+        const row = rows[0] as unknown as { ownerId: number; expiresAt: Date | null } | undefined;
         if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
+        if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Share expired" });
+        }
         const isOwner = row.ownerId === ctx.user.id;
         const memberRows = await db.select().from(sharedWatchlistMembers).where(eq(sharedWatchlistMembers.token, input.token));
         const isMember = memberRows.some((m) => m.userId === ctx.user.id);
@@ -772,7 +779,12 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
-        if (!rows[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
+        const joinRow = rows[0] as unknown as { expiresAt: Date | null } | undefined;
+        if (!joinRow) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
+        // Expired shares must not be joinable (get already rejects them).
+        if (joinRow.expiresAt && new Date(joinRow.expiresAt).getTime() < Date.now()) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Share expired" });
+        }
         await db.insert(sharedWatchlistMembers).values({ token: input.token, userId: ctx.user.id, role: "viewer" }).onDuplicateKeyUpdate({ set: { role: "viewer" } });
         return { joined: true } as const;
       }),

@@ -46,7 +46,14 @@ function fakeDb(opts: { sharedRows?: unknown[]; watchlistRows?: unknown[] }): un
     select: () => ({
       from: (table: unknown) => ({
         where: (..._args: unknown[]) => {
-          const rows = table === sharedWatchlists ? sharedRows : watchlistRows;
+          let rows = table === sharedWatchlists ? sharedRows : watchlistRows;
+          // The router now filters tombstones in SQL (isNull(deletedAtMs));
+          // mirror that so the fake DB behaves like the real one.
+          if (table !== sharedWatchlists) {
+            rows = (rows as Array<{ deletedAtMs?: number | null }>).filter(
+              (r) => r.deletedAtMs === null || r.deletedAtMs === undefined,
+            );
+          }
           const promise: unknown = Promise.resolve(rows);
           (promise as Record<string, unknown>).limit = async (n: number) => (rows as unknown[]).slice(0, n);
           return promise as unknown;

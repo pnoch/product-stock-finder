@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, sql } from "drizzle-orm";
 import {
   deviceNotificationConfigs,
   notificationEvents,
@@ -177,7 +177,12 @@ async function evaluateAnonMemory(
   const held = takeDigestHeld(scopeKey);
   let toDeliver = drafts;
   if (held.length > 0) {
-    const digest = buildDigestDraft([...held, ...drafts], scopeKey, now);
+    const digest = buildDigestDraft(
+      [...held, ...drafts],
+      scopeKey,
+      now,
+      config.quietHours?.utcOffsetMinutes,
+    );
     toDeliver =
       digest && !blocked.has(digest.dedupKey)
         ? [digest]
@@ -225,7 +230,12 @@ async function evaluateUserMemory(
   const held = takeDigestHeld(scopeKey);
   let toDeliver = drafts;
   if (held.length > 0) {
-    const digest = buildDigestDraft([...held, ...drafts], scopeKey, now);
+    const digest = buildDigestDraft(
+      [...held, ...drafts],
+      scopeKey,
+      now,
+      config.quietHours?.utcOffsetMinutes,
+    );
     toDeliver =
       digest && !blocked.has(digest.dedupKey)
         ? [digest]
@@ -310,7 +320,12 @@ async function evaluateConfigDb(
   const held = takeDigestHeld(scopeKey);
   let combined = drafts;
   if (held.length > 0) {
-    const digest = buildDigestDraft([...held, ...drafts], scopeKey, now);
+    const digest = buildDigestDraft(
+      [...held, ...drafts],
+      scopeKey,
+      now,
+      config.quietHours?.utcOffsetMinutes,
+    );
     combined =
       digest && !blocked.has(digest.dedupKey)
         ? [digest]
@@ -364,6 +379,9 @@ async function evaluateUserDb(
 ): Promise<void> {
   const boundCount = devices.length;
   const config = aggregateConfigs(devices.map((d) => d.config));
+  // Only events within the blocking window can suppress a new draft; bounding
+  // the read keeps this per-user query small instead of loading all retained
+  // events (and their deliveries) every tick.
   const existing = await db
     .select({
       id: notificationEvents.id,
@@ -371,7 +389,12 @@ async function evaluateUserDb(
       createdAt: notificationEvents.createdAt,
     })
     .from(notificationEvents)
-    .where(eq(notificationEvents.userId, userId));
+    .where(
+      and(
+        eq(notificationEvents.userId, userId),
+        gt(notificationEvents.createdAt, now - DELIVERY_GRACE_MS),
+      ),
+    );
   const eventIds = existing.map((e) => e.id);
   const deliveryCounts = new Map<string, number>();
   if (eventIds.length > 0) {
@@ -409,7 +432,12 @@ async function evaluateUserDb(
   const held = takeDigestHeld(scopeKey);
   let combined = drafts;
   if (held.length > 0) {
-    const digest = buildDigestDraft([...held, ...drafts], scopeKey, now);
+    const digest = buildDigestDraft(
+      [...held, ...drafts],
+      scopeKey,
+      now,
+      config.quietHours?.utcOffsetMinutes,
+    );
     combined =
       digest && !pending.has(digest.dedupKey)
         ? [digest]

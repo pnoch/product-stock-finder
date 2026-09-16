@@ -80,6 +80,22 @@ async function runCheckRestocks(): Promise<void> {
         // Keep the watch so the next cycle retries the notification.
         continue;
       }
+      // Record in the in-app history so the Notification Center reflects
+      // locally-fired restocks, not just server events.
+      try {
+        const { recordNotificationEvent } = await import("./storage");
+        await recordNotificationEvent({
+          id: `local-restock-${watch.id}-${Date.now()}`,
+          type: "restock",
+          title: "🟢 Back In Stock!",
+          body: `${watch.productName} is now available at ${watch.distributorName}.`,
+          productId: watch.productId,
+          distributorId: watch.distributorId,
+          createdAt: Date.now(),
+        });
+      } catch {
+        // history recording never breaks the check
+      }
       try {
         await removeStockWatch(watch.id);
       } catch {
