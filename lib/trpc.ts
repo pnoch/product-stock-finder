@@ -57,10 +57,12 @@ export function createTRPCClient() {
         transformer: superjson,
         async headers() {
           const token = await Auth.getSessionToken();
-          const deviceId = await getDeviceId();
+          // Never let a device-id failure reject header construction for every
+          // request.
+          const deviceId = await getDeviceId().catch(() => undefined);
           return {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            "x-device-id": deviceId,
+            ...(deviceId ? { "x-device-id": deviceId } : {}),
           };
         },
         // Custom fetch to include credentials for cookie-based auth

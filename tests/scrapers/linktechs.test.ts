@@ -8,13 +8,13 @@ const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 describe("Linktechs Parser", () => {
   it("should have correct parser config", () => {
     expect(linktechsParser.id).toBe("linktechs-us");
-    expect(linktechsParser.baseUrl).toBe("https://linktechs.com");
+    expect(linktechsParser.baseUrl).toBe("https://shop.linktechs.net");
     expect(linktechsParser.rateLimitMs).toBe(3000);
   });
 
   it("should build correct search URL", () => {
     const url = linktechsParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://linktechs.com/search?q=hAP%20ac3");
+    expect(url).toBe("https://shop.linktechs.net/search?q=hAP%20ac3");
   });
 
   it("should return null for 404 page fixture", () => {

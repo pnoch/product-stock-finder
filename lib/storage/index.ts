@@ -57,6 +57,9 @@ export function createStorage(
       "has_seen_onboarding",
       "price_digest_snapshot",
       DISTRIBUTOR_BREAKER_KEY,
+      // Background-task interval marker: leaving it behind made a wiped app
+      // skip a needed re-registration.
+      STORAGE_KEYS.BACKGROUND_TASK_INTERVAL,
     ]);
   }
 

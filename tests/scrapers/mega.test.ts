@@ -8,13 +8,13 @@ const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 describe("100Mega Parser", () => {
   it("should have correct parser config", () => {
     expect(megaParser.id).toBe("100mega-cz");
-    expect(megaParser.baseUrl).toBe("https://100mega.cz");
+    expect(megaParser.baseUrl).toBe("https://b2b.100mega.com");
     expect(megaParser.rateLimitMs).toBe(3000);
   });
 
   it("should build correct search URL", () => {
     const url = megaParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://100mega.cz/search?q=hAP%20ac3");
+    expect(url).toBe("https://b2b.100mega.com/search?q=hAP%20ac3");
   });
 
   it("should return null for 404 page fixture", () => {

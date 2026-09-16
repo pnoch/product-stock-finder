@@ -38,10 +38,10 @@ function parseHtml(
 
 export const rocnocParser: DistributorParser = {
   id: "rocnoc-us",
-  baseUrl: "https://rocnoc.com",
+  baseUrl: "https://roc-noc.com",
   buildSearchUrl: (model) =>
-    `https://rocnoc.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://rocnoc.com", model),
+    `https://roc-noc.com/search?q=${encodeURIComponent(model)}`,
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://roc-noc.com", model),
   rateLimitMs: 3000,
 };
 

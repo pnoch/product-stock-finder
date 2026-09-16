@@ -14,7 +14,7 @@ describe("Miro Parser", () => {
 
   it("should build correct search URL", () => {
     const url = miroParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://miro.co.za/search?q=hAP%20ac3");
+    expect(url).toBe("https://miro.co.za/search?s=hAP%20ac3");
   });
 
   it("should return null for 404 page fixture", () => {

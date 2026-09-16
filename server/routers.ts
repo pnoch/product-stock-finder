@@ -440,6 +440,9 @@ export const appRouter = router({
               z.object({
                 id: z.string().min(1).max(191),
                 productId: z.string().min(1).max(191),
+                // Lets the server resolve prices for products outside the
+                // static catalog (manually added / rediscovered).
+                modelNumber: z.string().max(191).optional(),
                 targetPrice: z.number().finite().positive(),
                 currency: z.string().min(1).max(8),
                 distributorId: z.string().max(64).optional(),
@@ -453,6 +456,7 @@ export const appRouter = router({
               z.object({
                 id: z.string().min(1).max(191),
                 productId: z.string().min(1).max(191),
+                modelNumber: z.string().max(191).optional(),
                 distributorId: z.string().min(1).max(64),
                 lastKnownStatus: z.string().max(32).optional(),
               }),
@@ -463,6 +467,7 @@ export const appRouter = router({
               z.object({
                 id: z.string().min(1).max(191),
                 productId: z.string().min(1).max(191),
+                modelNumber: z.string().max(191).optional(),
                 distributorId: z.string().min(1).max(64),
                 reminderDate: z.string().min(1).max(64),
               }),

@@ -1,6 +1,6 @@
 import { DISTRIBUTOR_BREAKER_KEY, type StorageAdapter } from "../storage";
 import { getRandomUserAgent } from "./utils";
-import type { DistributorParser } from "./types";
+import type { DistributorParser, ScrapeResult } from "./types";
 
 export type FetchStatus = "ok" | "blocked" | "error" | "skipped";
 
@@ -243,7 +243,9 @@ async function attemptMethod(
         const status = classifyFetchStatus(html);
         if (status === "ok") return { html, status: "ok", method };
         last = { status, method, error: "blocked by site" };
-        break;
+        // Retry a transient browser failure; only a real block should stop.
+        if (status === "blocked") break;
+        continue;
       }
       const { html, status: httpStatus } = await fetchPlain(
         opts.url,
@@ -273,6 +275,42 @@ async function attemptMethod(
 // One network attempt per distributor at a time: concurrent callers of the
 // same parser would otherwise stampede rate limits and the breaker store.
 const inFlight = new Map<string, Promise<FetchOutcome>>();
+
+/**
+ * Fetch a parser's search URL and parse it, following `resolveProductUrl` when
+ * the parser needs a second hop (JS-rendered search pages). Returns the parsed
+ * result plus the URL that was actually parsed.
+ */
+export async function fetchAndParse(
+  parser: DistributorParser,
+  model: string,
+  state: BreakerStateStore,
+): Promise<{ result: ScrapeResult | null; url: string; outcome: FetchOutcome }> {
+  const searchUrl = parser.buildSearchUrl(model);
+  const first = await resilientFetch({ parser, url: searchUrl, state });
+  if (first.status !== "ok" || !first.html) {
+    return { result: null, url: searchUrl, outcome: first };
+  }
+  if (parser.resolveProductUrl) {
+    const productUrl = parser.resolveProductUrl(first.html, model);
+    if (productUrl) {
+      const second = await resilientFetch({ parser, url: productUrl, state });
+      if (second.status === "ok" && second.html) {
+        return {
+          result: parser.parsePrice(second.html, model, productUrl),
+          url: productUrl,
+          outcome: second,
+        };
+      }
+      return { result: null, url: productUrl, outcome: second };
+    }
+  }
+  return {
+    result: parser.parsePrice(first.html, model, searchUrl),
+    url: searchUrl,
+    outcome: first,
+  };
+}
 
 export async function resilientFetch(
   opts: ResilientFetchOptions,
@@ -331,8 +369,9 @@ async function runResilientFetch(
       return outcome;
     }
     if (outcome.status === "blocked") {
-      if (method === "plain") continue;
-      break;
+      // Try the other method before giving up: a browser-detected block does
+      // not imply a plain request would also be blocked (and vice versa).
+      continue;
     }
     // Any hard error falls through to the next method (plain errors escalate
     // to the browser; browser errors have nothing left to try).

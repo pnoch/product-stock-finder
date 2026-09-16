@@ -10,7 +10,7 @@ describe("Aerial Parser", () => {
 
   it("should build correct search URL", () => {
     const url = aerialParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://aerial.net/shop?q=hAP%20ac3");
+    expect(url).toBe("https://www.aerial.net/shop/advanced_search_result.php?keywords=hAP%20ac3");
   });
 
   it("should return null for invalid HTML", () => {

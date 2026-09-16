@@ -40,7 +40,7 @@ export const aerialParser: DistributorParser = {
   id: "aerial-gr",
   baseUrl: "https://aerial.net",
   buildSearchUrl: (model) =>
-    `https://aerial.net/shop?q=${encodeURIComponent(model)}`,
+    `https://www.aerial.net/shop/advanced_search_result.php?keywords=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) => parseHtml(html, url ?? "https://aerial.net", model),
   rateLimitMs: 3000,
   useBrowser: true,

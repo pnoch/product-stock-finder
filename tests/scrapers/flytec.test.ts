@@ -10,7 +10,7 @@ describe("Flytec Parser", () => {
 
   it("should build correct search URL", () => {
     const url = flytecParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://flyteccomputers.com/search?q=hAP%20ac3");
+    expect(url).toBe("https://flyteccomputers.com/search.php?search_query=hAP%20ac3");
   });
 
   it("should return null for invalid HTML", () => {

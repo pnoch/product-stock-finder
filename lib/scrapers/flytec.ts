@@ -42,7 +42,7 @@ export const flytecParser: DistributorParser = {
   id: "flytec-us",
   baseUrl: "https://flyteccomputers.com",
   buildSearchUrl: (model) =>
-    `https://flyteccomputers.com/search?q=${encodeURIComponent(model)}`,
+    `https://flyteccomputers.com/search.php?search_query=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) => parseHtml(html, url ?? "https://flyteccomputers.com", model),
   rateLimitMs: 3000,
 };

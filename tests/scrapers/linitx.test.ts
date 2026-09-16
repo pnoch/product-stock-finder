@@ -10,7 +10,7 @@ describe("Linitx Parser", () => {
 
   it("should build correct search URL", () => {
     const url = linitxParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://linitx.com/search?q=hAP%20ac3");
+    expect(url).toBe("https://linitx.com/search.php?keywords=hAP%20ac3");
   });
 
   it("should return null for invalid HTML", () => {

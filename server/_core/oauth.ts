@@ -233,8 +233,12 @@ async function assertDeviceAllowed(
   res: Response,
   userId: number,
   deviceId: string | null,
+  sessionDeviceId?: string | null,
 ): Promise<boolean> {
-  if (deviceId && (await isDeviceRevoked(userId, deviceId))) {
+  // Prefer the device bound into the session token; the header is
+  // client-controlled and a revoked client could simply omit or rotate it.
+  const effective = sessionDeviceId ?? deviceId;
+  if (effective && (await isDeviceRevoked(userId, effective))) {
     res.status(403).json({ error: "Device revoked" });
     return false;
   }
@@ -822,7 +826,15 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       const user = await sdk.authenticateRequest(req);
-      if (!(await assertDeviceAllowed(res, user.id, deviceIdFromReq(req)))) return;
+      if (
+        !(await assertDeviceAllowed(
+          res,
+          user.id,
+          deviceIdFromReq(req),
+          user.sessionDeviceId,
+        ))
+      )
+        return;
       // Per-account bucket: rotating source addresses must not allow
       // brute-forcing one account's current password.
       if (!checkAuthRateLimit(`changepw:${user.id}`)) {
@@ -869,7 +881,15 @@ export function registerOAuthRoutes(app: Express) {
   app.post("/api/auth/delete-account", async (req: Request, res: Response) => {
     try {
       const user = await sdk.authenticateRequest(req);
-      if (!(await assertDeviceAllowed(res, user.id, deviceIdFromReq(req)))) return;
+      if (
+        !(await assertDeviceAllowed(
+          res,
+          user.id,
+          deviceIdFromReq(req),
+          user.sessionDeviceId,
+        ))
+      )
+        return;
       const { confirm } = req.body ?? {};
       if (confirm !== "DELETE") {
         res.status(400).json({ error: 'confirm must be "DELETE"' });
@@ -900,7 +920,15 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       const user = await sdk.authenticateRequest(req);
-      if (!(await assertDeviceAllowed(res, user.id, deviceIdFromReq(req)))) return;
+      if (
+        !(await assertDeviceAllowed(
+          res,
+          user.id,
+          deviceIdFromReq(req),
+          user.sessionDeviceId,
+        ))
+      )
+        return;
       if ((user as any).emailVerified) {
         res.json({ success: true, alreadyVerified: true });
         return;

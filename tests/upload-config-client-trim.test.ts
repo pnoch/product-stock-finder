@@ -5,6 +5,7 @@ vi.mock("../lib/notifications", () => ({
   scheduleServerEventNotification: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("../lib/storage", () => ({
+  getWatchlist: vi.fn().mockResolvedValue([]),
   getPendingHealthEvents: vi.fn().mockResolvedValue([]),
   clearPendingHealthEvents: vi.fn(),
   getAlerts: vi.fn(),

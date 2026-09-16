@@ -1782,3 +1782,55 @@
 - [x] `bestPricePoints` filtered by the listing's *current* status instead of each point's status, inflating the historical best and firing false "all-time low"
 
 - [x] Tests: `web-export-invariants`, updated `sync-pull-paging`/`sync-router`/`delete-user-cleanup`/`desktop-web-globals`, Rust parser tests; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `297 passed | 1 skipped` / `1805 passed`, desktop `43 passed` / `218 passed`, `cargo test` 16 passed, `pnpm build` + `pnpm smoke:web` green
+
+## Phase 224: Whole-app review round 5 (scrapers, alerts, auth, stats)
+
+**Scrapers (many were silently dead)**
+- [x] 5 parsers pointed at dead/parked domains: `rocnoc.com` (NXDOMAIN → `roc-noc.com`), `linktechs.com` (parked → `shop.linktechs.net`), `networkdevices.com` (parked → `networkdevicesinc.com`), `100mega.cz` (403 → `b2b.100mega.com`), `getic.gr` (403 → `getic.com`), plus `multilink.us` → `shop.multilink.us`
+- [x] 8 parsers used a search URL the site ignores or 404s: linitx (`search.php?keywords`), flytec (`search.php?search_query`), server2u (`?search`), miro (`?s`), duxtel (OpenCart route), winncom (`/en/search`), wisp (iqitsearch), aerial (osCommerce `advanced_search_result.php`)
+- [x] `mikrotikstore` two-hop flow lived only in an unused helper; added `resolveProductUrl` to the parser interface + a shared `fetchAndParse` used by all four call sites
+- [x] Browser escalation hardcoded US locale/timezone/geolocation for every distributor; now derives them from the distributor's region
+- [x] Browser path retried once (vs plain's maxRetries) and skipped the plain fallback on a browser block; both fixed
+- [x] Health classified a circuit-breaker cooldown as `error` (false uptime loss); now `blocked`
+- [x] Added `tests/parser-host-parity.test.ts` asserting every parser's base host matches its distributor website (verified non-vacuous)
+
+**Alerts / reminders**
+- [x] Server re-pushed persisting events every 5 min once the dedup cooldown released (overdue reminder/restock spam). Push now only fires for newly-inserted events
+- [x] Web price/basket alerts called `requestNotificationPermissions` (always false on web) and never displayed anything; now `ensureNotificationPermission` + `displayWebNotification`
+- [x] Server events were marked "displayed" even when nothing was shown, dropping them forever; `scheduleServerEventNotification` now reports delivery
+- [x] Date reminders accumulated duplicates (dedup by id only); now dedup by product+distributor
+- [x] Reschedule cancelled the old notification before scheduling the new one, losing the reminder on failure; order reversed
+- [x] A stale server event could re-deactivate a freshly re-armed alert; `deactivateAlert` takes the event time and `rearmAlert` re-stamps `createdAt`
+- [x] Badge counted snoozed alerts (disagreed with the in-screen count); now excludes them
+- [x] "Price Drop History" header mislabeled rise alerts; renamed to "Alert History"
+- [x] Server `buildEvents` only knew the static catalog, so custom products never notified server-side; the client now uploads `modelNumber`
+
+**Auth**
+- [x] Login/register/account mutations omitted `x-device-id`, so a revoked device could sign back in and mutate the account; all now send it, and `assertDeviceAllowed` prefers the session claim
+- [x] `useAuth` had no shared state: signing in from Settings never started sync, and signing out left the layout "signed in". Added a module-level shared store
+- [x] Logout left the previous account's data + sync cursor on disk (cross-account leak); now clears local data
+- [x] Web OAuth redirect pointed at a non-existent `/api/auth/callback` and sent `deviceId` (forcing the native ticket branch); now uses the SPA route and omits deviceId on web
+- [x] Web push was never unsubscribed on sign-out (server kept pushing); now unsubscribes + prunes
+- [x] `getDeviceId` could reject and break every tRPC request; now degrades
+
+**Stats / data**
+- [x] `deleteUserById` orphaned `device_labels` (cross-account label leak)
+- [x] Health event id cap (191) exceeded `notification_events.id varchar(128)`; capped
+- [x] `x-device-id` header unbounded vs `deviceId varchar(128)`; bounded
+- [x] Added indexes for hot purge scans: `price_history.date`, `revoked_devices.revokedAt`, `password_reset_tokens.expiresAt`, `email_verification_tokens.expiresAt` (migration `0026`)
+- [x] `hasExchangeRate`/`getExchangeRate` accepted prototype keys; own-property checks
+- [x] `cheapestByRegion` included `unknown`-availability listings; matches `getBestPrice`
+- [x] `@shared/const` alias was broken under vitest/Vite; added a specific alias
+- [x] `decodeOAuthState` threw on malformed base64; returns empty state
+- [x] Android `showAlert` could pass 4 buttons and recurse forever; fixed
+- [x] `clearAllData` omitted the background-task interval marker
+
+**Desktop**
+- [x] "Check Now" used the mobile IndexedDB store (empty in Tauri) → no-op; now uses the Rust pipeline
+- [x] Rust alerts ignored direction/distributor/settings/quiet-hours and used the wrong stock filter; aligned with mobile
+- [x] Rust alert deactivation was invisible to the desktop store; the event now carries `alertId` and the client deactivates
+- [x] Settings theme buttons didn't apply the theme (no `app_settings:changed` dispatch); fixed
+- [x] Rust price/stock parsing diverged from mobile (EU separators, "not in stock"); aligned + tests
+- [x] Fixed a pre-existing flaky desktop test (modal focus race) so the new CI desktop step is reliable
+
+- [x] Tests: `parser-host-parity`, `reminder-dedup`, updated ~25 test files for the intentional behavior changes; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `299 passed | 1 skipped` / `1810 passed`, desktop `43 passed` / `218 passed`, `cargo test` 16 passed

@@ -13,11 +13,59 @@ type UseAuthOptions = {
   autoFetch?: boolean;
 };
 
+// Every auth request must carry the device id: the server binds the session to
+// it, un-revokes the presenting device on login, and enforces revocation on the
+// account-mutation routes. Without it a revoked device could sign back in (and
+// mutate the account) because the server sees no device.
+async function deviceHeader(): Promise<Record<string, string>> {
+  try {
+    const { getDeviceId } = await import("@/lib/device-id");
+    const id = await getDeviceId();
+    return id ? { "x-device-id": id } : {};
+  } catch {
+    return {};
+  }
+}
+
+// Module-level shared auth state. Without this every `useAuth()` call had its
+// own copy, so signing in from Settings never flipped the root layout's
+// `isAuthenticated` (sync/backfill/push registration never started) and signing
+// out left the layout thinking it was still signed in.
+type AuthSnapshot = { user: Auth.User | null; loading: boolean; error: Error | null };
+let sharedSnapshot: AuthSnapshot = { user: null, loading: true, error: null };
+const authSubscribers = new Set<(s: AuthSnapshot) => void>();
+
+function setShared(patch: Partial<AuthSnapshot>): void {
+  sharedSnapshot = { ...sharedSnapshot, ...patch };
+  for (const fn of authSubscribers) fn(sharedSnapshot);
+}
+
+export function getAuthSnapshot(): AuthSnapshot {
+  return sharedSnapshot;
+}
+
 export function useAuth(options?: UseAuthOptions) {
   const { autoFetch = true } = options ?? {};
-  const [user, setUser] = useState<Auth.User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [snapshot, setSnapshot] = useState<AuthSnapshot>(sharedSnapshot);
+  const { user, loading, error } = snapshot;
+
+  useEffect(() => {
+    authSubscribers.add(setSnapshot);
+    setSnapshot(sharedSnapshot);
+    return () => {
+      authSubscribers.delete(setSnapshot);
+    };
+  }, []);
+
+  const setUser = useCallback((next: Auth.User | null) => {
+    setShared({ user: next });
+  }, []);
+  const setLoading = useCallback((next: boolean) => {
+    setShared({ loading: next });
+  }, []);
+  const setError = useCallback((next: Error | null) => {
+    setShared({ error: next });
+  }, []);
 
   const fetchUser = useCallback(async () => {
     debugLog("[useAuth] fetchUser called");
@@ -104,6 +152,15 @@ export function useAuth(options?: UseAuthOptions) {
     } finally {
       await Auth.removeSessionToken();
       await Auth.clearUserInfo();
+      // Clear local data + sync cursor so the next account on this device does
+      // not inherit the previous account's watchlist/alerts or its
+      // lastSyncedAt (which would make the new account's items look synced).
+      try {
+        const { clearAllData } = await import("@/lib/storage");
+        await clearAllData();
+      } catch (err) {
+        console.error("[Auth] Local data clear on logout failed:", err);
+      }
       setUser(null);
       setError(null);
     }
@@ -114,7 +171,7 @@ export function useAuth(options?: UseAuthOptions) {
       const baseUrl = getApiBaseUrl();
       const res = await fetch(`${baseUrl}/api/auth/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await deviceHeader()) },
         body: JSON.stringify({ email, password }),
         credentials: "include",
       });
@@ -149,7 +206,7 @@ export function useAuth(options?: UseAuthOptions) {
       const baseUrl = getApiBaseUrl();
       const res = await fetch(`${baseUrl}/api/auth/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await deviceHeader()) },
         body: JSON.stringify({ email, password, name }),
         credentials: "include",
       });
@@ -211,7 +268,10 @@ export function useAuth(options?: UseAuthOptions) {
 
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
     const baseUrl = getApiBaseUrl();
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...(await deviceHeader()),
+    };
     if (Platform.OS !== "web") {
       const token = await Auth.getSessionToken();
       if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -231,7 +291,10 @@ export function useAuth(options?: UseAuthOptions) {
 
   const deleteAccount = useCallback(async (confirm: string = "DELETE") => {
     const baseUrl = getApiBaseUrl();
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...(await deviceHeader()),
+    };
     if (Platform.OS !== "web") {
       const token = await Auth.getSessionToken();
       if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -254,7 +317,10 @@ export function useAuth(options?: UseAuthOptions) {
 
   const resendVerification = useCallback(async () => {
     const baseUrl = getApiBaseUrl();
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...(await deviceHeader()),
+    };
     if (Platform.OS !== "web") {
       const token = await Auth.getSessionToken();
       if (token) headers["Authorization"] = `Bearer ${token}`;

@@ -4,6 +4,8 @@ export interface NotificationConfig {
   alerts: Array<{
     id: string;
     productId: string;
+    /** Model number for products outside the static catalog. */
+    modelNumber?: string;
     targetPrice: number;
     currency: string;
     distributorId?: string;
@@ -13,12 +15,14 @@ export interface NotificationConfig {
   stockWatches: Array<{
     id: string;
     productId: string;
+    modelNumber?: string;
     distributorId: string;
     lastKnownStatus?: string;
   }>;
   dateReminders: Array<{
     id: string;
     productId: string;
+    modelNumber?: string;
     distributorId: string;
     reminderDate: string;
   }>;

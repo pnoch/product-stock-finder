@@ -42,7 +42,7 @@ export const server2uParser: DistributorParser = {
   id: "server2u-my",
   baseUrl: "https://server2u.com",
   buildSearchUrl: (model) =>
-    `https://server2u.com/shop?q=${encodeURIComponent(model)}`,
+    `https://server2u.com/shop?search=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) => parseHtml(html, url ?? "https://server2u.com", model),
   rateLimitMs: 2000,
 };

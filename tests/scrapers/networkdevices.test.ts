@@ -11,13 +11,13 @@ const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 describe("Network Devices Parser", () => {
   it("should have correct parser config", () => {
     expect(networkdevicesParser.id).toBe("networkdevices-us");
-    expect(networkdevicesParser.baseUrl).toBe("https://networkdevices.com");
+    expect(networkdevicesParser.baseUrl).toBe("https://networkdevicesinc.com");
     expect(networkdevicesParser.rateLimitMs).toBe(3000);
   });
 
   it("should build correct search URL", () => {
     const url = networkdevicesParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://networkdevices.com/search?q=hAP%20ac3");
+    expect(url).toBe("https://networkdevicesinc.com/search?q=hAP%20ac3");
   });
 
   it("should return null for 404 page fixture", () => {

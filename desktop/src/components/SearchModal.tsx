@@ -52,8 +52,14 @@ export function SearchModal({
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
+  // Reset only on the closed→open transition. Running on every `open` render
+  // (or after an unrelated re-render) could clear a query the user had already
+  // typed, which also made the discovery tests flaky.
+  const wasOpenRef = useRef(false);
   useEffect(() => {
-    if (open) {
+    const justOpened = open && !wasOpenRef.current;
+    wasOpenRef.current = open;
+    if (justOpened) {
       setQuery("");
       setDiscoverError(null);
       setTimeout(() => inputRef.current?.focus(), 50);

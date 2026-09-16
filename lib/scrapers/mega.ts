@@ -38,10 +38,10 @@ function parseHtml(
 
 export const megaParser: DistributorParser = {
   id: "100mega-cz",
-  baseUrl: "https://100mega.cz",
+  baseUrl: "https://b2b.100mega.com",
   buildSearchUrl: (model) =>
-    `https://100mega.cz/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://100mega.cz", model),
+    `https://b2b.100mega.com/search?q=${encodeURIComponent(model)}`,
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://b2b.100mega.com", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {

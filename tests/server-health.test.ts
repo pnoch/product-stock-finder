@@ -1,4 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
+
+// Hoisted holder so the mocked fetchAndParse can call the test's resilientFetch
+// mock (module-local bindings cannot be intercepted by vi.mock).
+const __resilientHolder = vi.hoisted(() => ({ fn: async (_o: unknown): Promise<any> => ({ status: "ok", html: "", method: "plain" }) }));
 import { PARSERS } from "../lib/scrapers/registry";
 
 vi.mock("../lib/scrapers/resilient", async (importOriginal) => {
@@ -6,6 +10,14 @@ vi.mock("../lib/scrapers/resilient", async (importOriginal) => {
   return {
     ...actual,
     resilientFetch: vi.fn().mockResolvedValue({ status: "ok", html: "<html>probe</html>" }),
+    fetchAndParse: vi.fn(async (parser: any, model: string) => {
+    const outcome = await __resilientHolder.fn({ parser, url: parser.buildSearchUrl(model) } as never);
+    return {
+      result: outcome.status === "ok" && outcome.html ? parser.parsePrice(outcome.html, model, parser.buildSearchUrl(model)) : null,
+      url: parser.buildSearchUrl(model),
+      outcome,
+    };
+  }),
   };
 });
 

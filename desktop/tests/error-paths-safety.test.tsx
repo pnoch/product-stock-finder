@@ -359,8 +359,12 @@ describe("discovery error paths", () => {
     mockDiscover.mockRejectedValue(new DiscoveryError("server", "boom", { status: 500 }));
     render(<MemoryRouter><SearchModal open onClose={onClose} /></MemoryRouter>);
     const input = await screen.findByLabelText(/search products by name/i);
+    // The modal focuses the input on a 50ms timer; typing before it fires can
+    // lose characters. Wait for focus, then type.
+    await waitFor(() => expect(document.activeElement).toBe(input));
     await userEvent.type(input, NO_MATCH_QUERY);
-    await userEvent.click(await screen.findByRole("button", { name: /discover product with ai/i }));
+    await waitFor(() => expect(screen.getByText(/no products found/i)).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /discover product with ai/i }));
     await waitFor(() => expect(screen.getByText(/server error \(500\)/i)).toBeInTheDocument());
     expect(onClose).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: /^retry$/i }));
@@ -373,8 +377,12 @@ describe("discovery error paths", () => {
     mockDiscover.mockRejectedValue(new DiscoveryAuthError(401));
     render(<MemoryRouter><SearchModal open onClose={onClose} /></MemoryRouter>);
     const input = await screen.findByLabelText(/search products by name/i);
+    // The modal focuses the input on a 50ms timer; typing before it fires can
+    // lose characters. Wait for focus, then type.
+    await waitFor(() => expect(document.activeElement).toBe(input));
     await userEvent.type(input, NO_MATCH_QUERY);
-    await userEvent.click(await screen.findByRole("button", { name: /discover product with ai/i }));
+    await waitFor(() => expect(screen.getByText(/no products found/i)).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /discover product with ai/i }));
     await waitFor(() => expect(screen.getByText(/please sign in to use ai discovery/i)).toBeInTheDocument());
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: /^retry$/i })).not.toBeInTheDocument();

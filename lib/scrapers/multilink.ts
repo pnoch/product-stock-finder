@@ -40,10 +40,10 @@ function parseHtml(
 
 export const multilinkParser: DistributorParser = {
   id: "multilink-us",
-  baseUrl: "https://multilink.us",
+  baseUrl: "https://shop.multilink.us",
   buildSearchUrl: (model) =>
-    `https://multilink.us/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://multilink.us", model),
+    `https://shop.multilink.us/search?q=${encodeURIComponent(model)}`,
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://shop.multilink.us", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {

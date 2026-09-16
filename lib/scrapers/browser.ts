@@ -2,6 +2,7 @@ import { chromium, Browser, BrowserContext } from "playwright";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { USER_AGENTS } from "./utils";
+import { DISTRIBUTORS } from "@shared/distributors";
 
 const VIEWPORTS = [
   { width: 1920, height: 1080 },
@@ -192,6 +193,32 @@ class BrowserPool {
 
 export const browserPool = new BrowserPool();
 
+// Region-appropriate locale/timezone/geolocation. Hardcoding US signals for
+// every distributor made non-US stores localize currency/language, so the
+// parser's static currency label no longer matched the rendered price.
+const REGION_SIGNALS: Record<
+  string,
+  { locale: string; timezoneId: string; geolocation: { latitude: number; longitude: number } }
+> = {
+  Europe: { locale: "en-GB", timezoneId: "Europe/Berlin", geolocation: { latitude: 52.52, longitude: 13.405 } },
+  "Asia-Pacific": { locale: "en-AU", timezoneId: "Australia/Sydney", geolocation: { latitude: -33.8688, longitude: 151.2093 } },
+  "Middle East": { locale: "en-AE", timezoneId: "Asia/Dubai", geolocation: { latitude: 25.2048, longitude: 55.2708 } },
+  Africa: { locale: "en-ZA", timezoneId: "Africa/Johannesburg", geolocation: { latitude: -26.2041, longitude: 28.0473 } },
+  "North America": { locale: "en-US", timezoneId: "America/New_York", geolocation: { latitude: 40.7128, longitude: -74.006 } },
+};
+
+function regionSignalsFor(url: string) {
+  try {
+    const host = extractDomain(url);
+    const dist = DISTRIBUTORS.find((d) =>
+      d.website ? extractDomain(d.website) === host : false,
+    );
+    return REGION_SIGNALS[dist?.region ?? ""] ?? REGION_SIGNALS["North America"];
+  } catch {
+    return REGION_SIGNALS["North America"];
+  }
+}
+
 async function createStealthContext(
   browser: Browser,
   url: string,
@@ -199,13 +226,14 @@ async function createStealthContext(
   const userAgent = getRandomItem(USER_AGENTS);
   const viewport = getRandomItem(VIEWPORTS);
   const domain = extractDomain(url);
+  const signals = regionSignalsFor(url);
 
   const context = await browser.newContext({
     userAgent,
     viewport,
-    locale: "en-US",
-    timezoneId: "America/New_York",
-    geolocation: { latitude: 40.7128, longitude: -74.006 },
+    locale: signals.locale,
+    timezoneId: signals.timezoneId,
+    geolocation: signals.geolocation,
     permissions: ["geolocation"],
   });
 

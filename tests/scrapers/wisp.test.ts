@@ -14,7 +14,7 @@ describe("Wisp Parser", () => {
 
   it("should build correct search URL", () => {
     const url = wispParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://wisp.net.au/search?q=hAP%20ac3");
+    expect(url).toBe("https://wisp.net.au/module/iqitsearch/searchiqit?s=hAP%20ac3");
   });
 
   it("should return null for 404 page fixture", () => {

@@ -1,4 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+
+// Hoisted holder so the mocked fetchAndParse can call the test's resilientFetch
+// mock (module-local bindings cannot be intercepted by vi.mock).
+const __resilientHolder = vi.hoisted(() => ({ fn: async (_o: unknown): Promise<any> => ({ status: "ok", html: "", method: "plain" }) }));
 import type { DistributorParser } from "../lib/scrapers/types";
 import type { PriceSnapshot } from "../lib/types";
 
@@ -8,15 +12,24 @@ vi.mock("../lib/scrapers/registry", () => ({
 
 vi.mock("../lib/scrapers/resilient", () => ({
   resilientFetch: vi.fn(),
+  fetchAndParse: vi.fn(async (parser: any, model: string) => {
+    const outcome = await __resilientHolder.fn({ parser, url: parser.buildSearchUrl(model) } as never);
+    return {
+      result: outcome.status === "ok" && outcome.html ? parser.parsePrice(outcome.html, model, parser.buildSearchUrl(model)) : null,
+      url: parser.buildSearchUrl(model),
+      outcome,
+    };
+  }),
   createMemoryBreakerStore: vi.fn(() => ({
     get: vi.fn(async () => null),
     set: vi.fn(async () => {}),
   })),
 }));
 
-vi.mock("../server/notifications", () => ({
-  evaluateNotifications: vi.fn(async () => {}),
-}));
+vi.mock("../server/notifications", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../server/notifications")>();
+  return { ...actual, evaluateNotifications: vi.fn(async () => {}) };
+});
 
 vi.mock("../server/price-history", () => ({
   recordHistoryPoint: vi.fn(),
@@ -26,23 +39,31 @@ vi.mock("../server/price-history", () => ({
   clearHistoryForTests: vi.fn(),
 }));
 
-vi.mock("../server/product-images", () => ({
-  getProductImage: vi.fn(),
-  listProductsMissingImage: vi.fn(async () => []),
-}));
+vi.mock("../server/product-images", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../server/product-images")>();
+  return {
+    ...actual,
+    getProductImage: vi.fn(),
+    listProductsMissingImage: vi.fn(async () => []),
+  };
+});
 
 vi.mock("../server/catalog-warmer", () => ({
   buildCatalogPairs: vi.fn(() => []),
   pickPairsToWarm: vi.fn(() => []),
 }));
 
-vi.mock("../server/price-cache", () => ({
+vi.mock("../server/price-cache", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../server/price-cache")>();
+  return {
+    ...actual,
   getCachedPrice: vi.fn(),
   setCachedPrice: vi.fn(),
   listNearExpiry: vi.fn(),
   clearPriceCacheForTests: vi.fn(),
   getAllFetchedAt: vi.fn(async () => ({})),
-}));
+  };
+});
 
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { resilientFetch } from "../lib/scrapers/resilient";
@@ -53,6 +74,7 @@ import type { ScrapeResult } from "../lib/scrapers/types";
 
 const mockedGetParser = vi.mocked(getParserByDistributorId);
 const mockedFetch = vi.mocked(resilientFetch);
+__resilientHolder.fn = mockedFetch as unknown as typeof __resilientHolder.fn;
 const mockedListNearExpiry = vi.mocked(listNearExpiry);
 const mockedSetCached = vi.mocked(setCachedPrice);
 

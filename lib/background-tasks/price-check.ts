@@ -10,9 +10,10 @@ import {
   savePriceDigestSnapshot,
   saveSettings,
 } from "../storage";
+import { Platform } from "react-native";
 import { formatPrice } from "@shared/currency";
 import { convertPrice, getBestPrice } from "../currency";
-import { requestNotificationPermissions, channelIdFor } from "../notifications";
+import { ensureNotificationPermission, channelIdFor } from "../notifications";
 import { checkRestocks } from "../restock";
 import { maybeSendDigest } from "../price-digest";
 import { syncServerNotifications } from "../server-notifications";
@@ -93,19 +94,29 @@ export async function runPriceCheckCore(opts?: {
     );
     const threshold = settings.basketAlertThreshold;
     if (total > 0 && total <= threshold) {
-      const granted = await requestNotificationPermissions();
+      // ensureNotificationPermission (not requestNotificationPermissions, which
+      // always returns false on web) so web users can receive basket alerts.
+      const granted = await ensureNotificationPermission();
       if (granted) {
         try {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: "🧺 Basket Alert",
-              body: `Watchlist value ${formatPrice(total, "USD")} dropped below your ${formatPrice(threshold, "USD")} threshold.`,
-              data: { type: "digest" },
-              sound: true,
-              ...(channelIdFor("digest") ? { channelId: channelIdFor("digest") } : {}),
-            },
-            trigger: null,
-          });
+          const title = "🧺 Basket Alert";
+          const body = `Watchlist value ${formatPrice(total, "USD")} dropped below your ${formatPrice(threshold, "USD")} threshold.`;
+          if (Platform.OS === "web") {
+            // expo-notifications is a no-op on web; use the Notification API.
+            const { displayWebNotification } = await import("../web-notifications");
+            if (!displayWebNotification(title, body)) return;
+          } else {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title,
+                body,
+                data: { type: "digest" },
+                sound: true,
+                ...(channelIdFor("digest") ? { channelId: channelIdFor("digest") } : {}),
+              },
+              trigger: null,
+            });
+          }
           // Only clear the threshold once the alert actually fired; clearing it
           // when permission is denied (or scheduling throws) silently loses the
           // alert forever.
@@ -165,25 +176,33 @@ export async function runPriceCheckCore(opts?: {
       const currentAlerts = await getAlerts();
       const current = currentAlerts.find((a) => a.id === alert.id);
       if (current?.triggeredAt) continue;
-      // Price crossed target — fire notification and deactivate alert
-      const granted = await requestNotificationPermissions();
+      // Price crossed target — fire notification and deactivate alert.
+      // ensureNotificationPermission handles the web Notification API.
+      const granted = await ensureNotificationPermission();
       if (!granted) continue;
       // Claim the transition first: a concurrent runner (foreground check
       // vs background task) that already triggered this alert makes
       // deactivateAlert return false, in which case we must not notify.
       if (!(await deactivateAlert(alert.id, bestPrice))) continue;
       try {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: isRise ? "📈 Price Increase Alert!" : "💸 Price Drop Alert!",
-            body: `${product.name} is now ${formatPrice(bestPrice, alert.currency)} — ${
-              isRise ? "above" : "below"
-            } your target of ${formatPrice(alert.targetPrice, alert.currency)}!`,
-            sound: true,
-            ...(channelIdFor("price") ? { channelId: channelIdFor("price") } : {}),
-          },
-          trigger: null,
-        });
+        const title = isRise ? "📈 Price Increase Alert!" : "💸 Price Drop Alert!";
+        const body = `${product.name} is now ${formatPrice(bestPrice, alert.currency)} — ${
+          isRise ? "above" : "below"
+        } your target of ${formatPrice(alert.targetPrice, alert.currency)}!`;
+        if (Platform.OS === "web") {
+          const { displayWebNotification } = await import("../web-notifications");
+          displayWebNotification(title, body);
+        } else {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title,
+              body,
+              sound: true,
+              ...(channelIdFor("price") ? { channelId: channelIdFor("price") } : {}),
+            },
+            trigger: null,
+          });
+        }
       } catch {
         // Scheduling failed after a successful claim: re-arm so a later run
         // retries instead of dropping the alert silently. Safe from

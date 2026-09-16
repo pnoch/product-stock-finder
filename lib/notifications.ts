@@ -372,22 +372,24 @@ export async function sendPriceDigestNotification(
 }
 
 // ─── Show a server-queued notification event locally ─────────────────────────
+// Returns whether a notification was actually shown, so the caller can avoid
+// marking an undelivered event as displayed (which would drop it forever).
 export async function scheduleServerEventNotification(
   title: string,
   body: string,
   data?: Record<string, unknown>,
-): Promise<void> {
+): Promise<boolean> {
   if (Platform.OS === "web") {
     try {
       const { displayWebNotification } = await import("./web-notifications");
-      displayWebNotification(title, body);
+      return displayWebNotification(title, body);
     } catch {
       // server event failures are non-fatal
+      return false;
     }
-    return;
   }
-  const granted = await requestNotificationPermissions();
-  if (!granted) return;
+  const granted = await ensureNotificationPermission();
+  if (!granted) return false;
   try {
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -399,8 +401,10 @@ export async function scheduleServerEventNotification(
       },
       trigger: null, // immediate
     });
+    return true;
   } catch {
     // server event failures are non-fatal
+    return false;
   }
 }
 

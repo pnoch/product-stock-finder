@@ -19,16 +19,31 @@ import type {
 import type { DistributorParser, ScrapeResult } from "@/lib/scrapers/types";
 import { BLOCKED_MARKERS, resilientFetch } from "@/lib/scrapers/resilient";
 
+const __resilientHolder = vi.hoisted(() => ({
+  fn: async (_o: unknown): Promise<any> => ({
+    status: "ok",
+    method: "plain",
+    html: "<html>Access Denied</html>",
+  }),
+}));
+
 vi.mock("@/lib/scrapers/resilient", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@/lib/scrapers/resilient")>();
   return {
     ...actual,
-    resilientFetch: vi.fn(async () => ({
-      status: "ok",
-      method: "plain",
-      html: "<html>Access Denied</html>",
-    })),
+    resilientFetch: vi.fn(async (o: unknown) => __resilientHolder.fn(o)),
+    fetchAndParse: vi.fn(async (parser: any, model: string) => {
+      const outcome = await __resilientHolder.fn({ parser, model });
+      return {
+        result:
+          outcome.status === "ok" && outcome.html
+            ? parser.parsePrice(outcome.html, model, "u")
+            : null,
+        url: "u",
+        outcome,
+      };
+    }),
   };
 });
 
@@ -141,11 +156,11 @@ describe("createHealthService", () => {
   });
 
   it("testAllDistributors records blocked status for blocked outcome", async () => {
-    vi.mocked(resilientFetch).mockImplementation(async () => ({
+    __resilientHolder.fn = async () => ({
       status: "blocked",
       method: "plain",
       error: "403 Forbidden",
-    }));
+    });
     const adapter = createMockAdapter();
     const service = createHealthService(adapter);
     const results = await service.testAllDistributors();
@@ -350,9 +365,10 @@ describe("classifyProbeOutcome", () => {
   });
 
   it("maps skipped outcome to blocked with cooldown reason", () => {
+    // A cooldown is a transient circuit-breaker state, not a failure.
     expect(
       classifyProbeOutcome({ status: "skipped", method: "none" }, workingParser),
-    ).toEqual({ status: "error", reason: "in cooldown" });
+    ).toEqual({ status: "blocked", reason: "in cooldown" });
   });
 
   it("maps error outcome to error", () => {

@@ -40,7 +40,7 @@ export const linitxParser: DistributorParser = {
   id: "linitx-uk",
   baseUrl: "https://linitx.com",
   buildSearchUrl: (model) =>
-    `https://linitx.com/search?q=${encodeURIComponent(model)}`,
+    `https://linitx.com/search.php?keywords=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) => parseHtml(html, url ?? "https://linitx.com", model),
   rateLimitMs: 3000,
 };

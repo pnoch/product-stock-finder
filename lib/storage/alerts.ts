@@ -119,6 +119,9 @@ export function createAlertsStorage(ctx: StorageContext) {
               triggeredAt: undefined,
               triggeredPrice: undefined,
               snoozedUntil: undefined,
+              // Re-stamp the activation time so a stale server event from the
+              // previous trigger cannot immediately re-deactivate this alert.
+              createdAt: new Date().toISOString(),
             }
           : a,
       );
@@ -130,6 +133,9 @@ export function createAlertsStorage(ctx: StorageContext) {
   async function deactivateAlert(
     alertId: string,
     triggeredPrice: number,
+    // Optional event time: a server event older than the alert's current
+    // activation must not deactivate a freshly re-armed alert.
+    eventAt?: number,
   ): Promise<boolean> {
     let transitioned = false;
     await enqueue(KEYS.ALERTS, async () => {
@@ -140,6 +146,12 @@ export function createAlertsStorage(ctx: StorageContext) {
       // background task, separate isolates) see triggeredAt set and skip
       // their notification instead of double-firing.
       if (!target || target.triggeredAt) return;
+      // Stale-event guard: if the alert was re-armed after this event fired,
+      // ignore the event rather than immediately re-triggering it.
+      if (eventAt != null && target.createdAt) {
+        const activatedAt = Date.parse(target.createdAt);
+        if (Number.isFinite(activatedAt) && eventAt < activatedAt) return;
+      }
       const updated = alerts.map((a) =>
         a.id === alertId
           ? {

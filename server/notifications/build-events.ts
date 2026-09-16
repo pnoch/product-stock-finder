@@ -64,8 +64,11 @@ export async function buildEvents(
   const events: EventDraft[] = [];
 
   for (const alert of config.alerts) {
+    // Prefer the client-supplied model so manually added / rediscovered
+    // products (absent from the static catalog) also get server notifications.
     const product = PRODUCT_CATALOG.find((p) => p.id === alert.productId);
-    if (!product) continue;
+    const modelNumber = alert.modelNumber ?? product?.modelNumber;
+    if (!modelNumber) continue;
     if (alert.snoozedUntil && new Date(alert.snoozedUntil).getTime() > now) {
       continue;
     }
@@ -75,7 +78,7 @@ export async function buildEvents(
     let bestPrice: number | null = null;
     let bestDistributor: string | null = null;
     for (const distributorId of distributorIds) {
-      const snapshot = await getPrice(distributorId, product.modelNumber);
+      const snapshot = await getPrice(distributorId, modelNumber);
       if (!snapshot || snapshot.stockStatus !== "in_stock") continue;
       const converted = convertPrice(
         snapshot.price,
@@ -99,7 +102,7 @@ export async function buildEvents(
       type: isRise ? "price_rise" : "price_drop",
       dedupKey: `${isRise ? "price_rise" : "price_drop"}:${alert.id}`,
       title: isRise ? "📈 Price Increase Alert!" : "💸 Price Drop Alert!",
-      body: `${product.name} is now ${formatPrice(bestPrice, alert.currency)} — ${
+      body: `${product?.name ?? alert.productId} is now ${formatPrice(bestPrice, alert.currency)} — ${
         isRise ? "above" : "below"
       } your target of ${formatPrice(alert.targetPrice, alert.currency)}!`,
       payload: {
@@ -116,9 +119,10 @@ export async function buildEvents(
 
   for (const watch of config.stockWatches) {
     const product = PRODUCT_CATALOG.find((p) => p.id === watch.productId);
-    if (!product) continue;
+    const modelNumber = watch.modelNumber ?? product?.modelNumber;
+    if (!modelNumber) continue;
     if (watch.lastKnownStatus === "in_stock") continue;
-    const snapshot = await getPrice(watch.distributorId, product.modelNumber);
+    const snapshot = await getPrice(watch.distributorId, modelNumber);
     if (!snapshot || snapshot.stockStatus !== "in_stock") continue;
     const distributorName =
       getDistributorById(watch.distributorId)?.name ?? watch.distributorId;
@@ -127,7 +131,7 @@ export async function buildEvents(
       type: "restock",
       dedupKey: `restock:${watch.productId}:${watch.distributorId}`,
       title: "🟢 Back In Stock!",
-      body: `${product.name} is now available at ${distributorName}.`,
+      body: `${product?.name ?? watch.productId} is now available at ${distributorName}.`,
       payload: {
         watchId: watch.id,
         productId: watch.productId,
@@ -139,7 +143,8 @@ export async function buildEvents(
 
   for (const reminder of config.dateReminders) {
     const product = PRODUCT_CATALOG.find((p) => p.id === reminder.productId);
-    if (!product) continue;
+    const modelNumber = reminder.modelNumber ?? product?.modelNumber;
+    if (!modelNumber) continue;
     if (now < new Date(reminder.reminderDate).getTime()) continue;
     const distributorName =
       getDistributorById(reminder.distributorId)?.name ??
@@ -149,7 +154,7 @@ export async function buildEvents(
       type: "reminder",
       dedupKey: `reminder:${reminder.id}`,
       title: "📦 Back-Order Reminder",
-      body: `Check ${distributorName} for ${product.name} — your reminder date is here!`,
+      body: `Check ${distributorName} for ${product?.name ?? reminder.productId} — your reminder date is here!`,
       payload: {
         reminderId: reminder.id,
         productId: reminder.productId,

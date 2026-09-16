@@ -1,4 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+
+// Hoisted holder so the mocked fetchAndParse can call the test's resilientFetch
+// mock (module-local bindings cannot be intercepted by vi.mock).
+const __resilientHolder = vi.hoisted(() => ({ fn: async (_o: unknown): Promise<any> => ({ status: "ok", html: "", method: "plain" }) }));
 import type { DistributorParser } from "../lib/scrapers/types";
 import type { PriceSnapshot } from "../lib/types";
 
@@ -8,19 +12,31 @@ vi.mock("../lib/scrapers/registry", () => ({
 
 vi.mock("../lib/scrapers/resilient", () => ({
   resilientFetch: vi.fn(),
+  fetchAndParse: vi.fn(async (parser: any, model: string) => {
+    const outcome = await __resilientHolder.fn({ parser, url: parser.buildSearchUrl(model) } as never);
+    return {
+      result: outcome.status === "ok" && outcome.html ? parser.parsePrice(outcome.html, model, parser.buildSearchUrl(model)) : null,
+      url: parser.buildSearchUrl(model),
+      outcome,
+    };
+  }),
   createMemoryBreakerStore: vi.fn(() => ({
     get: vi.fn(async () => null),
     set: vi.fn(async () => {}),
   })),
 }));
 
-vi.mock("../server/price-cache", () => ({
+vi.mock("../server/price-cache", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../server/price-cache")>();
+  return {
+    ...actual,
   getCachedPrice: vi.fn(),
   setCachedPrice: vi.fn(),
   listNearExpiry: vi.fn(),
   getAllFetchedAt: vi.fn(),
   clearPriceCacheForTests: vi.fn(),
-}));
+  };
+});
 
 vi.mock("../server/price-history", () => ({
   recordHistoryPoint: vi.fn(),
@@ -30,18 +46,26 @@ vi.mock("../server/price-history", () => ({
   clearHistoryForTests: vi.fn(),
 }));
 
-vi.mock("../server/product-images", () => ({
-  getProductImage: vi.fn(),
-  listProductsMissingImage: vi.fn(),
-  clearImagesForTests: vi.fn(),
-}));
+vi.mock("../server/product-images", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../server/product-images")>();
+  return {
+    ...actual,
+    getProductImage: vi.fn(),
+    listProductsMissingImage: vi.fn(),
+    clearImagesForTests: vi.fn(),
+  };
+});
 
-vi.mock("../server/notifications", () => ({
-  upsertDeviceConfig: vi.fn(),
-  evaluateNotifications: vi.fn(),
-  pullPendingEvents: vi.fn(),
-  clearNotificationsForTests: vi.fn(),
-}));
+vi.mock("../server/notifications", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../server/notifications")>();
+  return {
+    ...actual,
+    upsertDeviceConfig: vi.fn(),
+    evaluateNotifications: vi.fn(),
+    pullPendingEvents: vi.fn(),
+    clearNotificationsForTests: vi.fn(),
+  };
+});
 
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { resilientFetch } from "../lib/scrapers/resilient";
@@ -61,6 +85,9 @@ import {
   runWarmerTick,
 } from "../server/prices";
 import type { ScrapeResult } from "../lib/scrapers/types";
+
+// Point the mocked fetchAndParse at the test's resilientFetch mock.
+__resilientHolder.fn = resilientFetch as unknown as typeof __resilientHolder.fn;
 
 const mockedGetParser = vi.mocked(getParserByDistributorId);
 const mockedFetch = vi.mocked(resilientFetch);
@@ -139,8 +166,8 @@ describe("getPrice", () => {
     const result = await getPrice("server2u-my", "CRS804");
     expect(result).toEqual({ snapshot: stale, history: [] });
 
-    await vi.waitFor(() => expect(mockedFetch).toHaveBeenCalled());
-    expect(mockedSetCached).toHaveBeenCalled();
+    await vi.waitFor(() => expect(mockedSetCached).toHaveBeenCalled());
+    expect(mockedFetch).toHaveBeenCalled();
   });
 
   it("returns null snapshot on a miss and triggers a background refresh", async () => {
@@ -156,8 +183,8 @@ describe("getPrice", () => {
     const result = await getPrice("server2u-my", "CRS804");
     expect(result).toEqual({ snapshot: null, history: [] });
 
-    await vi.waitFor(() => expect(mockedFetch).toHaveBeenCalled());
-    expect(mockedSetCached).toHaveBeenCalled();
+    await vi.waitFor(() => expect(mockedSetCached).toHaveBeenCalled());
+    expect(mockedFetch).toHaveBeenCalled();
   });
 
   it("does not throw when the refresh scrape fails", async () => {

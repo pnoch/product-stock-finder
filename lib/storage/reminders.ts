@@ -40,7 +40,15 @@ export function createRemindersStorage(ctx: StorageContext) {
   ): Promise<void> {
     await enqueue(KEYS.REMINDERS, async () => {
       const reminders = await getBackOrderReminders();
-      const existing = reminders.findIndex((r) => r.id === reminder.id);
+      // Dedup by (productId, distributorId) as well as id: every "Remind Me"
+      // tap mints a new id, so repeated taps used to accumulate duplicate
+      // reminders (and duplicate scheduled notifications) for one product.
+      const existing = reminders.findIndex(
+        (r) =>
+          r.id === reminder.id ||
+          (r.productId === reminder.productId &&
+            r.distributorId === reminder.distributorId),
+      );
       if (existing >= 0) {
         reminders[existing] = reminder;
       } else {

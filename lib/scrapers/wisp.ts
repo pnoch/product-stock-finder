@@ -40,7 +40,7 @@ export const wispParser: DistributorParser = {
   id: "wisp-au",
   baseUrl: "https://wisp.net.au",
   buildSearchUrl: (model) =>
-    `https://wisp.net.au/search?q=${encodeURIComponent(model)}`,
+    `https://wisp.net.au/module/iqitsearch/searchiqit?s=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) => parseHtml(html, url ?? "https://wisp.net.au", model),
   rateLimitMs: 3000,
   useBrowser: true,

@@ -40,7 +40,7 @@ export const duxtelParser: DistributorParser = {
   id: "duxtel-au",
   baseUrl: "https://store.duxtel.com",
   buildSearchUrl: (model) =>
-    `https://store.duxtel.com/search?q=${encodeURIComponent(model)}`,
+    `https://store.duxtel.com/index.php?route=product/search&search=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) =>
     parseHtml(html, url ?? "https://store.duxtel.com", model),
   rateLimitMs: 3000,

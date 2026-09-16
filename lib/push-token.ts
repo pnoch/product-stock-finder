@@ -33,8 +33,30 @@ export async function registerPushToken(): Promise<void> {
 // Called on sign-out. Without this the server keeps the device bound to the
 // account and keeps pushing that account's alerts to a signed-out device.
 export async function unregisterPushToken(): Promise<void> {
+  if (Platform.OS === "web") {
+    // Web push uses a separate subscription; unsubscribe locally AND tell the
+    // server to prune the token, or the signed-out browser keeps receiving the
+    // account's alerts.
+    try {
+      const { unsubscribeWebPush } = await import("./web-push");
+      await unsubscribeWebPush();
+    } catch {
+      // best effort
+    }
+    try {
+      const client = createTRPCClient();
+      await Promise.race([
+        client.notifications.unregisterPushToken.mutate(),
+        new Promise<null>((resolve) =>
+          setTimeout(() => resolve(null), TIMEOUT_MS),
+        ),
+      ]);
+    } catch {
+      // best effort
+    }
+    return;
+  }
   try {
-    if (Platform.OS === "web") return;
     const client = createTRPCClient();
     await Promise.race([
       client.notifications.unregisterPushToken.mutate(),

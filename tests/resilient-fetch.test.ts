@@ -353,7 +353,9 @@ describe("resilientFetch", () => {
     expect(browserMock.fetchWithBrowser).toHaveBeenCalledTimes(1);
   });
 
-  it("does not fall back to plain when browser is blocked", async () => {
+  it("falls back to plain when the browser is blocked but plain succeeds", async () => {
+    // A browser-detected block does not imply a plain request is also blocked,
+    // so the other method is still attempted.
     const fetchMock = vi.fn(
       async () => new Response("<html>price</html>", { status: 200 }),
     );
@@ -365,8 +367,9 @@ describe("resilientFetch", () => {
       url: "https://example.com/search?q=CRS804",
       state,
     });
-    expect(outcome.status).toBe("blocked");
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(outcome.status).toBe("ok");
+    expect(outcome.method).toBe("plain");
+    expect(fetchMock).toHaveBeenCalled();
   });
 
   it("falls back to plain when browser is unavailable", async () => {

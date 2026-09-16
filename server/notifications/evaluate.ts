@@ -1,4 +1,4 @@
-import { asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import {
   deviceNotificationConfigs,
   notificationEvents,
@@ -320,6 +320,29 @@ async function evaluateConfigDb(
   const deduped = [...new Map(filtered.map((d) => [d.dedupKey, d])).values()];
   const toInsert = deduped.map((d) => ({ ...d, deviceId, userId: null }));
   if (toInsert.length > 0) {
+    // Only push events that are actually new. The dedup key is released after
+    // the cooldown/grace window, so a persisting condition (overdue reminder,
+    // restock) re-produces the same draft every tick; the insert is a no-op on
+    // the unique index, but pushing unconditionally re-notified the user every
+    // 5 minutes. Pre-check existing keys (the warmer is single-flight).
+    const keys = toInsert.map((d) => d.dedupKey);
+    const existingKeys = new Set<string>();
+    try {
+      const rows = await db
+        .select({ dedupKey: notificationEvents.dedupKey })
+        .from(notificationEvents)
+        .where(
+          and(
+            eq(notificationEvents.deviceId, deviceId),
+            inArray(notificationEvents.dedupKey, keys),
+          ),
+        );
+      for (const r of rows) existingKeys.add(r.dedupKey);
+    } catch {
+      // If the pre-check fails, fall back to pushing everything (previous
+      // behavior) rather than dropping notifications.
+    }
+    const fresh = toInsert.filter((d) => !existingKeys.has(d.dedupKey));
     try {
       await db
         .insert(notificationEvents)
@@ -328,7 +351,7 @@ async function evaluateConfigDb(
     } catch (error) {
       if (!isDuplicateKeyError(error)) throw error;
     }
-    void sendPushForDevice(deviceId, toInsert);
+    if (fresh.length > 0) void sendPushForDevice(deviceId, fresh);
   }
 }
 
@@ -396,6 +419,25 @@ async function evaluateUserDb(
   const deduped = [...new Map(filtered.map((d) => [d.dedupKey, d])).values()];
   const toInsert = deduped.map((d) => ({ ...d, userId, deviceId: null }));
   if (toInsert.length > 0) {
+    // See evaluateConfigDb: push only newly-inserted events, or a released
+    // dedup key re-notifies on every tick.
+    const keys = toInsert.map((d) => d.dedupKey);
+    const existingKeys = new Set<string>();
+    try {
+      const rows = await db
+        .select({ dedupKey: notificationEvents.dedupKey })
+        .from(notificationEvents)
+        .where(
+          and(
+            eq(notificationEvents.userId, userId),
+            inArray(notificationEvents.dedupKey, keys),
+          ),
+        );
+      for (const r of rows) existingKeys.add(r.dedupKey);
+    } catch {
+      // fall back to pushing everything
+    }
+    const fresh = toInsert.filter((d) => !existingKeys.has(d.dedupKey));
     try {
       await db
         .insert(notificationEvents)
@@ -404,6 +446,6 @@ async function evaluateUserDb(
     } catch (error) {
       if (!isDuplicateKeyError(error)) throw error;
     }
-    void sendPushForUser(userId, toInsert);
+    if (fresh.length > 0) void sendPushForUser(userId, fresh);
   }
 }

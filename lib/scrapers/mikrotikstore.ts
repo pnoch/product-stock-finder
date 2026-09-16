@@ -98,6 +98,9 @@ export const mikrotikstoreParser: DistributorParser = {
       url ?? (model ? buildMikrotikSearchUrl(model) : "https://mikrotik-store.eu"),
       model,
     ),
+  // The search page is JS-rendered and ignores the query, so callers must hop
+  // to the product page before parsing.
+  resolveProductUrl: (html, model) => parseSearchResults(html, model),
   rateLimitMs: 3000,
 };
 

@@ -50,7 +50,7 @@ export const winncomParser: DistributorParser = {
   id: "winncom-us",
   baseUrl: "https://winncom.com",
   buildSearchUrl: (model) =>
-    `https://winncom.com/search?q=${encodeURIComponent(model)}`,
+    `https://winncom.com/en/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) => parseHtml(html, url ?? "https://winncom.com", model),
   rateLimitMs: 3000,
   useBrowser: true,

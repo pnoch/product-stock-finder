@@ -22,14 +22,32 @@ describe("scraper hosts", () => {
     expect(hostOf(gearupParser.buildSearchUrl("CRS326"))).toBe("gear-up.me");
   });
 
-  it("keeps the verified getic.gr regional storefront", () => {
-    expect(hostOf(geticParser.baseUrl)).toBe("getic.gr");
+  it("scrapes the live getic.com storefront (getic.gr redirects to a 403)", () => {
+    expect(hostOf(geticParser.baseUrl)).toBe("getic.com");
+  });
+
+  it("scrapes the live hosts for the previously-dead domains", () => {
+    // These hosts were NXDOMAIN/parked; the real storefronts are:
+    const expected: Record<string, string> = {
+      "rocnoc-us": "roc-noc.com",
+      "linktechs-us": "shop.linktechs.net",
+      "networkdevices-us": "networkdevicesinc.com",
+      "100mega-cz": "b2b.100mega.com",
+      "multilink-us": "shop.multilink.us",
+    };
+    for (const [id, host] of Object.entries(expected)) {
+      const parser = PARSERS.find((p) => p.id === id)!;
+      expect(hostOf(parser.baseUrl), id).toBe(host);
+    }
   });
 
   it("every parser's search URL stays on its own baseUrl host", () => {
     for (const parser of PARSERS) {
-      const base = hostOf(parser.baseUrl);
-      const search = hostOf(parser.buildSearchUrl("CRS326-24S+2Q+RM"));
+      const base = hostOf(parser.baseUrl).replace(/^www\./, "");
+      const search = hostOf(parser.buildSearchUrl("CRS326-24S+2Q+RM")).replace(
+        /^www\./,
+        "",
+      );
       expect(
         search,
         `${parser.id} search host ${search} !== base host ${base}`,

@@ -13,6 +13,7 @@ import {
 import type { AppSettings } from "../lib/types";
 
 vi.mock("../lib/storage", () => ({
+  getWatchlist: vi.fn().mockResolvedValue([]),
   getPendingHealthEvents: vi.fn().mockResolvedValue([]),
   clearPendingHealthEvents: vi.fn(),
   getAlerts: vi.fn().mockResolvedValue([]),

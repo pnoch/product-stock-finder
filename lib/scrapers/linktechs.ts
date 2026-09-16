@@ -38,10 +38,10 @@ function parseHtml(
 
 export const linktechsParser: DistributorParser = {
   id: "linktechs-us",
-  baseUrl: "https://linktechs.com",
+  baseUrl: "https://shop.linktechs.net",
   buildSearchUrl: (model) =>
-    `https://linktechs.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://linktechs.com", model),
+    `https://shop.linktechs.net/search?q=${encodeURIComponent(model)}`,
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://shop.linktechs.net", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {

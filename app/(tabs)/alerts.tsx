@@ -350,7 +350,7 @@ export default function AlertsScreen() {
                       fontSize: 15,
                     }}
                   >
-                    Price Drop History ({triggeredAlerts.length})
+                    Alert History ({triggeredAlerts.length})
                   </Text>
                 </View>
               );

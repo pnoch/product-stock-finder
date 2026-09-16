@@ -26,8 +26,13 @@ export function useAlertBadge(): number {
           getBackOrderReminders(),
           getStockWatches(),
         ]);
+        // Exclude snoozed alerts, matching the in-screen "N alerts" count.
+        const now = Date.now();
         const activeAlerts = alerts.filter(
-          (a) => a.isActive && !a.triggeredAt,
+          (a) =>
+            a.isActive &&
+            !a.triggeredAt &&
+            (!a.snoozedUntil || new Date(a.snoozedUntil).getTime() <= now),
         ).length;
         const activeReminders = reminders.length;
         const activeWatches = watches.length;

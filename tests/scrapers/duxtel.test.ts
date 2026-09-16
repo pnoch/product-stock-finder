@@ -14,7 +14,7 @@ describe("Duxtel Parser", () => {
 
   it("should build correct search URL", () => {
     const url = duxtelParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://store.duxtel.com/search?q=hAP%20ac3");
+    expect(url).toBe("https://store.duxtel.com/index.php?route=product/search&search=hAP%20ac3");
   });
 
   it("should return null for 404 page fixture", () => {

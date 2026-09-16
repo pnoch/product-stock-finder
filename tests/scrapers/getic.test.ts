@@ -8,13 +8,13 @@ const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 describe("Getic Parser", () => {
   it("should have correct parser config", () => {
     expect(geticParser.id).toBe("getic-gr");
-    expect(geticParser.baseUrl).toBe("https://getic.gr");
+    expect(geticParser.baseUrl).toBe("https://getic.com");
     expect(geticParser.rateLimitMs).toBe(3000);
   });
 
   it("should build correct search URL", () => {
     const url = geticParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://getic.gr/search?q=hAP%20ac3");
+    expect(url).toBe("https://getic.com/search?q=hAP%20ac3");
   });
 
   it("should return null for 404 page fixture", () => {

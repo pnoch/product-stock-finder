@@ -1,7 +1,7 @@
 import { fetchServerPrice, uploadServerHistory } from "../server-prices";
 import { isFreshPriceSnapshot } from "../price-freshness";
 import { getParserByDistributorId } from "../scrapers/registry";
-import { resilientFetch } from "../scrapers/resilient";
+import { fetchAndParse } from "../scrapers/resilient";
 import { appendPricePoint, mergePriceHistory } from "../price-history";
 import { MAX_UPLOAD_HISTORY_POINTS } from "@/shared/const";
 import { PRICE_HISTORY_DAYS } from "@/shared/const";
@@ -64,8 +64,11 @@ export async function refreshListing(
   const parser = getParserByDistributorId(listing.distributorId);
   if (!parser) return listing;
 
-  const url = parser.buildSearchUrl(product.modelNumber);
-  const outcome = await resilientFetch({ parser, url, state: breakerStore });
+  const { result, outcome } = await fetchAndParse(
+    parser,
+    product.modelNumber,
+    breakerStore,
+  );
 
   if (outcome.status !== "ok" || !outcome.html) {
     if (outcome.status === "blocked") {
@@ -79,7 +82,6 @@ export async function refreshListing(
   }
 
   try {
-    const result = parser.parsePrice(outcome.html, product.modelNumber, url);
     if (!result) {
       healthCollector.record(parser.id, "error", "no price found");
       return listing;

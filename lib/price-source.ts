@@ -3,7 +3,7 @@ import { fetchServerPrice } from "@/lib/server-prices";
 import { getParserByDistributorId } from "@/lib/scrapers/registry";
 import {
   createMemoryBreakerStore,
-  resilientFetch,
+  fetchAndParse,
 } from "@/lib/scrapers/resilient";
 import type { ServerPriceResult } from "@/lib/types";
 
@@ -42,10 +42,7 @@ export async function scrapePriceOnDevice(
   if (!parser) return null;
   await acquireScrapeSlot();
   try {
-    const url = parser.buildSearchUrl(modelNumber);
-    const outcome = await resilientFetch({ parser, url, state: breakerStore });
-    if (outcome.status !== "ok" || !outcome.html) return null;
-    const result = parser.parsePrice(outcome.html, modelNumber, url);
+    const { result } = await fetchAndParse(parser, modelNumber, breakerStore);
     if (!result) return null;
     return {
       snapshot: { ...result, fetchedAt: Date.now() },

@@ -14,7 +14,7 @@ describe("Winncom Parser", () => {
 
   it("should build correct search URL", () => {
     const url = winncomParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://winncom.com/search?q=hAP%20ac3");
+    expect(url).toBe("https://winncom.com/en/search?q=hAP%20ac3");
   });
 
   it("should return null for 404 page fixture", () => {

@@ -1,7 +1,7 @@
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import {
   createMemoryBreakerStore,
-  resilientFetch,
+  fetchAndParse,
 } from "../lib/scrapers/resilient";
 import type { PriceSnapshot, ServerPriceResult } from "../lib/types";
 import { getCachedPrice, setCachedPrice, listNearExpiry, purgeStalePriceCache } from "./price-cache";
@@ -69,10 +69,7 @@ async function refreshPrice(
   const parser = getParserByDistributorId(distributorId);
   if (!parser) return null;
   try {
-    const url = parser.buildSearchUrl(modelNumber);
-    const outcome = await resilientFetch({ parser, url, state: breakerStore });
-    if (outcome.status !== "ok" || !outcome.html) return null;
-    const result = parser.parsePrice(outcome.html, modelNumber, url);
+    const { result } = await fetchAndParse(parser, modelNumber, breakerStore);
     if (!result) return null;
     const snapshot: PriceSnapshot = { ...result, fetchedAt: Date.now() };
     await setCachedPrice(distributorId, modelNumber, snapshot);

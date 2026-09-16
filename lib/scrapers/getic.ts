@@ -57,10 +57,10 @@ function parseHtml(
 
 export const geticParser: DistributorParser = {
   id: "getic-gr",
-  baseUrl: "https://getic.gr",
+  baseUrl: "https://getic.com",
   buildSearchUrl: (model) =>
-    `https://getic.gr/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://getic.gr", model),
+    `https://getic.com/search?q=${encodeURIComponent(model)}`,
+  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://getic.com", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {

@@ -54,6 +54,7 @@ vi.mock("../lib/storage", () => ({
 
 vi.mock("../lib/notifications", () => ({
   requestNotificationPermissions: vi.fn(async () => state.permissionGranted),
+  ensureNotificationPermission: vi.fn(async () => state.permissionGranted),
   scheduleHealthAlert: vi.fn(async () => "notif-id"),
   scheduleHealthRecovery: vi.fn(async () => "notif-id"),
   channelIdFor: vi.fn(() => undefined),

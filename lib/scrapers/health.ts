@@ -3,7 +3,7 @@ import { PARSERS } from "./registry";
 import {
   classifyFetchStatus,
   createStorageBreakerStore,
-  resilientFetch,
+  fetchAndParse,
 } from "./resilient";
 import type { FetchOutcome } from "./resilient";
 import type { StorageAdapter } from "../storage";
@@ -91,7 +91,10 @@ export function classifyProbeOutcome(
     return { status: "blocked", reason: outcome.error ?? "blocked by site" };
   }
   if (outcome.status === "skipped") {
-    return { status: "error", reason: "in cooldown" };
+    // A cooldown is a transient circuit-breaker state, not a failure: reporting
+    // it as "error" made a distributor cooling down after one block accumulate
+    // false error samples and trip the health alert.
+    return { status: "blocked", reason: "in cooldown" };
   }
   return { status: "error", reason: outcome.error ?? "no price found" };
 }
@@ -345,12 +348,7 @@ export function createHealthService(adapter: StorageAdapter) {
           const start = Date.now();
           try {
             const model = getProbeModel(parser.id);
-            const url = parser.buildSearchUrl(model);
-            const outcome = await resilientFetch({
-              parser,
-              url,
-              state: breakerStore,
-            });
+            const { outcome } = await fetchAndParse(parser, model, breakerStore);
             const { status, reason } = classifyProbeOutcome(outcome, parser);
             return {
               distributorId: parser.id,

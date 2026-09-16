@@ -36,7 +36,15 @@ export const SESSION_TOKEN_KEY = "app_session_token";
 export const USER_INFO_KEY = "user_info";
 
 export const getRedirectUri = () => {
-  if (ReactNative.Platform.OS === "web") return `${getApiBaseUrl()}/api/auth/callback`;
+  if (ReactNative.Platform.OS === "web") {
+    // The SPA route (same-origin), NOT an API path: the server sets the session
+    // cookie and redirects here. `/api/auth/callback` does not exist.
+    const origin =
+      typeof window !== "undefined" && window.location
+        ? window.location.origin
+        : getApiBaseUrl();
+    return `${origin}/oauth/callback`;
+  }
   return Linking.createURL("/oauth/callback", { scheme: env.deepLinkScheme });
 };
 
@@ -60,7 +68,11 @@ export async function getOAuthUrl(provider: OAuthProvider): Promise<string | nul
     const redirectUri = getRedirectUri();
     const params = new URLSearchParams({ provider });
     if (redirectUri) params.set("redirectUri", redirectUri);
-    if (deviceId) params.set("deviceId", deviceId);
+    // On web the server issues a cookie session; sending a deviceId would make
+    // it take the native ticket branch instead (no cookie, wrong redirect).
+    if (deviceId && ReactNative.Platform.OS !== "web") {
+      params.set("deviceId", deviceId);
+    }
     const res = await fetch(`${baseUrl}/api/auth/oauth/start?${params.toString()}`, {
       headers: deviceId ? { "X-Device-Id": deviceId } : undefined,
     });

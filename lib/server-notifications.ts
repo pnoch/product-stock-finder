@@ -95,6 +95,7 @@ async function runSyncServerNotifications(): Promise<void> {
       getAlerts,
       getStockWatches,
       getBackOrderReminders,
+      getWatchlist,
       getDisplayedEventIds,
       recordDisplayedEventId,
       recordNotificationEvent,
@@ -122,12 +123,20 @@ async function runSyncServerNotifications(): Promise<void> {
     }
 
     const alerts = await getAlerts();
+    // The server resolves prices by model number, but only knows the static
+    // catalog. Send the model for every referenced product so manually added /
+    // rediscovered products also get server-side notifications.
+    const watchlist = await getWatchlist();
+    const modelByProductId = new Map(
+      watchlist.map((p) => [p.id, p.modelNumber] as const),
+    );
     const activeAlerts = settings.priceAlerts
       ? alerts
           .filter((a) => a.isActive && !a.triggeredAt)
           .map((a) => ({
             id: a.id,
             productId: a.productId,
+            modelNumber: modelByProductId.get(a.productId),
             targetPrice: a.targetPrice,
             currency: a.currency,
             distributorId: a.distributorId,
@@ -141,6 +150,7 @@ async function runSyncServerNotifications(): Promise<void> {
       ? (await getStockWatches()).map((w) => ({
           id: w.id,
           productId: w.productId,
+          modelNumber: modelByProductId.get(w.productId),
           distributorId: w.distributorId,
           lastKnownStatus: w.lastKnownStatus,
         }))
@@ -151,6 +161,7 @@ async function runSyncServerNotifications(): Promise<void> {
       .map((r) => ({
         id: r.id,
         productId: r.productId,
+        modelNumber: modelByProductId.get(r.productId),
         distributorId: r.distributorId,
         reminderDate: r.reminderDate,
       }));
@@ -204,10 +215,14 @@ async function runSyncServerNotifications(): Promise<void> {
         event.alertId &&
         !activeAlertIds.has(event.alertId);
       if (!staleFired && !displayedIds.has(event.id)) {
-        await scheduleServerEventNotification(event.title, event.body, {
-          productId: event.productId,
-        });
-        await recordDisplayedEventId(event.id);
+        // Only mark displayed when something was actually shown; otherwise the
+        // event would be dropped forever even after permissions are granted.
+        const shown = await scheduleServerEventNotification(
+          event.title,
+          event.body,
+          { productId: event.productId },
+        );
+        if (shown) await recordDisplayedEventId(event.id);
       }
       await reconcileEvent(event);
     }
@@ -222,6 +237,7 @@ async function reconcileEvent(event: {
   watchId?: string;
   reminderId?: string;
   triggeredPrice?: number;
+  createdAt?: number;
 }): Promise<void> {
   const { deactivateAlert, removeStockWatch, removeBackOrderReminder } =
     await import("./storage");
@@ -229,7 +245,8 @@ async function reconcileEvent(event: {
     (event.type === "price_drop" || event.type === "price_rise") &&
     event.alertId
   ) {
-    await deactivateAlert(event.alertId, event.triggeredPrice ?? 0);
+    // Pass the event time so a stale event cannot re-deactivate a re-armed alert.
+    await deactivateAlert(event.alertId, event.triggeredPrice ?? 0, event.createdAt);
   }
   if (event.type === "restock" && event.watchId) {
     await removeStockWatch(event.watchId);

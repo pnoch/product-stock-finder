@@ -1,4 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+
+// Hoisted holder so the mocked fetchAndParse can call the test's resilientFetch
+// mock (module-local bindings cannot be intercepted by vi.mock).
+const __resilientHolder = vi.hoisted(() => ({ fn: async (_o: unknown): Promise<any> => ({ status: "ok", html: "", method: "plain" }) }));
 import type { DistributorParser } from "../lib/scrapers/types";
 
 vi.mock("../lib/scrapers/registry", () => ({
@@ -7,6 +11,14 @@ vi.mock("../lib/scrapers/registry", () => ({
 
 vi.mock("../lib/scrapers/resilient", () => ({
   resilientFetch: vi.fn(),
+  fetchAndParse: vi.fn(async (parser: any, model: string) => {
+    const outcome = await __resilientHolder.fn({ parser, url: parser.buildSearchUrl(model) } as never);
+    return {
+      result: outcome.status === "ok" && outcome.html ? parser.parsePrice(outcome.html, model, parser.buildSearchUrl(model)) : null,
+      url: parser.buildSearchUrl(model),
+      outcome,
+    };
+  }),
   createMemoryBreakerStore: vi.fn(() => ({
     get: vi.fn(async () => null),
     set: vi.fn(async () => {}),
@@ -45,6 +57,9 @@ vi.mock("../server/notifications", () => ({
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { resilientFetch } from "../lib/scrapers/resilient";
 import { getPrice } from "../server/prices";
+
+// Point the mocked fetchAndParse at the test's resilientFetch mock.
+__resilientHolder.fn = resilientFetch as unknown as typeof __resilientHolder.fn;
 
 const parser: DistributorParser = {
   id: "server2u-my",

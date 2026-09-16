@@ -38,11 +38,11 @@ function parseHtml(
 
 export const networkdevicesParser: DistributorParser = {
   id: "networkdevices-us",
-  baseUrl: "https://networkdevices.com",
+  baseUrl: "https://networkdevicesinc.com",
   buildSearchUrl: (model) =>
-    `https://networkdevices.com/search?q=${encodeURIComponent(model)}`,
+    `https://networkdevicesinc.com/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) =>
-    parseHtml(html, url ?? "https://networkdevices.com", model),
+    parseHtml(html, url ?? "https://networkdevicesinc.com", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {

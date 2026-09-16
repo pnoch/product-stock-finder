@@ -27,6 +27,7 @@ vi.mock("../lib/device-id", () => ({
 }));
 
 vi.mock("../lib/storage", () => ({
+  getWatchlist: vi.fn().mockResolvedValue([]),
   getAlerts: vi.fn(async () => state.alerts),
   getStockWatches: vi.fn(async () => state.stockWatches),
   getBackOrderReminders: vi.fn(async () => state.dateReminders),
@@ -56,6 +57,8 @@ vi.mock("../lib/notifications", () => ({
   scheduleServerEventNotification: vi.fn(
     async (title: string, body: string) => {
       state.rendered.push({ title, body });
+      // Return true so the caller records the event as displayed.
+      return true;
     },
   ),
 }));
