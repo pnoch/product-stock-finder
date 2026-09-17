@@ -12,7 +12,13 @@ export function isPushSupported(): boolean {
 }
 
 function vapidKey(): string {
-  return import.meta.env.VITE_VAPID_PUBLIC_KEY ?? "";
+  // Accept either name: the vite config bridges EXPO_PUBLIC_* into
+  // process.env, and the repo documents EXPO_PUBLIC_VAPID_PUBLIC_KEY.
+  return (
+    import.meta.env.VITE_VAPID_PUBLIC_KEY ??
+    process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY ??
+    ""
+  );
 }
 
 export function hasVapidKey(): boolean {

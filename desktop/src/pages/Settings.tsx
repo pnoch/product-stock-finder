@@ -137,16 +137,19 @@ export function Settings() {
   useEffect(() => {
     const prev = prevIntervalRef.current;
     prevIntervalRef.current = settings?.checkInterval;
-    if (!settings || settings.checkInterval === "manual") {
-      if (prev && prev !== "manual") stopPricePoller();
-      return;
-    }
-    if (prev && prev !== "manual" && prev !== settings.checkInterval) {
-      stopPricePoller();
-    }
-    const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
     let cancelled = false;
     (async () => {
+      // Sequence stop BEFORE start. Firing both without awaiting let the start
+      // be processed first (seeing POLLER_RUNNING=true and no-op'ing) and the
+      // stop second, leaving no poller at all until the setting changed again.
+      if (!settings || settings.checkInterval === "manual") {
+        if (prev && prev !== "manual") await stopPricePoller();
+        return;
+      }
+      if (prev && prev !== "manual" && prev !== settings.checkInterval) {
+        await stopPricePoller();
+      }
+      const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
       try {
         await startPricePoller(intervalMinutes, getApiBaseUrl());
       } catch {

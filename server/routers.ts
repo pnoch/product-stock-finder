@@ -67,6 +67,8 @@ const TOMBSTONE_PURGE_INTERVAL_MS = 60 * 60 * 1000;
 // large watchlist can't turn the endpoint into an expensive unbounded read.
 const SHARED_WATCHLIST_MAX_ITEMS = 500;
 import { getPrice } from "./prices";
+import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
+import { getAllParserIds } from "../lib/scrapers/registry";
 import { checkAllDistributors } from "./health";
 
 // Short server cache: one health.check fans out to ~25 distributor scrapes,
@@ -80,6 +82,7 @@ let healthCache: {
   at: 0,
   result: null,
 };
+let healthInFlight: Promise<Awaited<ReturnType<typeof checkAllDistributors>>> | null = null;
 
 export function clearHealthCacheForTests(): void {
   healthCache = { at: 0, result: null };
@@ -329,8 +332,16 @@ export const appRouter = router({
     uploadHistory: protectedProcedure
       .input(
         z.object({
-          distributorId: z.string().min(1).max(64),
-          modelNumber: z.string().min(1).max(128),
+          // Must be a registered parser id and a catalog model: otherwise any
+          // signed-in user can create orphaned rows for arbitrary keys.
+          distributorId: z.string().min(1).max(64).refine(
+            (v) => getAllParserIds().includes(v),
+            "unknown distributor",
+          ),
+          modelNumber: z.string().min(1).max(128).refine(
+            (v) => PRODUCT_CATALOG.some((p) => p.modelNumber === v),
+            "unknown model",
+          ),
           points: z
             .array(
               z.object({
@@ -351,7 +362,8 @@ export const appRouter = router({
                     },
                     "date must not be in the future",
                   ),
-                price: z.number().finite().positive(),
+                // decimal(12,4) — a larger value fails the insert with a 500.
+                price: z.number().finite().positive().max(99_999_999),
                 currency: z.string().min(1).max(8),
                 stockStatus: z.enum([
                   "in_stock",
@@ -388,9 +400,19 @@ export const appRouter = router({
       ) {
         return healthCache.result;
       }
-      const result = await checkAllDistributors();
-      healthCache = { at: now, result };
-      return result;
+      // Single-flight: concurrent cold calls (many IPs bypassing the per-IP
+      // limit) would otherwise each launch a full 25-distributor scan.
+      if (!healthInFlight) {
+        healthInFlight = checkAllDistributors()
+          .then((result) => {
+            healthCache = { at: Date.now(), result };
+            return result;
+          })
+          .finally(() => {
+            healthInFlight = null;
+          });
+      }
+      return healthInFlight;
     }),
   }),
 
@@ -447,7 +469,13 @@ export const appRouter = router({
                 currency: z.string().min(1).max(8),
                 distributorId: z.string().max(64).optional(),
                 direction: z.enum(["drop", "rise"]).optional(),
-                snoozedUntil: z.string().optional(),
+                // Bounded + ISO-validated: persisted verbatim into a JSON
+                // column, so an unbounded string is a storage-abuse vector.
+                snoozedUntil: z
+                  .string()
+                  .max(64)
+                  .refine((v) => !Number.isNaN(Date.parse(v)), "invalid date")
+                  .optional(),
               }),
             )
             .max(MAX_UPLOAD_ALERTS),
@@ -484,7 +512,13 @@ export const appRouter = router({
                 status: z.enum(["blocked", "error"]),
                 title: z.string().min(1).max(255),
                 body: z.string().min(1).max(1000),
-                createdAt: z.number(),
+                // Bounded to now: a far-future createdAt would make the event
+                // un-purgeable (retention deletes `createdAt < cutoff`).
+                createdAt: z
+                  .number()
+                  .int()
+                  .nonnegative()
+                  .max(Date.now() + 60_000),
               }),
             )
             .max(MAX_UPLOAD_HEALTH_EVENTS)

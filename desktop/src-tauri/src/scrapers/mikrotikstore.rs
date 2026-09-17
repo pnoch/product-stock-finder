@@ -19,7 +19,7 @@ fn parse_html(html: &str, url: &str, model: &str) -> Result<ScrapeResult, String
         url,
         model,
         "EUR",
-        ".product-price, .price, [data-price]",
+        ".price-tag, .product-price, .product-detail-price, [itemprop='price']",
         ".stock-status, .availability, .stock",
     )
 }

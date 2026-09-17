@@ -490,43 +490,55 @@ async fn start_oauth(login_url: String) -> Result<serde_json::Value, String> {
         .await
         .map_err(|e| format!("Failed to bind OAuth callback listener: {e}"))?;
 
-    let (mut socket, _) = tokio::time::timeout(
-        std::time::Duration::from_secs(120),
-        listener.accept(),
-    )
-    .await
-    .map_err(|_| "OAuth callback timed out after 120 seconds".to_string())?
-    .map_err(|e| format!("Failed to accept OAuth callback: {e}"))?;
+    // Loop until the real callback arrives. A stray local connection (favicon
+    // prefetch, port scan, another process) must not consume the single accept
+    // and abort the login.
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(120);
+    loop {
+        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
+            return Err("OAuth callback timed out after 120 seconds".to_string());
+        }
+        let (mut socket, _) = tokio::time::timeout(remaining, listener.accept())
+            .await
+            .map_err(|_| "OAuth callback timed out after 120 seconds".to_string())?
+            .map_err(|e| format!("Failed to accept OAuth callback: {e}"))?;
 
-    let mut buf = [0u8; 8192];
-    let n = socket
-        .read(&mut buf)
-        .await
-        .map_err(|e| format!("Failed to read OAuth callback: {e}"))?;
-    let request = String::from_utf8_lossy(&buf[..n]).to_string();
+        let mut buf = [0u8; 8192];
+        let n = match socket.read(&mut buf).await {
+            Ok(n) => n,
+            Err(_) => continue,
+        };
+        let request = String::from_utf8_lossy(&buf[..n]).to_string();
+        let request_line = request.lines().next().unwrap_or_default().to_string();
+        let params = parse_query_params(&request_line);
 
-    let request_line = request.lines().next().unwrap_or_default().to_string();
-    let params = parse_query_params(&request_line);
+        // Only the callback path carries the ticket; ignore anything else.
+        let path = request_line.split_whitespace().nth(1).unwrap_or("");
+        let ticket = params.get("ticket").cloned().unwrap_or_default();
+        if !path.starts_with("/callback") || ticket.is_empty() {
+            let _ = socket
+                .write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                .await;
+            continue;
+        }
 
-    let body = "<html><body style=\"font-family:sans-serif;text-align:center;padding-top:80px\"><h3>Login successful. You can close this window.</h3></body></html>";
-    let response = format!(
-        "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-        body.len(),
-        body
-    );
-    socket
-        .write_all(response.as_bytes())
-        .await
-        .map_err(|e| format!("Failed to respond to OAuth callback: {e}"))?;
+        let body = "<html><body style=\"font-family:sans-serif;text-align:center;padding-top:80px\"><h3>Login successful. You can close this window.</h3></body></html>";
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        socket
+            .write_all(response.as_bytes())
+            .await
+            .map_err(|e| format!("Failed to respond to OAuth callback: {e}"))?;
 
-    // Only accept the single-use, server-issued ticket — never a raw session
-    // token from the URL (attacker-controllable: login CSRF / session fixation).
-    // Mirrors lib/oauth-callback.ts.
-    let ticket = params.get("ticket").cloned().unwrap_or_default();
-    if ticket.is_empty() {
-        return Err("OAuth callback did not include a ticket".to_string());
+        // Only accept the single-use, server-issued ticket — never a raw
+        // session token from the URL (attacker-controllable: login CSRF /
+        // session fixation). Mirrors lib/oauth-callback.ts.
+        return Ok(serde_json::json!({ "ticket": ticket }));
     }
-    Ok(serde_json::json!({ "ticket": ticket }))
 }
 
 // ─── Background Polling ──────────────────────────────────────────────────────
@@ -1505,7 +1517,7 @@ fn append_price_point_with_retention(
 // ─── Tray Badge ──────────────────────────────────────────────────────────────
 
 #[tauri::command]
-async fn update_tray_badge(app: tauri::AppHandle) -> Result<String, String> {
+fn update_tray_badge(app: tauri::AppHandle) -> Result<String, String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let alerts_val = read_json_file(&data_dir, "price_alerts")?;
     let reminders_val = read_json_file(&data_dir, "back_order_reminders")?;
@@ -1524,10 +1536,21 @@ async fn update_tray_badge(app: tauri::AppHandle) -> Result<String, String> {
 
     let active_reminders = reminders_val
         .as_array()
-        .map(|r| r.len())
+        .map(|r| {
+            r.iter()
+                .filter(|r| {
+                    r.get("reminderType").and_then(|v| v.as_str()) != Some("back_in_stock")
+                })
+                .count()
+        })
         .unwrap_or(0);
 
-    let total = active_alerts + active_reminders;
+    // Back-in-stock watches live in their own file and count toward the badge
+    // too (mobile counts alerts + reminders + watches).
+    let watches_val = read_json_file(&data_dir, "back_in_stock_watches")?;
+    let active_watches = watches_val.as_array().map(|w| w.len()).unwrap_or(0);
+
+    let total = active_alerts + active_reminders + active_watches;
 
     if let Some(tray) = app.tray_by_id("main") {
         let badge_text = if total > 0 {

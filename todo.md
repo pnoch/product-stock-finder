@@ -1926,3 +1926,34 @@
 **Test infrastructure**
 - [x] Replaced `ReturnType<typeof createHealthService>` / `createHealthCollector` in exported signatures with explicit `HealthService` / `HealthCollector` types — the `typeof` form made the module unparseable by Rollup under vitest
 - [x] Tests: `push-endpoint-allowlist`, `price-check-budget-preserve` (verified non-vacuous); updated `web-notifications`/`notifications-router`/`web-push-server` mocks; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `305 passed | 1 skipped` / `1829 passed`, desktop `43 passed` / `218 passed`, `pnpm build` + `pnpm smoke:web` green
+
+## Phase 230: Review round 7 follow-ups (desktop parity, limits, CI)
+
+**Desktop/mobile scraper parity (desktop was silently broken for ~18 distributors)**
+- [x] 24 Rust parsers used a generic `${base}/search?q=` URL while mobile uses site-specific paths/hosts (server2u `?search`, aerial osCommerce, duxtel OpenCart, flytec `search_query`, getic `.com`, linetx `search.php?keywords`, linktechs `shop.`, mbsiwav `.com`, mega `b2b.`, miro `?s`, multilink `shop.`, rocnoc `roc-noc.com`, winncom `/en/search`, wisp iqitsearch, interprojekt catalogsearch). Synced all from the mobile source
+- [x] Rust parsers all used the same generic price selector; synced each to its mobile counterpart (getic's `[data-testid='price']` etc.)
+- [x] Added `tests/desktop-scraper-parity.test.ts` asserting every Rust parser's search URL + price selector match mobile (verified non-vacuous)
+
+**Desktop correctness**
+- [x] `update_tray_badge` was `async` but called fire-and-forget, so the future was dropped and the badge/tooltip never updated. Made it synchronous; also counts back-in-stock watches (mobile counts them) and excludes them from the reminder count
+- [x] Shared modules read `process.env.EXPO_PUBLIC_*` but the desktop Vite build only inlines `VITE_*`, so AI discovery / listing discovery / trending silently saw an empty API base. Added a `define` bridge mapping the EXPO names to the VITE values (verified inlined in the bundle)
+- [x] The AsyncStorage stub was a module-level `Map`, making `defaultStorage` a throwaway: shared modules (llm-discovery) wrote discovered products there while the UI read the desktop store. Now backed by localStorage so both share one store
+- [x] Desktop server-pulled events were shown as OS toasts but never recorded in the Notification Center (Alerts tab stayed empty); now records history like mobile
+- [x] `VITE_VAPID_PUBLIC_KEY` was the only accepted name while the repo documents `EXPO_PUBLIC_VAPID_PUBLIC_KEY`; now accepts both
+- [x] `use-theme` wrote `app_settings` directly to localStorage, skipping the Rust mirror + sync-dirty stamp; now goes through `storage.updateSettings`
+- [x] Settings interval change fired `stopPricePoller()` without awaiting then started, so the start could no-op and the stop land after — leaving no poller. Now sequenced with await
+- [x] OAuth loopback accepted the first connection on any path, so a stray local request aborted login; now loops until `GET /callback` with a ticket
+
+**Server**
+- [x] `notifications.uploadConfig` `snoozedUntil` was an unbounded string persisted to a JSON column; now max 64 + ISO-validated
+- [x] `healthEvents[].createdAt` accepted far-future values (un-purgeable); now bounded to now+60s
+- [x] `prices.uploadHistory` accepted any distributor/model (orphaned rows, cross-user history poisoning) and unbounded prices; now requires a registered parser id + catalog model, price ≤ 99,999,999
+- [x] `health.check` had no single-flight, so concurrent cold calls each ran a full 25-distributor scan; added in-flight dedup
+- [x] `notifications.pull` returned an unbounded event list; now ordered + capped at 200
+- [x] `trending.get` read every non-expired row and sliced in memory; now `ORDER BY fetchedAt DESC LIMIT 10` in SQL
+- [x] Removed the `openId === "admin"` privilege backdoor in `upsertUser`
+
+**CI**
+- [x] `pnpm smoke:web` would fail on a clean runner: `playwright` has no postinstall, so its browsers were never installed. Added `npx playwright install --with-deps chromium`
+
+- [x] Tests: `desktop-scraper-parity` (verified non-vacuous), updated `prices-router`/`notifications` fakes; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `306 passed | 1 skipped` / `1831 passed`, desktop `43 passed` / `218 passed`, `cargo test` 16 passed, `pnpm build` + `pnpm smoke:web` green

@@ -138,13 +138,13 @@ describe("prices router", () => {
     ];
     const result = await caller.prices.uploadHistory({
       distributorId: "server2u-my",
-      modelNumber: "CRS804",
+      modelNumber: "CRS804-4DDQ-hRM",
       points,
     });
     expect(result).toEqual({ accepted: 1 });
     expect(mockedMergeHistory).toHaveBeenCalledWith(
       "server2u-my",
-      "CRS804",
+      "CRS804-4DDQ-hRM",
       points,
     );
   });
@@ -165,7 +165,7 @@ describe("prices.uploadHistory validation", () => {
     await expect(
       caller.prices.uploadHistory({
         distributorId: "server2u-my",
-        modelNumber: "CRS804",
+        modelNumber: "CRS804-4DDQ-hRM",
         points: [{ ...validPoint, date: "not-a-date" }],
       }),
     ).rejects.toThrow();
@@ -177,7 +177,7 @@ describe("prices.uploadHistory validation", () => {
     await expect(
       caller.prices.uploadHistory({
         distributorId: "server2u-my",
-        modelNumber: "CRS804",
+        modelNumber: "CRS804-4DDQ-hRM",
         points: [{ ...validPoint, price: Infinity }],
       }),
     ).rejects.toThrow();
@@ -189,7 +189,7 @@ describe("prices.uploadHistory validation", () => {
     await expect(
       caller.prices.uploadHistory({
         distributorId: "server2u-my",
-        modelNumber: "CRS804",
+        modelNumber: "CRS804-4DDQ-hRM",
         points: [{ ...validPoint, price: 0 }],
       }),
     ).rejects.toThrow();
@@ -201,7 +201,7 @@ describe("prices.uploadHistory validation", () => {
     await expect(
       caller.prices.uploadHistory({
         distributorId: "d".repeat(65),
-        modelNumber: "CRS804",
+        modelNumber: "CRS804-4DDQ-hRM",
         points: [validPoint],
       }),
     ).rejects.toThrow();
@@ -224,7 +224,7 @@ describe("prices.uploadHistory validation", () => {
     await expect(
       caller.prices.uploadHistory({
         distributorId: "server2u-my",
-        modelNumber: "CRS804",
+        modelNumber: "CRS804-4DDQ-hRM",
         points,
       }),
     ).rejects.toThrow();

@@ -55,6 +55,9 @@ interface PushEvent {
   watchId?: string;
   reminderId?: string;
   triggeredPrice?: number;
+  productId?: string;
+  distributorId?: string;
+  createdAt?: number;
 }
 
 async function uploadConfig(config: PushConfig): Promise<boolean> {
@@ -201,6 +204,23 @@ async function runSyncDesktopNotifications(): Promise<void> {
         if (!stalePriceDrop) {
           const route = resolveEventRoute(event, activeAlerts, stockWatches, dateReminders);
           await sendDesktopNotification(event.title, event.body, route);
+        }
+        // Record in the in-app Notification Center too; without this server
+        // events showed as OS toasts but the Alerts tab stayed empty.
+        try {
+          await storage.recordNotificationEvent({
+            id: event.id,
+            type: event.type as never,
+            title: event.title,
+            body: event.body,
+            productId: event.productId,
+            distributorId: event.distributorId,
+            alertId: event.alertId,
+            triggeredPrice: event.triggeredPrice,
+            createdAt: event.createdAt ?? Date.now(),
+          });
+        } catch {
+          // history recording is best-effort
         }
         await reconcileEvent(event);
       } catch {

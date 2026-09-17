@@ -3,7 +3,7 @@ import { checkRateLimit } from "../rate-limit";
 import { tryConsumeBudget } from "../spend-budget";
 import { getDb } from "../db";
 import { trendingProducts } from "../../drizzle/schema";
-import { gte } from "drizzle-orm";
+import { desc, gte } from "drizzle-orm";
 
 // External feeds and the OpenAI call must not hang a request forever.
 const FETCH_TIMEOUT_MS = 8000;
@@ -142,11 +142,15 @@ export const trendingRouter = router({
     const db = await getDb();
     if (!db) return [];
     const now = new Date();
+    // LIMIT + ORDER BY in SQL: without them this reads every non-expired row
+    // into memory and returns an arbitrary 10.
     const rows = await db
       .select()
       .from(trendingProducts)
-      .where(gte(trendingProducts.expiresAt, now));
-    return rows.slice(0, 10);
+      .where(gte(trendingProducts.expiresAt, now))
+      .orderBy(desc(trendingProducts.fetchedAt))
+      .limit(10);
+    return rows;
   }),
 
   refresh: adminProcedure.mutation(async ({ ctx }) => {

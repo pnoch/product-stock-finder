@@ -9,6 +9,18 @@ export default defineConfig({
   // inlines to true/false per mode, matching Metro's __DEV__ semantics.
   define: {
     __DEV__: "import.meta.env.DEV",
+    // Shared modules (lib/llm-discovery, lib/price-source, shared/src/trending)
+    // read `process.env.EXPO_PUBLIC_*`; the desktop build only inlines VITE_*,
+    // so without this bridge those modules see an empty API base and their
+    // server-backed features silently fall back / fail.
+    "process.env.EXPO_PUBLIC_API_BASE_URL":
+      JSON.stringify(process.env.VITE_API_BASE_URL ?? ""),
+    "process.env.EXPO_PUBLIC_VAPID_PUBLIC_KEY":
+      JSON.stringify(process.env.VITE_VAPID_PUBLIC_KEY ?? ""),
+    "process.env.EXPO_PUBLIC_OAUTH_PORTAL_URL":
+      JSON.stringify(process.env.VITE_OAUTH_PORTAL_URL ?? ""),
+    "process.env.EXPO_PUBLIC_APP_ID":
+      JSON.stringify(process.env.VITE_APP_ID ?? ""),
   },
   resolve: {
     alias: [

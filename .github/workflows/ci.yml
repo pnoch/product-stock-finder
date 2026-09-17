@@ -50,4 +50,7 @@ jobs:
       - run: pnpm build
       # The web export compiles even when it renders a blank page at runtime;
       # this catches that class (e.g. import.meta in a classic script).
+      # playwright has no postinstall, so its browsers must be installed
+      # explicitly or chromium.launch() fails on a clean runner.
+      - run: npx playwright install --with-deps chromium
       - run: pnpm smoke:web

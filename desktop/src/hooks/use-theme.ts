@@ -22,12 +22,15 @@ function readStoredPreference(): ThemePreference {
 function persistPreference(pref: ThemePreference) {
   if (typeof window === "undefined") return;
   localStorage.setItem("theme-preference", pref);
-  try {
-    const raw = localStorage.getItem("app_settings");
-    const base = raw ? JSON.parse(raw) : {};
-    localStorage.setItem("app_settings", JSON.stringify({ ...base, theme: pref }));
-    window.dispatchEvent(new StorageEvent("storage", { key: "app_settings", newValue: localStorage.getItem("app_settings") } as unknown as StorageEventInit));
-  } catch {}
+  // Write through the storage adapter (not raw localStorage): it mirrors to
+  // the Rust app_settings.json, marks settings dirty for sync, and dispatches
+  // the change event. A direct write skipped all three and could be clobbered
+  // by the queued settings writer.
+  void import("../storage")
+    .then(({ storage }) => storage.updateSettings({ theme: pref }))
+    .catch(() => {
+      // best effort — the CSS class is already applied
+    });
 }
 
 export function useTheme() {

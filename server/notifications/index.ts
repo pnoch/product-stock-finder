@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 import {
   deviceNotificationConfigs,
   notificationEvents,
@@ -174,6 +174,9 @@ export async function upsertDeviceConfig(
   await processHealthEvents(deviceId, config, userId);
 }
 
+// Max events returned (and marked delivered) per pull.
+const PULL_MAX_EVENTS = 200;
+
 export async function pullPendingEvents(
   deviceId: string,
   userId?: number,
@@ -213,7 +216,11 @@ export async function pullPendingEvents(
           : eq(notificationEvents.deviceId, deviceId),
         isNull(notificationEventDeliveries.eventId),
       ),
-    );
+    )
+    // Bound the page: events are retained 30 days, so an undelivered backlog
+    // could otherwise return (and insert a delivery row for) thousands at once.
+    .orderBy(asc(notificationEvents.createdAt))
+    .limit(PULL_MAX_EVENTS);
   if (rows.length > 0) {
     await db
       .insert(notificationEventDeliveries)

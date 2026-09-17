@@ -855,20 +855,24 @@ describe("upsertDeviceConfig with healthEvents", () => {
       select: vi.fn(() => ({
         from: vi.fn(() => ({
           leftJoin: vi.fn(() => ({
-            where: vi.fn(async () => [
-              {
-                id: "evt-1",
-                type: "price_drop",
-                title: "💸 Price Drop Alert!",
-                body: "CRS804 is now $480.00!",
-                payload: {
-                  alertId: "a1",
-                  productId: "mikrotik-crs804-4ddq-hrm",
-                  triggeredPrice: 480,
-                },
-                createdAt: 123,
-              },
-            ]),
+            where: vi.fn(() => ({
+              orderBy: vi.fn(() => ({
+                limit: vi.fn(async () => [
+                  {
+                    id: "evt-1",
+                    type: "price_drop",
+                    title: "💸 Price Drop Alert!",
+                    body: "CRS804 is now $480.00!",
+                    payload: {
+                      alertId: "a1",
+                      productId: "mikrotik-crs804-4ddq-hrm",
+                      triggeredPrice: 480,
+                    },
+                    createdAt: 123,
+                  },
+                ]),
+              })),
+            })),
           })),
         })),
       })),
