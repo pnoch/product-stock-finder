@@ -46,7 +46,9 @@ async function processHealthEvents(
 
   if (db) {
     if (userId == null) return;
-    const dedupKeys = healthEvents.map((e) => dedupKeyForHealth(e));
+    const dedupKeys = healthEvents.map((e) =>
+      dedupKeyForHealth(e, e.distributorId),
+    );
     const uniqueKeys = [...new Set(dedupKeys)];
     const existingRows =
       uniqueKeys.length > 0
@@ -63,7 +65,7 @@ async function processHealthEvents(
     const existingSet = new Set(existingRows.map((r: any) => r.dedupKey));
     const seen = new Set<string>();
     for (const event of healthEvents) {
-      const dedupKey = dedupKeyForHealth(event);
+      const dedupKey = dedupKeyForHealth(event, event.distributorId);
       if (existingSet.has(dedupKey) || seen.has(dedupKey)) continue;
       seen.add(dedupKey);
       const dbEvent = {
@@ -99,7 +101,7 @@ async function processHealthEvents(
     );
     const seen = new Set<string>();
     for (const event of healthEvents) {
-      const dedupKey = dedupKeyForHealth(event);
+      const dedupKey = dedupKeyForHealth(event, event.distributorId);
       if (existingSet.has(dedupKey) || seen.has(dedupKey)) continue;
       seen.add(dedupKey);
       const dbEvent = {

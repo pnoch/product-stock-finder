@@ -55,7 +55,12 @@ export function getSessionCookieOptions(
     domain,
     httpOnly: true,
     path: "/",
-    sameSite: isSecureRequest(req) ? "none" : "lax",
+    // The SPA is served same-origin by this server, so Lax is sufficient and
+    // blocks cross-site cookie-authenticated requests. `none` (the previous
+    // value on HTTPS) sent the session cookie on cross-site form posts, which
+    // — with no CSRF token — allowed an attacker page to drive cookie-auth
+    // mutations (e.g. POST /api/auth/delete-account).
+    sameSite: "lax",
     secure: isSecureRequest(req),
   };
 }

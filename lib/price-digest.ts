@@ -177,7 +177,12 @@ export function computeDigest(
       return {
         productId: a.productId,
         name: product?.name ?? a.productId,
-        price: a.triggeredPrice ?? a.targetPrice,
+        // `??` doesn't fall back on 0, and a server-detected trigger can store
+        // triggeredPrice 0 — which rendered as "target hit at $0.00".
+        price:
+          a.triggeredPrice && a.triggeredPrice > 0
+            ? a.triggeredPrice
+            : a.targetPrice,
         currency: a.currency,
       };
     });

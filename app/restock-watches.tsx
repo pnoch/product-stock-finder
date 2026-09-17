@@ -42,7 +42,7 @@ export default function RestockWatchesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadWatches();
+      void loadWatches().catch(() => {});
     }, [loadWatches]),
   );
 

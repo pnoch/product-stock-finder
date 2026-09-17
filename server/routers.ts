@@ -67,6 +67,7 @@ const TOMBSTONE_PURGE_INTERVAL_MS = 60 * 60 * 1000;
 // large watchlist can't turn the endpoint into an expensive unbounded read.
 const SHARED_WATCHLIST_MAX_ITEMS = 500;
 import { getPrice } from "./prices";
+import { SYNC_COLLECTION_ORDER } from "./sync-db";
 import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
 import { getAllParserIds } from "../lib/scrapers/registry";
 import { checkAllDistributors } from "./health";
@@ -214,7 +215,8 @@ export const appRouter = router({
         // The four per-collection queries are each ordered, but the merged
         // list is not: sort globally by the same (stamp, collection, id) key
         // the cursor uses, then take a prefix.
-        const COLLECTION_ORDER = ["watchlist", "alerts", "reminders", "settings"];
+        // Must match SYNC_COLLECTION_ORDER in server/sync-db.ts.
+        const COLLECTION_ORDER = SYNC_COLLECTION_ORDER;
         const stampOf = (i: (typeof items)[number]) =>
           Math.max(i.updatedAt, i.deletedAt ?? 0);
         const sorted = [...items].sort((a, b) => {

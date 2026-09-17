@@ -20,20 +20,44 @@ export function newEventId(): string {
   return `evt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function dedupKeyForHealth(event: {
-  distributorId: string;
-  status: string;
-  createdAt: number;
-}): string {
-  return `health:${event.distributorId}:${event.status}:${event.createdAt}`;
+// notificationEvents.dedupKey is varchar(255). A longer key makes the insert
+// throw "Data too long", which is not a duplicate-key error, so it escapes the
+// per-device evaluation and aborts the whole warmer tick (including the purge
+// jobs) on every run. Clamp deterministically so over-long ids still dedupe.
+const DEDUP_KEY_MAX = 255;
+
+function clampDedupKey(key: string): string {
+  if (key.length <= DEDUP_KEY_MAX) return key;
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  }
+  const suffix = `#${(hash >>> 0).toString(36)}`;
+  return key.slice(0, DEDUP_KEY_MAX - suffix.length) + suffix;
+}
+
+// Bucketed by SERVER time, not the client-supplied `createdAt`: that field is
+// attacker-controlled (bounded only to now+60s), so keying on it let a signed-in
+// user mint unlimited distinct events (and pushes) by varying the timestamp.
+const HEALTH_DEDUP_BUCKET_MS = 60 * 60 * 1000;
+
+export function dedupKeyForHealth(
+  event: { status: string },
+  distributorId: string,
+  now: number = Date.now(),
+): string {
+  const bucket = Math.floor(now / HEALTH_DEDUP_BUCKET_MS);
+  return clampDedupKey(`health:${distributorId}:${event.status}:${bucket}`);
 }
 
 export function dedupKeyFor(event: NotificationEvent): string {
-  if (event.type === "price_drop") return `price_drop:${event.alertId}`;
-  if (event.type === "price_rise") return `price_rise:${event.alertId}`;
+  if (event.type === "price_drop")
+    return clampDedupKey(`price_drop:${event.alertId}`);
+  if (event.type === "price_rise")
+    return clampDedupKey(`price_rise:${event.alertId}`);
   if (event.type === "restock")
-    return `restock:${event.productId}:${event.distributorId}`;
-  return `reminder:${event.reminderId}`;
+    return clampDedupKey(`restock:${event.productId}:${event.distributorId}`);
+  return clampDedupKey(`reminder:${event.reminderId}`);
 }
 
 export type PriceLookup = (

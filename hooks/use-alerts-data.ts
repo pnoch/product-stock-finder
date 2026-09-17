@@ -126,8 +126,13 @@ export function useAlertsData() {
   const handleSnoozeAlert = useCallback(
     (alertId: string) => {
       const apply = async (days: number) => {
-        await snoozeAlert(alertId, days);
-        await loadData();
+        try {
+          await snoozeAlert(alertId, days);
+          await loadData();
+        } catch (e) {
+          console.error("[Alerts] snooze failed", e);
+          showAlert("Snooze failed", "We couldn't snooze that alert. Please try again.");
+        }
       };
       if (Platform.OS === "web") {
         const input = window.prompt(
@@ -190,11 +195,16 @@ export function useAlertsData() {
                 Haptics.notificationAsync(
                   Haptics.NotificationFeedbackType.Warning,
                 );
-              if (reminder.notificationId) {
-                await cancelNotification(reminder.notificationId);
+              try {
+                if (reminder.notificationId) {
+                  await cancelNotification(reminder.notificationId);
+                }
+                await removeBackOrderReminder(reminder.id);
+                await loadData();
+              } catch (e) {
+                console.error("[Alerts] cancel reminder failed", e);
+                showAlert("Cancel failed", "We couldn't cancel that reminder. Please try again.");
               }
-              await removeBackOrderReminder(reminder.id);
-              await loadData();
             },
           },
         ],
@@ -216,8 +226,13 @@ export function useAlertsData() {
             onPress: async () => {
               if (Platform.OS !== "web")
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              await removeStockWatch(watch.id);
-              await loadData();
+              try {
+                await removeStockWatch(watch.id);
+                await loadData();
+              } catch (e) {
+                console.error("[Alerts] remove watch failed", e);
+                showAlert("Remove failed", "We couldn't remove that watch. Please try again.");
+              }
             },
           },
         ],
@@ -304,8 +319,14 @@ export function useAlertsData() {
     async (alertId: string) => {
       if (Platform.OS !== "web")
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await rearmAlert(alertId);
-      await loadData();
+      try {
+        await rearmAlert(alertId);
+        await loadData();
+      } catch (e) {
+        console.error("[Alerts] re-arm failed", e);
+        showAlert("Re-arm failed", "We couldn't re-arm that alert. Please try again.");
+        return;
+      }
       if (Platform.OS !== "web")
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },

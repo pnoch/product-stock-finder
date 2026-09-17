@@ -4,13 +4,17 @@ vi.mock("../server/db", () => ({
   getDb: vi.fn(async () => null),
 }));
 
-vi.mock("../server/sync-db", () => ({
+vi.mock("../server/sync-db", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../server/sync-db")>();
+  return {
+    ...actual,
   listChangedItems: vi.fn(async () => []),
   upsertSyncItem: vi.fn(),
   purgeOldTombstones: vi.fn(),
   shouldAcceptSyncWrite: vi.fn(),
-  TOMBSTONE_PURGE_WINDOW_MS: 30 * 24 * 60 * 60 * 1000,
-}));
+    TOMBSTONE_PURGE_WINDOW_MS: 30 * 24 * 60 * 60 * 1000,
+  };
+});
 
 import { appRouter } from "../server/routers";
 import type { TrpcContext } from "../server/_core/context";

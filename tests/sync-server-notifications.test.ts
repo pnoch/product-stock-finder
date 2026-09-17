@@ -107,13 +107,16 @@ describe("syncServerNotifications dedup", () => {
     expect(state.deactivated).toEqual([{ alertId: "a1", price: 480 }]);
   });
 
-  it("skips rendering an already-displayed event but still reconciles", async () => {
+  it("skips rendering AND reconciling an already-displayed event", async () => {
+    // A replayed event must not re-run reconciliation: stock-watch ids are
+    // deterministic, so re-reconciling would delete a watch the user
+    // re-created after the first delivery.
     state.displayed = ["evt-1"];
     state.pulledEvents = [priceDropEvent];
     await syncServerNotifications();
     expect(state.rendered).toHaveLength(0);
     expect(state.recorded).toEqual([]);
     expect(state.historyRecorded).toHaveLength(1);
-    expect(state.deactivated).toEqual([{ alertId: "a1", price: 480 }]);
+    expect(state.deactivated).toEqual([]);
   });
 });

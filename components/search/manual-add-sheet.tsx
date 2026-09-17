@@ -80,7 +80,6 @@ export function ManualAddSheet({
   const isUrlLike = (s: string) => /^https?:\/\/\S+/i.test(s.trim());
 
   useEffect(() => {
-    activeRef.current = true;
     return () => {
       activeRef.current = false;
     };
@@ -88,9 +87,16 @@ export function ManualAddSheet({
 
   useEffect(() => {
     if (visible) {
+      // Re-arm on every open. The mount-only effect left activeRef false after
+      // a Cancel, so later adds silently discarded their result and the Add
+      // button stayed in a permanent spinner.
+      activeRef.current = true;
       setRaw(initialText ?? "");
       setUrlInput("");
       setDraft(null);
+      setAdding(false);
+      setProgress(null);
+      setAiFailed(false);
     }
   }, [visible, initialText]);
 

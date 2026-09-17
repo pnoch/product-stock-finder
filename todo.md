@@ -1957,3 +1957,33 @@
 - [x] `pnpm smoke:web` would fail on a clean runner: `playwright` has no postinstall, so its browsers were never installed. Added `npx playwright install --with-deps chromium`
 
 - [x] Tests: `desktop-scraper-parity` (verified non-vacuous), updated `prices-router`/`notifications` fakes; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `306 passed | 1 skipped` / `1831 passed`, desktop `43 passed` / `218 passed`, `cargo test` 16 passed, `pnpm build` + `pnpm smoke:web` green
+
+## Phase 231: Whole-app review round 8 (CSRF, SSRF, sync paging, dedup keys)
+
+**Security**
+- [x] **CSRF**: the session cookie was `SameSite=None` on HTTPS with no CSRF token, so a cross-site form post could drive cookie-authenticated mutations (e.g. `POST /api/auth/delete-account`). The SPA is same-origin, so `SameSite=Lax` is correct and closes it
+- [x] **SSRF (DNS rebinding)**: `isBlockedUrl` only checked literal IPs, so `127.0.0.1.nip.io` / `localtest.me` passed and resolved to loopback/metadata. Added DNS resolution rejecting any private resolved address
+- [x] **Unbounded body read**: `tryParseUrl` cleared its abort timer once headers arrived, so a server that stalls the body hung the request; the timer now covers the body read
+- [x] **Global 50mb body limit** applied before auth (unauthenticated memory DoS); now 256kb globally with a 10mb limit only on `/api/trpc/sync.push`
+- [x] **`startServer().catch(console.error)` exited 0** on startup failure; now logs and `exit(1)`
+
+**Sync (my own Phase 223 regression)**
+- [x] **Paging order mismatch**: `afterCursor` compared collection names lexicographically while the router sorted by `["watchlist","alerts","reminders","settings"]`. The two orders disagree, so a page boundary could skip rows in a collection that sorts earlier lexicographically but later canonically. Both now share `SYNC_COLLECTION_ORDER` (verified non-vacuous)
+
+**Notifications**
+- [x] **Over-long dedup key wedged the warmer**: `restock:${productId}:${distributorId}` can exceed `dedupKey varchar(255)`, and "Data too long" is not a duplicate-key error, so it escaped per-device evaluation and aborted the whole tick (including purges) every run. Keys are now clamped with a stable hash suffix
+- [x] **Health dedup keyed on the client timestamp** (bounded only to now+60s), letting a signed-in user mint unlimited distinct events/pushes. Now bucketed by server time (one per distributor+status per hour)
+- [x] `reconcileEvent` ran for already-displayed events, so a replay could delete a stock watch the user re-created (ids are deterministic); now skipped for displayed events
+- [x] **LLM 4xx was retried**: the deliberate throw for a non-429 4xx was caught by the network-error branch and retried up to 5×; now returns the response
+
+**Client**
+- [x] **Manual-add sheet permanently broke after Cancel**: `activeRef` was only set true by the mount effect, so after one Cancel every later add silently discarded its result and the Add button stayed in a permanent spinner. Re-armed on each open
+- [x] **Root navigation flag set before the Stack mounted** during onboarding, so a cold-start notification tap could navigate with no navigator; now gated on `onboardingState === "app"`
+- [x] **Health-event upload race**: parallel uploads all read the same buffer and each wrote only its own event (dropping the rest); now serialized
+- [x] `sortWatchlist` produced NaN comparators (`az` on a missing name, `recent` on an invalid date, `price_drop` with two nulls); all NaN-safe now
+- [x] Digest could render "target hit at $0.00" (a server-detected trigger stores `triggeredPrice: 0`, which `??` doesn't fall back from)
+- [x] `useProductDetail` hung on the skeleton forever on a storage read failure; `useAlertBadge` had an unhandled rejection that stopped badge updates
+- [x] Launch effect had no `.catch`, so a storage failure skipped task registration, the launch price check, push registration, and the server-notification pull
+- [x] Unhandled rejections in restock/health load, watchlist "Check Now", backup import, and the alert snooze/cancel/remove/re-arm handlers; all now surface errors
+
+- [x] Tests: `dedup-key-bounds`, `sync-collection-order` (verified non-vacuous), updated `auth.logout`/`sync-router`/`sync-server-notifications`; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `308 passed | 1 skipped` / `1839 passed`, desktop `43 passed` / `218 passed`, DB tests 17 passed, `pnpm build` + `pnpm smoke:web` green

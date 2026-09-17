@@ -111,7 +111,7 @@ export default function HealthScreen() {
   }, []);
 
   useEffect(() => {
-    loadHealth();
+    void loadHealth().catch(() => {});
   }, [loadHealth]);
 
   const runTest = useCallback(async () => {

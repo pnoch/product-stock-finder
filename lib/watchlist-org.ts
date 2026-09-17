@@ -183,15 +183,18 @@ export function sortWatchlist(
   const copy = [...list];
   switch (sort) {
     case "recent":
-      return copy.sort(
-        (a, b) =>
-          new Date(b.addedAt ?? 0).getTime() -
-          new Date(a.addedAt ?? 0).getTime(),
-      );
+      return copy.sort((a, b) => {
+        // NaN-safe: an invalid addedAt must not produce a NaN comparator
+        // (implementation-defined ordering).
+        const ta = Date.parse(a.addedAt ?? "") || 0;
+        const tb = Date.parse(b.addedAt ?? "") || 0;
+        return tb - ta || a.id.localeCompare(b.id);
+      });
     case "az":
       return copy.sort(
         (a, b) =>
-          a.name.localeCompare(b.name) || a.id.localeCompare(b.id),
+          (a.name ?? "").localeCompare(b.name ?? "") ||
+          a.id.localeCompare(b.id),
       );
     case "best_price":
       return copy.sort((a, b) => {
@@ -205,8 +208,11 @@ export function sortWatchlist(
       });
     case "price_drop":
       return copy.sort((a, b) => {
-        const da = priceDropPercent(a, displayCurrency) ?? -Infinity;
-        const db = priceDropPercent(b, displayCurrency) ?? -Infinity;
+        // Use a finite sentinel: `-Infinity - -Infinity` is NaN, which made the
+        // order of all no-history products implementation-defined.
+        const da = priceDropPercent(a, displayCurrency) ?? Number.NEGATIVE_INFINITY;
+        const db = priceDropPercent(b, displayCurrency) ?? Number.NEGATIVE_INFINITY;
+        if (da === db) return a.id.localeCompare(b.id);
         return db - da;
       });
     case "status":

@@ -68,8 +68,12 @@ async function startServer() {
     next();
   });
 
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // Small default for every route; the sync mutation opts into a larger limit
+  // on its own path below. A global 50mb limit let a handful of concurrent
+  // unauthenticated POSTs to /api/auth/* inflate memory before any rate limit
+  // (which runs inside the handler, after the body is buffered).
+  app.use(express.json({ limit: "256kb" }));
+  app.use(express.urlencoded({ limit: "256kb", extended: true }));
 
   registerStorageProxy(app);
   registerOAuthRoutes(app);
@@ -98,6 +102,12 @@ async function startServer() {
     }
   });
 
+  // Sync pushes can legitimately carry a few MB (bounded by SYNC_PUSH_MAX_ITEMS
+  // × 100KB per item), so that path gets a larger body limit.
+  app.use(
+    "/api/trpc/sync.push",
+    express.json({ limit: "10mb" }),
+  );
   app.use(
     "/api/trpc",
     createExpressMiddleware({
@@ -145,4 +155,9 @@ async function startServer() {
   process.on("SIGINT", () => void shutdown("SIGINT"));
 }
 
-startServer().catch(console.error);
+startServer().catch((error) => {
+  // Exit non-zero: a logged-and-swallowed startup failure previously exited 0,
+  // which a platform could treat as a healthy deploy.
+  console.error("[api] startup failed:", error);
+  process.exit(1);
+});

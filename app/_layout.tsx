@@ -152,25 +152,30 @@ export default function RootLayout() {
     // Record eventIds from push notifications for dedup (registered first so
     // pushes arriving during channel setup are captured too)
     const stopPushTracking = setupPushEventTracking();
-    setupAndroidNotificationChannel().then(async () => {
-      // Only prompt for notification permission if the user has enabled notifications
-      const settings = await getSettings();
-      if (settings.notificationsEnabled) {
-        await requestNotificationPermissions();
-      }
-      // Register background price-check task
-      registerPriceCheckTask();
-      // Register background health probe task
-      registerHealthProbeTask();
-      // Run a foreground check immediately on app launch
-      checkPriceDropsNow();
-      if (isServerConfigured()) {
-        // Register for Expo push delivery (best-effort)
-        void registerPushToken();
-        // Pull any server-queued notification events
-        void syncServerNotifications();
-      }
-    });
+    setupAndroidNotificationChannel()
+      .then(async () => {
+        // Only prompt for notification permission if the user has enabled notifications
+        const settings = await getSettings().catch(() => null);
+        if (settings?.notificationsEnabled) {
+          await requestNotificationPermissions();
+        }
+        // Register background price-check task
+        registerPriceCheckTask();
+        // Register background health probe task
+        registerHealthProbeTask();
+        // Run a foreground check immediately on app launch
+        void checkPriceDropsNow();
+        if (isServerConfigured()) {
+          // Register for Expo push delivery (best-effort)
+          void registerPushToken();
+          // Pull any server-queued notification events
+          void syncServerNotifications();
+        }
+      })
+      // A rejection here (e.g. a storage read) previously skipped task
+      // registration, the launch price check, push registration, and the
+      // server-notification pull entirely.
+      .catch((e) => console.error("[Launch] setup failed", e));
     return () => {
       responseSubscription.remove();
       stopPushTracking();
@@ -313,8 +318,12 @@ export default function RootLayout() {
   }, []);
 
   // Mark navigation ready and flush any buffered notification route once the
-  // Stack has mounted.
+  // Stack has actually mounted. Gated on onboardingState === "app": during
+  // "checking"/"intro" the component returns early and no <Stack> exists, so
+  // setting the flag then would let a notification tap navigate with no
+  // navigator (the exact crash this buffering exists to prevent).
   useEffect(() => {
+    if (onboardingState !== "app") return;
     rootNavigationReadyRef.current = true;
     const pending = pendingRouteRef.current;
     if (pending) {
@@ -323,7 +332,7 @@ export default function RootLayout() {
       const t = setTimeout(() => router.push(pending), 0);
       return () => clearTimeout(t);
     }
-  }, []);
+  }, [onboardingState]);
 
 
   if (onboardingState === "checking") {

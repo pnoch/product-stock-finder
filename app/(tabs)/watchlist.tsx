@@ -474,6 +474,9 @@ export default function WatchlistScreen() {
       await reload();
       await refreshAll();
       await loadData();
+    } catch (e) {
+      console.error("[Watchlist] check now failed", e);
+      showAlert("Check failed", "We couldn't check prices. Please try again.");
     } finally {
       checkingRef.current = false;
       setChecking(false);

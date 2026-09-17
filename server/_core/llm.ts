@@ -321,10 +321,10 @@ const fetchWithBackoff = async (
         response.status < 500 &&
         response.status !== 429
       ) {
-        const errorText = await response.text().catch(() => "");
-        throw new Error(
-          `LLM request failed: ${response.status} ${response.statusText} – ${errorText}`,
-        );
+        // Return the response instead of throwing: a thrown error here is
+        // caught by the network-error branch below and retried, so a 400/401/
+        // 403 (bad key, invalid request) would fire up to 5 upstream calls.
+        return response;
       }
 
       const retryAfterMs = parseRetryAfter(response.headers.get("retry-after"));

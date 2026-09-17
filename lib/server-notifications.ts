@@ -41,6 +41,11 @@ export async function uploadNotificationConfig(
   }
 }
 
+// Serializes the read-modify-write below. A health sweep fires one upload per
+// distributor without awaiting, so parallel calls all read the same base list
+// and each wrote a list containing only its own event — dropping the rest.
+let healthBufferQueue: Promise<unknown> = Promise.resolve();
+
 export async function uploadHealthEventToServer(event: {
   id?: string;
   distributorId: string;
@@ -50,17 +55,22 @@ export async function uploadHealthEventToServer(event: {
   body: string;
   createdAt: number;
 }): Promise<void> {
-  const { getPendingHealthEvents, savePendingHealthEvents } = await import("./storage");
-  const pending = await getPendingHealthEvents();
-  pending.push(event);
-  // Bound the buffer at the upload cap (keep the newest): it is persisted to
-  // AsyncStorage, and the server rejects uploads larger than the cap — so an
-  // uncapped buffer would grow forever and then fail to upload at all.
-  const trimmed =
-    pending.length > MAX_UPLOAD_HEALTH_EVENTS
-      ? pending.slice(pending.length - MAX_UPLOAD_HEALTH_EVENTS)
-      : pending;
-  await savePendingHealthEvents(trimmed);
+  const run = async () => {
+    const { getPendingHealthEvents, savePendingHealthEvents } = await import("./storage");
+    const pending = await getPendingHealthEvents();
+    pending.push(event);
+    // Bound the buffer at the upload cap (keep the newest): it is persisted to
+    // AsyncStorage, and the server rejects uploads larger than the cap — so an
+    // uncapped buffer would grow forever and then fail to upload at all.
+    const trimmed =
+      pending.length > MAX_UPLOAD_HEALTH_EVENTS
+        ? pending.slice(pending.length - MAX_UPLOAD_HEALTH_EVENTS)
+        : pending;
+    await savePendingHealthEvents(trimmed);
+  };
+  const next = healthBufferQueue.then(run, run);
+  healthBufferQueue = next.catch(() => {});
+  return next;
 }
 
 export async function pullNotificationEvents(): Promise<NotificationEvent[]> {
@@ -224,7 +234,12 @@ async function runSyncServerNotifications(): Promise<void> {
         );
         if (shown) await recordDisplayedEventId(event.id);
       }
-      await reconcileEvent(event);
+      // Skip reconciliation for an event already delivered in a previous sync:
+      // a replay must not delete a watch/reminder the user re-created after the
+      // first delivery (stock-watch ids are deterministic).
+      if (!displayedIds.has(event.id)) {
+        await reconcileEvent(event);
+      }
     }
   } catch {
     // server notification sync is best-effort

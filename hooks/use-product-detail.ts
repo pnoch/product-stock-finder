@@ -21,7 +21,9 @@ export function useProductDetail() {
     let cancelled = false;
     setLoading(true);
     (async () => {
-      const list = await getWatchlist();
+      // A storage read failure must still clear the skeleton, or the screen
+      // hangs forever (readList re-throws adapter failures by design).
+      const list = await getWatchlist().catch(() => []);
       const found = list.find((p) => p.id === id) ?? null;
       if (!cancelled) {
         setProduct(found);

@@ -133,26 +133,56 @@ function parseFromHtml(html: string, url: string): ParsedProduct | null {
   }
 }
 
+// Resolves the hostname and rejects if ANY resolved address is private. Blocks
+// DNS-rebinding hosts (e.g. 127.0.0.1.nip.io, localtest.me) that pass the
+// literal-IP check but resolve to loopback / cloud metadata.
+async function resolvesToPrivate(hostname: string): Promise<boolean> {
+  // A literal IP was already checked by isBlockedUrl.
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname.includes(":")) {
+    return false;
+  }
+  try {
+    const { lookup } = await import("node:dns/promises");
+    const addrs = await lookup(hostname, { all: true });
+    return addrs.some((a) => isPrivateHostname(a.address));
+  } catch {
+    // Unresolvable → treat as blocked (nothing legitimate to fetch).
+    return true;
+  }
+}
+
 async function tryParseUrl(raw: string): Promise<ParsedProduct | null> {
   const url = raw.trim();
   if (!/^https?:\/\/\S+/i.test(url)) return null;
   if (isBlockedUrl(url)) return null;
   try {
+    const hostname = new URL(url).hostname;
+    if (await resolvesToPrivate(hostname)) return null;
+  } catch {
+    return null;
+  }
+  try {
+    // Keep the abort timer alive for the BODY read too: clearing it once
+    // headers arrive let a server that sends headers then stalls the body hang
+    // the request indefinitely.
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch(url, {
-      signal: controller.signal,
-      redirect: "error",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; ProductStockFinder/1.0)",
-        Accept: "text/html,application/xhtml+xml",
-      },
-    });
-    clearTimeout(timeout);
-    if (!res.ok) return null;
-    const html = await res.text();
-    if (!html || html.length < 200 || html.length > 1_000_000) return null;
-    return parseFromHtml(html, url);
+    try {
+      const res = await fetch(url, {
+        signal: controller.signal,
+        redirect: "error",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; ProductStockFinder/1.0)",
+          Accept: "text/html,application/xhtml+xml",
+        },
+      });
+      if (!res.ok) return null;
+      const html = await res.text();
+      if (!html || html.length < 200 || html.length > 1_000_000) return null;
+      return parseFromHtml(html, url);
+    } finally {
+      clearTimeout(timeout);
+    }
   } catch {
     return null;
   }

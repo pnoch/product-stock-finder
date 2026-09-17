@@ -21,10 +21,12 @@ export function useAlertBadge(): number {
     useCallback(() => {
       let active = true;
       async function load() {
+        // Guard the whole read: a rejected Promise.all was an unhandled
+        // rejection and silently stopped the badge from updating.
         const [alerts, reminders, watches] = await Promise.all([
-          getAlerts(),
-          getBackOrderReminders(),
-          getStockWatches(),
+          getAlerts().catch(() => []),
+          getBackOrderReminders().catch(() => []),
+          getStockWatches().catch(() => []),
         ]);
         // Exclude snoozed alerts, matching the in-screen "N alerts" count.
         const now = Date.now();

@@ -199,6 +199,9 @@ export function DataSection() {
           },
         },
       ]);
+    } catch (e) {
+      console.error("[DataSection] import failed", e);
+      showAlert("Import failed", "We couldn't import that backup. Please check the file and try again.");
     } finally {
       setBusy(false);
     }
