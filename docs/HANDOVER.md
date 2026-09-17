@@ -235,7 +235,9 @@ railway up --service app --ci
 - Fix: `metro.config.js` pre-creates `.cache/web.css` + adds the dir to `watchFolders`; verified from a clean cache
 - **Prod now live on Phases 206-207** (`f30d4074`, SUCCESS): `/api/health` 200, `/` SPA 200, deep link 200, `/sw.js` `no-store`, unmatched `/api/*` JSON 404, `POST /api/auth/forgot` → `{success:true}` with email sent
 
-**Railway notes for next time:** the `app` service must stay connected to the GitHub repo (not an image). Deploys are triggered by `serviceInstanceDeployV2` or a push to `main`. `RESEND_API_KEY` is a send-only key (`restricted_api_key`); `EMAIL_FROM=onboarding@resend.dev` only delivers to the Resend account owner — set a verified domain before real users.
+**Railway notes for next time:** the `app` service must stay connected to the GitHub repo (not an image). Deploys are triggered by `serviceInstanceDeployV2` or a push to `main`. `RESEND_API_KEY` is a send-only key (`restricted_api_key`) — it cannot list/create domains, so domain setup must be done in the Resend dashboard.
+
+**Email domain (DONE 2026-09-17):** `productstockfinder.savvylife.icu` is verified in Resend and `EMAIL_FROM=no-reply@productstockfinder.savvylife.icu`. DNS (IONOS): `resend._domainkey` TXT (DKIM), `send` MX → `feedback-smtp.us-east-1.amazonses.com`, `send` TXT SPF; root MX left on IONOS. Verified end-to-end: `POST /api/auth/forgot` → 200 and a real send returns a Resend message id.
 
 ---
 
