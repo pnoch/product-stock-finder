@@ -193,7 +193,7 @@ export function Home() {
       <div className="p-6">
         {loadError && (
           <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 mb-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
-            <span className="flex-1">Couldn't load dashboard: {loadError}</span>
+            <span className="flex-1">Couldn&apos;t load dashboard: {loadError}</span>
             <button
               onClick={handleRetry}
               className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
@@ -255,7 +255,7 @@ export function Home() {
 
       {loadError && (
         <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
-          <span className="flex-1">Couldn't load dashboard: {loadError}</span>
+          <span className="flex-1">Couldn&apos;t load dashboard: {loadError}</span>
           <button
             onClick={handleRetry}
             className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"

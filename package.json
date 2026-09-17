@@ -11,7 +11,7 @@
     "build:web": "expo export -p web --output-dir dist-web",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc --noEmit",
-    "lint": "expo lint app components lib hooks server shared scripts",
+    "lint": "expo lint app components lib hooks server shared scripts desktop/src desktop/tests",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:db": "vitest run tests/sync-e2e.test.ts tests/sync-db.test.ts",

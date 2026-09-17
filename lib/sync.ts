@@ -186,7 +186,11 @@ async function doSync(
     skipKeys,
   );
 
-  const nextCursor = pulled.lastSyncedAt;
+  // If the page drain hit its guard with pages still pending, do NOT advance
+  // the cursor to lastSyncedAt: that would permanently skip the remaining
+  // pages. Keep the previous cursor so the next sync re-pulls them.
+  const drainIncomplete = Boolean(pulled.hasMore);
+  const nextCursor = drainIncomplete ? oldCursor : pulled.lastSyncedAt;
   const stampedKeys = new Set<string>();
   const stampedTombstones: Array<{ collection: Collection; id: string }> = [];
   let rejected: Array<{ collection: Collection; id: string; reason: SyncRejectionReason }> = [];
@@ -208,8 +212,18 @@ async function doSync(
       }
     } catch (error) {
       console.warn("[Sync] Push failed; local changes kept", error);
+      // Persist the stamps from batches that DID succeed before the failure.
+      // Dropping them left those items with a meta stamp <= the old cursor, so
+      // `collectDirty` treated them as already-synced and never re-pushed them.
+      const partialMeta = await storage.getSyncMeta();
+      for (const s of stamped) {
+        partialMeta.items[s.collection] = {
+          ...(partialMeta.items[s.collection] ?? {}),
+          [s.id]: { updatedAt: s.updatedAt, deleted: false },
+        };
+      }
       await storage.saveSyncMeta({
-        ...(await storage.getSyncMeta()),
+        ...partialMeta,
         lastSyncError: `Push failed: ${
           error instanceof Error ? error.message : String(error)
         }`,
@@ -542,9 +556,16 @@ async function applyLocalItem(
           const localOnly = existing.listings.filter(
             (el) => !incomingIds.has(el.distributorId),
           );
+          // Tags are a per-device organizational edit that LWW on the whole
+          // product object would otherwise drop: union them so a tag added on
+          // this device survives an incoming copy that predates it.
+          const mergedTags = Array.from(
+            new Set([...(incoming.tags ?? []), ...(existing.tags ?? [])]),
+          );
           return {
             ...incoming,
             listings: [...merged, ...localOnly],
+            ...(mergedTags.length > 0 ? { tags: mergedTags } : {}),
           };
         });
       });

@@ -2008,3 +2008,19 @@
 - [x] Tray badge counted snoozed alerts; now excludes them like mobile
 
 - [x] Tests: Rust `storage_key_allowlist` + `probe_model` (18 Rust tests total), parity test updated for the documented `:contains()` exception; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `308 passed | 1 skipped` / `1839 passed`, desktop `43 passed` / `218 passed`, DB 17 passed, `pnpm build` + `smoke:web` + desktop build green
+
+## Phase 233: Review round 9 follow-ups (sync partial batch, tags, lint scope)
+
+**Sync data integrity**
+- [x] **Multi-batch push lost successful stamps**: when batch 2+ threw, the `catch` returned without persisting the stamps from batches that had succeeded, leaving those items with a meta stamp <= the old cursor so `collectDirty` treated them as already-synced and never re-pushed them. The catch now persists the accumulated stamps (verified non-vacuous)
+- [x] **Pull drain advanced the cursor with pages pending**: hitting the 50-page guard still set `lastSyncedAt = pulled.lastSyncedAt`, permanently skipping the remaining pages. The cursor now stays at the previous value when the drain is incomplete (verified non-vacuous)
+- [x] **`applyLocalItem` dropped locally added tags**: product-level fields came wholesale from the incoming copy, so a tag added on this device vanished after a sync. Tags are now unioned (verified non-vacuous)
+
+**Server**
+- [x] `auth.deleteAccount` (tRPC) had no `confirm: "DELETE"` guard unlike the REST endpoint; added for parity
+
+**Desktop build hygiene**
+- [x] `desktop/tsconfig.json` excluded `desktop/tests`, so `pnpm check:desktop` never typechecked them — adding them surfaced 3 real type errors (adapter `setItem`/`removeItem` returning non-void, an unused import). Fixed and now included
+- [x] `pnpm lint` did not cover `desktop/src`; widened the glob, which surfaced 14 real `react/no-unescaped-entities` errors in desktop JSX. All fixed — lint is now 0 errors across desktop too
+
+- [x] Tests: `sync-partial-batch` (3 cases, all verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `309 passed | 1 skipped` / `1842 passed`, desktop `43 passed` / `218 passed`, DB 17 passed, Rust 18 passed, `pnpm build` + `smoke:web` green

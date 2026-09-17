@@ -291,7 +291,7 @@ export function Health() {
         })}
         {filtered.length === 0 && (
           <p className="text-center text-gray-500 mt-10">
-            No distributor health data. Tap "Test All Distributors" to run a
+            No distributor health data. Tap &quot;Test All Distributors&quot; to run a
             check.
           </p>
         )}

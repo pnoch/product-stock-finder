@@ -154,7 +154,11 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
-    deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
+    deleteAccount: protectedProcedure
+      // Same destructive-action guard as the REST endpoint: an accidental or
+      // CSRF-driven call must not delete the account.
+      .input(z.object({ confirm: z.literal("DELETE") }))
+      .mutation(async ({ ctx }) => {
       checkRateLimit(ctx, "auth.deleteAccount", 5, 60_000);
       const { deleteUserById } = await import("./db.js");
       await deleteUserById(ctx.user.id);

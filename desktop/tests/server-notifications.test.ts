@@ -4,8 +4,12 @@ import { createStorage } from "../../lib/storage";
 const store = new Map<string, string>();
 const localStorageAdapter = {
   getItem: async (key: string) => store.get(key) ?? null,
-  setItem: async (key: string, value: string) => store.set(key, value),
-  removeItem: async (key: string) => store.delete(key),
+  setItem: async (key: string, value: string) => {
+    store.set(key, value);
+  },
+  removeItem: async (key: string) => {
+    store.delete(key);
+  },
   multiRemove: async (keys: string[]) => keys.forEach((k) => store.delete(k)),
 };
 

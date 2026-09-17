@@ -738,7 +738,7 @@ export function ProductDetail() {
         </div>
         {loadError ? (
           <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200">
-            Couldn't load product: {loadError}
+            Couldn&apos;t load product: {loadError}
           </div>
         ) : (
           <div className="text-center py-16">
@@ -1510,7 +1510,7 @@ export function ProductDetail() {
               Alert saved!
             </div>
             <p className="text-sm text-gray-500">
-              You'll be notified when the price {alertDirection === "drop" ? "drops below" : "rises above"} your target.
+              You&apos;ll be notified when the price {alertDirection === "drop" ? "drops below" : "rises above"} your target.
             </p>
           </div>
         ) : (

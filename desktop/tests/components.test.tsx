@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
 import { StockBadge } from "../src/components/StockBadge";
 import { EmptyState } from "../src/components/EmptyState";
 import { LoadingSpinner } from "../src/components/LoadingSpinner";

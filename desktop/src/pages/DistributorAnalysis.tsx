@@ -53,7 +53,7 @@ export function DistributorAnalysis() {
         </div>
       ) : loadError ? (
         <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
-          <span className="flex-1">Couldn't load distributor analysis: {loadError}</span>
+          <span className="flex-1">Couldn&apos;t load distributor analysis: {loadError}</span>
           <button
             onClick={() => void loadData()}
             className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
