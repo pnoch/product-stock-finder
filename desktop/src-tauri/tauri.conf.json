@@ -33,6 +33,11 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "Product Stock Finder",
+    "copyright": "Copyright \u00a9 2026 Product Stock Finder",
+    "category": "Utility",
+    "shortDescription": "Track product availability and prices across distributors",
+    "longDescription": "Product Stock Finder tracks product availability and prices across 25 global electronics distributors. Maintain a watchlist, set price alerts, schedule back-order reminders, watch for restocks, and compare price history."
   }
 }

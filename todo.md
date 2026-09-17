@@ -2024,3 +2024,11 @@
 - [x] `pnpm lint` did not cover `desktop/src`; widened the glob, which surfaced 14 real `react/no-unescaped-entities` errors in desktop JSX. All fixed — lint is now 0 errors across desktop too
 
 - [x] Tests: `sync-partial-batch` (3 cases, all verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `309 passed | 1 skipped` / `1842 passed`, desktop `43 passed` / `218 passed`, DB 17 passed, Rust 18 passed, `pnpm build` + `smoke:web` green
+
+## Phase 234: Tauri release build (Linux bundles)
+
+- [x] `cargo tauri build` now succeeds end-to-end on Linux (webkit2gtk-4.1, gtk3, libsoup3, librsvg all present): produces the release binary plus **3 bundles** — `.deb` (7.7M), `.rpm` (7.7M), `.AppImage` (82M), all versioned `5.16.0`
+- [x] Fixed bundle metadata: the `.deb`/`.rpm` shipped `Maintainer: app` and `Description: (none)`. Added `publisher`, `copyright`, `category`, `shortDescription`, `longDescription` to `tauri.conf.json` `bundle` (verified: `Maintainer: Product Stock Finder`, real description, correct auto-detected deps with no duplicates)
+- [x] Verified the AppImage structure (AppRun, `.desktop` with `Categories=Utility`, icon, 24M binary) and the `.deb` control fields
+- [x] `desktop/src-tauri/target/` confirmed gitignored; desktop `tsc 0`, 218 tests, 18 Rust tests still green
+- [ ] macOS/Windows bundles + code signing still require their own build hosts (not possible here)
