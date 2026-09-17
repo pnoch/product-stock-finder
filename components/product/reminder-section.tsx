@@ -1,7 +1,7 @@
 import { Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { addBackOrderReminder } from "@/lib/storage";
-import { scheduleBackOrderReminder, ensureNotificationPermission } from "@/lib/notifications";
+import { scheduleBackOrderReminder, ensureNotificationPermission, cancelNotification } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
 import { useToast } from "@/components/ui/toast";
 import { useColors } from "@/hooks/use-colors";
@@ -43,7 +43,10 @@ export function ReminderSection({
     try {
       const d = new Date(Date.now() + 7 * 86400000);
       const notifId = await scheduleBackOrderReminder(productName ?? "", distributorName ?? "", d, productId).catch(() => null);
-      await addBackOrderReminder({ id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, productName: productName ?? "", distributorId, distributorName: distributorName ?? "", reminderDate: d.toISOString(), notificationId: notifId ?? undefined, createdAt: new Date().toISOString(), reminderType: "date" });
+      const { replacedNotificationId } = await addBackOrderReminder({ id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, productName: productName ?? "", distributorId, distributorName: distributorName ?? "", reminderDate: d.toISOString(), notificationId: notifId ?? undefined, createdAt: new Date().toISOString(), reminderType: "date" });
+      if (replacedNotificationId) {
+        await cancelNotification(replacedNotificationId).catch(() => {});
+      }
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showToast(`Reminder set for ${d.toLocaleDateString()}`, "success");
     } catch {

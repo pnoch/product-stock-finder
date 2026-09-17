@@ -27,7 +27,7 @@ import { sendWebPush } from "../server/web-push";
 import { pruneDeviceToken } from "../server/push-notifications";
 
 const subscription = {
-  endpoint: "https://push.example.com/abc",
+  endpoint: "https://fcm.googleapis.com/fcm/send/abc",
   keys: { p256dh: "p256dh-key", auth: "auth-key" },
 };
 const event = {

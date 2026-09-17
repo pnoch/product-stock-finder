@@ -7,12 +7,12 @@ import { MAX_UPLOAD_HISTORY_POINTS } from "@/shared/const";
 import { PRICE_HISTORY_DAYS } from "@/shared/const";
 import type { DistributorListing, PricePoint, Product } from "../types";
 import { breakerStore } from "./instances";
-import type { createHealthCollector } from "./health-collector";
+import type { HealthCollector } from "./health-collector";
 
 export async function refreshListing(
   product: Product,
   listing: DistributorListing,
-  healthCollector: ReturnType<typeof createHealthCollector>,
+  healthCollector: HealthCollector,
 ): Promise<DistributorListing> {
   const serverResult = await fetchServerPrice(
     listing.distributorId,

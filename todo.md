@@ -1904,3 +1904,25 @@
 - [x] Added DB-level tests for full-resync completeness (a stale cursor returns untouched live rows, not just tombstones) and tombstone propagation without resurrection
 - [x] CI: added a MySQL 8.4 service, `pnpm db:push` against it, and a `pnpm test:db` step with `RUN_DB_TESTS=1`; verified the full clean-DB flow (migrate → 17 tests pass) locally
 - [x] E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `303 passed | 1 skipped` / `1823 passed`, desktop `43 passed` / `218 passed`
+
+## Phase 229: Whole-app review round 7 (native build, SSRF, data loss)
+
+**Native build was broken (highest impact)**
+- [x] **iOS could not build at all**: `bundleId = "com.app.stock_tracker_pro"` fails Expo's iOS bundle-id validation (no underscores) — `expo prebuild --platform ios` threw `ERR_ASSERTION`. Renamed to `com.app.stocktrackerpro` across `app.config.ts`, the store links, `tauri.conf.json`, and AGENTS.md; iOS prebuild now succeeds
+- [x] **Native module major-version drift**: `expo-background-task`/`expo-task-manager` were pinned at SDK 57 versions (`^57.0.5`) on an SDK 54 project, `@react-native-community/datetimepicker` at 9.x (expected 8.4.4), plus ~10 patch drifts. Aligned all via `expo install --check` (now "Dependencies are up to date"); removed the unused `expo-clipboard`
+- [x] **iOS background tasks could never run**: the `expo-background-task` config plugin was not applied, so `UIBackgroundModes: ["processing"]` and `BGTaskSchedulerPermittedIdentifiers` were absent and `registerTaskAsync` silently no-ops on release builds. Added the plugin; verified both keys now appear in the prebuilt Info.plist
+
+**Security**
+- [x] **SSRF via web-push endpoint**: any signed-in user could register a subscription whose `endpoint` pointed at an internal host/metadata service; `web-push` then issued an outbound request carrying a VAPID JWT. Added `isAllowedPushEndpoint` (real push services only, https) enforced at registration AND send time
+
+**Data loss**
+- [x] Background price check replaced the whole `listings` array with only the processed subset when the time budget tripped mid-loop (or before the first listing), deleting listings and their price history. Extracted `refreshListingsWithinBudget` which carries unprocessed listings through unchanged and never writes an empty array over a non-empty one (verified non-vacuous)
+- [x] Web basket-alert failure did `return` from `runPriceCheckCore`, skipping all price-alert evaluation for that run; now throws into the local catch so the run continues
+- [x] Replacing a date reminder discarded the old `notificationId` without cancelling it, so the old reminder still fired and could not be cancelled; `addBackOrderReminder` now returns the replaced id and callers cancel it
+
+**Settings races**
+- [x] `saveSettings({...settings, ...})` read-modify-writes in the background task, web-notifications, and stats could clobber a concurrent `updateSettings`; all now use the serialized `updateSettings` patch
+
+**Test infrastructure**
+- [x] Replaced `ReturnType<typeof createHealthService>` / `createHealthCollector` in exported signatures with explicit `HealthService` / `HealthCollector` types — the `typeof` form made the module unparseable by Rollup under vitest
+- [x] Tests: `push-endpoint-allowlist`, `price-check-budget-preserve` (verified non-vacuous); updated `web-notifications`/`notifications-router`/`web-push-server` mocks; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `305 passed | 1 skipped` / `1829 passed`, desktop `43 passed` / `218 passed`, `pnpm build` + `pnpm smoke:web` green

@@ -1,10 +1,19 @@
-import { createHealthService, DistributorHealth } from "../scrapers/health";
+import { type HealthService, DistributorHealth } from "../scrapers/health";
 import { healthService as defaultHealthService } from "./instances";
 import { checkHealthAlerts } from "./health-alerts";
 
+export type HealthCollector = {
+  record(
+    parserId: string,
+    status: "working" | "blocked" | "error",
+    reason?: string,
+  ): void;
+  flush(): Promise<void>;
+};
+
 export function createHealthCollector(
-  service: ReturnType<typeof createHealthService> = defaultHealthService,
-) {
+  service: HealthService = defaultHealthService,
+): HealthCollector {
   const updates = new Map<string, DistributorHealth>();
   return {
     record(

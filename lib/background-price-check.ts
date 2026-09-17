@@ -9,5 +9,6 @@ export { createHealthCollector } from "./background-tasks/health-collector";
 export {
   runPriceCheckCore,
   checkPriceDropsNow,
+  refreshListingsWithinBudget,
 } from "./background-tasks/price-check";
 export { checkHealthAlerts } from "./background-tasks/health-alerts";

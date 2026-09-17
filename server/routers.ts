@@ -550,6 +550,26 @@ export const appRouter = router({
           });
         }
         await assertDeviceAccess(ctx.user.id, ctx.deviceId);
+        // Reject a web subscription whose endpoint is not a real push service:
+        // it would otherwise be used as an SSRF target at send time.
+        if (input.platform === "web") {
+          let endpoint = "";
+          try {
+            endpoint = (JSON.parse(input.token) as { endpoint?: string }).endpoint ?? "";
+          } catch {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Invalid web push subscription",
+            });
+          }
+          const { isAllowedPushEndpoint } = await import("./web-push");
+          if (!isAllowedPushEndpoint(endpoint)) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Unsupported push endpoint",
+            });
+          }
+        }
         await upsertPushToken(ctx.deviceId, input.token, input.platform, ctx.user.id);
         return { accepted: true } as const;
       }),

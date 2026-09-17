@@ -8,7 +8,7 @@ import {
   updateProductListings,
   getPriceDigestSnapshot,
   savePriceDigestSnapshot,
-  saveSettings,
+  updateSettings,
 } from "../storage";
 import { Platform } from "react-native";
 import { formatPrice } from "@shared/currency";
@@ -18,9 +18,33 @@ import { checkRestocks } from "../restock";
 import { maybeSendDigest } from "../price-digest";
 import { syncServerNotifications } from "../server-notifications";
 import { listingsForAlert } from "../alert-scope";
-import type { DistributorListing } from "../types";
-import { createHealthCollector } from "./health-collector";
+import type { DistributorListing, Product } from "../types";
+import { createHealthCollector, type HealthCollector } from "./health-collector";
 import { refreshListing } from "./refresh-listing";
+
+/**
+ * Refreshes a product's listings while the budget allows, carrying unprocessed
+ * listings through UNCHANGED. `updateProductListings` replaces the whole array,
+ * so dropping the remainder here would delete those listings (and their price
+ * history). Exported for testing.
+ */
+export async function refreshListingsWithinBudget(
+  product: Product,
+  healthCollector: HealthCollector,
+  isBudgetExhausted: () => boolean,
+): Promise<DistributorListing[]> {
+  const out: DistributorListing[] = [];
+  let exhausted = false;
+  for (const listing of product.listings ?? []) {
+    if (exhausted || isBudgetExhausted()) {
+      exhausted = true;
+      out.push(listing);
+      continue;
+    }
+    out.push(await refreshListing(product, listing, healthCollector));
+  }
+  return out;
+}
 
 export async function runPriceCheckCore(opts?: {
   onProgress?: (current: number, total: number) => void;
@@ -49,19 +73,16 @@ export async function runPriceCheckCore(opts?: {
           onProgress?.(i + batchIdx + 1, watchlist.length);
           if (!product.listings?.length) return;
 
-          const updatedListings: DistributorListing[] = [];
+          const updatedListings = await refreshListingsWithinBudget(
+            product,
+            healthCollector,
+            () => Date.now() - startTime > TIME_BUDGET_MS,
+          );
 
-          for (const listing of product.listings) {
-            if (Date.now() - startTime > TIME_BUDGET_MS) break;
-            const updated = await refreshListing(
-              product,
-              listing,
-              healthCollector,
-            );
-            updatedListings.push(updated);
+          // Never write an empty array over a non-empty one.
+          if (updatedListings.length > 0) {
+            await updateProductListings(product.id, updatedListings);
           }
-
-          await updateProductListings(product.id, updatedListings);
         } catch (e) {
           console.warn(`[PriceCheck] Skipping ${product.id}:`, e);
         }
@@ -103,8 +124,12 @@ export async function runPriceCheckCore(opts?: {
           const body = `Watchlist value ${formatPrice(total, "USD")} dropped below your ${formatPrice(threshold, "USD")} threshold.`;
           if (Platform.OS === "web") {
             // expo-notifications is a no-op on web; use the Notification API.
+            // Do NOT `return` on failure: this is inside runPriceCheckCore, so
+            // returning would skip the price-alert evaluation below entirely.
             const { displayWebNotification } = await import("../web-notifications");
-            if (!displayWebNotification(title, body)) return;
+            if (!displayWebNotification(title, body)) {
+              throw new Error("web notification not displayed");
+            }
           } else {
             await Notifications.scheduleNotificationAsync({
               content: {
@@ -119,8 +144,9 @@ export async function runPriceCheckCore(opts?: {
           }
           // Only clear the threshold once the alert actually fired; clearing it
           // when permission is denied (or scheduling throws) silently loses the
-          // alert forever.
-          await saveSettings({ ...settings, basketAlertThreshold: null });
+          // alert forever. Use the serialized patch so a concurrent settings
+          // change isn't clobbered by this stale snapshot.
+          await updateSettings({ basketAlertThreshold: null });
         } catch {
           // Leave the threshold set so the next run retries.
         }

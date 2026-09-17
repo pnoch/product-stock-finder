@@ -109,6 +109,7 @@ export function createStorage(
 }
 
 export type Storage = ReturnType<typeof createStorage>;
+// (kept as a type-only alias; see tests/price-check-budget-preserve.test.ts)
 
 // ─── Default instance (mobile / AsyncStorage) ──────────────────────────────────
 // Preserves backward-compatible named exports so existing imports work unchanged.

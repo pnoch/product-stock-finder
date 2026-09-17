@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { getSettings, saveSettings, recordDisplayedEventId } from "./storage";
+import { getSettings, updateSettings, recordDisplayedEventId } from "./storage";
 import { syncServerNotifications } from "./server-notifications";
 
 const POLL_INTERVAL_MS = 60 * 1000;
@@ -141,15 +141,13 @@ export async function setWebNotificationsEnabled(
   if (enabled) {
     const permission = await requestWebNotificationPermission();
     if (permission === "granted") {
-      const settings = await getSettings();
-      await saveSettings({ ...settings, webNotificationsEnabled: true });
+      await updateSettings({ webNotificationsEnabled: true });
       await syncPushSubscription(true);
       startPolling();
     }
     return permission;
   }
-  const settings = await getSettings();
-  await saveSettings({ ...settings, webNotificationsEnabled: false });
+  await updateSettings({ webNotificationsEnabled: false });
   await syncPushSubscription(false);
   stopPolling();
   return "denied";

@@ -206,7 +206,9 @@ describe("notifications router", () => {
     const caller = appRouter.createCaller(createAuthedContext(7));
     const result = await caller.notifications.registerPushToken({
       token: JSON.stringify({
-        endpoint: "https://push.example.com/abc",
+        // Must be a real push-service host; arbitrary endpoints are rejected
+        // (SSRF guard).
+        endpoint: "https://fcm.googleapis.com/fcm/send/abc",
         keys: { p256dh: "p256dh-key", auth: "auth-key" },
       }),
       platform: "web",
@@ -215,7 +217,9 @@ describe("notifications router", () => {
     expect(mockedUpsertPush).toHaveBeenCalledWith(
       "dev-1",
       JSON.stringify({
-        endpoint: "https://push.example.com/abc",
+        // Must be a real push-service host; arbitrary endpoints are rejected
+        // (SSRF guard).
+        endpoint: "https://fcm.googleapis.com/fcm/send/abc",
         keys: { p256dh: "p256dh-key", auth: "auth-key" },
       }),
       "web",

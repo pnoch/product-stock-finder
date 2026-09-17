@@ -30,8 +30,9 @@ vi.mock("../lib/storage", () => ({
     priceAlerts: true,
     webNotificationsEnabled: state.webNotificationsEnabled,
   })),
-  saveSettings: vi.fn(async (settings: Record<string, unknown>) => {
-    state.webNotificationsEnabled = Boolean(settings.webNotificationsEnabled);
+  updateSettings: vi.fn(async (patch: Record<string, unknown>) => {
+    state.webNotificationsEnabled = Boolean(patch.webNotificationsEnabled);
+    return { webNotificationsEnabled: state.webNotificationsEnabled };
   }),
   recordDisplayedEventId: vi.fn(async (id: string) => {
     state.recordedEventIds.push(id);

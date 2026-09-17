@@ -271,7 +271,22 @@ export function detectHealthRecovery(
   );
 }
 
-export function createHealthService(adapter: StorageAdapter) {
+export type HealthService = {
+  getDistributorHealth(): Promise<DistributorHealth[]>;
+  saveDistributorHealth(health: DistributorHealth[]): Promise<void>;
+  testAllDistributors(
+    onProgress?: (current: number, total: number) => void,
+  ): Promise<DistributorHealth[]>;
+  getHealthHistory(): Promise<HealthHistory>;
+  recordSample(
+    distributorId: string,
+    status: HealthStatus,
+    reason?: string,
+    responseTimeMs?: number,
+  ): Promise<void>;
+};
+
+export function createHealthService(adapter: StorageAdapter): HealthService {
   async function getDistributorHealth(): Promise<DistributorHealth[]> {
     try {
       const raw = await adapter.getItem(HEALTH_KEY);

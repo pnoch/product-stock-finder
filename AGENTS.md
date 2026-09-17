@@ -7,7 +7,7 @@ Guidance for AI coding agents working in this repository. Read this before touch
 **Product Stock Finder** (formerly "Stock Tracker Pro") is an Expo/React Native mobile + web app for tracking product availability and prices across 25 global electronics distributors (25 registered parsers — health dashboard/classifyFetchStatus shows live status; MikroTik/Ubiquiti focus). Users maintain a watchlist, set price alerts, schedule back-order reminders, watch for restocks, and compare price history across distributors.
 
 - **App name in UI:** "Product Stock Finder" (see git log — was renamed from "Stock Tracker Pro"; do not revert)
-- **Bundle ID:** `com.app.stock_tracker_pro`
+- **Bundle ID:** `com.app.stocktrackerpro`
 - **Platform targets:** iOS, Android, Web (Expo web)
 - **State:** Local-first with optional backend sync. AsyncStorage is the source of truth when signed out; when signed in, `lib/sync.ts` syncs watchlist/alerts/reminders/settings with the server (last-write-wins + tombstones, server-authoritative timestamps). Live scraping runs through `lib/scrapers/` (plain HTTP → headless browser escalation with circuit breakers). The backend (Express + tRPC + Drizzle) is fully integrated — see server routers below. CRS804 + CRS326 are auto-seeded from `lib/sample-data.ts` at first launch so Home/Watchlist/Product Detail have price history immediately.
 

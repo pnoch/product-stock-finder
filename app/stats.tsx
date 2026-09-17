@@ -14,7 +14,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
-import { getAlerts, getSettings, getWatchlist, getPriceDigestSnapshot, saveSettings } from "@/lib/storage";
+import { getAlerts, getSettings, getWatchlist, getPriceDigestSnapshot, updateSettings } from "@/lib/storage";
 import { BasketAlertSheet } from "@/components/stats/basket-alert-sheet";
 import type { Product, AppSettings, PriceAlert } from "@/lib/types";
 import {
@@ -118,9 +118,8 @@ export default function StatsScreen() {
       try {
         const current = settings ?? (await getSettings());
         if (!current) return;
-        const updated = { ...current, basketAlertThreshold: threshold };
+        const updated = await updateSettings({ basketAlertThreshold: threshold });
         setSettings(updated);
-        await saveSettings(updated);
       } catch (e) {
         console.error("[Stats] basket alert save failed", e);
         showAlert("Couldn't save", "We couldn't save your basket alert. Please try again.");

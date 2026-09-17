@@ -231,7 +231,7 @@ export default function ProductDetailScreen() {
     try {
       const distributor = getDistributorById(listing.distributorId);
       const notifId = await scheduleBackOrderReminder(product?.name ?? "Product", distributor?.name ?? listing.distributorId, reminderDate, id);
-      await addBackOrderReminder({
+      const { replacedNotificationId } = await addBackOrderReminder({
         id: `reminder-${id}-${listing.distributorId}-${Date.now()}`,
         productId: id,
         productName: product?.name ?? "",
@@ -242,6 +242,11 @@ export default function ProductDetailScreen() {
         createdAt: new Date().toISOString(),
         reminderType: "date",
       });
+      // Cancel the notification of the reminder this one replaced, or it
+      // still fires on the old date and can no longer be cancelled.
+      if (replacedNotificationId) {
+        await cancelNotification(replacedNotificationId).catch(() => {});
+      }
       setReminderListing(null);
       setShowDatePicker(false);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

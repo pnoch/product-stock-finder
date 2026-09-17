@@ -54,7 +54,7 @@ export function getIosAssociatedDomains(webHost?: string): string[] {
   return host ? [`applinks:${host}`] : [];
 }
 
-const bundleId = "com.app.stock_tracker_pro";
+const bundleId = "com.app.stocktrackerpro";
 
 const env = {
   appName: "Product Stock Finder",
@@ -110,6 +110,11 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
+    // Required for expo-background-task on iOS: injects UIBackgroundModes
+    // ("processing") and BGTaskSchedulerPermittedIdentifiers. Without it the
+    // native module's hasBackgroundModeEnabled check fails and
+    // registerTaskAsync silently no-ops on release builds.
+    "expo-background-task",
     [
       "expo-splash-screen",
       {

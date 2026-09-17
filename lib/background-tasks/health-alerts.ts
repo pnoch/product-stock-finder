@@ -1,6 +1,6 @@
 import { getSettings } from "../storage";
 import {
-  createHealthService,
+  type HealthService,
   detectHealthAlert,
   detectHealthRecovery,
 } from "../scrapers/health";
@@ -13,7 +13,7 @@ import { isInQuietHours } from "../quiet-hours";
 import { healthService } from "./instances";
 
 export async function checkHealthAlerts(
-  service: ReturnType<typeof createHealthService> = healthService,
+  service: HealthService = healthService,
 ) {
   try {
     const settings = await getSettings();

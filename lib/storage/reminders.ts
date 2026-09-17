@@ -35,9 +35,13 @@ export function createRemindersStorage(ctx: StorageContext) {
     });
   }
 
+  // Returns the notificationId of a reminder this call replaced (if any), so
+  // the caller can cancel the now-orphaned scheduled notification. Without it
+  // the old reminder still fires and can no longer be cancelled.
   async function addBackOrderReminder(
     reminder: BackOrderReminder,
-  ): Promise<void> {
+  ): Promise<{ replacedNotificationId?: string }> {
+    let replacedNotificationId: string | undefined;
     await enqueue(KEYS.REMINDERS, async () => {
       const reminders = await getBackOrderReminders();
       // Dedup by (productId, distributorId) as well as id: every "Remind Me"
@@ -50,6 +54,10 @@ export function createRemindersStorage(ctx: StorageContext) {
             r.distributorId === reminder.distributorId),
       );
       if (existing >= 0) {
+        const prev = reminders[existing]!;
+        if (prev.id !== reminder.id && prev.notificationId) {
+          replacedNotificationId = prev.notificationId;
+        }
         reminders[existing] = reminder;
       } else {
         reminders.unshift(reminder);
@@ -57,6 +65,7 @@ export function createRemindersStorage(ctx: StorageContext) {
       await persistBackOrderReminders(reminders);
       notify("reminders", reminder.id);
     });
+    return { replacedNotificationId };
   }
 
   async function removeBackOrderReminder(reminderId: string): Promise<void> {
