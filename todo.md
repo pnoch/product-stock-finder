@@ -1987,3 +1987,24 @@
 - [x] Unhandled rejections in restock/health load, watchlist "Check Now", backup import, and the alert snooze/cancel/remove/re-arm handlers; all now surface errors
 
 - [x] Tests: `dedup-key-bounds`, `sync-collection-order` (verified non-vacuous), updated `auth.logout`/`sync-router`/`sync-server-notifications`; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `308 passed | 1 skipped` / `1839 passed`, desktop `43 passed` / `218 passed`, DB tests 17 passed, `pnpm build` + `pnpm smoke:web` green
+
+## Phase 232: Whole-app review round 9 (desktop security + parity)
+
+**Desktop security**
+- [x] **Arbitrary-path file write**: `set_value_for_key` joined the caller-supplied `key` onto `data_dir` with no validation, so an absolute key (`/home/user/.bashrc`) discarded the dir and `../` escaped it — any webview script could write attacker-controlled `.json` files anywhere writable. Added an allowlist of the five mirrored keys (also applied to the new `read_value_for_key`)
+- [x] **OAuth callback read had no timeout**: a stray local process that connected and sent nothing wedged the login loop forever (the accept deadline is only checked at the loop top). Bounded the read to 5s
+
+**Desktop correctness (parity with mobile)**
+- [x] **Stale server snapshots accepted as current**: `fetch_server_price` took whatever `prices.get` returned, but the server returns its cached value and only kicks off a background refresh — so desktop persisted up-to-an-hour-old prices (and a fake history point) as just observed. Now rejects snapshots older than `SERVER_SNAPSHOT_TTL_MS` (mirrors mobile's `isFreshPriceSnapshot`)
+- [x] **Health probes used `CRS326` for all 25 distributors**, so the model gate rejected the price for the 12 that stock CRS804 and reported them as errors. Ported `probe_model_for` from mobile's `PROBE_MODEL_BY_DISTRIBUTOR`
+- [x] **Quiet hours evaluated in UTC** because the desktop Settings never persisted `utcOffsetMinutes`; now sends `Date.getTimezoneOffset()`
+- [x] **Rust suppressed price alerts during quiet hours** while mobile applies quiet hours only to health alerts/digests — and skipping (rather than holding) permanently missed drops. Removed the gate; deleted the now-dead `is_in_quiet_hours`
+- [x] **Price-rise alerts recorded as "Price Drop Alert!"** in history; the Rust event now carries `isRise` and the renderer labels by direction
+- [x] **`rocnoc` used `td:contains('$')`**, which the Rust `scraper` crate cannot parse — `Selector::parse` returned Err and killed the entire selector list, so the parser always failed. Replaced with a supported selector AND added a fallback so an unparseable selector can never silently disable a parser again
+- [x] **`mikrotikstore` targeted `mikrotik-store.de`** (mobile uses `.eu/en`); fixed
+- [x] **History retention was 90 days** vs mobile/shared 365; aligned
+- [x] **Corrupt JSON disabled the pipeline forever**: `read_json_file` returned Err and the poller ignores errors, so one bad file silently stopped all price polling and tray updates. Now quarantines the file and returns null
+- [x] **Import/export dropped back-in-stock watches** and never refreshed the UI (the next renderer write mirrored stale localStorage back over the import). Added `stock_watches` to the export, a `storage-imported` event, and a `read_value_for_key` command the renderer uses to re-hydrate
+- [x] Tray badge counted snoozed alerts; now excludes them like mobile
+
+- [x] Tests: Rust `storage_key_allowlist` + `probe_model` (18 Rust tests total), parity test updated for the documented `:contains()` exception; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `308 passed | 1 skipped` / `1839 passed`, desktop `43 passed` / `218 passed`, DB 17 passed, `pnpm build` + `smoke:web` + desktop build green

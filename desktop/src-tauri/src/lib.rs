@@ -62,8 +62,8 @@ fn format_price(amount: f64, currency: &str) -> String {
     format!("{}{:.2}", symbol, amount)
 }
 
-fn trigger_event_json(alert_id: &str, product_id: &str, product_name: &str, best_price: f64, currency: &str, target_price: f64) -> serde_json::Value {
-    serde_json::json!({ "alertId": alert_id, "productId": product_id, "productName": product_name, "bestPrice": best_price, "currency": currency, "targetPrice": target_price })
+fn trigger_event_json(alert_id: &str, product_id: &str, product_name: &str, best_price: f64, currency: &str, target_price: f64, is_rise: bool) -> serde_json::Value {
+    serde_json::json!({ "alertId": alert_id, "productId": product_id, "productName": product_name, "bestPrice": best_price, "currency": currency, "targetPrice": target_price, "isRise": is_rise })
 }
 
 fn notification_route_for_product(product_id: &str) -> String {
@@ -182,6 +182,10 @@ struct ExportData {
     alerts: serde_json::Value,
     reminders: serde_json::Value,
     settings: serde_json::Value,
+    // Mobile's backup includes back-in-stock watches; omitting them silently
+    // dropped restock watches from every desktop export/import round-trip.
+    #[serde(default)]
+    stock_watches: serde_json::Value,
 }
 
 fn validate_import_schema(data: &ExportData) -> Result<(), String> {
@@ -367,8 +371,35 @@ async fn write_watchlist(app: tauri::AppHandle, value: serde_json::Value) -> Res
 #[tauri::command]
 async fn set_value_for_key(app: tauri::AppHandle, key: String, value: serde_json::Value) -> Result<(), String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    // key is a plain string (e.g. "watchlist_products"), not an object like `{ key: "..." }`
+    // key is a plain string (e.g. "watchlist_products"), not an object like `{ key: "..." }`.
+    // Allowlist it: `PathBuf::join` with an absolute key discards data_dir
+    // entirely, and `../` escapes it, so an unvalidated key lets any webview
+    // script write attacker-controlled .json files anywhere writable.
+    if !is_allowed_storage_key(&key) {
+        return Err(format!("Refusing to write disallowed key: {key}"));
+    }
     write_json_file(&data_dir, &key, &value)
+}
+
+#[tauri::command]
+async fn read_value_for_key(app: tauri::AppHandle, key: String) -> Result<serde_json::Value, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    if !is_allowed_storage_key(&key) {
+        return Err(format!("Refusing to read disallowed key: {key}"));
+    }
+    read_json_file(&data_dir, &key)
+}
+
+/// Only the keys the renderer legitimately mirrors to disk.
+fn is_allowed_storage_key(key: &str) -> bool {
+    matches!(
+        key,
+        "watchlist_products"
+            | "price_alerts"
+            | "back_order_reminders"
+            | "app_settings"
+            | "back_in_stock_watches"
+    )
 }
 
 #[tauri::command]
@@ -385,6 +416,7 @@ async fn export_watchlist(
     let alerts = read_json_file(&data_dir, "price_alerts")?;
     let reminders = read_json_file(&data_dir, "back_order_reminders")?;
     let settings = read_json_file(&data_dir, "app_settings")?;
+    let stock_watches = read_json_file(&data_dir, "back_in_stock_watches")?;
 
     let export = ExportData {
         version: 1,
@@ -393,6 +425,7 @@ async fn export_watchlist(
         alerts,
         reminders,
         settings,
+        stock_watches,
     };
 
     let content = match format.as_str() {
@@ -433,6 +466,18 @@ async fn import_watchlist(
             write_json_file(&data_dir, "price_alerts", &import.alerts)?;
             write_json_file(&data_dir, "back_order_reminders", &import.reminders)?;
             write_json_file(&data_dir, "app_settings", &import.settings)?;
+            if !import.stock_watches.is_null() {
+                write_json_file(
+                    &data_dir,
+                    "back_in_stock_watches",
+                    &import.stock_watches,
+                )?;
+            }
+
+            // Tell the renderer to reload from disk. Without this the UI kept
+            // showing its pre-import localStorage copy, and the next renderer
+            // write mirrored that stale copy back over the imported files.
+            let _ = app.emit("storage-imported", ());
 
             Ok("Import successful".to_string())
         }
@@ -505,9 +550,17 @@ async fn start_oauth(login_url: String) -> Result<serde_json::Value, String> {
             .map_err(|e| format!("Failed to accept OAuth callback: {e}"))?;
 
         let mut buf = [0u8; 8192];
-        let n = match socket.read(&mut buf).await {
-            Ok(n) => n,
-            Err(_) => continue,
+        // Bound the read: an unbounded read lets a stray local process that
+        // connects and sends nothing wedge the login loop forever (the accept
+        // deadline is only checked at the top of the loop).
+        let n = match tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            socket.read(&mut buf),
+        )
+        .await
+        {
+            Ok(Ok(n)) => n,
+            _ => continue,
         };
         let request = String::from_utf8_lossy(&buf[..n]).to_string();
         let request_line = request.lines().next().unwrap_or_default().to_string();
@@ -620,16 +673,10 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
     if !notifications_enabled || !price_alerts_enabled {
         return Ok("Price alerts disabled".to_string());
     }
-    if let Some(qh) = settings_val.get("quietHours") {
-        let start = qh.get("start").and_then(|v| v.as_str());
-        let end = qh.get("end").and_then(|v| v.as_str());
-        let offset = qh.get("utcOffsetMinutes").and_then(|v| v.as_i64());
-        if let (Some(start), Some(end)) = (start, end) {
-            if is_in_quiet_hours(start, end, offset, now_epoch_ms()) {
-                return Ok("Quiet hours".to_string());
-            }
-        }
-    }
+    // NOTE: quiet hours deliberately do NOT gate price alerts. Mobile applies
+    // quiet hours to health alerts and digests only (lib/background-tasks/
+    // price-check.ts), and skipping here would permanently miss a drop that
+    // occurred and recovered during the window.
 
     let alerts: Vec<serde_json::Value> = alerts_val
         .as_array()
@@ -729,7 +776,7 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
                 Some(notification_route_for_product(product_id)),
             ));
             let alert_id = alert.get("id").and_then(|v| v.as_str()).unwrap_or("");
-            events.push(trigger_event_json(alert_id, product_id, product_name, best_price, alert_currency, target_price));
+            events.push(trigger_event_json(alert_id, product_id, product_name, best_price, alert_currency, target_price, is_rise));
             triggered.push((idx, best_price));
         }
     }
@@ -996,6 +1043,9 @@ async fn scrape_distributor(
     }
 }
 
+// Matches PRICE_SNAPSHOT_TTL_MS in shared/const.ts (1 hour).
+const SERVER_SNAPSHOT_TTL_MS: i64 = 60 * 60 * 1000;
+
 async fn fetch_server_price(
     api_base_url: &str,
     distributor_id: &str,
@@ -1028,6 +1078,14 @@ async fn fetch_server_price(
     let body: serde_json::Value = resp.json().await.ok()?;
     let data = body.pointer("/result/data/json")?;
     let snapshot = data.get("snapshot")?;
+    // Reject a stale cached snapshot: the server returns its cached value and
+    // only kicks off a background refresh, so accepting it would persist an
+    // up-to-an-hour-old price as if just observed (and append a fake history
+    // point). Mirrors mobile's isFreshPriceSnapshot.
+    let fetched_at = snapshot.get("fetchedAt").and_then(|v| v.as_i64())?;
+    if now_epoch_ms() - fetched_at > SERVER_SNAPSHOT_TTL_MS {
+        return None;
+    }
     let price = snapshot.get("price")?.as_f64()?;
     let currency = snapshot.get("currency")?.as_str()?.to_string();
     let stock_status = snapshot.get("stockStatus").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
@@ -1082,9 +1140,29 @@ struct DistributorHealth {
     last_checked: String,
 }
 
+// Per-distributor probe model. Must mirror PROBE_MODEL_BY_DISTRIBUTOR in
+// lib/scrapers/health.ts: probing every distributor with CRS326 made the model
+// gate reject the price for the 12 that stock CRS804, reporting them as errors.
+fn probe_model_for(distributor_id: &str) -> &'static str {
+    match distributor_id {
+        "server2u-my"
+        | "interprojekt-pl"
+        | "aerial-gr"
+        | "miro-za"
+        | "linktechs-us"
+        | "bhphoto-us"
+        | "wisp-au"
+        | "gowifi-nz"
+        | "100mega-cz"
+        | "rocnoc-us"
+        | "flytec-us"
+        | "multilink-us" => "CRS804-4DDQ-hRM",
+        _ => "CRS326-24S+2Q+RM",
+    }
+}
+
 #[tauri::command]
 async fn check_distributor_health(app: tauri::AppHandle) -> Result<Vec<DistributorHealth>, String> {
-    let model = "CRS326";
     let distributor_ids = [
         "server2u-my",
         "linitx-uk",
@@ -1117,6 +1195,7 @@ async fn check_distributor_health(app: tauri::AppHandle) -> Result<Vec<Distribut
     let mut results = Vec::new();
     for (idx, distributor_id) in distributor_ids.iter().enumerate() {
         let start = std::time::Instant::now();
+        let model = probe_model_for(distributor_id);
         let scrape_result = scrape_distributor(distributor_id, model).await;
         let duration_ms = start.elapsed().as_millis() as u64;
 
@@ -1259,7 +1338,9 @@ fn update_listing_price(
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
                     .as_secs();
-                let cutoff_day = iso_date_from_secs(now.saturating_sub(90 * 86400));
+                // Matches PRICE_HISTORY_DAYS in shared/const.ts (365): a shorter
+                // window silently discarded ~9 months of history on desktop.
+                let cutoff_day = iso_date_from_secs(now.saturating_sub(365 * 86400));
                 let point = serde_json::json!({
                     "date": current_iso_timestamp(),
                     "price": scrape.price,
@@ -1296,11 +1377,24 @@ fn update_listing_price(
 
 fn read_json_file(data_dir: &PathBuf, key: &str) -> Result<serde_json::Value, String> {
     let path = data_dir.join(format!("{}.json", key));
-    if path.exists() {
-        let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-        serde_json::from_str(&content).map_err(|e| e.to_string())
-    } else {
-        Ok(serde_json::Value::Null)
+    if !path.exists() {
+        return Ok(serde_json::Value::Null);
+    }
+    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    match serde_json::from_str(&content) {
+        Ok(value) => Ok(value),
+        Err(e) => {
+            // Quarantine a corrupt file instead of returning Err forever: the
+            // poller ignores read errors, so one bad file silently disabled all
+            // price polling and tray updates with no recovery path.
+            let quarantine = data_dir.join(format!("{}.json.corrupt", key));
+            let _ = fs::rename(&path, &quarantine);
+            eprintln!(
+                "[storage] quarantined corrupt {key}.json -> {} ({e})",
+                quarantine.display()
+            );
+            Ok(serde_json::Value::Null)
+        }
     }
 }
 
@@ -1322,44 +1416,6 @@ fn write_json_file(
 
 fn export_to_csv(_export: &ExportData) -> Result<String, String> {
     Err("CSV export not yet implemented".to_string())
-}
-
-/// Mirrors lib/quiet-hours.ts: the window is evaluated in the user's local time
-/// when `utc_offset_minutes` is present (Date.getTimezoneOffset semantics:
-/// local = utc - offset), else in the process's local time.
-fn is_in_quiet_hours(
-    start: &str,
-    end: &str,
-    utc_offset_minutes: Option<i64>,
-    now_ms: i64,
-) -> bool {
-    fn parse_hhmm(v: &str) -> Option<i64> {
-        let (h, m) = v.split_once(':')?;
-        let h: i64 = h.trim().parse().ok()?;
-        let m: i64 = m.trim().parse().ok()?;
-        if !(0..24).contains(&h) || !(0..60).contains(&m) {
-            return None;
-        }
-        Some(h * 60 + m)
-    }
-    let (Some(start), Some(end)) = (parse_hhmm(start), parse_hhmm(end)) else {
-        return false;
-    };
-    if start == end {
-        return false;
-    }
-    let minutes_utc = (now_ms / 60_000) % 1440;
-    // The client always sends its offset; without one, evaluate in UTC (std has
-    // no tz database, and guessing a local offset would be wrong).
-    let cur = match utc_offset_minutes {
-        Some(off) => ((minutes_utc - off) % 1440 + 1440) % 1440,
-        None => (minutes_utc % 1440 + 1440) % 1440,
-    };
-    if start < end {
-        cur >= start && cur < end
-    } else {
-        cur >= start || cur < end
-    }
 }
 
 fn now_epoch_ms() -> i64 {
@@ -1527,8 +1583,21 @@ fn update_tray_badge(app: tauri::AppHandle) -> Result<String, String> {
         .map(|a| {
             a.iter()
                 .filter(|a| {
-                    a.get("isActive").and_then(|v| v.as_bool()).unwrap_or(false)
-                        && a.get("triggeredAt").and_then(|v| v.as_str()).is_none()
+                    let active = a
+                        .get("isActive")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false)
+                        && a.get("triggeredAt").and_then(|v| v.as_str()).is_none();
+                    if !active {
+                        return false;
+                    }
+                    // Exclude snoozed alerts, matching the in-app badge count.
+                    match a.get("snoozedUntil").and_then(|v| v.as_str()) {
+                        Some(s) => parse_iso_to_epoch_ms(s)
+                            .map(|t| t <= now_epoch_ms())
+                            .unwrap_or(true),
+                        None => true,
+                    }
                 })
                 .count()
         })
@@ -1664,6 +1733,7 @@ pub fn run() {
             check_price_drops,
             stop_price_poller,
             update_tray_badge,
+            read_value_for_key,
             check_all_prices,
             run_full_price_check,
             backfill_local_history,
@@ -1758,7 +1828,7 @@ mod tests {
 
     #[test]
     fn trigger_event_json_shape() {
-        let v = trigger_event_json("a1", "p1", "Widget", 88.5, "USD", 100.0);
+        let v = trigger_event_json("a1", "p1", "Widget", 88.5, "USD", 100.0, false);
         assert_eq!(v["alertId"], "a1");
         assert_eq!(v["productId"], "p1");
         assert_eq!(v["bestPrice"], 88.5);
@@ -1775,6 +1845,37 @@ mod tests {
     fn notification_activated_payload_shape() {
         let v = super::activation_payload("/health");
         assert_eq!(v["route"], "/health");
+    }
+
+    #[test]
+    fn storage_key_allowlist_rejects_traversal_and_absolute_paths() {
+        assert!(is_allowed_storage_key("watchlist_products"));
+        assert!(is_allowed_storage_key("app_settings"));
+        assert!(!is_allowed_storage_key("../../etc/passwd"));
+        assert!(!is_allowed_storage_key("/home/user/.bashrc"));
+        assert!(!is_allowed_storage_key("evil"));
+    }
+
+    #[test]
+    fn probe_model_matches_mobile_map() {
+        // The 12 distributors that stock CRS804.
+        for id in [
+            "server2u-my",
+            "interprojekt-pl",
+            "aerial-gr",
+            "miro-za",
+            "linktechs-us",
+            "bhphoto-us",
+            "wisp-au",
+            "gowifi-nz",
+            "100mega-cz",
+            "rocnoc-us",
+            "flytec-us",
+            "multilink-us",
+        ] {
+            assert_eq!(probe_model_for(id), "CRS804-4DDQ-hRM", "{id}");
+        }
+        assert_eq!(probe_model_for("linitx-uk"), "CRS326-24S+2Q+RM");
     }
 
     #[test]

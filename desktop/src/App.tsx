@@ -322,10 +322,13 @@ export default function App() {
           }
         }
         try {
+          // Label by direction: the Rust event carries isRise, and recording
+          // every event as "price_drop" mislabeled every price increase.
+          const isRise = Boolean((e as { isRise?: boolean }).isRise);
           await storage.recordNotificationEvent({
             id: `price-drop-${e.productId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            type: "price_drop",
-            title: "Price Drop Alert!",
+            type: isRise ? "price_rise" : "price_drop",
+            title: isRise ? "Price Increase Alert!" : "Price Drop Alert!",
             body: `${e.productName} is now ${e.bestPrice} ${e.currency} (target ${e.targetPrice} ${e.currency})`,
             productId: e.productId,
             triggeredPrice: e.bestPrice,

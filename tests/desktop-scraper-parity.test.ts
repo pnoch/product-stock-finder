@@ -65,6 +65,16 @@ describe("desktop/mobile scraper parity", () => {
     for (const [name, r] of rust) {
       const m = mobile.get(name);
       if (!m || !m.selector) continue;
+      // Documented exception: jQuery's `:contains()` is supported by cheerio
+      // but NOT by the Rust `scraper` crate (selectors 0.25), where it makes
+      // Selector::parse return Err and kills the whole list. Those parsers use
+      // a supported fallback instead.
+      if (m.selector.includes(":contains(")) {
+        expect(r.selector, `${name} should use a supported fallback`).not.toContain(
+          ":contains(",
+        );
+        continue;
+      }
       expect(r.selector, `${name} price selector drifted`).toBe(m.selector);
     }
   });

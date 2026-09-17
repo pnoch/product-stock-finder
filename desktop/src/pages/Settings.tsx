@@ -1454,7 +1454,16 @@ export function Settings() {
                       update({ quietHours: undefined });
                     } else {
                       const [start, end] = option.split("–");
-                      update({ quietHours: { start, end } });
+                      // Include the device's UTC offset so the Rust poller
+                      // evaluates quiet hours in local time; without it Rust
+                      // falls back to UTC and fires at the wrong wall clock.
+                      update({
+                        quietHours: {
+                          start,
+                          end,
+                          utcOffsetMinutes: new Date().getTimezoneOffset(),
+                        },
+                      });
                     }
                   }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${

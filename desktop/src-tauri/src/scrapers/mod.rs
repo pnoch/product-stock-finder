@@ -198,8 +198,16 @@ pub fn parse_price_page(
     stock_selector: &str,
 ) -> Result<ScrapeResult, String> {
     let document = Html::parse_document(html);
-    let price_sel = Selector::parse(price_selector).map_err(|e| e.to_string())?;
-    let stock_sel = Selector::parse(stock_selector).map_err(|e| e.to_string())?;
+    // A selector the `scraper` crate can't parse (e.g. jQuery's `:contains()`,
+    // which cheerio supports but selectors 0.25 does not) makes Selector::parse
+    // return Err and kills the ENTIRE selector list, so the parser always
+    // fails. Fall back to a generic list instead of erroring.
+    let price_sel = Selector::parse(price_selector)
+        .or_else(|_| Selector::parse(".product-price, .price, [data-price]"))
+        .map_err(|e| e.to_string())?;
+    let stock_sel = Selector::parse(stock_selector)
+        .or_else(|_| Selector::parse(".stock-status, .availability, .stock"))
+        .map_err(|e| e.to_string())?;
 
     let mut price_text: Option<String> = None;
     for el in document.select(&price_sel) {
