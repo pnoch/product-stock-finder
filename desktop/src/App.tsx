@@ -282,6 +282,15 @@ export default function App() {
 
   useEffect(() => {
     const unlistenPromise = onPricesChecked(async () => {
+      // Evaluate back-in-stock watches after every price sweep. The Rust poller
+      // only handles price alerts, so without this a signed-out desktop user
+      // with a restock watch never gets notified.
+      try {
+        const { checkRestocks } = await import("../../lib/restock");
+        await checkRestocks();
+      } catch {
+        // restock failures are non-fatal
+      }
       try {
         const settings = await storage.getSettings();
         const frequency = settings.digestFrequency ?? "off";

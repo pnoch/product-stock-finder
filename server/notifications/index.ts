@@ -194,47 +194,54 @@ export async function pullPendingEvents(
     memoryDeliveries.set(deviceId, delivered);
     return pending.map((e) => stripScope(e));
   }
-  const rows = await db
-    .select({
-      id: notificationEvents.id,
-      type: notificationEvents.type,
-      title: notificationEvents.title,
-      body: notificationEvents.body,
-      payload: notificationEvents.payload,
-      createdAt: notificationEvents.createdAt,
-    })
-    .from(notificationEvents)
-    .leftJoin(
-      notificationEventDeliveries,
-      and(
-        eq(notificationEventDeliveries.eventId, notificationEvents.id),
-        eq(notificationEventDeliveries.deviceId, deviceId),
-      ),
-    )
-    .where(
-      and(
-        userId
-          ? eq(notificationEvents.userId, userId)
-          : eq(notificationEvents.deviceId, deviceId),
-        isNull(notificationEventDeliveries.eventId),
-      ),
-    )
-    // Bound the page: events are retained 30 days, so an undelivered backlog
-    // could otherwise return (and insert a delivery row for) thousands at once.
-    .orderBy(asc(notificationEvents.createdAt))
-    .limit(PULL_MAX_EVENTS);
-  if (rows.length > 0) {
-    await db
-      .insert(notificationEventDeliveries)
-      .values(
-        rows.map((r: any) => ({
-          deviceId,
-          eventId: r.id,
-          deliveredAt: Date.now(),
-        })),
+  // Select + mark-delivered in ONE transaction with the rows locked, so two
+  // overlapping pulls for the same device cannot both read the same undelivered
+  // rows and deliver them twice.
+  const rows = await db.transaction(async (tx) => {
+    const selected = await tx
+      .select({
+        id: notificationEvents.id,
+        type: notificationEvents.type,
+        title: notificationEvents.title,
+        body: notificationEvents.body,
+        payload: notificationEvents.payload,
+        createdAt: notificationEvents.createdAt,
+      })
+      .from(notificationEvents)
+      .leftJoin(
+        notificationEventDeliveries,
+        and(
+          eq(notificationEventDeliveries.eventId, notificationEvents.id),
+          eq(notificationEventDeliveries.deviceId, deviceId),
+        ),
       )
-      .onDuplicateKeyUpdate({ set: { deliveredAt: sql`deliveredAt` } });
-  }
+      .where(
+        and(
+          userId
+            ? eq(notificationEvents.userId, userId)
+            : eq(notificationEvents.deviceId, deviceId),
+          isNull(notificationEventDeliveries.eventId),
+        ),
+      )
+      // Bound the page: events are retained 30 days, so an undelivered backlog
+      // could otherwise return (and insert a delivery row for) thousands at once.
+      .orderBy(asc(notificationEvents.createdAt))
+      .limit(PULL_MAX_EVENTS)
+      .for("update");
+    if (selected.length > 0) {
+      await tx
+        .insert(notificationEventDeliveries)
+        .values(
+          selected.map((r: any) => ({
+            deviceId,
+            eventId: r.id,
+            deliveredAt: Date.now(),
+          })),
+        )
+        .onDuplicateKeyUpdate({ set: { deliveredAt: sql`deliveredAt` } });
+    }
+    return selected;
+  });
   return rows.map(rowToEvent);
 }
 

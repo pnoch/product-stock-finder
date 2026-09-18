@@ -100,13 +100,22 @@ pub fn infer_stock_status(text: &str) -> String {
 }
 
 pub fn parse_price_from_text(text: &str) -> Option<f64> {
-    // Mirror lib/scrapers/utils.ts: handle EU separators ("1.234,56") and
-    // dot-only thousands ("1.299" → 1299) instead of stripping to a naive
-    // float (which produced factor-100/1000 errors).
-    let digits: String = text
-        .chars()
-        .filter(|c| c.is_ascii_digit() || *c == '.' || *c == ',')
-        .collect();
+    // Mirror lib/scrapers/utils.ts: take only the FIRST number run, not every
+    // digit in the element. Concatenating them turned "Was $100 Now $80" into
+    // 10080 and corrupted any element containing a discount percentage.
+    let digits: String = {
+        let mut out = String::new();
+        let mut started = false;
+        for c in text.chars() {
+            if c.is_ascii_digit() || c == '.' || c == ',' {
+                started = true;
+                out.push(c);
+            } else if started {
+                break;
+            }
+        }
+        out
+    };
     if digits.is_empty() {
         return None;
     }
@@ -145,26 +154,54 @@ pub fn parse_price_from_text(text: &str) -> Option<f64> {
     }
 }
 
-/// Normalizes a model number for comparison: lowercase, alphanumerics only.
+/// Normalizes for comparison: lowercase, with each run of non-alphanumerics
+/// collapsed to a single space. Keeping a separator (rather than deleting it)
+/// preserves token boundaries, so "CRS326" cannot match inside "CRS3260".
 fn normalize_model(s: &str) -> String {
-    s.chars()
-        .filter(|c| c.is_ascii_alphanumeric())
-        .flat_map(|c| c.to_lowercase())
-        .collect()
+    let mut out = String::with_capacity(s.len());
+    let mut in_sep = false;
+    for c in s.chars() {
+        if c.is_ascii_alphanumeric() {
+            out.extend(c.to_lowercase());
+            in_sep = false;
+        } else if !in_sep && !out.is_empty() {
+            out.push(' ');
+            in_sep = true;
+        }
+    }
+    out.trim_end().to_string()
 }
 
 /// True when `text` contains the requested model as a whole token. Mirrors the
 /// mobile `matchesModel` guard: without it a search-results page's first
 /// unrelated price would be recorded as this product's price.
+///
+/// The match must sit on a token boundary. A bare `contains` accepted
+/// "CRS326" inside "CRS3260…" (another product), recording its price against
+/// the watched product.
 pub fn text_mentions_model(text: &str, model: &str) -> bool {
     let needle = normalize_model(model);
     if needle.is_empty() {
         return false;
     }
     let haystack = normalize_model(text);
-    // Require a boundary: the normalized haystack is alphanumeric-only, so a
-    // substring match is the best available signal (matches mobile behavior).
-    haystack.contains(&needle)
+    let mut from = 0usize;
+    while let Some(pos) = haystack[from..].find(&needle) {
+        let start = from + pos;
+        let end = start + needle.len();
+        let before_ok = start == 0
+            || !haystack.as_bytes()[start - 1].is_ascii_alphanumeric();
+        let after_ok = end == haystack.len()
+            || !haystack.as_bytes()[end].is_ascii_alphanumeric();
+        if before_ok && after_ok {
+            return true;
+        }
+        from = start + 1;
+        if from >= haystack.len() {
+            break;
+        }
+    }
+    false
 }
 
 /// Product-card selectors, mirroring the mobile `modelMismatch` guard.
@@ -257,6 +294,14 @@ mod tests {
     }
 
     #[test]
+    fn text_mentions_model_requires_a_token_boundary() {
+        // "CRS326" must not match inside "CRS3260" (a different product).
+        assert!(!text_mentions_model("CRS3260-24G", "CRS326"));
+        assert!(text_mentions_model("MikroTik CRS326 switch", "CRS326"));
+        assert!(text_mentions_model("CRS326-24G-2S+", "CRS326"));
+    }
+
+    #[test]
     fn parse_price_page_rejects_a_non_matching_first_result() {
         // The first price belongs to another product; the requested model only
         // appears in a later card. The parser must skip the decoy.
@@ -277,6 +322,13 @@ mod tests {
         )
         .expect("should find the matching card");
         assert_eq!(result.price, 480.0);
+    }
+
+    #[test]
+    fn parse_price_from_text_takes_only_the_first_number() {
+        // "Was $100 Now $80" must be 100, not 10080.
+        assert_eq!(parse_price_from_text("Was $100 Now $80"), Some(100.0));
+        assert_eq!(parse_price_from_text("20% off $80"), Some(20.0));
     }
 
     #[test]

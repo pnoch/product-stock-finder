@@ -851,26 +851,28 @@ describe("upsertDeviceConfig with healthEvents", () => {
 
   it("pulls a user's undelivered events and records per-device delivery", async () => {
     const inserted: unknown[] = [];
-    const dbStub = {
+    const txStub = {
       select: vi.fn(() => ({
         from: vi.fn(() => ({
           leftJoin: vi.fn(() => ({
             where: vi.fn(() => ({
               orderBy: vi.fn(() => ({
-                limit: vi.fn(async () => [
-                  {
-                    id: "evt-1",
-                    type: "price_drop",
-                    title: "💸 Price Drop Alert!",
-                    body: "CRS804 is now $480.00!",
-                    payload: {
-                      alertId: "a1",
-                      productId: "mikrotik-crs804-4ddq-hrm",
-                      triggeredPrice: 480,
+                limit: vi.fn(() => ({
+                  for: vi.fn(async () => [
+                    {
+                      id: "evt-1",
+                      type: "price_drop",
+                      title: "💸 Price Drop Alert!",
+                      body: "CRS804 is now $480.00!",
+                      payload: {
+                        alertId: "a1",
+                        productId: "mikrotik-crs804-4ddq-hrm",
+                        triggeredPrice: 480,
+                      },
+                      createdAt: 123,
                     },
-                    createdAt: 123,
-                  },
-                ]),
+                  ]),
+                })),
               })),
             })),
           })),
@@ -882,6 +884,12 @@ describe("upsertDeviceConfig with healthEvents", () => {
           return { onDuplicateKeyUpdate: vi.fn(async () => undefined) };
         }),
       })),
+    };
+    const dbStub = {
+      // pullPendingEvents now runs select+insert in one transaction.
+      transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn(txStub),
+      ),
     };
     mockedGetDb.mockResolvedValue(dbStub as never);
     const events = await pullPendingEvents("dev-2", 7);

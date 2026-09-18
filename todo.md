@@ -2032,3 +2032,20 @@
 - [x] Verified the AppImage structure (AppRun, `.desktop` with `Categories=Utility`, icon, 24M binary) and the `.deb` control fields
 - [x] `desktop/src-tauri/target/` confirmed gitignored; desktop `tsc 0`, 218 tests, 18 Rust tests still green
 - [ ] macOS/Windows bundles + code signing still require their own build hosts (not possible here)
+
+## Phase 235: Server hardening + desktop correctness (round 9 follow-ups)
+
+**Server hardening**
+- [x] `/api/healthz` returned the raw DB error message to unauthenticated callers (driver errors can include host/user/schema); now logs server-side and returns only `{ok:false, db:"error"}`
+- [x] Graceful shutdown closed the DB pool BEFORE the HTTP server, so in-flight requests failed during the drain window; now closes the listener + drains first, then the pool
+- [x] No `unhandledRejection`/`uncaughtException` handlers; added (log always; exit non-zero on uncaught, stay up on unhandled rejection)
+- [x] Rate-limit bucket map was unbounded under a rotating-IP flood (time-based prune alone never evicts active keys); now an LRU capped at `MAX_BUCKETS` (10k), enforced on insert too (verified non-vacuous)
+- [x] Unbounded scrape queue: public `prices.get` could queue unlimited closures; now rejects past `MAX_QUEUED_SCRAPES` (50) so callers fall back to cache/miss. Also fixed the `finally` releasing a slot that was never acquired (would corrupt the active count)
+- [x] Concurrent `notifications.pull` for one device could deliver the same events twice (select + upsert weren't atomic); now one transaction with `SELECT ... FOR UPDATE`
+
+**Desktop correctness**
+- [x] `parse_price_from_text` concatenated EVERY number in the element ("Was $100 Now $80" → 10080); now takes only the first number run, like mobile
+- [x] Model gating used a bare substring match, so "CRS326" matched inside "CRS3260" (another product) and recorded its price; now requires a token boundary (normalization keeps separators as spaces)
+- [x] The Rust poller only evaluated price alerts, so signed-out desktop users with a back-in-stock watch never got notified; the renderer now runs the TS `checkRestocks` on each `prices-checked` sweep
+
+- [x] Tests: `rate-limit-bounded` (verified non-vacuous), Rust `parse_price_from_text_takes_only_the_first_number` + `text_mentions_model_requires_a_token_boundary`, updated `notifications` fake DB for the transaction; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `310 passed | 1 skipped` / `1843 passed`, desktop `43 passed` / `218 passed`, DB 17 passed, Rust 20 passed, `pnpm build` + `smoke:web` green

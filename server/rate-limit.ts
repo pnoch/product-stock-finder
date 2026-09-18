@@ -4,6 +4,11 @@ import type { TrpcContext } from "./_core/context";
 const buckets = new Map<string, number[]>();
 let lastPrune = Date.now();
 const PRUNE_INTERVAL = 60_000;
+// Hard cap on distinct keys. Under a rotating-IP flood every key stays "active"
+// for the full window, so time-based pruning alone lets the map grow without
+// bound. Evicting the oldest-inserted keys keeps memory bounded; an evicted
+// client simply gets a fresh bucket.
+const MAX_BUCKETS = 10_000;
 
 function pruneStale(maxAge: number) {
   const now = Date.now();
@@ -14,6 +19,12 @@ function pruneStale(maxAge: number) {
     const recent = timestamps.filter((t) => t > cutoff);
     if (recent.length === 0) buckets.delete(key);
     else buckets.set(key, recent);
+  }
+  // Map preserves insertion order, so the first keys are the oldest.
+  while (buckets.size > MAX_BUCKETS) {
+    const oldest = buckets.keys().next().value;
+    if (oldest === undefined) break;
+    buckets.delete(oldest);
   }
 }
 
@@ -67,7 +78,17 @@ function consumeBucket(key: string, limit: number, windowMs: number): void {
     });
   }
   recent.push(now);
+  // Re-inserting an existing key moves it to the end of the insertion order,
+  // making the map an LRU: eviction below drops the least-recently-used bucket.
+  buckets.delete(key);
   buckets.set(key, recent);
+  // Enforce the cap on insert too, not only during the 60s prune: a burst of
+  // unique keys between prunes would otherwise grow the map unbounded.
+  while (buckets.size > MAX_BUCKETS) {
+    const oldest = buckets.keys().next().value;
+    if (oldest === undefined) break;
+    buckets.delete(oldest);
+  }
 }
 
 export function clearRateLimitsForTests(): void {

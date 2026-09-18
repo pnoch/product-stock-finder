@@ -93,10 +93,12 @@ async function startServer() {
       await db.execute("SELECT 1" as never);
       res.json({ ok: true, db: "ok", timestamp: Date.now() });
     } catch (e) {
+      // Log the detail server-side; never return it. Driver errors can include
+      // host/user/schema names to an unauthenticated caller.
+      console.error("[healthz] db check failed:", e);
       res.status(503).json({
         ok: false,
         db: "error",
-        error: e instanceof Error ? e.message : String(e),
         timestamp: Date.now(),
       });
     }
@@ -146,13 +148,29 @@ async function startServer() {
   const shutdown = async (signal: string) => {
     console.log(`[api] ${signal} received, shutting down`);
     if (stopWarmer) stopWarmer();
+    // Stop accepting connections and drain in-flight requests BEFORE closing
+    // the pool: closing the pool first made requests in the drain window fail.
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+      const t = setTimeout(resolve, 5000);
+      (t as unknown as NodeJS.Timeout).unref?.();
+    });
     await closeDb().catch((e) => console.error("[Database] close failed", e));
-    server.close(() => process.exit(0));
-    const t = setTimeout(() => process.exit(1), 5000);
-    (t as unknown as NodeJS.Timeout).unref?.();
+    process.exit(0);
   };
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
   process.on("SIGINT", () => void shutdown("SIGINT"));
+
+  // A stray rejection/exception would otherwise take the process down with the
+  // default handler and no log. Log always; exit non-zero on an uncaught
+  // exception (state is unknown), stay up on an unhandled rejection.
+  process.on("unhandledRejection", (reason) => {
+    console.error("[api] unhandled rejection:", reason);
+  });
+  process.on("uncaughtException", (error) => {
+    console.error("[api] uncaught exception:", error);
+    process.exit(1);
+  });
 }
 
 startServer().catch((error) => {

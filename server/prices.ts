@@ -36,6 +36,11 @@ const breakerStore = createMemoryBreakerStore();
 // rather than being dropped, and the single-flight map still dedupes identical
 // (distributor, model) requests.
 const MAX_CONCURRENT_SCRAPES = 6;
+// Bound the queue: public `prices.get` can request unlimited distinct
+// (distributor, model) pairs, and an unbounded queue grows memory/latency
+// instead of shedding load. Over the cap, reject so the caller falls back to
+// the cached value / a miss.
+const MAX_QUEUED_SCRAPES = 50;
 let activeScrapes = 0;
 const scrapeQueue: Array<() => void> = [];
 
@@ -43,6 +48,9 @@ function acquireScrapeSlot(): Promise<void> {
   if (activeScrapes < MAX_CONCURRENT_SCRAPES) {
     activeScrapes++;
     return Promise.resolve();
+  }
+  if (scrapeQueue.length >= MAX_QUEUED_SCRAPES) {
+    return Promise.reject(new Error("scrape queue full"));
   }
   return new Promise((resolve) => {
     scrapeQueue.push(() => {
@@ -91,10 +99,17 @@ function refreshSingleFlight(
   const key = cacheKey(distributorId, modelNumber);
   const existing = inFlight.get(key);
   if (existing) return existing;
+  let acquired = false;
   const promise = acquireScrapeSlot()
-    .then(() => refreshPrice(distributorId, modelNumber))
+    .then(() => {
+      acquired = true;
+      return refreshPrice(distributorId, modelNumber);
+    })
     .finally(() => {
-      releaseScrapeSlot();
+      // Only release a slot that was actually acquired: acquireScrapeSlot can
+      // reject when the queue is full, and releasing then would corrupt the
+      // active count (letting concurrency exceed the cap).
+      if (acquired) releaseScrapeSlot();
       inFlight.delete(key);
     });
   inFlight.set(key, promise);
