@@ -1,5 +1,6 @@
 import { isServerConfigured } from "@/constants/oauth";
 import { createTRPCClient } from "./trpc";
+import { withTimeout } from "./with-timeout";
 
 const TIMEOUT_MS = 4000;
 
@@ -14,12 +15,10 @@ export async function fetchPriceInsight(
   if (!isServerConfigured()) return null;
   try {
     const client = createTRPCClient();
-    const result = await Promise.race([
+    const result = await withTimeout(
       client.insights.get.query({ productId }),
-      new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), TIMEOUT_MS),
-      ),
-    ]);
+      TIMEOUT_MS,
+    );
     return result;
   } catch {
     return null;

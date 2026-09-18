@@ -1,5 +1,6 @@
 import { isServerConfigured } from "@/constants/oauth";
 import { createTRPCClient } from "./trpc";
+import { withTimeout } from "./with-timeout";
 
 export interface ProductImage {
   imageUrl: string;
@@ -13,12 +14,10 @@ export async function fetchProductImage(
   try {
     const client = createTRPCClient();
     const timeoutMs = opts?.timeoutMs ?? 4000;
-    const result = await Promise.race([
+    const result = await withTimeout(
       client.images.get.query({ productId }),
-      new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), timeoutMs),
-      ),
-    ]);
+      timeoutMs,
+    );
     return result;
   } catch {
     return null;

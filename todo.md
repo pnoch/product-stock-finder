@@ -2072,3 +2072,11 @@
 - [x] `docs/store-listing.md`: store copy (short/full description, keywords), identity table, required screenshot/icon assets, data-safety answers, and the exact `eas build`/`eas submit` commands
 - [x] `tests/store-config.test.ts`: guards the usage string (exact key + non-empty value), iOS/Android identifier lockstep, valid eas.json profiles with no `REPLACE_WITH` placeholder, and the listing doc (verified non-vacuous)
 - [x] E2E root `tsc 0`, lint 0 errors, root `313 passed | 1 skipped` / `1855 passed`, desktop 218, `pnpm build` + `smoke:web` green
+
+## Phase 239: Low-severity audit cleanup (timers, N+1, dead code, auth buckets)
+
+- [x] **Timer leaks**: 9 `Promise.race([p, new Promise(r => setTimeout(...))])` sites (push-token ×3, server-notifications ×2, server-images, server-insights, devices ×5) never cleared the timer, leaking one per call and holding the event loop open. All now use the existing `withTimeout` helper (which clears on settle)
+- [x] **N+1 sync writes**: `sync.push` ran one INSERT + one SELECT per item sequentially (a 200-item push = 400 serialized round trips holding the response). Added `server/concurrency.ts` `mapWithConcurrency` and applied it at 8-way concurrency, preserving order so `stamped`/`rejected` stay stable. Verified against the real DB (17 DB tests pass) and non-vacuous
+- [x] **Dead code**: removed `getTrending()` (fetched a non-existent `/api/trending` route, no callers) and its dead test block. Left `server/_core/heartbeat.ts` alone (framework dir per AGENTS.md)
+- [x] **Auth rate-limit bucket sharing**: all 10 auth endpoints shared one 10/min per-IP bucket, so a NATed office or a `providers` poll could lock out logins. Each endpoint now has its own scoped bucket (`register:<ip>`, `login:<ip>`, `oauth-callback:<ip>`, …)
+- [x] Tests: `concurrency` (order, concurrency cap, empty, rejection — verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `314 passed | 1 skipped` / `1858 passed`, desktop `43 passed` / `218 passed`, DB 17, Rust 20, `pnpm build` + `smoke:web` green

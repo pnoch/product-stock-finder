@@ -1,4 +1,5 @@
 import { createTRPCClient } from "./trpc";
+import { withTimeout } from "./with-timeout";
 import {
   MAX_UPLOAD_ALERTS,
   MAX_UPLOAD_DATE_REMINDERS,
@@ -26,15 +27,13 @@ export async function uploadNotificationConfig(
 ): Promise<boolean> {
   try {
     const client = createTRPCClient();
-    const result = await Promise.race([
+    const result = await withTimeout(
       client.notifications.uploadConfig.mutate({
         ...config,
         healthEvents,
       }).then(() => true as const),
-      new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), TIMEOUT_MS),
-      ),
-    ]);
+      TIMEOUT_MS,
+    );
     return result === true;
   } catch {
     return false;
@@ -76,12 +75,10 @@ export async function uploadHealthEventToServer(event: {
 export async function pullNotificationEvents(): Promise<NotificationEvent[]> {
   try {
     const client = createTRPCClient();
-    const result = await Promise.race([
+    const result = await withTimeout(
       client.notifications.pull.query({}),
-      new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), TIMEOUT_MS),
-      ),
-    ]);
+      TIMEOUT_MS,
+    );
     return result?.events ?? [];
   } catch {
     return [];

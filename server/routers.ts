@@ -67,6 +67,7 @@ const TOMBSTONE_PURGE_INTERVAL_MS = 60 * 60 * 1000;
 // large watchlist can't turn the endpoint into an expensive unbounded read.
 const SHARED_WATCHLIST_MAX_ITEMS = 500;
 import { getPrice } from "./prices";
+import { mapWithConcurrency } from "./concurrency";
 import { SYNC_COLLECTION_ORDER } from "./sync-db";
 import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
 import { getAllParserIds } from "../lib/scrapers/registry";
@@ -294,11 +295,17 @@ export const appRouter = router({
           console.warn("[Sync] Database not available; accepting nothing");
           return { accepted: 0, stamped: [], rejected: [] as SyncRejectedItem[] };
         }
+        // Bounded concurrency: each item is an INSERT + a SELECT, so a
+        // 200-item push was 400 serialized round trips holding the response
+        // open. Order is preserved so the stamped/rejected arrays stay stable.
+        const results = await mapWithConcurrency(items, 8, (item) =>
+          upsertSyncItem(ctx.user.id, item),
+        );
         const stamped: SyncStampedItem[] = [];
         const rejected: SyncRejectedItem[] = [];
         let accepted = 0;
-        for (const item of items) {
-          const result = await upsertSyncItem(ctx.user.id, item);
+        items.forEach((item, i) => {
+          const result = results[i]!;
           if (result.accepted) {
             accepted += 1;
             stamped.push({
@@ -313,7 +320,7 @@ export const appRouter = router({
               reason: result.reason ?? "stale_write",
             });
           }
-        }
+        });
         const now = Date.now();
         if (now - lastTombstonePurgeAt > TOMBSTONE_PURGE_INTERVAL_MS) {
           lastTombstonePurgeAt = now;

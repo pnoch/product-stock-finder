@@ -3,6 +3,7 @@ import * as Device from "expo-device";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { createTRPCClient } from "./trpc";
+import { withTimeout } from "./with-timeout";
 
 const TIMEOUT_MS = 4000;
 
@@ -16,15 +17,13 @@ export async function registerPushToken(): Promise<void> {
     if (!projectId) return;
     const token = await Notifications.getExpoPushTokenAsync({ projectId });
     const client = createTRPCClient();
-    await Promise.race([
+    await withTimeout(
       client.notifications.registerPushToken.mutate({
         token: token.data,
         platform: Platform.OS as "ios" | "android",
       }),
-      new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), TIMEOUT_MS),
-      ),
-    ]);
+      TIMEOUT_MS,
+    );
   } catch {
     // push registration is best-effort
   }
@@ -45,12 +44,10 @@ export async function unregisterPushToken(): Promise<void> {
     }
     try {
       const client = createTRPCClient();
-      await Promise.race([
+      await withTimeout(
         client.notifications.unregisterPushToken.mutate(),
-        new Promise<null>((resolve) =>
-          setTimeout(() => resolve(null), TIMEOUT_MS),
-        ),
-      ]);
+        TIMEOUT_MS,
+      );
     } catch {
       // best effort
     }
@@ -58,12 +55,10 @@ export async function unregisterPushToken(): Promise<void> {
   }
   try {
     const client = createTRPCClient();
-    await Promise.race([
+    await withTimeout(
       client.notifications.unregisterPushToken.mutate(),
-      new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), TIMEOUT_MS),
-      ),
-    ]);
+      TIMEOUT_MS,
+    );
   } catch {
     // best-effort — the server also prunes on device cleanup
   }

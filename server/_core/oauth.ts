@@ -261,7 +261,7 @@ export function registerOAuthRoutes(app: Express) {
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
       const ip = getClientIp(req);
-      if (!checkAuthRateLimit(ip)) {
+      if (!checkAuthRateLimit(`register:${ip}`)) {
         res.status(429).json({ error: "Too many requests. Try again shortly." });
         return;
       }
@@ -303,7 +303,7 @@ export function registerOAuthRoutes(app: Express) {
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
       const ip = getClientIp(req);
-      if (!checkAuthRateLimit(ip)) {
+      if (!checkAuthRateLimit(`login:${ip}`)) {
         res.status(429).json({ error: "Too many requests. Try again shortly." });
         return;
       }
@@ -530,7 +530,7 @@ export function registerOAuthRoutes(app: Express) {
   const oauthCallbackHandler = async (req: Request, res: Response) => {
     try {
       const ip = getClientIp(req);
-      if (!checkAuthRateLimit(ip)) {
+      if (!checkAuthRateLimit(`oauth-callback:${ip}`)) {
         errorRedirect(res, "rate_limited");
         return;
       }
@@ -632,7 +632,7 @@ export function registerOAuthRoutes(app: Express) {
   app.post("/api/auth/oauth/consume", async (req: Request, res: Response) => {
     try {
       const ip = getClientIp(req);
-      if (!checkAuthRateLimit(ip)) {
+      if (!checkAuthRateLimit(`oauth-consume:${ip}`)) {
         res.status(429).json({ error: "Too many requests. Try again shortly." });
         return;
       }
@@ -668,7 +668,7 @@ export function registerOAuthRoutes(app: Express) {
   });
 
   app.get("/api/auth/oauth/providers", (req: Request, res: Response) => {
-    if (!checkAuthRateLimit(getClientIp(req))) {
+    if (!checkAuthRateLimit(`oauth-providers:${getClientIp(req)}`)) {
       res.status(429).json({ error: "Too many requests. Try again shortly." });
       return;
     }
@@ -680,7 +680,7 @@ export function registerOAuthRoutes(app: Express) {
 
   app.get("/api/auth/oauth/start", (req: Request, res: Response) => {
     const ip = getClientIp(req);
-    if (!checkAuthRateLimit(ip)) {
+    if (!checkAuthRateLimit(`oauth-start:${ip}`)) {
       res.status(429).json({ error: "Too many requests. Try again shortly." });
       return;
     }
@@ -749,7 +749,7 @@ export function registerOAuthRoutes(app: Express) {
   app.post("/api/auth/forgot", async (req: Request, res: Response) => {
     try {
       const ip = getClientIp(req);
-      if (!checkAuthRateLimit(ip)) {
+      if (!checkAuthRateLimit(`forgot:${ip}`)) {
         res.status(429).json({ error: "Too many requests. Try again shortly." });
         return;
       }
@@ -785,7 +785,7 @@ export function registerOAuthRoutes(app: Express) {
   app.post("/api/auth/reset", async (req: Request, res: Response) => {
     try {
       const ip = getClientIp(req);
-      if (!checkAuthRateLimit(ip)) {
+      if (!checkAuthRateLimit(`reset:${ip}`)) {
         res.status(429).json({ error: "Too many requests. Try again shortly." });
         return;
       }
@@ -821,7 +821,7 @@ export function registerOAuthRoutes(app: Express) {
   app.post("/api/auth/change-password", async (req: Request, res: Response) => {
     try {
       const ip = getClientIp(req);
-      if (!checkAuthRateLimit(ip)) {
+      if (!checkAuthRateLimit(`change-password:${ip}`)) {
         res.status(429).json({ error: "Too many requests. Try again shortly." });
         return;
       }
@@ -915,7 +915,7 @@ export function registerOAuthRoutes(app: Express) {
   app.post("/api/auth/resend-verification", async (req: Request, res: Response) => {
     try {
       const ip = getClientIp(req);
-      if (!checkAuthRateLimit(ip)) {
+      if (!checkAuthRateLimit(`resend-verification:${ip}`)) {
         res.status(429).json({ error: "Too many requests. Try again shortly." });
         return;
       }
@@ -980,7 +980,7 @@ export function registerOAuthRoutes(app: Express) {
   app.post("/api/auth/verify", async (req: Request, res: Response) => {
     try {
       const ip = getClientIp(req);
-      if (!checkAuthRateLimit(ip)) {
+      if (!checkAuthRateLimit(`verify:${ip}`)) {
         res.status(429).json({ error: "Too many requests. Try again shortly." });
         return;
       }
