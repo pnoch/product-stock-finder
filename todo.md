@@ -1487,14 +1487,14 @@
 
 ## Phase 200: Railway MySQL provision + 0023 migrate
 
-- [x] New Railway project `product-stock-finder` (`4bea2d05...`) + MySQL-NtCC + app (node:20-alpine) provisioned; `railway init` + `railway add --database mysql` + `railway add --service app --image node:20-alpine`; linked `DATABASE_URL=${{MySQL-NtCC.MYSQL_URL}}` on app
+- [x] New Railway project `product-stock-finder` + MySQL-NtCC + app provisioned; `railway init` + `railway add --database mysql` + `railway add --service app`; linked `DATABASE_URL=${{MySQL-NtCC.MYSQL_URL}}` on app
 - [x] `0023_quiet_hours` applied via `railway ssh --service app` (internal `mysql-ntcc.railway.internal:3306`); verified `SHOW TABLES` 21, `__drizzle_migrations` id 23 hash `3ec4ce26...`, `SHOW COLUMNS device_notification_configs LIKE "quietHours"` JSON NULL; re-run `npx drizzle-kit migrate` exits 0
 - [x] Scratch local MySQL 8.0 also verified 0000→0023 clean; Railway internal host not reachable locally — requires TCP proxy (Networking → Public Networking) for local `DATABASE_URL` pushes; app `JWT_SECRET` set dummy on Railway, needs real secret before prod
 
 ## Phase 201: Railway prod env + TCP proxy + drizzle snapshot repair
 
-- [x] Prod env on `app`: rotated `JWT_SECRET` (32-byte hex), `VAPID_SUBJECT`/`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` + `EXPO_PUBLIC_VAPID_PUBLIC_KEY`, `EXPO_PUBLIC_API_BASE_URL`/`EXPO_PUBLIC_WEB_URL=https://app-production-263c.up.railway.app`; redeployed; `GET /api/health` 200 `{ok:true}`
-- [x] MySQL TCP proxy created via GraphQL (`tcpProxyCreate`, app port 3306) → `switchyard.proxy.rlwy.net:58169`; stray HTTP domain `mysql-ntcc-production.up.railway.app` deleted; local `.env` `DATABASE_URL` now points at the proxy
+- [x] Prod env on `app`: rotated `JWT_SECRET` (32-byte hex), `VAPID_SUBJECT`/`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` + `EXPO_PUBLIC_VAPID_PUBLIC_KEY`, `EXPO_PUBLIC_API_BASE_URL`/`EXPO_PUBLIC_WEB_URL` (the Railway app URL); redeployed; `GET /api/health` 200 `{ok:true}`
+- [x] MySQL TCP proxy created via GraphQL (`tcpProxyCreate`, app port 3306); stray HTTP domain deleted; local `.env` `DATABASE_URL` now points at the proxy
 - [x] Root cause: `0023_quiet_hours` was hand-written in `b09ae3e` without committing `drizzle/meta/0023_snapshot.json`, so `drizzle-kit generate` diffed from `0022` and emitted a duplicate `0024_swift_kate_bishop.sql` (`ADD quietHours` → `ER_DUP_FIELDNAME` on `pnpm db:push`)
 - [x] Fix: promoted generated snapshot to `drizzle/meta/0023_snapshot.json` (verified its only diff from `0022` is the `quietHours` json column and `prevId` chains to `0022`), removed `0024` SQL + journal entry; `drizzle-kit generate` now reports "No schema changes"; `pnpm db:push` → "No schema changes, nothing to migrate" + migrations applied
 - [x] E2E: root `tsc 0`, desktop `tsc 0`, lint clean, `257 passed | 1 skipped` files / `1682 passed` tests

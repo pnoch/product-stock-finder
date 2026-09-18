@@ -22,7 +22,7 @@ continuation note, not a replacement.
 | `pnpm --dir desktop build` | ok (454k gzip) |
 | `cargo check` (tauri) | ok |
 | `pnpm db:push` | "No schema changes, nothing to migrate" |
-| Prod API | `GET https://app-production-263c.up.railway.app/api/health` → 200 (live on Phases 206-207) |
+| Prod API | `GET <railway-app-url>/api/health` → 200 (live on Phases 206-207) |
 
 `todo.md` through **Phase 207**, all `[x]`. `v5.16.0` tagged (was stalled at `v5.5.2`).
 
@@ -50,13 +50,12 @@ continuation note, not a replacement.
 
 ## 3. Railway production (project `product-stock-finder`)
 
-Project ID `4bea2d05-d118-4b7c-8fe6-945465e3224d`, environment `production`
-`6914cd0e-1454-4796-a422-c5fa86ea68a3`.
+Project and environment IDs are in the Railway dashboard (not recorded here).
 
-| Service | ID | Notes |
-| --- | --- | --- |
-| `app` | `787ca1c9-035f-4ddf-b763-6c7f7cf2145b` | node:20-alpine, Nixpacks, `pnpm build` → `dist/index.js`; public `https://app-production-263c.up.railway.app` |
-| `MySQL-NtCC` | `16b00d4a-71c2-4364-9ab8-c89334746da5` | the real DB; TCP proxy `switchyard.proxy.rlwy.net:58169` → internal 3306 |
+| Service | Notes |
+| --- | --- |
+| `app` | Nixpacks, `pnpm build` → `dist/index.js`; public URL is the Railway-generated `app-production-*.up.railway.app` domain |
+| `MySQL-NtCC` | the real DB; reached over a Railway TCP proxy (host/port in the dashboard) |
 
 `app` env vars set: `DATABASE_URL=${{MySQL-NtCC.MYSQL_URL}}`, `JWT_SECRET` (32-byte hex),
 `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `EXPO_PUBLIC_VAPID_PUBLIC_KEY`,
@@ -72,9 +71,7 @@ attempts and are **still running** (wasting resources):~~ **DELETED 2026-09-13**
 GraphQL `serviceDelete` (all returned `true`; project now holds only `app` + `MySQL-NtCC`,
 prod `/api/health` still 200 afterwards):
 
-- ~~`MySQL` — `59be744a-2d12-40dc-9a2f-d83eaab69d6c`~~
-- ~~`MySQL-oXpb` — `a88e8142-e3f4-4df2-88d7-b7976c5db67d`~~
-- ~~`MySQL-Qy70` — `f89eeb72-4a9e-484f-8056-4eea3b0ac055`~~
+- ~~`MySQL`, `MySQL-oXpb`, `MySQL-Qy70`~~ (IDs not recorded)
 
 ~~Delete these in the Railway dashboard (or GraphQL `serviceDelete`). Only `MySQL-NtCC` is in use.~~
 
