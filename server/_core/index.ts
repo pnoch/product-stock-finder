@@ -7,7 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
-import { registerSpa } from "../spa";
+import { registerSpa, registerWellKnown } from "../spa";
 import { startWarmer } from "../prices";
 import { closeDb } from "../db";
 
@@ -116,6 +116,13 @@ async function startServer() {
       router: appRouter,
       createContext,
     }),
+  );
+
+  // Universal-link / App-Link association documents. Served regardless of
+  // whether a web export exists (they are API-adjacent, not part of the SPA).
+  const wellKnown = registerWellKnown(app);
+  console.log(
+    `[well-known] apple-app-site-association: ${wellKnown.apple ? "served" : "not configured (APPLE_TEAM_ID unset)"}; assetlinks.json: ${wellKnown.android ? "served" : "not configured (ANDROID_SHA256_CERT_FINGERPRINTS unset)"}`,
   );
 
   // Same-origin web hosting: serves the `expo export` SPA (incl. /sw.js) when

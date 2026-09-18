@@ -10,6 +10,7 @@ import { showAlert } from "@/lib/alert";
 import { clearAllData } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
 import { getApiBaseUrl } from "@/constants/oauth";
+import { getPrivacyPolicyUrl, getSupportMailtoUrl } from "@/lib/legal-links";
 import * as Auth from "@/lib/_core/auth";
 import { LOG_ERROR } from "@shared/log";
 
@@ -181,9 +182,17 @@ export function AboutSection() {
           }
         />
         <TouchableOpacity activeOpacity={0.7}
-          onPress={() =>
-            Linking.openURL("https://productstockfinder.app/privacy")
-          }
+          onPress={() => {
+            const url = getPrivacyPolicyUrl();
+            if (!url) {
+              showAlert(
+                "Privacy Policy",
+                "The privacy policy URL isn't configured for this build.",
+              );
+              return;
+            }
+            void Linking.openURL(url);
+          }}
           accessibilityLabel="Open privacy policy"
           accessibilityRole="link"
         >
@@ -241,9 +250,7 @@ export function AboutSection() {
           />
         </TouchableOpacity>
         <TouchableOpacity activeOpacity={0.7}
-          onPress={() =>
-            Linking.openURL("mailto:support@productstockfinder.app")
-          }
+          onPress={() => void Linking.openURL(getSupportMailtoUrl())}
           accessibilityLabel="Contact support"
           accessibilityRole="link"
         >
