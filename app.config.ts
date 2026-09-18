@@ -85,6 +85,10 @@ const config: ExpoConfig = {
     associatedDomains: getIosAssociatedDomains(webHost),
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
+      // Shown in the iOS permission prompt. Without it the OS rejects the
+      // notification request on a release build.
+      NSUserNotificationsUsageDescription:
+        "Product Stock Finder notifies you when a watched product drops below your target price, comes back in stock, or a reminder is due.",
     },
   },
   android: {

@@ -2064,3 +2064,11 @@
 - [x] **Dead privacy-policy link** (`https://productstockfinder.app/privacy` → NXDOMAIN) would block App Store + Play Store submission. Added `lib/legal-links.ts` (`getPrivacyPolicyUrl`/`getSupportEmail`, overridable via `EXPO_PUBLIC_PRIVACY_URL`/`EXPO_PUBLIC_SUPPORT_EMAIL`, defaulting to the deployed web host) and a real `app/privacy.tsx` policy page served by the SPA. Support email now defaults to the verified domain instead of a dead mailbox
 - [x] Tests: `tests/well-known.test.ts` (AASA/assetlinks builders + live routes + unconfigured 404s); E2E root `tsc 0`, lint 0 errors, root `312 passed | 1 skipped` / `1851 passed`, `pnpm build` + `smoke:web` green
 - [ ] Needs values only you have: `APPLE_TEAM_ID`, `ANDROID_SHA256_CERT_FINGERPRINTS` (from the signing keystore) on Railway, then universal links verify
+
+## Phase 238: Store submission metadata
+
+- [x] `eas.json`: added `channel` to preview/production build profiles and `submit` profiles (production + internal) with Android `track: internal`, `releaseStatus: draft` (validated against the installed eas-cli's `SubmissionAndroidReleaseStatus` enum). No placeholder values — iOS `ascAppId` is intentionally omitted so EAS prompts on first submit
+- [x] `app.config.ts`: added `NSUserNotificationsUsageDescription` (without it iOS rejects the notification permission request on a release build). Deliberately did NOT add `buildNumber`/`versionCode` — `appVersionSource: remote` manages those
+- [x] `docs/store-listing.md`: store copy (short/full description, keywords), identity table, required screenshot/icon assets, data-safety answers, and the exact `eas build`/`eas submit` commands
+- [x] `tests/store-config.test.ts`: guards the usage string (exact key + non-empty value), iOS/Android identifier lockstep, valid eas.json profiles with no `REPLACE_WITH` placeholder, and the listing doc (verified non-vacuous)
+- [x] E2E root `tsc 0`, lint 0 errors, root `313 passed | 1 skipped` / `1855 passed`, desktop 218, `pnpm build` + `smoke:web` green
