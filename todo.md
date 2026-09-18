@@ -2049,3 +2049,11 @@
 - [x] The Rust poller only evaluated price alerts, so signed-out desktop users with a back-in-stock watch never got notified; the renderer now runs the TS `checkRestocks` on each `prices-checked` sweep
 
 - [x] Tests: `rate-limit-bounded` (verified non-vacuous), Rust `parse_price_from_text_takes_only_the_first_number` + `text_mentions_model_requires_a_token_boundary`, updated `notifications` fake DB for the transaction; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `310 passed | 1 skipped` / `1843 passed`, desktop `43 passed` / `218 passed`, DB 17 passed, Rust 20 passed, `pnpm build` + `smoke:web` green
+
+## Phase 236: Public repo + CI green (billing unblocked, migration fix)
+
+- [x] Repo flipped to **public** (`pnoch/product-stock-finder`) after a secret scan (no `.env` tracked, no real API keys — `re_K5…` appears 0 times, VAPID hits are names/test placeholders, all DB URLs are localhost test creds) and scrubbing Railway service/proxy/deployment IDs from `docs/HANDOVER.md` + `todo.md`
+- [x] CI now runs end-to-end (billing gate gone): **typecheck, desktop typecheck, lint, root tests, desktop tests all pass in CI**
+- [x] Fixed the `pnpm db:push` CI failure: `drizzle/0023_quiet_hours.sql` ended with a trailing `--> statement-breakpoint`, so drizzle emitted an empty final statement and MySQL rejected it (`ER_EMPTY_QUERY: Query was empty`), aborting the migration run. Reproduced locally against a fresh DB, removed the trailing breakpoint, verified a clean-DB migrate + 17 DB tests
+- [x] Added `tests/migration-files.test.ts` (no trailing breakpoint, no empty statements) — verified non-vacuous
+- [x] E2E root `tsc 0`, lint 0 errors, root `311 passed | 1 skipped` / `1845 passed`
