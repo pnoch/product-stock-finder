@@ -1038,7 +1038,7 @@ async fn scrape_distributor(
         "flytec-us" => scrapers::flytec::scrape(model, false).await,
         "mbsiwav-ca" => scrapers::mbsiwav::scrape(model, true).await,
         "multilink-us" => scrapers::multilink::scrape(model, true).await,
-        "neobits-us" => scrapers::neobits::scrape(model, false).await,
+        "neobits-us" => scrapers::neobits::scrape(model, true).await,
         _ => Err(format!("No scraper for distributor: {}", distributor_id)),
     }
 }
