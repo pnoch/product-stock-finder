@@ -19,33 +19,42 @@ const TWO_PRODUCT_HTML = `
   </div>
 </div>`;
 
+// Parsers that legitimately cannot handle this synthetic markup (their real
+// sites use a different card structure). Everything else MUST parse it and
+// select the target card — a parser that regresses to always returning null
+// would otherwise pass vacuously.
+const CANNOT_PARSE_SYNTHETIC = new Set<string>([
+  // getic reads the model from aria-label/alt/href attributes, not text nodes,
+  // so this text-only synthetic card has no model signal for it to match.
+  "getic-gr",
+]);
+
 describe("parser wrong-product guard (adversarial two-product page)", () => {
   for (const parser of PARSERS) {
-    it(`${parser.id} returns the target card's price, never the decoy's`, () => {
+    it(`${parser.id} selects the target card, never the decoy`, () => {
       let result;
       try {
         result = parser.parsePrice(TWO_PRODUCT_HTML, "TARGET-MODEL-9Z");
-      } catch {
-        // A parser that cannot handle this markup must not throw.
+      } catch (e) {
+        throw new Error(`${parser.id} threw on the adversarial page: ${e}`);
+      }
+      if (CANNOT_PARSE_SYNTHETIC.has(parser.id)) {
+        expect(result, `${parser.id} should not parse this markup`).toBeNull();
         return;
       }
-      // A parser that successfully parses this page must select the TARGET
-      // card ($1), not the decoy ($999) — asserting the exact price catches a
-      // wrong-but-not-999 result too.
-      if (result !== null) {
-        expect(result.price, `${parser.id} selected the wrong card`).toBe(1);
-      }
+      // Must parse AND pick the target card ($1), not the decoy ($999).
+      expect(result, `${parser.id} returned no price`).not.toBeNull();
+      expect(result!.price, `${parser.id} selected the wrong card`).toBe(1);
     });
   }
 
-  it("at least one parser exercises the guard (not a vacuous suite)", () => {
-    const parsed = PARSERS.filter((p) => {
-      try {
-        return p.parsePrice(TWO_PRODUCT_HTML, "TARGET-MODEL-9Z") !== null;
-      } catch {
-        return false;
-      }
-    });
-    expect(parsed.length).toBeGreaterThan(0);
+  it("keeps the exception list explicit and small", () => {
+    // Every parser must be exercised by the loop above; the only ones allowed
+    // to skip are the documented exceptions, and they must be real parser ids.
+    const ids = new Set(PARSERS.map((p) => p.id));
+    for (const id of CANNOT_PARSE_SYNTHETIC) {
+      expect(ids.has(id), `${id} is not a registered parser`).toBe(true);
+    }
+    expect(CANNOT_PARSE_SYNTHETIC.size).toBeLessThanOrEqual(2);
   });
 });

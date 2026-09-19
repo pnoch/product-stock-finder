@@ -14,7 +14,7 @@
     "lint": "expo lint app components lib hooks server shared scripts desktop/src desktop/tests",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:db": "vitest run tests/sync-e2e.test.ts tests/sync-db.test.ts",
+    "test:db": "vitest run tests/sync-e2e.test.ts tests/sync-db.test.ts tests/create-user-transaction.test.ts",
     "smoke:web": "node scripts/smoke-web.mjs",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "android": "expo run:android",

@@ -14,7 +14,7 @@ import type {
 // then one cell per day anchored to local midnight. Uses calendar-date
 // arithmetic (setDate) rather than fixed 24h steps so a DST transition cannot
 // skip a day or shift the grid.
-function buildGridCells(days: number, now: number): (number | null)[] {
+export function buildGridCells(days: number, now: number): (number | null)[] {
   const cells: (number | null)[] = [];
   const nowDate = new Date(now);
   const todayMidnight = new Date(

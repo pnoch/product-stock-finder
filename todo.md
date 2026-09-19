@@ -2135,3 +2135,12 @@
 - [x] **Mobile `mikrotikstore` resolver picked accessory pages**: a PSU slug embeds the model it fits, so coverage+length scoring chose the power supply. Now penalizes accessory keywords and prefers shorter slugs
 - [x] **All 25 Rust stock selectors were the generic fallback**; synced each to its mobile counterpart
 - [x] E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `317 passed | 1 skipped` / `1874 passed`, desktop `43 passed` / `218 passed`, DB 17, Rust 24, `pnpm build` + `smoke:web` green
+
+## Phase 244: Test-quality fixes (vacuous tests, untested critical paths)
+
+- [x] **`drop-calendar-dst` tested a local copy of the logic**: it defined its own `buildGridCells` and tested that, so the real component could break freely. Exported the real function and imported it (verified non-vacuous by reverting the component to the DST-buggy version)
+- [x] **`adversarial` parser test passed vacuously**: each case `return`ed for any parser that couldn't parse, and only asserted `if (result !== null)`. Now asserts every parser MUST parse and pick the target card, with a documented 1-entry exception list (`getic-gr` reads the model from attributes) plus a guard that the exception list is explicit and small
+- [x] **`round10-guards` conditional assertion**: the `findBestDeal` NaN check was wrapped in `if (deal)`, so a regression to `return null` passed. Now asserts non-null first
+- [x] **`web-export-invariants` was 3/4 no-op in CI**: CI runs `pnpm test` before `pnpm build`, so the dist-web/dist checks returned early. Replaced with source-level invariants that always run — a scan of `app/components/lib/hooks/constants/shared` for `import.meta` (comment-stripped) plus the sw.js precache check (verified non-vacuous)
+- [x] **`createUserWithPassword` had no test** despite its stated atomicity guarantee. Added `tests/create-user-transaction.test.ts` (3 DB-backed cases: creates with hash, re-hashes without nulling, no NULL-hash rows) and wired it into `pnpm test:db` (verified non-vacuous)
+- [x] E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `317 passed | 2 skipped` / `1872 passed`, desktop `43 passed` / `218 passed`, DB `3 files` / `20 passed`, Rust 24, `pnpm build` + `smoke:web` green

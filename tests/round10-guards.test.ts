@@ -98,9 +98,10 @@ describe("prototype-key and NaN guards", () => {
       "Asia-Pacific",
       "USD",
     );
-    if (deal) {
-      expect(Number.isFinite(deal.total)).toBe(true);
-      expect(Number.isFinite(deal.tax)).toBe(true);
-    }
+    // A single in-stock listing must produce a deal; asserting non-null stops
+    // a regression to `return null` from passing vacuously.
+    expect(deal).not.toBeNull();
+    expect(Number.isFinite(deal!.total)).toBe(true);
+    expect(Number.isFinite(deal!.tax)).toBe(true);
   });
 });
