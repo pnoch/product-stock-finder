@@ -25,6 +25,14 @@ describe("matchesModel", () => {
   it("rejects embedded occurrences", () => {
     expect(matchesModel("xRB5009y", "RB5009")).toBe(false);
     expect(matchesModel("4032CRS804 kit", "CRS804")).toBe(false);
+    // A digit prefix means a different model number.
+    expect(matchesModel("CRS3260-24G", "CRS326")).toBe(false);
+  });
+
+  it("matches whitespace-less card text (brand concatenated to the model)", () => {
+    // Aerial renders "MikroTik" immediately before the model with no separator.
+    expect(matchesModel("MikroTikCRS326-24G-2S+IN", "CRS326-24G-2S+")).toBe(true);
+    expect(matchesModel("MikroTikCRS326-24S+2Q+RM", "CRS326-24S+2Q+RM")).toBe(true);
   });
 
   it("is case-insensitive and separator-flexible", () => {

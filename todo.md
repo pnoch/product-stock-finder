@@ -2144,3 +2144,9 @@
 - [x] **`web-export-invariants` was 3/4 no-op in CI**: CI runs `pnpm test` before `pnpm build`, so the dist-web/dist checks returned early. Replaced with source-level invariants that always run — a scan of `app/components/lib/hooks/constants/shared` for `import.meta` (comment-stripped) plus the sw.js precache check (verified non-vacuous)
 - [x] **`createUserWithPassword` had no test** despite its stated atomicity guarantee. Added `tests/create-user-transaction.test.ts` (3 DB-backed cases: creates with hash, re-hashes without nulling, no NULL-hash rows) and wired it into `pnpm test:db` (verified non-vacuous)
 - [x] E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `317 passed | 2 skipped` / `1872 passed`, desktop `43 passed` / `218 passed`, DB `3 files` / `20 passed`, Rust 24, `pnpm build` + `smoke:web` green
+
+## Phase 245: Scraper card-boundary + model-matching fixes
+
+- [x] **A shared row container swallowed every card**: `productRowContext`/`modelMismatch` used one `closest()` list where `tr`/`li` came first, so on Aerial (whose whole results grid is one `<tr>`) every price resolved to the shared row — whose text names every model — and the first card's price won. Split into specific card selectors (preferred) and generic row selectors (fallback), in both TS and Rust. Verified non-vacuous in both
+- [x] **`matchesModel` rejected whitespace-less card text**: "MikroTikCRS326-24G-2S+IN" (brand concatenated to the model, as Aerial renders it) failed the leading-boundary check. A preceding LETTER is now allowed (brand concatenation) while a preceding DIGIT still rejects ("4032CRS804", "CRS3260" vs "CRS326"). Verified non-vacuous
+- [x] Tests: `scraper-card-boundary` (3 cases), `utils.test.ts` whitespace-less case, Rust `card_boundary_beats_a_shared_row`; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `318 passed | 2 skipped` / `1876 passed`, desktop `43 passed` / `218 passed`, DB 20, Rust 25, `pnpm build` + `smoke:web` green

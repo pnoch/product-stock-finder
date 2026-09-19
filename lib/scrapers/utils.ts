@@ -157,14 +157,16 @@ export function matchesModel(text: string, model: string): boolean {
     const end = start + match[0].length;
     const before = start > 0 ? text[start - 1]! : "";
     const after = end < text.length ? text[end]! : "";
-    if (!/[a-z0-9]/i.test(before) && !/[a-z0-9]/i.test(after)) return true;
+    // Card text is often whitespace-less ("MikroTikCRS326-24G-2S+IN"), so a
+    // preceding LETTER is a brand concatenation and must be allowed. A
+    // preceding DIGIT means the model is embedded in a longer number
+    // ("4032CRS804"), which must stay rejected. The trailing boundary still
+    // prevents "CRS326" matching inside "CRS3260".
+    const beforeOk = !/[a-z0-9]/i.test(before) || /[a-z]/i.test(before);
+    if (beforeOk && !/[a-z0-9]/i.test(after)) return true;
     // Tolerate known SKU suffixes (e.g. "+RM", "-IN") only when the model
     // itself ends with a separator; mid-token extensions stay rejected.
-    if (
-      !/[a-z0-9]/i.test(before) &&
-      !/[a-z0-9]/i.test(lastChar) &&
-      /[a-z0-9]/i.test(after)
-    ) {
+    if (beforeOk && !/[a-z0-9]/i.test(lastChar) && /[a-z0-9]/i.test(after)) {
       const tail = text.slice(end).match(/^[a-z0-9]+/i)?.[0] ?? "";
       if (/^[a-z]{2,3}$/i.test(tail) && COMMERCE_SUFFIXES.has(tail.toLowerCase()))
         return true;
@@ -173,14 +175,28 @@ export function matchesModel(text: string, model: string): boolean {
   return false;
 }
 
+// Specific product-card containers. Preferred over the generic row selectors
+// below, because a single <tr>/<li> can wrap SEVERAL product cards (Aerial puts
+// its whole results grid in one <tr>), in which case the row's text contains
+// every model and would validate any price inside it.
+const CARD_SELECTORS =
+  "article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .product-card, .aerial-card, .ac-item, .item";
+// Generic row containers, used only when no specific card is found (e.g. a
+// table where each product is its own <tr>).
+const ROW_SELECTORS = "tr, li";
+
+function closestContainer(
+  $el: Cheerio<Element>,
+  selectors: string,
+): Cheerio<Element> {
+  return $el.closest(selectors).first() as unknown as Cheerio<Element>;
+}
+
 export function productRowContext(
   $el: Cheerio<Element>,
 ): { text: string; href: string } {
-  const row = $el
-    .closest(
-      "tr, article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .item, .product-card, li",
-    )
-    .first();
+  const card = closestContainer($el, CARD_SELECTORS);
+  const row = card.length > 0 ? card : closestContainer($el, ROW_SELECTORS);
   const container = row.length ? row : $el;
   const href = container.find("a[href]").first().attr("href") ?? "";
   return { text: container.text(), href };
@@ -195,13 +211,10 @@ export function modelMismatch(
   // containers (a search-results header naming the model, the <body>), whose
   // text would satisfy the model check for *any* price on the page — letting a
   // decoy price through. If a card exists, the verdict must come from it alone.
-  const card = $el
-    .closest(
-      "tr, article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .item, .product-card, li",
-    )
-    .first() as unknown as Cheerio<Element>;
-  if (card.length > 0) {
-    const { text, href } = productRowContext(card);
+  const card = closestContainer($el, CARD_SELECTORS);
+  const row = card.length > 0 ? card : closestContainer($el, ROW_SELECTORS);
+  if (row.length > 0) {
+    const { text, href } = productRowContext($el);
     if (text.trim() || href) {
       return !(matchesModel(text, model) || matchesModel(href, model));
     }

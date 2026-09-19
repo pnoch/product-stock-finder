@@ -220,23 +220,30 @@ pub fn text_mentions_model(text: &str, model: &str) -> bool {
     false
 }
 
-/// Product-card selectors, mirroring the mobile `modelMismatch` guard.
-const CARD_SELECTOR: &str = "tr, article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .item, .product-card, li";
+/// Specific product-card selectors, mirroring the mobile CARD_SELECTORS.
+/// Preferred over the generic row selectors below: a single <tr>/<li> can wrap
+/// SEVERAL product cards (Aerial puts its whole results grid in one <tr>), in
+/// which case the row's text names every model and would validate any price.
+const CARD_SELECTOR: &str = "article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .product-card, .aerial-card, .ac-item, .item";
+/// Generic row containers, used only when no specific card is found.
+const ROW_SELECTOR: &str = "tr, li";
 
 /// True when the price element's *own product card* names the model. Walking
 /// past the card would reach page-level containers (a search-results header
 /// naming the model, `<body>`) whose text would validate any price on the page.
 fn price_element_matches_model(el: &ElementRef, model: &str) -> bool {
-    if let Ok(card_sel) = Selector::parse(CARD_SELECTOR) {
-        if let Some(card) = el
-            .ancestors()
-            .filter_map(ElementRef::wrap)
-            .find(|a| card_sel.matches(a))
-        {
-            return text_mentions_model(&card.text().collect::<String>(), model);
+    for selector in [CARD_SELECTOR, ROW_SELECTOR] {
+        if let Ok(sel) = Selector::parse(selector) {
+            if let Some(container) = el
+                .ancestors()
+                .filter_map(ElementRef::wrap)
+                .find(|a| sel.matches(a))
+            {
+                return text_mentions_model(&container.text().collect::<String>(), model);
+            }
         }
     }
-    // No card boundary: only the element and its immediate parent are safe.
+    // No container boundary: only the element and its immediate parent are safe.
     el.ancestors()
         .take(2)
         .filter_map(ElementRef::wrap)
@@ -373,6 +380,33 @@ mod tests {
     #[test]
     fn infer_stock_status_treats_expected_as_back_order() {
         assert_eq!(infer_stock_status("Expected 15 Sept"), "back_order");
+    }
+
+    #[test]
+    fn card_boundary_beats_a_shared_row() {
+        // Two products inside ONE <tr>, each in its own card. The requested
+        // model's card must win, not the first card in the row.
+        let html = r#"
+          <table><tr>
+            <td><div class="aerial-card">
+              <a href="/p/crs326-24g-2s-in">MikroTik CRS326-24G-2S+IN</a>
+              <span class="ac-price">$154.76</span>
+            </div></td>
+            <td><div class="aerial-card">
+              <a href="/p/crs326-4c-20g-2q-rm">MikroTik CRS326-4C+20G+2Q+RM</a>
+              <span class="ac-price">$999.00</span>
+            </div></td>
+          </tr></table>"#;
+        let result = parse_price_page(
+            html,
+            "https://example.com",
+            "CRS326-4C+20G+2Q+RM",
+            "EUR",
+            ".ac-price",
+            ".stock",
+        )
+        .expect("should find the matching card");
+        assert_eq!(result.price, 999.0);
     }
 
     #[test]
