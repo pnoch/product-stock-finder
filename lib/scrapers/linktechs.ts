@@ -16,7 +16,15 @@ function parseHtml(
 ): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const $price = findPriceElement($, ".product-price, .price, [data-product-price]", model);
+  // NopCommerce renders both an old (strikethrough) and an actual price with
+  // the same `.price` class; the old one comes first in document order, so a
+  // bare `.price` selector returned the pre-discount price. Prefer the
+  // actual-price classes, falling back to `.price` only if absent.
+  const $price = findPriceElement(
+    $,
+    ".actual-price, [data-product-price], .product-price, .price",
+    model,
+  );
   if (!$price || $price.length === 0) return null;
   const price = parsePriceFromText($price.text());
   if (!price) return null;

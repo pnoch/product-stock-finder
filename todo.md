@@ -2099,3 +2099,19 @@
 - [x] Reschedule storage writes were outside try/catch (unhandled rejection + stuck modal); now guarded
 - [x] `getTaxRate` / `CURRENCY_SYMBOLS` prototype-key access; `best-deal` NaN `taxRate` producing a NaN landed cost; `getSupportEmail` empty-string override
 - [x] Tests: `round10-guards` (7 cases, key ones verified non-vacuous), Rust space-grouping test; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `315 passed | 1 skipped` / `1865 passed`, desktop `43 passed` / `218 passed`, DB 17, Rust 21, `pnpm build` + `smoke:web` green
+
+## Phase 241: Whole-app review round 11 (data-loss paths, wrong prices)
+
+**Data loss (highest impact)**
+- [x] **`markDirty` tombstoned unknown ids**: a mutation reporting an id not present locally (stale UI, removed on another device, double-tap after removal) created a fresh tombstone that wins LWW and **deletes the item on the other device**. Now only tombstones an id that was previously synced (verified non-vacuous)
+- [x] **Edits during a sync were silently never synced**: `setChangeSuppressed(true)` dropped `notify` entirely with no replay, so a local edit made during the sync window was never marked dirty and was treated as already-synced forever (settings worse: absorbed into the merge base). Suppressed changes are now buffered and replayed on unsuppress, skipping keys the sync itself applied (verified non-vacuous)
+- [x] **IDB `withStore` resolved on `req.onsuccess`, not commit**: a commit-time abort (quota/teardown) was invisible, and `setItem` had already deleted the localStorage copy → silent data loss. Writes now resolve on `tx.oncomplete` (reads still resolve on request success)
+- [x] **IDB `removeItem`/`multiRemove` swallowed failures and still deleted localStorage**, so the stale IDB value resurrected on the next read (and `clearAllData` could report success while leaving data). Now only the IDB-unavailable case falls back; real failures propagate
+
+**Wrong prices (scrapers)**
+- [x] **`findPriceElement` ignored selector priority**: it merged the selector list into one query and picked by depth/document order, so `.actual-price, .price` returned the strikethrough price. It now tries each selector in order and returns the first that matches (verified non-vacuous)
+- [x] **linktechs returned the old price** ($599 instead of $499) — NopCommerce renders `old-price` before `actual-price`; selector now prefers `.actual-price`
+- [x] **balticnetworks included an ancestor container** (`.productitem__price`) whose first digit run is the "Original price" compare-at; dropped it
+- [x] Synced both selector changes into the Rust parsers (parity test caught the drift)
+
+- [x] Tests: `scraper-strikethrough-price`, `sync-dirty-guards` (both verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `317 passed | 1 skipped` / `1873 passed`, desktop `43 passed` / `218 passed`, DB 17, Rust 21, `pnpm build` + `smoke:web` green

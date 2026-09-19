@@ -16,7 +16,15 @@ function parseHtml(
 ): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const $price = findPriceElement($, ".price__current, [data-price-container], .productitem__price", model);
+  // `.productitem__price` is an ANCESTOR of `.price__current` and contains the
+  // "Original price" compare-at text first, so including it made
+  // parsePriceFromText return the pre-discount price. Use the current-price
+  // element only.
+  const $price = findPriceElement(
+    $,
+    ".price__current, [data-price-container]", 
+    model,
+  );
   if (!$price || $price.length === 0) return null;
   const price = parsePriceFromText($price.text());
   if (!price) return null;

@@ -26,7 +26,7 @@ export interface StorageContext {
   setOnChange(
     fn: ((collection: Collection, itemId: string) => void) | null,
   ): void;
-  setChangeSuppressed(flag: boolean): void;
+  setChangeSuppressed(flag: boolean, ignoreKeys?: Set<string>): void;
   enqueue<T>(key: string, fn: () => Promise<T>): Promise<T>;
   drainQueues(): Promise<void>;
   readList<T>(key: string): Promise<T[]>;
@@ -66,9 +66,19 @@ export function createContext(adapter: StorageAdapter): StorageContext {
   let onChange: ((collection: Collection, itemId: string) => void) | null =
     null;
   let suppressChange = false;
+  // Changes that arrive while suppressed are buffered and replayed when
+  // suppression ends. Dropping them (the previous behavior) meant a local edit
+  // made during a sync was never marked dirty, so it was treated as
+  // already-synced and never uploaded.
+  const suppressedChanges: Array<[Collection, string]> = [];
 
   function notify(collection: Collection, itemId: string) {
-    if (!suppressChange && onChange) onChange(collection, itemId);
+    if (!onChange) return;
+    if (suppressChange) {
+      suppressedChanges.push([collection, itemId]);
+      return;
+    }
+    onChange(collection, itemId);
   }
 
   function setOnChange(
@@ -77,8 +87,16 @@ export function createContext(adapter: StorageAdapter): StorageContext {
     onChange = fn;
   }
 
-  function setChangeSuppressed(flag: boolean) {
+  function setChangeSuppressed(flag: boolean, ignoreKeys?: Set<string>) {
     suppressChange = flag;
+    if (flag) return;
+    // Replay buffered changes now that suppression has lifted, skipping the
+    // keys the sync itself just applied (those are already stamped).
+    const pending = suppressedChanges.splice(0);
+    for (const [collection, itemId] of pending) {
+      if (ignoreKeys?.has(`${collection}:${itemId}`)) continue;
+      onChange?.(collection, itemId);
+    }
   }
 
   // Serializes read-modify-write operations per key to prevent lost updates

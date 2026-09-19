@@ -256,17 +256,29 @@ export function findPriceElement(
   selector: string,
   model?: string,
 ): Cheerio<Element> | null {
-  const $prices = $(selector);
-  if ($prices.length === 0) return null;
-  if (!model) return $prices.first();
-  let best: Cheerio<Element> | null = null;
-  let bestDepth = Infinity;
-  $prices.each((index, _el) => {
-    const depth = matchDepth($prices.eq(index), model);
-    if (depth < bestDepth) {
-      bestDepth = depth;
-      best = $prices.eq(index);
-    }
-  });
-  return bestDepth === Infinity ? null : best;
+  // Try each selector in the list IN ORDER and return the best match from the
+  // first selector that matches anything. Selector order is the caller's
+  // priority (e.g. ".actual-price, .price" must prefer the actual price);
+  // merging them into one query would fall back to document order and pick the
+  // strikethrough/compare-at price that happens to come first.
+  const selectors = selector
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  for (const single of selectors) {
+    const $prices = $(single);
+    if ($prices.length === 0) continue;
+    if (!model) return $prices.first();
+    let best: Cheerio<Element> | null = null;
+    let bestDepth = Infinity;
+    $prices.each((index, _el) => {
+      const depth = matchDepth($prices.eq(index), model);
+      if (depth < bestDepth) {
+        bestDepth = depth;
+        best = $prices.eq(index);
+      }
+    });
+    if (bestDepth !== Infinity) return best;
+  }
+  return null;
 }

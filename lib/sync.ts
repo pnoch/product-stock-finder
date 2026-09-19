@@ -134,7 +134,7 @@ async function doSync(
       }
     }
   } finally {
-    storage.setChangeSuppressed(false);
+    storage.setChangeSuppressed(false, applied);
   }
 
   // Full resync: the server's tombstone window has moved past our cursor, so
@@ -708,9 +708,16 @@ async function markDirty(
   const exists = await itemExists(storage, collection, id);
   if (exists) {
     await storage.setItemSyncMeta(collection, id, now);
-  } else {
-    await storage.markItemDeleted(collection, id, now);
+    return;
   }
+  // A mutation that reported an id which isn't present locally (stale UI,
+  // removed on another device, double-tap after removal) must NOT create a
+  // fresh tombstone: that tombstone wins LWW and deletes the item on the other
+  // device. Only tombstone an item that was previously synced.
+  const meta = await storage.getSyncMeta();
+  const known = meta.items[collection]?.[id];
+  if (!known) return;
+  await storage.markItemDeleted(collection, id, now);
 }
 
 const RETRY_BASE_MS = 30_000;

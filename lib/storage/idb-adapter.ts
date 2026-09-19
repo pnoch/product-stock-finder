@@ -4,10 +4,14 @@ const DB_NAME = "psf-storage";
 const STORE_NAME = "kv";
 const DB_VERSION = 1;
 
+// Marker so callers can tell "IDB is not usable here" (fall back to
+// localStorage) apart from "the IDB operation failed" (must surface).
+class IdbUnavailableError extends Error {}
+
 function openDB(): Promise<any> {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === "undefined") {
-      reject(new Error("indexedDB unavailable"));
+      reject(new IdbUnavailableError("indexedDB unavailable"));
       return;
     }
     const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -29,12 +33,39 @@ function withStore<T>(mode: string, fn: (store: any) => any): Promise<T> {
         const tx = db.transaction(STORE_NAME, mode);
         const store = tx.objectStore(STORE_NAME);
         const req = fn(store);
-        req.onsuccess = () => resolve(req.result as T);
-        req.onerror = () => reject((req as any).error ?? new Error("indexedDB request failed"));
-        tx.oncomplete = () => db.close();
+        let result: T;
+        let settled = false;
+        req.onsuccess = () => {
+          result = req.result as T;
+          // For reads the request result is the answer; for writes we wait for
+          // the transaction to commit so a commit-time abort (quota, teardown)
+          // is surfaced instead of silently losing the write.
+          if (mode === "readonly") {
+            settled = true;
+            resolve(result);
+          }
+        };
+        req.onerror = () => {
+          settled = true;
+          reject((req as any).error ?? new Error("indexedDB request failed"));
+        };
+        tx.oncomplete = () => {
+          db.close();
+          if (!settled) resolve(result);
+        };
         tx.onerror = () => {
           db.close();
-          reject((tx as any).error ?? new Error("indexedDB transaction failed"));
+          if (!settled) {
+            settled = true;
+            reject((tx as any).error ?? new Error("indexedDB transaction failed"));
+          }
+        };
+        tx.onabort = () => {
+          db.close();
+          if (!settled) {
+            settled = true;
+            reject((tx as any).error ?? new Error("indexedDB transaction aborted"));
+          }
         };
       }),
   );
@@ -102,10 +133,14 @@ export function createIDBAdapter(): StorageAdapter {
       }
     },
     async removeItem(key: string): Promise<void> {
+      // Only drop the localStorage copy once the IDB delete has committed.
+      // Deleting it after a failed IDB delete left the stale IDB value in place
+      // (getItem prefers IDB), so the deleted data resurrected on the next read.
       try {
         await withStore("readwrite", (s) => s.delete(key));
-      } catch {
-        // Fall through to the localStorage delete below.
+      } catch (e) {
+        if (!(e instanceof IdbUnavailableError)) throw e;
+        // IDB unusable: localStorage is the only store, so delete there.
       }
       removeLocalStorage(key);
     },
@@ -124,9 +159,13 @@ export function createIDBAdapter(): StorageAdapter {
             db.close();
             reject((tx as any).error ?? new Error("multiRemove failed"));
           };
+          tx.onabort = () => {
+            db.close();
+            reject((tx as any).error ?? new Error("multiRemove aborted"));
+          };
         });
-      } catch {
-        // Fall through to the localStorage deletes below.
+      } catch (e) {
+        if (!(e instanceof IdbUnavailableError)) throw e;
       }
       keys.forEach(removeLocalStorage);
     },
