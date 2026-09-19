@@ -16,7 +16,13 @@ function parseHtml(
 ): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const $price = findPriceElement($, ".price, [data-selenium='uppedDecimalPriceFirst'], .product-price", model);
+  // Specific price attribute first: with selector-priority semantics the first
+  // matching selector wins, so the broad `.price` must not precede it.
+  const $price = findPriceElement(
+    $,
+    "[data-selenium='uppedDecimalPriceFirst'], .product-price, .price",
+    model,
+  );
   if (!$price || $price.length === 0) return null;
   const price = parsePriceFromText($price.text());
   if (!price) return null;

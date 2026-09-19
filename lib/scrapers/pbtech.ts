@@ -16,7 +16,11 @@ function parseHtml(
 ): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const $price = findPriceElement($, ".price, .product-price, [data-product-price]", model);
+  const $price = findPriceElement(
+    $,
+    ".product-price, [data-product-price], .price",
+    model,
+  );
   if (!$price || $price.length === 0) return null;
   const price = parsePriceFromText($price.text());
   if (!price) return null;

@@ -35,6 +35,55 @@ describe("idb-adapter remove paths", () => {
   });
 });
 
+describe("idb-adapter setItem durability", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("surfaces a real IDB write failure instead of shadowing it", async () => {
+    // A quota/abort failure must NOT silently fall back to localStorage:
+    // getItem prefers IDB, so the stale IDB value would shadow the new write.
+    const failingDb = {
+      transaction: () => {
+        const tx: Record<string, unknown> = {};
+        const req: Record<string, unknown> = {};
+        // Fail the request asynchronously, after handlers are attached.
+        setTimeout(() => {
+          (req.onerror as (() => void) | undefined)?.();
+        }, 0);
+        tx.objectStore = () => ({
+          put: () => req,
+          delete: () => req,
+          get: () => req,
+        });
+        return tx;
+      },
+      close: () => {},
+    };
+    vi.stubGlobal("indexedDB", {
+      open: () => {
+        const openReq: Record<string, unknown> = {};
+        setTimeout(() => {
+          (openReq.onsuccess as (() => void) | undefined)?.();
+        }, 0);
+        return Object.assign(openReq, { result: failingDb });
+      },
+    });
+    const lsSet = vi.fn();
+    vi.stubGlobal("localStorage", {
+      getItem: () => null,
+      setItem: lsSet,
+      removeItem: () => {},
+    });
+    const { createIDBAdapter } = await import("../lib/storage/idb-adapter");
+    const adapter = createIDBAdapter();
+    await expect(adapter.setItem("k", "v")).rejects.toBeTruthy();
+    // Must not have written the fallback copy (which would be shadowed).
+    expect(lsSet).not.toHaveBeenCalled();
+  });
+});
+
 describe("idb-adapter localStorage migration", () => {
   afterEach(() => {
     vi.restoreAllMocks();

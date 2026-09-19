@@ -26,7 +26,7 @@ fn parse_html(html: &str, url: &str, model: &str) -> Result<ScrapeResult, String
         url,
         model,
         "NZD",
-        ".price, .product-price, [data-product-price]",
+        ".product-price, [data-product-price], .price",
         ".stock, .availability, .product-stock, .stock-status",
     )
 }

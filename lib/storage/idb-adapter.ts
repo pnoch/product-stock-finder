@@ -119,7 +119,8 @@ export function createIDBAdapter(): StorageAdapter {
         await withStore("readwrite", (s) => s.put({ key, value: legacy }));
         removeLocalStorage(key);
       } catch {
-        // Migration write failed; still return the value so the app works.
+        // Migration write failed; keep the localStorage copy (do NOT remove it)
+        // and still return the value so the app works. The next read retries.
       }
       return legacy;
     },
@@ -128,7 +129,14 @@ export function createIDBAdapter(): StorageAdapter {
         await withStore("readwrite", (s) => s.put({ key, value }));
         // Keep the two stores from diverging if a legacy copy exists.
         removeLocalStorage(key);
-      } catch {
+      } catch (e) {
+        if (!(e instanceof IdbUnavailableError)) {
+          // A real IDB failure (quota, abort) must not silently fall back:
+          // getItem prefers IDB, so the stale IDB value would shadow the new
+          // localStorage one and the write would appear lost. Surface it.
+          throw e;
+        }
+        // IDB unusable here: localStorage is the only store.
         writeLocalStorage(key, value);
       }
     },

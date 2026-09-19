@@ -26,7 +26,7 @@ fn parse_html(html: &str, url: &str, model: &str) -> Result<ScrapeResult, String
         url,
         model,
         "USD",
-        ".price, [data-selenium='uppedDecimalPriceFirst'], .product-price",
+        "[data-selenium='uppedDecimalPriceFirst'], .product-price, .price",
         ".availability, .stock, [data-selenium='availability'], .stock-status",
     )
 }

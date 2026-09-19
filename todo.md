@@ -2156,3 +2156,9 @@
 - [x] **`neobits` could never return results**: its GET search redirects to the homepage (verified live: 622KB homepage, 0 model hits). The site's search is a JS-driven POST form, so `useBrowser: true` was added and the URL switched to the real `?search_param=all&main_search_field=` form; synced to the Rust parser + dispatch
 - [x] Verified the remaining "broken" parsers are correctly classified rather than silently wrong: `gowifi`/`networkdevices` are behind an unresolvable Cloudflare challenge (browser escalation reports blocked, not a wrong price), `hellascom` is a corporate site with no catalog, `mbsiwav` returns a JS shell — all already have `useBrowser: true`
 - [x] E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `318 passed | 2 skipped` / `1876 passed`, desktop `43 passed` / `218 passed`, DB 20, Rust 25, `pnpm build` + `smoke:web` green
+
+## Phase 247: Review round 12 (IDB write shadowing, selector-priority fallout)
+
+- [x] **`idb-adapter.setItem` silently shadowed a failed write**: it caught ALL IDB errors and fell back to localStorage, but `getItem` prefers IDB — so a real failure (quota/abort) left the stale IDB value in place and the new write appeared lost. Now only the IDB-unavailable case falls back; real failures propagate (verified non-vacuous)
+- [x] **Selector-priority change fallout**: `findPriceElement` now returns the first selector that matches, so a broad `.price` listed before a specific one would win. Reordered `bhphoto` (`[data-selenium='uppedDecimalPriceFirst']` first) and `pbtech` (`.product-price` first); synced both to Rust. Audited the other 11 lists — all already put `.product-price` before `.price`
+- [x] E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `318 passed | 2 skipped` / `1877 passed`, desktop `43 passed` / `218 passed`, DB 20, Rust 25, `pnpm build` + `smoke:web` green
