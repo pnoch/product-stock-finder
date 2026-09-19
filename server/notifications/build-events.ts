@@ -26,7 +26,7 @@ export function newEventId(): string {
 // jobs) on every run. Clamp deterministically so over-long ids still dedupe.
 const DEDUP_KEY_MAX = 255;
 
-function clampDedupKey(key: string): string {
+export function clampDedupKey(key: string): string {
   if (key.length <= DEDUP_KEY_MAX) return key;
   let hash = 0;
   for (let i = 0; i < key.length; i++) {
@@ -42,12 +42,18 @@ function clampDedupKey(key: string): string {
 const HEALTH_DEDUP_BUCKET_MS = 60 * 60 * 1000;
 
 export function dedupKeyForHealth(
-  event: { status: string },
+  event: { status: string; kind?: "alert" | "recovery" },
   distributorId: string,
   now: number = Date.now(),
 ): string {
   const bucket = Math.floor(now / HEALTH_DEDUP_BUCKET_MS);
-  return clampDedupKey(`health:${distributorId}:${event.status}:${bucket}`);
+  // `kind` separates an alert from a recovery at the same status; without it a
+  // distributor that fails and recovers within one hour bucket produced the
+  // same key and the recovery was dropped.
+  const kind = event.kind ?? "alert";
+  return clampDedupKey(
+    `health:${distributorId}:${event.status}:${kind}:${bucket}`,
+  );
 }
 
 export function dedupKeyFor(event: NotificationEvent): string {
@@ -124,7 +130,9 @@ export async function buildEvents(
     events.push({
       id: newEventId(),
       type: isRise ? "price_rise" : "price_drop",
-      dedupKey: `${isRise ? "price_rise" : "price_drop"}:${alert.id}`,
+      dedupKey: clampDedupKey(
+        `${isRise ? "price_rise" : "price_drop"}:${alert.id}`,
+      ),
       title: isRise ? "📈 Price Increase Alert!" : "💸 Price Drop Alert!",
       body: `${product?.name ?? alert.productId} is now ${formatPrice(bestPrice, alert.currency)} — ${
         isRise ? "above" : "below"
@@ -153,7 +161,9 @@ export async function buildEvents(
     events.push({
       id: newEventId(),
       type: "restock",
-      dedupKey: `restock:${watch.productId}:${watch.distributorId}`,
+      dedupKey: clampDedupKey(
+        `restock:${watch.productId}:${watch.distributorId}`,
+      ),
       title: "🟢 Back In Stock!",
       body: `${product?.name ?? watch.productId} is now available at ${distributorName}.`,
       payload: {
@@ -176,7 +186,7 @@ export async function buildEvents(
     events.push({
       id: newEventId(),
       type: "reminder",
-      dedupKey: `reminder:${reminder.id}`,
+      dedupKey: clampDedupKey(`reminder:${reminder.id}`),
       title: "📦 Back-Order Reminder",
       body: `Check ${distributorName} for ${product?.name ?? reminder.productId} — your reminder date is here!`,
       payload: {

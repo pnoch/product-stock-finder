@@ -15,5 +15,9 @@ const COUNTRY_TAX_RATES: Record<string, number> = {
 };
 
 export function getTaxRate(country: string): number {
-  return COUNTRY_TAX_RATES[country] ?? 0;
+  // Own-property check: `COUNTRY_TAX_RATES["toString"]` returns an inherited
+  // function, which would make the tax amount NaN.
+  return Object.prototype.hasOwnProperty.call(COUNTRY_TAX_RATES, country)
+    ? COUNTRY_TAX_RATES[country]!
+    : 0;
 }

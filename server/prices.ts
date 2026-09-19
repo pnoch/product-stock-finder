@@ -129,7 +129,9 @@ export async function getPrice(
     cached.fetchedAt <= Date.now() &&
     Date.now() - cached.fetchedAt < PRICE_TTL_MS;
   if (!fresh) {
-    void refreshSingleFlight(distributorId, modelNumber);
+    // Swallow a queue-full rejection: this is a fire-and-forget warm, and an
+    // unhandled rejection would log a stack on every shed request.
+    void refreshSingleFlight(distributorId, modelNumber).catch(() => {});
   }
   return { snapshot: cached, history };
 }
@@ -170,7 +172,9 @@ export async function refreshNearExpiry(now: number): Promise<void> {
   const limit = pLimit(3);
   await Promise.all(
     entries.map((entry) =>
-      limit(() => refreshSingleFlight(entry.distributorId, entry.modelNumber)),
+      limit(() =>
+        refreshSingleFlight(entry.distributorId, entry.modelNumber),
+      ).catch(() => null),
     ),
   );
 }
@@ -187,7 +191,9 @@ export async function warmCatalogRotation(count: number): Promise<number> {
   const limit = pLimit(3);
   await Promise.all(
     toWarm.map((pair) =>
-      limit(() => refreshSingleFlight(pair.distributorId, pair.modelNumber)),
+      limit(() =>
+        refreshSingleFlight(pair.distributorId, pair.modelNumber),
+      ).catch(() => null),
     ),
   );
   return toWarm.length;

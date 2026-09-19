@@ -287,7 +287,9 @@ export default function App() {
       // with a restock watch never gets notified.
       try {
         const { checkRestocks } = await import("../../lib/restock");
-        await checkRestocks();
+        // Pass the desktop store: the module default resolves to IndexedDB in a
+        // Tauri webview, which is a different store from the UI's localStorage.
+        await checkRestocks(storage);
       } catch {
         // restock failures are non-fatal
       }

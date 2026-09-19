@@ -50,6 +50,7 @@ export async function uploadHealthEventToServer(event: {
   distributorId: string;
   distributorName: string;
   status: "blocked" | "error";
+  kind?: "alert" | "recovery";
   title: string;
   body: string;
   createdAt: number;

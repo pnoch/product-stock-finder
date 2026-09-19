@@ -116,7 +116,7 @@ export function computeProductInsights(
       displayCurrency,
     ).map((p) => p.v);
 
-    const inStockPrices = product.listings
+    const inStockPrices = (product.listings ?? [])
       .filter((l) => l.stockStatus === "in_stock")
       .map((l) => convertPricePoint(l.price, l.currency, displayCurrency))
       .filter((v): v is number => v !== null);

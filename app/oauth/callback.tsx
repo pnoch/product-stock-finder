@@ -69,6 +69,10 @@ export default function OAuthCallback() {
         };
         await setSessionToken(sessionToken);
         await setUserInfo(normalized);
+        // Notify the shared auth state so the root layout starts sync/backfill/
+        // push registration without waiting for an app restart.
+        const { publishAuthUser } = await import("@/hooks/use-auth");
+        publishAuthUser(normalized);
         if (!cancelled) router.replace("/");
       } catch (err) {
         if (!cancelled) {

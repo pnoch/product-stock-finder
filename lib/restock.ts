@@ -1,32 +1,41 @@
 import { Platform } from "react-native";
-import {
-  getStockWatches,
-  getWatchlist,
-  getSettings,
-  removeStockWatch,
-  updateStockWatchStatus,
-} from "./storage";
+import * as defaultStorageModule from "./storage";
 import { scheduleStockAlert } from "./notifications";
 import { getDistributorById } from "@shared/distributors";
+
+// The subset of the storage API this module needs. Injectable so the desktop
+// build can pass its own store: the module-level `defaultStorage` uses
+// IndexedDB when available (Tauri webviews have it), while the desktop UI
+// writes localStorage — without injection the two diverge and restock watches
+// created in the UI are invisible here.
+export interface RestockStorage {
+  getStockWatches: typeof defaultStorageModule.getStockWatches;
+  getWatchlist: typeof defaultStorageModule.getWatchlist;
+  getSettings: typeof defaultStorageModule.getSettings;
+  removeStockWatch: typeof defaultStorageModule.removeStockWatch;
+  updateStockWatchStatus: typeof defaultStorageModule.updateStockWatchStatus;
+}
 
 // Serializes concurrent checkRestocks calls (background task + foreground check)
 // so overlapping runs can't both fire a duplicate restock notification.
 let inFlight: Promise<void> | null = null;
 
-export function checkRestocks(): Promise<void> {
+export function checkRestocks(
+  storage: RestockStorage = defaultStorageModule,
+): Promise<void> {
   if (inFlight) return inFlight;
-  inFlight = runCheckRestocks().finally(() => {
+  inFlight = runCheckRestocks(storage).finally(() => {
     inFlight = null;
   });
   return inFlight;
 }
 
-async function runCheckRestocks(): Promise<void> {
-  const watches = await getStockWatches();
+async function runCheckRestocks(storage: RestockStorage): Promise<void> {
+  const watches = await storage.getStockWatches();
   if (watches.length === 0) return;
 
-  const settings = await getSettings();
-  const watchlist = await getWatchlist();
+  const settings = await storage.getSettings();
+  const watchlist = await storage.getWatchlist();
 
   for (const watch of watches) {
     const product = watchlist.find((p) => p.id === watch.productId);
@@ -97,14 +106,14 @@ async function runCheckRestocks(): Promise<void> {
         // history recording never breaks the check
       }
       try {
-        await removeStockWatch(watch.id);
+        await storage.removeStockWatch(watch.id);
       } catch {
         // Ignore remove failures — the watch stays for the next cycle
       }
     } else if (prevStatus !== newStatus) {
       // Status changed to another non-in-stock state — update cache
       try {
-        await updateStockWatchStatus(
+        await storage.updateStockWatchStatus(
           watch.productId,
           watch.distributorId,
           newStatus,

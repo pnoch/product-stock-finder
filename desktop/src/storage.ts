@@ -21,6 +21,9 @@ const TAURI_MIRRORED_KEYS = new Set([
   "price_alerts",
   "back_order_reminders",
   "app_settings",
+  // Restock watches: the Rust tray badge counts them and the Rust poller reads
+  // them, so UI-created watches must reach the file store (and vice versa).
+  "back_in_stock_watches",
 ]);
 
 async function mirrorToFile(key: string, value: unknown): Promise<void> {

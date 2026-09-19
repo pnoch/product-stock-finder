@@ -2080,3 +2080,22 @@
 - [x] **Dead code**: removed `getTrending()` (fetched a non-existent `/api/trending` route, no callers) and its dead test block. Left `server/_core/heartbeat.ts` alone (framework dir per AGENTS.md)
 - [x] **Auth rate-limit bucket sharing**: all 10 auth endpoints shared one 10/min per-IP bucket, so a NATed office or a `providers` poll could lock out logins. Each endpoint now has its own scoped bucket (`register:<ip>`, `login:<ip>`, `oauth-callback:<ip>`, …)
 - [x] Tests: `concurrency` (order, concurrency cap, empty, rejection — verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `314 passed | 1 skipped` / `1858 passed`, desktop `43 passed` / `218 passed`, DB 17, Rust 20, `pnpm build` + `smoke:web` green
+
+## Phase 240: Whole-app review round 10 (regressions + guards)
+
+**Regressions from Phases 235-239 (fixed)**
+- [x] **The 10mb `sync.push` body limit was dead**: the global 256kb parser was mounted first, so Express consumed the stream and 413'd any push >256KB before the path-scoped parser ran. Reproduced with a 499KB payload (413 `entity.too.large`). Reordered so the scoped parser mounts first; verified a 499KB push now 200s while `/api/auth/login` still 413s
+- [x] **Health dedup swallowed recovery events**: alert and recovery both send the same `status`, and the new server-hour bucket made their keys identical, so a distributor that failed and recovered within an hour lost the recovery. Added a `kind: "alert" | "recovery"` field threaded client→schema→key (verified non-vacuous)
+- [x] **`clampDedupKey` was bypassed**: `buildEvents` built draft keys with raw templates, so a long-id restock watch could still exceed `varchar(255)` and wedge the whole warmer tick. Drafts now clamp too
+- [x] **Scrape-queue rejection was unhandled / aborted ticks**: `void refreshSingleFlight(...)` and the `Promise.all` in `refreshNearExpiry`/`warmCatalogRotation` now catch, so a queue-full shed no longer logs a stack or aborts the tick
+- [x] **One bad device aborted the whole warmer tick** (starving every purge job → unbounded table growth): per-device/user evaluation is now isolated with a catch
+- [x] **Desktop `parse_price_from_text` broke space-grouped prices** ("R 12 345.67" → 12): the first-number-run change stopped at the space. Now keeps space/NBSP/NNBSP as grouping and strips them before separator logic (Rust test added)
+- [x] **Desktop `checkRestocks` read the wrong store**: the module default resolves to IndexedDB in a Tauri webview while the UI writes localStorage, so UI-created watches were invisible. `checkRestocks` now takes an injectable storage and the desktop passes its own; `back_in_stock_watches` is now mirrored to the Rust file (tray badge + poller)
+
+**Guards**
+- [x] `product-insights` / `drop-calendar` dereferenced `product.listings` unguarded → crashed Watchlist/Stats on a legacy/corrupt row; both now `?? []`
+- [x] `cheapestByRegion` used static rates while the prices beside it used live rates (wrong "cheapest region"); the converter is now injectable and both call sites pass the live one
+- [x] Native OAuth sign-in never published to the shared auth state, so sync/backfill/push registration didn't start until restart; added `publishAuthUser` and called it from the callback
+- [x] Reschedule storage writes were outside try/catch (unhandled rejection + stuck modal); now guarded
+- [x] `getTaxRate` / `CURRENCY_SYMBOLS` prototype-key access; `best-deal` NaN `taxRate` producing a NaN landed cost; `getSupportEmail` empty-string override
+- [x] Tests: `round10-guards` (7 cases, key ones verified non-vacuous), Rust space-grouping test; E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `315 passed | 1 skipped` / `1865 passed`, desktop `43 passed` / `218 passed`, DB 17, Rust 21, `pnpm build` + `smoke:web` green

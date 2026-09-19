@@ -68,10 +68,15 @@ async function startServer() {
     next();
   });
 
-  // Small default for every route; the sync mutation opts into a larger limit
-  // on its own path below. A global 50mb limit let a handful of concurrent
-  // unauthenticated POSTs to /api/auth/* inflate memory before any rate limit
-  // (which runs inside the handler, after the body is buffered).
+  // Sync pushes can legitimately carry a few MB (bounded by SYNC_PUSH_MAX_ITEMS
+  // × ~100KB per item). This MUST be mounted BEFORE the global parser: Express
+  // runs middleware in order, so a global 256kb parser would consume the stream
+  // and 413 the request before the path-scoped parser is ever reached.
+  app.use("/api/trpc/sync.push", express.json({ limit: "10mb" }));
+
+  // Small default for every other route. A global 50mb limit let a handful of
+  // concurrent unauthenticated POSTs to /api/auth/* inflate memory before any
+  // rate limit (which runs inside the handler, after the body is buffered).
   app.use(express.json({ limit: "256kb" }));
   app.use(express.urlencoded({ limit: "256kb", extended: true }));
 
@@ -104,12 +109,6 @@ async function startServer() {
     }
   });
 
-  // Sync pushes can legitimately carry a few MB (bounded by SYNC_PUSH_MAX_ITEMS
-  // × 100KB per item), so that path gets a larger body limit.
-  app.use(
-    "/api/trpc/sync.push",
-    express.json({ limit: "10mb" }),
-  );
   app.use(
     "/api/trpc",
     createExpressMiddleware({

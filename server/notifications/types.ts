@@ -31,6 +31,10 @@ export interface NotificationConfig {
     distributorId: string;
     distributorName: string;
     status: "blocked" | "error";
+    // Distinguishes a failure alert from a recovery. Both carry the same
+    // `status`, so without this they dedupe to the same key within an hour and
+    // the recovery is silently dropped.
+    kind?: "alert" | "recovery";
     title: string;
     body: string;
     createdAt: number;

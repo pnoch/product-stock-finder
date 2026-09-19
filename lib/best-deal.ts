@@ -38,7 +38,12 @@ export function findBestDeal(
       displayCurrency,
     );
     if (shipping === null) continue;
-    const tax = price * (listing.taxRate ?? 0);
+    // `??` doesn't sanitize NaN, which would make the landed cost NaN.
+    const taxRate =
+      typeof listing.taxRate === "number" && Number.isFinite(listing.taxRate)
+        ? listing.taxRate
+        : 0;
+    const tax = price * taxRate;
     const total = price + tax + shipping;
 
     if (!best || total < best.total) {
@@ -64,7 +69,11 @@ export function findBestDeal(
     if (fallback) {
       const price = convertPrice(fallback.price, fallback.currency, displayCurrency);
       if (price === null) return best;
-      const tax = price * (fallback.taxRate ?? 0);
+      const fallbackTaxRate =
+        typeof fallback.taxRate === "number" && Number.isFinite(fallback.taxRate)
+          ? fallback.taxRate
+          : 0;
+      const tax = price * fallbackTaxRate;
       return {
         distributorId: fallback.distributorId,
         price,

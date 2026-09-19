@@ -40,6 +40,14 @@ function setShared(patch: Partial<AuthSnapshot>): void {
   for (const fn of authSubscribers) fn(sharedSnapshot);
 }
 
+// Publishes an auth change made outside `useAuth` (e.g. the native OAuth
+// callback writing the session token directly). Without this the root layout's
+// `isAuthenticated` stayed false after a native sign-in, so sync, backfill, and
+// push registration never started until the app restarted.
+export function publishAuthUser(user: Auth.User | null): void {
+  setShared({ user, loading: false, error: null });
+}
+
 export function useAuth(options?: UseAuthOptions) {
   const { autoFetch = true } = options ?? {};
   const [snapshot, setSnapshot] = useState<AuthSnapshot>(sharedSnapshot);

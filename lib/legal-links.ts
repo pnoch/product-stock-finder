@@ -23,7 +23,8 @@ export function getPrivacyPolicyUrl(): string {
 }
 
 export function getSupportEmail(): string {
-  return SUPPORT_EMAIL_OVERRIDE ?? "support@productstockfinder.savvylife.icu";
+  // `??` would accept an empty-string override and produce `mailto:`.
+  return SUPPORT_EMAIL_OVERRIDE || "support@productstockfinder.savvylife.icu";
 }
 
 export function getSupportMailtoUrl(): string {

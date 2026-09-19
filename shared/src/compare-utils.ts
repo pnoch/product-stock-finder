@@ -47,9 +47,14 @@ export interface RegionBest {
 // Cheapest buyable listing per distributor region. Out-of-stock and
 // non-positive prices are never selected; back-order wins only when a region
 // has nothing in stock.
+// `convert` is injectable so callers can pass the live-rate converter
+// (`@/lib/currency` overlays server FX rates). Defaulting to the static shared
+// converter made this card rank regions with stale rates while the prices
+// rendered beside it used live ones, so the "cheapest region" could be wrong.
 export function cheapestByRegion(
   listings: DistributorListing[],
   targetCurrency = "USD",
+  convert: (amount: number, from: string, to: string) => number | null = convertPrice,
 ): RegionBest[] {
   const inStockMap = new Map<string, { listing: DistributorListing; converted: number; usd: number }>();
   const fallbackMap = new Map<string, { listing: DistributorListing; converted: number; usd: number }>();
@@ -65,8 +70,8 @@ export function cheapestByRegion(
     const dist = getDistributorById(l.distributorId);
     if (!dist) continue;
     const region = dist.region ?? "Other";
-    const converted = convertPrice(l.price, l.currency, targetCurrency);
-    const usd = convertPrice(l.price, l.currency, "USD");
+    const converted = convert(l.price, l.currency, targetCurrency);
+    const usd = convert(l.price, l.currency, "USD");
     if (converted === null || !Number.isFinite(converted)) continue;
     if (usd === null || !Number.isFinite(usd)) continue;
     if (l.stockStatus === "in_stock") {

@@ -116,11 +116,18 @@ async function evaluateConfigPage(
       anonDevices.push({ deviceId: row.deviceId, config });
     }
   }
+  // Isolate each device/user: one persistently failing config must not abort
+  // the whole tick (which would also skip every purge job the warmer runs after
+  // this, causing unbounded table growth).
   for (const { deviceId, config } of anonDevices) {
-    await evaluateConfigDb(db, deviceId, config, now, getPrice);
+    await evaluateConfigDb(db, deviceId, config, now, getPrice).catch((e) =>
+      console.error(`[notifications] device ${deviceId} evaluation failed`, e),
+    );
   }
   for (const [userId, devices] of userDevices) {
-    await evaluateUserDb(db, userId, devices, now, getPrice);
+    await evaluateUserDb(db, userId, devices, now, getPrice).catch((e) =>
+      console.error(`[notifications] user ${userId} evaluation failed`, e),
+    );
   }
 }
 

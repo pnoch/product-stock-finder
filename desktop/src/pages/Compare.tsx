@@ -406,7 +406,10 @@ export function Compare() {
     });
   }, [sortedListings, displayCurrency]);
 
-  const regionBest = useMemo(() => cheapestByRegion(sortedListings, displayCurrency), [sortedListings, displayCurrency]);
+  const regionBest = useMemo(
+    () => cheapestByRegion(sortedListings, displayCurrency, convertPrice),
+    [sortedListings, displayCurrency],
+  );
 
   const alertTarget = useMemo(() => {
     const inStock = sortedListings.filter((l) => l.stockStatus === "in_stock");

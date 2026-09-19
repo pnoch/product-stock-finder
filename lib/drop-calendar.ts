@@ -56,7 +56,7 @@ export function computeDropCalendar(
   let totalDrops = 0;
 
   for (const product of watchlist) {
-    for (const listing of product.listings) {
+    for (const listing of product.listings ?? []) {
       const points = (listing.priceHistory ?? [])
         .map((p) => ({
           t: Date.parse(p.date),

@@ -37,6 +37,7 @@ export async function checkHealthAlerts(
           distributorId,
           distributorName: name,
           status: latest.status as "blocked" | "error",
+          kind: "alert",
           title:
             latest.status === "blocked"
               ? "🟠 Distributor Blocked"
@@ -54,6 +55,7 @@ export async function checkHealthAlerts(
           distributorId,
           distributorName: name,
           status: prev.status as "blocked" | "error",
+          kind: "recovery",
           title: "🟢 Distributor Recovered",
           body: `${name} is back online after being ${prev.status}`,
           createdAt: Date.now(),

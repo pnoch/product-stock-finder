@@ -523,6 +523,7 @@ export const appRouter = router({
                 distributorId: z.string().min(1).max(64),
                 distributorName: z.string().min(1).max(128),
                 status: z.enum(["blocked", "error"]),
+                kind: z.enum(["alert", "recovery"]).optional(),
                 title: z.string().min(1).max(255),
                 body: z.string().min(1).max(1000),
                 // Bounded to now: a far-future createdAt would make the event

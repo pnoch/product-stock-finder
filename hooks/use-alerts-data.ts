@@ -266,19 +266,27 @@ export function useAlertsData() {
       notifId = null;
     }
     const notificationFailed = !notifId && Platform.OS !== "web";
-    if (!notificationFailed && rescheduleTarget.notificationId) {
-      await cancelNotification(rescheduleTarget.notificationId);
+    // Storage writes can reject (quota/IDB error). Without this guard the
+    // rejection was unhandled and the modal stayed open with no error.
+    try {
+      if (!notificationFailed && rescheduleTarget.notificationId) {
+        await cancelNotification(rescheduleTarget.notificationId);
+      }
+      await addBackOrderReminder({
+        ...rescheduleTarget,
+        reminderDate: rescheduleDate.toISOString(),
+        // Keep the old notification id when the new schedule failed, so the
+        // still-scheduled notification stays cancellable (otherwise it fires on
+        // the old date and can never be cancelled).
+        notificationId: notificationFailed
+          ? rescheduleTarget.notificationId
+          : (notifId ?? undefined),
+      });
+    } catch (e) {
+      console.error("[Alerts] reschedule save failed", e);
+      showAlert("Reschedule failed", "We couldn't save the new date. Please try again.");
+      return;
     }
-    await addBackOrderReminder({
-      ...rescheduleTarget,
-      reminderDate: rescheduleDate.toISOString(),
-      // Keep the old notification id when the new schedule failed, so the
-      // still-scheduled notification stays cancellable (otherwise it fires on
-      // the old date and can never be cancelled).
-      notificationId: notificationFailed
-        ? rescheduleTarget.notificationId
-        : (notifId ?? undefined),
-    });
     if (Platform.OS !== "web")
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setRescheduleTarget(null);

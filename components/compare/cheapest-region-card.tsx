@@ -3,6 +3,7 @@ import { Text, View, Animated } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
+import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
 import { cheapestByRegion } from "@shared/compare-utils";
 
@@ -20,7 +21,12 @@ export function CheapestRegionCard({ listings, displayCurrency = "USD" }: { list
     return () => anim.stop();
   }, [pulse]);
 
-  const regionBest = useMemo(() => cheapestByRegion(listings, displayCurrency), [listings, displayCurrency]);
+  // Pass the live-rate converter so this card agrees with the prices shown
+  // beside it (the shared default uses static rates).
+  const regionBest = useMemo(
+    () => cheapestByRegion(listings, displayCurrency, convertPrice),
+    [listings, displayCurrency],
+  );
 
     if (regionBest.length === 0) {
     return (

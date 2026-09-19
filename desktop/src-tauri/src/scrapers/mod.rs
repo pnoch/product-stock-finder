@@ -103,13 +103,23 @@ pub fn parse_price_from_text(text: &str) -> Option<f64> {
     // Mirror lib/scrapers/utils.ts: take only the FIRST number run, not every
     // digit in the element. Concatenating them turned "Was $100 Now $80" into
     // 10080 and corrupted any element containing a discount percentage.
+    //
+    // A space/NBSP/NNBSP between digits is a thousands separator ("R 12 345.67",
+    // "1 234,56 Kč"), so it is kept; any other non-numeric char ends the run.
     let digits: String = {
         let mut out = String::new();
         let mut started = false;
+        let mut pending_space = false;
         for c in text.chars() {
             if c.is_ascii_digit() || c == '.' || c == ',' {
+                if pending_space && !out.is_empty() {
+                    out.push(' ');
+                }
+                pending_space = false;
                 started = true;
                 out.push(c);
+            } else if started && matches!(c, ' ' | '\u{00a0}' | '\u{202f}') {
+                pending_space = true;
             } else if started {
                 break;
             }
@@ -119,6 +129,9 @@ pub fn parse_price_from_text(text: &str) -> Option<f64> {
     if digits.is_empty() {
         return None;
     }
+    // Strip the grouping spaces now that the run is captured: "12 345.67" must
+    // become "12345.67" before the separator logic runs.
+    let digits = digits.replace([' ', '\u{00a0}', '\u{202f}'], "");
     let last_dot = digits.rfind('.');
     let last_comma = digits.rfind(',');
     let groups_of_three = |s: &str, sep: char| {
@@ -329,6 +342,12 @@ mod tests {
         // "Was $100 Now $80" must be 100, not 10080.
         assert_eq!(parse_price_from_text("Was $100 Now $80"), Some(100.0));
         assert_eq!(parse_price_from_text("20% off $80"), Some(20.0));
+    }
+
+    #[test]
+    fn parse_price_from_text_handles_space_grouping() {
+        assert_eq!(parse_price_from_text("R 12 345.67"), Some(12345.67));
+        assert_eq!(parse_price_from_text("1 234,56 Kč"), Some(1234.56));
     }
 
     #[test]
