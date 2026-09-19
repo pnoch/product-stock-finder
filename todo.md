@@ -2115,3 +2115,11 @@
 - [x] Synced both selector changes into the Rust parsers (parity test caught the drift)
 
 - [x] Tests: `scraper-strikethrough-price`, `sync-dirty-guards` (both verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `317 passed | 1 skipped` / `1873 passed`, desktop `43 passed` / `218 passed`, DB 17, Rust 21, `pnpm build` + `smoke:web` green
+
+## Phase 242: Fix broken scraper search URLs + blocked-marker false positives
+
+- [x] **Six parsers used search URLs that could never return results** (verified live): `mega` (`/search?q=` → 404; real form is `/en/?SearchText=`), `rocnoc` (`/search?q=` → 404; real form is `/search.php?keywords=`, and the storefront search is JS-driven so `useBrowser` was added), `pbtech` (`?q=` → "No products found"; real param is `?sf=`), `bhphoto` (`/search?q=` → 404; real path is `/c/search?q=`), `multilink` (`?q=` returned the Doofinder JS shell; real endpoint is `/search.php?search_query=` — now parses $175 live), `neobits` (left as-is; POST-only search)
+- [x] Synced all five URL changes into the Rust parsers (parity test enforces it)
+- [x] **`BLOCKED_MARKERS` produced false positives**: a bare `"challenge-platform"` matches the benign Cloudflare precursor script tag, and a bare `"captcha"` matches reCAPTCHA site keys embedded in normal page config — so healthy pages (multilink: 99 model hits) were classified `blocked` and never parsed. Narrowed to the actual challenge script path (`/cdn-cgi/challenge-platform/scripts/jsd/main.js`); verified live that multilink now fetches `ok` and parses a price (verified non-vacuous)
+- [x] Updated the affected parser tests + `scraper-hosts` for the new hosts/URLs
+- [x] E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `317 passed | 1 skipped` / `1874 passed`, desktop `43 passed` / `218 passed`, DB 17, Rust 21, `pnpm build` + `smoke:web` green

@@ -42,7 +42,7 @@ export const multilinkParser: DistributorParser = {
   id: "multilink-us",
   baseUrl: "https://shop.multilink.us",
   buildSearchUrl: (model) =>
-    `https://shop.multilink.us/search?q=${encodeURIComponent(model)}`,
+    `https://shop.multilink.us/search.php?search_query=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) => parseHtml(html, url ?? "https://shop.multilink.us", model),
   rateLimitMs: 3000,
   useBrowser: true,

@@ -38,10 +38,13 @@ function parseHtml(
 
 export const rocnocParser: DistributorParser = {
   id: "rocnoc-us",
-  baseUrl: "https://roc-noc.com",
+  baseUrl: "https://www.roc-noc.com",
   buildSearchUrl: (model) =>
-    `https://roc-noc.com/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://roc-noc.com", model),
+    `https://www.roc-noc.com/search.php?keywords=${encodeURIComponent(model)}`,
+  parsePrice: (html, model, url) =>
+    parseHtml(html, url ?? "https://www.roc-noc.com", model),
+  // The storefront's search is JS-driven; plain HTML returns no results.
+  useBrowser: true,
   rateLimitMs: 3000,
 };
 

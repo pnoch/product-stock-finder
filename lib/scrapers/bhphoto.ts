@@ -42,7 +42,7 @@ export const bhphotoParser: DistributorParser = {
   id: "bhphoto-us",
   baseUrl: "https://bhphotovideo.com",
   buildSearchUrl: (model) =>
-    `https://bhphotovideo.com/search?q=${encodeURIComponent(model)}`,
+    `https://www.bhphotovideo.com/c/search?q=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) =>
     parseHtml(html, url ?? "https://bhphotovideo.com", model),
   rateLimitMs: 3000,

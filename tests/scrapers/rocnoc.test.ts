@@ -4,13 +4,13 @@ import { rocnocParser, scrapeRocnoc } from "../../lib/scrapers/rocnoc";
 describe("Rocnoc Parser", () => {
   it("should have correct parser config", () => {
     expect(rocnocParser.id).toBe("rocnoc-us");
-    expect(rocnocParser.baseUrl).toBe("https://roc-noc.com");
+    expect(rocnocParser.baseUrl).toBe("https://www.roc-noc.com");
     expect(rocnocParser.rateLimitMs).toBe(3000);
   });
 
   it("should build correct search URL", () => {
     const url = rocnocParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://roc-noc.com/search?q=hAP%20ac3");
+    expect(url).toBe("https://www.roc-noc.com/search.php?keywords=hAP%20ac3");
   });
 
   it("should return null for invalid HTML", () => {

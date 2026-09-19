@@ -40,7 +40,7 @@ export const pbtechParser: DistributorParser = {
   id: "pbtech-nz",
   baseUrl: "https://pbtech.co.nz",
   buildSearchUrl: (model) =>
-    `https://pbtech.co.nz/search?q=${encodeURIComponent(model)}`,
+    `https://www.pbtech.co.nz/search?sf=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) => parseHtml(html, url ?? "https://pbtech.co.nz", model),
   rateLimitMs: 3000,
   useBrowser: true,

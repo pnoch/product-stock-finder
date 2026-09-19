@@ -516,12 +516,26 @@ describe("classifyFetchStatus anti-bot markers", () => {
   it("classifies modern challenge pages as blocked", () => {
     expect(classifyFetchStatus("<title>Just a moment...</title>")).toBe("blocked");
     expect(classifyFetchStatus("Attention Required! | Cloudflare")).toBe("blocked");
-    expect(classifyFetchStatus('script src="/cdn-cgi/challenge-platform/"')).toBe("blocked");
+    expect(
+      classifyFetchStatus(
+        'script src="/cdn-cgi/challenge-platform/scripts/jsd/main.js"',
+      ),
+    ).toBe("blocked");
     expect(classifyFetchStatus('<div id="px-captcha"></div>')).toBe("blocked");
     expect(classifyFetchStatus("script src=https://captcha-delivery.com/x.js")).toBe("blocked");
   });
 
   it("does not flag ordinary content mentioning security words", () => {
     expect(classifyFetchStatus("<p>We block captcha abuse.</p>", 200)).toBe("ok");
+  });
+
+  it("does not flag a healthy page with a benign Cloudflare script tag", () => {
+    // Real storefronts embed the precursor script and a reCAPTCHA site key on
+    // normal pages; treating those as blocks made every fetch look blocked.
+    const healthy =
+      '<html><body><script src="/cdn-cgi/challenge-platform/scripts/precursor/main.js"></script>' +
+      '<script>var cfg = { captcha_setkey: "6LdGN_sgAAAAAGYFg1lmVoakQ8QXxbhWqZ1GpYaJ" };</script>' +
+      "<h1>MikroTik CRS326</h1><span class=\"price\">$499</span></body></html>";
+    expect(classifyFetchStatus(healthy, 200)).toBe("ok");
   });
 });

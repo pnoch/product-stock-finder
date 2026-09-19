@@ -2,7 +2,7 @@ use super::{ScrapeResult, fetch_html, parse_price_page};
 use crate::scrapers::browser::fetch_with_browser;
 
 pub async fn scrape(model: &str, use_browser: bool) -> Result<ScrapeResult, String> {
-    let url = format!("https://roc-noc.com/search?q={}", urlencoding::encode(model));
+    let url = format!("https://www.roc-noc.com/search.php?keywords={}", urlencoding::encode(model));
     let html = if use_browser {
         fetch_with_browser(&url, Some(".product-price, .price"), Some(30000)).await?
     } else {

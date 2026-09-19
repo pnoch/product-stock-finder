@@ -27,6 +27,10 @@ export interface BreakerStateStore {
   clear?(distributorId: string): Promise<void>;
 }
 
+// Markers of an actual block page. These must be specific: a bare
+// "challenge-platform" appears as a benign Cloudflare script tag on normal
+// pages, and a bare "captcha" matches reCAPTCHA site keys embedded in app
+// config — both caused healthy pages to be classified as blocked.
 export const BLOCKED_MARKERS = [
   "403 Forbidden",
   "Access Denied",
@@ -35,7 +39,7 @@ export const BLOCKED_MARKERS = [
   // Cloudflare interstitial / Turnstile
   "Just a moment",
   "Attention Required",
-  "challenge-platform",
+  "/cdn-cgi/challenge-platform/scripts/jsd/main.js",
   // PerimeterX / DataDome
   "px-captcha",
   "captcha-delivery.com",

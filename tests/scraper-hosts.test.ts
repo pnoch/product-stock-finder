@@ -29,7 +29,7 @@ describe("scraper hosts", () => {
   it("scrapes the live hosts for the previously-dead domains", () => {
     // These hosts were NXDOMAIN/parked; the real storefronts are:
     const expected: Record<string, string> = {
-      "rocnoc-us": "roc-noc.com",
+      "rocnoc-us": "www.roc-noc.com",
       "linktechs-us": "shop.linktechs.net",
       "networkdevices-us": "networkdevicesinc.com",
       "100mega-cz": "b2b.100mega.com",
