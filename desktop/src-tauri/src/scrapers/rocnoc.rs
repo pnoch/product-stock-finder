@@ -3,8 +3,15 @@ use crate::scrapers::browser::fetch_with_browser;
 
 pub async fn scrape(model: &str, use_browser: bool) -> Result<ScrapeResult, String> {
     let url = format!("https://www.roc-noc.com/search.php?keywords={}", urlencoding::encode(model));
+    // Browser-first with a plain fallback (mirrors mobile's resilient.ts
+    // escalation): a browser failure must not lose the plain-HTML path.
     let html = if use_browser {
-        fetch_with_browser(&url, Some(".product-price, .price"), Some(30000)).await?
+        match fetch_with_browser(&url, Some(".product-price, .price"), Some(30000)).await {
+            Ok(html) => html,
+            Err(_) => fetch_html(&url, 3000)
+                .await
+                .map_err(|e| format!("Fetch failed: {}", e))?,
+        }
     } else {
         fetch_html(&url, 3000)
             .await
@@ -20,6 +27,6 @@ fn parse_html(html: &str, url: &str, model: &str) -> Result<ScrapeResult, String
         model,
         "USD",
         ".price, .product-price, [data-price]",
-        ".stock-status, .availability, .stock",
+        ".stock, .availability, .product-stock, .stock-status",
     )
 }

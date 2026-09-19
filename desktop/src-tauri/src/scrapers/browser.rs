@@ -2,44 +2,65 @@ use playwright_rs::{Browser, Playwright};
 use std::sync::OnceLock;
 use tokio::sync::Mutex;
 
+/// A checked-out browser plus the Playwright driver that owns it. The driver
+/// MUST be kept alive: `impl Drop for Playwright` closes stdin and SIGKILLs the
+/// driver process, which disconnects every browser it launched. Dropping it
+/// while returning the `Browser` yielded a disconnected browser on arrival.
+pub struct PooledBrowser {
+    browser: Browser,
+    _driver: Playwright,
+}
+
 pub struct BrowserPool {
-    browsers: Vec<Browser>,
+    idle: Vec<PooledBrowser>,
+    /// Counts checked-out browsers too, so concurrent acquires cannot exceed
+    /// the cap (the previous version only compared against the idle list).
+    in_use: usize,
     max_pool_size: usize,
 }
 
 impl BrowserPool {
     pub fn new(max_pool_size: usize) -> Self {
         Self {
-            browsers: Vec::new(),
+            idle: Vec::new(),
+            in_use: 0,
             max_pool_size,
         }
     }
 
-    pub async fn acquire(&mut self) -> Result<Browser, String> {
-        if let Some(browser) = self.browsers.pop() {
-            if browser.is_connected() {
-                return Ok(browser);
+    pub async fn acquire(&mut self) -> Result<PooledBrowser, String> {
+        while let Some(entry) = self.idle.pop() {
+            if entry.browser.is_connected() {
+                self.in_use += 1;
+                return Ok(entry);
             }
         }
-        if self.browsers.len() < self.max_pool_size {
-            let pw = Playwright::launch().await
-                .map_err(|e| e.to_string())?;
-            let browser = pw.chromium().launch().await
-                .map_err(|e| e.to_string())?;
-            return Ok(browser);
+        if self.in_use >= self.max_pool_size {
+            return Err("Browser pool exhausted".to_string());
         }
-        Err("Browser pool exhausted".to_string())
+        let driver = Playwright::launch().await.map_err(|e| e.to_string())?;
+        let browser = driver
+            .chromium()
+            .launch()
+            .await
+            .map_err(|e| e.to_string())?;
+        self.in_use += 1;
+        Ok(PooledBrowser {
+            browser,
+            _driver: driver,
+        })
     }
 
-    pub fn release(&mut self, browser: Browser) {
-        if browser.is_connected() {
-            self.browsers.push(browser);
+    pub fn release(&mut self, entry: PooledBrowser) {
+        self.in_use = self.in_use.saturating_sub(1);
+        if entry.browser.is_connected() {
+            self.idle.push(entry);
         }
     }
 
     pub async fn shutdown(&mut self) {
-        for browser in self.browsers.drain(..) {
-            let _ = browser.close().await;
+        for entry in self.idle.drain(..) {
+            let _ = entry.browser.close().await;
         }
     }
 }
@@ -59,15 +80,16 @@ pub async fn fetch_with_browser(
     wait_for_selector: Option<&str>,
     timeout_ms: Option<u64>,
 ) -> Result<String, String> {
-    let browser = {
+    let entry = {
         let mut pool = pool().lock().await;
         pool.acquire().await?
     };
 
-    let result = fetch_with_browser_inner(&browser, url, wait_for_selector, timeout_ms).await;
+    let result =
+        fetch_with_browser_inner(&entry.browser, url, wait_for_selector, timeout_ms).await;
 
     let mut pool = pool().lock().await;
-    pool.release(browser);
+    pool.release(entry);
     result
 }
 

@@ -2123,3 +2123,15 @@
 - [x] **`BLOCKED_MARKERS` produced false positives**: a bare `"challenge-platform"` matches the benign Cloudflare precursor script tag, and a bare `"captcha"` matches reCAPTCHA site keys embedded in normal page config — so healthy pages (multilink: 99 model hits) were classified `blocked` and never parsed. Narrowed to the actual challenge script path (`/cdn-cgi/challenge-platform/scripts/jsd/main.js`); verified live that multilink now fetches `ok` and parses a price (verified non-vacuous)
 - [x] Updated the affected parser tests + `scraper-hosts` for the new hosts/URLs
 - [x] E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `317 passed | 1 skipped` / `1874 passed`, desktop `43 passed` / `218 passed`, DB 17, Rust 21, `pnpm build` + `smoke:web` green
+
+## Phase 243: Desktop scraper parity gaps
+
+- [x] **Browser escalation was never enabled**: every dispatch arm passed `scrape(model, false)`, so the 16 parsers mobile marks `useBrowser: true` (aerial, bhphoto, getic, gowifi, hellascom, linktechs, mbsiwav, mega, miro, multilink, nasstore, networkdevices, pbtech, rocnoc, winncom, wisp) had no JS-rendered path on desktop. Now `true` for those 16
+- [x] **Browser was browser-ONLY, not browser-first**: the Rust parsers returned the browser error instead of falling back to plain HTML (mobile tries browser then plain). All 25 now fall back
+- [x] **Browser pool was broken**: `Playwright::launch()` was dropped while returning its `Browser`, and `impl Drop for Playwright` SIGKILLs the driver — so the browser was disconnected on arrival. The pool now holds the driver alongside the browser. Also fixed the accounting: `in_use` counts checked-out browsers, so concurrent acquires can no longer exceed the cap (the old check compared only against the idle list, making "pool exhausted" unreachable)
+- [x] **`update_listing_price` never persisted `url`**: the listing link stayed at the stale seeded URL. Now writes `scrape.url` (matches mobile's `refreshListing`)
+- [x] **`infer_stock_status` missed the `"expected"` marker** ("Expected 15 Sept" → back_order on mobile, unknown on desktop); added + Rust test
+- [x] **`mikrotikstore` two-hop was absent in Rust** (search page is JS-rendered and ignores the query), so it could never return a price. Ported `resolve_product_url` + the category hop + `is_product_page`, with a Rust test
+- [x] **Mobile `mikrotikstore` resolver picked accessory pages**: a PSU slug embeds the model it fits, so coverage+length scoring chose the power supply. Now penalizes accessory keywords and prefers shorter slugs
+- [x] **All 25 Rust stock selectors were the generic fallback**; synced each to its mobile counterpart
+- [x] E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `317 passed | 1 skipped` / `1874 passed`, desktop `43 passed` / `218 passed`, DB 17, Rust 24, `pnpm build` + `smoke:web` green

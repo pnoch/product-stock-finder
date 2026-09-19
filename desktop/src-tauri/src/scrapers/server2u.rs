@@ -4,7 +4,12 @@ use crate::scrapers::browser::fetch_with_browser;
 pub async fn scrape(model: &str, use_browser: bool) -> Result<ScrapeResult, String> {
     let url = format!("https://server2u.com/shop?search={}", urlencoding::encode(model));
     let html = if use_browser {
-        fetch_with_browser(&url, Some(".product-price, .price"), Some(30000)).await?
+        match fetch_with_browser(&url, Some(".product-price, .price"), Some(30000)).await {
+            Ok(html) => html,
+            Err(_) => fetch_html(&url, 2000)
+                .await
+                .map_err(|e| format!("Fetch failed: {}", e))?,
+        }
     } else {
         fetch_html(&url, 2000)
             .await
@@ -20,6 +25,6 @@ fn parse_html(html: &str, url: &str, model: &str) -> Result<ScrapeResult, String
         model,
         "MYR",
         ".product-price, .price, [data-product-price], [itemprop='price']",
-        ".stock-status, .availability, .stock",
+        ".stock-status, .availability, .stock, [itemprop='availability']",
     )
 }

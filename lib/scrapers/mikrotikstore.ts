@@ -50,8 +50,26 @@ function parseSearchResults(html: string, model?: string): string | null {
   const wanted = model.toLowerCase().replace(/[^a-z0-9]/g, "");
   const modelTokens = wanted.match(/[a-z]+|\d+/g) ?? [];
 
+  // Accessory slugs embed the model they fit ("...power-supply-for-...-crs326-24s2qrm"),
+  // so a pure coverage+length score picked the PSU over the actual product.
+  // Penalize accessory keywords and prefer SHORTER slugs (the product slug is
+  // usually just the model).
+  const ACCESSORY_MARKERS = [
+    "power-supply",
+    "psu",
+    "adapter",
+    "mount",
+    "bracket",
+    "cable",
+    "antenna",
+    "case",
+    "rack",
+    "fan",
+    "poe-injector",
+    "accessory",
+  ];
   let best: string | null = null;
-  let bestScore = 0;
+  let bestScore = -Infinity;
   $("a[href]").each((_, el) => {
     const href = $(el).attr("href");
     if (!href || !/\/en\/(mikrotik-|.*switches\/)/.test(href)) return;
@@ -74,7 +92,10 @@ function parseSearchResults(html: string, model?: string): string | null {
     // on the model core (crs326) so the category hop can happen — the
     // product page re-verifies the model anyway.
     if (coverage >= 0.4) {
-      const score = coverage * 1000 + normalized.length;
+      const lowerSlug = slug.toLowerCase();
+      const accessory = ACCESSORY_MARKERS.some((m) => lowerSlug.includes(m));
+      const score =
+        coverage * 1000 - (accessory ? 500 : 0) - normalized.length * 0.1;
       if (score > bestScore) {
         best = href;
         bestScore = score;

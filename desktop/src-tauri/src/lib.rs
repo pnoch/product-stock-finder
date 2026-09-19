@@ -1017,27 +1017,27 @@ async fn scrape_distributor(
         "server2u" | "server2u-my" => scrapers::server2u::scrape(model, false).await,
         "linitx-uk" => scrapers::linitx::scrape(model, false).await,
         "interprojekt-pl" => scrapers::interprojekt::scrape(model, false).await,
-        "nasstore-eu" => scrapers::nasstore::scrape(model, false).await,
-        "aerial-gr" => scrapers::aerial::scrape(model, false).await,
+        "nasstore-eu" => scrapers::nasstore::scrape(model, true).await,
+        "aerial-gr" => scrapers::aerial::scrape(model, true).await,
         "mikrotikstore-de" => scrapers::mikrotikstore::scrape(model, false).await,
-        "miro-za" => scrapers::miro::scrape(model, false).await,
+        "miro-za" => scrapers::miro::scrape(model, true).await,
         "gearup-ae" => scrapers::gearup::scrape(model, false).await,
         "balticnetworks-us" => scrapers::balticnetworks::scrape(model, false).await,
-        "linktechs-us" => scrapers::linktechs::scrape(model, false).await,
-        "winncom-us" => scrapers::winncom::scrape(model, false).await,
-        "bhphoto-us" => scrapers::bhphoto::scrape(model, false).await,
+        "linktechs-us" => scrapers::linktechs::scrape(model, true).await,
+        "winncom-us" => scrapers::winncom::scrape(model, true).await,
+        "bhphoto-us" => scrapers::bhphoto::scrape(model, true).await,
         "duxtel-au" => scrapers::duxtel::scrape(model, false).await,
-        "wisp-au" => scrapers::wisp::scrape(model, false).await,
-        "pbtech-nz" => scrapers::pbtech::scrape(model, false).await,
-        "gowifi-nz" => scrapers::gowifi::scrape(model, false).await,
-        "getic-gr" => scrapers::getic::scrape(model, false).await,
-        "100mega-cz" => scrapers::mega::scrape(model, false).await,
-        "hellascom-gr" => scrapers::hellascom::scrape(model, false).await,
-        "rocnoc-us" => scrapers::rocnoc::scrape(model, false).await,
-        "networkdevices-us" => scrapers::networkdevices::scrape(model, false).await,
+        "wisp-au" => scrapers::wisp::scrape(model, true).await,
+        "pbtech-nz" => scrapers::pbtech::scrape(model, true).await,
+        "gowifi-nz" => scrapers::gowifi::scrape(model, true).await,
+        "getic-gr" => scrapers::getic::scrape(model, true).await,
+        "100mega-cz" => scrapers::mega::scrape(model, true).await,
+        "hellascom-gr" => scrapers::hellascom::scrape(model, true).await,
+        "rocnoc-us" => scrapers::rocnoc::scrape(model, true).await,
+        "networkdevices-us" => scrapers::networkdevices::scrape(model, true).await,
         "flytec-us" => scrapers::flytec::scrape(model, false).await,
-        "mbsiwav-ca" => scrapers::mbsiwav::scrape(model, false).await,
-        "multilink-us" => scrapers::multilink::scrape(model, false).await,
+        "mbsiwav-ca" => scrapers::mbsiwav::scrape(model, true).await,
+        "multilink-us" => scrapers::multilink::scrape(model, true).await,
         "neobits-us" => scrapers::neobits::scrape(model, false).await,
         _ => Err(format!("No scraper for distributor: {}", distributor_id)),
     }
@@ -1331,6 +1331,12 @@ fn update_listing_price(
                     obj.remove("expectedDate");
                 }
                 obj.insert("lastChecked".to_string(), serde_json::json!(current_iso_timestamp()));
+                // Persist the URL actually scraped (mobile's refreshListing does
+                // the same); without it the listing link stays at the stale
+                // seeded/sample URL.
+                if !scrape.url.is_empty() {
+                    obj.insert("url".to_string(), serde_json::json!(scrape.url));
+                }
 
                 // Merge server history (union by day, newest wins) then append today's point,
                 // pruning to a 90-day window.

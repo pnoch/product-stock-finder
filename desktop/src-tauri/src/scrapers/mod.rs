@@ -90,6 +90,9 @@ pub fn infer_stock_status(text: &str) -> String {
         || lower.contains("backorder")
         || lower.contains("pre-order")
         || lower.contains("preorder")
+        // "Expected 15 Sept" is a back-order signal on mobile; omitting it made
+        // desktop report unknown/in_stock for the same listing.
+        || lower.contains("expected")
     {
         return "back_order".to_string();
     }
@@ -365,6 +368,11 @@ mod tests {
         assert_eq!(infer_stock_status("Unavailable"), "out_of_stock");
         assert_eq!(infer_stock_status("In stock"), "in_stock");
         assert_eq!(infer_stock_status("Back order"), "back_order");
+    }
+
+    #[test]
+    fn infer_stock_status_treats_expected_as_back_order() {
+        assert_eq!(infer_stock_status("Expected 15 Sept"), "back_order");
     }
 
     #[test]
