@@ -2171,3 +2171,11 @@
 - [x] **Signing config persists across prebuild**: added `plugins/with-android-release-signing.js` (config plugin) that re-injects the release signingConfig every prebuild. Caught and fixed a bug where the regex matched the DEBUG build type instead of release, silently leaving release debug-signed
 - [x] **Android App Links verified live**: computed the SHA-256 fingerprint from the keystore, set `ANDROID_SHA256_CERT_FINGERPRINTS` + `ANDROID_PACKAGE` on Railway; `/.well-known/assetlinks.json` now returns 200 with the real package + fingerprint (AASA still 404 pending `APPLE_TEAM_ID`)
 - [x] E2E root `tsc 0`, lint 0 errors, `pnpm build` + `smoke:web` green
+
+## Phase 249: Android release build script (production URL baked in)
+
+- [x] **The first APK pointed at `localhost:3000`**: `EXPO_PUBLIC_*` is inlined into the JS bundle at build time, and the local `.env` has the dev URL — so the APK could not reach the server. Verified by extracting `assets/index.android.bundle` and grepping for the URL
+- [x] **Gradle caches the bundle**: rebuilding with the correct env still reused the cached bundle. `scripts/android-release.sh` now sets the production `EXPO_PUBLIC_API_BASE_URL`/`EXPO_PUBLIC_WEB_URL` and deletes the generated bundle first to force a re-run
+- [x] Rebuilt APK + AAB with the production URL baked in (verified by extracting the bundle from both), still release-signed (`CN=Product Stock Finder`)
+- [x] Script also guards: fails fast if `credentials/keystore.properties` or `android/` is missing
+- [x] E2E root `tsc 0`, lint 0 errors
