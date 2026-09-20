@@ -114,6 +114,10 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
+    // Persists the Android release signing config across `expo prebuild
+    // --clean` (android/ is gitignored, so a hand-edit would be lost and
+    // release builds would silently fall back to the debug key).
+    "./plugins/with-android-release-signing",
     // Required for expo-background-task on iOS: injects UIBackgroundModes
     // ("processing") and BGTaskSchedulerPermittedIdentifiers. Without it the
     // native module's hasBackgroundModeEnabled check fails and

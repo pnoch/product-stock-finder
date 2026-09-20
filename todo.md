@@ -2162,3 +2162,12 @@
 - [x] **`idb-adapter.setItem` silently shadowed a failed write**: it caught ALL IDB errors and fell back to localStorage, but `getItem` prefers IDB — so a real failure (quota/abort) left the stale IDB value in place and the new write appeared lost. Now only the IDB-unavailable case falls back; real failures propagate (verified non-vacuous)
 - [x] **Selector-priority change fallout**: `findPriceElement` now returns the first selector that matches, so a broad `.price` listed before a specific one would win. Reordered `bhphoto` (`[data-selenium='uppedDecimalPriceFirst']` first) and `pbtech` (`.product-price` first); synced both to Rust. Audited the other 11 lists — all already put `.product-price` before `.price`
 - [x] E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `318 passed | 2 skipped` / `1877 passed`, desktop `43 passed` / `218 passed`, DB 20, Rust 25, `pnpm build` + `smoke:web` green
+
+## Phase 248: Android release build (APK + AAB, signing, App Links)
+
+- [x] **Release APK + AAB built locally** (JDK 21 + Android SDK 36 + NDK present): `app-release.apk` 46M, `app-release.aab` 34M, package `com.app.stocktrackerpro`, versionName 5.16.0, targetSdk 36
+- [x] **Release signing**: the first build was debug-signed (Play Store rejects that). Generated a 2048-bit RSA release keystore (10k-day validity) and wired `signingConfigs.release` into `build.gradle`; verified with `apksigner` (`CN=Product Stock Finder`)
+- [x] **Keystore stored outside `android/`** (`credentials/`, gitignored): `expo prebuild --clean` deletes `android/` entirely, which destroyed the keystore on the first attempt. Added `scripts/android-keystore.sh` (refuses to overwrite an existing key) and `*.keystore` + `/credentials/` to `.gitignore`
+- [x] **Signing config persists across prebuild**: added `plugins/with-android-release-signing.js` (config plugin) that re-injects the release signingConfig every prebuild. Caught and fixed a bug where the regex matched the DEBUG build type instead of release, silently leaving release debug-signed
+- [x] **Android App Links verified live**: computed the SHA-256 fingerprint from the keystore, set `ANDROID_SHA256_CERT_FINGERPRINTS` + `ANDROID_PACKAGE` on Railway; `/.well-known/assetlinks.json` now returns 200 with the real package + fingerprint (AASA still 404 pending `APPLE_TEAM_ID`)
+- [x] E2E root `tsc 0`, lint 0 errors, `pnpm build` + `smoke:web` green
