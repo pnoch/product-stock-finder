@@ -328,19 +328,12 @@ export default function ProductDetailScreen() {
 
   return (
     <ScreenContainer>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: product.name,
-          headerRight: () => (
-            <Animated.View style={{ transform: [{ scale: shareScale }] }}>
-              <TouchableOpacity activeOpacity={0.7} onPress={handleShare} style={{ padding: 6, marginRight: 4 }} accessibilityLabel="Share product" accessibilityRole="button">
-                <IconSymbol name="square.and.arrow.up" size={20} color={colors.primary} />
-              </TouchableOpacity>
-            </Animated.View>
-          ),
-        }}
-      />
+      {/* The screen renders its own sticky header below (with the back/share
+          controls and safe-area padding). Enabling the native header too drew
+          a second bar on top of it — an opaque white one in dark mode, with the
+          title overlapping the status bar. Keep the root Stack's
+          headerShown:false. */}
+      <Stack.Screen options={{ headerShown: false }} />
       <Animated.View
         pointerEvents="box-none"
         style={{

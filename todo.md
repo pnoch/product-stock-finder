@@ -2190,3 +2190,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Added `tests/rn-platform-guards.test.ts` (both guards verified non-vacuous by reverting each fix)
 - [x] Built an x86_64+arm64 APK for emulator testing (`-PreactNativeArchitectures=x86_64,arm64-v8a`) — the default ARM-only APK cannot install on an x86_64 emulator
 - [x] E2E root `tsc 0`, lint 0 errors, root `319 passed | 2 skipped` / `1879 passed`
+
+## Phase 251: Device QA round 2 (product detail double header)
+
+- [x] **Product detail rendered two headers**: the screen re-enabled the native `Stack.Screen` header (`headerShown: true`) while also rendering its own absolute sticky header. On device that drew a second bar on top of it — opaque WHITE in dark mode, with the title overlapping the status bar and the back/share controls hidden. Removed the native header (root Stack already sets `headerShown: false`); the screen's own sticky header (with back/share + safe-area padding) is the single header
+- [x] Verified on the emulator: Home → product detail renders cleanly (title, image placeholder, info card, Deal Score, Distributor Prices), sticky header collapses on scroll, no errors
+- [x] Also confirmed working on device: onboarding, all 5 tabs, region filter chips, Alerts empty state, live production prices + FX rate
+- [x] E2E root `tsc 0`, lint 0 errors, root `319 passed | 2 skipped` / `1879 passed`
