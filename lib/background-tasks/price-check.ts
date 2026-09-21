@@ -13,7 +13,7 @@ import {
 import { Platform } from "react-native";
 import { formatPrice } from "@shared/currency";
 import { convertPrice, getBestPrice } from "../currency";
-import { ensureNotificationPermission, channelIdFor } from "../notifications";
+import { ensureNotificationPermission, immediateTrigger } from "../notifications";
 import { checkRestocks } from "../restock";
 import { maybeSendDigest } from "../price-digest";
 import { syncServerNotifications } from "../server-notifications";
@@ -137,9 +137,8 @@ export async function runPriceCheckCore(opts?: {
                 body,
                 data: { type: "digest" },
                 sound: true,
-                ...(channelIdFor("digest") ? { channelId: channelIdFor("digest") } : {}),
               },
-              trigger: null,
+              trigger: immediateTrigger("digest"),
             });
           }
           // Only clear the threshold once the alert actually fired; clearing it
@@ -224,9 +223,8 @@ export async function runPriceCheckCore(opts?: {
               title,
               body,
               sound: true,
-              ...(channelIdFor("price") ? { channelId: channelIdFor("price") } : {}),
             },
-            trigger: null,
+            trigger: immediateTrigger("price"),
           });
         }
         // Record locally-fired alerts in the in-app history too; otherwise the

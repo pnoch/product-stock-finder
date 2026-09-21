@@ -58,6 +58,7 @@ vi.mock("../lib/notifications", () => ({
   scheduleHealthAlert: vi.fn(async () => "notif-id"),
   scheduleHealthRecovery: vi.fn(async () => "notif-id"),
   channelIdFor: vi.fn(() => undefined),
+  immediateTrigger: vi.fn(() => null),
 }));
 
 vi.mock("../lib/restock", () => ({

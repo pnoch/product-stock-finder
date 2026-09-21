@@ -2197,3 +2197,11 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Verified on the emulator: Home → product detail renders cleanly (title, image placeholder, info card, Deal Score, Distributor Prices), sticky header collapses on scroll, no errors
 - [x] Also confirmed working on device: onboarding, all 5 tabs, region filter chips, Alerts empty state, live production prices + FX rate
 - [x] E2E root `tsc 0`, lint 0 errors, root `319 passed | 2 skipped` / `1879 passed`
+
+## Phase 252: Device QA round 3 (Android notification channels never applied)
+
+- [x] **Android ignored every configured notification channel**: expo-notifications reads the channel from the TRIGGER, not `content` — with `trigger: null` it logs "Couldn't get channel for the notifications" and falls back to `expo_notifications_fallback_notification_channel`. So the HIGH importance / sound / vibration set up in Phase 219 were never applied to any immediate notification (price alerts, restock, digest, health). Confirmed by reading `BaseNotificationBuilder.kt` and by the device log
+- [x] Added `immediateTrigger(kind)` which returns a 1-second `TIME_INTERVAL` trigger carrying `channelId` on Android (still fires immediately) and applied it to all 8 immediate sites; also moved `channelId` onto the DATE trigger for back-order reminders (same bug); removed the now-ignored `content.channelId` spreads
+- [x] Verified on device: the warning is gone and `dumpsys notification` shows `price-alerts` (importance 4/HIGH, vibration), `stock-alerts` (4/HIGH), `digest` (3/DEFAULT) all created with the configured settings
+- [x] Also verified on device this round: Add Product search (typing "CRS804" → 2 results), product detail scroll (sticky header collapse, "Set Alert at £426.55 (−5%)" — the Phase 215 fix), Best Deal with shipping/tax, multi-currency distributor rows (AUD/ZAR with live conversion), Price Alert creation + notification, Back-order Reminder
+- [x] Added `tests/android-channel-trigger.test.ts` (verified non-vacuous); E2E root `tsc 0`, lint 0 errors, root `320 passed | 2 skipped` / `1882 passed`

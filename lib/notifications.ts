@@ -37,6 +37,24 @@ export function channelIdFor(
   return Platform.OS === "android" ? NOTIFICATION_CHANNELS[kind] : undefined;
 }
 
+// Android selects the notification channel from the TRIGGER, not from
+// `content` — and expo-notifications ignores `content.channelId` entirely when
+// `trigger: null`, logging "Couldn't get channel for the notifications" and
+// falling back to a default channel (so the configured HIGH importance, sound,
+// and vibration were never applied to immediate notifications). A 1-second
+// time-interval trigger carries the channelId and still fires immediately.
+export function immediateTrigger(
+  kind: keyof typeof NOTIFICATION_CHANNELS,
+): Notifications.NotificationTriggerInput {
+  const channelId = channelIdFor(kind);
+  if (Platform.OS !== "android" || !channelId) return null;
+  return {
+    type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+    seconds: 1,
+    channelId,
+  };
+}
+
 export async function setupAndroidNotificationChannel(): Promise<void> {
   if (Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync("stock-alerts", {
@@ -104,9 +122,8 @@ export async function scheduleStockAlert(
         body: `${productName} is now available at ${distributorName} for ${currency} ${price.toFixed(2)}`,
         data: { type: "stock_alert", productName, distributorName, productId },
         sound: "default",
-        ...(channelIdFor("stock") ? { channelId: channelIdFor("stock") } : {}),
       },
-      trigger: null, // immediate
+      trigger: immediateTrigger("stock"),
     });
     return id;
   } catch {
@@ -130,9 +147,8 @@ export async function scheduleStockWatchConfirmation(
         body: `We'll notify you when ${productName} is back in stock at ${distributorName}.`,
         data: { type: "stock_watch_set" },
         sound: "default",
-        ...(channelIdFor("stock") ? { channelId: channelIdFor("stock") } : {}),
       },
-      trigger: null, // immediate
+      trigger: immediateTrigger("stock"),
     });
     return id;
   } catch {
@@ -172,9 +188,8 @@ export async function scheduleHealthAlert(
           body,
           data: { type: "health_alert", distributorName: displayName, status },
           sound: "default",
-          ...(channelIdFor("stock") ? { channelId: channelIdFor("stock") } : {}),
         },
-        trigger: null, // immediate
+        trigger: immediateTrigger("stock"),
       });
     } catch {
       return null;
@@ -226,9 +241,8 @@ export async function scheduleHealthRecovery(
           body,
           data: { type: "health_recovery", distributorName: displayName, status },
           sound: "default",
-          ...(channelIdFor("stock") ? { channelId: channelIdFor("stock") } : {}),
         },
-        trigger: null, // immediate
+        trigger: immediateTrigger("stock"),
       });
     } catch {
       return null;
@@ -263,9 +277,8 @@ export async function schedulePriceAlert(
         body: `You'll be notified when ${productName} drops below ${currency} ${targetPrice.toFixed(2)}`,
         data: { type: "price_alert", productName, targetPrice, currency, productId },
         sound: "default",
-        ...(channelIdFor("price") ? { channelId: channelIdFor("price") } : {}),
       },
-      trigger: null, // immediate confirmation notification
+      trigger: immediateTrigger("price"),
     });
     return id;
   } catch {
@@ -285,9 +298,8 @@ export async function sendTestNotification(): Promise<boolean> {
         body: "Product Stock Finder will alert you when prices drop or items come back in stock.",
         data: { type: "test" },
         sound: "default",
-        ...(channelIdFor("price") ? { channelId: channelIdFor("price") } : {}),
       },
-      trigger: null,
+      trigger: immediateTrigger("price"),
     });
     return true;
   } catch {
@@ -312,11 +324,12 @@ export async function scheduleBackOrderReminder(
         body: `Check ${distributorName} for ${productName} — your reminder date is here!`,
         data: { type: "back_order_reminder", productName, distributorName, productId },
         sound: "default",
-        ...(channelIdFor("price") ? { channelId: channelIdFor("price") } : {}),
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: reminderDate,
+        // Android reads the channel from the TRIGGER; `content.channelId` is
+        // ignored, so a scheduled reminder landed on the fallback channel.
       },
     });
     return id;
@@ -360,9 +373,8 @@ export async function sendPriceDigestNotification(
         body,
         data: { type: "digest" },
         sound: "default",
-        ...(channelIdFor("digest") ? { channelId: channelIdFor("digest") } : {}),
       },
-      trigger: null, // immediate
+      trigger: immediateTrigger("digest"),
     });
     return true;
   } catch {
@@ -396,10 +408,9 @@ export async function scheduleServerEventNotification(
         title,
         body,
         data: { type: "server_event", ...(data ?? {}) },
-        ...(channelIdFor("price") ? { channelId: channelIdFor("price") } : {}),
         sound: "default",
       },
-      trigger: null, // immediate
+      trigger: immediateTrigger("price"),
     });
     return true;
   } catch {
