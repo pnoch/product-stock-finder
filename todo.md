@@ -2179,3 +2179,14 @@
 - [x] Rebuilt APK + AAB with the production URL baked in (verified by extracting the bundle from both), still release-signed (`CN=Product Stock Finder`)
 - [x] Script also guards: fails fast if `credentials/keystore.properties` or `android/` is missing
 - [x] E2E root `tsc 0`, lint 0 errors
+
+## Phase 250: Device-run fixes (two launch/tab crashes)
+
+Running the release APK on an emulator found two crashes that tsc/lint/unit tests all passed:
+
+- [x] **App crashed on launch**: `app/_layout.tsx` guarded a web-only listener with `typeof window !== "undefined"`, but React Native sets `global.window = global` — so the check is TRUE on native while `window.addEventListener` is undefined (`TypeError: undefined is not a function` in a passive effect). Now gated on `Platform.OS !== "web"`
+- [x] **Watchlist tab crashed**: `Animated.event(..., { useNativeDriver: true })` was attached to a plain `SectionList`, which throws "Components based on VirtualizedList must be wrapped with Animated.createAnimatedComponent". Wrapped it via `Animated.createAnimatedComponent(SectionList)` (with a cast preserving the generics that the wrapper drops)
+- [x] Verified on the emulator: app launches, onboarding completes, Home/Watchlist/Alerts/Rates/Settings all render with live production data and zero errors
+- [x] Added `tests/rn-platform-guards.test.ts` (both guards verified non-vacuous by reverting each fix)
+- [x] Built an x86_64+arm64 APK for emulator testing (`-PreactNativeArchitectures=x86_64,arm64-v8a`) — the default ARM-only APK cannot install on an x86_64 emulator
+- [x] E2E root `tsc 0`, lint 0 errors, root `319 passed | 2 skipped` / `1879 passed`

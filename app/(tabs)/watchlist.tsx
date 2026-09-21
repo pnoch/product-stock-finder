@@ -74,6 +74,22 @@ import { EmptyState } from "@/components/watchlist/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { LOG_ERROR } from "@shared/log";
 
+// `Animated.event` with `useNativeDriver: true` requires an Animated component.
+// A plain SectionList throws "Components based on VirtualizedList must be
+// wrapped with Animated.createAnimatedComponent to support native onScroll
+// events with useNativeDriver" — which crashed the Watchlist tab on device.
+type ProductSection = {
+  key: string;
+  title: string;
+  products: Product[];
+};
+// Cast preserves SectionList's generics, which createAnimatedComponent drops
+// (it would otherwise type items as `unknown`).
+const AnimatedSectionList = Animated.createAnimatedComponent(
+  SectionList,
+) as unknown as typeof SectionList<Product, ProductSection>;
+
+
 export default function WatchlistScreen() {
   const router = useRouter();
   const colors = useColors();
@@ -822,7 +838,7 @@ export default function WatchlistScreen() {
         onManage={() => setManageVisible(true)}
       />
 
-      <SectionList showsVerticalScrollIndicator={true}
+      <AnimatedSectionList showsVerticalScrollIndicator={true}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
         sections={sectionData}

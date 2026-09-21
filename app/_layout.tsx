@@ -93,13 +93,16 @@ export default function RootLayout() {
     ReturnType<typeof notificationRouteFor> | "/(tabs)" | null
   >(null);
 
-  // Initialize unhandled rejection handler
+  // Initialize unhandled rejection handler (web only).
+  // NOTE: on React Native `global.window === global`, so a bare
+  // `typeof window !== "undefined"` check is TRUE on native while
+  // `window.addEventListener` is undefined — calling it crashed the app on
+  // launch. Gate on the platform, not on the existence of `window`.
   useEffect(() => {
+    if (Platform.OS !== "web") return;
     const handler = (e: PromiseRejectionEvent) => console.error(e.reason);
-    if (typeof window !== "undefined") {
-      window.addEventListener("unhandledrejection", handler);
-      return () => window.removeEventListener("unhandledrejection", handler);
-    }
+    window.addEventListener("unhandledrejection", handler);
+    return () => window.removeEventListener("unhandledrejection", handler);
   }, []);
 
   // Request notification permissions and set up Android channel on first load
