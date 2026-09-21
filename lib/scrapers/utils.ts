@@ -1,6 +1,9 @@
 import { StockStatus } from "../types";
 import { DistributorParser } from "./types";
-import { backgroundSafeDelay } from "../background-safe-timers";
+import {
+  backgroundSafeDelay,
+  getBackgroundAppState,
+} from "../background-safe-timers";
 import type { Cheerio } from "cheerio";
 import type { Element } from "domhandler";
 
@@ -51,8 +54,22 @@ export async function fetchWithRateLimit(
   url: string,
   rateLimitMs: number,
 ): Promise<string> {
-  // Android backgrounded: a >0ms setTimeout freezes (frame-driven timers are
-  // paused), so poll with 0ms timers against wall-clock instead.
+  // Android backgrounded: every setTimeout freezes and politeness is moot
+  // inside the short background budget — skip the delay entirely there.
+  if (getBackgroundAppState() === "background") {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": getRandomUserAgent(),
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate",
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return response.text();
+  }
   await backgroundSafeDelay(rateLimitMs);
   const response = await fetch(url, {
     headers: {

@@ -6,8 +6,13 @@ import type { AppRouter } from "@/server/routers";
 import { getApiBaseUrl } from "@/constants/oauth";
 import { getDeviceId } from "@/lib/device-id";
 import { handleDeviceRevoked } from "@/lib/device-revoked";
+import { getBackgroundAppState } from "@/lib/background-safe-timers";
+import { backgroundFetch } from "@/lib/background-fetch";
 import { DEVICE_REVOKED_ERR_MSG } from "@/shared/const";
 import * as Auth from "@/lib/_core/auth";
+
+// Native (XHR) timeout for tRPC calls made while the app is backgrounded.
+const BACKGROUND_TRPC_TIMEOUT_MS = 8_000;
 
 /**
  * tRPC React client for type-safe API calls.
@@ -67,6 +72,15 @@ export function createTRPCClient() {
         },
         // Custom fetch to include credentials for cookie-based auth
         fetch(url, options) {
+          if (getBackgroundAppState() === "background") {
+            // JS timers freeze while backgrounded, so a Promise.race timeout
+            // can never fire. Enforce the deadline natively instead (XHR
+            // timeout → OkHttp callTimeout) and map the response back to the
+            // fetch API shape tRPC expects.
+            return backgroundFetch(String(url), BACKGROUND_TRPC_TIMEOUT_MS, {
+              ...(options?.headers as Record<string, string> | undefined),
+            }).then(({ html, status }) => new Response(html, { status }));
+          }
           return fetch(url, {
             ...options,
             credentials: "include",

@@ -1,17 +1,22 @@
 // Background-safe timer primitives for the Android background-task path.
 //
-// On Android, RN's JavaTimerManager drives >0ms setTimeout timers from the
-// choreographer's frame callback, which is gated on `isPaused` — timers with
-// a positive duration never fire while the app is backgrounded (expo's
-// background-task worker only emits a JS event; it never starts a headless
-// JS task, which is what would unpause timers). 0ms timers bypass the frame
-// callback entirely (createAndMaybeCallTimer → callTimers, gated only on an
-// active React instance), so they DO fire while backgrounded.
+// On Android (bridgeless / new architecture), ALL setTimeout timers — including
+// 0ms — are registered with JavaTimerManager and fired only from the
+// choreographer's frame callback, which is gated on `isPaused`. expo's
+// background-task worker only emits a JS event; it never starts a headless JS
+// task (the thing that would unpause timers), so every setTimeout freezes
+// while the app is backgrounded.
 //
-// These primitives therefore schedule only 0ms timers and re-check wall-clock
-// time on every tick while a "background" app state is reported. In the
-// foreground (and on iOS/web/server, which never report "background") they
-// use a plain setTimeout.
+// setImmediate / queueMicrotask, however, are backed by the JS VM's microtask
+// queue (runtime.queueMicrotask → Hermes), drained at each event-loop tick's
+// microtask checkpoint — not gated on pause. Microtask chains do run while
+// backgrounded, but only in bounded bursts per drain pass, so these primitives
+// are best treated as a fallback. The primary background-safe mechanism is the
+// NATIVE XHR timeout (lib/background-fetch.ts): fetches enforce their deadline
+// in the native networking stack, and rate-limit sleeps are skipped entirely.
+//
+// In the foreground (and on iOS/web/server, which never report "background")
+// these primitives use a plain setTimeout.
 //
 // This module must stay free of react-native imports: it is imported by
 // lib/scrapers/resilient.ts, which the server bundle also pulls in. The app
@@ -33,12 +38,24 @@ function isBackgrounded(): boolean {
   return appState === "background";
 }
 
+// While backgrounded, chain via setImmediate (microtask-backed on RN's
+// bridgeless runtime, so it survives the paused timer queue). In the
+// foreground, fall back to a real timer so we don't busy-spin.
+function scheduleTick(backgrounded: boolean, fn: () => void): void {
+  if (backgrounded) {
+    setImmediate(fn);
+  } else {
+    setTimeout(fn, 0);
+  }
+}
+
 /**
  * Resolves after at least `ms` of wall-clock time. While backgrounded on
- * Android it polls with 0ms timers (which still fire) instead of a single
- >0ms timer (which would freeze). Each tick checks Date.now() and resolves
- * once the deadline has passed; the poll loop also self-terminates if the
- * app returns to the foreground (the plain setTimeout path takes over).
+ * Android it polls via setImmediate (microtasks still drain while the timer
+ * queue is frozen) instead of a setTimeout (which would never fire). Each
+ * tick checks Date.now() and resolves once the deadline has passed; the poll
+ * loop also self-terminates if the app returns to the foreground (a plain
+ * setTimeout takes over for the remainder).
  */
 export function backgroundSafeDelay(ms: number): Promise<void> {
   if (ms <= 0) return Promise.resolve();
@@ -52,21 +69,22 @@ export function backgroundSafeDelay(ms: number): Promise<void> {
         resolve();
         return;
       }
-      if (!isBackgrounded()) {
+      const backgrounded = isBackgrounded();
+      if (!backgrounded) {
         setTimeout(resolve, Math.max(0, deadline - Date.now()));
         return;
       }
-      setTimeout(tick, 0);
+      scheduleTick(backgrounded, tick);
     };
-    setTimeout(tick, 0);
+    scheduleTick(true, tick);
   });
 }
 
 /**
  * Promise.race against a background-safe timeout. Resolves `undefined` when
  * the deadline passes first. While backgrounded the timeout is driven by the
- * 0ms-timer poll loop, so it fires even though frame-driven timers are
- * frozen. Cleans up the timer when either side settles.
+ * setImmediate poll loop, so it fires even though the timer queue is frozen.
+ * Cleans up the timer when either side settles.
  */
 export function backgroundSafeRace<T>(
   promise: Promise<T>,
@@ -82,26 +100,25 @@ export function backgroundSafeRace<T>(
     });
   }
   const deadline = Date.now() + ms;
-  let pollTimer: ReturnType<typeof setTimeout> | undefined;
-  let settled = false;
+  let cancelled = false;
   const timeout = new Promise<undefined>((resolve) => {
     const tick = () => {
-      if (settled) return;
+      if (cancelled) return;
       if (Date.now() >= deadline) {
-        settled = true;
+        cancelled = true;
         resolve(undefined);
         return;
       }
-      if (!isBackgrounded()) {
-        pollTimer = setTimeout(tick, Math.max(0, deadline - Date.now()));
+      const backgrounded = isBackgrounded();
+      if (!backgrounded) {
+        setTimeout(tick, Math.max(0, deadline - Date.now()));
         return;
       }
-      pollTimer = setTimeout(tick, 0);
+      scheduleTick(backgrounded, tick);
     };
-    pollTimer = setTimeout(tick, 0);
+    scheduleTick(true, tick);
   });
   return Promise.race([promise, timeout]).finally(() => {
-    settled = true;
-    if (pollTimer !== undefined) clearTimeout(pollTimer);
+    cancelled = true;
   });
 }

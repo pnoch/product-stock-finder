@@ -1,10 +1,7 @@
 import { DISTRIBUTOR_BREAKER_KEY, type StorageAdapter } from "../storage";
 import { getRandomUserAgent } from "./utils";
-import {
-  backgroundSafeDelay,
-  backgroundSafeRace,
-  getBackgroundAppState,
-} from "../background-safe-timers";
+import { backgroundSafeDelay, getBackgroundAppState } from "../background-safe-timers";
+import { backgroundFetch } from "../background-fetch";
 import type { DistributorParser, ScrapeResult } from "./types";
 
 export type FetchStatus = "ok" | "blocked" | "error" | "skipped";
@@ -155,8 +152,10 @@ export interface ResilientFetchOptions {
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 function sleep(ms: number): Promise<void> {
-  // Android backgrounded: a >0ms setTimeout freezes (frame-driven timers are
-  // paused), so poll with 0ms timers against wall-clock instead.
+  // Android backgrounded: every setTimeout freezes (the paused choreographer
+  // drives all timers). Rate-limit politeness is moot inside the short
+  // background budget, so skip the delay entirely there.
+  if (getBackgroundAppState() === "background") return Promise.resolve();
   return backgroundSafeDelay(ms);
 }
 
@@ -165,18 +164,17 @@ async function fetchPlain(
   rateLimitMs: number,
   timeoutMs: number,
 ): Promise<{ html: string; status: number }> {
+  if (getBackgroundAppState() === "background") {
+    // JS timers are frozen while backgrounded, so the timeout must be
+    // enforced natively (XHR timeout → OkHttp callTimeout).
+    return backgroundFetch(url, timeoutMs, {
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+    });
+  }
   await sleep(rateLimitMs);
   const controller = new AbortController();
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  if (getBackgroundAppState() === "background") {
-    // The abort watchdog must not rely on a >0ms setTimeout (frozen while
-    // backgrounded on Android); the 0ms poll loop keeps it alive.
-    void backgroundSafeRace(Promise.resolve(null), timeoutMs).then(() =>
-      controller.abort(),
-    );
-  } else {
-    timer = setTimeout(() => controller.abort(), timeoutMs);
-  }
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, {
       headers: {
@@ -191,7 +189,7 @@ async function fetchPlain(
     const html = await response.text();
     return { html, status: response.status };
   } finally {
-    if (timer !== undefined) clearTimeout(timer);
+    clearTimeout(timer);
     controller.abort();
   }
 }

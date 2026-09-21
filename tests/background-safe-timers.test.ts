@@ -6,34 +6,26 @@ import {
   type BackgroundAppState,
 } from "../lib/background-safe-timers";
 
-// Simulates Android RN timer behavior while backgrounded: timers scheduled
-// with a duration > 0 never fire (JavaTimerManager gates the choreographer
-// frame callback on isPaused), but 0ms timers fire immediately
-// (createAndMaybeCallTimer calls callTimers directly, bypassing the frame
-// callback). This harness installs a global setTimeout/clearTimeout pair
-// that reproduces exactly that contract.
+// Simulates Android bridgeless timer behavior while backgrounded: timers
+// scheduled with any duration (including 0ms) never fire — TimerManager
+// registers them with JavaTimerManager, which fires only from the
+// choreographer frame callback, gated on isPaused. setImmediate is
+// microtask-backed (runtime.queueMicrotask) and drains unbounded at each
+// event-loop tick, so it DOES run while backgrounded. This harness installs
+// global setTimeout/clearTimeout/setImmediate that reproduce that contract.
 function installAndroidBackgroundTimerHarness() {
   const realSetTimeout = globalThis.setTimeout;
   const realClearTimeout = globalThis.clearTimeout;
-  const pending = new Map<ReturnType<typeof realSetTimeout>, number>();
+  const pending = new Map<number, number>();
   let seq = 0;
   const stubbed = {
     setTimeout(fn: (...args: unknown[]) => void, ms?: number) {
-      const duration = ms ?? 0;
-      if (duration === 0) {
-        // 0ms timers fire immediately (native callTimers path)
-        const id = { __fired: true } as unknown as ReturnType<
-          typeof realSetTimeout
-        >;
-        queueMicrotask(() => fn());
-        return id;
-      }
-      // >0ms timers are registered but never fire while paused
-      const id = seq++ as unknown as ReturnType<typeof realSetTimeout>;
-      pending.set(id, duration);
-      return id;
+      // >0ms AND 0ms timers are registered but never fire while paused
+      const id = seq++;
+      pending.set(id, ms ?? 0);
+      return id as unknown as ReturnType<typeof setTimeout>;
     },
-    clearTimeout(id: ReturnType<typeof realSetTimeout>) {
+    clearTimeout(id: ReturnType<typeof setTimeout>) {
       pending.delete(id as unknown as number);
     },
   };
@@ -62,17 +54,12 @@ describe("background-safe timers (Android backgrounded)", () => {
     harness.restore();
   });
 
-  it("delay resolves while backgrounded using only 0ms timers", async () => {
-    const start = Date.now();
-    // Wall-clock is simulated by the 0ms chain: each tick re-checks
-    // Date.now(); to make this deterministic we fake a clock advance.
+  it("delay resolves while backgrounded using only setImmediate ticks", async () => {
     const p = backgroundSafeDelay(50);
-    // Simulate wall-clock progress without timers: shift Date.now forward.
-    const realNow = Date.now;
-    const base = realNow();
+    // Simulate wall-clock progress: shift Date.now forward.
+    const base = Date.now();
     const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => base + 60);
     await expect(p).resolves.toBeUndefined();
-    expect(Date.now() - start).toBeGreaterThanOrEqual(0);
     nowSpy.mockRestore();
   });
 
@@ -90,8 +77,7 @@ describe("background-safe timers (Android backgrounded)", () => {
 
   it("race resolves undefined on timeout while backgrounded", async () => {
     const p = backgroundSafeRace(new Promise<string>(() => {}), 10);
-    const realNow = Date.now;
-    const base = realNow();
+    const base = Date.now();
     const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => base + 20);
     await expect(p).resolves.toBeUndefined();
     nowSpy.mockRestore();
@@ -102,6 +88,22 @@ describe("background-safe timers (Android backgrounded)", () => {
     await expect(p).resolves.toBe("x");
     expect(harness.pendingCount()).toBe(0);
   });
+
+  it("delay switches to a plain setTimeout when foregrounded mid-wait", async () => {
+    vi.useFakeTimers();
+    const p = backgroundSafeDelay(1000);
+    // Foreground the app after the poll chain has started; the loop should
+    // hand off to a plain setTimeout for the remainder.
+    setBackgroundAppState("foreground");
+    const base = Date.now();
+    const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => base + 500);
+    const assertion = expect(p).resolves.toBeUndefined();
+    await vi.advanceTimersByTimeAsync(600);
+    await assertion;
+    nowSpy.mockRestore();
+    vi.useRealTimers();
+    setBackgroundAppState("background");
+  });
 });
 
 describe("background-safe timers (foreground fast path)", () => {
@@ -111,12 +113,8 @@ describe("background-safe timers (foreground fast path)", () => {
 
   afterEach(() => {
     setBackgroundAppState("foreground");
-    harness_restore();
-  });
-
-  function harness_restore() {
     vi.unstubAllGlobals();
-  }
+  });
 
   it("delay uses a plain setTimeout in the foreground", async () => {
     const spy = vi.spyOn(globalThis, "setTimeout");

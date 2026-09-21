@@ -6,6 +6,10 @@ vi.mock("../lib/trpc", () => ({
   createTRPCClient: vi.fn(),
 }));
 
+vi.mock("@/constants/oauth", () => ({
+  getApiBaseUrl: vi.fn(() => "https://api.example.com"),
+}));
+
 import { createTRPCClient } from "../lib/trpc";
 import { fetchServerPrice, uploadServerHistory } from "../lib/server-prices";
 
