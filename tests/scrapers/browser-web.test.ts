@@ -32,7 +32,7 @@ describe("browser web stub", () => {
   it("throws BrowserUnavailableError when used", async () => {
     const { fetchWithBrowser } = await import("@/lib/scrapers/browser.web");
     await expect(fetchWithBrowser("https://example.com")).rejects.toThrow(
-      "browser escalation unavailable on web",
+      "browser escalation unavailable on this platform",
     );
   });
 });

@@ -138,12 +138,31 @@ function SharedLinksList() {
     </View>
   );
 }
-function ShareWatchlistButton() {
+function ShareWatchlistButton({
+  isAuthenticated,
+  onSignIn,
+}: {
+  isAuthenticated: boolean;
+  onSignIn: () => void;
+}) {
   const colors = useColors();
   const createMutation = trpc.sharedWatchlists.create.useMutation();
   const [sharing, setSharing] = useState(false);
   const handleShare = useCallback(async () => {
     if (sharing) return;
+    // The endpoint is sign-in only; without this guard a signed-out tap showed
+    // the raw server error "Please login (10001)" instead of a way to sign in.
+    if (!isAuthenticated) {
+      showAlert(
+        "Sign in to share",
+        "Create a free account to generate a public watchlist link.",
+        [
+          { text: "Not now", style: "cancel" },
+          { text: "Sign in", onPress: onSignIn },
+        ],
+      );
+      return;
+    }
     setSharing(true);
     try {
       const res = await createMutation.mutateAsync({});
@@ -154,7 +173,7 @@ function ShareWatchlistButton() {
     } finally {
       setSharing(false);
     }
-  }, [sharing, createMutation]);
+  }, [sharing, createMutation, isAuthenticated, onSignIn]);
   return (
     <TouchableOpacity
       onPress={handleShare}
@@ -528,7 +547,7 @@ export default function SettingsScreen() {
           <Text style={{ color: colors.muted, fontSize: 13 }}>
             Create a read-only public link to your watchlist. Anyone with the link can view it.
           </Text>
-          <ShareWatchlistButton />
+          <ShareWatchlistButton isAuthenticated={isAuthenticated} onSignIn={handleSignIn} />
           {isAuthenticated && <SharedLinksList />}
         </View>
 

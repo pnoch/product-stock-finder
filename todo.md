@@ -2212,3 +2212,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Fixed the same bug on desktop (`desktop/src/components/TrendingSection.tsx`): the `<Link>` now calls `preventDefault` and adds-then-navigates via `useNavigate`
 - [x] Verified on device (x86_64+arm64 release APK): tapping NVIDIA RTX 5090 opens a real detail screen and the card flips to "In Watchlist"; tapping NVIDIA DGX Spark (no catalog entry) shows "Not yet available" and does not navigate
 - [x] Added `tests/trending-card-navigation.test.ts` + `desktop/tests/trending-card-navigation.test.tsx` (both verified non-vacuous by reverting each fix); E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `321 passed | 2 skipped` / `1884 passed`, desktop `44 passed` / `219 passed`
+
+## Phase 254: Device QA round 5 (Share watchlist raw auth error + misleading platform message)
+
+- [x] **"Share watchlist" in Settings showed a raw server error when signed out**: the button called `sharedWatchlists.create` (a sign-in-only endpoint) unconditionally, so a signed-out tap surfaced `Please login (10001)` with no way forward. It now checks `isAuthenticated` first and offers a "Sign in to share" dialog (Not now / Sign in → opens the login modal). The desktop Settings screen already guarded on auth — mobile was the outlier
+- [x] **Health probe reported "browser escalation unavailable on web" on Android**: the native app resolves the `browser.web.ts` stub (Playwright is node-only), so the message was wrong on native. Reworded to "browser escalation unavailable on this platform"
+- [x] Verified on device (x86_64+arm64 release APK): signed-out Share watchlist shows the "Sign in to share" dialog and "Sign in" opens the login modal; Health Dashboard renders live status (working/blocked/error filters), "Test All Distributors" completes all 25 with per-distributor latency, and the drill-down shows samples/uptime
+- [x] Added `tests/settings-share-auth-guard.test.ts` (verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `322 passed | 2 skipped` / `1886 passed`, desktop `44 passed` / `219 passed`
