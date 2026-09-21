@@ -12,7 +12,9 @@ import { DEVICE_REVOKED_ERR_MSG } from "@/shared/const";
 import * as Auth from "@/lib/_core/auth";
 
 // Native (XHR) timeout for tRPC calls made while the app is backgrounded.
-const BACKGROUND_TRPC_TIMEOUT_MS = 8_000;
+// Tight: the background task has a 25s budget shared across every listing, and
+// an unreachable server must fail fast so remaining listings still fit.
+const BACKGROUND_TRPC_TIMEOUT_MS = 4_000;
 
 /**
  * tRPC React client for type-safe API calls.

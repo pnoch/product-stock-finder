@@ -166,8 +166,10 @@ async function fetchPlain(
 ): Promise<{ html: string; status: number }> {
   if (getBackgroundAppState() === "background") {
     // JS timers are frozen while backgrounded, so the timeout must be
-    // enforced natively (XHR timeout → OkHttp callTimeout).
-    return backgroundFetch(url, timeoutMs, {
+    // enforced natively (XHR timeout → OkHttp callTimeout). Capped tighter
+    // than the foreground default (15s): the background task shares a 25s
+    // budget across every listing, so a slow distributor must fail fast.
+    return backgroundFetch(url, Math.min(timeoutMs, 10_000), {
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       "Accept-Language": "en-US,en;q=0.9",
     });
