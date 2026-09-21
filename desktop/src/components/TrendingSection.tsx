@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Flame, Plus, Check } from "lucide-react";
 import { fetchTrending } from "@shared/trending";
 import type { TrendingProduct } from "../../../lib/types";
@@ -19,6 +19,7 @@ export function TrendingSection() {
   const [loading, setLoading] = useState(true);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const { toast, showToast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchTrending()
@@ -31,7 +32,11 @@ export function TrendingSection() {
     });
   }, []);
 
-  const handleAdd = async (product: TrendingProduct) => {
+  // Trending products come from the server, not the local watchlist, so the
+  // product detail screen (which reads the watchlist) can't resolve them until
+  // they're added. Both the Add button and the card link must therefore add
+  // first; the link then navigates to the detail it just made resolvable.
+  const ensureWatchlistProduct = async (product: TrendingProduct) => {
     try {
       await storage.addToWatchlist({
         id: product.id,
@@ -45,9 +50,25 @@ export function TrendingSection() {
         listings: [],
       });
       setAddedIds((prev) => new Set([...prev, product.id]));
-      showToast("Added to watchlist");
+      return true;
     } catch {
       showToast("Failed to add");
+      return false;
+    }
+  };
+
+  const handleAdd = async (product: TrendingProduct) => {
+    if (await ensureWatchlistProduct(product)) showToast("Added to watchlist");
+  };
+
+  const handleOpen = async (
+    e: React.MouseEvent,
+    product: TrendingProduct,
+  ) => {
+    if (addedIds.has(product.id)) return;
+    e.preventDefault();
+    if (await ensureWatchlistProduct(product)) {
+      navigate(`/product/${product.id}`);
     }
   };
 
@@ -109,7 +130,12 @@ export function TrendingSection() {
           >
             <div className="flex items-center flex-1 min-w-0">
             <ProductImage productId={product.id} size={40} />
-            <Link to={`/product/${product.id}`} className="flex-1 min-w-0" aria-label={`View ${product.name} details`}>
+            <Link
+              to={`/product/${product.id}`}
+              onClick={(e) => void handleOpen(e, product)}
+              className="flex-1 min-w-0"
+              aria-label={`View ${product.name} details`}
+            >
               <p className="font-medium truncate">{product.name}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {product.category} · {product.brand} ·{" "}

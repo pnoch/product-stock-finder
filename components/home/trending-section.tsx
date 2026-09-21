@@ -63,10 +63,10 @@ const TrendingProductRow = memo(function TrendingProductRow({
   imageUrl?: string;
   isInWatchlist: boolean;
   onAdd: (p: TrendingProduct) => void;
-  onPress: (id: string) => void;
+  onPress: (p: TrendingProduct) => void;
 }) {
   const colors = useColors();
-  const handlePress = useCallback(() => onPress(product.id), [onPress, product.id]);
+  const handlePress = useCallback(() => onPress(product), [onPress, product]);
   const handleAddPress = useCallback(
     (e: unknown) => {
       (e as { stopPropagation?: () => void })?.stopPropagation?.();
@@ -242,44 +242,64 @@ export const TrendingSection = memo(function TrendingSection() {
     };
   }, [products]);
 
-  const handleAdd = useCallback(async (product: TrendingProduct) => {
-    if (Platform.OS !== "web") {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    const catalogProduct = PRODUCT_CATALOG.find((p) => p.id === product.id);
-    if (!catalogProduct && !(product as unknown as { modelNumber?: string }).modelNumber) {
-      showToast("Not yet available", "info");
-      return;
-    }
-    const fallbackListings = SAMPLE_LISTINGS[product.id]
-      ? (SAMPLE_LISTINGS[product.id] as unknown as never[])
-      : ([] as never[]);
-    const newProduct = {
-      id: product.id,
-      name: product.name,
-      modelNumber: catalogProduct?.modelNumber ?? (product as unknown as { modelNumber?: string }).modelNumber ?? product.id,
-      brand: product.brand,
-      category: product.category,
-      description: catalogProduct?.description ?? "",
-      isWatched: true,
-      addedAt: new Date().toISOString(),
-      listings: fallbackListings,
-      tags: [] as string[],
-    };
-    try {
-      await addToWatchlist(newProduct as never);
-    } catch {
-      showToast("Couldn't add to watchlist", "error");
-      return;
-    }
-    setWatchlistIds((prev) => new Set([...prev, product.id]));
-    showToast("Added — tap tag to organize", "success");
-    setPickerProduct(product);
-  }, [showToast]);
+  // Trending products come from the server, not the local watchlist, so the
+  // product detail screen (which reads the watchlist) can't resolve them until
+  // they're added. Both the Add button and the card body must therefore add
+  // first; the card body then navigates to the detail it just made resolvable.
+  const ensureWatchlistProduct = useCallback(
+    async (product: TrendingProduct): Promise<boolean> => {
+      const catalogProduct = PRODUCT_CATALOG.find((p) => p.id === product.id);
+      if (!catalogProduct && !(product as unknown as { modelNumber?: string }).modelNumber) {
+        showToast("Not yet available", "info");
+        return false;
+      }
+      const fallbackListings = SAMPLE_LISTINGS[product.id]
+        ? (SAMPLE_LISTINGS[product.id] as unknown as never[])
+        : ([] as never[]);
+      const newProduct = {
+        id: product.id,
+        name: product.name,
+        modelNumber: catalogProduct?.modelNumber ?? (product as unknown as { modelNumber?: string }).modelNumber ?? product.id,
+        brand: product.brand,
+        category: product.category,
+        description: catalogProduct?.description ?? "",
+        isWatched: true,
+        addedAt: new Date().toISOString(),
+        listings: fallbackListings,
+        tags: [] as string[],
+      };
+      try {
+        await addToWatchlist(newProduct as never);
+      } catch {
+        showToast("Couldn't add to watchlist", "error");
+        return false;
+      }
+      setWatchlistIds((prev) => new Set([...prev, product.id]));
+      return true;
+    },
+    [showToast],
+  );
+
+  const handleAdd = useCallback(
+    async (product: TrendingProduct) => {
+      if (Platform.OS !== "web") {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      if (!(await ensureWatchlistProduct(product))) return;
+      showToast("Added — tap tag to organize", "success");
+      setPickerProduct(product);
+    },
+    [ensureWatchlistProduct, showToast],
+  );
 
   const handlePress = useCallback(
-    (id: string) => router.push(`/product/${id}`),
-    [router],
+    async (product: TrendingProduct) => {
+      if (!watchlistIds.has(product.id)) {
+        if (!(await ensureWatchlistProduct(product))) return;
+      }
+      router.push(`/product/${product.id}`);
+    },
+    [ensureWatchlistProduct, router, watchlistIds],
   );
 
   const visibleProducts = useMemo(() => products?.slice(0, 3) ?? [], [products]);

@@ -2205,3 +2205,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Verified on device: the warning is gone and `dumpsys notification` shows `price-alerts` (importance 4/HIGH, vibration), `stock-alerts` (4/HIGH), `digest` (3/DEFAULT) all created with the configured settings
 - [x] Also verified on device this round: Add Product search (typing "CRS804" → 2 results), product detail scroll (sticky header collapse, "Set Alert at £426.55 (−5%)" — the Phase 215 fix), Best Deal with shipping/tax, multi-currency distributor rows (AUD/ZAR with live conversion), Price Alert creation + notification, Back-order Reminder
 - [x] Added `tests/android-channel-trigger.test.ts` (verified non-vacuous); E2E root `tsc 0`, lint 0 errors, root `320 passed | 2 skipped` / `1882 passed`
+
+## Phase 253: Device QA round 4 (trending card always "Product not found")
+
+- [x] **Tapping a Trending card opened a broken product detail**: the card body pushed `/product/<id>`, but product detail resolves products from the local watchlist and trending products come from the server — so every card tap showed "Product not found". The Add button worked (it adds first), which is why this slipped through. Now the card body adds the product via the same `ensureWatchlistProduct` helper before navigating (mirrors `discoverProduct` in `app/search.tsx`); a product with no catalog entry still shows the existing "Not yet available" toast instead of navigating
+- [x] Fixed the same bug on desktop (`desktop/src/components/TrendingSection.tsx`): the `<Link>` now calls `preventDefault` and adds-then-navigates via `useNavigate`
+- [x] Verified on device (x86_64+arm64 release APK): tapping NVIDIA RTX 5090 opens a real detail screen and the card flips to "In Watchlist"; tapping NVIDIA DGX Spark (no catalog entry) shows "Not yet available" and does not navigate
+- [x] Added `tests/trending-card-navigation.test.ts` + `desktop/tests/trending-card-navigation.test.tsx` (both verified non-vacuous by reverting each fix); E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `321 passed | 2 skipped` / `1884 passed`, desktop `44 passed` / `219 passed`
