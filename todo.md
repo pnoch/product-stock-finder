@@ -2236,3 +2236,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Wired `setBackgroundAppState` from `AppState` in `app/_layout.tsx` (Android only; iOS keeps timers alive natively via `RCTTiming` sleep-timers)
 - [x] Verified on device (x86_64+arm64 release APK, app backgrounded, job force-run): `price-drop-check` completed in 21s (within the 25s budget) and `health-probe` completed all 25 distributors, both with live network activity while backgrounded
 - [x] Added `tests/background-safe-timers.test.ts` (harness simulating Android's frozen-timer contract); E2E root `tsc 0`, lint 0 errors, root `324 passed | 2 skipped` / `1896 passed`
+
+## Phase 257: Tighten background timeouts (budget headroom)
+
+- [x] The background task took 21s of its 25s budget with an unreachable server (8s native tRPC timeout per listing + 15s scrape timeout) — larger watchlists would overflow the WorkManager window. Tightened: `BACKGROUND_TRPC_TIMEOUT_MS` 8s→4s in `lib/trpc.ts`, and the backgrounded scrape timeout capped at 10s in `fetchPlain` (`Math.min(timeoutMs, 10_000)`)
+- [x] Verified on device (backgrounded, job force-run): `price-drop-check` finished well under budget, `health-probe` 9s later — both complete while backgrounded
+- [x] E2E root `tsc 0`, lint 0 errors, root `324 passed | 2 skipped` / `1896 passed`
