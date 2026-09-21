@@ -1,4 +1,5 @@
 import { createTRPCClient } from "./trpc";
+import { backgroundSafeRace, getBackgroundAppState } from "./background-safe-timers";
 import type { PricePoint, ServerPriceResult } from "./types";
 
 export { isFreshPriceSnapshot } from "./price-freshness";
@@ -9,15 +10,29 @@ export async function fetchServerPrice(
   distributorId: string,
   modelNumber: string,
 ): Promise<ServerPriceResult | null> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const client = createTRPCClient();
-    const result = await Promise.race([
-      client.prices.get.query({ distributorId, modelNumber }),
-      new Promise<null>((resolve) => {
-        timer = setTimeout(() => resolve(null), TIMEOUT_MS);
-      }),
-    ]);
+    const result =
+      getBackgroundAppState() === "background"
+        ? // Android backgrounded: plain setTimeout freezes (frame-driven timers
+          // are paused), so race against the 0ms-timer poll loop instead.
+          await backgroundSafeRace(
+            client.prices.get.query({ distributorId, modelNumber }),
+            TIMEOUT_MS,
+          )
+        : await (async () => {
+            let timer: ReturnType<typeof setTimeout> | undefined;
+            try {
+              return await Promise.race([
+                client.prices.get.query({ distributorId, modelNumber }),
+                new Promise<null>((resolve) => {
+                  timer = setTimeout(() => resolve(null), TIMEOUT_MS);
+                }),
+              ]);
+            } finally {
+              if (timer !== undefined) clearTimeout(timer);
+            }
+          })();
     if (!result) return null;
     if (!result.snapshot && !result.history?.length) return null;
     return {
@@ -26,8 +41,6 @@ export async function fetchServerPrice(
     };
   } catch {
     return null;
-  } finally {
-    if (timer !== undefined) clearTimeout(timer);
   }
 }
 

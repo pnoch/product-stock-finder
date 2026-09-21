@@ -35,6 +35,7 @@ import {
 } from "@/lib/background-price-check";
 import { setupWebNotifications } from "@/lib/web-notifications";
 import { hasSeenOnboarding } from "@/lib/onboarding";
+import { setBackgroundAppState } from "@/lib/background-safe-timers";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import { registerWebPushServiceWorker } from "@/lib/web-push";
 import { PRODUCT_CATALOG } from "@shared/catalog";
@@ -108,6 +109,14 @@ export default function RootLayout() {
   // Request notification permissions and set up Android channel on first load
   useEffect(() => {
     if (Platform.OS === "web") return;
+    // Android backgrounded: frame-driven timers freeze, so the background-task
+    // path switches to 0ms-timer polling. iOS keeps timers alive natively.
+    if (Platform.OS === "android") {
+      const sub = AppState.addEventListener("change", (state) => {
+        setBackgroundAppState(state === "active" ? "foreground" : "background");
+      });
+      return () => sub.remove();
+    }
     // Route notification taps to their target screens — dedup with short TTL to avoid double-fire on cold start
     const handledResponses = new Map<string, number>();
     const handleNotificationResponse = (

@@ -1,5 +1,6 @@
 import { StockStatus } from "../types";
 import { DistributorParser } from "./types";
+import { backgroundSafeDelay } from "../background-safe-timers";
 import type { Cheerio } from "cheerio";
 import type { Element } from "domhandler";
 
@@ -50,7 +51,9 @@ export async function fetchWithRateLimit(
   url: string,
   rateLimitMs: number,
 ): Promise<string> {
-  await new Promise((resolve) => setTimeout(resolve, rateLimitMs));
+  // Android backgrounded: a >0ms setTimeout freezes (frame-driven timers are
+  // paused), so poll with 0ms timers against wall-clock instead.
+  await backgroundSafeDelay(rateLimitMs);
   const response = await fetch(url, {
     headers: {
       "User-Agent": getRandomUserAgent(),

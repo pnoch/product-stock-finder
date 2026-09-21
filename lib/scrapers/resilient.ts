@@ -1,5 +1,10 @@
 import { DISTRIBUTOR_BREAKER_KEY, type StorageAdapter } from "../storage";
 import { getRandomUserAgent } from "./utils";
+import {
+  backgroundSafeDelay,
+  backgroundSafeRace,
+  getBackgroundAppState,
+} from "../background-safe-timers";
 import type { DistributorParser, ScrapeResult } from "./types";
 
 export type FetchStatus = "ok" | "blocked" | "error" | "skipped";
@@ -150,7 +155,9 @@ export interface ResilientFetchOptions {
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  // Android backgrounded: a >0ms setTimeout freezes (frame-driven timers are
+  // paused), so poll with 0ms timers against wall-clock instead.
+  return backgroundSafeDelay(ms);
 }
 
 async function fetchPlain(
@@ -160,7 +167,16 @@ async function fetchPlain(
 ): Promise<{ html: string; status: number }> {
   await sleep(rateLimitMs);
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  if (getBackgroundAppState() === "background") {
+    // The abort watchdog must not rely on a >0ms setTimeout (frozen while
+    // backgrounded on Android); the 0ms poll loop keeps it alive.
+    void backgroundSafeRace(Promise.resolve(null), timeoutMs).then(() =>
+      controller.abort(),
+    );
+  } else {
+    timer = setTimeout(() => controller.abort(), timeoutMs);
+  }
   try {
     const response = await fetch(url, {
       headers: {
@@ -175,7 +191,8 @@ async function fetchPlain(
     const html = await response.text();
     return { html, status: response.status };
   } finally {
-    clearTimeout(timer);
+    if (timer !== undefined) clearTimeout(timer);
+    controller.abort();
   }
 }
 
