@@ -2219,3 +2219,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Health probe reported "browser escalation unavailable on web" on Android**: the native app resolves the `browser.web.ts` stub (Playwright is node-only), so the message was wrong on native. Reworded to "browser escalation unavailable on this platform"
 - [x] Verified on device (x86_64+arm64 release APK): signed-out Share watchlist shows the "Sign in to share" dialog and "Sign in" opens the login modal; Health Dashboard renders live status (working/blocked/error filters), "Test All Distributors" completes all 25 with per-distributor latency, and the drill-down shows samples/uptime
 - [x] Added `tests/settings-share-auth-guard.test.ts` (verified non-vacuous); E2E root `tsc 0`, desktop `tsc 0`, lint 0 errors, root `322 passed | 2 skipped` / `1886 passed`, desktop `44 passed` / `219 passed`
+
+## Phase 255: Device QA round 6 (URL product parse truncated MikroTik '+' models)
+
+- [x] **Pasting a distributor URL dropped the `+` segments from the model number**: `parseFromHtml` extracted the model with `[A-Za-z0-9._-]`, which excludes `+` — so `CRS326-24S+2Q+RM` became `CRS326-24S`. That partial model then fails distributor matching (the parsers gate on `modelMismatch`), so the product was added with "No distributor had it yet". Added `+` to both the title and URL model patterns
+- [x] Verified against the live page: `parseProductText("https://mikrotik.com/product/crs326_24s_2q_rm")` now returns `modelNumber: "CRS326-24S+2Q+RM"` (was `CRS326-24S`)
+- [x] Also verified on device this round: Add Product screen (category/brand/sort filters), Add Custom Product sheet, AI cleanup graceful fallback when the server LLM is unconfigured ("Couldn't reach the AI — please fill in the details manually"), URL fetch prefill, "Add & Search Distributors" progress + result, Health Dashboard "Test All Distributors" (all 25) + drill-down samples
+- [x] Added `tests/product-parse-url-model.test.ts` (verified non-vacuous); E2E root `tsc 0`, lint 0 errors, root `323 passed | 2 skipped` / `1888 passed`

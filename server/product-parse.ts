@@ -116,10 +116,12 @@ function parseFromHtml(html: string, url: string): ParsedProduct | null {
     const brand = brandGuess
       ? brandGuess.charAt(0).toUpperCase() + brandGuess.slice(1)
       : "";
-    // Try to extract a model-like token from title or URL.
+    // Try to extract a model-like token from title or URL. `+` is part of many
+    // MikroTik part numbers (CRS326-24S+2Q+RM), so excluding it truncated the
+    // model to the first segment (CRS326-24S) and broke distributor matching.
     const modelMatch =
-      title.match(/[A-Z0-9][A-Za-z0-9._-]{3,}/) ||
-      url.match(/\/([A-Za-z0-9_-]{4,})\/?(?:\?|$)/);
+      title.match(/[A-Z0-9][A-Za-z0-9._+-]{3,}/) ||
+      url.match(/\/([A-Za-z0-9_+-]{4,})\/?(?:\?|$)/);
     const modelNumber = modelMatch ? modelMatch[0].replace(/^\/|\/$/g, "").slice(0, 100) : rawTitle.split(/\s+/).slice(0, 3).join("-").slice(0, 100);
     return {
       name: rawTitle,
