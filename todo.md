@@ -2262,3 +2262,13 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 
 - [x] **Every fetch silently failed in Android release builds against a dev backend**: dev backends run over plain HTTP (`http://localhost:3000` via adb reverse, `http://10.0.2.2:3000` on the emulator) and Android 9+ blocks cleartext by default — the app showed "Backend unreachable" with no error surfaced anywhere. Added `plugins/with-android-cleartext-traffic.js`, which sets `android:usesCleartextTraffic="true"` on the `<application>` node. `android/` is gitignored, so a hand-edit to `AndroidManifest.xml` is lost on the next `expo prebuild --clean`; the plugin re-applies it every prebuild (mirrors `with-android-release-signing`). Production uses HTTPS, so this only relaxes dev
 - [x] Added `tests/android-cleartext-traffic.test.ts` (verified non-vacuous by reverting the attribute assignment); E2E root `tsc 0`, lint 0 errors (164 warnings), root `325 passed | 2 skipped` / `1900 passed`
+
+## Phase 261: Device QA round 9 (Settings + Rates)
+
+- [x] **Settings screen PASS** (x86_64+arm64 release APK, dev backend): Connection (Signed out / Check Now / Last checked), Account (Sign in to sync, Google + Apple, Sync status), Data, Notifications, Display, Shipping Region, Check Interval, Scraper Status, AI/LLM, Collaborative Watchlist and About all render
+- [x] Display Currency picker (EUR), Shipping Region picker (Europe) and Check Interval (Once a day) all persist their selection; blocked-distributor "Re-enable" flips ⚠️ → ✅ and stamps today's date
+- [x] Data section exercised end-to-end: Export Backup produces `product-stock-finder-backup-<date>.json` via the share sheet; Export CSV produces `product-stock-finder-watchlist-<date>.csv`; Import Backup opens the document picker and rejects a non-backup file with "Invalid Backup" (no data touched)
+- [x] About section: Privacy Policy opens the browser, Contact Support opens a mailto intent, Delete My Data shows the destructive confirm dialog (cancelled — no data deleted), Rate the App renders
+- [x] LoginModal: Forgot password? switches to the "Reset password" view (the round-8 "tap did nothing" was a tap miss, not a defect); empty submit surfaces "Email is required"; Back to sign in returns to the login view
+- [x] **Rates screen PASS**: all 12 currencies render with sparklines and % changes (GBP 0.7477/USD ⇒ 1 GBP = 1.3374 USD, cross-checked against the static table); 1W filter selects
+- [x] No bugs found this round — no code changes; E2E root `tsc 0`, lint 0 errors, root `325 passed | 2 skipped` / `1900 passed`
