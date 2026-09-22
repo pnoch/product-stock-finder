@@ -4,6 +4,7 @@ import {
   findNodeHandle,
   Animated,
   Easing,
+  Keyboard,
   Modal,
   ScrollView,
   Text,
@@ -42,6 +43,7 @@ export function TagPickerSheet({
   const [newTagName, setNewTagName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const firstTagRef = useRef<View | null>(null);
   const newTagInputRef = useRef<TextInput | null>(null);
   const sheetAnim = useRef(new Animated.Value(0)).current;
@@ -71,6 +73,20 @@ export function TagPickerSheet({
       backdropAnim.setValue(0);
     }
   }, [visible, sheetAnim, backdropAnim]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) =>
+      setKeyboardHeight(e.endCoordinates.height),
+    );
+    const hideSub = Keyboard.addListener("keyboardDidHide", () =>
+      setKeyboardHeight(0),
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [visible]);
 
   useEffect(() => {
     if (!visible) return;
@@ -142,6 +158,7 @@ export function TagPickerSheet({
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
           opacity: backdropAnim,
+          paddingBottom: keyboardHeight,
         }}
         accessibilityViewIsModal
       >

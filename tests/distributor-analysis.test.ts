@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { analyzeDistributors } from "@/lib/distributor-analysis";
 import type { Product, DistributorListing } from "@/lib/types";
 
@@ -127,5 +129,29 @@ describe("analyzeDistributors", () => {
     const result = analyzeDistributors(watchlist, "USD");
     const server2u = result.find((r) => r.distributorId === "server2u-my");
     expect(server2u!.totalCost).toBeCloseTo(120, 2); // 100 + 20 tax
+  });
+});
+
+// The Export CSV button used to swallow every outcome: `if (result === "copied")
+// setError(null)` was a no-op and the catch block was empty, so on desktop web
+// (no Web Share API) the button either silently copied or silently failed, and
+// an empty watchlist returned with no feedback at all. Every other shareText
+// caller (stats, watchlist, product, compare) reports the outcome.
+describe("distributor-analysis export reports its outcome", () => {
+  const src = readFileSync(
+    join(__dirname, "..", "app/distributor-analysis.tsx"),
+    "utf8",
+  );
+
+  it("no longer contains the no-op setError(null) or an empty catch", () => {
+    expect(src).not.toMatch(/result === "copied"\) setError\(null\)/);
+    expect(src).not.toMatch(/catch\s*\{\s*\}/);
+  });
+
+  it("surfaces copied, failed and empty-watchlist states", () => {
+    expect(src).toContain('showAlert("Copied"');
+    expect(src).toContain('showAlert("Share unavailable"');
+    expect(src).toContain('showAlert("Nothing to export"');
+    expect(src).toContain('showAlert("Export failed"');
   });
 });

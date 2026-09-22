@@ -20,6 +20,7 @@ import {
 import { formatPrice } from "@shared/currency";
 import { watchlistToDetailedCsv } from "@/lib/csv";
 import { shareText } from "@/lib/share-text";
+import { showAlert } from "@/lib/alert";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SkeletonList } from "@/components/ui/skeleton";
 
@@ -51,13 +52,22 @@ export default function DistributorAnalysisScreen() {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       const watchlist = await getWatchlist();
-      if (watchlist.length === 0) return;
+      if (watchlist.length === 0) {
+        showAlert("Nothing to export", "Add a product to your watchlist first.");
+        return;
+      }
       const csv = watchlistToDetailedCsv(watchlist);
       // Web has no Web Share API in most desktop browsers; shareText falls
       // back to the clipboard and reports the outcome instead of no-op'ing.
       const result = await shareText(csv, "Distributor Analysis CSV");
-      if (result === "copied") setError(null);
-    } catch {}
+      if (result === "copied") {
+        showAlert("Copied", "Distributor analysis CSV copied to your clipboard.");
+      } else if (result === "failed") {
+        showAlert("Share unavailable", "Sharing isn't supported in this browser.");
+      }
+    } catch (e) {
+      showAlert("Export failed", e instanceof Error ? e.message : "Couldn't export the analysis.");
+    }
   }, []);
 
   useFocusEffect(
