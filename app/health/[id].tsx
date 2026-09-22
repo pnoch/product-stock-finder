@@ -15,6 +15,7 @@ import {
   groupSamplesByDay,
   HealthSample,
   HealthStatus,
+  sanitizeResponseTimeMs,
   timelineSegments,
 } from "@/lib/scrapers/health";
 import { getDistributorById } from "@shared/distributors";
@@ -256,7 +257,9 @@ export default function HealthDetailScreen() {
                     </Text>
                     <Text style={{ color: colors.muted, fontSize: 12 }}>
                       {s.reason || s.status}
-                      {s.responseTimeMs ? ` · ${s.responseTimeMs}ms` : ""}
+                      {sanitizeResponseTimeMs(s.responseTimeMs) != null
+                        ? ` · ${sanitizeResponseTimeMs(s.responseTimeMs)}ms`
+                        : ""}
                     </Text>
                   </View>
                 </View>

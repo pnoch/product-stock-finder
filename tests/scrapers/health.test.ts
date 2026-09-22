@@ -8,7 +8,9 @@ import {
   detectHealthAlert,
   detectHealthRecovery,
   groupSamplesByDay,
+  MAX_RESPONSE_TIME_MS,
   pruneHealthHistory,
+  sanitizeResponseTimeMs,
   timelineSegments,
 } from "@/lib/scrapers/health";
 import type {
@@ -171,6 +173,36 @@ describe("createHealthService", () => {
       const samples = history[r.distributorId];
       expect(samples).toBeDefined();
       expect(samples[samples.length - 1].status).toBe("blocked");
+    }
+  });
+
+  it("testAllDistributors drops suspension-poisoned response times", async () => {
+    // Simulate the app being suspended mid-probe: Date.now() jumps minutes
+    // between the start of the first probe and its completion. Probes that
+    // span the jump must not record the suspension as latency.
+    const realNow = Date.now;
+    let calls = 0;
+    Date.now = () => {
+      calls += 1;
+      return calls === 1 ? 1_000_000 : 1_000_000 + 1_493_263;
+    };
+    try {
+      __resilientHolder.fn = async () => ({
+        status: "ok",
+        method: "plain",
+        html: "<html></html>",
+      });
+      const adapter = createMockAdapter();
+      const service = createHealthService(adapter);
+      const results = await service.testAllDistributors();
+      expect(results.length).toBeGreaterThan(0);
+      expect(results[0].responseTimeMs).toBeUndefined();
+      expect(results.every((r) => r.responseTimeMs !== 1_493_263)).toBe(true);
+      const history = await service.getHealthHistory();
+      const samples = history[results[0].distributorId];
+      expect(samples[samples.length - 1].responseTimeMs).toBeUndefined();
+    } finally {
+      Date.now = realNow;
     }
   });
 });
@@ -434,6 +466,39 @@ describe("computeHealthSummary", () => {
       sample("working", "2026-08-02T00:00:00Z"),
     ];
     expect(computeHealthSummary(samples).avgResponseTimeMs).toBeNull();
+  });
+
+  it("ignores suspension-poisoned response times in the average", () => {
+    const samples = [
+      sample("working", "2026-08-01T00:00:00Z", 2000),
+      sample("working", "2026-08-02T00:00:00Z", 4000),
+      // Recorded while the app was suspended mid-probe: wall-clock, not latency.
+      sample("working", "2026-08-03T00:00:00Z", 1_493_263),
+    ];
+    expect(computeHealthSummary(samples).avgResponseTimeMs).toBe(3000);
+  });
+});
+
+describe("sanitizeResponseTimeMs", () => {
+  it("keeps a plausible latency", () => {
+    expect(sanitizeResponseTimeMs(2500)).toBe(2500);
+  });
+
+  it("keeps a value at the bound", () => {
+    expect(sanitizeResponseTimeMs(MAX_RESPONSE_TIME_MS)).toBe(
+      MAX_RESPONSE_TIME_MS,
+    );
+  });
+
+  it("drops a suspension-poisoned duration", () => {
+    expect(sanitizeResponseTimeMs(1_493_263)).toBeUndefined();
+  });
+
+  it("drops undefined, negative and non-finite values", () => {
+    expect(sanitizeResponseTimeMs(undefined)).toBeUndefined();
+    expect(sanitizeResponseTimeMs(-1)).toBeUndefined();
+    expect(sanitizeResponseTimeMs(Number.NaN)).toBeUndefined();
+    expect(sanitizeResponseTimeMs(Number.POSITIVE_INFINITY)).toBeUndefined();
   });
 });
 

@@ -33,6 +33,21 @@ const HISTORY_MAX_SAMPLES = 30 * 24;
 const HISTORY_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const PROBE_MODEL = "CRS326";
 
+// A probe's response time is wall-clock around the fetch. On Android the JS
+// event loop freezes while the app is backgrounded (see
+// lib/background-safe-timers.ts), so a scheduled probe that spans a suspension
+// records the suspension duration — minutes, not milliseconds — and poisons
+// the average. Anything above this bound is not network latency; drop it.
+export const MAX_RESPONSE_TIME_MS = 60_000;
+
+export function sanitizeResponseTimeMs(
+  ms: number | undefined,
+): number | undefined {
+  if (typeof ms !== "number" || !Number.isFinite(ms) || ms < 0) return undefined;
+  if (ms > MAX_RESPONSE_TIME_MS) return undefined;
+  return ms;
+}
+
 const PROBE_MODEL_BY_DISTRIBUTOR: Record<string, string> = {
   "server2u-my": "CRS804-4DDQ-hRM",
   "linitx-uk": "CRS326-24S+2Q+RM",
@@ -173,7 +188,7 @@ export function computeHealthSummary(
   const firstAt = valid[times.indexOf(Math.min(...times))].at;
   const lastAt = valid[times.indexOf(Math.max(...times))].at;
   const withResponse = samples.filter(
-    (s) => typeof s.responseTimeMs === "number",
+    (s) => sanitizeResponseTimeMs(s.responseTimeMs) !== undefined,
   );
   const avgResponseTimeMs =
     withResponse.length > 0
@@ -369,7 +384,7 @@ export function createHealthService(adapter: StorageAdapter): HealthService {
               distributorId: parser.id,
               status,
               reason,
-              responseTimeMs: Date.now() - start,
+              responseTimeMs: sanitizeResponseTimeMs(Date.now() - start),
               lastChecked: new Date().toISOString(),
             };
           } catch (error) {
@@ -377,7 +392,7 @@ export function createHealthService(adapter: StorageAdapter): HealthService {
               distributorId: parser.id,
               status: "error" as HealthStatus,
               reason: error instanceof Error ? error.message : String(error),
-              responseTimeMs: Date.now() - start,
+              responseTimeMs: sanitizeResponseTimeMs(Date.now() - start),
               lastChecked: new Date().toISOString(),
             };
           }

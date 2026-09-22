@@ -2272,3 +2272,12 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] LoginModal: Forgot password? switches to the "Reset password" view (the round-8 "tap did nothing" was a tap miss, not a defect); empty submit surfaces "Email is required"; Back to sign in returns to the login view
 - [x] **Rates screen PASS**: all 12 currencies render with sparklines and % changes (GBP 0.7477/USD ⇒ 1 GBP = 1.3374 USD, cross-checked against the static table); 1W filter selects
 - [x] No bugs found this round — no code changes; E2E root `tsc 0`, lint 0 errors, root `325 passed | 2 skipped` / `1900 passed`
+
+## Phase 262: Device QA round 10 (Home + Health — suspension-poisoned response times)
+
+- [x] **Home screen PASS**: header + Signed out chip, stat cards (Tracked 8 / In Stock 5 / Alerts 0), Recent Activity (5 cards with status chips + relative times), Trending Now (Add / In Watchlist states), Your Watchlist preview + "View all 8 products" → Watchlist; the `+` button opens Add Product
+- [x] **Health Dashboard PASS**: filters (All 25 / working 9 / blocked 9 / error 7) filter correctly, per-distributor rows show status dot, reason, latency, uptime % and sparkline, "Test All Distributors" runs, drill-down renders the timeline strip + day-grouped samples
+- [x] **Health response times were poisoned by app suspension**: `testAllDistributors` timed each probe with `Date.now() - start`, which spans the Android background freeze (see Phase 256) — so a scheduled probe that straddled a suspension recorded the suspension duration as latency. On device Server2U showed samples of `297437ms`, `1321585ms`, `1493263ms` and an "avg response 225131ms" (3.75 minutes) while every real sample was 2–5s
+- [x] Added `sanitizeResponseTimeMs` + `MAX_RESPONSE_TIME_MS` (60s) in `lib/scrapers/health.ts`: the probe drops implausible durations at record time, `computeHealthSummary` ignores already-stored poisoned samples when averaging, and both health screens hide the bogus `ms` suffix on legacy samples
+- [x] Verified on device (x86_64+arm64 release APK): Server2U's avg response is now `3595ms` (was `225131ms`) and the three poisoned rows render without a latency suffix
+- [x] Added 6 tests to `tests/scrapers/health.test.ts` (all verified non-vacuous by reverting each fix); E2E root `tsc 0`, lint 0 errors (164 warnings), root `325 passed | 2 skipped` / `1906 passed`

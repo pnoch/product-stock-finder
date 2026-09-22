@@ -22,6 +22,7 @@ import {
   DistributorHealth,
   HealthStats,
   HealthStatus,
+  sanitizeResponseTimeMs,
 } from "@/lib/scrapers/health";
 import { getDistributorById } from "@shared/distributors";
 import { classifyFetchStatus } from "@/lib/scrapers/resilient";
@@ -310,7 +311,9 @@ export default function HealthScreen() {
                 </Text>
                 <Text style={{ color: colors.muted, fontSize: 12 }}>
                   {h.reason || h.status}
-                  {h.responseTimeMs ? ` · ${h.responseTimeMs}ms` : ""}
+                  {sanitizeResponseTimeMs(h.responseTimeMs) != null
+                    ? ` · ${sanitizeResponseTimeMs(h.responseTimeMs)}ms`
+                    : ""}
                 </Text>
               </View>
               <View style={{ alignItems: "flex-end", marginLeft: 8 }}>
