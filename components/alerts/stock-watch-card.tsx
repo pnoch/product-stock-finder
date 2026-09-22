@@ -1,8 +1,9 @@
 import { memo } from "react";
-import { Text, View, TouchableOpacity } from "react-native";
+import { Text, View } from "react-native";
 import { BackOrderReminder } from "@/lib/types";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { IconActionButton } from "@/components/ui/icon-action-button";
 
 type StockWatchCardProps = {
   watch: BackOrderReminder;
@@ -118,20 +119,14 @@ export const StockWatchCard = memo(function StockWatchCard({
               👀 Watching
             </Text>
           </View>
-          <TouchableOpacity activeOpacity={0.7}
+          <IconActionButton
+            name="trash.fill"
+            size={16}
+            color={colors.error}
             onPress={() => onDelete(watch)}
-            style={{ padding: 4 }}
-            hitSlop={44}
             accessibilityLabel={`Delete stock watch for ${watch.productName}`}
-            accessibilityRole="button"
             accessibilityHint="Double tap to delete"
-          >
-            <IconSymbol
-              name="trash.fill"
-              size={16}
-              color={colors.error}
-            />
-          </TouchableOpacity>
+          />
         </View>
       </View>
     </View>

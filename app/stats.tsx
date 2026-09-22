@@ -102,10 +102,14 @@ export default function StatsScreen() {
     return computeDigest(digestSnapshot, watchlist, settings, alerts);
   }, [digestSnapshot, watchlist, settings, alerts, digestFrequency]);
 
-  const showDigestPlaceholder = useMemo(
-    () => digestFrequency === "off" && watchlist.length > 0,
-    [digestFrequency, watchlist.length],
-  );
+  const digestPlaceholder = useMemo(() => {
+    if (watchlist.length === 0) return null;
+    if (digestFrequency === "off") return "off" as const;
+    // Enabled but no snapshot yet: the first digest hasn't been delivered, so
+    // there is nothing to diff against. Without this the whole card vanished.
+    if (!digestSnapshot) return "pending" as const;
+    return null;
+  }, [digestFrequency, digestSnapshot, watchlist.length]);
 
   const topDeals = useMemo(
     () => rankDeals(watchlist, displayCurrency),
@@ -258,7 +262,7 @@ export default function StatsScreen() {
               displayCurrency={displayCurrency}
               topDeals={topDeals}
             />
-          ) : showDigestPlaceholder ? (
+          ) : digestPlaceholder ? (
             <View
               style={{
                 marginHorizontal: 16,
@@ -273,13 +277,28 @@ export default function StatsScreen() {
               <EmptyStateView
                 compact
                 icon="mail"
-                title="Digest off"
-                subtitle="Enable daily or weekly price digests to see changes here."
-                ctaLabel="Go to Settings"
-                onCtaPress={() => {
-                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push("/(tabs)/settings");
-                }}
+                title={
+                  digestPlaceholder === "off" ? "Digest off" : "Digest scheduled"
+                }
+                subtitle={
+                  digestPlaceholder === "off"
+                    ? "Enable daily or weekly price digests to see changes here."
+                    : "Your first digest will appear here once it's sent."
+                }
+                ctaLabel={
+                  digestPlaceholder === "off" ? "Go to Settings" : undefined
+                }
+                onCtaPress={
+                  digestPlaceholder === "off"
+                    ? () => {
+                        if (Platform.OS !== "web")
+                          Haptics.impactAsync(
+                            Haptics.ImpactFeedbackStyle.Light,
+                          );
+                        router.push("/(tabs)/settings");
+                      }
+                    : undefined
+                }
               />
             </View>
           ) : null}

@@ -35,10 +35,12 @@ function toDraft(product: Product): Draft {
 export function EditProductSheet({
   visible,
   onClose,
+  onSaved,
   product,
 }: {
   visible: boolean;
   onClose: () => void;
+  onSaved?: () => void;
   product: Product;
 }) {
   const colors = useColors();
@@ -67,6 +69,7 @@ export function EditProductSheet({
         category: draft.category,
         description: draft.description,
       });
+      onSaved?.();
       onClose();
     } finally {
       setSaving(false);

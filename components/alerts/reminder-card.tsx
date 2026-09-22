@@ -1,9 +1,10 @@
 import { memo } from "react";
-import { Platform, Text, TouchableOpacity, View } from "react-native";
+import { Platform, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { BackOrderReminder } from "@/lib/types";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { IconActionButton } from "@/components/ui/icon-action-button";
 
 type ReminderCardProps = {
   reminder: BackOrderReminder;
@@ -115,33 +116,25 @@ export const ReminderCard = memo(function ReminderCard({
               </Text>
             </View>
           )}
-          <TouchableOpacity activeOpacity={0.7}
+          <IconActionButton
+            name="pencil"
+            size={16}
+            color={colors.primary}
             onPress={() => {
               if (Platform.OS !== "web")
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onReschedule(reminder);
             }}
-            style={{ padding: 4 }}
-            hitSlop={44}
             accessibilityLabel={`Reschedule reminder for ${reminder.productName}`}
-            accessibilityRole="button"
-          >
-            <IconSymbol name="pencil" size={16} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.7}
+          />
+          <IconActionButton
+            name="trash.fill"
+            size={16}
+            color={colors.error}
             onPress={() => onDelete(reminder)}
-            style={{ padding: 4 }}
-            hitSlop={44}
             accessibilityLabel={`Delete reminder for ${reminder.productName}`}
-            accessibilityRole="button"
             accessibilityHint="Double tap to delete"
-          >
-            <IconSymbol
-              name="trash.fill"
-              size={16}
-              color={colors.error}
-            />
-          </TouchableOpacity>
+          />
         </View>
       </View>
     </View>

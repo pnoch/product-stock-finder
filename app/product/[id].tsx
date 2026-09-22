@@ -27,6 +27,7 @@ import { fetchProductImage } from "@/lib/server-images";
 import { schedulePriceAlert, scheduleStockWatchConfirmation, scheduleBackOrderReminder, cancelNotification, ensureNotificationPermission } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
 import { ProductInfoCard, DistributorListingSection, ReminderDatePickerModal } from "./_components";
+import { EditProductSheet } from "@/components/product/edit-product-sheet";
 import { PriceAlert, DistributorListing } from "@/lib/types";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
 import { SkeletonCard, SkeletonChart, SkeletonDetailHeader } from "@/components/ui/skeleton";
@@ -58,6 +59,7 @@ export default function ProductDetailScreen() {
   const shareScale = useRef(new Animated.Value(1)).current;
   const [reminderListing, setReminderListing] = useState<DistributorListing | null>(null);
   const [reminderDate, setReminderDate] = useState(() => new Date(Date.now() + 7 * 86400000));
+  const [editingProduct, setEditingProduct] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
@@ -357,7 +359,17 @@ export default function ProductDetailScreen() {
         <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14, flex: 1 }} numberOfLines={1}>
           {product.name}
         </Text>
-        <View pointerEvents="auto">
+        <View pointerEvents="auto" style={{ flexDirection: "row", alignItems: "center" }}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setEditingProduct(true)}
+            style={{ padding: 4, marginLeft: 8 }}
+            accessibilityLabel="Edit product"
+            accessibilityRole="button"
+            hitSlop={10}
+          >
+            <IconSymbol name="pencil" size={18} color={colors.primary} />
+          </TouchableOpacity>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={handleShare}
@@ -420,6 +432,12 @@ export default function ProductDetailScreen() {
         setReminderDate={setReminderDate}
         onSetReminder={handleSetReminder}
         productName={product.name}
+      />
+      <EditProductSheet
+        visible={editingProduct}
+        onClose={() => setEditingProduct(false)}
+        onSaved={() => void refresh()}
+        product={product}
       />
     </ScreenContainer>
   );

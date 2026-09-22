@@ -1,9 +1,10 @@
 import { memo, useMemo, useCallback } from "react";
-import { Text, View, Switch, TouchableOpacity } from "react-native";
+import { Text, View, Switch } from "react-native";
 import { PriceAlert } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { IconActionButton } from "@/components/ui/icon-action-button";
 import { getDistributorById } from "@shared/distributors";
 
 type AlertCardProps = {
@@ -140,45 +141,31 @@ export const AlertCard = memo(function AlertCard({
             />
           )}
           {onEdit && (
-            <TouchableOpacity activeOpacity={0.7}
+            <IconActionButton
+              name="pencil"
+              size={16}
+              color={colors.primary}
               onPress={handleEdit}
-              style={{ padding: 10 }}
-              hitSlop={44}
               accessibilityLabel={`Edit alert for ${productName}`}
-              accessibilityRole="button"
-            >
-              <IconSymbol name="pencil" size={16} color={colors.primary} />
-            </TouchableOpacity>
+            />
           )}
           {onSnooze && !alert.triggeredAt && (
-            <TouchableOpacity activeOpacity={0.7}
-              onPress={handleSnooze}
-              style={{ padding: 10 }}
-              hitSlop={44}
-              accessibilityLabel={`Snooze alert for ${productName}`}
-              accessibilityRole="button"
-            >
-              <IconSymbol
-                name="moon.zzz.fill"
-                size={16}
-                color={colors.muted}
-              />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity activeOpacity={0.7}
-            onPress={handleDelete}
-            style={{ padding: 10 }}
-            hitSlop={44}
-            accessibilityLabel={`Delete alert for ${productName}`}
-            accessibilityRole="button"
-            accessibilityHint="Double tap to delete"
-          >
-            <IconSymbol
-              name="trash.fill"
+            <IconActionButton
+              name="moon.zzz.fill"
               size={16}
-              color={colors.error}
+              color={colors.muted}
+              onPress={handleSnooze}
+              accessibilityLabel={`Snooze alert for ${productName}`}
             />
-          </TouchableOpacity>
+          )}
+          <IconActionButton
+            name="trash.fill"
+            size={16}
+            color={colors.error}
+            onPress={handleDelete}
+            accessibilityLabel={`Delete alert for ${productName}`}
+            accessibilityHint="Double tap to delete"
+          />
         </View>
       </View>
     </View>

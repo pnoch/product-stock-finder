@@ -4,6 +4,7 @@ import { useColors } from "@/hooks/use-colors";
 import { PriceAlert } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { IconActionButton } from "@/components/ui/icon-action-button";
 import { getDistributorById } from "@shared/distributors";
 
 interface TriggeredAlertCardProps {
@@ -119,12 +120,12 @@ export const TriggeredAlertCard = memo(function TriggeredAlertCard({
         <View style={{ alignItems: "flex-end", gap: 8 }}>
           <TouchableOpacity activeOpacity={0.85}
             onPress={handleRearm}
-            hitSlop={44}
             style={{
               backgroundColor: colors.primary + "18",
               borderRadius: 8,
               paddingHorizontal: 8,
               paddingVertical: 4,
+              minHeight: 44,
               flexDirection: "row",
               alignItems: "center",
               gap: 4,
@@ -147,16 +148,14 @@ export const TriggeredAlertCard = memo(function TriggeredAlertCard({
               Watch Again
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.7}
+          <IconActionButton
+            name="trash.fill"
+            size={15}
+            color={colors.muted}
             onPress={handleDelete}
-            style={{ padding: 4 }}
-            hitSlop={44}
             accessibilityLabel={`Delete triggered alert for ${productName}`}
-            accessibilityRole="button"
             accessibilityHint="Double tap to delete"
-          >
-            <IconSymbol name="trash.fill" size={15} color={colors.muted} />
-          </TouchableOpacity>
+          />
         </View>
       </View>
     </View>
