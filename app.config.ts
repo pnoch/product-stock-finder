@@ -118,6 +118,9 @@ const config: ExpoConfig = {
     // --clean` (android/ is gitignored, so a hand-edit would be lost and
     // release builds would silently fall back to the debug key).
     "./plugins/with-android-release-signing",
+    // Allows cleartext HTTP for dev backends (localhost / 10.0.2.2). Android 9+
+    // blocks it by default, silently failing every fetch in release builds.
+    "./plugins/with-android-cleartext-traffic",
     // Required for expo-background-task on iOS: injects UIBackgroundModes
     // ("processing") and BGTaskSchedulerPermittedIdentifiers. Without it the
     // native module's hasBackgroundModeEnabled check fails and

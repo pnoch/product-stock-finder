@@ -2257,3 +2257,8 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] The foreground tRPC fetch had no deadline: with the server unreachable, "Refresh all" pinned its spinner indefinitely (fetch hangs until the OS TCP timeout — minutes), the sync queue never flushed, and per-listing live-price queries dangled. Added a 15s `AbortController` deadline to the foreground fetch in `lib/trpc.ts` (the backgrounded path already enforced 4s natively)
 - [x] Device-verified offline: the refresh cycle now completes in bounded time (~15s × React Query retries with backoff) instead of hanging forever; spinners clear
 - [x] E2E root `tsc 0`, lint 0 errors (169 pre-existing warnings), root `324 passed | 2 skipped` / `1896 passed`
+
+## Phase 260: Android cleartext traffic for dev backends
+
+- [x] **Every fetch silently failed in Android release builds against a dev backend**: dev backends run over plain HTTP (`http://localhost:3000` via adb reverse, `http://10.0.2.2:3000` on the emulator) and Android 9+ blocks cleartext by default — the app showed "Backend unreachable" with no error surfaced anywhere. Added `plugins/with-android-cleartext-traffic.js`, which sets `android:usesCleartextTraffic="true"` on the `<application>` node. `android/` is gitignored, so a hand-edit to `AndroidManifest.xml` is lost on the next `expo prebuild --clean`; the plugin re-applies it every prebuild (mirrors `with-android-release-signing`). Production uses HTTPS, so this only relaxes dev
+- [x] Added `tests/android-cleartext-traffic.test.ts` (verified non-vacuous by reverting the attribute assignment); E2E root `tsc 0`, lint 0 errors (164 warnings), root `325 passed | 2 skipped` / `1900 passed`
