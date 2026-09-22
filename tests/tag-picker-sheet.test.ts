@@ -26,3 +26,29 @@ describe("TagPickerSheet keyboard handling", () => {
     expect(src).toContain("onClose();");
   });
 });
+
+// The tag manager's rename input keeps the keyboard open. Without
+// keyboardShouldPersistTaps="handled" on the sheet's ScrollView, the first tap on
+// the Confirm/Cancel buttons is swallowed by the keyboard dismissal — so a
+// rename silently did nothing until the user tapped a second time (verified on
+// device: one tap left the row in edit mode, two taps committed it). The same
+// swallow applies to any tappable row inside a sheet ScrollView while its text
+// input holds focus, so all three tag sheets must opt in.
+describe("tag sheets let taps through while the keyboard is open", () => {
+  it.each([
+    "components/tag-manage-sheet.tsx",
+    "components/tag-picker-sheet.tsx",
+    "components/bulk-tag-sheet.tsx",
+  ])("%s sets keyboardShouldPersistTaps", (rel) => {
+    const src = readFileSync(join(__dirname, "..", rel), "utf8");
+    expect(src).toContain('keyboardShouldPersistTaps="handled"');
+  });
+
+  it("wires Confirm rename to handleRename", () => {
+    const src = readFileSync(
+      join(__dirname, "..", "components/tag-manage-sheet.tsx"),
+      "utf8",
+    );
+    expect(src).toContain("onPress={() => void handleRename(tag)}");
+  });
+});

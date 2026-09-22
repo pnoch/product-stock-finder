@@ -189,7 +189,7 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
               {loadFailed ? "Couldn't load tags. Reopen this sheet to retry." : "No tags yet. Tag a product from the watchlist to create one."}
             </Text>
           )}
-          <ScrollView style={{ maxHeight: 360 }}>
+          <ScrollView style={{ maxHeight: 360 }} keyboardShouldPersistTaps="handled">
             {tags.map((tag, idx) => (
               <View key={tag.id} style={{ marginBottom: 16 }} ref={idx === 0 ? (el: unknown) => { firstRowRef.current = el as View; } : undefined}>
                 {editingId === tag.id ? (

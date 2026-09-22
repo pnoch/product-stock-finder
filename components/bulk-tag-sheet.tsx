@@ -157,7 +157,7 @@ export function BulkTagSheet({
             Apply to {productIds.length} product
             {productIds.length !== 1 ? "s" : ""}
           </Text>
-          <ScrollView style={{ maxHeight: 260 }}>
+          <ScrollView style={{ maxHeight: 260 }} keyboardShouldPersistTaps="handled">
             {tags.length === 0 && (
               <Text
                 style={{ color: colors.muted, fontSize: 14, marginBottom: 12 }}

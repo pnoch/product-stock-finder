@@ -197,7 +197,7 @@ export function TagPickerSheet({
           >
             {product.name}
           </Text>
-          <ScrollView style={{ maxHeight: 300 }}>
+          <ScrollView style={{ maxHeight: 300 }} keyboardShouldPersistTaps="handled">
             {tags.length === 0 && (
               <Text
                 style={{ color: colors.muted, fontSize: 14, marginBottom: 12 }}
