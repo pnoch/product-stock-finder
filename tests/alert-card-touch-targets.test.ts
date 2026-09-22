@@ -78,3 +78,22 @@ describe("mobile product detail exposes product editing", () => {
     expect(src).toContain("onSaved");
   });
 });
+
+// ActionButtons was superseded by the product-detail section refactor and left
+// unreferenced — 257 lines of dead code that still shipped in the web bundle via
+// app/product/_components.tsx. Its unique actions (Copy Link, Test Stock Alert,
+// manual Refresh) were intentionally dropped; Compare/Share/Set Alert live on in
+// the section components. Keep the file deleted and the re-export gone.
+describe("dead ActionButtons component stays removed", () => {
+  it("no longer exists on disk", () => {
+    expect(() =>
+      readFileSync(join(ROOT, "components/product/action-buttons.tsx"), "utf8"),
+    ).toThrow();
+  });
+
+  it("is not re-exported from the product components barrel", () => {
+    const barrel = readFileSync(join(ROOT, "app/product/_components.tsx"), "utf8");
+    expect(barrel).not.toContain("ActionButtons");
+    expect(barrel).not.toContain("action-buttons");
+  });
+});

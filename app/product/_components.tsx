@@ -1,5 +1,4 @@
 export { ProductInfoCard } from "@/components/product/product-info-card";
-export { ActionButtons } from "@/components/product/action-buttons";
 export { DistributorListingCard } from "@/components/product/distributor-listing-card";
 export { DistributorListingSection } from "@/components/product/distributor-listing-section";
 export { PriceAlertModal } from "@/components/product/price-alert-modal";
