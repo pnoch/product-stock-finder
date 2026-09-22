@@ -420,89 +420,13 @@ export default function SearchScreen() {
         onQueryChange={setQuery}
         onSearchSubmit={handleSearchSubmit}
       />
-      {query.length === 0 && (
-        <RecentSearches
-          searches={recentSearches}
-          onSelect={(q) => setQuery(q)}
-          onClear={handleClearRecent}
-        />
-      )}
 
-      {Object.keys(tagDefinitions).length > 0 && (
-        <TagFilterRow
-          tagDefinitions={tagDefinitions}
-          selectedTagIds={selectedTagIds}
-          tagMatchMode={tagMatchMode}
-          counts={tagCounts}
-          onToggleTag={(tagId) =>
-            setSelectedTagIds((prev) =>
-              prev.includes(tagId)
-                ? prev.filter((t) => t !== tagId)
-                : [...prev, tagId],
-            )
-          }
-          onChangeMode={setTagMatchMode}
-          onClearAll={() => setSelectedTagIds([])}
-        />
-      )}
-
-      {/* Category / Brand filters — pill rows (RegionFilterRow pattern) */}
-      <PillFilterRow label="Category" options={categories} selected={selectedCategory} onSelect={setSelectedCategory} colors={colors} />
-      <PillFilterRow label="Brand" options={brands} selected={selectedBrand} onSelect={setSelectedBrand} colors={colors} />
-
-      {/* Catalog sort bar — parity with watchlist SortGroupBar */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingBottom: 10, flexWrap: "wrap" }}>
-        <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 }}>Sort</Text>
-        {CATALOG_SORT_OPTIONS.map((opt) => {
-          const active = catalogSort === opt.key;
-          return (
-            <TouchableOpacity activeOpacity={0.85}
-              key={opt.key}
-              onPress={() => {
-                if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setCatalogSort(opt.key);
-              }}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-                backgroundColor: active ? colors.primary : colors.surface,
-                borderWidth: 1,
-                borderColor: active ? colors.primary : colors.border,
-              }}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: active }}
-            >
-              <Text style={{ color: active ? "#fff" : colors.muted, fontSize: 13, fontWeight: "600" }}>{opt.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-        {(selectedCategory || selectedBrand) && (
-          <TouchableOpacity activeOpacity={0.7} onPress={() => { setSelectedCategory(null); setSelectedBrand(null); }} style={{ padding: 4 }} accessibilityLabel="Clear category/brand filter" accessibilityRole="button">
-            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600" }}>Clear</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Results */}
-      {selectedTagIds.length > 0 && (
-        <View
-          style={{
-            marginHorizontal: 16,
-            marginBottom: 12,
-            padding: 10,
-            borderRadius: 10,
-            backgroundColor: colors.primary + "14",
-            borderWidth: 1,
-            borderColor: colors.primary + "33",
-          }}
-        >
-          <Text style={{ color: colors.muted, fontSize: 12 }}>
-            Tag filter: showing watchlist matches only — clear to see catalog
-          </Text>
-        </View>
-      )}
+      {/* Results. The filter chrome lives in the list's ListHeaderComponent so it
+          scrolls away with the content (QA round 16: as flex siblings the tag
+          chips + category/brand pill rows + sort bar consumed the whole screen
+          and squeezed the results list into a ~324px strip at the bottom). */}
       <FlatList showsVerticalScrollIndicator={true}
+        style={{ flex: 1 }}
         data={sortedResults}
         keyExtractor={(item) => item.id}
         initialNumToRender={10}
@@ -510,83 +434,171 @@ export default function SearchScreen() {
         maxToRenderPerBatch={8}
         updateCellsBatchingPeriod={50}
         removeClippedSubviews={Platform.OS === "android"}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
         ListHeaderComponent={
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <Text
-              style={{
-                color: colors.muted,
-                fontSize: 12,
-                fontWeight: "600",
-                textTransform: "uppercase",
-                letterSpacing: 0.8,
-              }}
-            >
-              {query.trim()
-                ? `${sortedResults.length} result${sortedResults.length !== 1 ? "s" : ""}`
-                : "All Products"}
-            </Text>
-            {query.trim().length > 0 && sortedResults.length > 0 && (
-              <View style={{ backgroundColor: colors.primary + "14", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}>
-                <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>{sortedResults.length}</Text>
+          <View>
+            {query.length === 0 && (
+              <RecentSearches
+                searches={recentSearches}
+                onSelect={(q) => setQuery(q)}
+                onClear={handleClearRecent}
+              />
+            )}
+
+            {Object.keys(tagDefinitions).length > 0 && (
+              <TagFilterRow
+                tagDefinitions={tagDefinitions}
+                selectedTagIds={selectedTagIds}
+                tagMatchMode={tagMatchMode}
+                counts={tagCounts}
+                onToggleTag={(tagId) =>
+                  setSelectedTagIds((prev) =>
+                    prev.includes(tagId)
+                      ? prev.filter((t) => t !== tagId)
+                      : [...prev, tagId],
+                  )
+                }
+                onChangeMode={setTagMatchMode}
+                onClearAll={() => setSelectedTagIds([])}
+              />
+            )}
+
+            {/* Category / Brand filters — pill rows (RegionFilterRow pattern) */}
+            <PillFilterRow label="Category" options={categories} selected={selectedCategory} onSelect={setSelectedCategory} colors={colors} />
+            <PillFilterRow label="Brand" options={brands} selected={selectedBrand} onSelect={setSelectedBrand} colors={colors} />
+
+            {/* Catalog sort bar — parity with watchlist SortGroupBar */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingBottom: 10, flexWrap: "wrap" }}>
+              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 }}>Sort</Text>
+              {CATALOG_SORT_OPTIONS.map((opt) => {
+                const active = catalogSort === opt.key;
+                return (
+                  <TouchableOpacity activeOpacity={0.85}
+                    key={opt.key}
+                    onPress={() => {
+                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setCatalogSort(opt.key);
+                    }}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 16,
+                      backgroundColor: active ? colors.primary : colors.surface,
+                      borderWidth: 1,
+                      borderColor: active ? colors.primary : colors.border,
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                  >
+                    <Text style={{ color: active ? "#fff" : colors.muted, fontSize: 13, fontWeight: "600" }}>{opt.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+              {(selectedCategory || selectedBrand) && (
+                <TouchableOpacity activeOpacity={0.7} onPress={() => { setSelectedCategory(null); setSelectedBrand(null); }} style={{ padding: 4 }} accessibilityLabel="Clear category/brand filter" accessibilityRole="button">
+                  <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600" }}>Clear</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {selectedTagIds.length > 0 && (
+              <View
+                style={{
+                  marginHorizontal: 16,
+                  marginBottom: 12,
+                  padding: 10,
+                  borderRadius: 10,
+                  backgroundColor: colors.primary + "14",
+                  borderWidth: 1,
+                  borderColor: colors.primary + "33",
+                }}
+              >
+                <Text style={{ color: colors.muted, fontSize: 12 }}>
+                  Tag filter: showing watchlist matches only — clear to see catalog
+                </Text>
               </View>
             )}
+
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10, paddingHorizontal: 16 }}>
+              <Text
+                style={{
+                  color: colors.muted,
+                  fontSize: 12,
+                  fontWeight: "600",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.8,
+                }}
+              >
+                {query.trim()
+                  ? `${sortedResults.length} result${sortedResults.length !== 1 ? "s" : ""}`
+                  : "All Products"}
+              </Text>
+              {query.trim().length > 0 && sortedResults.length > 0 && (
+                <View style={{ backgroundColor: colors.primary + "14", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}>
+                  <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>{sortedResults.length}</Text>
+                </View>
+              )}
+            </View>
           </View>
         }
         ListEmptyComponent={<SearchEmptyState query={query} selectedTagIds={selectedTagIds} />}
         ListFooterComponent={
           query.trim().length > 0 ? (
-            discovering ? (
-              <View style={{ alignItems: "center", padding: 24 }}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={{ color: colors.muted, marginTop: 8 }}>
-                  Discovering product...
-                </Text>
-              </View>
-            ) : (
-              <TouchableOpacity activeOpacity={0.85}
-                accessibilityLabel="Discover with AI"
-                accessibilityRole="button"
-                onPress={handleDiscover}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  padding: 16,
-                  marginTop: 16,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: colors.primary + "44",
-                  backgroundColor: colors.primary + "11",
-                }}
-              >
-                <IconSymbol
-                  name="wand.and.stars"
-                  size={20}
-                  color={colors.primary}
-                />
-                <Text
+            <View style={{ paddingHorizontal: 16 }}>
+              {discovering ? (
+                <View style={{ alignItems: "center", padding: 24 }}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={{ color: colors.muted, marginTop: 8 }}>
+                    Discovering product...
+                  </Text>
+                </View>
+              ) : (
+                <TouchableOpacity activeOpacity={0.85}
+                  accessibilityLabel="Discover with AI"
+                  accessibilityRole="button"
+                  onPress={handleDiscover}
                   style={{
-                    color: colors.primary,
-                    fontWeight: "600",
-                    fontSize: 14,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    padding: 16,
+                    marginTop: 16,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: colors.primary + "44",
+                    backgroundColor: colors.primary + "11",
                   }}
                 >
-                  Discover with AI
-                </Text>
-              </TouchableOpacity>
-            )
+                  <IconSymbol
+                    name="wand.and.stars"
+                    size={20}
+                    color={colors.primary}
+                  />
+                  <Text
+                    style={{
+                      color: colors.primary,
+                      fontWeight: "600",
+                      fontSize: 14,
+                    }}
+                  >
+                    Discover with AI
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           ) : null
         }
         renderItem={({ item }) => (
-          <CatalogProductCard
-            product={item as Product}
-            isTracked={trackedIds.has(item.id)}
-            isAdding={adding === item.id}
-            onAdd={handleAdd}
-            onTagPress={handleTagPress}
-          />
+          <View style={{ paddingHorizontal: 16 }}>
+            <CatalogProductCard
+              product={item as Product}
+              isTracked={trackedIds.has(item.id)}
+              isAdding={adding === item.id}
+              onAdd={handleAdd}
+              onTagPress={handleTagPress}
+            />
+          </View>
         )}
       />
 
