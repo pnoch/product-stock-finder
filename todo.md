@@ -2251,3 +2251,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Sparkline taps were dead on Android**: react-native-svg's `Svg` swallows touches (its touch handler returns true), blocking the parent "Open price chart" Pressable; the wrapper's `accessible`+`role=image` also intercepted. Fixed: `pointerEvents="none"` on the Svg + new `interactive` prop on `PriceSparkline` that drops the a11y boundary when embedded in a button. Verified: tap fires and navigates to Compare
 - [x] **Watchlist list couldn't scroll on device**: the header content (offline banner, summary card, search, sort/group bar, region chips, price row, tag row) rendered as flex siblings of the SectionList, squeezing it into a ~240px strip at the screen bottom — swipes above it hit nothing. Fixed by moving all header content into the list's `ListHeaderComponent` (scrolls away with content) and dropping the now-unused `Animated.createAnimatedComponent(SectionList)` wrapper + `onScroll` Animated.event. Verified: full-height scrolling list, header intact when scrolled back up
 - [x] E2E root `tsc 0`, lint 0 errors (169 pre-existing warnings), root `324 passed | 2 skipped` / `1896 passed`
+
+## Phase 259: Foreground tRPC fetch timeout
+
+- [x] The foreground tRPC fetch had no deadline: with the server unreachable, "Refresh all" pinned its spinner indefinitely (fetch hangs until the OS TCP timeout — minutes), the sync queue never flushed, and per-listing live-price queries dangled. Added a 15s `AbortController` deadline to the foreground fetch in `lib/trpc.ts` (the backgrounded path already enforced 4s natively)
+- [x] Device-verified offline: the refresh cycle now completes in bounded time (~15s × React Query retries with backoff) instead of hanging forever; spinners clear
+- [x] E2E root `tsc 0`, lint 0 errors (169 pre-existing warnings), root `324 passed | 2 skipped` / `1896 passed`

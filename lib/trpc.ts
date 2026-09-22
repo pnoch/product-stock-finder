@@ -16,6 +16,11 @@ import * as Auth from "@/lib/_core/auth";
 // an unreachable server must fail fast so remaining listings still fit.
 const BACKGROUND_TRPC_TIMEOUT_MS = 4_000;
 
+// Foreground deadline. Without it an unreachable server hangs the fetch until
+// the OS TCP timeout (minutes) — e.g. "Refresh all" pins its spinner and the
+// sync queue never flushes. Generous enough for slow mobile networks.
+const FOREGROUND_TRPC_TIMEOUT_MS = 15_000;
+
 /**
  * tRPC React client for type-safe API calls.
  *
@@ -83,10 +88,18 @@ export function createTRPCClient() {
               ...(options?.headers as Record<string, string> | undefined),
             }).then(({ html, status }) => new Response(html, { status }));
           }
+          // AbortController deadline: fails fast when the server is
+          // unreachable instead of hanging until the OS TCP timeout.
+          const controller = new AbortController();
+          const timer = setTimeout(
+            () => controller.abort(),
+            FOREGROUND_TRPC_TIMEOUT_MS,
+          );
           return fetch(url, {
             ...options,
             credentials: "include",
-          });
+            signal: controller.signal,
+          }).finally(() => clearTimeout(timer));
         },
       }),
     ],
