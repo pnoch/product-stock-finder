@@ -61,11 +61,19 @@ export default function SharedWatchlistScreen() {
   }
 
   if (query.isError) {
+    // The server's error message is often just "Share not found", which would
+    // repeat the heading verbatim. Fall back to an actionable subtitle instead.
+    const title = "Share not found";
+    const rawMessage = query.error.message?.trim() ?? "";
+    const detail =
+      rawMessage && rawMessage.toLowerCase() !== title.toLowerCase()
+        ? rawMessage
+        : "This link may have expired, been revoked, or never existed.";
     return (
       <ScreenContainer>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <Text style={{ color: colors.error, fontWeight: "700", fontSize: 16 }}>Share not found</Text>
-          <Text style={{ color: colors.muted, marginTop: 8, textAlign: "center" }}>{query.error.message}</Text>
+          <Text style={{ color: colors.error, fontWeight: "700", fontSize: 16 }}>{title}</Text>
+          <Text style={{ color: colors.muted, marginTop: 8, textAlign: "center" }}>{detail}</Text>
         </View>
       </ScreenContainer>
     );

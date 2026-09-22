@@ -1,6 +1,6 @@
 import "@/global.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack, router } from "expo-router";
+import { Stack, router, usePathname } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -34,7 +34,7 @@ import {
   checkPriceDropsNow,
 } from "@/lib/background-price-check";
 import { setupWebNotifications } from "@/lib/web-notifications";
-import { hasSeenOnboarding } from "@/lib/onboarding";
+import { hasSeenOnboarding, isPublicRoute } from "@/lib/onboarding";
 import { setBackgroundAppState } from "@/lib/background-safe-timers";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import { registerWebPushServiceWorker } from "@/lib/web-push";
@@ -323,6 +323,12 @@ export default function RootLayout() {
   const [onboardingState, setOnboardingState] = useState<
     "checking" | "app" | "intro"
   >("checking");
+  // The initial path is known synchronously (web reads window.location, native
+  // reads the launch URL), so a public route can bypass the onboarding gate on
+  // the very first render. `usePathname` keeps this correct for in-app
+  // navigation too (e.g. an OAuth callback deep link while the tour is showing).
+  const pathname = usePathname();
+  const isPublic = isPublicRoute(pathname);
   useEffect(() => {
     void hasSeenOnboarding().then((seen) =>
       setOnboardingState(seen ? "app" : "intro"),
@@ -347,7 +353,7 @@ export default function RootLayout() {
   }, [onboardingState]);
 
 
-  if (onboardingState === "checking") {
+  if (onboardingState === "checking" && !isPublic) {
     return (
       <ThemeProvider>
         <View
@@ -367,7 +373,7 @@ export default function RootLayout() {
       </ThemeProvider>
     );
   }
-  if (onboardingState === "intro") {
+  if (onboardingState === "intro" && !isPublic) {
     return (
       <ThemeProvider>
         <OnboardingScreen onComplete={() => setOnboardingState("app")} />
