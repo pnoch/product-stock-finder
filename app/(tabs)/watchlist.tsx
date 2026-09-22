@@ -74,22 +74,9 @@ import { EmptyState } from "@/components/watchlist/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { LOG_ERROR } from "@shared/log";
 
-// `Animated.event` with `useNativeDriver: true` requires an Animated component.
-// A plain SectionList throws "Components based on VirtualizedList must be
-// wrapped with Animated.createAnimatedComponent to support native onScroll
-// events with useNativeDriver" — which crashed the Watchlist tab on device.
-type ProductSection = {
-  key: string;
-  title: string;
-  products: Product[];
-};
-// Cast preserves SectionList's generics, which createAnimatedComponent drops
-// (it would otherwise type items as `unknown`).
-const AnimatedSectionList = Animated.createAnimatedComponent(
-  SectionList,
-) as unknown as typeof SectionList<Product, ProductSection>;
-
-
+// The header content lives in the list's ListHeaderComponent so it scrolls
+// away with the content (QA round 8: as flex siblings it squeezed the list
+// into a ~240px strip at the bottom of the screen).
 export default function WatchlistScreen() {
   const router = useRouter();
   const colors = useColors();
@@ -714,133 +701,13 @@ export default function WatchlistScreen() {
         />
       </Animated.View>
 
-      {connection.status === "offline" && queuedCount > 0 && (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            backgroundColor: colors.warning + "14",
-            borderWidth: 1,
-            borderColor: colors.warning + "44",
-            borderRadius: 12,
-            marginHorizontal: 20,
-            marginTop: 8,
-            paddingHorizontal: 12,
-            paddingVertical: 10,
-          }}
-          accessibilityLabel={`Offline — ${queuedCount} edits queued`}
-          accessibilityRole="alert"
-        >
-          <IconSymbol name="wifi.slash" size={16} color={colors.warning} />
-          <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", flex: 1 }}>
-            Offline — {queuedCount} edit{queuedCount !== 1 ? "s" : ""} queued
-          </Text>
-          <Text style={{ color: colors.muted, fontSize: 12 }}>Will sync when back online</Text>
-        </View>
-      )}
-
-      {watchlist.length > 0 && (
-        <SummaryCard
-          summary={summary}
-          displayCurrency={displayCurrency}
-          statusFilter={statusFilter}
-          onStatusToggle={setStatusFilter}
-          onViewStats={() => router.push("/stats")}
-        />
-      )}
-
-      {watchlist.length > 0 && (
-        <SearchBar query={query} onQueryChange={setQuery} />
-      )}
-
-      <ProgressBar
-        progress={
-          checkProgress ? checkProgress.current / checkProgress.total : 0
-        }
-        visible={!!(checking && checkProgress)}
-      />
-
-      {watchlist.length > 0 && (
-        <SortGroupBar
-          sortMode={sortMode}
-          groupMode={groupMode}
-          sortMenuOpen={sortMenuOpen}
-          onSortModeChange={(mode) => {
-            setSortMode(mode);
-            setSortMenuOpen(false);
-            void persistViewPrefs(mode, groupModeRef.current);
-          }}
-          onGroupModeChange={(mode) => {
-            setGroupMode(mode);
-            void persistViewPrefs(sortModeRef.current, mode);
-          }}
-          onSortMenuToggle={() => setSortMenuOpen((v) => !v)}
-        />
-      )}
-
-      {watchlist.length > 0 && (
-        <RegionFilterRow
-          regions={regions}
-          regionFilter={regionFilter}
-          onRegionChange={setRegionFilter}
-        />
-      )}
-
-      {watchlist.length > 0 && (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingVertical: 8 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>In stock only</Text>
-            <Switch
-              value={inStockOnly}
-              onValueChange={setInStockOnly}
-              trackColor={{ true: colors.primary, false: colors.border }}
-            />
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
-            <Text style={{ color: colors.muted, fontSize: 12 }}>{CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency}</Text>
-            <TextInput
-              placeholder="Min"
-              value={priceMinInput}
-              onChangeText={setPriceMinInput}
-              keyboardType="numeric"
-              style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, minWidth: 60, color: colors.foreground, fontSize: 12 }}
-              placeholderTextColor={colors.muted}
-              accessibilityLabel="Minimum price"
-            />
-            <Text style={{ color: colors.muted }}>—</Text>
-            <TextInput
-              placeholder="Max"
-              value={priceMaxInput}
-              onChangeText={setPriceMaxInput}
-              keyboardType="numeric"
-              style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, minWidth: 60, color: colors.foreground, fontSize: 12 }}
-              placeholderTextColor={colors.muted}
-              accessibilityLabel="Maximum price"
-            />
-            {(priceRange || priceMinInput !== "" || priceMaxInput !== "") && (
-              <TouchableOpacity onPress={() => { setPriceRange(undefined); setPriceMinInput(""); setPriceMaxInput(""); }} accessibilityLabel="Clear price filter" accessibilityRole="button">
-                <Text style={{ color: colors.muted, fontSize: 12 }}>Clear</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      )}
-
-      <TagFilterRow
-        tagDefinitions={tagDefinitions}
-        selectedTagIds={selectedTagIds}
-        tagMatchMode={tagMatchMode}
-        counts={tagCounts}
-        onToggleTag={toggleTagFilter}
-        onChangeMode={setTagMatchMode}
-        onClearAll={() => setSelectedTagIds([])}
-        onManage={() => setManageVisible(true)}
-      />
-
-      <AnimatedSectionList showsVerticalScrollIndicator={true}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+                                          <SectionList
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={true}
         scrollEventThrottle={16}
+        // QA round 8: scroll gestures were dead on device with
+        // removeClippedSubviews enabled on Android.
+        removeClippedSubviews={false}
         sections={sectionData}
         keyExtractor={(item: Product & { _sectionKey?: string }) => `${item.id}-${item._sectionKey ?? ''}`}
         extraData={groupMode}
@@ -848,7 +715,6 @@ export default function WatchlistScreen() {
         windowSize={7}
         maxToRenderPerBatch={8}
         updateCellsBatchingPeriod={50}
-        removeClippedSubviews={Platform.OS === "android"}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingHorizontal: 20,
@@ -865,6 +731,126 @@ export default function WatchlistScreen() {
             progressBackgroundColor={colors.surface}
             titleColor={colors.muted}
           />
+        }
+        ListHeaderComponent={
+          <View>
+{connection.status === "offline" && queuedCount > 0 && (
+  <View
+    style={{
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: colors.warning + "14",
+      borderWidth: 1,
+      borderColor: colors.warning + "44",
+      borderRadius: 12,
+      marginHorizontal: 20,
+      marginTop: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    }}
+    accessibilityLabel={`Offline — ${queuedCount} edits queued`}
+    accessibilityRole="alert"
+  >
+    <IconSymbol name="wifi.slash" size={16} color={colors.warning} />
+    <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", flex: 1 }}>
+      Offline — {queuedCount} edit{queuedCount !== 1 ? "s" : ""} queued
+    </Text>
+    <Text style={{ color: colors.muted, fontSize: 12 }}>Will sync when back online</Text>
+  </View>
+)}
+{watchlist.length > 0 && (
+  <SummaryCard
+    summary={summary}
+    displayCurrency={displayCurrency}
+    statusFilter={statusFilter}
+    onStatusToggle={setStatusFilter}
+    onViewStats={() => router.push("/stats")}
+  />
+)}
+{watchlist.length > 0 && (
+  <SearchBar query={query} onQueryChange={setQuery} />
+)}
+<ProgressBar
+  progress={
+    checkProgress ? checkProgress.current / checkProgress.total : 0
+  }
+  visible={!!(checking && checkProgress)}
+/>
+{watchlist.length > 0 && (
+  <SortGroupBar
+    sortMode={sortMode}
+    groupMode={groupMode}
+    sortMenuOpen={sortMenuOpen}
+    onSortModeChange={(mode) => {
+      setSortMode(mode);
+      setSortMenuOpen(false);
+      void persistViewPrefs(mode, groupModeRef.current);
+    }}
+    onGroupModeChange={(mode) => {
+      setGroupMode(mode);
+      void persistViewPrefs(sortModeRef.current, mode);
+    }}
+    onSortMenuToggle={() => setSortMenuOpen((v) => !v)}
+  />
+)}
+{watchlist.length > 0 && (
+  <RegionFilterRow
+    regions={regions}
+    regionFilter={regionFilter}
+    onRegionChange={setRegionFilter}
+  />
+)}
+{watchlist.length > 0 && (
+  <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingVertical: 8 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>In stock only</Text>
+      <Switch
+        value={inStockOnly}
+        onValueChange={setInStockOnly}
+        trackColor={{ true: colors.primary, false: colors.border }}
+      />
+    </View>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
+      <Text style={{ color: colors.muted, fontSize: 12 }}>{CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency}</Text>
+      <TextInput
+        placeholder="Min"
+        value={priceMinInput}
+        onChangeText={setPriceMinInput}
+        keyboardType="numeric"
+        style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, minWidth: 60, color: colors.foreground, fontSize: 12 }}
+        placeholderTextColor={colors.muted}
+        accessibilityLabel="Minimum price"
+      />
+      <Text style={{ color: colors.muted }}>—</Text>
+      <TextInput
+        placeholder="Max"
+        value={priceMaxInput}
+        onChangeText={setPriceMaxInput}
+        keyboardType="numeric"
+        style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, minWidth: 60, color: colors.foreground, fontSize: 12 }}
+        placeholderTextColor={colors.muted}
+        accessibilityLabel="Maximum price"
+      />
+      {(priceRange || priceMinInput !== "" || priceMaxInput !== "") && (
+        <TouchableOpacity onPress={() => { setPriceRange(undefined); setPriceMinInput(""); setPriceMaxInput(""); }} accessibilityLabel="Clear price filter" accessibilityRole="button">
+          <Text style={{ color: colors.muted, fontSize: 12 }}>Clear</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  </View>
+)}
+<TagFilterRow
+  tagDefinitions={tagDefinitions}
+  selectedTagIds={selectedTagIds}
+  tagMatchMode={tagMatchMode}
+  counts={tagCounts}
+  onToggleTag={toggleTagFilter}
+  onChangeMode={setTagMatchMode}
+  onClearAll={() => setSelectedTagIds([])}
+  onManage={() => setManageVisible(true)}
+/>
+          </View>
         }
         ListEmptyComponent={
           <EmptyState

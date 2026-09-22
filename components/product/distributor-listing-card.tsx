@@ -53,6 +53,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
   );
   const isWatching = stockWatches[listing.distributorId];
   const handleOpenChart = useCallback(() => {
+    console.log("[QA] sparkline tap fired");
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onOpenChart(listing);
@@ -173,6 +174,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
                   width={72}
                   height={28}
                   currency={listing.currency}
+                  interactive
                 />
               </Pressable>
             )}

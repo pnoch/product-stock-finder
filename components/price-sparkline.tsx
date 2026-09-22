@@ -9,6 +9,13 @@ interface PriceSparklineProps {
   width?: number;
   height?: number;
   currency?: string;
+  /**
+   * Set when the sparkline is embedded in a tappable parent (e.g. the
+   * distributor card's "Open price chart" button). The wrapper's
+   * `accessible` boundary otherwise swallows touches on Android — the
+   * a11y image node intercepts the tap before the parent Pressable.
+   */
+  interactive?: boolean;
 }
 
 /**
@@ -20,6 +27,7 @@ export function PriceSparkline({
   width = 80,
   height = 32,
   currency,
+  interactive = false,
 }: PriceSparklineProps) {
   const colors = useColors();
 
@@ -52,14 +60,19 @@ export function PriceSparkline({
 
   const lineColor = points.isFlat ? colors.muted : points.trend === "down" ? colors.success : colors.error;
 
+  const a11yProps = interactive
+    ? {}
+    : {
+        accessible: true as const,
+        accessibilityRole: "image" as const,
+        accessibilityLabel: `Price sparkline, ${points.trend} trend, ${data.length} points`,
+      };
+
   return (
-    <View
-      style={{ alignItems: "flex-end" }}
-      accessible
-      accessibilityRole="image"
-      accessibilityLabel={`Price sparkline, ${points.trend} trend, ${data.length} points`}
-    >
-      <Svg width={width} height={height}>
+    <View style={{ alignItems: "flex-end" }} {...a11yProps}>
+      {/* Android: react-native-svg's touch handler swallows taps, blocking
+          the parent Pressable — pass touches straight through. */}
+      <Svg width={width} height={height} pointerEvents="none">
         <Polyline
           points={points.polylineStr}
           fill="none"

@@ -2242,3 +2242,12 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] The background task took 21s of its 25s budget with an unreachable server (8s native tRPC timeout per listing + 15s scrape timeout) — larger watchlists would overflow the WorkManager window. Tightened: `BACKGROUND_TRPC_TIMEOUT_MS` 8s→4s in `lib/trpc.ts`, and the backgrounded scrape timeout capped at 10s in `fetchPlain` (`Math.min(timeoutMs, 10_000)`)
 - [x] Verified on device (backgrounded, job force-run): `price-drop-check` finished well under budget, `health-probe` 9s later — both complete while backgrounded
 - [x] E2E root `tsc 0`, lint 0 errors, root `324 passed | 2 skipped` / `1896 passed`
+
+## Phase 258: Device QA round 8 (Compare/Stats/Alerts + sparkline tap + Watchlist scroll)
+
+- [x] **Compare screen PASS**: multi-line chart renders 3 distributor lines with legend, 1W/1M/3M/6M/1Y/All filters re-render correctly (1W rescaled to Sep 14–22), Cheapest by Region card (BEST Europe €956.00 Back Order), Current Prices table
+- [x] **Stats screen PASS**: all cards render — Digest off empty state, Biggest Movers (Top Drops/Gainers, 7D/30D/All), movers summary with all-time-low medals, Drop Calendar heatmap (50 drops), Basket Value $8,500.99, Stock Health 31%, Data Freshness
+- [x] **Alerts tabs PASS**: Alerts/Reminders empty states render; Notifications tab shows the health-probe's "Distributor Down" event (1 unread)
+- [x] **Sparkline taps were dead on Android**: react-native-svg's `Svg` swallows touches (its touch handler returns true), blocking the parent "Open price chart" Pressable; the wrapper's `accessible`+`role=image` also intercepted. Fixed: `pointerEvents="none"` on the Svg + new `interactive` prop on `PriceSparkline` that drops the a11y boundary when embedded in a button. Verified: tap fires and navigates to Compare
+- [x] **Watchlist list couldn't scroll on device**: the header content (offline banner, summary card, search, sort/group bar, region chips, price row, tag row) rendered as flex siblings of the SectionList, squeezing it into a ~240px strip at the screen bottom — swipes above it hit nothing. Fixed by moving all header content into the list's `ListHeaderComponent` (scrolls away with content) and dropping the now-unused `Animated.createAnimatedComponent(SectionList)` wrapper + `onScroll` Animated.event. Verified: full-height scrolling list, header intact when scrolled back up
+- [x] E2E root `tsc 0`, lint 0 errors (169 pre-existing warnings), root `324 passed | 2 skipped` / `1896 passed`
