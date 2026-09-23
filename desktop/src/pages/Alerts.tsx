@@ -27,7 +27,7 @@ import {
   EXCHANGE_RATES,
 } from "@shared/currency";
 import { getDistributorById } from "@shared/distributors";
-import { computeTotalSaved } from "../../../lib/alert-savings";
+import { computeTotalSaved, savingAlerts } from "../../../lib/alert-savings";
 import { formatRelativeTime } from "../../../lib/relative-time";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
@@ -651,8 +651,8 @@ function AlertsTab({
                   Total Saved: {formatPrice(totalSaved, displayCurrency)}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Across {triggeredAlerts.filter((a) => a.triggeredPrice != null).length} triggered alert
-                  {triggeredAlerts.filter((a) => a.triggeredPrice != null).length !== 1 ? "s" : ""}
+                  Across {savingAlerts(triggeredAlerts).length} triggered alert
+                  {savingAlerts(triggeredAlerts).length !== 1 ? "s" : ""}
                 </p>
               </div>
             </div>

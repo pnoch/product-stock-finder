@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeTotalSaved } from "../lib/alert-savings";
+import { computeTotalSaved, savingAlerts } from "../lib/alert-savings";
 import type { PriceAlert } from "../lib/types";
 
 function alert(overrides: Partial<PriceAlert>): PriceAlert {
@@ -53,5 +53,17 @@ describe("computeTotalSaved", () => {
     );
     // 20 USD at 0.92 EUR/USD.
     expect(saved).toBeCloseTo(18.4, 5);
+  });
+});
+
+// The banner's "Across N triggered alerts" count must match the alerts the
+// total actually includes, or it counts rise alerts the total excludes.
+describe("savingAlerts", () => {
+  it("returns only drop alerts with a positive saving", () => {
+    const drop = alert({ id: "drop", targetPrice: 100, triggeredPrice: 80, triggeredAt: "2026-09-02T00:00:00.000Z" });
+    const rise = alert({ id: "rise", targetPrice: 100, triggeredPrice: 130, direction: "rise", triggeredAt: "2026-09-02T00:00:00.000Z" });
+    const untriggered = alert({ id: "none" });
+    const noGain = alert({ id: "nogain", targetPrice: 100, triggeredPrice: 120, triggeredAt: "2026-09-02T00:00:00.000Z" });
+    expect(savingAlerts([drop, rise, untriggered, noGain]).map((a) => a.id)).toEqual(["drop"]);
   });
 });

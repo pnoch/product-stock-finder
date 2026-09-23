@@ -21,6 +21,7 @@ import { formatPrice } from "@shared/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAlertsData } from "@/hooks/use-alerts-data";
 import { showAlert } from "@/lib/alert";
+import { savingAlerts } from "@/lib/alert-savings";
 import { getDistributorById } from "@shared/distributors";
 
 import { TabSwitcher } from "@/components/alerts/tab-switcher";
@@ -310,17 +311,8 @@ export default function AlertsScreen() {
                         marginTop: 2,
                       }}
                     >
-                      Across{" "}
-                      {
-                        triggeredAlerts.filter(
-                          (a) => a.triggeredPrice != null,
-                        ).length
-                      }{" "}
-                      triggered alert
-                      {triggeredAlerts.filter((a) => a.triggeredPrice != null)
-                        .length !== 1
-                        ? "s"
-                        : ""}
+                      Across {savingAlerts(triggeredAlerts).length} triggered
+                      alert{savingAlerts(triggeredAlerts).length !== 1 ? "s" : ""}
                     </Text>
                   </View>
                 </View>
