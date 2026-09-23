@@ -473,6 +473,7 @@ export function Watchlist() {
       const byModel = new Map(PRODUCT_CATALOG.map((p) => [p.modelNumber.toLowerCase(), p] as const));
       let added = 0;
       let skipped = 0;
+      let duplicates = 0;
       for (let i = 0; i < rows.length; i += 50) {
         const chunk = rows.slice(i, i + 50);
         for (const row of chunk) {
@@ -481,7 +482,11 @@ export function Watchlist() {
             ? ({ ...hit, tags: row.tags.length ? row.tags : (hit as unknown as { tags?: string[] }).tags, isWatched: true, addedAt: new Date().toISOString() } as unknown as Product)
             : ({ id: row.model, name: row.model, modelNumber: row.model, brand: "Unknown", category: "Switch", description: "", isWatched: true, addedAt: new Date().toISOString(), listings: [], tags: row.tags } as unknown as Product);
           try {
-            await storage.addToWatchlist(product as Product);
+            // addToWatchlist returns false when the product is already tracked;
+            // count those separately so the summary doesn't claim to have added
+            // products that were already on the watchlist (mobile does the same).
+            if (await storage.addToWatchlist(product as Product)) added += 1;
+            else duplicates += 1;
             if (row.targetPrice !== null) {
               await storage.addAlert({
                 id: `alert-${product.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -492,7 +497,6 @@ export function Watchlist() {
                 isActive: true,
               } as never);
             }
-            added += 1;
           } catch {
             skipped += 1;
           }
@@ -500,7 +504,11 @@ export function Watchlist() {
         await new Promise<void>((r) => setTimeout(r, 0));
       }
       await refresh();
-      showToast(`Added ${added} product${added !== 1 ? "s" : ""}${skipped ? `, ${skipped} skipped` : ""}`);
+      const notes = [
+        duplicates ? `${duplicates} already tracked` : "",
+        skipped ? `${skipped} skipped` : "",
+      ].filter(Boolean).join(", ");
+      showToast(`Added ${added} product${added !== 1 ? "s" : ""}${notes ? `, ${notes}` : ""}`);
     } catch (err) {
       showToast(err instanceof Error ? err.message : String(err));
     } finally {

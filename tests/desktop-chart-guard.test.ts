@@ -145,6 +145,19 @@ describe("desktop chart guard", () => {
     expect(block).toContain("catch");
   });
 
+  // QA round 55: the desktop CSV import counted every non-throwing
+  // addToWatchlist as added, overstating the summary on duplicates (mobile was
+  // fixed in Phase 270).
+  it("counts only real inserts in the desktop CSV import", async () => {
+    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const start = text.indexOf("const handleImportFile");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("}, [refresh, showToast]);", start));
+    expect(block).toMatch(/if \(await storage\.addToWatchlist\(/);
+    expect(block).toContain("duplicates");
+    expect(block).toContain("already tracked");
+  });
+
   // QA round 48: unguarded storage.then chains rejected unhandled on a storage
   // failure. Each must have a .catch.
   it("guards desktop storage.then chains with .catch", async () => {

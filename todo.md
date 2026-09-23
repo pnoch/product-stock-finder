@@ -2581,3 +2581,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Three exports were referenced nowhere — not by any module, screen, or test: `parseWatchlistDetailedCsv` (`lib/csv.ts`), `getQueuedEditCount` (`lib/sync.ts`), and `computeWatchlistStats` (`lib/watchlist-stats.ts`). The latter's `WatchlistStats` interface became unused with it
 - [x] Removed all four; `detailedCsvToProducts`/`parseDetailedCsv` and `countQueuedEdits` remain because they are still used internally
 - [x] Added a 4-case guard to `tests/mobile-criticals.test.ts` (now 34) — verified non-vacuous by restoring `getQueuedEditCount`; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2015 passed`
+
+## Phase 307: Device QA round 55 (desktop CSV import overstated duplicate adds)
+
+- [x] **Desktop's CSV import counted every non-throwing `addToWatchlist` as added**: `addToWatchlist` returns `false` for an already-tracked product (the Phase 270 fix), but `desktop/src/pages/Watchlist.tsx`'s `handleImportFile` ignored the return and did `added += 1` unconditionally — so re-importing a CSV reported "Added N products" for products that were already on the watchlist
+- [x] It now branches on the boolean, counts `duplicates`, and reports "N already tracked" in the summary, matching mobile
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 13) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2016 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
