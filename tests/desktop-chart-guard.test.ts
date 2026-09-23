@@ -161,6 +161,21 @@ describe("desktop chart guard", () => {
     expect(undoBlock).toContain("storage.addAlert(alert)");
   });
 
+  // QA round 121: desktop rendered raw responseTimeMs, so a probe that spanned
+  // an Android suspension showed a minutes-long "response time". Mobile
+  // sanitizes it (Phase 262).
+  it("sanitizes response times in desktop health views", async () => {
+    for (const file of [
+      "desktop/src/pages/Health.tsx",
+      "desktop/src/pages/HealthDetail.tsx",
+    ]) {
+      const text = await readFile(file, "utf8");
+      expect(text).toContain("sanitizeResponseTimeMs");
+      // No bare `X.responseTimeMs ?` interpolation.
+      expect(text).not.toMatch(/[A-Za-z_$][\w$]*\.responseTimeMs \?/);
+    }
+  });
+
   // QA round 120: desktop rendered a zero triggeredPrice as "Triggered at
   // $0.00" (a server-detected trigger can store 0). Mobile guards `> 0`
   // (Phase 356).

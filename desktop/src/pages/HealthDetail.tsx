@@ -6,6 +6,7 @@ import {
   computeHealthSummary,
   createHealthService,
   groupSamplesByDay,
+  sanitizeResponseTimeMs,
   type HealthSample,
   type HealthStatus,
   timelineSegments,
@@ -130,7 +131,7 @@ export function HealthDetail() {
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: statusColors[s.status] }} title={`${s.status} · ${new Date(s.at).toLocaleString()}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{new Date(s.at).toLocaleString()}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{s.reason || s.status}{s.responseTimeMs ? ` · ${s.responseTimeMs}ms` : ""}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{s.reason || s.status}{sanitizeResponseTimeMs(s.responseTimeMs) != null ? ` · ${sanitizeResponseTimeMs(s.responseTimeMs)}ms` : ""}</p>
                   </div>
                 </div>
               ))}

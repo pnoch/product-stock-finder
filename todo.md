@@ -2977,3 +2977,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's triggered-alert row rendered `alert.triggeredPrice ?? alert.targetPrice`**: a server-detected trigger can store `triggeredPrice: 0` (the digest's `alertTargetsHit` and the mobile `TriggeredAlertCard` both guard `> 0` for exactly this reason), but `??` doesn't fall back on 0, so the row showed "Triggered at $0.00" instead of the target price
 - [x] Desktop now uses `alert.triggeredPrice && alert.triggeredPrice > 0 ? alert.triggeredPrice : alert.targetPrice`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 29) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2095 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 373: Device QA round 121 (desktop showed suspension-poisoned health response times)
+
+- [x] **Desktop rendered raw `responseTimeMs` in the health views**: a probe that spans an Android suspension records the suspension duration (minutes, not milliseconds), and mobile sanitizes it via `sanitizeResponseTimeMs` (Phase 262). Desktop's Health list (`h.responseTimeMs ? ...`) and HealthDetail sample rows (`s.responseTimeMs ? ...`) printed the poisoned value verbatim
+- [x] Both desktop views now use `sanitizeResponseTimeMs(...) != null` before rendering
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 30) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2096 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

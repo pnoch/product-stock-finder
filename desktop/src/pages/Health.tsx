@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { createTRPCClient } from "../lib/trpc";
 import { getDistributorById } from "@shared/distributors";
-import { computeHealthStats, createHealthService, type HealthStats } from "../../../lib/scrapers/health";
+import { computeHealthStats, createHealthService, sanitizeResponseTimeMs, type HealthStats } from "../../../lib/scrapers/health";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 
 type HealthStatus = "working" | "blocked" | "error";
@@ -265,7 +265,9 @@ export function Health() {
                 </p>
                 <p className="text-xs text-gray-500">
                   {h.reason || h.status}
-                  {h.responseTimeMs ? ` · ${h.responseTimeMs}ms` : ""}
+                  {sanitizeResponseTimeMs(h.responseTimeMs) != null
+                    ? ` · ${sanitizeResponseTimeMs(h.responseTimeMs)}ms`
+                    : ""}
                 </p>
               </div>
               <div className="flex flex-col items-end gap-1 ml-3 shrink-0">
