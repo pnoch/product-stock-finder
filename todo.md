@@ -2839,3 +2839,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`getPriceDigestSnapshot` returned any parsed JSON without shape validation**: `computeDigest` then calls `previous?.products ?? []` and `.map`, so a corrupt payload with `products` as a non-array (e.g. a string) threw `... .map is not a function` inside `app/stats.tsx`'s `useMemo` — no error boundary, so the Stats tab crashed
 - [x] It now validates that the parsed payload is an object with an array `products` and returns null otherwise
 - [x] Added `tests/digest-snapshot-validation.test.ts` (3 cases: valid, non-array products, non-object) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2068 passed`
+
+## Phase 350: Device QA round 98 (corrupt FX history crashed the Rates screen)
+
+- [x] **`getFxHistory` didn't validate the payload shapes**: it only checked that `rates`/`timestamps` were truthy, so a corrupt payload with `timestamps` as a non-array (or `rates` as a non-object) made `sliceFxHistoryByRange`'s `.filter` / `Object.entries` throw inside `app/(tabs)/rates.tsx`'s `useMemo` — no error boundary, so the Rates tab crashed
+- [x] It now requires `rates` to be a non-array object and `timestamps` to be an array, returning null otherwise
+- [x] Added a corrupt-payload case to `tests/fx-history.test.ts` (now 8) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2069 passed`

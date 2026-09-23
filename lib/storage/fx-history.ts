@@ -13,11 +13,16 @@ export function createFxHistoryStorage(ctx: StorageContext) {
       const raw = await adapter.getItem(KEYS.FX_RATE_HISTORY);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
+      // Validate shapes: a corrupt payload with `timestamps` as a non-array (or
+      // `rates` as a non-object) would make sliceFxHistoryByRange's `.filter` /
+      // Object.entries throw inside the Rates screen's useMemo (no boundary).
       if (
         !parsed ||
         typeof parsed !== "object" ||
         !parsed.rates ||
-        !parsed.timestamps
+        typeof parsed.rates !== "object" ||
+        Array.isArray(parsed.rates) ||
+        !Array.isArray(parsed.timestamps)
       )
         return null;
       return { rates: parsed.rates, timestamps: parsed.timestamps };

@@ -43,6 +43,23 @@ describe("FX Rate History Storage", () => {
     });
     expect(mockAdapter.setItem).toHaveBeenCalled();
   });
+
+  // A corrupt payload with a non-array `timestamps` would make
+  // sliceFxHistoryByRange's `.filter` throw inside the Rates screen's useMemo.
+  it("returns null for a corrupt payload", async () => {
+    const { createFxHistoryStorage } = await import(
+      "@/lib/storage/fx-history"
+    );
+    const storage = createFxHistoryStorage(createStorage() as any);
+    mockAdapter.getItem.mockResolvedValue(
+      JSON.stringify({ rates: { USD: [1] }, timestamps: 5 }),
+    );
+    expect(await storage.getFxHistory()).toBeNull();
+    mockAdapter.getItem.mockResolvedValue(
+      JSON.stringify({ rates: "oops", timestamps: [1] }),
+    );
+    expect(await storage.getFxHistory()).toBeNull();
+  });
 });
 
 describe("appendFxHistory", () => {
