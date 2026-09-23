@@ -169,6 +169,15 @@ describe("watchlist", () => {
     expect(await getWatchlist()).toHaveLength(1);
   });
 
+  // Callers that report "added N products" (shared-watchlist "Add all", CSV
+  // import) must distinguish a real insert from the silent duplicate no-op, or
+  // re-tapping the button claims to add products that were already tracked.
+  it("addToWatchlist reports whether it actually inserted", async () => {
+    expect(await addToWatchlist(makeProduct("p1"))).toBe(true);
+    expect(await addToWatchlist(makeProduct("p1"))).toBe(false);
+    expect(await getWatchlist()).toHaveLength(1);
+  });
+
   it("removeFromWatchlist removes only the matching product", async () => {
     await saveWatchlist([makeProduct("p1"), makeProduct("p2")]);
     await removeFromWatchlist("p1");

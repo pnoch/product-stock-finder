@@ -540,6 +540,7 @@ export default function WatchlistScreen() {
       const byModel = new Map(PRODUCT_CATALOG.map((p) => [p.modelNumber.toLowerCase(), p] as const));
       let added = 0;
       let skipped = 0;
+      let duplicates = 0;
       // Process in chunks of 50 to keep UI responsive and respect sync 200 cap via queue.
       for (let i = 0; i < rows.length; i += 50) {
         const chunk = rows.slice(i, i + 50);
@@ -560,7 +561,12 @@ export default function WatchlistScreen() {
                 tags: row.tags,
               } as unknown as Product);
           try {
-            await addToWatchlist(product as Product);
+            // addToWatchlist returns false when the product is already tracked;
+            // count those separately so the summary doesn't claim to have added
+            // products that were already on the watchlist. A target price still
+            // creates its alert either way.
+            if (await addToWatchlist(product as Product)) added += 1;
+            else duplicates += 1;
             if (row.targetPrice !== null) {
               await addAlert({
                 id: `alert-${product.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -571,7 +577,6 @@ export default function WatchlistScreen() {
                 isActive: true,
               } as unknown as never);
             }
-            added += 1;
           } catch {
             skipped += 1;
           }
@@ -581,7 +586,11 @@ export default function WatchlistScreen() {
       }
       await reload();
       await loadData();
-      showAlert("Import complete", `Added ${added} product${added !== 1 ? "s" : ""}${skipped > 0 ? `, ${skipped} skipped` : ""}.`);
+      const notes = [
+        duplicates > 0 ? `${duplicates} already tracked` : "",
+        skipped > 0 ? `${skipped} skipped` : "",
+      ].filter(Boolean).join(", ");
+      showAlert("Import complete", `Added ${added} product${added !== 1 ? "s" : ""}${notes ? `, ${notes}` : ""}.`);
     } catch (e) {
       LOG_ERROR("[Watchlist] import failed", e);
       showAlert("Import failed", e instanceof Error ? e.message : String(e));

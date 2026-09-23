@@ -89,18 +89,25 @@ export default function SharedWatchlistScreen() {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     let added = 0;
     let failed = 0;
+    let duplicates = 0;
     for (const p of rawProducts) {
       try {
-        await addToWatchlist(normalizeSharedWatchlistProduct(p));
-        added += 1;
+        // addToWatchlist returns false for an already-tracked product, so a
+        // second tap on "Add all" reports "already on your watchlist" instead
+        // of claiming to have added products that were already there.
+        if (await addToWatchlist(normalizeSharedWatchlistProduct(p))) added += 1;
+        else duplicates += 1;
       } catch {
         failed += 1;
       }
     }
-    if (added > 0 && failed === 0) {
+    const skipped = failed + duplicates;
+    if (added > 0 && skipped === 0) {
       showAlert("Added to watchlist", `Added ${added} product${added === 1 ? "" : "s"}.`);
     } else if (added > 0) {
-      showAlert("Partially added", `Added ${added}. Skipped ${failed} invalid shared product${failed === 1 ? "" : "s"}.`);
+      showAlert("Partially added", `Added ${added}. Skipped ${skipped} (${duplicates} already tracked, ${failed} invalid).`);
+    } else if (duplicates > 0 && failed === 0) {
+      showAlert("Already on your watchlist", `All ${duplicates} shared product${duplicates === 1 ? " is" : "s are"} already tracked.`);
     } else {
       showAlert("Nothing added", "None of the shared products were valid.");
     }

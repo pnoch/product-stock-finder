@@ -52,12 +52,13 @@ export function SharedWatchlist() {
       .catch(() => {});
   }, []);
 
-  const addOne = useCallback(async (p: unknown): Promise<boolean> => {
+  const addOne = useCallback(async (p: unknown): Promise<"added" | "duplicate" | "failed"> => {
     try {
-      await storage.addToWatchlist(normalizeSharedWatchlistProduct(p));
-      return true;
+      // addToWatchlist returns false for an already-tracked product, so a
+      // second "Add all" reports duplicates instead of claiming to add them.
+      return (await storage.addToWatchlist(normalizeSharedWatchlistProduct(p))) ? "added" : "duplicate";
     } catch {
-      return false;
+      return "failed";
     }
   }, []);
 
@@ -67,12 +68,18 @@ export function SharedWatchlist() {
     setAdding(true);
     let added = 0;
     let failed = 0;
+    let duplicates = 0;
     for (const p of products) {
-      if (await addOne(p)) { added += 1; setAddedIds((prev) => new Set(prev).add((p as SharedProduct).id)); } else { failed += 1; }
+      const result = await addOne(p);
+      if (result === "added") { added += 1; setAddedIds((prev) => new Set(prev).add((p as SharedProduct).id)); }
+      else if (result === "duplicate") duplicates += 1;
+      else failed += 1;
     }
     setAdding(false);
-    if (added > 0 && failed === 0) showToast(`Added ${added} product${added === 1 ? "" : "s"}.`);
-    else if (added > 0) showToast(`Added ${added}. Skipped ${failed} invalid.`);
+    const skipped = failed + duplicates;
+    if (added > 0 && skipped === 0) showToast(`Added ${added} product${added === 1 ? "" : "s"}.`);
+    else if (added > 0) showToast(`Added ${added}. Skipped ${skipped} (${duplicates} already tracked, ${failed} invalid).`);
+    else if (duplicates > 0 && failed === 0) showToast(`All ${duplicates} product${duplicates === 1 ? " is" : "s are"} already on your watchlist.`);
     else showToast("Nothing added");
   }, [data, adding, addOne, showToast]);
 
@@ -226,9 +233,13 @@ export function SharedWatchlist() {
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button
                   onClick={async () => {
-                    if (await addOne(p)) {
+                    const result = await addOne(p);
+                    if (result === "added") {
                       setAddedIds((prev) => new Set(prev).add(p.id));
                       showToast(`Added ${p.name}.`);
+                    } else if (result === "duplicate") {
+                      setAddedIds((prev) => new Set(prev).add(p.id));
+                      showToast(`${p.name} is already on your watchlist.`);
                     } else {
                       showToast(`Couldn't add ${p.name}.`);
                     }

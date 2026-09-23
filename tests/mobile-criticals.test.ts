@@ -19,6 +19,18 @@ describe("mobile release blockers", () => {
     expect(src).not.toMatch(/\{query\.error\.message\}/);
     expect(src).toContain("This link may have expired, been revoked, or never existed.");
   });
+
+  // QA round 18: "Add all to Watchlist" counted every non-throwing
+  // addToWatchlist call as an add, but the storage layer silently no-ops on a
+  // duplicate. Tapping it twice on an already-imported share reported "Added 2
+  // products" while the watchlist stayed at 14 (verified on device). The screen
+  // must branch on the boolean return and surface the duplicate count.
+  it("counts only real inserts when adding a shared watchlist", () => {
+    const src = readFileSync(path.join(process.cwd(), "app/w/[token].tsx"), "utf8");
+    expect(src).toMatch(/if \(await addToWatchlist\(/);
+    expect(src).toContain("duplicates");
+    expect(src).toContain("already tracked");
+  });
 });
 
 // QA round 16: the search screen rendered its filter chrome (tag chips,

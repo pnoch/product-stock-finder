@@ -73,19 +73,24 @@ export function createWatchlistStorage(ctx: StorageContext) {
     });
   }
 
-  async function addToWatchlist(product: Product): Promise<void> {
-    await enqueue(KEYS.WATCHLIST, async () => {
+  // Returns true when the product was actually inserted, false when it was
+  // already on the watchlist. Callers that report "added N products" must use
+  // this — the duplicate branch is a silent no-op, so counting every
+  // non-throwing call overstated the result (e.g. re-tapping "Add all" on a
+  // shared watchlist claimed to add products that were already tracked).
+  async function addToWatchlist(product: Product): Promise<boolean> {
+    return enqueue(KEYS.WATCHLIST, async () => {
       const list = await getWatchlist();
       const exists = list.find((p) => p.id === product.id);
-      if (!exists) {
-        list.unshift({
-          ...product,
-          isWatched: true,
-          addedAt: product.addedAt ?? new Date().toISOString(),
-        });
-        await persistWatchlist(list);
-        notify("watchlist", product.id);
-      }
+      if (exists) return false;
+      list.unshift({
+        ...product,
+        isWatched: true,
+        addedAt: product.addedAt ?? new Date().toISOString(),
+      });
+      await persistWatchlist(list);
+      notify("watchlist", product.id);
+      return true;
     });
   }
 
