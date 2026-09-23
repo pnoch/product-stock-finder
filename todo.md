@@ -2422,3 +2422,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The basket-value alert ignored the display currency**: `BasketAlertSheet` tells the user "Notify me when the total watchlist value drops below this amount (EUR)" and stores the threshold as entered, but `runPriceCheckCore` computed the total with `getBestPrice(p.listings, "USD")` and formatted both amounts as USD. A EUR user's €500 threshold was compared against a USD total (and a USD total was reported), so the alert fired or stayed silent wrongly
 - [x] The check now computes and formats the total in `settings.displayCurrency` (falling back to USD), matching the sheet and the Stats basket card
 - [x] Added a discriminating case to `tests/price-check.test.ts` (now 30: 520 USD → 478.40 EUR fires against a €500 threshold, which a USD total of 520 would skip) — verified non-vacuous by reverting to hardcoded USD; E2E root `tsc 0`, lint 0 errors (164 warnings), root `328 passed | 2 skipped` / `1978 passed`
+
+## Phase 281: Device QA round 29 (sparkline ignored the tapped distributor)
+
+- [x] **Tapping a distributor's sparkline on product detail did not focus that distributor in Compare**: `onOpenChart` was wired as `() => router.push(`/compare/${id}`)`, discarding the tapped listing. Compare has read a `distributor` query param all along (and the desktop ProductDetail passes `?distributor=<id>` from both its sparkline and history modal), so the mobile handler was the only caller not using it — Compare fell back to its default top-3-by-price selection
+- [x] `onOpenChart={(listing) => router.push(`/compare/${id}?distributor=${listing.distributorId}`)}` so the tapped distributor is the one selected
+- [x] Verified on device (rebuilt x86_64+arm64 release APK): tapping the MikroTik Store EU sparkline on CRS326 opened Compare with "Select Distributors (1/5)" and MikroTik Store EU selected
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 24) — verified non-vacuous by reverting to the ignored-listing handler; E2E root `tsc 0`, lint 0 errors (164 warnings), root `328 passed | 2 skipped` / `1979 passed`

@@ -61,6 +61,17 @@ describe("mobile release blockers", () => {
   });
 });
 
+// QA round 29: tapping a distributor's sparkline on product detail must open
+// Compare focused on that distributor. The mobile handler ignored the tapped
+// listing (Compare has read a `distributor` param all along, and desktop passes
+// it), so the tapped distributor was never selected.
+describe("sparkline opens Compare focused on the tapped distributor", () => {
+  it("threads the tapped listing's distributorId into the compare route", () => {
+    const src = readFileSync(path.join(process.cwd(), "app/product/[id].tsx"), "utf8");
+    expect(src).toMatch(/onOpenChart=\{\(listing\) => router\.push\(`\/compare\/\$\{id\}\?distributor=\$\{listing\.distributorId\}`\)\}/);
+  });
+});
+
 // QA round 16: the search screen rendered its filter chrome (tag chips,
 // category/brand pill rows, sort bar) as fixed flex siblings above the results
 // FlatList. On a 1080x2400 device those rows consumed ~2076px, squeezing the
