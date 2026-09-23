@@ -12,6 +12,7 @@ import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { updateProductDetails } from "@/lib/storage";
+import { showAlert } from "@/lib/alert";
 import type { Product } from "@/lib/types";
 
 interface Draft {
@@ -71,6 +72,12 @@ export function EditProductSheet({
       });
       onSaved?.();
       onClose();
+    } catch {
+      // A storage failure must not reject unhandled or close the sheet as if
+      // the edit succeeded.
+      if (Platform.OS !== "web")
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showAlert("Couldn't save", "We couldn't save your changes. Please try again.");
     } finally {
       setSaving(false);
     }

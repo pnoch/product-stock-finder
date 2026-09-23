@@ -2659,3 +2659,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop AI discovery left the catalog row offering "Add"**: `handleDiscover` in `desktop/src/pages/Search.tsx` added the discovered product to the watchlist but never updated `trackedIds`, which drives the Add / "Tracked" button. Mobile's `handleDiscover` calls `loadData()`, which reloads `trackedIds`. So after a desktop discovery the same row still showed "Add" (and could be added again)
 - [x] It now calls `setTrackedIds((prev) => new Set([...prev, res.product.id]))`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 19) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2028 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 320: Device QA round 68 (edit product sheet swallowed save failures)
+
+- [x] **`EditProductSheet.handleSave` had no catch**: a storage failure from `updateProductDetails` rejected unhandled, and because the `finally` only cleared `saving`, the sheet stayed open with no error and no success feedback (the desktop `handleSaveEdit` wraps the same call and shows an inline error)
+- [x] It now catches, fires an error haptic, and shows "Couldn't save — We couldn't save your changes. Please try again." without closing the sheet
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 41) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2029 passed`

@@ -96,6 +96,21 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 68: EditProductSheet.handleSave had no catch, so a storage failure
+// was an unhandled rejection and the sheet closed as if the edit succeeded.
+describe("edit product sheet handles save failure", () => {
+  it("wraps the save in try/catch with feedback", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "components/product/edit-product-sheet.tsx"),
+      "utf8",
+    );
+    const start = src.indexOf("const handleSave");
+    const block = src.slice(start, src.indexOf("};", start));
+    expect(block).toContain("catch");
+    expect(block).toContain("showAlert");
+  });
+});
+
 // QA round 65: AI discovery claimed "Added X to watchlist" but only saved to
 // the discovered catalog, so the product detail screen (which reads the
 // watchlist) showed "Product not found".
