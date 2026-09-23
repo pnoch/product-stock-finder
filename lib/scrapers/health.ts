@@ -159,7 +159,11 @@ export function computeHealthStats(
       if (diff >= 0.1) trend = "up";
       else if (diff <= -0.1) trend = "down";
     }
-    const sparkline = samples.slice(-30).map((s) => STATUS_VALUE[s.status]);
+    // Guard the lookup: a corrupt sample with an unknown status would yield
+    // `undefined`, making the sparkline's y-coordinate NaN (malformed SVG).
+    const sparkline = samples
+      .slice(-30)
+      .map((s) => STATUS_VALUE[s.status] ?? 0);
     stats[distributorId] = { uptimePct, trend, sparkline };
   }
   return stats;

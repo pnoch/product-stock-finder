@@ -2905,3 +2905,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`restock-watches.tsx` and `distributor-analysis.tsx` used bare `router.back()`**: a deep-linked cold start (web URL, notification tap) lands with no navigation history, where `router.back()` silently does nothing — the back button appeared dead. Every other screen uses `goBackOrHome`, which falls back to a safe route
 - [x] Both now call `goBackOrHome(router, "/(tabs)/alerts")` / `goBackOrHome(router, "/(tabs)/watchlist")`
 - [x] Added 2 guards to `tests/mobile-criticals.test.ts` (now 64) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2083 passed`
+
+## Phase 361: Device QA round 109 (unknown health status produced a NaN sparkline)
+
+- [x] **`computeHealthStats` mapped an unknown status to `undefined`**: `STATUS_VALUE[s.status]` has no fallback, so a corrupt sample with a status outside `working|blocked|error` (the stored history isn't shape-validated) produced `undefined` in the sparkline. The desktop `HealthSparkline` then computed `y = pad + (1 - v) * usableH` = NaN, emitting a malformed SVG polyline
+- [x] The lookup now falls back to `0`
+- [x] Added a case to `tests/scrapers/health.test.ts` (now 65: an unknown status maps to 0, all sparkline values finite) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2084 passed`

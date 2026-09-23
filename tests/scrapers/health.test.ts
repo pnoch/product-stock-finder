@@ -344,6 +344,20 @@ describe("computeHealthStats", () => {
     expect(stats.sparkline).toContain(0);
   });
 
+  // A corrupt sample with an unknown status would map to `undefined`, making
+  // the sparkline's y-coordinate NaN (malformed SVG).
+  it("maps an unknown status to 0 instead of undefined", () => {
+    const history = {
+      d1: [
+        sample("working", "2026-08-01"),
+        { status: "bogus" as HealthStatus, at: "2026-08-02" },
+      ],
+    } as HealthHistory;
+    const stats = computeHealthStats(history).d1;
+    expect(stats.sparkline.every((v) => Number.isFinite(v))).toBe(true);
+    expect(stats.sparkline).toContain(0);
+  });
+
   it("skips distributors with no samples", () => {
     expect(computeHealthStats({ d1: [] })).toEqual({});
   });
