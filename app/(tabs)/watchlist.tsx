@@ -31,7 +31,7 @@ import { parseBulkImportCsv } from "@/lib/csv";
 import { PRODUCT_CATALOG } from "@shared/catalog";
 import {
   getSettings,
-  saveSettings,
+  updateSettings,
   getTagDefinitions,
   addToWatchlist,
   addAlert,
@@ -210,19 +210,21 @@ export default function WatchlistScreen() {
     });
   }, [priceMinInput, priceMaxInput]);
 
-  // Persist priceRange / inStockOnly to AppSettings (real-time)
+  // Persist priceRange / inStockOnly to AppSettings (real-time). Uses the
+  // serialized updateSettings: a whole-object saveSettings with a read taken
+  // outside the write queue raced the sort/group persist below, so changing
+  // both quickly dropped one field.
   useEffect(() => {
     if (!hasLoadedSettingsRef.current) return;
     let cancelled = false;
     const persist = async () => {
       try {
-        const settings = await getSettings();
-        const next: typeof settings = {
-          ...settings,
-          watchlistInStockOnly: inStockOnly,
-          watchlistPriceRange: priceRange ?? null,
-        };
-        if (!cancelled) await saveSettings(next);
+        if (!cancelled) {
+          await updateSettings({
+            watchlistInStockOnly: inStockOnly,
+            watchlistPriceRange: priceRange ?? null,
+          });
+        }
       } catch (e) {
         LOG_ERROR("[Watchlist] settings persist failed", e);
       }
@@ -597,24 +599,20 @@ export default function WatchlistScreen() {
     }
   }, [reload, loadData]);
 
-  const persistChainRef = useRef(Promise.resolve<void>(undefined));
   const sortModeRef = useRef(sortMode);
   const groupModeRef = useRef(groupMode);
   sortModeRef.current = sortMode;
   groupModeRef.current = groupMode;
   const persistViewPrefs = useCallback(
     async (sort: WatchlistSort, group: WatchlistGroup) => {
-      persistChainRef.current = persistChainRef.current
-        .then(async () => {
-          const settings = await getSettings();
-          await saveSettings({
-            ...settings,
-            watchlistSort: sort,
-            watchlistGroup: group,
-          });
-        })
-        .catch((e) => console.error("[Watchlist] persistViewPrefs failed", e));
-      await persistChainRef.current;
+      // Serialized updateSettings shares the storage write queue with the
+      // in-stock/price-range persist above, so the two cannot clobber each
+      // other's fields.
+      try {
+        await updateSettings({ watchlistSort: sort, watchlistGroup: group });
+      } catch (e) {
+        console.error("[Watchlist] persistViewPrefs failed", e);
+      }
     },
     [],
   );

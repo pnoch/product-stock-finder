@@ -366,6 +366,36 @@ describe("settings", () => {
     const saved = JSON.parse(store.get("app_settings") ?? "{}");
     expect(saved.theme).toBe("light");
   });
+
+  // Two watchlist prefs persisted at once (sort/group + in-stock/price-range)
+  // must not clobber each other. updateSettings reads inside the write queue,
+  // so concurrent patches merge instead of racing a stale snapshot.
+  it("merges concurrent updateSettings patches without clobbering", async () => {
+    const { createStorage } = await import("../lib/storage");
+    const store = new Map<string, string>();
+    let writes = 0;
+    const storage = createStorage({
+      getItem: async (key: string) => store.get(key) ?? null,
+      setItem: async (key: string, value: string) => {
+        writes += 1;
+        await new Promise((resolve) => setTimeout(resolve, writes === 1 ? 20 : 0));
+        store.set(key, value);
+      },
+      removeItem: async (key: string) => {
+        store.delete(key);
+      },
+      multiRemove: async (keys: string[]) => {
+        keys.forEach((key) => store.delete(key));
+      },
+    });
+    await Promise.all([
+      storage.updateSettings({ watchlistSort: "best_price" }),
+      storage.updateSettings({ watchlistInStockOnly: true }),
+    ]);
+    const saved = JSON.parse(store.get("app_settings") ?? "{}");
+    expect(saved.watchlistSort).toBe("best_price");
+    expect(saved.watchlistInStockOnly).toBe(true);
+  });
 });
 
 describe("reminders & stock watches", () => {

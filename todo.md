@@ -2484,3 +2484,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's basket-alert save used a whole-object write**: `handleSaveBasketAlert` read settings then called `storage.saveSettings({ ...current, basketAlertThreshold })`, so a settings change made between the read and the write (e.g. a theme/currency toggle) was clobbered. Mobile uses the serialized `updateSettings` for exactly this reason
 - [x] Desktop now calls `storage.updateSettings({ basketAlertThreshold: threshold })`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 4) asserting the handler uses `updateSettings` and not `saveSettings` — verified non-vacuous by restoring the whole-object write; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `1996 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
+
+## Phase 291: Device QA round 39 (watchlist prefs clobbered each other)
+
+- [x] **The two watchlist view-preference persists raced**: the in-stock/price-range effect did `getSettings()` then `saveSettings({ ...settings, ... })` with no serialization, and `persistViewPrefs` (sort/group) used a separate private chain — both wrote the whole settings object. Changing sort and toggling "In stock only" quickly meant both read the same base and the later write dropped the other's field
+- [x] Both now use the storage-serialized `updateSettings` (which reads inside the write queue), so concurrent patches merge; the now-unused `saveSettings` import was dropped
+- [x] Added a case to `tests/storage.test.ts` (now 71: two concurrent `updateSettings` patches both survive) — verified non-vacuous by moving the read outside the queue; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `1997 passed`
