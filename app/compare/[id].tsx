@@ -79,6 +79,8 @@ export default function CompareScreen() {
   const [timeRange, setTimeRange] = useState<TimeRange>("3M");
   const [sortBy, setSortBy] = useState<SortBy>("trend");
   const [displayCurrency, setDisplayCurrency] = useState("USD");
+  // Guards against a double-tap creating two identical cross-distributor alerts.
+  const [creatingAlert, setCreatingAlert] = useState(false);
   const { product, listings, loaded, isRefreshingAny, refresh } =
     useLiveProduct(id ?? "");
   const productName =
@@ -167,6 +169,7 @@ export default function CompareScreen() {
   }, []);
 
   const handleCrossAlert = useCallback(async () => {
+    if (creatingAlert) return;
     const inStock = listings.filter((l) => l.stockStatus === "in_stock");
     if (inStock.length === 0) {
       showAlert(
@@ -210,6 +213,7 @@ export default function CompareScreen() {
       createdAt: new Date().toISOString(),
       isActive: true,
     };
+    setCreatingAlert(true);
     try {
       await addAlert(alert);
       await schedulePriceAlert(productName || "Product", targetPrice, displayCurrency, id);
@@ -217,10 +221,12 @@ export default function CompareScreen() {
       console.error("[Compare] alert creation failed", e);
       showAlert("Couldn't create alert", "We couldn't save your price alert. Please try again.");
       return;
+    } finally {
+      setCreatingAlert(false);
     }
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showToast(`Alert created — watching below ${formatPrice(targetPrice, displayCurrency)}`, "success");
-  }, [listings, id, productName, displayCurrency, showToast]);
+  }, [listings, id, productName, displayCurrency, showToast, creatingAlert]);
 
   const priceTrends = useMemo(() => {
     const map = new Map<string, { pct: number; dir: "up" | "down" | "flat" }>();

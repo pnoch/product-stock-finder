@@ -257,6 +257,8 @@ export function Compare() {
     return new Set(d ? [d] : []);
   });
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Guards against a double-click creating two identical cross-distributor alerts.
+  const [creatingAlert, setCreatingAlert] = useState(false);
   const selectionInitialized = useRef<string | null>(null);
   const lastAppliedParam = useRef<string | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -422,7 +424,7 @@ export function Compare() {
   }, [sortedListings, displayCurrency]);
 
   const handleCrossAlert = useCallback(async () => {
-    if (!id || !product || alertTarget === null) return;
+    if (!id || !product || alertTarget === null || creatingAlert) return;
     const alert: PriceAlert = {
       id: `cross-${id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       productId: id,
@@ -432,14 +434,17 @@ export function Compare() {
       createdAt: new Date().toISOString(),
       isActive: true,
     };
+    setCreatingAlert(true);
     try {
       await storage.addAlert(alert);
     } catch {
       showToast("Couldn't create alert. Please try again.");
       return;
+    } finally {
+      setCreatingAlert(false);
     }
     showToast(`Alert set below ${formatPrice(alertTarget, displayCurrency)}`);
-  }, [id, product, alertTarget, displayCurrency]);
+  }, [id, product, alertTarget, displayCurrency, creatingAlert]);
 
   const handleShareCompare = useCallback(async () => {
     if (!product) return;

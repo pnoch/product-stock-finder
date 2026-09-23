@@ -96,6 +96,20 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 59: the Compare cross-distributor alert had no double-submit guard,
+// so a rapid double-tap created two identical alerts.
+describe("compare cross-alert guards against double-submit", () => {
+  it("mobile sets and checks a creatingAlert guard", () => {
+    const src = readFileSync(path.join(process.cwd(), "app/compare/[id].tsx"), "utf8");
+    expect(src).toContain("const [creatingAlert, setCreatingAlert] = useState(false)");
+    const start = src.indexOf("const handleCrossAlert");
+    const block = src.slice(start, src.indexOf("}, [listings, id, productName", start));
+    expect(block).toContain("if (creatingAlert) return;");
+    expect(block).toContain("setCreatingAlert(true)");
+    expect(block).toContain("setCreatingAlert(false)");
+  });
+});
+
 // QA round 56: the distributor selector computed `allDistributorIds` and then
 // immediately `void`ed it — dead work on every render.
 describe("distributor selector has no dead computation", () => {

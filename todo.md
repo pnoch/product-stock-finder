@@ -2605,3 +2605,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop pages accessed `product.listings.<method>` without the `?? []` guard mobile uses**: `Home.tsx` (`p.listings.some`), `Watchlist.tsx` (`getTrend`, `getDominantStatus`, the price-refresh job filter, and the listing-count cell), `Stats.tsx` (the comparison chart), `Compare.tsx` (param match, selection init, chart series, trends, sorted list), `ProductDetail.tsx` (seed listings, target table), and `Settings.tsx` (re-enable distributor). A product with no listings (manually added / discovery failed) crashed the page
 - [x] All now use `(product.listings ?? [])`, matching mobile
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 15) asserting no bare `X.listings.<method>` remains in those files — verified non-vacuous by reverting Home; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2019 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 311: Device QA round 59 (compare cross-alert double-submit)
+
+- [x] **The Compare cross-distributor alert had no double-submit guard**: `handleCrossAlert` mints a fresh alert id on each call, so a rapid double-tap created two identical "alert me if any distributor drops below X" alerts (and scheduled two notifications). Both mobile (`app/compare/[id].tsx`) and desktop (`desktop/src/pages/Compare.tsx`) were affected
+- [x] Both now track a `creatingAlert` state, early-return while a creation is in flight, and clear it in `finally`
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 36) and `tests/desktop-chart-guard.test.ts` (now 16) — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2021 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

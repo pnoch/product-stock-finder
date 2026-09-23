@@ -145,6 +145,17 @@ describe("desktop chart guard", () => {
     expect(block).toContain("catch");
   });
 
+  // QA round 59: the desktop Compare cross-alert had no double-submit guard.
+  it("guards the desktop compare cross-alert against double-submit", async () => {
+    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    expect(text).toContain("const [creatingAlert, setCreatingAlert] = useState(false)");
+    const start = text.indexOf("const handleCrossAlert");
+    const block = text.slice(start, text.indexOf("}, [id, product, alertTarget", start));
+    expect(block).toContain("creatingAlert");
+    expect(block).toContain("setCreatingAlert(true)");
+    expect(block).toContain("setCreatingAlert(false)");
+  });
+
   // QA round 58: desktop pages accessed `product.listings.<method>` without the
   // `?? []` guard mobile uses, so a product with no listings crashed the page.
   it("guards desktop product.listings access with ?? []", async () => {
