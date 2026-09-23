@@ -501,9 +501,12 @@ function serializeItem(collection: Collection, item: unknown): unknown {
   const cutoff = new Date();
   cutoff.setUTCDate(cutoff.getUTCDate() - PRICE_HISTORY_SYNC_DAYS);
   const cutoffDay = cutoff.toISOString().slice(0, 10);
+  // Defensive `?? []`: a corrupt/legacy stored product can lack `listings` (or
+  // a listing can lack `priceHistory`), and a throw here aborts the whole sync
+  // (not just this item) since collectDirty is not per-item guarded.
   return {
     ...product,
-    listings: product.listings.map((l) => ({
+    listings: (product.listings ?? []).map((l) => ({
       distributorId: l.distributorId,
       productId: l.productId,
       price: l.price,
@@ -513,7 +516,7 @@ function serializeItem(collection: Collection, item: unknown): unknown {
       url: l.url,
       lastChecked: l.lastChecked,
       taxRate: l.taxRate,
-      priceHistory: l.priceHistory.filter(
+      priceHistory: (l.priceHistory ?? []).filter(
         (p) => p.date.slice(0, 10) >= cutoffDay,
       ),
     })),
@@ -535,25 +538,29 @@ async function applyLocalItem(
         }
         return list.map((p) => {
           if (p.id !== incoming.id) return p;
+          // Defensive `?? []`: a corrupt/legacy product can lack `listings`,
+          // and a throw here aborts the whole sync (not just this item).
+          const incomingListings = incoming.listings ?? [];
+          const existingListings = existing.listings ?? [];
           const incomingIds = new Set(
-            incoming.listings.map((l) => l.distributorId),
+            incomingListings.map((l) => l.distributorId),
           );
-          const merged = incoming.listings.map((l) => {
-            const local = existing.listings.find(
+          const merged = incomingListings.map((l) => {
+            const local = existingListings.find(
               (el) => el.distributorId === l.distributorId,
             );
             return local
               ? {
                   ...l,
                   priceHistory: mergePriceHistory(
-                    local.priceHistory,
+                    local.priceHistory ?? [],
                     l.priceHistory ?? [],
                     PRICE_HISTORY_DAYS,
                   ),
                 }
               : l;
           });
-          const localOnly = existing.listings.filter(
+          const localOnly = existingListings.filter(
             (el) => !incomingIds.has(el.distributorId),
           );
           // Tags are a per-device organizational edit that LWW on the whole

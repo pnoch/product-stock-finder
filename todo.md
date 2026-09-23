@@ -2893,3 +2893,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The drop-calendar's drop list keyed rows on `productId-from-to`**: two distributors for the same product can have identical from/to values (e.g. both 100→90), producing duplicate React keys in both the mobile `DropCalendarCard` and the desktop Stats drop list. `DropEvent` already carries a unique `distributorId`
 - [x] Both renderers now key on `productId-distributorId-from-to`
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 62) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2079 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 359: Device QA round 107 (a malformed product aborted the whole sync)
+
+- [x] **`serializeItem`/`applyLocalItem` assumed `listings`/`priceHistory` were always arrays**: a corrupt or legacy stored product (or a pulled product) lacking `listings` made `product.listings.map(...)` throw. `collectDirty` is not per-item guarded, so the throw aborted the entire sync pass (not just that item) — every other module defensively uses `?? []`
+- [x] Both functions now use `(product.listings ?? [])`, `(l.priceHistory ?? [])`, and `(existing.listings ?? [])`
+- [x] Added 2 cases to `tests/sync-engine.test.ts` (now 34: serialize and apply a product with no listings) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2081 passed`

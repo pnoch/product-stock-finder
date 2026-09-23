@@ -962,6 +962,49 @@ describe("syncNow", () => {
     expect(history.map((p) => p.date)).toEqual([daysAgo(7)]);
   });
 
+  // A corrupt/legacy stored product can lack `listings`; serializeItem must not
+  // throw, or the whole sync aborts (collectDirty is not per-item guarded).
+  it("serializes a product with no listings without throwing", async () => {
+    const storage = makeStorage();
+    const malformed = { ...makeProduct("p1"), listings: undefined } as unknown as Product;
+    await storage.saveWatchlist([malformed]);
+    const pull = vi.fn(async () => ({ lastSyncedAt: 2000, items: [] }));
+    const push = vi.fn(
+      async (
+        _items: SyncItem[],
+      ): Promise<{ accepted: number; stamped: SyncStampedItem[] }> => ({
+        accepted: 1,
+        stamped: [{ collection: "watchlist" as const, id: "p1", updatedAt: 2500 }],
+      }),
+    );
+    await syncNow({ storage, isSignedIn: () => true, pull, push, now: () => 3000 });
+    expect(push).toHaveBeenCalled();
+    const pushed = push.mock.calls[0]![0];
+    expect((pushed[0]!.data as Product).listings).toEqual([]);
+  });
+
+  // A pulled product with no `listings` must not abort applyLocalItem.
+  it("applies a pulled product with no listings without throwing", async () => {
+    const storage = makeStorage();
+    await storage.addToWatchlist(makeProduct("p1"));
+    const pull = vi.fn(async () => ({
+      lastSyncedAt: 5000,
+      items: [
+        {
+          collection: "watchlist" as const,
+          id: "p1",
+          data: { ...makeProduct("p1"), listings: undefined },
+          updatedAt: 4000,
+          deletedAt: null,
+        },
+      ],
+    }));
+    const push = vi.fn(async () => ({ accepted: 0, stamped: [] }));
+    await syncNow({ storage, isSignedIn: () => true, pull, push, now: () => 6000 });
+    const list = await storage.getWatchlist();
+    expect(list).toHaveLength(1);
+  });
+
   it("merges pulled price history into local history on apply", async () => {
     const storage = makeStorage();
     const daysAgo = (n: number) =>
