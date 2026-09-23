@@ -96,6 +96,22 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 112: uploadHealthEventToServer can reject (its storage read/write
+// rethrows), and both callers used `void` with no catch — an unhandled
+// rejection on a storage failure.
+describe("health event uploads are guarded", () => {
+  it("catches uploadHealthEventToServer rejections", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "lib/background-tasks/health-alerts.ts"),
+      "utf8",
+    );
+    const calls = src.match(/void uploadHealthEventToServer\(/g) ?? [];
+    const catches = src.match(/uploadHealthEventToServer\(\{[\s\S]*?\}\)\.catch\(/g) ?? [];
+    expect(calls.length).toBe(2);
+    expect(catches.length).toBe(2);
+  });
+});
+
 // QA round 108: restock-watches and distributor-analysis used a bare
 // router.back(), which silently no-ops on a deep-linked cold start (the
 // goBackOrHome helper exists for exactly this).

@@ -2923,3 +2923,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`checkRestocks` could reject and abort the rest of `runPriceCheckCore`**: `runCheckRestocks` starts with `storage.getStockWatches()`, which rethrows adapter failures, and `checkRestocks` had no catch. `runPriceCheckCore` awaits it before sending the scheduled digest, so a storage read failure skipped the digest entirely — despite the comment calling the restock check "independent"
 - [x] `checkRestocks` now catches and logs, resolving instead of rejecting
 - [x] Added a case to `tests/restock.test.ts` (now 9: resolves when a storage read fails) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2086 passed`
+
+## Phase 364: Device QA round 112 (health event uploads rejected unhandled)
+
+- [x] **`uploadHealthEventToServer` rejections were unhandled**: its `run` reads and writes `pending_health_events` (which rethrows adapter failures), and both callers in `lib/background-tasks/health-alerts.ts` used `void uploadHealthEventToServer({...})` with no `.catch` — so a storage failure became an unhandled rejection
+- [x] Both call sites now `.catch` and log
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 65) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2087 passed`

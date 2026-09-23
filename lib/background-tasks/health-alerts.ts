@@ -44,7 +44,7 @@ export async function checkHealthAlerts(
               : "🔴 Distributor Down",
           body: `${name} has been ${latest.status} for 3 consecutive probes${latest.reason ? ` — ${latest.reason}` : ""}`,
           createdAt: Date.now(),
-        });
+        }).catch((e) => console.warn("[HealthAlerts] upload failed", e));
       }
       if (detectHealthRecovery(samples)) {
         const prev = samples[samples.length - 2];
@@ -59,7 +59,7 @@ export async function checkHealthAlerts(
           title: "🟢 Distributor Recovered",
           body: `${name} is back online after being ${prev.status}`,
           createdAt: Date.now(),
-        });
+        }).catch((e) => console.warn("[HealthAlerts] upload failed", e));
       }
     }
   } catch {
