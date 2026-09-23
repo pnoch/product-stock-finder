@@ -86,6 +86,16 @@ describe("stats basket alert reverts on save failure", () => {
   });
 });
 
+// QA round 53: `hooks/use-product-detail.ts` was orphaned when the product
+// detail screen switched to `useLiveProduct`; only its own test imported it.
+describe("orphaned product-detail hook stays deleted", () => {
+  it("does not keep hooks/use-product-detail.ts", () => {
+    expect(() =>
+      readFileSync(path.join(process.cwd(), "hooks/use-product-detail.ts"), "utf8"),
+    ).toThrow();
+  });
+});
+
 // QA round 49: bare storage.then chains rejected unhandled on a storage
 // failure. Each must have a .catch.
 describe("mobile storage.then chains are guarded", () => {

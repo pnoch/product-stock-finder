@@ -2569,3 +2569,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phases 302/303: `TagPickerSheet.toggleTag` optimistically updated the selection then awaited `setProductTags` with no try/catch, so a storage failure was an unhandled rejection and the UI showed a tag that was never persisted
 - [x] It now catches, restores the previous selection, and surfaces "Couldn't save tags. Please try again."
 - [x] Added a guard to `tests/tag-picker-sheet.test.ts` (now 7) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2011 passed`
+
+## Phase 305: Device QA round 53 (orphaned product-detail hook)
+
+- [x] `hooks/use-product-detail.ts` was orphaned when the product detail screen switched to `useLiveProduct` (the `7b4b7e3` refactor added it, then `2b2f316` removed its last screen import). Only its own test imported it, so it was dead source shipping in the bundle
+- [x] Deleted the hook and `tests/use-product-detail.test.tsx`
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 30) — verified non-vacuous by restoring the file; E2E root `tsc 0`, lint 0 errors (158 warnings, down from 164), root `330 passed | 2 skipped` / `2011 passed`
