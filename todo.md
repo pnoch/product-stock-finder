@@ -2671,3 +2671,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`handleRemoveStockWatch` didn't cancel the watch's scheduled notification**: the Alerts screen removed the watch row but left its `notificationId` scheduled, so the "Restock watch set" confirmation still fired after removal. The product-detail toggle and `handleDeleteReminder` both cancel first
 - [x] It now cancels `watch.notificationId` (when present) before `removeStockWatch`
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 42) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2030 passed`
+
+## Phase 322: Device QA round 70 (notification center unread badge stale closure)
+
+- [x] **`NotificationCenter.handleOpen` decremented the unread badge from a stale closure**: `applyUnread(Math.max(0, unreadCount - 1))` read the `unreadCount` captured when the callback was created, so tapping two unread items in quick succession (before a re-render) decremented by one total instead of two — the badge under-counted
+- [x] Added a `decrementUnread` callback using a functional `setUnreadCount((prev) => ...)` update (which also reports the new value to `onUnreadChange`) and used it in `handleOpen`
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 43) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2031 passed`

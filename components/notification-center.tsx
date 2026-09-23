@@ -66,6 +66,16 @@ export function NotificationCenter({
     [onUnreadChange],
   );
 
+  // Functional decrement: two quick taps used to read the same stale
+  // `unreadCount` closure and under-count the badge by one.
+  const decrementUnread = useCallback(() => {
+    setUnreadCount((prev) => {
+      const next = Math.max(0, prev - 1);
+      onUnreadChange?.(next);
+      return next;
+    });
+  }, [onUnreadChange]);
+
   const load = useCallback(async () => {
     try {
       const [list, unread] = await Promise.all([
@@ -101,7 +111,7 @@ export function NotificationCenter({
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       if (!item.read) {
         await markNotificationRead(item.id);
-        applyUnread(Math.max(0, unreadCount - 1));
+        decrementUnread();
         setHistory((prev) =>
           prev.map((e) => (e.id === item.id ? { ...e, read: true } : e)),
         );
@@ -114,7 +124,7 @@ export function NotificationCenter({
       });
       if (route) router.push(route as never);
     },
-    [router, unreadCount, applyUnread],
+    [router, decrementUnread],
   );
 
   const handleMarkAll = useCallback(async () => {

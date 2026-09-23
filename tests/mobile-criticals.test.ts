@@ -96,6 +96,21 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 70: the notification center decremented the unread badge from a
+// stale `unreadCount` closure, so two quick taps under-counted by one.
+describe("notification center decrements unread functionally", () => {
+  it("uses a functional decrement instead of the stale closure", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "components/notification-center.tsx"),
+      "utf8",
+    );
+    expect(src).toContain("const decrementUnread = useCallback");
+    expect(src).toContain("setUnreadCount((prev) => {");
+    expect(src).toContain("decrementUnread()");
+    expect(src).not.toContain("applyUnread(Math.max(0, unreadCount - 1))");
+  });
+});
+
 // QA round 69: removing a stock watch from the Alerts screen didn't cancel its
 // scheduled confirmation notification, so it still fired after removal.
 describe("removing a stock watch cancels its notification", () => {
