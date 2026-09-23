@@ -60,3 +60,64 @@ describe("search results list owns the filter chrome", () => {
     expect(before).not.toContain("<RecentSearches");
   });
 });
+
+// QA round 17: the 2026-08-28 "product detail orchestration" refactor was meant
+// to be a pure extraction (its spec says "[id].tsx (unchanged)" and "no logic
+// changes"), but it dropped three render sites while still barrel-exporting the
+// components. Private notes (Phase 90) and the distributor targets table
+// (Phase 93) silently vanished from mobile while desktop kept both. These
+// guards pin the render sites so a future refactor can't drop them again.
+describe("product detail keeps its notes and distributor targets", () => {
+  const src = readFileSync(path.join(process.cwd(), "app/product/[id].tsx"), "utf8");
+
+  it("renders NotesCard", () => {
+    expect(src).toMatch(/<NotesCard\b/);
+  });
+
+  it("renders TargetTableCard wired to the scoped-alert flow", () => {
+    expect(src).toMatch(/<TargetTableCard\b/);
+    expect(src).toContain("onSetTarget={handleSetTarget}");
+    expect(src).toMatch(/<PriceAlertModal\b/);
+  });
+
+  it("keeps the notes and targets out of the share-image capture", () => {
+    const shareStart = src.indexOf("ref={shareRef}");
+    const shareEnd = src.indexOf("</View>", src.indexOf("<DistributorListingSection", shareStart));
+    expect(shareStart).toBeGreaterThan(-1);
+    expect(shareEnd).toBeGreaterThan(shareStart);
+    const captured = src.slice(shareStart, shareEnd);
+    expect(captured).not.toContain("<NotesCard");
+    expect(captured).not.toContain("<TargetTableCard");
+  });
+});
+
+// The per-distributor price-history modal owned CSV export until the same
+// refactor dropped it. Compare is now the chart surface, so the export moved
+// there; the modal is deleted rather than left as unreachable dead code.
+describe("price-history CSV export lives on the Compare screen", () => {
+  const compare = readFileSync(path.join(process.cwd(), "app/compare/[id].tsx"), "utf8");
+
+  it("exports price history via the shared csv helper", () => {
+    expect(compare).toContain("priceHistoryToCsv");
+    expect(compare).toContain("exportCsvFile");
+    expect(compare).toMatch(/accessibilityLabel="Export price history as CSV"/);
+  });
+
+  it("no longer ships the unreachable PriceChartModal", () => {
+    expect(() =>
+      readFileSync(path.join(process.cwd(), "components/product/price-chart-modal.tsx"), "utf8"),
+    ).toThrow();
+    const barrel = readFileSync(path.join(process.cwd(), "app/product/_components.tsx"), "utf8");
+    expect(barrel).not.toContain("PriceChartModal");
+  });
+
+  // The modal was the mobile PriceHistoryChart's only consumer; deleting the
+  // modal orphaned the chart too. Compare's MultiLineChart is the mobile chart
+  // surface now, so the single-series chart is unreachable dead source (Metro
+  // tree-shakes it from the bundle, but it should not linger in the repo).
+  it("no longer keeps the orphaned single-series PriceHistoryChart", () => {
+    expect(() =>
+      readFileSync(path.join(process.cwd(), "components/price-history-chart.tsx"), "utf8"),
+    ).toThrow();
+  });
+});

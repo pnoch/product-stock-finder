@@ -27,8 +27,7 @@ import {
 import { applyBackup, buildBackup, parseBackup } from "@/lib/backup";
 import { exportBackupFile, pickBackupFile } from "@/lib/backup-files";
 import { watchlistToCsv } from "@/lib/csv";
-import * as FileSystem from "expo-file-system/legacy";
-import * as Sharing from "expo-sharing";
+import { exportCsvFile } from "@/lib/csv-export";
 
 async function performExport(): Promise<boolean> {
   const [watchlist, alerts, reminders, stockWatches, settings] =
@@ -52,37 +51,6 @@ async function performExport(): Promise<boolean> {
 function tapHaptic() {
   if (Platform.OS !== "web")
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-}
-
-async function exportCsvFile(csv: string): Promise<boolean> {
-  try {
-    const fileName = `product-stock-finder-watchlist-${new Date().toISOString().slice(0, 10)}.csv`;
-    if (Platform.OS === "web") {
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = fileName;
-      anchor.style.display = "none";
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-      return true;
-    }
-    const uri = `${FileSystem.cacheDirectory}${fileName}`;
-    await FileSystem.writeAsStringAsync(uri, csv, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
-    if (!(await Sharing.isAvailableAsync())) return false;
-    await Sharing.shareAsync(uri, {
-      mimeType: "text/csv",
-      dialogTitle: "Export CSV",
-    });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function mergeSummary(counts: {
@@ -130,7 +98,10 @@ export function DataSection() {
       const [watchlist, settings] = await Promise.all([getWatchlist(), getSettings()]);
       const currency = settings?.displayCurrency ?? "USD";
       const csv = watchlistToCsv(watchlist, currency);
-      const ok = await exportCsvFile(csv);
+      const ok = await exportCsvFile(
+        csv,
+        `product-stock-finder-watchlist-${new Date().toISOString().slice(0, 10)}.csv`,
+      );
       showAlert(
         ok ? "CSV Exported" : "Export Failed",
         ok ? "Your watchlist CSV has been created." : "Could not create the CSV file on this device.",

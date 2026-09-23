@@ -14,7 +14,7 @@ import { buildShareText } from "@/lib/price-share";
 import { shareText as shareTextCrossPlatform } from "@/lib/share-text";
 import * as Linking from "expo-linking";
 import { captureAndShareImage } from "@/lib/share-image";
-import { getSettings, getStockWatches, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch } from "@/lib/storage";
+import { getSettings, getStockWatches, getAlerts, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch } from "@/lib/storage";
 import { formatPrice } from "@shared/currency";
 import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
@@ -22,11 +22,12 @@ import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
 import { computePriceVsAverage } from "@/lib/price-average";
 import { computeDealScore, dealBandLabel } from "@/lib/deal-score";
 import { findBestDeal } from "@/lib/best-deal";
+import { suggestAlertPrices } from "@/lib/alert-suggestions";
 import { fetchPriceInsight } from "@/lib/server-insights";
 import { fetchProductImage } from "@/lib/server-images";
 import { schedulePriceAlert, scheduleStockWatchConfirmation, scheduleBackOrderReminder, cancelNotification, ensureNotificationPermission } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
-import { ProductInfoCard, DistributorListingSection, ReminderDatePickerModal } from "./_components";
+import { ProductInfoCard, DistributorListingSection, ReminderDatePickerModal, NotesCard, TargetTableCard, PriceAlertModal } from "./_components";
 import { EditProductSheet } from "@/components/product/edit-product-sheet";
 import { PriceAlert, DistributorListing } from "@/lib/types";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
@@ -61,6 +62,14 @@ export default function ProductDetailScreen() {
   const [reminderDate, setReminderDate] = useState(() => new Date(Date.now() + 7 * 86400000));
   const [editingProduct, setEditingProduct] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  // Scoped-alert flow for the Distributor Targets table: the "+" per row opens
+  // the shared PriceAlertModal pre-scoped to that distributor.
+  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
+  const [alertModalVisible, setAlertModalVisible] = useState(false);
+  const [alertDistributorId, setAlertDistributorId] = useState<string | null>(null);
+  const [alertDirection, setAlertDirection] = useState<"drop" | "rise">("drop");
+  const [alertPrice, setAlertPrice] = useState("");
+  const [alertCurrency, setAlertCurrency] = useState("USD");
 
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!id) {
@@ -72,17 +81,20 @@ export default function ProductDetailScreen() {
     setProductImage(null);
     // Storage reads can reject; without a catch the setters below never run and
     // the screen hangs on the loading skeleton forever.
-    const [settingsData, stockWatchesData, insightData, imageData] =
+    const [settingsData, stockWatchesData, insightData, imageData, alertsData] =
       await Promise.all([
         getSettings().catch(() => null),
         getStockWatches().catch(() => []),
         fetchPriceInsight(id).catch(() => null),
         fetchProductImage(id).catch(() => null),
+        getAlerts().catch(() => []),
       ]);
     if (signal?.cancelled) return;
     if (settingsData?.displayCurrency) setDisplayCurrency(settingsData.displayCurrency);
     if (settingsData?.shippingRegion) setShippingRegion(settingsData.shippingRegion);
+    if (settingsData?.displayCurrency) setAlertCurrency(settingsData.displayCurrency);
     setSettingsLoaded(true);
+    setAlerts(alertsData);
     const watchMap: Record<string, boolean> = {};
     for (const w of stockWatchesData) {
       if (w.productId === id) watchMap[w.distributorId] = true;
@@ -170,6 +182,72 @@ export default function ProductDetailScreen() {
       showAlert("Couldn't create alert", "We couldn't save your price alert. Please try again.");
     }
   }, [id, product, showToast]);
+
+  const handleSetTarget = useCallback((distributorId: string) => {
+    setAlertDistributorId(distributorId);
+    setAlertDirection("drop");
+    setAlertPrice("");
+    setAlertModalVisible(true);
+  }, []);
+
+  const handleSetAlert = useCallback(async () => {
+    if (!id) return;
+    const price = parseFloat(alertPrice);
+    if (!Number.isFinite(price) || price <= 0) {
+      showAlert("Invalid Price", "Please enter a valid target price.");
+      return;
+    }
+    const granted = await ensureNotificationPermission();
+    if (!granted) {
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showAlert("Permission Denied", Platform.OS === "web" ? "Please allow notifications in your browser to receive price alerts." : "Please enable notifications in your device settings to receive price alerts.");
+      return;
+    }
+    try {
+      await schedulePriceAlert(product?.name ?? "Product", price, alertCurrency, id);
+      const newAlert: PriceAlert = {
+        id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        productId: id,
+        targetPrice: price,
+        currency: alertCurrency,
+        distributorId: alertDistributorId ?? undefined,
+        direction: alertDirection,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      };
+      await addAlert(newAlert);
+      setAlerts((prev) => [...prev, newAlert]);
+      setAlertModalVisible(false);
+      setAlertPrice("");
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast(
+        `Alert set — ${alertDistributorId ? `${getDistributorById(alertDistributorId)?.name ?? "that distributor"}'s price` : "the price"} ${alertDirection === "rise" ? "rises above" : "drops below"} ${formatPrice(price, alertCurrency)}`,
+        "success",
+      );
+    } catch {
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showAlert("Couldn't create alert", "We couldn't save your price alert. Please try again.");
+    }
+  }, [id, product, alertPrice, alertCurrency, alertDistributorId, alertDirection, showToast]);
+
+  const alertSuggestions = useMemo(
+    () => suggestAlertPrices(product?.listings ?? [], alertCurrency),
+    [product, alertCurrency],
+  );
+
+  const alertDistributors = useMemo(() => {
+    const seen = new Map<string, { id: string; name: string; countryFlag: string }>();
+    for (const listing of visibleListings) {
+      if (seen.has(listing.distributorId)) continue;
+      const dist = getDistributorById(listing.distributorId);
+      seen.set(listing.distributorId, {
+        id: listing.distributorId,
+        name: dist?.name ?? listing.distributorId,
+        countryFlag: dist?.countryFlag ?? "",
+      });
+    }
+    return [...seen.values()];
+  }, [visibleListings]);
 
   const handleToggleStockWatch = useCallback(async (listing: DistributorListing) => {
     if (!id) return;
@@ -416,6 +494,11 @@ export default function ProductDetailScreen() {
           {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} displayCurrency={effectiveCurrency} />}
           <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={effectiveShippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={effectiveCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={() => router.push(`/compare/${id}`)} onRemind={setReminderListing} />
         </View>
+        {/* Notes and distributor targets sit outside the shareRef capture: notes
+            are device-private and targets are personal, so neither belongs in a
+            shared product image. */}
+        <NotesCard productId={product.id} />
+        <TargetTableCard listings={visibleListings} alerts={alerts} productId={product.id} onSetTarget={handleSetTarget} />
         <AlertSection productId={product.id} productName={product.name} displayCurrency={effectiveCurrency} />
         <ReminderSection productId={product.id} distributorId={reminderTarget?.distributorId} productName={product.name} distributorName={reminderTarget ? getDistributorById(reminderTarget.distributorId)?.name ?? "" : ""} onRemind={() => { if (reminderTarget) setReminderListing(reminderTarget); }} />
       </Animated.ScrollView>
@@ -438,6 +521,22 @@ export default function ProductDetailScreen() {
         onClose={() => setEditingProduct(false)}
         onSaved={() => void refresh()}
         product={product}
+      />
+      <PriceAlertModal
+        visible={alertModalVisible}
+        onClose={() => setAlertModalVisible(false)}
+        onSetAlert={handleSetAlert}
+        alertPrice={alertPrice}
+        setAlertPrice={setAlertPrice}
+        alertCurrency={alertCurrency}
+        setAlertCurrency={setAlertCurrency}
+        productName={product.name}
+        suggestions={alertSuggestions}
+        distributors={alertDistributors}
+        selectedDistributorId={alertDistributorId}
+        onSelectDistributor={setAlertDistributorId}
+        direction={alertDirection}
+        onDirectionChange={setAlertDirection}
       />
     </ScreenContainer>
   );

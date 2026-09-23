@@ -18,6 +18,8 @@ import * as Linking from "expo-linking";
 import { buildShareText } from "@/lib/price-share";
 import { shareText as shareTextCrossPlatform } from "@/lib/share-text";
 import { captureAndShareImage } from "@/lib/share-image";
+import { priceHistoryToCsv } from "@/lib/csv";
+import { exportCsvFile } from "@/lib/csv-export";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { goBackOrHome } from "@/lib/navigation";
 import * as Haptics from "expo-haptics";
@@ -329,6 +331,39 @@ export default function CompareScreen() {
     });
   }, [listings, selected, timeRange]);
 
+  // The per-distributor price-history modal that used to own CSV export was
+  // dropped from product detail in the 2026-08-28 refactor; Compare is now the
+  // chart surface, so the export lives here. Exports every listing with
+  // history (not just the selected ones) so the file is complete.
+  const handleExportCsv = useCallback(async () => {
+    if (!id) return;
+    const withHistory = listings.filter(
+      (l) => l.priceHistory && l.priceHistory.length > 0,
+    );
+    if (withHistory.length === 0) {
+      showAlert("Nothing to export", "No price history is available for this product yet.");
+      return;
+    }
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const rows = withHistory
+      .flatMap((l) => l.priceHistory ?? [])
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const csv = priceHistoryToCsv(rows, {
+      name: productName,
+      modelNumber: product?.modelNumber ?? id,
+    });
+    const ok = await exportCsvFile(
+      csv,
+      `${id}-price-history-${new Date().toISOString().slice(0, 10)}.csv`,
+    );
+    if (!ok) {
+      showAlert("Export unavailable", "We couldn't export the price history on this device.");
+      return;
+    }
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    showToast("Price history exported", "success");
+  }, [id, listings, productName, product, showToast]);
+
   if (!id) {
     return (
       <ScreenContainer>
@@ -385,7 +420,10 @@ export default function CompareScreen() {
             <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14, flex: 1 }} numberOfLines={1}>
               {productName}
             </Text>
-            <View pointerEvents="auto">
+            <View pointerEvents="auto" style={{ flexDirection: "row", alignItems: "center" }}>
+              <TouchableOpacity activeOpacity={0.7} onPress={handleExportCsv} style={{ padding: 4, marginLeft: 8 }} accessibilityLabel="Export price history as CSV" accessibilityRole="button">
+                <IconSymbol name="square.and.arrow.down" size={18} color={colors.primary} />
+              </TouchableOpacity>
               <TouchableOpacity activeOpacity={0.7} onPress={handleShare} style={{ padding: 4, marginLeft: 8 }} accessibilityLabel="Share comparison" accessibilityRole="button">
                 <IconSymbol name="square.and.arrow.up" size={18} color={colors.primary} />
               </TouchableOpacity>
