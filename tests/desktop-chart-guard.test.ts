@@ -119,4 +119,17 @@ describe("desktop chart guard", () => {
     expect(block).toContain("try {");
     expect(block).toContain("catch");
   });
+
+  // QA round 47: desktop alerts created via createPriceAlert never reached the
+  // screen's `alerts` state, so the Distributor Targets table stayed stale.
+  it("syncs desktop product-detail alerts state after creating an alert", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    // createPriceAlert returns the created alert.
+    const alertStart = text.indexOf("async function createPriceAlert");
+    expect(text.slice(alertStart, text.indexOf("return { ok: true, id, alert };", alertStart))).toContain("alert");
+    // Every caller appends it to state.
+    const callers = text.match(/const \{ ok, alert \} = await createPriceAlert\(/g) ?? [];
+    expect(callers.length).toBe(4);
+    expect((text.match(/setAlerts\(\(prev\) => \[\.\.\.prev, alert\]\)/g) ?? []).length).toBeGreaterThanOrEqual(4);
+  });
 });

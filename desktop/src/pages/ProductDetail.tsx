@@ -117,26 +117,29 @@ async function createPriceAlert(input: {
   targetPrice: number;
   currency: string;
   direction: "drop" | "rise";
-}): Promise<{ ok: boolean; id: string }> {
+}): Promise<{ ok: boolean; id: string; alert?: PriceAlert }> {
   const granted = await checkNotificationPermission();
   if (!granted) return { ok: false, id: "" };
   const id = `alert-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const alert: PriceAlert = {
+    id,
+    productId: input.productId,
+    direction: input.direction,
+    distributorId: input.distributorId,
+    targetPrice: input.targetPrice,
+    currency: input.currency,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  };
   try {
-    await storage.addAlert({
-      id,
-      productId: input.productId,
-      direction: input.direction,
-      distributorId: input.distributorId,
-      targetPrice: input.targetPrice,
-      currency: input.currency,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    });
+    await storage.addAlert(alert);
   } catch {
     // A storage failure must not reject unhandled; callers show a toast on !ok.
     return { ok: false, id: "" };
   }
-  return { ok: true, id };
+  // Return the alert so callers can sync the screen's `alerts` state (the
+  // Distributor Targets table reads it and otherwise stays stale).
+  return { ok: true, id, alert };
 }
 
 export function ProductDetail() {
@@ -448,17 +451,18 @@ export function ProductDetail() {
       showToast("No distributor available");
       return;
     }
-    const { ok } = await createPriceAlert({
+    const { ok, alert } = await createPriceAlert({
       productId: product.id,
       distributorId,
       targetPrice: price,
       currency: alertCurrency,
       direction: alertDirection,
     });
-    if (!ok) {
+    if (!ok || !alert) {
       setAlertError("Please enable notifications in your system settings to receive price alerts.");
       return;
     }
+    setAlerts((prev) => [...prev, alert]);
     setAlertError(null);
 
     setAlertSaved(true);
@@ -533,17 +537,18 @@ export function ProductDetail() {
       showToast("No distributor available");
       return;
     }
-    const { ok } = await createPriceAlert({
+    const { ok, alert } = await createPriceAlert({
       productId: product.id,
       distributorId,
       targetPrice: price,
       currency: inlineAlertCurrency,
       direction: inlineAlertDirection,
     });
-    if (!ok) {
+    if (!ok || !alert) {
       showToast("Please enable notifications in your system settings to receive price alerts.");
       return;
     }
+    setAlerts((prev) => [...prev, alert]);
     setInlineAlertPrice("");
     showToast("Alert created");
   };
@@ -697,17 +702,18 @@ export function ProductDetail() {
     if (!product || !perListingAlertId) return;
     const price = parseFloat(perListingAlertPrice);
     if (isNaN(price) || price <= 0) return;
-    const { ok } = await createPriceAlert({
+    const { ok, alert } = await createPriceAlert({
       productId: product.id,
       distributorId: perListingAlertId,
       targetPrice: price,
       currency: perListingAlertCurrency,
       direction: perListingAlertDirection,
     });
-    if (!ok) {
+    if (!ok || !alert) {
       showToast("Please enable notifications in your system settings to receive price alerts.");
       return;
     }
+    setAlerts((prev) => [...prev, alert]);
     setPerListingAlertId(null);
     setPerListingAlertPrice("");
     showToast("Alert set for distributor");
@@ -716,17 +722,18 @@ export function ProductDetail() {
   const handleQuickAlert = async () => {
     if (!product || !bestListing) return;
     const suggested = Math.round(bestListing.price * 0.95 * 100) / 100;
-    const { ok } = await createPriceAlert({
+    const { ok, alert } = await createPriceAlert({
       productId: product.id,
       distributorId: bestListing.distributorId,
       targetPrice: suggested,
       currency: bestListing.currency,
       direction: "drop",
     });
-    if (!ok) {
+    if (!ok || !alert) {
       showToast("Please enable notifications in your system settings to receive price alerts.");
       return;
     }
+    setAlerts((prev) => [...prev, alert]);
     showToast(`Alert set at ${formatPrice(suggested, bestListing.currency)}`);
   };
 

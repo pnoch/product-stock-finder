@@ -2533,3 +2533,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] `handleSetBestAlert` now appends the new alert to state; `AlertSection` gained an `onAdded` callback wired to `setAlerts` in `app/product/[id].tsx`
 - [x] Verified on device (rebuilt x86_64+arm64 release APK): setting a scoped target via the `+` immediately shows "$649.00 · target $500.00" in the Distributor Targets table
 - [x] Added 2 cases to `tests/mobile-criticals.test.ts` (now 26) — verified non-vacuous by reverting both; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2004 passed`
+
+## Phase 299: Device QA round 47 (desktop product-detail alerts state went stale)
+
+- [x] Follow-up to Phase 298 on desktop: `createPriceAlert` wrote to storage but returned only `{ ok, id }`, and none of its four callers (main Set Alert, inline alert, per-listing alert, quick alert) updated the screen's `alerts` state — so the Distributor Targets table (which reads `alerts`) stayed stale until reload
+- [x] `createPriceAlert` now returns the created `alert`, and all four callers append it via `setAlerts((prev) => [...prev, alert])`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 10) — verified non-vacuous by dropping one `setAlerts` call; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2005 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
