@@ -133,6 +133,18 @@ describe("desktop chart guard", () => {
     expect((text.match(/setAlerts\(\(prev\) => \[\.\.\.prev, alert\]\)/g) ?? []).length).toBeGreaterThanOrEqual(4);
   });
 
+  // QA round 50: the basket-alert save optimistically set the threshold but
+  // never reverted it on failure (and desktop had no try/catch at all).
+  it("reverts the desktop basket threshold when the save fails", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const start = text.indexOf("const handleSaveBasketAlert");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("}, [basketThreshold, showToast]);", start));
+    expect(block).toContain("const previous = basketThreshold");
+    expect(block).toContain("setBasketThreshold(previous)");
+    expect(block).toContain("catch");
+  });
+
   // QA round 48: unguarded storage.then chains rejected unhandled on a storage
   // failure. Each must have a .catch.
   it("guards desktop storage.then chains with .catch", async () => {

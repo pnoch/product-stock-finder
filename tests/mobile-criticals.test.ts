@@ -72,6 +72,20 @@ describe("sparkline opens Compare focused on the tapped distributor", () => {
   });
 });
 
+// QA round 50: the basket-alert save optimistically set the threshold but
+// never reverted it on failure, leaving a setting on screen that was never
+// persisted.
+describe("stats basket alert reverts on save failure", () => {
+  it("restores the previous threshold", () => {
+    const src = readFileSync(path.join(process.cwd(), "app/stats.tsx"), "utf8");
+    const start = src.indexOf("const handleSaveBasketAlert");
+    expect(start).toBeGreaterThan(-1);
+    const block = src.slice(start, src.indexOf("[settings, basketThreshold]", start));
+    expect(block).toContain("const previous = basketThreshold");
+    expect(block).toContain("setBasketThreshold(previous)");
+  });
+});
+
 // QA round 49: bare storage.then chains rejected unhandled on a storage
 // failure. Each must have a .catch.
 describe("mobile storage.then chains are guarded", () => {

@@ -118,6 +118,7 @@ export default function StatsScreen() {
 
   const handleSaveBasketAlert = useCallback(
     async (threshold: number | null) => {
+      const previous = basketThreshold;
       setBasketThreshold(threshold);
       try {
         const current = settings ?? (await getSettings());
@@ -125,11 +126,14 @@ export default function StatsScreen() {
         const updated = await updateSettings({ basketAlertThreshold: threshold });
         setSettings(updated);
       } catch (e) {
+        // Revert the optimistic update: leaving the new threshold on screen
+        // after a failed save showed a setting that was never persisted.
+        setBasketThreshold(previous);
         console.error("[Stats] basket alert save failed", e);
         showAlert("Couldn't save", "We couldn't save your basket alert. Please try again.");
       }
     },
-    [settings],
+    [settings, basketThreshold],
   );
 
   const insights = useMemo(

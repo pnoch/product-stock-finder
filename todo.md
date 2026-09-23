@@ -2551,3 +2551,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 300 on mobile: `lib/web-notifications.ts` (`setupWebNotifications` read settings with a bare `.then`) and `components/home/trending-section.tsx` (focus effect read the watchlist with a bare `.then`) rejected unhandled on a storage failure
 - [x] Both chains now end in `.catch(() => {})`; polling/added-state simply stay off/empty on failure
 - [x] Added 2 cases to `tests/mobile-criticals.test.ts` (now 28) — verified non-vacuous by reverting the trending-section guard; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2008 passed`
+
+## Phase 302: Device QA round 50 (basket alert didn't revert on save failure)
+
+- [x] **The basket-alert save left a phantom threshold on screen**: both `app/stats.tsx` and `desktop/src/pages/Stats.tsx` set `basketThreshold` optimistically before the write; mobile's catch showed an alert but never reverted, and desktop had no try/catch at all — so a failed save displayed a threshold that was never persisted (and desktop's rejection was unhandled)
+- [x] Both now capture the previous threshold and restore it on failure (desktop also toasts)
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 29) and `tests/desktop-chart-guard.test.ts` (now 12) — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2010 passed`; desktop `tsc 0`, `44 passed` / `219 passed`

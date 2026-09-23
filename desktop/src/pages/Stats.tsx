@@ -129,12 +129,20 @@ export function Stats() {
   }, [loadStats]);
 
   const handleSaveBasketAlert = useCallback(async (threshold: number | null) => {
+    const previous = basketThreshold;
     setBasketThreshold(threshold);
     // Serialized read-modify-write: a whole-object write with a stale snapshot
     // would clobber a settings change made elsewhere in the meantime (mobile
     // uses the same serialized update path).
-    await storage.updateSettings({ basketAlertThreshold: threshold });
-  }, []);
+    try {
+      await storage.updateSettings({ basketAlertThreshold: threshold });
+    } catch {
+      // Revert the optimistic update so the UI doesn't show a threshold that
+      // was never persisted.
+      setBasketThreshold(previous);
+      showToast("Couldn't save your basket alert. Please try again.");
+    }
+  }, [basketThreshold, showToast]);
 
   const loading = products === null && loadError === null;
 
