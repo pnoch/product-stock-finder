@@ -2575,3 +2575,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] `hooks/use-product-detail.ts` was orphaned when the product detail screen switched to `useLiveProduct` (the `7b4b7e3` refactor added it, then `2b2f316` removed its last screen import). Only its own test imported it, so it was dead source shipping in the bundle
 - [x] Deleted the hook and `tests/use-product-detail.test.tsx`
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 30) — verified non-vacuous by restoring the file; E2E root `tsc 0`, lint 0 errors (158 warnings, down from 164), root `330 passed | 2 skipped` / `2011 passed`
+
+## Phase 306: Device QA round 54 (dead lib exports)
+
+- [x] Three exports were referenced nowhere — not by any module, screen, or test: `parseWatchlistDetailedCsv` (`lib/csv.ts`), `getQueuedEditCount` (`lib/sync.ts`), and `computeWatchlistStats` (`lib/watchlist-stats.ts`). The latter's `WatchlistStats` interface became unused with it
+- [x] Removed all four; `detailedCsvToProducts`/`parseDetailedCsv` and `countQueuedEdits` remain because they are still used internally
+- [x] Added a 4-case guard to `tests/mobile-criticals.test.ts` (now 34) — verified non-vacuous by restoring `getQueuedEditCount`; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2015 passed`

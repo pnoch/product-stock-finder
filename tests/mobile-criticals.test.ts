@@ -96,6 +96,24 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 54: three exports were referenced nowhere (not even in their own
+// module or tests): parseWatchlistDetailedCsv, getQueuedEditCount, and
+// computeWatchlistStats (plus its WatchlistStats type).
+describe("dead lib exports stay removed", () => {
+  const cases: Array<[string, string]> = [
+    ["lib/csv.ts", "parseWatchlistDetailedCsv"],
+    ["lib/sync.ts", "getQueuedEditCount"],
+    ["lib/watchlist-stats.ts", "computeWatchlistStats"],
+    ["lib/watchlist-stats.ts", "WatchlistStats"],
+  ];
+  for (const [file, symbol] of cases) {
+    it(`${file} no longer exports ${symbol}`, () => {
+      const src = readFileSync(path.join(process.cwd(), file), "utf8");
+      expect(src).not.toMatch(new RegExp(`export (async )?(function|interface) ${symbol}\\b`));
+    });
+  }
+});
+
 // QA round 49: bare storage.then chains rejected unhandled on a storage
 // failure. Each must have a .catch.
 describe("mobile storage.then chains are guarded", () => {

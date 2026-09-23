@@ -308,10 +308,6 @@ export function detailedCsvToProducts(rows: DetailedCsvRow[]): Product[] {
   return Array.from(map.values());
 }
 
-export function parseWatchlistDetailedCsv(csv: string): Product[] {
-  return detailedCsvToProducts(parseDetailedCsv(csv));
-}
-
 // ─── Bulk import (model,targetPrice,currency,tags) ──────────────────────────
 export type BulkImportRow = {
   model: string;

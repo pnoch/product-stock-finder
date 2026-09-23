@@ -41,13 +41,6 @@ export interface DataFreshnessResult {
   oldestCheck: string | null;
 }
 
-export interface WatchlistStats {
-  movers: MoversResult;
-  basket: BasketValueResult;
-  stockHealth: StockHealthResult;
-  freshness: DataFreshnessResult;
-}
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 const STALE_MS = 7 * DAY_MS;
 
@@ -231,16 +224,4 @@ export function computeDataFreshness(
   };
 }
 
-export function computeWatchlistStats(
-  watchlist: Product[],
-  displayCurrency: string,
-  days: MoversWindow,
-  now: number = Date.now(),
-): WatchlistStats {
-  return {
-    movers: computeMovers(watchlist, displayCurrency, days, now),
-    basket: computeBasketValue(watchlist, displayCurrency),
-    stockHealth: computeStockHealth(watchlist),
-    freshness: computeDataFreshness(watchlist, now),
-  };
-}
+

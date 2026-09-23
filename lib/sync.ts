@@ -810,11 +810,6 @@ export function countQueuedEdits(meta: SyncMeta): number {
   return count;
 }
 
-export async function getQueuedEditCount(storage: Storage): Promise<number> {
-  const meta = await storage.getSyncMeta();
-  return countQueuedEdits(meta);
-}
-
 export interface SyncStatus {
   label: string;
   tone: "success" | "error" | "muted";
