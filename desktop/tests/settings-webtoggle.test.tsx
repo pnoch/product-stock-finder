@@ -28,6 +28,7 @@ const mockStorage = vi.hoisted(() => ({
     webNotificationsEnabled: false,
   }),
   saveSettings: vi.fn().mockResolvedValue(undefined),
+  updateSettings: vi.fn().mockResolvedValue(undefined),
   getBackOrderReminders: vi.fn().mockResolvedValue([]),
   getStockWatches: vi.fn().mockResolvedValue([]),
   getSyncMeta: vi.fn().mockResolvedValue({ lastSyncedAt: 0, items: {} }),
@@ -177,7 +178,7 @@ describe("Settings web notifications toggle", () => {
       expect(toggle).not.toBeChecked();
       await user.click(toggle);
       await waitFor(() => {
-        expect(mockStorage.saveSettings).toHaveBeenCalledWith(
+        expect(mockStorage.updateSettings).toHaveBeenCalledWith(
           expect.objectContaining({ webNotificationsEnabled: true }),
         );
       });
@@ -222,7 +223,7 @@ describe("Settings web notifications toggle", () => {
         ),
       ).toBeInTheDocument();
       await waitFor(() => {
-        expect(mockStorage.saveSettings).toHaveBeenCalledWith(
+        expect(mockStorage.updateSettings).toHaveBeenCalledWith(
           expect.objectContaining({ webNotificationsEnabled: false }),
         );
       });

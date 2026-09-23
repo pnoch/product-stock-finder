@@ -2490,3 +2490,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The two watchlist view-preference persists raced**: the in-stock/price-range effect did `getSettings()` then `saveSettings({ ...settings, ... })` with no serialization, and `persistViewPrefs` (sort/group) used a separate private chain — both wrote the whole settings object. Changing sort and toggling "In stock only" quickly meant both read the same base and the later write dropped the other's field
 - [x] Both now use the storage-serialized `updateSettings` (which reads inside the write queue), so concurrent patches merge; the now-unused `saveSettings` import was dropped
 - [x] Added a case to `tests/storage.test.ts` (now 71: two concurrent `updateSettings` patches both survive) — verified non-vacuous by moving the read outside the queue; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `1997 passed`
+
+## Phase 292: Device QA round 40 (desktop settings writes raced each other)
+
+- [x] Follow-up to Phase 291 on desktop: the Watchlist view-prefs effect did `getSettings()` then `saveSettings({ ...s, ... })` with no serialization, and `useSettings.update` used a private `writeChain` that still read settings outside the storage queue — so Watchlist prefs, the basket alert, and the theme toggle could clobber each other's fields
+- [x] Both now use the storage-serialized `updateSettings` (which reads inside the shared write queue); the redundant private `writeChain` was removed
+- [x] Updated the desktop test mocks/assertions that stubbed the old `saveSettings` path (`use-settings-update`, `parity-rates-search-watchlist`, `settings-webtoggle`, `ux-alignment`, `error-paths-safety`) to the `updateSettings` contract — desktop `44 passed` / `219 passed`; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `1997 passed`

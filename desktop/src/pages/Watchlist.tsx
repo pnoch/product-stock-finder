@@ -270,9 +270,11 @@ export function Watchlist() {
 
   useEffect(() => {
     if (loading) return;
+    // Serialized updateSettings: a whole-object write with a read taken outside
+    // the queue raced other settings writes (theme, basket alert) and could
+    // drop their fields.
     storage
-      .getSettings()
-      .then((s) => storage.saveSettings({ ...s, watchlistInStockOnly: inStockOnly, watchlistPriceRange: priceRange ?? null, watchlistGroup: groupMode, watchlistSortKey: sortKey, watchlistSortAsc: sortAsc }))
+      .updateSettings({ watchlistInStockOnly: inStockOnly, watchlistPriceRange: priceRange ?? null, watchlistGroup: groupMode, watchlistSortKey: sortKey, watchlistSortAsc: sortAsc })
       .catch(() => {});
   }, [inStockOnly, priceRange, groupMode, sortKey, sortAsc, loading]);
 

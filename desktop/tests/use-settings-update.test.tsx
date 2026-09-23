@@ -18,7 +18,9 @@ const persisted: { current: AppSettings } = {
 
 const mockStorage = vi.hoisted(() => ({
   getSettings: vi.fn(),
-  saveSettings: vi.fn(),
+  // The hook delegates to the storage-serialized updateSettings (the queue
+  // lives in lib/storage); the mock merges the patch like the real one.
+  updateSettings: vi.fn(),
 }));
 
 vi.mock("../src/storage", () => ({
@@ -42,9 +44,10 @@ beforeEach(() => {
     await delay(10);
     return { ...persisted.current };
   });
-  mockStorage.saveSettings.mockImplementation(async (s: AppSettings) => {
+  mockStorage.updateSettings.mockImplementation(async (patch: Partial<AppSettings>) => {
     await delay(10);
-    persisted.current = { ...s };
+    persisted.current = { ...persisted.current, ...patch };
+    return persisted.current;
   });
 });
 
@@ -76,13 +79,13 @@ describe("useSettings update", () => {
       displayCurrency: "EUR",
     });
     // Serialized writes: one save per update, single final state
-    expect(mockStorage.saveSettings).toHaveBeenCalledTimes(2);
+    expect(mockStorage.updateSettings).toHaveBeenCalledTimes(2);
   });
 
   it("logs save failures instead of rejecting unhandled", async () => {
     const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
-      mockStorage.saveSettings.mockRejectedValueOnce(new Error("disk full"));
+      mockStorage.updateSettings.mockRejectedValueOnce(new Error("disk full"));
       const { result } = renderHook(() => useSettings());
       await waitFor(() => expect(result.current.settings).not.toBeNull());
 
@@ -100,8 +103,9 @@ describe("useSettings update", () => {
       );
 
       // Chain self-heals: a later write still goes through
-      mockStorage.saveSettings.mockImplementation(async (s: AppSettings) => {
-        persisted.current = { ...s };
+      mockStorage.updateSettings.mockImplementation(async (patch: Partial<AppSettings>) => {
+        persisted.current = { ...persisted.current, ...patch };
+        return persisted.current;
       });
       await act(async () => {
         await result.current.update({ displayCurrency: "EUR" });

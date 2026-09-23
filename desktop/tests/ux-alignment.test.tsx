@@ -25,6 +25,7 @@ const mockStorage = vi.hoisted(() => ({
   getTagDefinitions: vi.fn().mockResolvedValue({}),
   getSyncMeta: vi.fn().mockResolvedValue({ lastSyncedAt: 0, items: {} }),
   saveSettings: vi.fn().mockResolvedValue(undefined),
+  updateSettings: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../src/storage", () => ({ storage: mockStorage }));
@@ -79,11 +80,11 @@ describe("deal sort persistence", () => {
     mockStorage.getSettings.mockResolvedValue({ displayCurrency: "USD" });
     const qc = renderWatchlist();
     const sortButton = await screen.findByRole("button", { name: "Sort by Deal" });
-    await waitFor(() => expect(mockStorage.saveSettings).toHaveBeenCalled());
-    mockStorage.saveSettings.mockClear();
+    await waitFor(() => expect(mockStorage.updateSettings).toHaveBeenCalled());
+    mockStorage.updateSettings.mockClear();
     fireEvent.click(sortButton);
     await waitFor(() =>
-      expect(mockStorage.saveSettings).toHaveBeenCalledWith(
+      expect(mockStorage.updateSettings).toHaveBeenCalledWith(
         expect.objectContaining({ watchlistSortKey: "deal" }),
       ),
     );

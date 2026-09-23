@@ -54,8 +54,6 @@ export function useAlerts() {
   return { alerts, loading, refresh };
 }
 
-let writeChain: Promise<void> = Promise.resolve();
-
 export function useSettings() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,11 +74,10 @@ export function useSettings() {
 
   const update = useCallback((partial: Partial<AppSettings>) => {
     setSettings((prev) => ({ ...(prev ?? {}), ...partial }) as AppSettings);
-    const write = writeChain.then(async () => {
-      const current = await storage.getSettings();
-      await storage.saveSettings({ ...current, ...partial });
-    });
-    writeChain = write.catch(() => {});
+    // Use the storage-serialized updateSettings so this shares the write queue
+    // with every other settings writer (Watchlist prefs, basket alert, theme)
+    // instead of racing a stale snapshot via a private chain.
+    const write = storage.updateSettings(partial).then(() => undefined);
     write.catch((e) => console.error("[settings] save failed", e));
     return write;
   }, []);

@@ -27,6 +27,7 @@ const mockStorage = vi.hoisted(() => ({
   getTagDefinitions: vi.fn(),
   getSyncMeta: vi.fn(),
   saveSettings: vi.fn().mockResolvedValue(undefined),
+  updateSettings: vi.fn().mockResolvedValue(undefined),
   // Search/discovery storage calls
   getDiscoveredProducts: vi.fn().mockResolvedValue([]),
   addToWatchlist: vi.fn().mockResolvedValue(undefined),

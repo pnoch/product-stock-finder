@@ -13,6 +13,7 @@ const mockStorage = vi.hoisted(() => ({
   getDiscoveredProducts: vi.fn(),
   addToWatchlist: vi.fn(),
   removeFromWatchlist: vi.fn(),
+  updateSettings: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../src/storage", () => ({ storage: mockStorage }));
@@ -22,6 +23,7 @@ beforeEach(() => {
   mockStorage.getSettings.mockResolvedValue({ displayCurrency: "USD" });
   mockStorage.getFxHistory.mockResolvedValue(null);
   mockStorage.getDiscoveredProducts.mockResolvedValue([]);
+  mockStorage.updateSettings.mockResolvedValue(undefined);
 });
 
 describe("desktop parity pages", () => {
