@@ -16,12 +16,11 @@ import {
   computeStockHealth,
   type MoversWindow,
 } from "../../../lib/watchlist-stats";
-import { computeDigest, buildDigestSnapshot, type DigestResult, type DigestSnapshot } from "../../../lib/price-digest";
+import { computeDigest, type DigestResult } from "../../../lib/price-digest";
 import { computeDropCalendar, dateKey } from "../../../lib/drop-calendar";
 import { computeProductInsights } from "../../../lib/product-insights";
 import { rankDeals, dealBandLabel } from "../../../lib/deal-score";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
-import { LOG_ERROR } from "@shared/log";
 
 const CHART_COLORS = ["#0F52BA", "#00C896", "#F59E0B", "#EF4444", "#8B5CF6"];
 
@@ -89,27 +88,18 @@ export function Stats() {
       ]);
       setProducts(list);
       if (settings?.displayCurrency) setDisplayCurrency(settings.displayCurrency);
-      const currency = settings?.displayCurrency ?? "USD";
       const frequency = settings?.digestFrequency ?? "off";
       setDigestFrequency(frequency);
       setBasketThreshold(settings?.basketAlertThreshold ?? null);
       if (frequency === "off") {
         setDigest(null);
-        const offSnapshot: DigestSnapshot = buildDigestSnapshot(list, currency);
-        try {
-          await storage.savePriceDigestSnapshot(offSnapshot);
-        } catch (e) {
-          LOG_ERROR("[Stats] digest snapshot save failed", e);
-        }
         return;
       }
+      // Read-only: the digest sender (App.tsx `maybeSendDigest`) owns the
+      // snapshot lifecycle and advances it only when a digest is delivered.
+      // Saving here advanced the diff base on every Stats visit, so the card
+      // showed changes since the last visit rather than since the last digest.
       setDigest(computeDigest(snapshot, list, settings, alerts));
-      const nextSnapshot: DigestSnapshot = buildDigestSnapshot(list, currency);
-      try {
-        await storage.savePriceDigestSnapshot(nextSnapshot);
-      } catch (e) {
-        LOG_ERROR("[Stats] digest snapshot save failed", e);
-      }
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Couldn't load statistics");
     }

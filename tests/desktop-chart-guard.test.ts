@@ -147,6 +147,14 @@ describe("desktop chart guard", () => {
     expect(block).toContain("catch");
   });
 
+  // QA round 78: desktop Stats saved a digest snapshot on every load, advancing
+  // the diff base so the digest showed changes since the last visit rather than
+  // since the last sent digest (App.tsx owns the snapshot lifecycle).
+  it("does not advance the digest snapshot from desktop Stats", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).not.toContain("savePriceDigestSnapshot");
+  });
+
   // QA round 77: desktop Home.refreshDashboard had a redundant read-and-discard
   // block that also cleared the loadError the previous block had just set.
   it("has no redundant read-and-discard in desktop Home refresh", async () => {
