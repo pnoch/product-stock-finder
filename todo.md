@@ -2845,3 +2845,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`getFxHistory` didn't validate the payload shapes**: it only checked that `rates`/`timestamps` were truthy, so a corrupt payload with `timestamps` as a non-array (or `rates` as a non-object) made `sliceFxHistoryByRange`'s `.filter` / `Object.entries` throw inside `app/(tabs)/rates.tsx`'s `useMemo` — no error boundary, so the Rates tab crashed
 - [x] It now requires `rates` to be a non-array object and `timestamps` to be an array, returning null otherwise
 - [x] Added a corrupt-payload case to `tests/fx-history.test.ts` (now 8) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2069 passed`
+
+## Phase 351: Device QA round 99 (corrupt circuit-breaker entry rejected the whole scrape)
+
+- [x] **`createStorageBreakerStore`'s `readList` didn't validate entries**: it only checked `Array.isArray`, so a corrupt stored list containing a null/non-object entry made `list.find((e) => e.distributorId === id)` throw. `resilientFetch` does not catch that, so the whole scrape rejected instead of degrading
+- [x] `readList` now filters to entries with a string `distributorId`
+- [x] Added a case to `tests/resilient-fetch.test.ts` (now 31: malformed entries are ignored) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2070 passed`

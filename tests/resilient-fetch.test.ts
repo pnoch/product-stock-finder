@@ -89,6 +89,20 @@ describe("createStorageBreakerStore", () => {
     expect(await store.get("d1")).toBeNull();
   });
 
+  // A corrupt entry (null/non-object) would make `list.find((e) => e.distributorId
+  // === id)` throw, and resilientFetch does not catch that.
+  it("ignores malformed entries in the stored list", async () => {
+    const adapter = makeAdapter();
+    await adapter.setItem(
+      "distributor_breaker",
+      JSON.stringify([null, "oops", { distributorId: "d1", status: "blocked", consecutiveFailures: 1, lastAttemptAt: 0, cooldownUntil: 100 }]),
+    );
+    const store = createStorageBreakerStore(adapter);
+    const entry = await store.get("d1");
+    expect(entry?.distributorId).toBe("d1");
+    expect(await store.get("missing")).toBeNull();
+  });
+
   it("round-trips entries across store instances", async () => {
     const adapter = makeAdapter();
     const store1 = createStorageBreakerStore(adapter);

@@ -94,7 +94,16 @@ export function createStorageBreakerStore(
       const raw = await adapter.getItem(DISTRIBUTOR_BREAKER_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? (parsed as BreakerEntry[]) : [];
+      if (!Array.isArray(parsed)) return [];
+      // Drop malformed entries: a null/non-object entry would make
+      // `list.find((e) => e.distributorId === id)` throw, and resilientFetch
+      // does not catch that, so the whole scrape would reject.
+      return parsed.filter(
+        (e): e is BreakerEntry =>
+          !!e &&
+          typeof e === "object" &&
+          typeof (e as BreakerEntry).distributorId === "string",
+      );
     } catch {
       return [];
     }
