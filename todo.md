@@ -2815,3 +2815,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The settings per-field merge resurrected a field the local device removed**: the merge iterates `Object.keys(local)` and keeps the local value for any field changed since the last-synced snapshot. A field the local device *removed* (e.g. Quiet Hours turned off, which sets `quietHours: undefined` and is dropped from JSON) is absent from `local`, so the loop never saw it and the incoming server value resurrected it — Quiet Hours silently turned back on after a sync
 - [x] The merge now also iterates the last-synced base's keys and deletes any that are gone locally, so a local removal wins
 - [x] Added a case to `tests/settings-field-merge.test.ts` (now 2: a locally-removed `quietHours` is not resurrected) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2061 passed`
+
+## Phase 346: Device QA round 94 (device-scrape semaphore over-admitted past its cap)
+
+- [x] **`lib/price-source.ts`'s device-scrape limiter could exceed its cap**: `releaseScrapeSlot` decremented `activeScrapes` then woke a waiter that re-incremented. A new `acquireScrapeSlot` called synchronously between the decrement and the waiter's continuation saw a free slot, took it, and then the waiter incremented too — admitting 4 concurrent scrapes with a cap of 3
+- [x] Extracted a `createSemaphore` helper (`lib/concurrency.ts`) that transfers a released slot directly to the waiter (it stays counted as active), and used it in `price-source.ts`
+- [x] Added a deterministic `createSemaphore` case to `tests/price-source.test.ts` (now 9) that releases and races a new acquire in the same turn — verified non-vacuous by restoring the decrement-then-wake form; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2062 passed`

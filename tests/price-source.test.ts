@@ -136,4 +136,46 @@ describe("scrapePriceOnDevice", () => {
     );
     expect(peak).toBeLessThanOrEqual(3);
   });
+
+});
+
+// The device-scrape semaphore must hand slots to waiters directly. The naive
+// decrement-then-wake lets a racing acquire take the freed slot too, exceeding
+// the cap (see lib/concurrency.ts).
+describe("createSemaphore", () => {
+  it("never exceeds the limit when a release races a new acquire", async () => {
+    const { createSemaphore } = await import("../lib/concurrency");
+    const sem = createSemaphore(3);
+    await sem.acquire();
+    await sem.acquire();
+    await sem.acquire();
+    expect(sem.active).toBe(3);
+
+    let waiterAcquired = false;
+    const waiter = sem.acquire().then(() => {
+      waiterAcquired = true;
+    });
+    await Promise.resolve();
+
+    // Release one and, in the same turn (before the waiter's continuation can
+    // run), try to acquire again. The freed slot must go to the waiter, so this
+    // new acquire has to wait.
+    sem.release();
+    let racerAcquired = false;
+    const racer = sem.acquire().then(() => {
+      racerAcquired = true;
+    });
+    await Promise.resolve();
+    expect(racerAcquired).toBe(false);
+    expect(sem.active).toBeLessThanOrEqual(3);
+
+    // Drain: releasing lets the waiter (already transferred) and then the racer
+    // proceed one at a time.
+    await waiter;
+    expect(waiterAcquired).toBe(true);
+    sem.release();
+    await racer;
+    expect(racerAcquired).toBe(true);
+    expect(sem.active).toBeLessThanOrEqual(3);
+  });
 });
