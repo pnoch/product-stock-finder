@@ -17,7 +17,7 @@ import {
   type MoversWindow,
 } from "../../../lib/watchlist-stats";
 import { computeDigest, type DigestResult } from "../../../lib/price-digest";
-import { computeDropCalendar, dateKey } from "../../../lib/drop-calendar";
+import { computeDropCalendar, buildDayKeys } from "../../../lib/drop-calendar";
 import { computeProductInsights } from "../../../lib/product-insights";
 import { rankDeals, dealBandLabel } from "../../../lib/deal-score";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
@@ -164,14 +164,7 @@ export function Stats() {
     () => computeDropCalendar(products ?? [], displayCurrency, 30),
     [products, displayCurrency],
   );
-  const last30DayKeys = useMemo(() => {
-    const keys: string[] = [];
-    const now = Date.now();
-    for (let i = 29; i >= 0; i--) {
-      keys.push(dateKey(now - i * 24 * 60 * 60 * 1000));
-    }
-    return keys;
-  }, []);
+  const last30DayKeys = useMemo(() => buildDayKeys(30, Date.now()), []);
 
   const chartData = useMemo(() => {
     if (!products || products.length === 0) return { data: [], distributors: [] };

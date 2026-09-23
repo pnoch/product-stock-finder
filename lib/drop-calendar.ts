@@ -45,6 +45,25 @@ export function dateKey(ts: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// Trailing `days` calendar-date keys ending today (oldest first). Uses
+// calendar-date arithmetic (setDate) rather than fixed 24h steps so a DST
+// transition cannot skip a day: a spring-forward day is 23h long, so
+// `now - i * DAY_MS` from a near-midnight anchor jumps over it and its drops
+// disappear from the grid.
+export function buildDayKeys(days: number, now: number): string[] {
+  const nowDate = new Date(now);
+  const keys: string[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(
+      nowDate.getFullYear(),
+      nowDate.getMonth(),
+      nowDate.getDate() - i,
+    );
+    keys.push(dateKey(d.getTime()));
+  }
+  return keys;
+}
+
 export function computeDropCalendar(
   watchlist: Product[],
   displayCurrency: string,

@@ -2983,3 +2983,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop rendered raw `responseTimeMs` in the health views**: a probe that spans an Android suspension records the suspension duration (minutes, not milliseconds), and mobile sanitizes it via `sanitizeResponseTimeMs` (Phase 262). Desktop's Health list (`h.responseTimeMs ? ...`) and HealthDetail sample rows (`s.responseTimeMs ? ...`) printed the poisoned value verbatim
 - [x] Both desktop views now use `sanitizeResponseTimeMs(...) != null` before rendering
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 30) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2096 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 374: Device QA round 122 (desktop drop calendar skipped the DST spring-forward day)
+
+- [x] **Desktop built the drop-calendar day keys with fixed 24h steps** (`dateKey(now - i * 24 * 60 * 60 * 1000)`): a spring-forward day is only 23h long, so from a near-midnight anchor the loop jumps over it — the day's cell was missing and its drops were invisible. Mobile's `buildGridCells` deliberately uses calendar-date arithmetic (`setDate`) for exactly this reason (its DST test existed but was vacuous in a no-DST zone)
+- [x] Extracted a shared `buildDayKeys(days, now)` in `lib/drop-calendar.ts` using calendar-date arithmetic; desktop Stats now uses it
+- [x] Pinned `process.env.TZ = "America/New_York"` in `tests/drop-calendar-dst.test.ts` (the existing test was vacuous under UTC/Asia/Bangkok) and added a `buildDayKeys` case — verified non-vacuous by reverting the helper to the fixed-24h loop
+- [x] Added a desktop guard to `tests/desktop-chart-guard.test.ts` (now 31); E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2098 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

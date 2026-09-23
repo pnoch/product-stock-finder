@@ -161,6 +161,15 @@ describe("desktop chart guard", () => {
     expect(undoBlock).toContain("storage.addAlert(alert)");
   });
 
+  // QA round 122: desktop built the drop-calendar day keys with fixed 24h
+  // steps, so a near-midnight anchor skipped the 23h spring-forward day and its
+  // drops vanished. It must use the shared calendar-date helper.
+  it("uses the shared calendar-date helper for desktop drop-calendar keys", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toContain("buildDayKeys");
+    expect(text).not.toMatch(/now - i \* 24 \* 60 \* 60 \* 1000/);
+  });
+
   // QA round 121: desktop rendered raw responseTimeMs, so a probe that spanned
   // an Android suspension showed a minutes-long "response time". Mobile
   // sanitizes it (Phase 262).
