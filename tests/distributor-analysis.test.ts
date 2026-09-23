@@ -133,10 +133,10 @@ describe("analyzeDistributors", () => {
 });
 
 // The Export CSV button used to swallow every outcome: `if (result === "copied")
-// setError(null)` was a no-op and the catch block was empty, so on desktop web
-// (no Web Share API) the button either silently copied or silently failed, and
-// an empty watchlist returned with no feedback at all. Every other shareText
-// caller (stats, watchlist, product, compare) reports the outcome.
+// setError(null)` was a no-op and the catch block was empty, so the button
+// either silently copied or silently failed, and an empty watchlist returned
+// with no feedback at all. It now goes through the shared `exportCsvFile`
+// helper (a real .csv file, like every other export) and reports the outcome.
 describe("distributor-analysis export reports its outcome", () => {
   const src = readFileSync(
     join(__dirname, "..", "app/distributor-analysis.tsx"),
@@ -148,9 +148,9 @@ describe("distributor-analysis export reports its outcome", () => {
     expect(src).not.toMatch(/catch\s*\{\s*\}/);
   });
 
-  it("surfaces copied, failed and empty-watchlist states", () => {
-    expect(src).toContain('showAlert("Copied"');
-    expect(src).toContain('showAlert("Share unavailable"');
+  it("exports a CSV file and surfaces failure and empty-watchlist states", () => {
+    expect(src).toContain("exportCsvFile");
+    expect(src).toContain('showAlert("Export unavailable"');
     expect(src).toContain('showAlert("Nothing to export"');
     expect(src).toContain('showAlert("Export failed"');
   });

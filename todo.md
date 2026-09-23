@@ -2731,3 +2731,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`buildWatchlistShareText` hardcoded "products"**: a single-product watchlist share read "My Watchlist — 1 products (30d)" and "Basket value: … (1 products)". The existing tests pinned the ungrammatical output
 - [x] Both counts now pluralize (`watchlist.length === 1 ? "" : "s"`, same for `basket.productCount`); updated the two tests that asserted "1 products"
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 52) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2044 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 332: Device QA round 80 (distributor analysis shared the CSV as text)
+
+- [x] **The Distributor Analysis "Export CSV" shared the CSV as a text message**: it called `shareText(csv, …)` (web clipboard / native `Share.share({ message })`) instead of the shared `exportCsvFile` helper, so the recipient got the CSV pasted as text rather than a `.csv` file — unlike Compare, the shared watchlist, and Settings, which all use `exportCsvFile`
+- [x] It now calls `exportCsvFile(csv, "distributor-analysis-<date>.csv")` and reports "Exported" / "Export unavailable" (the now-unused `shareText` import was dropped)
+- [x] Updated `tests/distributor-analysis.test.ts` (whose old assertion pinned the `shareText` outcome strings) to assert the file-export path, and added a guard to `tests/mobile-criticals.test.ts` (now 53) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2045 passed`

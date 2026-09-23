@@ -96,6 +96,17 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 80: the Distributor Analysis export shared the CSV as a text
+// message (shareText) instead of a .csv file (exportCsvFile), unlike every
+// other CSV export.
+describe("distributor analysis exports a CSV file", () => {
+  it("uses the shared exportCsvFile helper", () => {
+    const src = readFileSync(path.join(process.cwd(), "app/distributor-analysis.tsx"), "utf8");
+    expect(src).toContain("exportCsvFile");
+    expect(src).not.toContain("shareText");
+  });
+});
+
 // QA round 79: the watchlist share text hardcoded "products", so a
 // single-product share read "1 products".
 describe("watchlist share text pluralizes", () => {

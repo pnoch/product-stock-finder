@@ -19,7 +19,7 @@ import {
 } from "@/lib/distributor-analysis";
 import { formatPrice } from "@shared/currency";
 import { watchlistToDetailedCsv } from "@/lib/csv";
-import { shareText } from "@/lib/share-text";
+import { exportCsvFile } from "@/lib/csv-export";
 import { showAlert } from "@/lib/alert";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SkeletonList } from "@/components/ui/skeleton";
@@ -57,14 +57,16 @@ export default function DistributorAnalysisScreen() {
         return;
       }
       const csv = watchlistToDetailedCsv(watchlist);
-      // Web has no Web Share API in most desktop browsers; shareText falls
-      // back to the clipboard and reports the outcome instead of no-op'ing.
-      const result = await shareText(csv, "Distributor Analysis CSV");
-      if (result === "copied") {
-        showAlert("Copied", "Distributor analysis CSV copied to your clipboard.");
-      } else if (result === "failed") {
-        showAlert("Share unavailable", "Sharing isn't supported in this browser.");
+      // Shared helper: web downloads a .csv file, native writes it to the cache
+      // dir and opens the share sheet. The previous text-share path only sent
+      // the CSV as a message, so the recipient got text instead of a file.
+      const ok = await exportCsvFile(csv, `distributor-analysis-${new Date().toISOString().slice(0, 10)}.csv`);
+      if (!ok) {
+        showAlert("Export unavailable", "We couldn't export the analysis on this device.");
+        return;
       }
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showAlert("Exported", "The distributor analysis CSV has been created.");
     } catch (e) {
       showAlert("Export failed", e instanceof Error ? e.message : "Couldn't export the analysis.");
     }
