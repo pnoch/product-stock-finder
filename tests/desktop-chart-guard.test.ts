@@ -145,6 +145,14 @@ describe("desktop chart guard", () => {
     expect(block).toContain("catch");
   });
 
+  // QA round 57: desktop Home computed pendingTags/pendingTagsArray/
+  // pendingTagsSize and immediately voided them — dead work on every render.
+  it("has no dead pendingTags computation in desktop Home", async () => {
+    const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    expect(text).not.toContain("pendingTags");
+    expect(text).not.toContain("void pendingTags");
+  });
+
   // QA round 55: the desktop CSV import counted every non-throwing
   // addToWatchlist as added, overstating the summary on duplicates (mobile was
   // fixed in Phase 270).

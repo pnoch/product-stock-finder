@@ -96,13 +96,6 @@ export function Home() {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  // PendingTags reactivity fix — derived array ensures effect triggers when Set mutates via new Set()
-  // (parity with Watchlist/SearchModal pendingTags handling)
-  const [pendingTags] = useState<Set<string>>(new Set());
-  const pendingTagsArray = useMemo(() => Array.from(pendingTags), [pendingTags]);
-  const pendingTagsSize = pendingTags.size;
-  void pendingTagsArray;
-  void pendingTagsSize;
   const navigate = useNavigate();
   const connection = useConnection();
 

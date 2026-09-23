@@ -2593,3 +2593,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] `components/compare/distributor-selector.tsx` computed `allDistributorIds` with a `useMemo` and then immediately discarded it (`void allDistributorIds`) — dead work on every render, plus a now-unused `useMemo` import
 - [x] Removed both
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 35) — verified non-vacuous by restoring the computation; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2017 passed`
+
+## Phase 309: Device QA round 57 (dead pendingTags computation in desktop Home)
+
+- [x] Follow-up to Phase 308: `desktop/src/pages/Home.tsx` declared `pendingTags` state, derived `pendingTagsArray`/`pendingTagsSize`, and immediately `void`ed both — dead work on every render (leftover from a pendingTags reactivity experiment)
+- [x] Removed the state, both derivations, and the `void` statements
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 14) — verified non-vacuous by restoring the computation; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2018 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
