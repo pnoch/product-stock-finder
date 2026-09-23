@@ -207,6 +207,11 @@ export function ProductDetail() {
       if (loadIdRef.current === myId) {
         setDisplayCurrency(settings.displayCurrency ?? "USD");
         setShippingRegion(settings.shippingRegion ?? "Asia-Pacific");
+        // Seed every alert-currency field from the display currency, matching
+        // mobile. `alertCurrency` (the main Set Alert modal) was left at its
+        // "USD" default, so a EUR/GBP user's alert was created in the wrong
+        // currency.
+        setAlertCurrency(settings.displayCurrency ?? "USD");
         setPerListingAlertCurrency(settings.displayCurrency ?? "USD");
         setInlineAlertCurrency(settings.displayCurrency ?? "USD");
       }

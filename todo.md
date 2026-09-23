@@ -2466,3 +2466,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's "lowest ever" badge mixed currencies**: `isLowestEver` in `desktop/src/pages/ProductDetail.tsx` converted both the historical points and the current price to hardcoded `"USD"`, while every other price on the page (and the mobile watchlist's `atAllTimeLow` via `bestPricePoints`) uses the display currency. A EUR/GBP user's badge was computed across mixed units and could be wrong
 - [x] Both conversions now use `displayCurrency` (and the memo depends on it)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 2) asserting the `isLowestEver` block contains no `"USD"` and uses `displayCurrency` — verified non-vacuous by restoring the hardcoded form; E2E root `tsc 0`, lint 0 errors (164 warnings), root `329 passed | 2 skipped` / `1989 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
+
+## Phase 288: Device QA round 36 (desktop Set Alert modal defaulted to USD)
+
+- [x] **Desktop's main "Set Alert" modal never seeded its currency**: `alertCurrency` stayed at its `"USD"` initial value because the load handler only seeded `perListingAlertCurrency` and `inlineAlertCurrency` from `settings.displayCurrency`. Mobile seeds all three (`app/product/[id].tsx`), so a EUR/GBP desktop user's alert was created in USD
+- [x] The load handler now also calls `setAlertCurrency(settings.displayCurrency ?? "USD")`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 3) asserting `setAlertCurrency(settings.displayCurrency` — verified non-vacuous by removing the call; E2E root `tsc 0`, lint 0 errors (164 warnings), root `329 passed | 2 skipped` / `1990 passed`; desktop `tsc 0`, `44 passed` / `219 passed`

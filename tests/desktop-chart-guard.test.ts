@@ -24,4 +24,11 @@ describe("desktop chart guard", () => {
     expect(block).not.toContain('"USD"');
     expect(block).toContain("displayCurrency");
   });
+
+  // QA round 36: the main Set Alert modal's currency was never seeded from the
+  // display currency (mobile does), so a EUR/GBP user created alerts in USD.
+  it("seeds the main alert currency from the display currency", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toMatch(/setAlertCurrency\(settings\.displayCurrency/);
+  });
 });
