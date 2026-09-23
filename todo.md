@@ -2502,3 +2502,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop Alerts mutation handlers swallowed failures as unhandled rejections**: `handleToggle`, `handleDeleteAlert`, `handleRearm`, `handleSnoozeAlert`, `handleDeleteReminder`, `handleDeleteWatch`, `handleReschedule`, and `handleSaveEdit` all `await`ed a storage write with no try/catch, so a quota/IDB failure produced an unhandled rejection and no user feedback (mobile surfaces an alert for each)
 - [x] Each now catches and reports: toasts for the mutation handlers, inline errors for the reschedule/edit modals
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 5) asserting each handler wraps its write in try/catch — verified non-vacuous by reverting `handleToggle`; also added the missing `updateSettings` stub to `desktop/tests/nav-header.test.tsx` (an unhandled error surfaced by Phase 292's change); E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `1998 passed`; desktop `tsc 0`, `44 passed` / `219 passed` (exit 0)
+
+## Phase 294: Device QA round 42 (desktop watchlist remove/undo had no error handling)
+
+- [x] Follow-up to Phase 293 in the desktop Watchlist: `handleBulkDelete`, `handleUndo`, and `handleRemove` awaited `storage.removeFromWatchlist`/`addToWatchlist` with no try/catch, so a storage failure was an unhandled rejection with no feedback (mobile wraps each and shows an alert)
+- [x] Each now catches and toasts ("Couldn't remove those products…", "Couldn't restore that product…", "Couldn't remove that product…")
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 6) asserting the three handlers wrap their writes in try/catch — verified non-vacuous by reverting `handleUndo`; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `1999 passed`; desktop `tsc 0`, `44 passed` / `219 passed`

@@ -63,4 +63,16 @@ describe("desktop chart guard", () => {
       expect(block).toContain("catch");
     }
   });
+
+  // QA round 42: the same class in the desktop Watchlist remove/undo handlers.
+  it("wraps desktop watchlist remove/undo in try/catch", async () => {
+    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    for (const handler of ["const handleBulkDelete", "const handleUndo", "const handleRemove"]) {
+      const start = text.indexOf(handler);
+      expect(start).toBeGreaterThan(-1);
+      const block = text.slice(start, text.indexOf("};", start));
+      expect(block).toContain("try {");
+      expect(block).toContain("catch");
+    }
+  });
 });

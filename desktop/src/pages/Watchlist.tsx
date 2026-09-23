@@ -544,10 +544,14 @@ export function Watchlist() {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
     if (!window.confirm(`Remove ${ids.length} product${ids.length !== 1 ? "s" : ""} from watchlist?`)) return;
-    for (const id of ids) await storage.removeFromWatchlist(id);
-    await refresh();
-    exitSelection();
-    showToast(`Removed ${ids.length} product${ids.length !== 1 ? "s" : ""}`);
+    try {
+      for (const id of ids) await storage.removeFromWatchlist(id);
+      await refresh();
+      exitSelection();
+      showToast(`Removed ${ids.length} product${ids.length !== 1 ? "s" : ""}`);
+    } catch {
+      showToast("Couldn't remove those products. Please try again.");
+    }
   };
 
   const showUndoBar = (product: Product) => {
@@ -558,10 +562,14 @@ export function Watchlist() {
   const handleUndo = async () => {
     if (!undoProduct) return;
     if (undoTimer.current) clearTimeout(undoTimer.current);
-    await storage.addToWatchlist(undoProduct);
-    setUndoProduct(null);
-    await refresh();
-    showToast("Restored " + undoProduct.name);
+    try {
+      await storage.addToWatchlist(undoProduct);
+      setUndoProduct(null);
+      await refresh();
+      showToast("Restored " + undoProduct.name);
+    } catch {
+      showToast("Couldn't restore that product. Please try again.");
+    }
   };
   useEffect(() => {
     return () => {
@@ -573,10 +581,14 @@ export function Watchlist() {
     e.stopPropagation();
     const product = products.find((p) => p.id === productId);
     if (!window.confirm("Remove this product from your watchlist?")) return;
-    await storage.removeFromWatchlist(productId);
-    await refresh();
-    if (product) showUndoBar(product);
-    else showToast("Removed from watchlist");
+    try {
+      await storage.removeFromWatchlist(productId);
+      await refresh();
+      if (product) showUndoBar(product);
+      else showToast("Removed from watchlist");
+    } catch {
+      showToast("Couldn't remove that product. Please try again.");
+    }
   };
 
   const handleSort = (key: SortKey) => {
