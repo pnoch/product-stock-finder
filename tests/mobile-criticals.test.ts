@@ -96,6 +96,24 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 85: ReminderSection.onSet had no double-submit guard, so a rapid
+// double-tap created two reminders (the second replaced the first, orphaning
+// the first scheduled notification id).
+describe("reminder section guards against double-submit", () => {
+  it("sets and checks a saving guard", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "components/product/reminder-section.tsx"),
+      "utf8",
+    );
+    expect(src).toContain("const [saving, setSaving] = useState(false)");
+    const start = src.indexOf("const onSet = async () => {");
+    const block = src.slice(start, src.indexOf("};", start));
+    expect(block).toContain("if (saving) return;");
+    expect(block).toContain("setSaving(true)");
+    expect(block).toContain("setSaving(false)");
+  });
+});
+
 // QA round 82: the Settings data section's export/import handlers had no
 // catch, so a storage read/write failure rejected unhandled.
 describe("settings data section guards its export/import", () => {

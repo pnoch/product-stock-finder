@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { addBackOrderReminder } from "@/lib/storage";
@@ -21,6 +22,9 @@ export function ReminderSection({
 }) {
   const colors = useColors();
   const { showToast } = useToast();
+  // Guards against a double-tap creating two reminders (the second replaces the
+  // first, orphaning the first scheduled notification id).
+  const [saving, setSaving] = useState(false);
   if (!distributorId) {
     return (
       <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16 }}>
@@ -29,6 +33,7 @@ export function ReminderSection({
     );
   }
   const onSet = async () => {
+    if (saving) return;
     if (onRemind) {
       if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onRemind();
@@ -40,6 +45,7 @@ export function ReminderSection({
       showAlert("Permission Denied", "Please enable notifications in your device settings to set reminders.");
       return;
     }
+    setSaving(true);
     try {
       const d = new Date(Date.now() + 7 * 86400000);
       const notifId = await scheduleBackOrderReminder(productName ?? "", distributorName ?? "", d, productId).catch(() => null);
@@ -52,6 +58,8 @@ export function ReminderSection({
     } catch {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showAlert("Couldn't set reminder", "We couldn't save your reminder. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
   return (
