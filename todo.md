@@ -2460,3 +2460,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 285: the cascade lived in `storage.removeFromWatchlist`, but the sync engine's `removeLocalItem` removed watchlist rows with a bare `updateWatchlist((list) => list.filter(...))` — so a product deleted on another device (arriving as a tombstone) left its alerts orphaned here, exactly the bug Phase 285 fixed for local removals
 - [x] `removeLocalItem`'s watchlist branch now calls `storage.removeFromWatchlist(id)`, so the cascade runs for remote deletions too
 - [x] Added a case to `tests/sync-engine.test.ts` (now 32: a remote watchlist tombstone also clears that product's alerts) — verified non-vacuous by reverting to the bare `updateWatchlist`; E2E root `tsc 0`, lint 0 errors (164 warnings), root `329 passed | 2 skipped` / `1988 passed`
+
+## Phase 287: Device QA round 35 (desktop "lowest ever" badge used hardcoded USD)
+
+- [x] **Desktop's "lowest ever" badge mixed currencies**: `isLowestEver` in `desktop/src/pages/ProductDetail.tsx` converted both the historical points and the current price to hardcoded `"USD"`, while every other price on the page (and the mobile watchlist's `atAllTimeLow` via `bestPricePoints`) uses the display currency. A EUR/GBP user's badge was computed across mixed units and could be wrong
+- [x] Both conversions now use `displayCurrency` (and the memo depends on it)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 2) asserting the `isLowestEver` block contains no `"USD"` and uses `displayCurrency` — verified non-vacuous by restoring the hardcoded form; E2E root `tsc 0`, lint 0 errors (164 warnings), root `329 passed | 2 skipped` / `1989 passed`; desktop `tsc 0`, `44 passed` / `219 passed`

@@ -12,4 +12,16 @@ describe("desktop chart guard", () => {
       expect(text).not.toContain("<LineChart");
     }
   });
+
+  // QA round 35: the "lowest ever" badge compared history and current price in
+  // hardcoded USD while the rest of the page used the display currency, so a
+  // EUR/GBP user's badge was computed across mixed units.
+  it("computes the lowest-ever badge in the display currency", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const start = text.indexOf("const isLowestEver");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("}, [bestListing", start));
+    expect(block).not.toContain('"USD"');
+    expect(block).toContain("displayCurrency");
+  });
 });

@@ -361,13 +361,15 @@ export function ProductDetail() {
   const isLowestEver = useMemo(() => {
     const hist = bestListing?.priceHistory;
     if (!bestListing || !hist || hist.length < 2) return false;
+    // Compare in the display currency, like the rest of the page: hardcoding
+    // USD mixed units, so a EUR/GBP user's "lowest ever" badge was wrong.
     const priorMin = Math.min(
-      ...hist.slice(0, -1).map((p) => convertPrice(p.price, p.currency, "USD") ?? Infinity),
+      ...hist.slice(0, -1).map((p) => convertPrice(p.price, p.currency, displayCurrency) ?? Infinity),
     );
-    const currentUsd = convertPrice(bestListing.price, bestListing.currency, "USD");
-    if (currentUsd === null) return false;
-    return currentUsd < priorMin;
-  }, [bestListing]);
+    const current = convertPrice(bestListing.price, bestListing.currency, displayCurrency);
+    if (current === null) return false;
+    return current < priorMin;
+  }, [bestListing, displayCurrency]);
 
   const [alertError, setAlertError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
