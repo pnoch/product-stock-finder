@@ -2791,3 +2791,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`computePriceVsAverage` averaged out-of-stock history points**: `current` is the minimum in-stock listing price, but the 30-day average was computed over every listing's history regardless of stock status. An out-of-stock point (often a different price band) skewed the average, so the "Below average — good time to buy" / "Above average" verdict could be wrong — the same class of bug the all-time-low check fixed by switching to `bestPricePoints` (in-stock only)
 - [x] The average now filters `p.stockStatus === "in_stock"`, matching `current`
 - [x] Added a case to `tests/price-average.test.ts` (now 6: a 1000 out-of-stock point must not pull the average up) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2056 passed`
+
+## Phase 342: Device QA round 90 (watchlist undo lost the product's alerts)
+
+- [x] **Swipe-delete's Undo restored only the product, not its alerts**: Phase 285 made `removeFromWatchlist` cascade to the product's price alerts, but the watchlist Undo bar (`handleUndo`) only called `addToWatchlist` — so undoing a swipe-delete silently and permanently lost the product's price alerts
+- [x] `handleSwipeDelete` now captures the product's alerts before the removal and passes them to `showUndoBar`; `handleUndo` re-adds them after restoring the product
+- [x] Added 2 guards to `tests/mobile-criticals.test.ts` (now 60) — verified non-vacuous by reverting the restore; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2058 passed`

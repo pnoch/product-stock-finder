@@ -96,6 +96,26 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 90: swipe-delete cascades to the product's alerts (Phase 285), but
+// Undo restored only the product — its price alerts were permanently lost.
+describe("watchlist undo restores the deleted product's alerts", () => {
+  const src = readFileSync(path.join(process.cwd(), "app/(tabs)/watchlist.tsx"), "utf8");
+
+  it("captures the alerts before deleting", () => {
+    const start = src.indexOf("const handleSwipeDelete");
+    const block = src.slice(start, src.indexOf("}, [reload, showUndoBar]);", start));
+    expect(block).toContain("getAlerts()");
+    expect(block).toContain("showUndoBar(product, removedAlerts)");
+  });
+
+  it("restores them on undo", () => {
+    const start = src.indexOf("const handleUndo");
+    const block = src.slice(start, src.indexOf("}, [undoProduct, reload]);", start));
+    expect(block).toContain("undoAlertsRef.current");
+    expect(block).toContain("await addAlert(alert)");
+  });
+});
+
 // QA round 88: changePassword / deleteAccount / resendVerification fetched
 // `${getApiBaseUrl()}/...` without checking the base URL was configured
 // (forgotPassword was fixed in Phase 326).

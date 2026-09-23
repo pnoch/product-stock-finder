@@ -44,6 +44,7 @@ import { computeWatchlistSummary } from "@/lib/watchlist-summary";
 import { computeProductInsights } from "@/lib/product-insights";
 import { computeDealScore } from "@/lib/deal-score";
 import {
+  PriceAlert,
   Product,
   TagDefinition,
   WatchlistGroup,
@@ -118,6 +119,9 @@ export default function WatchlistScreen() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkTagVisible, setBulkTagVisible] = useState(false);
   const [undoProduct, setUndoProduct] = useState<Product | null>(null);
+  // Alerts removed by the cascade when the product was deleted, so Undo can
+  // restore them (removeFromWatchlist deletes a product's alerts).
+  const undoAlertsRef = useRef<PriceAlert[]>([]);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkingRef = useRef(false);
   const regions = useMemo(() => getAllRegions(), []);
@@ -413,8 +417,9 @@ export default function WatchlistScreen() {
     [reload],
   );
 
-  const showUndoBar = useCallback((product: Product) => {
+  const showUndoBar = useCallback((product: Product, alerts: PriceAlert[] = []) => {
     if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoAlertsRef.current = alerts;
     setUndoProduct(product);
     undoTimer.current = setTimeout(() => setUndoProduct(null), 5000);
   }, []);
@@ -425,9 +430,12 @@ export default function WatchlistScreen() {
         if (Platform.OS !== "web")
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         try {
+          // Capture the alerts the removal cascade will delete so Undo can
+          // restore them (otherwise undo silently loses the price alerts).
+          const removedAlerts = (await getAlerts()).filter((a) => a.productId === product.id);
           await removeFromWatchlist(product.id);
           await reload();
-          showUndoBar(product);
+          showUndoBar(product, removedAlerts);
         } catch (e) {
           console.error("[Watchlist] swipe delete failed", e);
           showAlert("Remove failed", "We couldn't remove that product. Please try again.");
@@ -453,6 +461,11 @@ export default function WatchlistScreen() {
     setUndoProduct(null);
     try {
       await addToWatchlist(undoProduct);
+      // Restore the alerts the removal cascade deleted.
+      for (const alert of undoAlertsRef.current) {
+        await addAlert(alert);
+      }
+      undoAlertsRef.current = [];
       await reload();
     } catch (e) {
       console.error("[Watchlist] undo failed", e);
