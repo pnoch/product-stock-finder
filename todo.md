@@ -2647,3 +2647,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile AI discovery claimed "Added X to watchlist" but never added it**: `discoverProduct` (`lib/llm-discovery.ts`) only saves to the *discovered catalog* (`addDiscoveredProduct`), not the watchlist. `app/search.tsx`'s `handleDiscover` showed "Added X to watchlist" and navigated to `/product/<id>`, but the product detail screen reads the watchlist (`useLiveProduct` → `getWatchlist`) and rendered "Product not found". Desktop's `handleDiscover` explicitly calls `addToWatchlist` before navigating
 - [x] Mobile now calls `addToWatchlist` with the discovered product before `loadData()` / navigation
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 40) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2027 passed`
+
+## Phase 318: Device QA round 66 (verify Phase 317 fix; discovery is sign-in only)
+
+- [x] Rebuilt the release APK and drove the AI discovery flow on device: with a query that has no catalog matches ("Zyxel XGS1250-12") the "Discover with AI" CTA appears and tapping it invokes `discovery.discover`. The endpoint is a `protectedProcedure` (`server/routers/discovery.ts`) and the device is signed out, so the server returns 401 and the end-to-end add-to-watchlist path cannot be exercised without credentials
+- [x] Confirmed the rebuilt bundle is newer than the fixed source and contains the `addToWatchlist` call; the Phase 317 guard test pins the behavior
+- [x] No code change this round
