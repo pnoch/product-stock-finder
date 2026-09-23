@@ -2520,3 +2520,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phases 293-295: the desktop Settings "Clear all data" handler awaited `storage.clearAllData()` with no try/catch, so a storage failure was an unhandled rejection with no feedback (mobile's About section wraps it)
 - [x] It now catches and surfaces the failure via the section's message, and always closes the confirm state
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 8) — verified non-vacuous by reverting the wrapper; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2001 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
+
+## Phase 297: Device QA round 45 (desktop compare cross-alert had no error handling)
+
+- [x] Follow-up to Phases 293-296: the desktop Compare "Alert me if any distributor drops below" handler awaited `storage.addAlert` with no try/catch, so a storage failure was an unhandled rejection with no feedback (mobile wraps it and shows an alert)
+- [x] It now catches and toasts "Couldn't create alert. Please try again." without claiming success
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 9) — verified non-vacuous by reverting the wrapper; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2002 passed`; desktop `tsc 0`, `44 passed` / `219 passed`

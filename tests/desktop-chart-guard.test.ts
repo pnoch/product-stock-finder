@@ -108,4 +108,15 @@ describe("desktop chart guard", () => {
     expect(block).toContain("try {");
     expect(block).toContain("catch");
   });
+
+  // QA round 45: the desktop Compare cross-distributor alert awaited
+  // storage.addAlert with no try/catch (mobile wraps it).
+  it("wraps the desktop compare cross-alert in try/catch", async () => {
+    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const start = text.indexOf("const handleCrossAlert");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("}, [id, product, alertTarget", start));
+    expect(block).toContain("try {");
+    expect(block).toContain("catch");
+  });
 });

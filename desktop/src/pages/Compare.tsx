@@ -432,7 +432,12 @@ export function Compare() {
       createdAt: new Date().toISOString(),
       isActive: true,
     };
-    await storage.addAlert(alert);
+    try {
+      await storage.addAlert(alert);
+    } catch {
+      showToast("Couldn't create alert. Please try again.");
+      return;
+    }
     showToast(`Alert set below ${formatPrice(alertTarget, displayCurrency)}`);
   }, [id, product, alertTarget, displayCurrency]);
 
