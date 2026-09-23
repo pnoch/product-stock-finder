@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { watchlistToCsv, productHistoryToCsv, priceHistoryToCsv } from "../lib/csv";
+import { watchlistToCsv, watchlistToDetailedCsv, productHistoryToCsv, priceHistoryToCsv } from "../lib/csv";
 import type { Product, DistributorListing } from "../lib/types";
 
 function listing(overrides: Partial<DistributorListing>): DistributorListing {
@@ -117,5 +117,19 @@ describe("price history CSV", () => {
     expect(lines).toHaveLength(2);
     // Distributor names (not ids) so the file is human-readable.
     expect(lines.map((l) => l.split(",")[2])).toEqual(["Getic", "Linitx"]);
+  });
+});
+
+// A listing price of 0 is a real value, not "missing": the old `l.price ? ...`
+// check emitted an empty cell for it.
+describe("watchlistToDetailedCsv zero price", () => {
+  it("exports a 0 price as 0, not an empty cell", () => {
+    const p = product("p1", [
+      listing({ distributorId: "getic-gr", price: 0, currency: "EUR", stockStatus: "out_of_stock" }),
+    ]);
+    const csv = watchlistToDetailedCsv([p]);
+    const cols = csv.split("\n")[1].split(",");
+    // product,model,brand,category,distributor,price,currency,stockStatus,url
+    expect(cols[5]).toBe("0");
   });
 });

@@ -90,7 +90,9 @@ export function watchlistToDetailedCsv(
         escapeCsv(p.brand ?? ""),
         escapeCsv(p.category ?? ""),
         escapeCsv(l.distributorId ?? ""),
-        escapeCsv(l.price ? String(l.price) : ""),
+        // `l.price ? ...` treated a 0 price as missing; use a nullish check so
+        // a genuine 0 is exported (matching priceHistoryToCsv).
+        escapeCsv(typeof l.price === "number" ? String(l.price) : ""),
         escapeCsv(l.currency ?? ""),
         escapeCsv(l.stockStatus ?? "unknown"),
         escapeCsv(l.url ?? ""),

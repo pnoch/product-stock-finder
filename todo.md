@@ -2857,3 +2857,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`showAndroidChoice` could pass 4 buttons to `Alert.alert`**: with 4+ actions and no Cancel it used `slots = 3`, producing 3 actions + "More…" = 4 buttons. Android silently drops the 4th, so the "More…" button (and every action behind it) was unreachable. The same overflow happened with a Cancel present and 3+ actions (2 + More… + Cancel = 4)
 - [x] It now reserves a slot for "More…" when it is needed (2 actions with no Cancel, 1 action with Cancel), so the visible set never exceeds 3
 - [x] Added an Android case to `tests/alert.test.ts` (now 7: never passes more than 3 buttons) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2071 passed`
+
+## Phase 353: Device QA round 101 (detailed CSV export dropped a zero price)
+
+- [x] **`watchlistToDetailedCsv` treated a price of 0 as missing**: it used `l.price ? String(l.price) : ""`, so a listing with a genuine 0 price exported an empty cell instead of `0` (the sibling `priceHistoryToCsv` already used a nullish check)
+- [x] It now uses `typeof l.price === "number" ? String(l.price) : ""`
+- [x] Added a case to `tests/csv.test.ts` (now 9: a 0 price exports as `0`) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2072 passed`
