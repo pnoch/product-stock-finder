@@ -2941,3 +2941,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The removal cascade deleted reminders/watches without cancelling their scheduled notifications**: Phase 344 made `removeFromWatchlist` delete a product's back-order reminders and stock watches, but each carries a `notificationId` for an OS-scheduled notification. Deleting the row left the notification scheduled, so it still fired later with no corresponding reminder/watch
 - [x] The cascade now cancels each removed reminder's/watch's `notificationId`. To avoid a static `storage ↔ notifications` import cycle (notifications imports the storage barrel) and keep expo-notifications out of the server/tests, the canceller is injected via `createStorage(adapter, { cancelNotification })`; the default instance supplies a lazy implementation
 - [x] Added a case to `tests/storage.test.ts` (now 73: the cascade cancels the removed reminders'/watches' notifications) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2089 passed`
+
+## Phase 367: Device QA round 115 (remote reminder tombstone left its notification scheduled)
+
+- [x] Follow-up to Phase 366: the sync engine's `removeLocalItem` removed a reminder/watch by id with a bare `updateReminders`/`updateStockWatches` filter, so a reminder deleted on another device (arriving as a tombstone) left its scheduled OS notification firing here
+- [x] Added `removeReminderById`/`removeStockWatchById` storage primitives (which cancel the notification first) and used them in the sync tombstone path
+- [x] Added a case to `tests/sync-engine.test.ts` (now 35: a remote reminder tombstone cancels its notification) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2090 passed`

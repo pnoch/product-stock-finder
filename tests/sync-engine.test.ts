@@ -369,6 +369,30 @@ describe("syncNow", () => {
     expect(await storage.getAlerts()).toEqual([]);
   });
 
+  // A remote reminder tombstone removes the row by id; its scheduled OS
+  // notification must be cancelled too, or it still fires.
+  it("cancels a removed reminder's scheduled notification on a remote tombstone", async () => {
+    const cancelled: string[] = [];
+    const storage = createStorage(makeAdapter().adapter, {
+      cancelNotification: async (id) => { cancelled.push(id); },
+    });
+    const base = { productName: "P", distributorId: "d1", distributorName: "D", reminderDate: "2026-09-01T00:00:00.000Z", createdAt: "2026-08-11T00:00:00.000Z" };
+    await storage.addBackOrderReminder({ id: "r1", productId: "p1", notificationId: "n-r1", ...base } as never);
+    await storage.setItemSyncMeta("reminders", "r1", 1000);
+    const pull = vi.fn(
+      async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+        lastSyncedAt: 5000,
+        items: [
+          { collection: "reminders", id: "r1", data: null, updatedAt: 4000, deletedAt: 4000 },
+        ],
+      }),
+    );
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
+    await syncNow({ storage, isSignedIn: () => true, pull, push, now: () => 6000 });
+    expect(await storage.getBackOrderReminders()).toEqual([]);
+    expect(cancelled).toEqual(["n-r1"]);
+  });
+
   it("preserves local priceHistory while replacing listing state", async () => {
     const storage = makeStorage();
     const localListing = listing("d1", 100, "in_stock");

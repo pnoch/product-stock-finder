@@ -665,12 +665,10 @@ async function removeLocalItem(
       break;
     }
     case "reminders": {
-      await storage.updateReminders((reminders) =>
-        reminders.filter((r) => r.id !== id),
-      );
-      await storage.updateStockWatches((watches) =>
-        watches.filter((w) => w.id !== id),
-      );
+      // Use the storage primitives so a removed reminder/watch also cancels its
+      // scheduled OS notification (a bare update* filter left it scheduled).
+      await storage.removeReminderById(id);
+      await storage.removeStockWatchById(id);
       break;
     }
     case "settings":

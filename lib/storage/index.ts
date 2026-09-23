@@ -130,6 +130,29 @@ export function createStorage(
     }
   }
 
+  // Remove a single reminder/watch by id, cancelling its scheduled
+  // notification first. Used by the sync tombstone path, which removes by id
+  // (not by product) and would otherwise leave the notification scheduled.
+  async function removeReminderById(id: string): Promise<void> {
+    const reminder = (await remindersStorage.getBackOrderReminders()).find(
+      (r) => r.id === id,
+    );
+    if (reminder?.notificationId) {
+      await cancelNotification(reminder.notificationId).catch(() => {});
+    }
+    await remindersStorage.removeBackOrderReminder(id);
+  }
+
+  async function removeStockWatchById(id: string): Promise<void> {
+    const watch = (await remindersStorage.getStockWatches()).find(
+      (w) => w.id === id,
+    );
+    if (watch?.notificationId) {
+      await cancelNotification(watch.notificationId).catch(() => {});
+    }
+    await remindersStorage.removeStockWatch(id);
+  }
+
   return {
     ...watchlist,
     ...alertsStorage,
@@ -142,6 +165,8 @@ export function createStorage(
     ...createDiscoveryStorage(ctx),
     ...createBackgroundTaskStorage(ctx),
     removeFromWatchlist,
+    removeReminderById,
+    removeStockWatchById,
     setOnChange: ctx.setOnChange,
     setChangeSuppressed: ctx.setChangeSuppressed,
     clearAllData,
