@@ -2947,3 +2947,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 366: the sync engine's `removeLocalItem` removed a reminder/watch by id with a bare `updateReminders`/`updateStockWatches` filter, so a reminder deleted on another device (arriving as a tombstone) left its scheduled OS notification firing here
 - [x] Added `removeReminderById`/`removeStockWatchById` storage primitives (which cancel the notification first) and used them in the sync tombstone path
 - [x] Added a case to `tests/sync-engine.test.ts` (now 35: a remote reminder tombstone cancels its notification) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2090 passed`
+
+## Phase 368: Device QA round 116 (data wipe left all scheduled notifications firing)
+
+- [x] **`clearAllData`/`clearAccountData` wiped reminders/watches without cancelling their notifications**: both remove the `REMINDERS`/`STOCK_WATCHES` keys, but every reminder/watch carries a scheduled OS notification that stayed scheduled — so after "Delete Account & Data" (or sign-out's account clear) the old reminders still fired
+- [x] Added `cancelAllNotifications` (wraps `cancelAllScheduledNotificationsAsync`) in `lib/notifications.ts`, injected into `createStorage` like `cancelNotification`, and called it at the start of both wipes
+- [x] Added a case to `tests/storage.test.ts` (now 74: clearAllData cancels scheduled notifications) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2091 passed`

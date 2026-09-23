@@ -24,12 +24,17 @@ export function createStorage(
     // statically imports expo-notifications (which the server/tests can't
     // load); the default instance supplies the real implementation.
     cancelNotification?: (notificationId: string) => Promise<void>;
+    // Cancels every scheduled OS notification. Called when a wipe removes all
+    // reminders/watches, whose notifications would otherwise still fire.
+    cancelAllNotifications?: () => Promise<void>;
   },
 ) {
   const ctx = createContext(adapter);
   ctx.setOnChange(opts?.onChange ?? null);
   const cancelNotification =
     opts?.cancelNotification ?? (async () => {});
+  const cancelAllNotifications =
+    opts?.cancelAllNotifications ?? (async () => {});
 
   const watchlist = createWatchlistStorage(ctx);
   const alertsStorage = createAlertsStorage(ctx);
@@ -42,6 +47,9 @@ export function createStorage(
   // notification toggles) so signing back in doesn't reset the app.
   async function clearAccountData(): Promise<void> {
     await ctx.drainQueues();
+    // Cancel scheduled notifications for the reminders/watches being wiped, or
+    // they still fire after sign-out.
+    await cancelAllNotifications().catch(() => {});
     await ctx.adapter.multiRemove([
       STORAGE_KEYS.WATCHLIST,
       STORAGE_KEYS.ALERTS,
@@ -68,6 +76,9 @@ export function createStorage(
     // Drain queued writes first: otherwise an in-flight save started before
     // the clear would land afterwards and resurrect deleted data.
     await ctx.drainQueues();
+    // Cancel scheduled notifications for the reminders/watches being wiped, or
+    // they still fire after the wipe.
+    await cancelAllNotifications().catch(() => {});
     await ctx.adapter.multiRemove([
       STORAGE_KEYS.WATCHLIST,
       STORAGE_KEYS.ALERTS,
@@ -201,6 +212,10 @@ export const defaultStorage = createStorage(getDefaultAdapter(), {
   cancelNotification: async (notificationId) => {
     const { cancelNotification } = await import("../notifications");
     await cancelNotification(notificationId);
+  },
+  cancelAllNotifications: async () => {
+    const { cancelAllNotifications } = await import("../notifications");
+    await cancelAllNotifications();
   },
 });
 

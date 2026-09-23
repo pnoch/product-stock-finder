@@ -353,6 +353,17 @@ export async function cancelNotification(
   }
 }
 
+// Cancels every scheduled notification. Used when a data wipe removes all
+// reminders/watches, whose notifications would otherwise still fire.
+export async function cancelAllNotifications(): Promise<void> {
+  if (Platform.OS === "web") return;
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch {
+    // ignore
+  }
+}
+
 // ─── Send a price digest notification ────────────────────────────────────────
 // Returns true only when a notification was actually scheduled, so the caller
 // can avoid advancing the digest snapshot on a skipped/failed send.

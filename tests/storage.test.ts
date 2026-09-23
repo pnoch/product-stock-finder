@@ -676,6 +676,25 @@ describe("clearAllData", () => {
     expect(store.has(DISTRIBUTOR_BREAKER_KEY)).toBe(false);
   });
 
+  // A wipe removes all reminders/watches; their scheduled OS notifications
+  // must be cancelled too, or they still fire afterwards.
+  it("clearAllData cancels scheduled notifications", async () => {
+    const { createStorage } = await import("../lib/storage");
+    const store = new Map<string, string>();
+    let cancelledAll = 0;
+    const storage = createStorage(
+      {
+        getItem: async (key: string) => store.get(key) ?? null,
+        setItem: async (key: string, value: string) => { store.set(key, value); },
+        removeItem: async (key: string) => { store.delete(key); },
+        multiRemove: async (keys: string[]) => { keys.forEach((key) => store.delete(key)); },
+      },
+      { cancelAllNotifications: async () => { cancelledAll += 1; } },
+    );
+    await storage.clearAllData();
+    expect(cancelledAll).toBe(1);
+  });
+
   it("clearAllData drains in-flight queued writes instead of resurrecting them", async () => {
     const { createStorage } = await import("../lib/storage");
     const store = new Map<string, string>();
