@@ -2410,3 +2410,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Moved the Android app-state listener into its own effect (`if (Platform.OS !== "android") return`), leaving the launch-setup effect free of any Android early-return
 - [x] Verified on device (rebuilt x86_64+arm64 release APK, uninstalled + reinstalled to wipe channels): all three notification channels are now created, the permission prompt appears, and Home renders normally
 - [x] Added a source-level guard to `tests/rn-platform-guards.test.ts` (now 3) — verified non-vacuous by folding the listener back into the setup effect; E2E root `tsc 0`, lint 0 errors (164 warnings), root `328 passed | 2 skipped` / `1975 passed`
+
+## Phase 279: Device QA round 27 (background tasks shared one interval marker)
+
+- [x] **The price-check and health-probe tasks shared a single interval marker**: `registerPriceCheckTask` and `registerHealthProbeTask` both read/wrote `background_task_interval`, and `syncBackgroundTasks` runs the price task first. After an interval change (hourly→daily) the price task wrote the new value, so the health task read it, concluded nothing changed, and skipped re-registering — leaving the health probe on the old interval until the next change
+- [x] The marker is now a per-task map under the same storage key (`{ "price-drop-check": 60, "health-probe": 1440 }`), so each task tracks its own last-registered interval while `clearAllData`'s single-key wipe still covers it
+- [x] Added 2 regression cases to `tests/price-check.test.ts` (now 29: hourly→daily and daily→hourly both re-register the health task) — verified non-vacuous by making both tasks use one shared marker name (3 tests fail); E2E root `tsc 0`, lint 0 errors (164 warnings), root `328 passed | 2 skipped` / `1977 passed`

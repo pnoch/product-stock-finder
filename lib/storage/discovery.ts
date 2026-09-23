@@ -90,28 +90,56 @@ export function createDiscoveryStorage(ctx: StorageContext) {
 // Remembers the last registered background-task interval so a launch only
 // re-registers when it actually changed. Re-registering on every launch resets
 // the OS scheduling window (iOS) and can defer the task indefinitely.
+//
+// Stored as a per-task map under one key: the price-check and health-probe
+// tasks share the `checkInterval` setting but register independently, and a
+// single scalar was written by the price task before the health task read it —
+// so after an interval change the health task saw the new value and skipped
+// re-registering, staying on the old interval. A map keeps one key (so
+// clearAllData's wipe still covers it) while tracking each task separately.
 export function createBackgroundTaskStorage(ctx: StorageContext) {
   const { adapter, KEYS } = ctx;
 
-  async function getBackgroundTaskInterval(): Promise<number | null> {
+  async function readMap(): Promise<Record<string, number>> {
     try {
       const raw = await adapter.getItem(KEYS.BACKGROUND_TASK_INTERVAL);
-      if (!raw) return null;
-      const parsed = Number(raw);
-      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+      const map: Record<string, number> = {};
+      for (const [task, value] of Object.entries(parsed as Record<string, unknown>)) {
+        if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+          map[task] = value;
+        }
+      }
+      return map;
     } catch {
-      return null;
+      return {};
     }
+  }
+
+  async function getBackgroundTaskInterval(
+    task: string,
+  ): Promise<number | null> {
+    const map = await readMap();
+    return map[task] ?? null;
   }
 
   async function saveBackgroundTaskInterval(
     minutes: number | null,
+    task: string,
   ): Promise<void> {
     try {
+      const map = await readMap();
       if (minutes === null) {
+        delete map[task];
+      } else {
+        map[task] = minutes;
+      }
+      if (Object.keys(map).length === 0) {
         await adapter.removeItem(KEYS.BACKGROUND_TASK_INTERVAL);
       } else {
-        await adapter.setItem(KEYS.BACKGROUND_TASK_INTERVAL, String(minutes));
+        await adapter.setItem(KEYS.BACKGROUND_TASK_INTERVAL, JSON.stringify(map));
       }
     } catch {
       // best effort

@@ -41,12 +41,12 @@ export async function registerPriceCheckTask() {
       if (isRegistered) {
         await BackgroundTask.unregisterTaskAsync(PRICE_CHECK_TASK);
       }
-      await saveBackgroundTaskInterval(null);
+      await saveBackgroundTaskInterval(null, PRICE_CHECK_TASK);
       return;
     }
 
     const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
-    const lastInterval = await getBackgroundTaskInterval();
+    const lastInterval = await getBackgroundTaskInterval(PRICE_CHECK_TASK);
 
     // Only (re)register when the task is missing or the interval changed.
     // Re-registering on every launch resets the OS scheduling window (iOS) and
@@ -59,7 +59,7 @@ export async function registerPriceCheckTask() {
     await BackgroundTask.registerTaskAsync(PRICE_CHECK_TASK, {
       minimumInterval: intervalMinutes,
     });
-    await saveBackgroundTaskInterval(intervalMinutes);
+    await saveBackgroundTaskInterval(intervalMinutes, PRICE_CHECK_TASK);
   } catch {
     // Background tasks not available on simulator/web — silently ignore
   }
@@ -76,13 +76,15 @@ export async function registerHealthProbeTask() {
       if (isRegistered) {
         await BackgroundTask.unregisterTaskAsync(HEALTH_PROBE_TASK);
       }
+      await saveBackgroundTaskInterval(null, HEALTH_PROBE_TASK);
       return;
     }
 
     const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
-    // Shares the interval marker with the price task: both use the same
-    // setting, so one marker is sufficient and avoids a second key.
-    const lastInterval = await getBackgroundTaskInterval();
+    // Per-task marker: a single shared key was written by the price task before
+    // this one read it, so after an interval change the health task saw the new
+    // value and skipped re-registering, staying on the old interval.
+    const lastInterval = await getBackgroundTaskInterval(HEALTH_PROBE_TASK);
 
     if (isRegistered && lastInterval === intervalMinutes) return;
 
@@ -92,7 +94,7 @@ export async function registerHealthProbeTask() {
     await BackgroundTask.registerTaskAsync(HEALTH_PROBE_TASK, {
       minimumInterval: intervalMinutes,
     });
-    await saveBackgroundTaskInterval(intervalMinutes);
+    await saveBackgroundTaskInterval(intervalMinutes, HEALTH_PROBE_TASK);
   } catch {
     // Background tasks not available on simulator/web — silently ignore
   }

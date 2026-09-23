@@ -8,7 +8,7 @@ const state = vi.hoisted(() => ({
   scheduledNotifications: [] as unknown[],
   permissionGranted: true,
   taskRegistered: false,
-  taskInterval: null as number | null,
+  taskIntervals: {} as Record<string, number>,
   settingsStore: {
     theme: "auto",
     displayCurrency: "USD",
@@ -46,9 +46,10 @@ vi.mock("../lib/storage", () => ({
   getPriceDigestSnapshot: vi.fn(async () => null),
   savePriceDigestSnapshot: vi.fn(async () => {}),
   rearmAlert: vi.fn(async () => {}),
-  getBackgroundTaskInterval: vi.fn(async () => state.taskInterval),
-  saveBackgroundTaskInterval: vi.fn(async (minutes: number | null) => {
-    state.taskInterval = minutes;
+  getBackgroundTaskInterval: vi.fn(async (task: string) => state.taskIntervals[task] ?? null),
+  saveBackgroundTaskInterval: vi.fn(async (minutes: number | null, task: string) => {
+    if (minutes === null) delete state.taskIntervals[task];
+    else state.taskIntervals[task] = minutes;
   }),
 }));
 
@@ -321,7 +322,7 @@ describe("registerHealthProbeTask", () => {
     vi.mocked(BackgroundTask.registerTaskAsync).mockClear();
     vi.mocked(BackgroundTask.unregisterTaskAsync).mockClear();
     state.taskRegistered = false;
-    state.taskInterval = null;
+    state.taskIntervals = {};
     state.settingsStore = { ...state.settingsStore, checkInterval: "manual" };
   });
 
@@ -354,7 +355,7 @@ describe("registerHealthProbeTask", () => {
     // Re-registering on every launch resets the OS scheduling window (iOS).
     state.settingsStore = { ...state.settingsStore, checkInterval: "hourly" };
     state.taskRegistered = true;
-    state.taskInterval = 60;
+    state.taskIntervals = { "health-probe": 60 };
     await registerHealthProbeTask();
     expect(BackgroundTask.unregisterTaskAsync).not.toHaveBeenCalled();
     expect(BackgroundTask.registerTaskAsync).not.toHaveBeenCalled();
@@ -363,7 +364,7 @@ describe("registerHealthProbeTask", () => {
   it("re-registers when the interval changed", async () => {
     state.settingsStore = { ...state.settingsStore, checkInterval: "daily" };
     state.taskRegistered = true;
-    state.taskInterval = 60;
+    state.taskIntervals = { "health-probe": 60 };
     await registerHealthProbeTask();
     expect(BackgroundTask.unregisterTaskAsync).toHaveBeenCalledWith("health-probe");
     expect(BackgroundTask.registerTaskAsync).toHaveBeenCalledWith("health-probe", {
@@ -377,7 +378,7 @@ describe("syncBackgroundTasks", () => {
     vi.mocked(BackgroundTask.registerTaskAsync).mockClear();
     vi.mocked(BackgroundTask.unregisterTaskAsync).mockClear();
     state.taskRegistered = false;
-    state.taskInterval = null;
+    state.taskIntervals = {};
     state.settingsStore = { ...state.settingsStore, checkInterval: "manual" };
   });
 
@@ -419,6 +420,31 @@ describe("syncBackgroundTasks", () => {
       "health-probe",
     );
     expect(BackgroundTask.registerTaskAsync).not.toHaveBeenCalled();
+  });
+
+  // Both tasks share one interval marker, but the price task writes it before
+  // the health task reads it — so after an interval change the health task saw
+  // the *new* value and skipped re-registering, leaving it on the old interval.
+  it("re-registers the health task when the interval changes hourly -> daily", async () => {
+    state.settingsStore = { ...state.settingsStore, checkInterval: "daily" };
+    state.taskRegistered = true;
+    state.taskIntervals = { "price-drop-check": 60, "health-probe": 60 }; // both were last registered hourly
+    await syncBackgroundTasks();
+    expect(BackgroundTask.registerTaskAsync).toHaveBeenCalledWith(
+      "health-probe",
+      { minimumInterval: 1440 },
+    );
+  });
+
+  it("re-registers the health task when the interval changes daily -> hourly", async () => {
+    state.settingsStore = { ...state.settingsStore, checkInterval: "hourly" };
+    state.taskRegistered = true;
+    state.taskIntervals = { "price-drop-check": 1440, "health-probe": 1440 };
+    await syncBackgroundTasks();
+    expect(BackgroundTask.registerTaskAsync).toHaveBeenCalledWith(
+      "health-probe",
+      { minimumInterval: 60 },
+    );
   });
 });
 
