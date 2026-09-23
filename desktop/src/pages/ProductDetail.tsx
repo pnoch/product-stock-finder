@@ -121,16 +121,21 @@ async function createPriceAlert(input: {
   const granted = await checkNotificationPermission();
   if (!granted) return { ok: false, id: "" };
   const id = `alert-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  await storage.addAlert({
-    id,
-    productId: input.productId,
-    direction: input.direction,
-    distributorId: input.distributorId,
-    targetPrice: input.targetPrice,
-    currency: input.currency,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-  });
+  try {
+    await storage.addAlert({
+      id,
+      productId: input.productId,
+      direction: input.direction,
+      distributorId: input.distributorId,
+      targetPrice: input.targetPrice,
+      currency: input.currency,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    });
+  } catch {
+    // A storage failure must not reject unhandled; callers show a toast on !ok.
+    return { ok: false, id: "" };
+  }
   return { ok: true, id };
 }
 
@@ -496,16 +501,21 @@ export function ProductDetail() {
       return;
     }
     const dist = DISTRIBUTORS.find((d) => d.id === distributorId);
-    await storage.addBackOrderReminder({
-      id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      productId: product.id,
-      productName: product.name,
-      distributorId,
-      distributorName: dist?.name ?? distributorId,
-      reminderDate: picked.toISOString(),
-      createdAt: new Date().toISOString(),
-      reminderType: "date",
-    });
+    try {
+      await storage.addBackOrderReminder({
+        id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        productId: product.id,
+        productName: product.name,
+        distributorId,
+        distributorName: dist?.name ?? distributorId,
+        reminderDate: picked.toISOString(),
+        createdAt: new Date().toISOString(),
+        reminderType: "date",
+      });
+    } catch {
+      setReminderError("Couldn't save your reminder. Please try again.");
+      return;
+    }
     setReminderOpen(false);
     setReminderError(null);
     showToast(`Reminder set for ${picked.toLocaleDateString()}`);
@@ -558,16 +568,21 @@ export function ProductDetail() {
       return;
     }
     const dist = DISTRIBUTORS.find((d) => d.id === distributorId);
-    await storage.addBackOrderReminder({
-      id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      productId: product.id,
-      productName: product.name,
-      distributorId,
-      distributorName: dist?.name ?? distributorId,
-      reminderDate: picked.toISOString(),
-      createdAt: new Date().toISOString(),
-      reminderType: "date",
-    });
+    try {
+      await storage.addBackOrderReminder({
+        id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        productId: product.id,
+        productName: product.name,
+        distributorId,
+        distributorName: dist?.name ?? distributorId,
+        reminderDate: picked.toISOString(),
+        createdAt: new Date().toISOString(),
+        reminderType: "date",
+      });
+    } catch {
+      setInlineReminderError("Couldn't save your reminder. Please try again.");
+      return;
+    }
     setInlineReminderError(null);
     showToast(`Reminder set for ${picked.toLocaleDateString()}`);
   };
@@ -623,17 +638,22 @@ export function ProductDetail() {
       showToast("No distributor available");
       return;
     }
-    await storage.addStockWatch({
-      id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      productId: product.id,
-      productName: product.name,
-      distributorId: bestListing.distributorId,
-      distributorName: bestDistributor?.name ?? "Unknown",
-      reminderDate: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      reminderType: "back_in_stock",
-      lastKnownStatus: bestListing.stockStatus,
-    });
+    try {
+      await storage.addStockWatch({
+        id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        productId: product.id,
+        productName: product.name,
+        distributorId: bestListing.distributorId,
+        distributorName: bestDistributor?.name ?? "Unknown",
+        reminderDate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        reminderType: "back_in_stock",
+        lastKnownStatus: bestListing.stockStatus,
+      });
+    } catch {
+      showToast("Couldn't set that restock watch. Please try again.");
+      return;
+    }
     setStockWatches((prev) => ({ ...prev, [bestListing.distributorId]: true }));
     showToast("Watching for restock");
   };
@@ -642,30 +662,34 @@ export function ProductDetail() {
     if (!product) return;
     const isWatching = !!stockWatches[listing.distributorId];
     const dist = DISTRIBUTORS.find((d) => d.id === listing.distributorId);
-    if (isWatching) {
-      const watches = await storage.getStockWatches();
-      const target = watches.find((w) => w.productId === product.id && w.distributorId === listing.distributorId);
-      if (target) await storage.removeStockWatch(target.id);
-      setStockWatches((prev) => {
-        const n = { ...prev };
-        delete n[listing.distributorId];
-        return n;
-      });
-      showToast("Stopped watching");
-    } else {
-      await storage.addStockWatch({
-        id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        productId: product.id,
-        productName: product.name,
-        distributorId: listing.distributorId,
-        distributorName: dist?.name ?? listing.distributorId,
-        reminderDate: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        reminderType: "back_in_stock",
-        lastKnownStatus: listing.stockStatus,
-      });
-      setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
-      showToast(`Watching ${dist?.name ?? listing.distributorId} for restock`);
+    try {
+      if (isWatching) {
+        const watches = await storage.getStockWatches();
+        const target = watches.find((w) => w.productId === product.id && w.distributorId === listing.distributorId);
+        if (target) await storage.removeStockWatch(target.id);
+        setStockWatches((prev) => {
+          const n = { ...prev };
+          delete n[listing.distributorId];
+          return n;
+        });
+        showToast("Stopped watching");
+      } else {
+        await storage.addStockWatch({
+          id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          productId: product.id,
+          productName: product.name,
+          distributorId: listing.distributorId,
+          distributorName: dist?.name ?? listing.distributorId,
+          reminderDate: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          reminderType: "back_in_stock",
+          lastKnownStatus: listing.stockStatus,
+        });
+        setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
+        showToast(`Watching ${dist?.name ?? listing.distributorId} for restock`);
+      }
+    } catch {
+      showToast("Couldn't update that restock watch. Please try again.");
     }
   };
 

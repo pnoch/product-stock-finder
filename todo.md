@@ -2508,3 +2508,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 293 in the desktop Watchlist: `handleBulkDelete`, `handleUndo`, and `handleRemove` awaited `storage.removeFromWatchlist`/`addToWatchlist` with no try/catch, so a storage failure was an unhandled rejection with no feedback (mobile wraps each and shows an alert)
 - [x] Each now catches and toasts ("Couldn't remove those products…", "Couldn't restore that product…", "Couldn't remove that product…")
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 6) asserting the three handlers wrap their writes in try/catch — verified non-vacuous by reverting `handleUndo`; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `1999 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
+
+## Phase 295: Device QA round 43 (desktop product-detail writes had no error handling)
+
+- [x] Follow-up to Phases 293/294 in the desktop ProductDetail: `handleSetReminder`, `handleInlineReminder`, `handleWatchRestock`, and `handleToggleListingWatch` awaited storage writes with no try/catch, and `createPriceAlert` (used by the main, per-listing, and quick alert flows) awaited `storage.addAlert` unguarded — a storage failure was an unhandled rejection with no feedback
+- [x] Each now catches: inline errors for the reminder modals, toasts for the watch toggles, and `createPriceAlert` returns `{ ok: false }` so callers show their existing permission/error toast
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 7) — verified non-vacuous by reverting `handleWatchRestock`; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2000 passed`; desktop `tsc 0`, `44 passed` / `219 passed`

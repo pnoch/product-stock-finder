@@ -75,4 +75,26 @@ describe("desktop chart guard", () => {
       expect(block).toContain("catch");
     }
   });
+
+  // QA round 43: the desktop ProductDetail reminder/watch/alert writes.
+  it("wraps desktop product-detail writes in try/catch", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    for (const handler of [
+      "const handleSetReminder",
+      "const handleInlineReminder",
+      "const handleWatchRestock",
+      "const handleToggleListingWatch",
+    ]) {
+      const start = text.indexOf(handler);
+      expect(start).toBeGreaterThan(-1);
+      const block = text.slice(start, text.indexOf("\n  };", start));
+      expect(block).toContain("try {");
+      expect(block).toContain("catch");
+    }
+    // createPriceAlert must not reject on a storage failure.
+    const alertStart = text.indexOf("async function createPriceAlert");
+    const alertBlock = text.slice(alertStart, text.indexOf("return { ok: true, id };", alertStart));
+    expect(alertBlock).toContain("try {");
+    expect(alertBlock).toContain("catch");
+  });
 });
