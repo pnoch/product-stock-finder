@@ -165,6 +165,24 @@ describe("triggered alert card guards a zero triggered price", () => {
   });
 });
 
+// QA round 124: mobile's "Lowest Price Ever" badge hardcoded USD for both the
+// history and the current price, so a EUR/GBP user's badge compared mixed
+// units. Desktop was fixed for the same bug (QA round 35).
+describe("best-distributor lowest-ever badge uses the display currency", () => {
+  const src = readFileSync(
+    path.join(process.cwd(), "components/best-distributor-card.tsx"),
+    "utf8",
+  );
+
+  it("converts history and current price in the display currency", () => {
+    const start = src.indexOf("const isLowestEver");
+    expect(start).toBeGreaterThan(-1);
+    const block = src.slice(start, src.indexOf("}, [listing.priceHistory", start));
+    expect(block).not.toContain('"USD"');
+    expect(block).toContain("displayCurrency");
+  });
+});
+
 // QA round 90: swipe-delete cascades to the product's alerts (Phase 285), but
 // Undo restored only the product — its price alerts were permanently lost.
 describe("watchlist undo restores the deleted product's alerts", () => {

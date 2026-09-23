@@ -2996,3 +2996,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Compare chart pushed `new Date(p.date).getTime()` into `allDates` without filtering `NaN`**: one corrupt/legacy price point with an unparseable date made `Math.min`/`Math.max` return `NaN`, so `minDate`/`dateRange` were `NaN` and every x-coordinate was `NaN` — the whole multi-distributor chart rendered blank. Mobile's `MultiLineChart` filters `if (!Number.isNaN(t))` for exactly this reason
 - [x] Desktop now filters invalid dates when building `allDates` (and returns the "No data" state when none remain) and skips invalid-date points when building each series' coords
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 32) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2099 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 376: Device QA round 124 (mobile "Lowest Price Ever" badge compared mixed currencies)
+
+- [x] **Mobile's `BestDistributorCard` "Lowest Price Ever" check hardcoded USD** for both the prior-history minimum and the current price (`convertPrice(..., "USD")`), while the rest of the card renders in `displayCurrency`. For a EUR/GBP user the badge compared mixed units and could show or hide incorrectly. Desktop was explicitly fixed for the same bug in QA round 35 (its `isLowestEver` uses `displayCurrency`)
+- [x] Mobile now converts both the history points and the current price in `displayCurrency`, and depends on it in the `useMemo`
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 67) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2100 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

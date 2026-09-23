@@ -64,20 +64,22 @@ function BestDistributorCard({
   }, [listing.priceHistory]);
 
   // Lowest Price Ever: compare current price against minimum across all
-  // prior history points (excluding the current point)
+  // prior history points (excluding the current point). Convert in the
+  // display currency, like the rest of the page: hardcoding USD mixed units,
+  // so a EUR/GBP user's badge was wrong (desktop fixed the same bug).
   const isLowestEver = useMemo(() => {
     const hist = listing.priceHistory;
     if (!hist || hist.length < 2) return false;
     const priorPoints = hist
       .slice(0, -1)
-      .map((p) => convertPrice(p.price, p.currency, "USD"))
+      .map((p) => convertPrice(p.price, p.currency, displayCurrency))
       .filter((v): v is number => v !== null);
     if (priorPoints.length === 0) return false;
     const priorMin = Math.min(...priorPoints);
-    const currentUsd = convertPrice(listing.price, listing.currency, "USD");
-    if (currentUsd === null) return false;
-    return currentUsd < priorMin;
-  }, [listing.priceHistory, listing.price, listing.currency]);
+    const current = convertPrice(listing.price, listing.currency, displayCurrency);
+    if (current === null) return false;
+    return current < priorMin;
+  }, [listing.priceHistory, listing.price, listing.currency, displayCurrency]);
 
   return (
     <View
