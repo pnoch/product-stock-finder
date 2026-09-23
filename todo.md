@@ -2863,3 +2863,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`watchlistToDetailedCsv` treated a price of 0 as missing**: it used `l.price ? String(l.price) : ""`, so a listing with a genuine 0 price exported an empty cell instead of `0` (the sibling `priceHistoryToCsv` already used a nullish check)
 - [x] It now uses `typeof l.price === "number" ? String(l.price) : ""`
 - [x] Added a case to `tests/csv.test.ts` (now 9: a 0 price exports as `0`) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2072 passed`
+
+## Phase 354: Device QA round 102 (product card price-change badge used out-of-stock history)
+
+- [x] **The watchlist product card's price-change badge mixed stock statuses**: it compared the current best orderable price against the oldest point of *any* listing's history (including out-of-stock), so an out-of-stock distributor's high historical price produced a fake drop — e.g. a 1000 out-of-stock point vs a 100 current best showed `▼ 90.0%`. The same class the all-time-low and price-vs-average checks already fixed
+- [x] Extracted `computePriceChange` (`lib/price-change.ts`) which compares the current best against the historical minimum **in-stock** price (`bestPricePoints`), and used it in `components/watchlist/product-card.tsx`
+- [x] Added `tests/price-change.test.ts` (3 cases: in-stock minimum, out-of-stock ignored, no orderable price) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2075 passed`

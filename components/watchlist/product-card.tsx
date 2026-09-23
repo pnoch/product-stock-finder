@@ -12,6 +12,7 @@ import { useColors } from "@/hooks/use-colors";
 import { Product, TagDefinition } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { convertPrice, getBestPrice } from "@/lib/currency";
+import { computePriceChange } from "@/lib/price-change";
 import { StockBadge } from "@/components/stock-badge";
 import { PriceSparkline } from "@/components/price-sparkline";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -65,27 +66,10 @@ export const ProductCard = memo(function ProductCard({
     () => (product.tags ?? []).filter((id) => getTagById(tagDefinitions, id)),
     [product.tags, tagDefinitions],
   );
-  const priceChange = useMemo(() => {
-    if (!bestPrice) return null;
-    const allHistory = (product.listings ?? []).flatMap(
-      (l) => l.priceHistory ?? [],
-    );
-    if (allHistory.length < 2) return null;
-    const sorted = [...allHistory].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
-    // Percentage is a ratio, so currency cancels out — converting oldest to displayCurrency yields the same pct as converting both.
-    const oldestUsd = convertPrice(
-      sorted[0].price,
-      sorted[0].currency,
-      currency,
-    );
-    const currentUsd = bestPrice.price;
-    if (oldestUsd === null || oldestUsd <= 0) return null;
-    const pct = ((currentUsd - oldestUsd) / oldestUsd) * 100;
-    if (Math.abs(pct) < 0.5) return null;
-    return { pct, isDown: pct < 0 };
-  }, [bestPrice, product.listings, currency]);
+  const priceChange = useMemo(
+    () => computePriceChange(product.listings ?? [], currency),
+    [product.listings, currency],
+  );
   const sparklineData = useMemo(() => {
     // Convert each listing's history into the display currency before
     // flattening: mixing raw USD and MYR points draws a meaningless chart that
