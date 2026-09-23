@@ -178,4 +178,25 @@ describe("createSemaphore", () => {
     expect(racerAcquired).toBe(true);
     expect(sem.active).toBeLessThanOrEqual(3);
   });
+
+  it("rejects when the queue is full", async () => {
+    const { createSemaphore } = await import("../lib/concurrency");
+    const sem = createSemaphore(1, { maxQueue: 1 });
+    await sem.acquire();
+    const queued = sem.acquire(); // fills the queue
+    await expect(sem.acquire()).rejects.toThrow(/queue full/);
+    sem.release();
+    await queued;
+  });
+});
+
+// The server's scrape limiter must use the shared slot-transferring semaphore;
+// the old decrement-then-wake form over-admitted past MAX_CONCURRENT_SCRAPES.
+describe("server scrape limiter", () => {
+  it("uses the shared semaphore", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const src = await readFile("server/prices.ts", "utf8");
+    expect(src).toContain("createSemaphore(MAX_CONCURRENT_SCRAPES");
+    expect(src).not.toContain("scrapeQueue");
+  });
 });

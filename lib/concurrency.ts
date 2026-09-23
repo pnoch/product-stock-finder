@@ -11,8 +11,12 @@ export interface Semaphore {
   readonly active: number;
 }
 
-export function createSemaphore(limit: number): Semaphore {
+export function createSemaphore(
+  limit: number,
+  opts?: { maxQueue?: number },
+): Semaphore {
   const max = Math.max(1, Math.floor(limit) || 1);
+  const maxQueue = opts?.maxQueue;
   let active = 0;
   const waiters: Array<() => void> = [];
 
@@ -24,6 +28,11 @@ export function createSemaphore(limit: number): Semaphore {
       if (active < max) {
         active += 1;
         return;
+      }
+      // Bound the queue so an unbounded caller sheds load instead of growing
+      // memory/latency without limit.
+      if (maxQueue !== undefined && waiters.length >= maxQueue) {
+        throw new Error("semaphore queue full");
       }
       await new Promise<void>((resolve) => waiters.push(resolve));
     },

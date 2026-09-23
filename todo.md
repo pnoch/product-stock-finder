@@ -2821,3 +2821,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`lib/price-source.ts`'s device-scrape limiter could exceed its cap**: `releaseScrapeSlot` decremented `activeScrapes` then woke a waiter that re-incremented. A new `acquireScrapeSlot` called synchronously between the decrement and the waiter's continuation saw a free slot, took it, and then the waiter incremented too — admitting 4 concurrent scrapes with a cap of 3
 - [x] Extracted a `createSemaphore` helper (`lib/concurrency.ts`) that transfers a released slot directly to the waiter (it stays counted as active), and used it in `price-source.ts`
 - [x] Added a deterministic `createSemaphore` case to `tests/price-source.test.ts` (now 9) that releases and races a new acquire in the same turn — verified non-vacuous by restoring the decrement-then-wake form; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2062 passed`
+
+## Phase 347: Device QA round 95 (server scrape limiter had the same over-admission race)
+
+- [x] Follow-up to Phase 346: `server/prices.ts`'s `acquireScrapeSlot`/`releaseScrapeSlot` had the same decrement-then-wake race (a racing acquire could take the freed slot and exceed `MAX_CONCURRENT_SCRAPES`), plus its own queue-full rejection
+- [x] The server now uses the shared `createSemaphore(MAX_CONCURRENT_SCRAPES, { maxQueue: MAX_QUEUED_SCRAPES })` (the helper gained an optional `maxQueue`), so slot transfer is exact and the queue cap is preserved
+- [x] Added a queue-full case and a server source guard to `tests/price-source.test.ts` (now 11) — verified non-vacuous by restoring the old server limiter; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2064 passed`

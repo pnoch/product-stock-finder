@@ -1,4 +1,5 @@
 import { getParserByDistributorId } from "../lib/scrapers/registry";
+import { createSemaphore } from "../lib/concurrency";
 import {
   createMemoryBreakerStore,
   fetchAndParse,
@@ -41,29 +42,19 @@ const MAX_CONCURRENT_SCRAPES = 6;
 // instead of shedding load. Over the cap, reject so the caller falls back to
 // the cached value / a miss.
 const MAX_QUEUED_SCRAPES = 50;
-let activeScrapes = 0;
-const scrapeQueue: Array<() => void> = [];
+// Shared semaphore: transfers a released slot directly to the waiter. The
+// previous decrement-then-wake form let a racing acquire take the freed slot
+// too, exceeding MAX_CONCURRENT_SCRAPES.
+const scrapeSlots = createSemaphore(MAX_CONCURRENT_SCRAPES, {
+  maxQueue: MAX_QUEUED_SCRAPES,
+});
 
 function acquireScrapeSlot(): Promise<void> {
-  if (activeScrapes < MAX_CONCURRENT_SCRAPES) {
-    activeScrapes++;
-    return Promise.resolve();
-  }
-  if (scrapeQueue.length >= MAX_QUEUED_SCRAPES) {
-    return Promise.reject(new Error("scrape queue full"));
-  }
-  return new Promise((resolve) => {
-    scrapeQueue.push(() => {
-      activeScrapes++;
-      resolve();
-    });
-  });
+  return scrapeSlots.acquire();
 }
 
 function releaseScrapeSlot(): void {
-  activeScrapes--;
-  const next = scrapeQueue.shift();
-  if (next) next();
+  scrapeSlots.release();
 }
 
 function cacheKey(distributorId: string, modelNumber: string): string {
