@@ -2917,3 +2917,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`timelineSegments` produced NaN weights for an invalid timestamp**: with a corrupt sample whose `at` doesn't parse, `total` is NaN, `NaN <= 0` is false, and `Math.min(Math.max(NaN, 0), 1)` is still NaN — so every segment's `flex: NaN` made the health timeline strip collapse (mobile and desktop)
 - [x] It now treats a non-finite span as a flat distribution (`!Number.isFinite(total) || total <= 0`)
 - [x] Added a case to `tests/scrapers/health.test.ts` (now 66: invalid timestamps fall back to equal weights) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2085 passed`
+
+## Phase 363: Device QA round 111 (a restock storage failure skipped the digest)
+
+- [x] **`checkRestocks` could reject and abort the rest of `runPriceCheckCore`**: `runCheckRestocks` starts with `storage.getStockWatches()`, which rethrows adapter failures, and `checkRestocks` had no catch. `runPriceCheckCore` awaits it before sending the scheduled digest, so a storage read failure skipped the digest entirely — despite the comment calling the restock check "independent"
+- [x] `checkRestocks` now catches and logs, resolving instead of rejecting
+- [x] Added a case to `tests/restock.test.ts` (now 9: resolves when a storage read fails) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2086 passed`

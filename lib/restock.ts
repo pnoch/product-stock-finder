@@ -24,9 +24,14 @@ export function checkRestocks(
   storage: RestockStorage = defaultStorageModule,
 ): Promise<void> {
   if (inFlight) return inFlight;
-  inFlight = runCheckRestocks(storage).finally(() => {
-    inFlight = null;
-  });
+  // Best-effort: a storage read failure here must not reject, or it would
+  // abort the rest of runPriceCheckCore (including the digest send) even though
+  // the restock check is independent.
+  inFlight = runCheckRestocks(storage)
+    .catch((e) => console.warn("[Restock] check failed", e))
+    .finally(() => {
+      inFlight = null;
+    });
   return inFlight;
 }
 

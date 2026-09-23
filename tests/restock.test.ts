@@ -178,4 +178,12 @@ describe("checkRestocks", () => {
     // Notification failed → the watch must survive so the next cycle retries.
     expect(state.removed).toEqual([]);
   });
+
+  // A storage read failure must not reject: runPriceCheckCore awaits this
+  // before sending the digest, so a throw would skip the digest entirely.
+  it("resolves (does not reject) when a storage read fails", async () => {
+    const storage = await import("../lib/storage");
+    vi.mocked(storage.getStockWatches).mockRejectedValueOnce(new Error("boom"));
+    await expect(checkRestocks()).resolves.toBeUndefined();
+  });
 });
