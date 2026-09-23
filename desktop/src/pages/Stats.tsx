@@ -130,9 +130,10 @@ export function Stats() {
 
   const handleSaveBasketAlert = useCallback(async (threshold: number | null) => {
     setBasketThreshold(threshold);
-    const current = await storage.getSettings();
-    if (!current) return;
-    await storage.saveSettings({ ...current, basketAlertThreshold: threshold });
+    // Serialized read-modify-write: a whole-object write with a stale snapshot
+    // would clobber a settings change made elsewhere in the meantime (mobile
+    // uses the same serialized update path).
+    await storage.updateSettings({ basketAlertThreshold: threshold });
   }, []);
 
   const loading = products === null && loadError === null;

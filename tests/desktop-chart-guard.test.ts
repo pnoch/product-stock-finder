@@ -31,4 +31,16 @@ describe("desktop chart guard", () => {
     const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
     expect(text).toMatch(/setAlertCurrency\(settings\.displayCurrency/);
   });
+
+  // QA round 38: the desktop basket-alert save used saveSettings with a stale
+  // snapshot, clobbering a concurrent settings change. Mobile uses the
+  // serialized updateSettings.
+  it("saves the basket alert through the serialized updateSettings", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const start = text.indexOf("const handleSaveBasketAlert");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("}, []);", start));
+    expect(block).toContain("storage.updateSettings");
+    expect(block).not.toContain("saveSettings");
+  });
 });

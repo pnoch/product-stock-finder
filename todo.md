@@ -2478,3 +2478,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Five user-visible "active alerts" counts used three different predicates**: the Alerts tab badge and tab counter excluded triggered + snoozed alerts, mobile Home excluded only triggered, and desktop Home excluded neither (`alerts.filter((a) => a.isActive)`) — so a snoozed or triggered alert inflated the Home stat card and the desktop count disagreed with its own Alerts tab
 - [x] Added `isAlertActive` / `countActiveAlerts` in `lib/alert-state.ts` (enabled, not triggered, snooze elapsed) and used it in `hooks/use-alerts-data.ts`, `hooks/use-alert-badge.ts`, `app/(tabs)/index.tsx`, `desktop/src/pages/Home.tsx`, and `desktop/src/pages/Alerts.tsx`
 - [x] Added `tests/alert-state.test.ts` (5 cases: enabled, disabled, triggered, snoozed, elapsed snooze) — verified non-vacuous by reducing the predicate to `isActive`; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `1995 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
+
+## Phase 290: Device QA round 38 (desktop basket alert clobbered concurrent settings)
+
+- [x] **Desktop's basket-alert save used a whole-object write**: `handleSaveBasketAlert` read settings then called `storage.saveSettings({ ...current, basketAlertThreshold })`, so a settings change made between the read and the write (e.g. a theme/currency toggle) was clobbered. Mobile uses the serialized `updateSettings` for exactly this reason
+- [x] Desktop now calls `storage.updateSettings({ basketAlertThreshold: threshold })`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 4) asserting the handler uses `updateSettings` and not `saveSettings` — verified non-vacuous by restoring the whole-object write; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `1996 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
