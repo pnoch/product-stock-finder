@@ -31,6 +31,15 @@ describe("mobile release blockers", () => {
     expect(src).toContain("duplicates");
     expect(src).toContain("already tracked");
   });
+
+  // The server caps the public share payload at 500 products and returns
+  // `truncated: true`; the client ignored it, so a >500-product share looked
+  // like a complete (but short) watchlist. Surface the cap.
+  it("surfaces the server's 500-product truncation flag", () => {
+    const src = readFileSync(path.join(process.cwd(), "app/w/[token].tsx"), "utf8");
+    expect(src).toContain("truncated");
+    expect(src).toContain("first 500");
+  });
 });
 
 // QA round 16: the search screen rendered its filter chrome (tag chips,

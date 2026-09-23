@@ -147,6 +147,9 @@ export function SharedWatchlist() {
   }
 
   const products = (data.products ?? []) as SharedProduct[];
+  // The server caps the public payload at 500 products; without surfacing the
+  // flag the page silently looks like a complete (but short) watchlist.
+  const truncated = (data as { truncated?: boolean }).truncated === true;
   const createdLabel = data.createdAt ? new Date(data.createdAt).toLocaleDateString() : null;
   const lastSharedLabel = (data as { updatedAt?: string | null }).updatedAt
     ? new Date((data as { updatedAt?: string | null }).updatedAt as string).toLocaleDateString()
@@ -165,8 +168,14 @@ export function SharedWatchlist() {
           <h1 className="text-2xl font-bold">{data.title}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {products.length} product{products.length === 1 ? "" : "s"}
+            {truncated ? " (first 500)" : ""}
             {metaLine ? ` · ${metaLine}` : ""}
           </p>
+          {truncated && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              This share is larger than the 500-product limit — only the first 500 are shown.
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button

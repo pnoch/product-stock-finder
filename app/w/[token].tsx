@@ -79,11 +79,14 @@ export default function SharedWatchlistScreen() {
     );
   }
 
-  const data = query.data as unknown as { title: string; token: string; products: unknown[]; createdAt: string | null; expiresAt: string | null } | undefined;
+  const data = query.data as unknown as { title: string; token: string; products: unknown[]; truncated?: boolean; createdAt: string | null; expiresAt: string | null } | undefined;
   const rawProducts = (data?.products ?? []) as unknown as Product[];
   const products = rawProducts as { id: string; name: string; brand?: string; modelNumber?: string; category?: string; listings?: { distributorId: string; price: number; currency: string; stockStatus: string; url?: string; priceHistory?: import("@/lib/types").PricePoint[] }[] }[];
   const createdLabel = data?.createdAt ? formatLastRefreshed(data.createdAt) : null;
   const expiresLabel = data?.expiresAt ? new Date(data.expiresAt).toLocaleDateString() : null;
+  // The server caps the public payload at 500 products; without surfacing the
+  // flag the page silently looks like a complete (but short) watchlist.
+  const truncated = data?.truncated === true;
 
   const handleBulkAdd = async () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -144,7 +147,12 @@ export default function SharedWatchlistScreen() {
     <ScreenContainer>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <Text style={{ color: colors.foreground, fontSize: 22, fontWeight: "800" }}>{data?.title ?? "Shared Watchlist"}</Text>
-        <Text style={{ color: colors.muted, marginTop: 4 }}>{products.length} products</Text>
+        <Text style={{ color: colors.muted, marginTop: 4 }}>{products.length} products{truncated ? " (first 500)" : ""}</Text>
+        {truncated && (
+          <Text style={{ color: colors.warning, marginTop: 4, fontSize: 12 }}>
+            This share is larger than the 500-product limit — only the first 500 are shown.
+          </Text>
+        )}
         {createdLabel && <Text style={{ color: colors.muted, marginTop: 4, fontSize: 12 }}>Last shared: {createdLabel}</Text>}
         {expiresLabel && <Text style={{ color: colors.muted, marginTop: 2, fontSize: 12 }}>Expires: {expiresLabel} (30d TTL)</Text>}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
