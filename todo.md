@@ -2971,3 +2971,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop accessed `listing.priceHistory.<method>` without the `?? []` guard mobile uses**: a corrupt or legacy stored listing (missing the field) made `listing.priceHistory.forEach`/`.map`/`.flatMap` throw, crashing the whole page. Reachable in desktop Stats (the price-history chart), Watchlist (`getTrend` + the row sparkline), the distributor history modal's CSV export, and ProductDetail's best-listing sparkline. Mobile already guards every one of these (Phase 359 fixed the same class in sync)
 - [x] All desktop accesses now use `(listing.priceHistory ?? [])`, and `Compare.getTrend` accepts `undefined`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 28) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2094 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 372: Device QA round 120 (desktop rendered a zero triggered price as "$0.00")
+
+- [x] **Desktop's triggered-alert row rendered `alert.triggeredPrice ?? alert.targetPrice`**: a server-detected trigger can store `triggeredPrice: 0` (the digest's `alertTargetsHit` and the mobile `TriggeredAlertCard` both guard `> 0` for exactly this reason), but `??` doesn't fall back on 0, so the row showed "Triggered at $0.00" instead of the target price
+- [x] Desktop now uses `alert.triggeredPrice && alert.triggeredPrice > 0 ? alert.triggeredPrice : alert.targetPrice`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 29) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2095 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

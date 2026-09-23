@@ -161,6 +161,18 @@ describe("desktop chart guard", () => {
     expect(undoBlock).toContain("storage.addAlert(alert)");
   });
 
+  // QA round 120: desktop rendered a zero triggeredPrice as "Triggered at
+  // $0.00" (a server-detected trigger can store 0). Mobile guards `> 0`
+  // (Phase 356).
+  it("guards the desktop triggered-price display against a zero", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const start = text.indexOf("Triggered at");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("alert.currency,", start));
+    expect(block).toMatch(/alert\.triggeredPrice && alert\.triggeredPrice > 0/);
+    expect(block).not.toContain("alert.triggeredPrice ?? alert.targetPrice");
+  });
+
   // QA round 119: desktop accessed `listing.priceHistory.<method>` without the
   // `?? []` guard mobile uses, so a corrupt/legacy listing (missing the field)
   // crashed the page (Stats, Watchlist, DistributorHistoryModal). Same class as

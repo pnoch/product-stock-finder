@@ -784,7 +784,12 @@ function AlertRow({
             <>
               Triggered at{" "}
               {formatPrice(
-                alert.triggeredPrice ?? alert.targetPrice,
+                // A server-detected trigger can store triggeredPrice 0, which
+                // `??` doesn't fall back on — it rendered "Triggered at $0.00".
+                // Mobile guards `> 0` (Phase 356).
+                alert.triggeredPrice && alert.triggeredPrice > 0
+                  ? alert.triggeredPrice
+                  : alert.targetPrice,
                 alert.currency,
               )}{" "}
               on {new Date(alert.triggeredAt!).toLocaleDateString()}
