@@ -145,6 +145,27 @@ describe("desktop chart guard", () => {
     expect(block).toContain("catch");
   });
 
+  // QA round 58: desktop pages accessed `product.listings.<method>` without the
+  // `?? []` guard mobile uses, so a product with no listings crashed the page.
+  it("guards desktop product.listings access with ?? []", async () => {
+    const files = [
+      "desktop/src/pages/Home.tsx",
+      "desktop/src/pages/Watchlist.tsx",
+      "desktop/src/pages/Stats.tsx",
+      "desktop/src/pages/Compare.tsx",
+      "desktop/src/pages/ProductDetail.tsx",
+      "desktop/src/pages/Settings.tsx",
+    ];
+    for (const file of files) {
+      const text = await readFile(file, "utf8");
+      // No bare `X.listings.<method>` (the optional-chained `?.listings` is
+      // fine). `j.listings` is a job object built with `?? []` at construction.
+      const bare = (text.match(/[A-Za-z_$][\w$]*\.listings\.(some|map|filter|find|reduce|length|forEach)/g) ?? [])
+        .filter((m) => !m.startsWith("j.listings"));
+      expect(bare).toEqual([]);
+    }
+  });
+
   // QA round 57: desktop Home computed pendingTags/pendingTagsArray/
   // pendingTagsSize and immediately voided them — dead work on every render.
   it("has no dead pendingTags computation in desktop Home", async () => {

@@ -288,7 +288,7 @@ export function Compare() {
   useEffect(() => {
     if (!product) return;
     const paramKey = `${product.id}|${distributorParam ?? ""}`;
-    if (distributorParam && product.listings.some((l) => l.distributorId === distributorParam)) {
+    if (distributorParam && (product.listings ?? []).some((l) => l.distributorId === distributorParam)) {
       if (lastAppliedParam.current !== paramKey) {
         lastAppliedParam.current = paramKey;
         selectionInitialized.current = product.id;
@@ -298,7 +298,7 @@ export function Compare() {
     }
     if (selectionInitialized.current === product.id) return;
     selectionInitialized.current = product.id;
-    const withHistory = product.listings
+    const withHistory = (product.listings ?? [])
       .filter((l) => l.priceHistory && l.priceHistory.length >= 2)
       .sort((a, b) => {
         const aConv = convertPrice(a.price, a.currency, displayCurrency) ?? a.price;
@@ -326,7 +326,7 @@ export function Compare() {
     if (!product) return [];
     const range = timeRangeTyped;
     const selectedIds = selected;
-    const list = product.listings.filter(
+    const list = (product.listings ?? []).filter(
       (l) =>
         selectedIds.has(l.distributorId) &&
         l.priceHistory &&
@@ -347,7 +347,7 @@ export function Compare() {
   const priceTrends = useMemo(() => {
     if (!product) return new Map<string, { pct: number; dir: "up" | "down" | "flat" }>();
     const map = new Map<string, { pct: number; dir: "up" | "down" | "flat" }>();
-    for (const l of product.listings) {
+    for (const l of product.listings ?? []) {
       if (!l.priceHistory || l.priceHistory.length < 2) {
         map.set(l.distributorId, { pct: 0, dir: "flat" });
         continue;
@@ -368,7 +368,7 @@ export function Compare() {
 
   const sortedListings = useMemo(() => {
     if (!product) return [];
-    const listings = product.listings.map((l) => {
+    const listings = (product.listings ?? []).map((l) => {
       const dist = DISTRIBUTORS.find((d) => d.id === l.distributorId);
       return { ...l, distName: dist?.name ?? l.distributorId, dist };
     });

@@ -177,7 +177,7 @@ export function Home() {
   if (loading) return <LoadingSpinner size="large" label="Loading dashboard..." />;
 
   const inStockCount = products.filter((p) =>
-    p.listings.some((l) => l.stockStatus === "in_stock"),
+    (p.listings ?? []).some((l) => l.stockStatus === "in_stock"),
   ).length;
 
   const activeAlerts = countActiveAlerts(alerts);

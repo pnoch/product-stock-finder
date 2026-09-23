@@ -59,7 +59,7 @@ const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
 
 
 function getTrend(product: Product): "up" | "down" | "flat" {
-  const listings = product.listings.filter((l) => l.priceHistory.length >= 2);
+  const listings = (product.listings ?? []).filter((l) => l.priceHistory.length >= 2);
   if (!listings.length) return "flat";
 
   let totalPct = 0;
@@ -80,7 +80,7 @@ function getTrend(product: Product): "up" | "down" | "flat" {
 }
 
 function getDominantStatus(product: Product): StockStatus {
-  const statuses = product.listings.map((l) => l.stockStatus);
+  const statuses = (product.listings ?? []).map((l) => l.stockStatus);
   if (statuses.includes("in_stock")) return "in_stock";
   if (statuses.includes("back_order")) return "back_order";
   if (statuses.includes("out_of_stock")) return "out_of_stock";
@@ -97,8 +97,8 @@ async function fetchServerPricesForWatchlist(
   if (!getApiBaseUrl()) return null;
   const products = await storage.getWatchlist();
   const jobs = products
-    .filter((p) => p.listings.length > 0)
-    .map((p) => ({ productId: p.id, modelNumber: p.modelNumber, listings: p.listings }));
+    .filter((p) => (p.listings ?? []).length > 0)
+    .map((p) => ({ productId: p.id, modelNumber: p.modelNumber, listings: p.listings ?? [] }));
   const total = jobs.reduce((n, j) => n + j.listings.length, 0);
   if (total === 0) return { refreshed: 0, total: 0 };
   const client = createTRPCClient();
@@ -843,7 +843,7 @@ export function Watchlist() {
           </div>
         </td>
         <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-          {product.listings.length}
+          {(product.listings ?? []).length}
         </td>
         <td className="px-4 py-3">
           {best ? (

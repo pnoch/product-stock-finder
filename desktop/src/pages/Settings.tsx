@@ -550,7 +550,7 @@ export function Settings() {
       const tasks = products
         .filter((p) => p.listings?.some((l) => l.distributorId === distributorId))
         .map((product) => {
-          const updatedListings: DistributorListing[] = product.listings.map((l) =>
+          const updatedListings: DistributorListing[] = (product.listings ?? []).map((l) =>
             l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
           );
           return storage.updateProductListings(product.id, updatedListings);

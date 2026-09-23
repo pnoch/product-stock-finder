@@ -195,7 +195,7 @@ export function Stats() {
           })();
     const dateMap = new Map<string, Record<string, number | string>>();
     products.slice(0, 3).forEach((p) => {
-      p.listings.forEach((listing) => {
+      (p.listings ?? []).forEach((listing) => {
         const dist = DISTRIBUTORS.find((d) => d.id === listing.distributorId);
         const name = dist?.name ?? listing.distributorId;
         listing.priceHistory.forEach((pt) => {
@@ -213,7 +213,7 @@ export function Stats() {
         products
           .slice(0, 3)
           .flatMap((p) =>
-            p.listings.map((l) => DISTRIBUTORS.find((d) => d.id === l.distributorId)?.name ?? l.distributorId),
+            (p.listings ?? []).map((l) => DISTRIBUTORS.find((d) => d.id === l.distributorId)?.name ?? l.distributorId),
           ),
       ),
     );

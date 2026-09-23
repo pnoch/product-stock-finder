@@ -231,11 +231,11 @@ export function ProductDetail() {
       if (loadIdRef.current === myId) {
         setAlerts(allAlerts.filter((a) => a.productId === id));
       }
-      if (loadIdRef.current === myId && found && found.listings.length > 0 && getApiBaseUrl()) {
+      if (loadIdRef.current === myId && found && (found.listings ?? []).length > 0 && getApiBaseUrl()) {
         try {
           const { createTRPCClient } = await import("../lib/trpc");
           const client = createTRPCClient();
-          const seeds = found.listings;
+          const seeds = found.listings ?? [];
           const results = await fetchListingsWithTimeout(client, seeds, found.modelNumber);
           if (loadIdRef.current === myId && results.some((r) => r !== null)) {
             const merged = composeLiveListings(seeds, results);
@@ -1385,11 +1385,11 @@ export function ProductDetail() {
       </div>
 
       {/* Distributor Targets */}
-      {product.listings.length > 0 && (
+      {(product.listings ?? []).length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h2 className="text-lg font-semibold mb-3">Distributor Targets</h2>
           <ul className="divide-y divide-gray-100 dark:divide-gray-700/50">
-            {product.listings.map((listing) => {
+            {(product.listings ?? []).map((listing) => {
               const dist = DISTRIBUTORS.find((d) => d.id === listing.distributorId);
               const name = dist?.name ?? listing.distributorId;
               const alert =

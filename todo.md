@@ -2599,3 +2599,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 308: `desktop/src/pages/Home.tsx` declared `pendingTags` state, derived `pendingTagsArray`/`pendingTagsSize`, and immediately `void`ed both — dead work on every render (leftover from a pendingTags reactivity experiment)
 - [x] Removed the state, both derivations, and the `void` statements
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 14) — verified non-vacuous by restoring the computation; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2018 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 310: Device QA round 58 (desktop unguarded product.listings access)
+
+- [x] **Desktop pages accessed `product.listings.<method>` without the `?? []` guard mobile uses**: `Home.tsx` (`p.listings.some`), `Watchlist.tsx` (`getTrend`, `getDominantStatus`, the price-refresh job filter, and the listing-count cell), `Stats.tsx` (the comparison chart), `Compare.tsx` (param match, selection init, chart series, trends, sorted list), `ProductDetail.tsx` (seed listings, target table), and `Settings.tsx` (re-enable distributor). A product with no listings (manually added / discovery failed) crashed the page
+- [x] All now use `(product.listings ?? [])`, matching mobile
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 15) asserting no bare `X.listings.<method>` remains in those files — verified non-vacuous by reverting Home; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2019 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
