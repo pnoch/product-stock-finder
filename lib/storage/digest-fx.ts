@@ -9,7 +9,18 @@ export function createDigestFxStorage(ctx: StorageContext) {
   async function getPriceDigestSnapshot(): Promise<DigestSnapshot | null> {
     try {
       const raw = await adapter.getItem(KEYS.DIGEST_SNAPSHOT);
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as unknown;
+      // Validate the shape: a corrupt payload with `products` as a non-array
+      // would make computeDigest's `.map` throw inside a useMemo (no boundary).
+      if (
+        !parsed ||
+        typeof parsed !== "object" ||
+        !Array.isArray((parsed as { products?: unknown }).products)
+      ) {
+        return null;
+      }
+      return parsed as DigestSnapshot;
     } catch {
       return null;
     }

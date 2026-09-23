@@ -2833,3 +2833,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`analyzeDistributors` used `cheapest.taxRate ?? 0`**: `??` does not sanitize `NaN`, so a malformed server payload carrying a NaN tax rate made `totalCost` NaN and rendered the whole Distributor Analysis row as `$NaN`. `findBestDeal` already guards the same field with `Number.isFinite`
 - [x] It now uses `Number.isFinite(cheapest.taxRate) ? cheapest.taxRate : 0`
 - [x] Added a case to `tests/distributor-analysis.test.ts` (now 9: a NaN tax rate is treated as zero) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2065 passed`
+
+## Phase 349: Device QA round 97 (corrupt digest snapshot crashed the Stats tab)
+
+- [x] **`getPriceDigestSnapshot` returned any parsed JSON without shape validation**: `computeDigest` then calls `previous?.products ?? []` and `.map`, so a corrupt payload with `products` as a non-array (e.g. a string) threw `... .map is not a function` inside `app/stats.tsx`'s `useMemo` — no error boundary, so the Stats tab crashed
+- [x] It now validates that the parsed payload is an object with an array `products` and returns null otherwise
+- [x] Added `tests/digest-snapshot-validation.test.ts` (3 cases: valid, non-array products, non-object) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2068 passed`
