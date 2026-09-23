@@ -47,6 +47,18 @@ describe("mobile release blockers", () => {
     const src = readFileSync(path.join(process.cwd(), "app/w/[token].tsx"), "utf8");
     expect(src).toMatch(/product\{products\.length === 1 \? "" : "s"\}/);
   });
+
+  // QA round 23: the shared-watchlist export handlers hand-rolled the web
+  // download / native Share.share and swallowed every failure, so a failed
+  // export did nothing visible (and native Share.share rejects on some
+  // platforms). They must go through the shared exportCsvFile helper and
+  // report the outcome.
+  it("exports shared-watchlist CSVs through the shared helper with feedback", () => {
+    const src = readFileSync(path.join(process.cwd(), "app/w/[token].tsx"), "utf8");
+    expect(src).toContain("exportCsvFile");
+    expect(src).not.toContain("Share.share");
+    expect(src).toContain("Export unavailable");
+  });
 });
 
 // QA round 16: the search screen rendered its filter chrome (tag chips,

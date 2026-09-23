@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, ScrollView, Text, View, TouchableOpacity, Platform, Share } from "react-native";
+import { ActivityIndicator, ScrollView, Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -15,6 +15,7 @@ import { addToWatchlist, getSettings } from "@/lib/storage";
 import { normalizeSharedWatchlistProduct } from "@/lib/shared-watchlist";
 import { showAlert } from "@/lib/alert";
 import { productHistoryToCsv, watchlistToDetailedCsv } from "@/lib/csv";
+import { exportCsvFile } from "@/lib/csv-export";
 import type { Product } from "@/lib/types";
 
 export default function SharedWatchlistScreen() {
@@ -122,25 +123,28 @@ export default function SharedWatchlistScreen() {
     // skips /w/ deep-link lines on import).
     const shareUrl = Platform.OS === "web" && typeof window !== "undefined" ? window.location.href : undefined;
     const csv = watchlistToDetailedCsv(rawProducts as Product[], shareUrl ? { shareUrl } : undefined);
-    if (Platform.OS === "web") {
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a"); a.href = url; a.download = `shared-${token ?? "watchlist"}.csv`; a.click(); URL.revokeObjectURL(url);
-    } else {
-      await Share.share({ message: csv, title: data?.title ?? "Shared Watchlist" });
+    // Shared helper so native writes to the cache dir + opens the share sheet
+    // (a bare react-native Share call rejects on some platforms) and the
+    // outcome is reported instead of silently doing nothing.
+    const ok = await exportCsvFile(csv, `shared-${token ?? "watchlist"}.csv`);
+    if (!ok) {
+      showAlert("Export unavailable", "We couldn't export this share on this device.");
+      return;
     }
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    showAlert("Exported", "The shared watchlist CSV has been created.");
   };
 
   const handleExportHistoryCsv = async (product: Product) => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const csv = productHistoryToCsv(product);
-    if (Platform.OS === "web") {
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a"); a.href = url; a.download = `${product.modelNumber ?? product.id}-history.csv`; a.click(); URL.revokeObjectURL(url);
-    } else {
-      await Share.share({ message: csv, title: `${product.name} history` });
+    const ok = await exportCsvFile(csv, `${product.modelNumber ?? product.id}-history.csv`);
+    if (!ok) {
+      showAlert("Export unavailable", "We couldn't export this price history on this device.");
+      return;
     }
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    showAlert("Exported", `Price history for ${product.name} has been created.`);
   };
 
   return (
