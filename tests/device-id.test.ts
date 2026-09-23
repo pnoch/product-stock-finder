@@ -32,4 +32,19 @@ describe("getDeviceId", () => {
     const second = await getDeviceId();
     expect(second).toBe(first);
   });
+
+  // A storage failure must not mint a new id per call: the server would see a
+  // different device on every request (breaking device binding/revocation).
+  it("keeps a stable in-memory id when storage fails", async () => {
+    const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
+    const getItemSpy = vi.spyOn(AsyncStorage, "getItem").mockRejectedValue(new Error("blocked"));
+    try {
+      const first = await getDeviceId();
+      const second = await getDeviceId();
+      expect(first.length).toBeGreaterThan(0);
+      expect(second).toBe(first);
+    } finally {
+      getItemSpy.mockRestore();
+    }
+  });
 });

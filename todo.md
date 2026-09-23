@@ -2767,3 +2767,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phases 312-316: `ReminderSection.onSet` (the product-detail "Remind Me" fallback used when no `onRemind` is wired) had no double-submit guard, so a rapid double-tap scheduled two notifications and created two reminders; the second `addBackOrderReminder` replaced the first, orphaning the first notification id
 - [x] It now checks a `saving` state, early-returns while in flight, and clears it in `finally`
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 57) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2052 passed`
+
+## Phase 338: Device QA round 86 (device id changed on every request when storage failed)
+
+- [x] **`getDeviceId`'s storage-failure fallback minted a new id per call**: when `AsyncStorage` throws (browser privacy modes), the catch returned `generateId()` fresh each time, so the server saw a different device on every request — breaking device binding and revocation (a revoked device would look like a brand-new one). The desktop variant reads localStorage directly and would reject instead
+- [x] The fallback id is now cached in memory (`memoryFallbackId`) so the device keeps a stable identity for the session
+- [x] Added a case to `tests/device-id.test.ts` (now 3: stable in-memory id when storage fails) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2053 passed`
