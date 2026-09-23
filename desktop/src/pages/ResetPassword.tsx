@@ -31,7 +31,11 @@ export function ResetPassword() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/auth/reset`, {
+      const baseUrl = getApiBaseUrl();
+      // Without this, an unconfigured build fetched the relative path
+      // "/api/auth/reset" and showed a confusing failure.
+      if (!baseUrl) throw new Error("This build isn't connected to a server.");
+      const res = await fetch(`${baseUrl}/api/auth/reset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, newPassword }),

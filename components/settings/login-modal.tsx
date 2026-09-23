@@ -116,6 +116,7 @@ export function LoginModal({
         await onForgotPassword(targetEmail);
       } else {
         const baseUrl = getApiBaseUrl();
+        if (!baseUrl) throw new Error("This build isn't connected to a server.");
         const res = await fetch(`${baseUrl}/api/auth/forgot`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -2695,3 +2695,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`app/verify-email.tsx` fetched `${getApiBaseUrl()}/api/auth/verify` without checking the base URL was configured**: on an unconfigured build `getApiBaseUrl()` returns `""`, so the fetch hit the relative path `/api/auth/verify` and the screen showed a confusing "Verification failed" instead of explaining the build isn't connected. `app/oauth/callback.tsx` guards the same way
 - [x] It now bails with "This build isn't connected to a server. Open the link in the app that requested it." when the base URL is empty
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 46) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2034 passed`
+
+## Phase 326: Device QA round 74 (forgot/reset-password didn't check the API base URL)
+
+- [x] Follow-up to Phase 325: the forgot/reset-password paths fetched `${getApiBaseUrl()}/...` without checking the base URL was configured — mobile `useAuth.forgotPassword` + `login-modal`, desktop `ResetPassword` + Settings forgot-password. On an unconfigured build they hit the relative path and showed a confusing failure
+- [x] All four now throw "This build isn't connected to a server." when the base URL is empty
+- [x] Added 3 guards to `tests/mobile-criticals.test.ts` (now 48) and 1 to `tests/desktop-chart-guard.test.ts` (now 20) — verified non-vacuous by reverting `useAuth.forgotPassword` and desktop `ResetPassword`; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2037 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

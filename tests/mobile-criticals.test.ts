@@ -96,6 +96,27 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 74: the forgot-password paths fetched `${getApiBaseUrl()}/...`
+// without checking the base URL was configured.
+describe("forgot-password checks the API base URL", () => {
+  it("useAuth.forgotPassword guards an empty base URL", () => {
+    const src = readFileSync(path.join(process.cwd(), "hooks/use-auth.ts"), "utf8");
+    const start = src.indexOf("const forgotPassword");
+    const block = src.slice(start, src.indexOf("}, []);", start));
+    expect(block).toContain("if (!baseUrl) throw new Error");
+  });
+
+  it("login-modal guards an empty base URL", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "components/settings/login-modal.tsx"),
+      "utf8",
+    );
+    const start = src.indexOf("const res = await fetch(`${baseUrl}/api/auth/forgot`");
+    expect(start).toBeGreaterThan(-1);
+    expect(src.slice(start - 120, start)).toContain("if (!baseUrl) throw new Error");
+  });
+});
+
 // QA round 73: verify-email fetched `${getApiBaseUrl()}/api/auth/verify`
 // without checking the base URL was configured, so an unconfigured build hit
 // the relative path and showed a confusing failure (oauth/callback checks it).

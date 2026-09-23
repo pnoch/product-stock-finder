@@ -147,6 +147,20 @@ describe("desktop chart guard", () => {
     expect(block).toContain("catch");
   });
 
+  // QA round 74: desktop ResetPassword / Settings forgot-password fetched
+  // `${getApiBaseUrl()}/...` without checking the base URL was configured.
+  it("guards desktop auth fetches against an empty base URL", async () => {
+    for (const [file, needle] of [
+      ["desktop/src/pages/ResetPassword.tsx", "const baseUrl = getApiBaseUrl();"],
+      ["desktop/src/pages/Settings.tsx", "const baseUrl = getApiBaseUrl();"],
+    ] as const) {
+      const text = await readFile(file, "utf8");
+      const start = text.indexOf(needle);
+      expect(start).toBeGreaterThan(-1);
+      expect(text.slice(start, start + 200)).toContain("if (!baseUrl) throw new Error");
+    }
+  });
+
   // QA round 67: desktop AI discovery added to the watchlist but never marked
   // the product tracked, so the catalog row kept offering "Add".
   it("marks a discovered product tracked in desktop Search", async () => {

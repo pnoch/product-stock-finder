@@ -255,7 +255,9 @@ export function Settings() {
     setForgotSending(true);
     setForgotMessage(null);
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/auth/forgot`, {
+      const baseUrl = getApiBaseUrl();
+      if (!baseUrl) throw new Error("This build isn't connected to a server.");
+      const res = await fetch(`${baseUrl}/api/auth/forgot`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
