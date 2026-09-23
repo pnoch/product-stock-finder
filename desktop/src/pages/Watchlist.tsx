@@ -44,7 +44,7 @@ import { copyTextWithFallback } from "../lib/share";
 import { isFreshPriceSnapshot } from "../../../lib/price-freshness";
 import { parseBulkImportCsv } from "../../../lib/csv";
 import { PRODUCT_CATALOG } from "@shared/catalog";
-import type { Product, StockStatus, TagDefinition, WatchlistGroup } from "../../../lib/types";
+import type { PriceAlert, Product, StockStatus, TagDefinition, WatchlistGroup } from "../../../lib/types";
 
 type SortKey = "name" | "price" | "deal" | "trend" | "lastUpdated";
 type FilterKey = "all" | "in_stock" | "back_order" | "out_of_stock";
@@ -229,6 +229,9 @@ export function Watchlist() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [undoProduct, setUndoProduct] = useState<Product | null>(null);
+  // Alerts removed by the cascade when the product was deleted, so Undo can
+  // restore them (removeFromWatchlist deletes a product's alerts).
+  const undoAlertsRef = useRef<PriceAlert[]>([]);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const regions = useMemo(() => getAllRegions(), []);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -570,8 +573,9 @@ export function Watchlist() {
     }
   };
 
-  const showUndoBar = (product: Product) => {
+  const showUndoBar = (product: Product, alerts: PriceAlert[] = []) => {
     if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoAlertsRef.current = alerts;
     setUndoProduct(product);
     undoTimer.current = setTimeout(() => setUndoProduct(null), 5000);
   };
@@ -580,6 +584,11 @@ export function Watchlist() {
     if (undoTimer.current) clearTimeout(undoTimer.current);
     try {
       await storage.addToWatchlist(undoProduct);
+      // Restore the alerts the removal cascade deleted.
+      for (const alert of undoAlertsRef.current) {
+        await storage.addAlert(alert);
+      }
+      undoAlertsRef.current = [];
       setUndoProduct(null);
       await refresh();
       showToast("Restored " + undoProduct.name);
@@ -598,9 +607,12 @@ export function Watchlist() {
     const product = products.find((p) => p.id === productId);
     if (!window.confirm("Remove this product from your watchlist?")) return;
     try {
+      // Capture the alerts the removal cascade will delete so Undo can restore
+      // them (otherwise undo silently loses the price alerts).
+      const removedAlerts = (await storage.getAlerts()).filter((a) => a.productId === productId);
       await storage.removeFromWatchlist(productId);
       await refresh();
-      if (product) showUndoBar(product);
+      if (product) showUndoBar(product, removedAlerts);
       else showToast("Removed from watchlist");
     } catch {
       showToast("Couldn't remove that product. Please try again.");

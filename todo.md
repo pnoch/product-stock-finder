@@ -2797,3 +2797,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Swipe-delete's Undo restored only the product, not its alerts**: Phase 285 made `removeFromWatchlist` cascade to the product's price alerts, but the watchlist Undo bar (`handleUndo`) only called `addToWatchlist` — so undoing a swipe-delete silently and permanently lost the product's price alerts
 - [x] `handleSwipeDelete` now captures the product's alerts before the removal and passes them to `showUndoBar`; `handleUndo` re-adds them after restoring the product
 - [x] Added 2 guards to `tests/mobile-criticals.test.ts` (now 60) — verified non-vacuous by reverting the restore; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2058 passed`
+
+## Phase 343: Device QA round 91 (desktop watchlist undo lost the product's alerts)
+
+- [x] Follow-up to Phase 342 on desktop: `handleRemove`'s Undo restored only the product, while `removeFromWatchlist` cascades to the product's alerts — so undoing a removal silently lost the price alerts
+- [x] `handleRemove` now captures the product's alerts before removal and passes them to `showUndoBar`; `handleUndo` re-adds them after restoring the product
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 25) — verified non-vacuous by reverting the restore; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2059 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

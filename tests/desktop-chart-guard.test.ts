@@ -147,6 +147,20 @@ describe("desktop chart guard", () => {
     expect(block).toContain("catch");
   });
 
+  // QA round 91: desktop watchlist Undo restored only the product, losing the
+  // alerts the removal cascade deleted (mobile fixed in Phase 342).
+  it("restores the deleted product's alerts on desktop undo", async () => {
+    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const start = text.indexOf("const handleRemove");
+    const block = text.slice(start, start + 900);
+    expect(block).toContain("storage.getAlerts()");
+    expect(block).toContain("showUndoBar(product, removedAlerts)");
+    const undoStart = text.indexOf("const handleUndo");
+    const undoBlock = text.slice(undoStart, text.indexOf("};", undoStart));
+    expect(undoBlock).toContain("undoAlertsRef.current");
+    expect(undoBlock).toContain("storage.addAlert(alert)");
+  });
+
   // QA round 87: desktop getDesktopDeviceId could reject on a storage failure
   // and minted a new id per call; it must cache a stable in-memory fallback.
   it("keeps a stable fallback device id on storage failure", async () => {
