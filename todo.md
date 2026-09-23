@@ -2390,3 +2390,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Both handlers now call `exportCsvFile` (web download / native cache-write + share sheet) and surface "Exported" / "Export unavailable" via `showAlert`, matching Compare/Settings; the now-unused `Share` import was dropped
 - [x] Verified on web (rebuilt `dist-web`, real share token): "Export CSV" downloads `shared-<token>.csv` and shows the "Exported — The shared watchlist CSV has been created." dialog
 - [x] Added an export-helper guard to `tests/mobile-criticals.test.ts` (now 20: uses `exportCsvFile`, no `Share.share`, reports "Export unavailable") — verified non-vacuous by reverting both handlers to the bare `Share.share` form; E2E root `tsc 0`, lint 0 errors (164 warnings), root `328 passed | 2 skipped` / `1969 passed`
+
+## Phase 276: Device QA round 24 (orphaned components — dead source cleanup)
+
+- [x] Three components were left orphaned by earlier refactors and shipped as unreachable dead source (Metro tree-shakes them, but they lingered in the repo): `components/product/distributor-row.tsx` (never rendered by any commit), `components/themed-view.tsx` (its last consumer was the dev theme-lab, removed in `ece89bd`), and `components/share/product-share-card.tsx` (the branded share card, replaced by the visible-screen capture in `07c74a1`). None are imported anywhere, and none have tests
+- [x] Deleted all three; `buildShareRows`/`ShareRow` remain in `lib/price-share.ts` because `buildShareText` still uses them internally
+- [x] Added a 3-case "orphaned components stay deleted" guard to `tests/mobile-criticals.test.ts` (now 23) — verified non-vacuous by restoring each file; E2E root `tsc 0`, lint 0 errors (164 warnings), root `328 passed | 2 skipped` / `1972 passed`, `pnpm build:web` clean

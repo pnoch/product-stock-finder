@@ -162,6 +162,23 @@ describe("price-history CSV export lives on the Compare screen", () => {
   });
 });
 
+// QA round 24: three components were left orphaned by earlier refactors and
+// shipped as unreachable dead source — `distributor-row.tsx` (never rendered),
+// `themed-view.tsx` (its last consumer was the dev theme-lab, removed in
+// ece89bd), and `product-share-card.tsx` (the branded share card, replaced by
+// the visible-screen capture in 07c74a1). None are imported anywhere.
+describe("orphaned components stay deleted", () => {
+  for (const file of [
+    "components/product/distributor-row.tsx",
+    "components/themed-view.tsx",
+    "components/share/product-share-card.tsx",
+  ]) {
+    it(`does not keep ${file}`, () => {
+      expect(() => readFileSync(path.join(process.cwd(), file), "utf8")).toThrow();
+    });
+  }
+});
+
 // QA round 22: a sweep of the remaining count labels that hardcoded the plural
 // (Stock Health "N listings", health drill-down "N samples", sparkline a11y
 // "N points", bulk-import a11y "N products"). Each can render with a count of 1.
