@@ -38,4 +38,28 @@ describe("React Native platform guards", () => {
     expect(src).toMatch(/<AnimatedSectionList\b/);
     expect(src).not.toMatch(/<SectionList\b/);
   });
+
+  // 3. Phase 256 folded the Android app-state listener into the launch-setup
+  //    effect with an early `return` on Android. That skipped channel creation,
+  //    permission requests, background-task registration, the launch price
+  //    check, and push/server notification setup on Android entirely — a fresh
+  //    install created no notification channels (verified on device). The
+  //    listener must live in its own effect, and the launch setup must not
+  //    early-return on Android.
+  it("the Android app-state listener does not short-circuit launch setup", async () => {
+    const src = stripComments(await readFile("app/_layout.tsx", "utf8"));
+    const channelSetup = src.indexOf("setupAndroidNotificationChannel()");
+    expect(channelSetup).toBeGreaterThan(-1);
+    // The setup effect (the one containing the channel call) must not
+    // early-return on Android.
+    const setupEffectStart = src.lastIndexOf("useEffect(", channelSetup);
+    const setupEffect = src.slice(setupEffectStart, channelSetup);
+    expect(setupEffect).not.toContain('Platform.OS === "android"');
+    // The app-state listener must live in its own effect, gated the other way.
+    const listener = src.indexOf("setBackgroundAppState(state");
+    expect(listener).toBeGreaterThan(-1);
+    const listenerEffectStart = src.lastIndexOf("useEffect(", listener);
+    const listenerEffect = src.slice(listenerEffectStart, listener);
+    expect(listenerEffect).toContain('if (Platform.OS !== "android") return;');
+  });
 });

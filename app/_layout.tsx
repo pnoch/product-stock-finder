@@ -106,17 +106,24 @@ export default function RootLayout() {
     return () => window.removeEventListener("unhandledrejection", handler);
   }, []);
 
+  // Android backgrounded: frame-driven timers freeze, so the background-task
+  // path switches to 0ms-timer polling. iOS keeps timers alive natively.
+  // This must be its own effect: folding it into the launch-setup effect below
+  // with an early `return` skipped channel creation, permission requests,
+  // background-task registration, the launch price check, and push/server
+  // notification setup on Android entirely (verified: a fresh install created
+  // no notification channels).
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const sub = AppState.addEventListener("change", (state) => {
+      setBackgroundAppState(state === "active" ? "foreground" : "background");
+    });
+    return () => sub.remove();
+  }, []);
+
   // Request notification permissions and set up Android channel on first load
   useEffect(() => {
     if (Platform.OS === "web") return;
-    // Android backgrounded: frame-driven timers freeze, so the background-task
-    // path switches to 0ms-timer polling. iOS keeps timers alive natively.
-    if (Platform.OS === "android") {
-      const sub = AppState.addEventListener("change", (state) => {
-        setBackgroundAppState(state === "active" ? "foreground" : "background");
-      });
-      return () => sub.remove();
-    }
     // Route notification taps to their target screens — dedup with short TTL to avoid double-fire on cold start
     const handledResponses = new Map<string, number>();
     const handleNotificationResponse = (
