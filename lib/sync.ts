@@ -624,6 +624,14 @@ async function applyLocalItem(
           (merged as unknown as Record<string, unknown>)[key] = local[key];
         }
       }
+      // A key the local device *removed* (e.g. Quiet Hours turned off, which
+      // drops the key) is absent from `local`, so the loop above never sees it
+      // and the incoming value would resurrect it. If the key existed in the
+      // last-synced base but is gone locally, the local removal wins.
+      for (const key of Object.keys(base) as (keyof AppSettings)[]) {
+        if (key in local) continue;
+        delete (merged as unknown as Record<string, unknown>)[key];
+      }
       await storage.saveSettings(merged);
       break;
     }

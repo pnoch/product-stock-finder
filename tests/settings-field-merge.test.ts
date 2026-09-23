@@ -70,4 +70,40 @@ describe("settings per-field merge on pull", () => {
     // …but the local theme edit is preserved.
     expect(merged.theme).toBe("dark");
   });
+
+  // A key the local device removed (e.g. Quiet Hours turned off, which drops
+  // the key) must not be resurrected by the incoming value.
+  it("does not resurrect a field the local device removed", async () => {
+    const storage = createStorage(adapter());
+    const withQuiet = settings({ quietHours: { start: "22:00", end: "07:00" } });
+    await storage.saveSettings(withQuiet);
+    await storage.saveSyncMeta({
+      lastSyncedAt: 1000,
+      lastSyncOkAt: 1000,
+      lastSyncError: null,
+      items: {},
+      settingsSnapshot: withQuiet,
+    });
+    // Local turns Quiet Hours off (the key is dropped).
+    await storage.saveSettings(settings());
+
+    const pull = vi.fn(async () => ({
+      lastSyncedAt: 5000,
+      items: [
+        {
+          collection: "settings",
+          id: "settings",
+          data: withQuiet,
+          updatedAt: 4000,
+          deletedAt: null,
+        },
+      ] as SyncItem[],
+    }));
+    const push = vi.fn(async () => ({ accepted: 0, stamped: [] }));
+
+    await syncNow({ storage, isSignedIn: () => true, pull, push, now: () => 6000 });
+
+    const merged = await storage.getSettings();
+    expect(merged.quietHours).toBeUndefined();
+  });
 });

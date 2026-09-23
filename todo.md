@@ -2809,3 +2809,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The removal cascade only covered alerts**: Phase 285 made `removeFromWatchlist` delete a product's price alerts, but its back-order reminders and stock watches were left behind. They render in the Alerts tab (they store `productName`) but can never fire — `restock.ts` skips a watch whose product is not on the watchlist — so they accumulate as dead rows and inflate the "N reminders" count
 - [x] `removeFromWatchlist` now also deletes the product's reminders and stock watches (the shared `remindersStorage` instance is reused instead of a second `createRemindersStorage(ctx)`)
 - [x] Added a case to `tests/storage.test.ts` (now 72: removal cascades to reminders and watches) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2060 passed`
+
+## Phase 345: Device QA round 93 (settings sync resurrected a locally-removed field)
+
+- [x] **The settings per-field merge resurrected a field the local device removed**: the merge iterates `Object.keys(local)` and keeps the local value for any field changed since the last-synced snapshot. A field the local device *removed* (e.g. Quiet Hours turned off, which sets `quietHours: undefined` and is dropped from JSON) is absent from `local`, so the loop never saw it and the incoming server value resurrected it — Quiet Hours silently turned back on after a sync
+- [x] The merge now also iterates the last-synced base's keys and deletes any that are gone locally, so a local removal wins
+- [x] Added a case to `tests/settings-field-merge.test.ts` (now 2: a locally-removed `quietHours` is not resurrected) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2061 passed`
