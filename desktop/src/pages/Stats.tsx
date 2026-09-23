@@ -6,7 +6,8 @@ import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
 import { EmptyState } from "../components/EmptyState";
 import { MultiLineChart } from "../components/MultiLineChart";
-import { formatPrice, convertPrice, CURRENCY_SYMBOLS } from "@shared/currency";
+import { formatPrice, CURRENCY_SYMBOLS } from "@shared/currency";
+import { convertPrice } from "@/lib/currency";
 import { DISTRIBUTORS } from "@shared/distributors";
 import type { Product } from "../../../lib/types";
 import {

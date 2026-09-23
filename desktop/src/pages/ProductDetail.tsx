@@ -18,12 +18,8 @@ import {
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
 import { getApiBaseUrl } from "../lib/api-base";
-import {
-  formatPrice,
-  getBestPrice,
-  convertPrice,
-  EXCHANGE_RATES,
-} from "@shared/currency";
+import { formatPrice, EXCHANGE_RATES } from "@shared/currency";
+import { getBestPrice, convertPrice } from "@/lib/currency";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { computePriceVsAverage } from "../../../lib/price-average";
 import { DISTRIBUTORS } from "@shared/distributors";

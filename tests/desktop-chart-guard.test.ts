@@ -197,6 +197,27 @@ describe("desktop chart guard", () => {
     expect(block).not.toContain("alert.triggeredPrice ?? alert.targetPrice");
   });
 
+  // QA round 125: desktop imported convertPrice/getBestPrice from
+  // @shared/currency (static rates) in several views, bypassing the live FX
+  // overlay that lib/currency.ts applies — so those views disagreed with
+  // mobile (and desktop's own Home/Compare) once live rates loaded.
+  it("converts prices through the live-rate lib/currency overlay on desktop", async () => {
+    const files = [
+      "desktop/src/pages/Watchlist.tsx",
+      "desktop/src/pages/Stats.tsx",
+      "desktop/src/pages/ProductDetail.tsx",
+      "desktop/src/components/PriceHistoryChart.tsx",
+    ];
+    for (const file of files) {
+      const text = await readFile(file, "utf8");
+      expect(text).toMatch(/import \{[^}]*\} from "@\/lib\/currency"/);
+      // No convertPrice/getBestPrice pulled from the static shared module.
+      const sharedImport = text.match(/import \{[^}]*\} from "@shared\/currency"/)?.[0] ?? "";
+      expect(sharedImport).not.toContain("convertPrice");
+      expect(sharedImport).not.toContain("getBestPrice");
+    }
+  });
+
   // QA round 123: desktop's Compare chart pushed `new Date(p.date).getTime()`
   // into allDates without filtering NaN, so one invalid date made minDate/
   // dateRange NaN and blanked the chart. Mobile's MultiLineChart filters it.

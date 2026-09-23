@@ -19,7 +19,8 @@ import {
 import { useWatchlist, useSettings } from "../hooks/use-storage";
 import { useToast } from "../hooks/use-toast";
 import { storage } from "../storage";
-import { formatPrice, getBestPrice } from "@shared/currency";
+import { formatPrice } from "@shared/currency";
+import { getBestPrice } from "@/lib/currency";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { getApiBaseUrl } from "../lib/api-base";
 import { computeWatchlistSummary } from "../../../lib/watchlist-summary";

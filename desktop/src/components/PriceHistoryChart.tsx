@@ -8,7 +8,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useTheme } from "../hooks/use-theme";
-import { convertPrice, CURRENCY_SYMBOLS } from "@shared/currency";
+import { convertPrice } from "@/lib/currency";
+import { CURRENCY_SYMBOLS } from "@shared/currency";
 import type { PricePoint } from "../../../lib/types";
 
 export function PriceHistoryChart({

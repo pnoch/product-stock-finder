@@ -3002,3 +3002,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's `BestDistributorCard` "Lowest Price Ever" check hardcoded USD** for both the prior-history minimum and the current price (`convertPrice(..., "USD")`), while the rest of the card renders in `displayCurrency`. For a EUR/GBP user the badge compared mixed units and could show or hide incorrectly. Desktop was explicitly fixed for the same bug in QA round 35 (its `isLowestEver` uses `displayCurrency`)
 - [x] Mobile now converts both the history points and the current price in `displayCurrency`, and depends on it in the `useMemo`
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 67) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2100 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 377: Device QA round 125 (desktop views bypassed the live FX-rate overlay)
+
+- [x] **Four desktop views imported `convertPrice`/`getBestPrice` from `@shared/currency`** (static `EXCHANGE_RATES`), bypassing the live-rate overlay that `lib/currency.ts` applies via `setExchangeRates` (loaded on desktop launch through `loadFxRates`). Mobile and desktop's own Home/Compare use `@/lib/currency`, so Watchlist (sort + row best price), Stats (price-history chart), ProductDetail, and `PriceHistoryChart` disagreed with the rest of the app once live rates loaded — wrong best-price ordering and converted values
+- [x] All four now import `convertPrice`/`getBestPrice` from `@/lib/currency` (formatting/constants still come from `@shared/currency`)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 33) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2101 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
