@@ -161,6 +161,28 @@ describe("desktop chart guard", () => {
     expect(undoBlock).toContain("storage.addAlert(alert)");
   });
 
+  // QA round 119: desktop accessed `listing.priceHistory.<method>` without the
+  // `?? []` guard mobile uses, so a corrupt/legacy listing (missing the field)
+  // crashed the page (Stats, Watchlist, DistributorHistoryModal). Same class as
+  // the mobile fix in Phase 359.
+  it("guards desktop listing.priceHistory access with ?? []", async () => {
+    const files = [
+      "desktop/src/pages/Stats.tsx",
+      "desktop/src/pages/Watchlist.tsx",
+      "desktop/src/pages/Compare.tsx",
+      "desktop/src/pages/ProductDetail.tsx",
+      "desktop/src/components/DistributorHistoryModal.tsx",
+    ];
+    for (const file of files) {
+      const text = await readFile(file, "utf8");
+      // No bare `X.priceHistory.<method>` (optional-chained `?.priceHistory` and
+      // the guarded `priceHistory &&` / `priceHistory.length` checks are fine).
+      const bare = (text.match(/[A-Za-z_$][\w$]*\.priceHistory\.(some|map|filter|find|reduce|forEach|flatMap|slice|sort)/g) ?? [])
+        .filter((m) => !m.includes("?.priceHistory"));
+      expect(bare).toEqual([]);
+    }
+  });
+
   // QA round 118: desktop only treated price_drop as stale, so a stale
   // price_rise event for an inactive alert still fired (mobile checks both).
   it("skips stale price_rise events in desktop sync", async () => {

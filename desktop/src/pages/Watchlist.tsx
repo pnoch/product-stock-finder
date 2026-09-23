@@ -59,13 +59,13 @@ const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
 
 
 function getTrend(product: Product): "up" | "down" | "flat" {
-  const listings = (product.listings ?? []).filter((l) => l.priceHistory.length >= 2);
+  const listings = (product.listings ?? []).filter((l) => (l.priceHistory ?? []).length >= 2);
   if (!listings.length) return "flat";
 
   let totalPct = 0;
   let count = 0;
   for (const listing of listings) {
-    const history = listing.priceHistory;
+    const history = listing.priceHistory ?? [];
     const recent = history[history.length - 1].price;
     const older = history[Math.max(0, history.length - 3)].price;
     if (!Number.isFinite(recent) || !Number.isFinite(older) || older <= 0) continue;
@@ -872,7 +872,7 @@ export function Watchlist() {
             <span className="text-sm text-gray-400">No price</span>
           )}
           {(() => {
-            const history = product.listings.flatMap((l) => l.priceHistory).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-10);
+            const history = (product.listings ?? []).flatMap((l) => l.priceHistory ?? []).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-10);
             if (history.length < 2) return null;
             const prices = history.map((p) => p.price);
             const min = Math.min(...prices);

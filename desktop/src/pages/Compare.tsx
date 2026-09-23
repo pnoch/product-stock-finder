@@ -463,8 +463,8 @@ export function Compare() {
     }
   }, [product]);
 
-  const getTrend = (priceHistory: { price: number; date: string }[]) => {
-    if (priceHistory.length < 2) return "flat";
+  const getTrend = (priceHistory: { price: number; date: string }[] | undefined) => {
+    if (!priceHistory || priceHistory.length < 2) return "flat";
     const recent = priceHistory[priceHistory.length - 1].price;
     const prev = priceHistory[priceHistory.length - 2].price;
     if (recent < prev) return "down";

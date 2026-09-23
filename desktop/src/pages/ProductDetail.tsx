@@ -983,7 +983,7 @@ export function ProductDetail() {
                 status={bestListing.stockStatus}
                 expectedDate={bestListing.expectedDate}
               />
-              <PriceSparkline history={bestListing.priceHistory} currency={bestListing.currency} />
+              <PriceSparkline history={bestListing.priceHistory ?? []} currency={bestListing.currency} />
             </div>
           </div>
           {trendSignal && (

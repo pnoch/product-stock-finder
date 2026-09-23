@@ -188,7 +188,7 @@ export function Stats() {
       (p.listings ?? []).forEach((listing) => {
         const dist = DISTRIBUTORS.find((d) => d.id === listing.distributorId);
         const name = dist?.name ?? listing.distributorId;
-        listing.priceHistory.forEach((pt) => {
+        (listing.priceHistory ?? []).forEach((pt) => {
           if (pt.date < cutoffStr) return;
           if (!dateMap.has(pt.date)) dateMap.set(pt.date, { date: pt.date });
           const row = dateMap.get(pt.date)!;

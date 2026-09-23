@@ -27,7 +27,7 @@ export function DistributorHistoryModal({
   const handleDownloadCsv = () => {
     if (!listing) return;
     const csv = priceHistoryToCsv(
-      listing.priceHistory.map((pt) => ({ ...pt, distributor: distributorName })),
+      (listing.priceHistory ?? []).map((pt) => ({ ...pt, distributor: distributorName })),
       { name: distributorName, modelNumber: productId },
     );
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
