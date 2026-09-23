@@ -163,6 +163,17 @@ export default function SearchScreen() {
     try {
       const result = await discoverProduct(query);
       if (result) {
+        // discoverProduct only saves to the discovered catalog; the product
+        // detail screen reads the watchlist, so without this the toast claimed
+        // "Added to watchlist" and then showed "Product not found" (desktop
+        // already adds explicitly).
+        await addToWatchlist({
+          ...result.product,
+          addedAt: new Date().toISOString(),
+          isWatched: true,
+          listings: [],
+          tags: [],
+        });
         loadData();
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showToast(`Added ${result.product.name} to watchlist`, "success");

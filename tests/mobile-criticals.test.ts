@@ -96,6 +96,19 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 65: AI discovery claimed "Added X to watchlist" but only saved to
+// the discovered catalog, so the product detail screen (which reads the
+// watchlist) showed "Product not found".
+describe("AI discovery adds the product to the watchlist", () => {
+  it("calls addToWatchlist before navigating", () => {
+    const src = readFileSync(path.join(process.cwd(), "app/search.tsx"), "utf8");
+    const start = src.indexOf("const handleDiscover");
+    const block = src.slice(start, src.indexOf("}, [query, discovering", start));
+    expect(block).toContain("await addToWatchlist({");
+    expect(block).toContain("router.push(`/product/${result.product.id}`)");
+  });
+});
+
 // QA round 64: the reminder reschedule had no double-submit guard, so a rapid
 // double-tap scheduled two notifications and orphaned the first.
 describe("reminder reschedule guards against double-submit", () => {

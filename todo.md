@@ -2641,3 +2641,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phases 312-315: `handleReschedule` in `hooks/use-alerts-data.ts` had no double-submit guard, so a rapid double-tap scheduled two reminder notifications; the second `addBackOrderReminder` replaced the first (same product/distributor), orphaning the first notification id so it could never be cancelled
 - [x] It now checks a `rescheduling` state, early-returns while in flight, and clears it in `finally`
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 39) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2026 passed`
+
+## Phase 317: Device QA round 65 (AI discovery didn't add to the watchlist)
+
+- [x] **Mobile AI discovery claimed "Added X to watchlist" but never added it**: `discoverProduct` (`lib/llm-discovery.ts`) only saves to the *discovered catalog* (`addDiscoveredProduct`), not the watchlist. `app/search.tsx`'s `handleDiscover` showed "Added X to watchlist" and navigated to `/product/<id>`, but the product detail screen reads the watchlist (`useLiveProduct` → `getWatchlist`) and rendered "Product not found". Desktop's `handleDiscover` explicitly calls `addToWatchlist` before navigating
+- [x] Mobile now calls `addToWatchlist` with the discovered product before `loadData()` / navigation
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 40) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2027 passed`
