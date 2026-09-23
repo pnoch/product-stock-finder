@@ -107,12 +107,17 @@ export function Alerts() {
       setRescheduleError("Please select today or a future date.");
       return;
     }
-    await storage.addBackOrderReminder({
-      ...rescheduleTarget,
-      reminderDate: picked.toISOString(),
-    });
-    const updated = await storage.getBackOrderReminders();
-    setReminders(updated);
+    try {
+      await storage.addBackOrderReminder({
+        ...rescheduleTarget,
+        reminderDate: picked.toISOString(),
+      });
+      const updated = await storage.getBackOrderReminders();
+      setReminders(updated);
+    } catch {
+      setRescheduleError("Couldn't save the new date. Please try again.");
+      return;
+    }
     const label = picked.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
     setRescheduleTarget(null);
     setRescheduleError(null);
@@ -176,31 +181,49 @@ export function Alerts() {
     [alerts],
   );
 
+  // Storage writes can reject (quota/IDB error). Without a catch the rejection
+  // was unhandled and the user saw nothing; mobile surfaces an alert for each.
   const handleToggle = async (id: string) => {
-    await storage.toggleAlert(id);
-    const updated = await storage.getAlerts();
-    const target = updated.find((a) => a.id === id);
-    showToast(target?.isActive ? "Alert activated" : "Alert deactivated");
-    refreshAlerts();
+    try {
+      await storage.toggleAlert(id);
+      const updated = await storage.getAlerts();
+      const target = updated.find((a) => a.id === id);
+      showToast(target?.isActive ? "Alert activated" : "Alert deactivated");
+      refreshAlerts();
+    } catch {
+      showToast("Couldn't update that alert. Please try again.");
+    }
   };
 
   const handleDeleteAlert = async (id: string) => {
     if (!window.confirm("Remove this price alert? This cannot be undone.")) return;
-    await storage.removeAlert(id);
-    showToast("Alert deleted");
-    refreshAlerts();
+    try {
+      await storage.removeAlert(id);
+      showToast("Alert deleted");
+      refreshAlerts();
+    } catch {
+      showToast("Couldn't delete that alert. Please try again.");
+    }
   };
 
   const handleRearm = async (id: string) => {
-    await storage.rearmAlert(id);
-    showToast("Alert rearmed");
-    refreshAlerts();
+    try {
+      await storage.rearmAlert(id);
+      showToast("Alert rearmed");
+      refreshAlerts();
+    } catch {
+      showToast("Couldn't re-arm that alert. Please try again.");
+    }
   };
 
   const handleSnoozeAlert = async (id: string, days: number) => {
-    await storage.snoozeAlert(id, days);
-    showToast(days === 0 ? "Alert resumed" : `Snoozed for ${days} day${days !== 1 ? "s" : ""}`);
-    refreshAlerts();
+    try {
+      await storage.snoozeAlert(id, days);
+      showToast(days === 0 ? "Alert resumed" : `Snoozed for ${days} day${days !== 1 ? "s" : ""}`);
+      refreshAlerts();
+    } catch {
+      showToast("Couldn't snooze that alert. Please try again.");
+    }
   };
 
   const handleEditAlert = (alert: PriceAlert) => {
@@ -231,12 +254,17 @@ export function Alerts() {
       return;
     }
     setEditError(null);
-    await storage.updateAlert(editingAlert.id, {
-      targetPrice: price,
-      currency: editCurrency,
-      direction: editDirection,
-      distributorId: editDistributorId,
-    });
+    try {
+      await storage.updateAlert(editingAlert.id, {
+        targetPrice: price,
+        currency: editCurrency,
+        direction: editDirection,
+        distributorId: editDistributorId,
+      });
+    } catch {
+      setEditError("Couldn't save your changes. Please try again.");
+      return;
+    }
     setEditingAlert(null);
     showToast("Alert updated");
     refreshAlerts();
@@ -275,14 +303,22 @@ export function Alerts() {
 
   const handleDeleteReminder = async (id: string) => {
     if (!window.confirm("Cancel this reminder? This cannot be undone.")) return;
-    await storage.removeBackOrderReminder(id);
-    setReminders((prev) => prev.filter((r) => r.id !== id));
+    try {
+      await storage.removeBackOrderReminder(id);
+      setReminders((prev) => prev.filter((r) => r.id !== id));
+    } catch {
+      showToast("Couldn't cancel that reminder. Please try again.");
+    }
   };
 
   const handleDeleteWatch = async (id: string) => {
     if (!window.confirm("Stop watching for this restock? This cannot be undone.")) return;
-    await storage.removeStockWatch(id);
-    setWatches((prev) => prev.filter((w) => w.id !== id));
+    try {
+      await storage.removeStockWatch(id);
+      setWatches((prev) => prev.filter((w) => w.id !== id));
+    } catch {
+      showToast("Couldn't remove that watch. Please try again.");
+    }
   };
 
   if (loading) return <LoadingSpinner />;
