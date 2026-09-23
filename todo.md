@@ -2623,3 +2623,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 312 on desktop: `handleSaveAlert`, `handleInlineAlert`, `handlePerListingAlert`, and `handleQuickAlert` each minted a fresh alert id per call with no double-submit guard, so a rapid double-click / Enter+button created two alerts
 - [x] All four now check a shared `creatingAlert` state, early-return while a creation is in flight, and clear it in `finally`
 - [x] Updated the existing `desktop/tests/best-price-signals.test.tsx` case that pinned the old behavior ("creates two distinct alerts on rapid double-tap" — its intent was id uniqueness, but duplicates were the bug) to assert a single alert; verified non-vacuous by reverting the guard. Added a source guard to `tests/desktop-chart-guard.test.ts` (now 17); E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2023 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 314: Device QA round 62 (restock-watch toggle double-submit)
+
+- [x] Follow-up to Phases 312/313: `handleToggleStockWatch` had no double-submit guard, so a rapid double-tap on "Watch for Restock" scheduled two confirmation notifications; the second `addStockWatch` replaced the first (same deterministic id), orphaning the first notification id so it could never be cancelled
+- [x] It now checks a `togglingWatch` state, early-returns while in flight, and clears it in `finally` (the reminder handler already dedups via `replacedNotificationId`, so only the watch toggle needed this)
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 38) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2024 passed`

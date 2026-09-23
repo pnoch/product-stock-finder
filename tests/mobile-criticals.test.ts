@@ -96,6 +96,21 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 62: the restock-watch toggle had no double-submit guard, so a rapid
+// double-tap scheduled two confirmation notifications and orphaned the first
+// (replaced) id so it could never be cancelled.
+describe("restock-watch toggle guards against double-submit", () => {
+  it("sets and checks a togglingWatch guard", () => {
+    const src = readFileSync(path.join(process.cwd(), "app/product/[id].tsx"), "utf8");
+    expect(src).toContain("const [togglingWatch, setTogglingWatch] = useState(false)");
+    const start = src.indexOf("const handleToggleStockWatch");
+    const block = src.slice(start, src.indexOf("}, [id, product, stockWatches", start));
+    expect(block).toContain("if (!id || togglingWatch) return;");
+    expect(block).toContain("setTogglingWatch(true)");
+    expect(block).toContain("setTogglingWatch(false)");
+  });
+});
+
 // QA round 60: the product-detail alert flows (best-distributor card and the
 // scoped PriceAlertModal) had no double-submit guard, so a rapid double-tap or
 // Enter+button created two alerts.

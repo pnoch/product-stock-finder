@@ -72,6 +72,10 @@ export default function ProductDetailScreen() {
   const [alertCurrency, setAlertCurrency] = useState("USD");
   // Guards against a double-tap / Enter+button double-submit creating two alerts.
   const [creatingAlert, setCreatingAlert] = useState(false);
+  // Guards the restock-watch toggle: a double-tap scheduled two confirmation
+  // notifications, and the first's id was orphaned (replaced) so it could never
+  // be cancelled.
+  const [togglingWatch, setTogglingWatch] = useState(false);
 
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!id) {
@@ -261,54 +265,59 @@ export default function ProductDetailScreen() {
   }, [visibleListings]);
 
   const handleToggleStockWatch = useCallback(async (listing: DistributorListing) => {
-    if (!id) return;
+    if (!id || togglingWatch) return;
     const isWatched = stockWatches[listing.distributorId];
-    if (isWatched) {
-      try {
-        const watches = await getStockWatches();
-        const watch = watches.find((w) => w.productId === id && w.distributorId === listing.distributorId);
-        if (watch) {
-          if (watch.notificationId) await cancelNotification(watch.notificationId);
-          await removeStockWatch(watch.id);
+    setTogglingWatch(true);
+    try {
+      if (isWatched) {
+        try {
+          const watches = await getStockWatches();
+          const watch = watches.find((w) => w.productId === id && w.distributorId === listing.distributorId);
+          if (watch) {
+            if (watch.notificationId) await cancelNotification(watch.notificationId);
+            await removeStockWatch(watch.id);
+          }
+          setStockWatches((prev) => ({ ...prev, [listing.distributorId]: false }));
+          if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          showToast("Removed from restock watches", "info");
+        } catch {
+          if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          showAlert("Couldn't remove watch", "We couldn't remove that restock watch. Please try again.");
         }
-        setStockWatches((prev) => ({ ...prev, [listing.distributorId]: false }));
-        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        showToast("Removed from restock watches", "info");
-      } catch {
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        showAlert("Couldn't remove watch", "We couldn't remove that restock watch. Please try again.");
+      } else {
+        const granted = await ensureNotificationPermission();
+        if (!granted) {
+          if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          showAlert("Permission Denied", Platform.OS === "web" ? "Please allow notifications in your browser to watch for restocks." : "Please enable notifications to watch for restocks.");
+          return;
+        }
+        try {
+          const distributor = getDistributorById(listing.distributorId);
+          const notificationId = await scheduleStockWatchConfirmation(product?.name ?? "Product", distributor?.name ?? listing.distributorId);
+          await addStockWatch({
+            id: `${id}-${listing.distributorId}`,
+            productId: id,
+            productName: product?.name ?? "",
+            distributorId: listing.distributorId,
+            distributorName: distributor?.name ?? "",
+            reminderDate: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            reminderType: "back_in_stock",
+            lastKnownStatus: listing.stockStatus,
+            notificationId: notificationId ?? undefined,
+          });
+          setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
+          if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          showToast(`Reminder set — you'll be notified when back in stock`, "success");
+        } catch {
+          if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          showAlert("Couldn't set watch", "We couldn't save that restock watch. Please try again.");
+        }
       }
-    } else {
-      const granted = await ensureNotificationPermission();
-      if (!granted) {
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        showAlert("Permission Denied", Platform.OS === "web" ? "Please allow notifications in your browser to watch for restocks." : "Please enable notifications to watch for restocks.");
-        return;
-      }
-      try {
-        const distributor = getDistributorById(listing.distributorId);
-        const notificationId = await scheduleStockWatchConfirmation(product?.name ?? "Product", distributor?.name ?? listing.distributorId);
-        await addStockWatch({
-          id: `${id}-${listing.distributorId}`,
-          productId: id,
-          productName: product?.name ?? "",
-          distributorId: listing.distributorId,
-          distributorName: distributor?.name ?? "",
-          reminderDate: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          reminderType: "back_in_stock",
-          lastKnownStatus: listing.stockStatus,
-          notificationId: notificationId ?? undefined,
-        });
-        setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showToast(`Reminder set — you'll be notified when back in stock`, "success");
-      } catch {
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        showAlert("Couldn't set watch", "We couldn't save that restock watch. Please try again.");
-      }
+    } finally {
+      setTogglingWatch(false);
     }
-  }, [id, product, stockWatches, showToast]);
+  }, [id, product, stockWatches, showToast, togglingWatch]);
 
   const handleSetReminder = useCallback(async () => {
     const listing = reminderListing;
