@@ -2653,3 +2653,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Rebuilt the release APK and drove the AI discovery flow on device: with a query that has no catalog matches ("Zyxel XGS1250-12") the "Discover with AI" CTA appears and tapping it invokes `discovery.discover`. The endpoint is a `protectedProcedure` (`server/routers/discovery.ts`) and the device is signed out, so the server returns 401 and the end-to-end add-to-watchlist path cannot be exercised without credentials
 - [x] Confirmed the rebuilt bundle is newer than the fixed source and contains the `addToWatchlist` call; the Phase 317 guard test pins the behavior
 - [x] No code change this round
+
+## Phase 319: Device QA round 67 (desktop discovery didn't mark the product tracked)
+
+- [x] **Desktop AI discovery left the catalog row offering "Add"**: `handleDiscover` in `desktop/src/pages/Search.tsx` added the discovered product to the watchlist but never updated `trackedIds`, which drives the Add / "Tracked" button. Mobile's `handleDiscover` calls `loadData()`, which reloads `trackedIds`. So after a desktop discovery the same row still showed "Add" (and could be added again)
+- [x] It now calls `setTrackedIds((prev) => new Set([...prev, res.product.id]))`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 19) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2028 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

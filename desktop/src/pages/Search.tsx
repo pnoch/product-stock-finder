@@ -155,6 +155,9 @@ export function Search() {
       const res = await discoverProduct(query);
       if (res) {
         await storage.addToWatchlist({ ...res.product, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
+        // Mark it tracked so the catalog row stops offering "Add" (mobile
+        // reloads trackedIds via loadData()).
+        setTrackedIds((prev) => new Set([...prev, res.product.id]));
         setRecentSearches(recordRecent(query));
         navigate(`/product/${res.product.id}`);
       } else { showToast("Discovery failed"); }

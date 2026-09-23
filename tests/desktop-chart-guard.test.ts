@@ -147,6 +147,16 @@ describe("desktop chart guard", () => {
     expect(block).toContain("catch");
   });
 
+  // QA round 67: desktop AI discovery added to the watchlist but never marked
+  // the product tracked, so the catalog row kept offering "Add".
+  it("marks a discovered product tracked in desktop Search", async () => {
+    const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    const start = text.indexOf("const handleDiscover");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("}, [query, discovering, navigate]);", start));
+    expect(block).toContain("setTrackedIds((prev) => new Set([...prev, res.product.id]))");
+  });
+
   // QA round 63: the desktop reminder / restock-watch handlers had no
   // double-submit guard (each mints a fresh random id).
   it("guards desktop reminder/watch creation against double-submit", async () => {
