@@ -115,8 +115,15 @@ export function TagPickerSheet({
       : [...cur, tagId];
     updateSelected(next);
     if (onApply) return;
-    await setProductTags(product.id, next);
-    onChanged();
+    try {
+      await setProductTags(product.id, next);
+      onChanged();
+    } catch {
+      // Revert the optimistic selection so the UI doesn't show a tag that was
+      // never persisted.
+      updateSelected(cur);
+      setError("Couldn't save tags. Please try again.");
+    }
   };
 
   const handleCreate = async () => {

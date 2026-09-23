@@ -52,3 +52,22 @@ describe("tag sheets let taps through while the keyboard is open", () => {
     expect(src).toContain("onPress={() => void handleRename(tag)}");
   });
 });
+
+// QA round 52: toggleTag optimistically updated the selection then awaited
+// setProductTags with no try/catch, so a storage failure was an unhandled
+// rejection and the UI showed a tag that was never persisted.
+describe("TagPickerSheet reverts a failed tag toggle", () => {
+  const src = readFileSync(
+    join(__dirname, "..", "components/tag-picker-sheet.tsx"),
+    "utf8",
+  );
+
+  it("wraps the write in try/catch and restores the previous selection", () => {
+    const start = src.indexOf("const toggleTag");
+    expect(start).toBeGreaterThan(-1);
+    const block = src.slice(start, src.indexOf("};", start));
+    expect(block).toContain("try {");
+    expect(block).toContain("catch");
+    expect(block).toContain("updateSelected(cur)");
+  });
+});

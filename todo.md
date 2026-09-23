@@ -2563,3 +2563,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 302: the desktop `useSettings.update` hook applied the patch optimistically but its `.catch` only logged — it never restored the previous settings, so every failed settings write (theme, currency, region, interval, LLM fields, web-notification toggle) left the UI showing a value that was never persisted. Mobile's `updateSetting` already reverts
 - [x] `update` now captures the pre-patch value via a `settingsRef` and restores it in the catch
 - [x] Added a behavioral case to `desktop/tests/use-settings-update.test.tsx` (now 3: the optimistic theme patch is reverted when the write rejects) — verified non-vacuous by removing the revert; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2010 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 304: Device QA round 52 (tag picker toggle didn't revert on failure)
+
+- [x] Follow-up to Phases 302/303: `TagPickerSheet.toggleTag` optimistically updated the selection then awaited `setProductTags` with no try/catch, so a storage failure was an unhandled rejection and the UI showed a tag that was never persisted
+- [x] It now catches, restores the previous selection, and surfaces "Couldn't save tags. Please try again."
+- [x] Added a guard to `tests/tag-picker-sheet.test.ts` (now 7) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2011 passed`
