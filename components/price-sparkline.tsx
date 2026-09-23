@@ -65,7 +65,7 @@ export function PriceSparkline({
     : {
         accessible: true as const,
         accessibilityRole: "image" as const,
-        accessibilityLabel: `Price sparkline, ${points.trend} trend, ${data.length} points`,
+        accessibilityLabel: `Price sparkline, ${points.trend} trend, ${data.length} point${data.length === 1 ? "" : "s"}`,
       };
 
   return (

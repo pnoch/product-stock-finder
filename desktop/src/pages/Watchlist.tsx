@@ -844,7 +844,7 @@ export function Watchlist() {
             }).join(" ");
             const color = prices[prices.length - 1]! >= prices[0]! ? (range === 0 ? "#9CA3AF" : "#EF4444") : "#10B981";
             return (
-              <svg width={w} height={h} className="mt-1 block" role="img" aria-label={`Price sparkline ${history.length} points`}>
+              <svg width={w} height={h} className="mt-1 block" role="img" aria-label={`Price sparkline ${history.length} point${history.length === 1 ? "" : "s"}`}>
                 <polyline points={coords} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
                 <circle cx={Number(coords.split(" ").pop()!.split(",")[0])} cy={Number(coords.split(" ").pop()!.split(",")[1])} r={2.5} fill={color} />
               </svg>

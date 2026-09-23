@@ -40,7 +40,7 @@ export const StockHealthCard = memo(function StockHealthCard({ health }: { healt
       }}
     >
       <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 8 }}>
-        Stock Health ({health.totalListings} listings)
+        Stock Health ({health.totalListings} listing{health.totalListings === 1 ? "" : "s"})
       </Text>
       <View style={{ flexDirection: "row", gap: 8 }}>
         {rows.map((row) => (

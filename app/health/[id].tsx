@@ -159,7 +159,7 @@ export default function HealthDetailScreen() {
                 {stats.trend === "up" ? "▲" : stats.trend === "down" ? "▼" : "–"}
               </Text>
               <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
-                {summary.count} samples · first{" "}
+                {summary.count} sample{summary.count === 1 ? "" : "s"} · first{" "}
                 {summary.firstAt
                   ? new Date(summary.firstAt).toLocaleDateString()
                   : "–"}{" "}
@@ -223,7 +223,7 @@ export default function HealthDetailScreen() {
                   month: "short",
                   day: "numeric",
                 })}{" "}
-                · {g.samples.length} samples · {workingPct}% working
+                · {g.samples.length} sample{g.samples.length === 1 ? "" : "s"} · {workingPct}% working
               </Text>
               {g.samples.map((s, i) => (
                 <View

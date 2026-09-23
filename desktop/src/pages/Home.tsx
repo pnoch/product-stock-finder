@@ -356,7 +356,7 @@ export function Home() {
             <Link
               to="/watchlist"
               className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline"
-              aria-label={`View all ${products.length} products`}
+              aria-label={`View all ${products.length} product${products.length === 1 ? "" : "s"}`}
             >
               View all {products.length} →
             </Link>

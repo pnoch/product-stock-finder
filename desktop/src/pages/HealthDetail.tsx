@@ -101,7 +101,7 @@ export function HealthDetail() {
         {stats ? (
           <>
             <p className="text-3xl font-bold">{stats.uptimePct}% <span className="text-lg">{stats.trend === "up" ? "▲" : stats.trend === "down" ? "▼" : "–"}</span></p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{summary.count} samples · first {summary.firstAt ? new Date(summary.firstAt).toLocaleDateString() : "–"} · last {summary.lastAt ? new Date(summary.lastAt).toLocaleDateString() : "–"}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{summary.count} sample{summary.count === 1 ? "" : "s"} · first {summary.firstAt ? new Date(summary.firstAt).toLocaleDateString() : "–"} · last {summary.lastAt ? new Date(summary.lastAt).toLocaleDateString() : "–"}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">avg response {summary.avgResponseTimeMs != null ? `${summary.avgResponseTimeMs}ms` : "–"}</p>
           </>
         ) : (
@@ -122,7 +122,7 @@ export function HealthDetail() {
         return (
           <div key={g.day} className="mb-6">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
-              {new Date(g.day + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} · {g.samples.length} samples · {pct}% working
+              {new Date(g.day + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} · {g.samples.length} sample{g.samples.length === 1 ? "" : "s"} · {pct}% working
             </h3>
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
               {g.samples.map((s, i) => (

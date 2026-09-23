@@ -2377,3 +2377,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Fixed the shared-watchlist header and swept the same hardcoded-plural class across the other count displays that can render with a count of 1: Home "View all N products", Alerts header "N alerts" / "N reminders", the Stats Basket Value card "N products", and the branded `StatsShareCard` "N products"; mirrored the desktop Stats basket line for parity
 - [x] Verified on web (rebuilt `dist-web`): the single-product share now renders "1 product"
 - [x] Added a pluralization guard to `tests/mobile-criticals.test.ts` (now 14) — verified non-vacuous by reverting to the hardcoded "products"; E2E root `tsc 0`, lint 0 errors (164 warnings), root `328 passed | 2 skipped` / `1963 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
+
+## Phase 274: Device QA round 22 (plural sweep — remaining count labels)
+
+- [x] Follow-up to Phase 273: swept the remaining count labels that hardcoded the plural and can render with a count of 1 — Stock Health "N listings", the health drill-down "N samples" (summary + per-day group), the sparkline accessibility label "N points", and the bulk-import accessibility label "N products"
+- [x] Mirrored the desktop parity fixes: Stats "N listings", HealthDetail "N samples" (summary + per-day group), Home "View all N products" aria-label, Watchlist sparkline aria-label "N points"
+- [x] Added a 5-case "count labels pluralize" guard to `tests/mobile-criticals.test.ts` (now 19) — verified non-vacuous by reverting the Stock Health and sparkline labels; E2E root `tsc 0`, lint 0 errors (164 warnings), root `328 passed | 2 skipped` / `1968 passed`; desktop `tsc 0`, `44 passed` / `219 passed`

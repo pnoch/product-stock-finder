@@ -149,3 +149,21 @@ describe("price-history CSV export lives on the Compare screen", () => {
     ).toThrow();
   });
 });
+
+// QA round 22: a sweep of the remaining count labels that hardcoded the plural
+// (Stock Health "N listings", health drill-down "N samples", sparkline a11y
+// "N points", bulk-import a11y "N products"). Each can render with a count of 1.
+describe("count labels pluralize", () => {
+  const cases: Array<[string, RegExp]> = [
+    ["components/stats/stock-health-card.tsx", /listing\{health\.totalListings === 1 \? "" : "s"\}/],
+    ["app/health/[id].tsx", /sample\{summary\.count === 1 \? "" : "s"\}/],
+    ["app/health/[id].tsx", /sample\{g\.samples\.length === 1 \? "" : "s"\}/],
+    ["components/price-sparkline.tsx", /point\$\{data\.length === 1 \? "" : "s"\}/],
+    ["components/search/bulk-import-modal.tsx", /product\$\{newProducts\.length === 1 \? "" : "s"\}/],
+  ];
+  for (const [file, pattern] of cases) {
+    it(`${file} pluralizes`, () => {
+      expect(readFileSync(path.join(process.cwd(), file), "utf8")).toMatch(pattern);
+    });
+  }
+});

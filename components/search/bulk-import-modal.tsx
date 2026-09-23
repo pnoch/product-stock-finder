@@ -205,7 +205,7 @@ export function BulkImportModal({
               justifyContent: "center",
               gap: 8,
             }}
-            accessibilityLabel={`Import ${newProducts.length} products`}
+            accessibilityLabel={`Import ${newProducts.length} product${newProducts.length === 1 ? "" : "s"}`}
             accessibilityRole="button"
             accessibilityState={{ disabled: !canImport }}
           >
