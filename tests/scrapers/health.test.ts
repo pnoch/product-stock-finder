@@ -564,6 +564,17 @@ describe("timelineSegments", () => {
     expect(segments.map((s) => s.weight)).toEqual([1 / 3, 1 / 3, 1 / 3]);
   });
 
+  // A corrupt sample with an invalid `at` makes the span NaN; `NaN <= 0` is
+  // false and clamping NaN doesn't fix it, so the strip would collapse.
+  it("falls back to equal weights when a timestamp is invalid", () => {
+    const segments = timelineSegments([
+      sample("working", "not-a-date"),
+      sample("blocked", "also-bad"),
+    ]);
+    expect(segments.every((s) => Number.isFinite(s.weight))).toBe(true);
+    expect(segments.map((s) => s.weight)).toEqual([1 / 2, 1 / 2]);
+  });
+
   it("weights sum to 1", () => {
     const segments = timelineSegments([
       sample("working", "2026-08-01T00:00:00Z"),

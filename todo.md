@@ -2911,3 +2911,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`computeHealthStats` mapped an unknown status to `undefined`**: `STATUS_VALUE[s.status]` has no fallback, so a corrupt sample with a status outside `working|blocked|error` (the stored history isn't shape-validated) produced `undefined` in the sparkline. The desktop `HealthSparkline` then computed `y = pad + (1 - v) * usableH` = NaN, emitting a malformed SVG polyline
 - [x] The lookup now falls back to `0`
 - [x] Added a case to `tests/scrapers/health.test.ts` (now 65: an unknown status maps to 0, all sparkline values finite) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2084 passed`
+
+## Phase 362: Device QA round 110 (invalid sample timestamp collapsed the health timeline)
+
+- [x] **`timelineSegments` produced NaN weights for an invalid timestamp**: with a corrupt sample whose `at` doesn't parse, `total` is NaN, `NaN <= 0` is false, and `Math.min(Math.max(NaN, 0), 1)` is still NaN — so every segment's `flex: NaN` made the health timeline strip collapse (mobile and desktop)
+- [x] It now treats a non-finite span as a flat distribution (`!Number.isFinite(total) || total <= 0`)
+- [x] Added a case to `tests/scrapers/health.test.ts` (now 66: invalid timestamps fall back to equal weights) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2085 passed`

@@ -217,7 +217,10 @@ export function timelineSegments(samples: HealthSample[]): TimelineSegment[] {
   if (sorted.length === 1) return [{ status: sorted[0].status, weight: 1 }];
   const times = sorted.map((s) => new Date(s.at).getTime());
   const total = times[times.length - 1]! - times[0]!;
-  if (total <= 0) {
+  // `total <= 0` is false for NaN (a corrupt sample with an invalid `at`), and
+  // clamping NaN weights doesn't fix them — the timeline strip would collapse.
+  // Treat a non-finite span as a flat distribution.
+  if (!Number.isFinite(total) || total <= 0) {
     return sorted.map((s) => ({ status: s.status, weight: 1 / sorted.length }));
   }
   // Trapezoidal (nearest-neighbor) intervals: each sample owns half the gap
