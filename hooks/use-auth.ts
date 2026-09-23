@@ -281,6 +281,7 @@ export function useAuth(options?: UseAuthOptions) {
       const token = await Auth.getSessionToken();
       if (token) headers["Authorization"] = `Bearer ${token}`;
     }
+    if (!baseUrl) throw new Error("This build isn't connected to a server.");
     const res = await fetch(`${baseUrl}/api/auth/change-password`, {
       method: "POST",
       headers,
@@ -304,6 +305,7 @@ export function useAuth(options?: UseAuthOptions) {
       const token = await Auth.getSessionToken();
       if (token) headers["Authorization"] = `Bearer ${token}`;
     }
+    if (!baseUrl) throw new Error("This build isn't connected to a server.");
     const res = await fetch(`${baseUrl}/api/auth/delete-account`, {
       method: "POST",
       headers,
@@ -330,6 +332,7 @@ export function useAuth(options?: UseAuthOptions) {
       const token = await Auth.getSessionToken();
       if (token) headers["Authorization"] = `Bearer ${token}`;
     }
+    if (!baseUrl) throw new Error("This build isn't connected to a server.");
     const res = await fetch(`${baseUrl}/api/auth/resend-verification`, {
       method: "POST",
       headers,

@@ -96,6 +96,20 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 88: changePassword / deleteAccount / resendVerification fetched
+// `${getApiBaseUrl()}/...` without checking the base URL was configured
+// (forgotPassword was fixed in Phase 326).
+describe("auth mutations check the API base URL", () => {
+  it("guards every auth fetch", () => {
+    const src = readFileSync(path.join(process.cwd(), "hooks/use-auth.ts"), "utf8");
+    for (const endpoint of ["forgot", "change-password", "delete-account", "resend-verification"]) {
+      const idx = src.indexOf(`/api/auth/${endpoint}\``);
+      expect(idx, endpoint).toBeGreaterThan(-1);
+      expect(src.slice(idx - 120, idx)).toContain("if (!baseUrl) throw new Error");
+    }
+  });
+});
+
 // QA round 85: ReminderSection.onSet had no double-submit guard, so a rapid
 // double-tap created two reminders (the second replaced the first, orphaning
 // the first scheduled notification id).

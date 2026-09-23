@@ -2779,3 +2779,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 338 on desktop: `getDesktopDeviceId` called `localStorage.getItem`/`setItem` outside any try/catch, so a storage failure rejected (the mobile variant falls back to an in-memory id), and its `pending` guard was ineffective because the first `getItem` await happened before the pending check — concurrent callers could each generate an id
 - [x] It now mirrors mobile: the whole read/write is wrapped, a `memoryFallbackId` keeps a stable identity on failure, and the `pending` guard is checked first
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 24) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2054 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 340: Device QA round 88 (three more auth fetches skipped the base-URL guard)
+
+- [x] Follow-up to Phase 326: `useAuth.changePassword`, `deleteAccount`, and `resendVerification` all fetched `${getApiBaseUrl()}/api/auth/...` without checking the base URL was configured, so on an unconfigured build they hit the relative path and surfaced a confusing failure (only `forgotPassword` had the guard)
+- [x] All three now throw "This build isn't connected to a server." when the base URL is empty
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 58) asserting every auth fetch has the guard — verified non-vacuous by reverting `changePassword`; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2055 passed`
