@@ -822,9 +822,14 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
-        const row = rows[0] as unknown as { ownerId: number } | undefined;
+        const row = rows[0] as unknown as { ownerId: number; expiresAt: Date | null } | undefined;
         if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
         if (row.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN", message: "Only owner can invite" });
+        // Expired shares must not accept new members (get/members/join all
+        // reject them), or an invite silently grants access to a dead share.
+        if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Share expired" });
+        }
         await db.insert(sharedWatchlistMembers).values({ token: input.token, userId: input.userId, role: input.role }).onDuplicateKeyUpdate({ set: { role: input.role } });
         return { invited: true } as const;
       }),

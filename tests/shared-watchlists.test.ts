@@ -161,6 +161,23 @@ describe("sharedWatchlists router", () => {
     expect(res.truncated).toBe(false);
   });
 
+  // An expired share must not accept new members: get/members/join all reject
+  // expired shares, so invite must too or it silently grants access to a dead
+  // share.
+  it("invite rejects an expired share", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({
+        sharedRows: [
+          { ownerId: 1, token: "tok123", title: "Old", expiresAt: new Date(Date.now() - 1000) },
+        ],
+      }) as never,
+    );
+    const caller = appRouter.createCaller(createAuthedContext(1));
+    await expect(
+      caller.sharedWatchlists.invite({ token: "tok123", userId: 2, role: "viewer" }),
+    ).rejects.toThrow(/expired/i);
+  });
+
   it("revoke requires auth and returns revoked", async () => {
     mockedGetDb.mockResolvedValue(fakeDb({}) as never);
     const caller = appRouter.createCaller(createAuthedContext(1));

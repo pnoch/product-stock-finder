@@ -2737,3 +2737,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The Distributor Analysis "Export CSV" shared the CSV as a text message**: it called `shareText(csv, …)` (web clipboard / native `Share.share({ message })`) instead of the shared `exportCsvFile` helper, so the recipient got the CSV pasted as text rather than a `.csv` file — unlike Compare, the shared watchlist, and Settings, which all use `exportCsvFile`
 - [x] It now calls `exportCsvFile(csv, "distributor-analysis-<date>.csv")` and reports "Exported" / "Export unavailable" (the now-unused `shareText` import was dropped)
 - [x] Updated `tests/distributor-analysis.test.ts` (whose old assertion pinned the `shareText` outcome strings) to assert the file-export path, and added a guard to `tests/mobile-criticals.test.ts` (now 53) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2045 passed`
+
+## Phase 333: Device QA round 81 (shared-watchlist invite accepted expired shares)
+
+- [x] **`sharedWatchlists.invite` didn't check expiry**: unlike `get`, `members`, and `join` (which all reject an expired share), `invite` only checked ownership — so an owner could add members to an expired share, silently granting access to a dead share that no one can open
+- [x] `invite` now rejects an expired share with NOT_FOUND "Share expired", matching the other endpoints
+- [x] Added a case to `tests/shared-watchlists.test.ts` (now 11: invite rejects an expired share) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2046 passed`
