@@ -197,6 +197,15 @@ describe("desktop chart guard", () => {
     expect(block).not.toContain("alert.triggeredPrice ?? alert.targetPrice");
   });
 
+  // QA round 123: desktop's Compare chart pushed `new Date(p.date).getTime()`
+  // into allDates without filtering NaN, so one invalid date made minDate/
+  // dateRange NaN and blanked the chart. Mobile's MultiLineChart filters it.
+  it("filters invalid dates in the desktop compare chart", async () => {
+    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    expect(text).toMatch(/if \(!Number\.isNaN\(t\)\) allDates\.push\(t\)/);
+    expect(text).not.toMatch(/for \(const p of s\.data\) allDates\.push\(new Date\(p\.date\)\.getTime\(\)\)/);
+  });
+
   // QA round 119: desktop accessed `listing.priceHistory.<method>` without the
   // `?? []` guard mobile uses, so a corrupt/legacy listing (missing the field)
   // crashed the page (Stats, Watchlist, DistributorHistoryModal). Same class as

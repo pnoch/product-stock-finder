@@ -2990,3 +2990,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Extracted a shared `buildDayKeys(days, now)` in `lib/drop-calendar.ts` using calendar-date arithmetic; desktop Stats now uses it
 - [x] Pinned `process.env.TZ = "America/New_York"` in `tests/drop-calendar-dst.test.ts` (the existing test was vacuous under UTC/Asia/Bangkok) and added a `buildDayKeys` case — verified non-vacuous by reverting the helper to the fixed-24h loop
 - [x] Added a desktop guard to `tests/desktop-chart-guard.test.ts` (now 31); E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2098 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 375: Device QA round 123 (desktop compare chart blanked on an invalid date)
+
+- [x] **Desktop's Compare chart pushed `new Date(p.date).getTime()` into `allDates` without filtering `NaN`**: one corrupt/legacy price point with an unparseable date made `Math.min`/`Math.max` return `NaN`, so `minDate`/`dateRange` were `NaN` and every x-coordinate was `NaN` — the whole multi-distributor chart rendered blank. Mobile's `MultiLineChart` filters `if (!Number.isNaN(t))` for exactly this reason
+- [x] Desktop now filters invalid dates when building `allDates` (and returns the "No data" state when none remain) and skips invalid-date points when building each series' coords
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 32) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2099 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

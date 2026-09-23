@@ -122,7 +122,17 @@ function SeriesChart({
   const globalMax = Math.max(...allPrices);
   const range = globalMax - globalMin || 1;
   const allDates: number[] = [];
-  for (const s of series) for (const p of s.data) allDates.push(new Date(p.date).getTime());
+  for (const s of series)
+    for (const p of s.data) {
+      // Filter invalid dates: a single NaN makes Math.min/max NaN, which
+      // propagates into every x-coordinate and blanks the chart. Mobile's
+      // MultiLineChart guards the same way.
+      const t = new Date(p.date).getTime();
+      if (!Number.isNaN(t)) allDates.push(t);
+    }
+  if (allDates.length === 0) {
+    return <div className="text-center text-sm text-gray-400 py-8">No data</div>;
+  }
   const minDate = Math.min(...allDates);
   const maxDate = Math.max(...allDates);
   const dateRange = maxDate - minDate || 1;
@@ -173,7 +183,9 @@ function SeriesChart({
               .map((p) => {
                 const conv = convertPrice(p.price, p.currency, displayCurrency);
                 if (conv === null || !Number.isFinite(conv)) return null;
-                const x = padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
+                const t = new Date(p.date).getTime();
+                if (Number.isNaN(t)) return null;
+                const x = padL + ((t - minDate) / dateRange) * usableW;
                 const y = padT + (1 - (conv - globalMin) / range) * usableH;
                 return { x, y };
               })
