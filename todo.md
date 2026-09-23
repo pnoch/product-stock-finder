@@ -2869,3 +2869,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The watchlist product card's price-change badge mixed stock statuses**: it compared the current best orderable price against the oldest point of *any* listing's history (including out-of-stock), so an out-of-stock distributor's high historical price produced a fake drop — e.g. a 1000 out-of-stock point vs a 100 current best showed `▼ 90.0%`. The same class the all-time-low and price-vs-average checks already fixed
 - [x] Extracted `computePriceChange` (`lib/price-change.ts`) which compares the current best against the historical minimum **in-stock** price (`bestPricePoints`), and used it in `components/watchlist/product-card.tsx`
 - [x] Added `tests/price-change.test.ts` (3 cases: in-stock minimum, out-of-stock ignored, no orderable price) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2075 passed`
+
+## Phase 355: Device QA round 103 (scheduled reminders lost their Android channel)
+
+- [x] **`scheduleBackOrderReminder`'s DATE trigger omitted `channelId`**: Phase 252 correctly removed the ineffective `content.channelId` (Android reads the channel from the trigger) but never added `channelId` to the DATE trigger itself — so a scheduled reminder landed on the fallback channel with no HIGH importance/sound/vibration, unlike every immediate notification
+- [x] The DATE trigger now carries `channelIdFor("stock")` on Android
+- [x] Added a case to `tests/android-channel-trigger.test.ts` (now 4: the DATE trigger carries the channelId; also fixed the permission mock to return `status: "granted"`) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2076 passed`

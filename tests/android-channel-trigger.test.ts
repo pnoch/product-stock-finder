@@ -11,8 +11,8 @@ vi.mock("expo-notifications", () => ({
   AndroidImportance: { HIGH: 4, DEFAULT: 3 },
   setNotificationChannelAsync: vi.fn(),
   scheduleNotificationAsync: vi.fn(async () => "id"),
-  getPermissionsAsync: vi.fn(async () => ({ granted: true })),
-  requestPermissionsAsync: vi.fn(async () => ({ granted: true })),
+  getPermissionsAsync: vi.fn(async () => ({ status: "granted", granted: true })),
+  requestPermissionsAsync: vi.fn(async () => ({ status: "granted", granted: true })),
   setNotificationHandler: vi.fn(),
   addNotificationReceivedListener: vi.fn(() => ({ remove: vi.fn() })),
   addNotificationResponseReceivedListener: vi.fn(() => ({ remove: vi.fn() })),
@@ -20,7 +20,8 @@ vi.mock("expo-notifications", () => ({
   cancelScheduledNotificationAsync: vi.fn(),
 }));
 
-import { immediateTrigger, channelIdFor } from "../lib/notifications";
+import { immediateTrigger, channelIdFor, scheduleBackOrderReminder } from "../lib/notifications";
+import * as Notifications from "expo-notifications";
 
 describe("immediateTrigger carries the Android channel", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -45,5 +46,17 @@ describe("immediateTrigger carries the Android channel", () => {
 
   it("never returns a bare null trigger on Android (which loses the channel)", () => {
     expect(immediateTrigger("price")).not.toBeNull();
+  });
+
+  // A DATE trigger also carries the channel on Android; Phase 252 removed the
+  // ineffective content.channelId but never added it to the trigger, so
+  // scheduled reminders landed on the fallback channel.
+  it("scheduleBackOrderReminder's DATE trigger carries the channelId", async () => {
+    await scheduleBackOrderReminder("P", "D", new Date(Date.now() + 86400000), "p1");
+    const call = vi.mocked(Notifications.scheduleNotificationAsync).mock.calls.at(-1)![0];
+    expect(call.trigger).toMatchObject({
+      type: "date",
+      channelId: channelIdFor("stock"),
+    });
   });
 });

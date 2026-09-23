@@ -329,7 +329,10 @@ export async function scheduleBackOrderReminder(
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: reminderDate,
         // Android reads the channel from the TRIGGER; `content.channelId` is
-        // ignored, so a scheduled reminder landed on the fallback channel.
+        // ignored. Phase 252 removed the ineffective content field but never
+        // added it here, so scheduled reminders still landed on the fallback
+        // channel (no HIGH importance/sound/vibration).
+        ...(channelIdFor("stock") ? { channelId: channelIdFor("stock") } : {}),
       },
     });
     return id;
