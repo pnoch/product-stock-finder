@@ -161,6 +161,9 @@ export function ProductDetail() {
   const [livePriceLoading, setLivePriceLoading] = useState(false);
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
+  // Guards against a double-click / Enter+button double-submit creating two
+  // alerts across any of the four alert entry points.
+  const [creatingAlert, setCreatingAlert] = useState(false);
   const [perListingAlertId, setPerListingAlertId] = useState<string | null>(null);
   const [perListingAlertPrice, setPerListingAlertPrice] = useState("");
   const [perListingAlertCurrency, setPerListingAlertCurrency] = useState("USD");
@@ -442,7 +445,7 @@ export function ProductDetail() {
   };
 
   const handleSaveAlert = async () => {
-    if (!product || !alertPrice) return;
+    if (!product || !alertPrice || creatingAlert) return;
     const price = parseFloat(alertPrice);
     if (isNaN(price) || price <= 0) return;
 
@@ -451,13 +454,20 @@ export function ProductDetail() {
       showToast("No distributor available");
       return;
     }
-    const { ok, alert } = await createPriceAlert({
-      productId: product.id,
-      distributorId,
-      targetPrice: price,
-      currency: alertCurrency,
-      direction: alertDirection,
-    });
+    setCreatingAlert(true);
+    let result: Awaited<ReturnType<typeof createPriceAlert>>;
+    try {
+      result = await createPriceAlert({
+        productId: product.id,
+        distributorId,
+        targetPrice: price,
+        currency: alertCurrency,
+        direction: alertDirection,
+      });
+    } finally {
+      setCreatingAlert(false);
+    }
+    const { ok, alert } = result;
     if (!ok || !alert) {
       setAlertError("Please enable notifications in your system settings to receive price alerts.");
       return;
@@ -526,7 +536,7 @@ export function ProductDetail() {
   };
 
   const handleInlineAlert = async () => {
-    if (!product) return;
+    if (!product || creatingAlert) return;
     const price = parseFloat(inlineAlertPrice);
     if (isNaN(price) || price <= 0) {
       showToast("Enter a valid target price");
@@ -537,13 +547,20 @@ export function ProductDetail() {
       showToast("No distributor available");
       return;
     }
-    const { ok, alert } = await createPriceAlert({
-      productId: product.id,
-      distributorId,
-      targetPrice: price,
-      currency: inlineAlertCurrency,
-      direction: inlineAlertDirection,
-    });
+    setCreatingAlert(true);
+    let result: Awaited<ReturnType<typeof createPriceAlert>>;
+    try {
+      result = await createPriceAlert({
+        productId: product.id,
+        distributorId,
+        targetPrice: price,
+        currency: inlineAlertCurrency,
+        direction: inlineAlertDirection,
+      });
+    } finally {
+      setCreatingAlert(false);
+    }
+    const { ok, alert } = result;
     if (!ok || !alert) {
       showToast("Please enable notifications in your system settings to receive price alerts.");
       return;
@@ -699,16 +716,23 @@ export function ProductDetail() {
   };
 
   const handlePerListingAlert = async () => {
-    if (!product || !perListingAlertId) return;
+    if (!product || !perListingAlertId || creatingAlert) return;
     const price = parseFloat(perListingAlertPrice);
     if (isNaN(price) || price <= 0) return;
-    const { ok, alert } = await createPriceAlert({
-      productId: product.id,
-      distributorId: perListingAlertId,
-      targetPrice: price,
-      currency: perListingAlertCurrency,
-      direction: perListingAlertDirection,
-    });
+    setCreatingAlert(true);
+    let result: Awaited<ReturnType<typeof createPriceAlert>>;
+    try {
+      result = await createPriceAlert({
+        productId: product.id,
+        distributorId: perListingAlertId,
+        targetPrice: price,
+        currency: perListingAlertCurrency,
+        direction: perListingAlertDirection,
+      });
+    } finally {
+      setCreatingAlert(false);
+    }
+    const { ok, alert } = result;
     if (!ok || !alert) {
       showToast("Please enable notifications in your system settings to receive price alerts.");
       return;
@@ -720,15 +744,22 @@ export function ProductDetail() {
   };
 
   const handleQuickAlert = async () => {
-    if (!product || !bestListing) return;
+    if (!product || !bestListing || creatingAlert) return;
     const suggested = Math.round(bestListing.price * 0.95 * 100) / 100;
-    const { ok, alert } = await createPriceAlert({
-      productId: product.id,
-      distributorId: bestListing.distributorId,
-      targetPrice: suggested,
-      currency: bestListing.currency,
-      direction: "drop",
-    });
+    setCreatingAlert(true);
+    let result: Awaited<ReturnType<typeof createPriceAlert>>;
+    try {
+      result = await createPriceAlert({
+        productId: product.id,
+        distributorId: bestListing.distributorId,
+        targetPrice: suggested,
+        currency: bestListing.currency,
+        direction: "drop",
+      });
+    } finally {
+      setCreatingAlert(false);
+    }
+    const { ok, alert } = result;
     if (!ok || !alert) {
       showToast("Please enable notifications in your system settings to receive price alerts.");
       return;

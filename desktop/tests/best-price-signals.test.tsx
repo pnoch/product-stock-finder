@@ -200,7 +200,10 @@ describe("best-price signals", () => {
     ).toBeInTheDocument();
   });
 
-  it("creates two distinct alerts on rapid double-tap", async () => {
+  // A rapid double-tap must create ONE alert, not two: the handler now guards
+  // with `creatingAlert`. (The original test asserted two distinct ids — it was
+  // pinning id uniqueness, but duplicates were the bug.)
+  it("creates only one alert on rapid double-tap", async () => {
     mockStorage.getWatchlist.mockResolvedValue([
       makeProduct([
         { price: 100, date: "2026-06-01T00:00:00.000Z" },
@@ -218,15 +221,10 @@ describe("best-price signals", () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(mockStorage.addAlert).toHaveBeenCalledTimes(2);
+        expect(mockStorage.addAlert).toHaveBeenCalledTimes(1);
       });
-      const ids = mockStorage.addAlert.mock.calls.map(
-        (c) => (c[0] as { id: string }).id,
-      );
-      expect(ids[0]).not.toBe(ids[1]);
-      for (const alertId of ids) {
-        expect(alertId).toMatch(/^alert-1726000000000-[a-z0-9]{6}$/);
-      }
+      const alertId = (mockStorage.addAlert.mock.calls[0]![0] as { id: string }).id;
+      expect(alertId).toMatch(/^alert-1726000000000-[a-z0-9]{6}$/);
     } finally {
       nowSpy.mockRestore();
     }

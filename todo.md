@@ -2617,3 +2617,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 311: the product-detail alert flows had no double-submit guard — `handleSetBestAlert` (Best-Distributor card) and `handleSetAlert` (the scoped PriceAlertModal, whose Set Alert button and `onSubmitEditing` both call it) each mint a fresh alert id per call, so a rapid double-tap or Enter+button created two alerts
 - [x] Both now check a shared `creatingAlert` state, early-return while a creation is in flight, and clear it in `finally`
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 37) — verified non-vacuous by reverting `handleSetAlert`; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2022 passed`
+
+## Phase 313: Device QA round 61 (desktop product-detail alert double-submit)
+
+- [x] Follow-up to Phase 312 on desktop: `handleSaveAlert`, `handleInlineAlert`, `handlePerListingAlert`, and `handleQuickAlert` each minted a fresh alert id per call with no double-submit guard, so a rapid double-click / Enter+button created two alerts
+- [x] All four now check a shared `creatingAlert` state, early-return while a creation is in flight, and clear it in `finally`
+- [x] Updated the existing `desktop/tests/best-price-signals.test.tsx` case that pinned the old behavior ("creates two distinct alerts on rapid double-tap" — its intent was id uniqueness, but duplicates were the bug) to assert a single alert; verified non-vacuous by reverting the guard. Added a source guard to `tests/desktop-chart-guard.test.ts` (now 17); E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2023 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

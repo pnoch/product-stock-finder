@@ -127,9 +127,11 @@ describe("desktop chart guard", () => {
     // createPriceAlert returns the created alert.
     const alertStart = text.indexOf("async function createPriceAlert");
     expect(text.slice(alertStart, text.indexOf("return { ok: true, id, alert };", alertStart))).toContain("alert");
-    // Every caller appends it to state.
-    const callers = text.match(/const \{ ok, alert \} = await createPriceAlert\(/g) ?? [];
+    // Every caller appends the returned alert to state. (The callers destructure
+    // after awaiting, so match the destructure and the state append separately.)
+    const callers = text.match(/= await createPriceAlert\(/g) ?? [];
     expect(callers.length).toBe(4);
+    expect((text.match(/const \{ ok, alert \} = result;/g) ?? []).length).toBe(4);
     expect((text.match(/setAlerts\(\(prev\) => \[\.\.\.prev, alert\]\)/g) ?? []).length).toBeGreaterThanOrEqual(4);
   });
 
@@ -143,6 +145,27 @@ describe("desktop chart guard", () => {
     expect(block).toContain("const previous = basketThreshold");
     expect(block).toContain("setBasketThreshold(previous)");
     expect(block).toContain("catch");
+  });
+
+  // QA round 61: the desktop product-detail alert flows had no double-submit
+  // guard (mobile was fixed in Phase 312).
+  it("guards desktop product-detail alert creation against double-submit", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("const [creatingAlert, setCreatingAlert] = useState(false)");
+    for (const handler of [
+      "const handleSaveAlert",
+      "const handleInlineAlert",
+      "const handlePerListingAlert",
+      "const handleQuickAlert",
+    ]) {
+      const start = text.indexOf(handler);
+      expect(start).toBeGreaterThan(-1);
+      // Take a generous window up to the next handler / render boundary.
+      const block = text.slice(start, start + 1600);
+      expect(block).toContain("creatingAlert");
+      expect(block).toContain("setCreatingAlert(true)");
+      expect(block).toContain("setCreatingAlert(false)");
+    }
   });
 
   // QA round 59: the desktop Compare cross-alert had no double-submit guard.
