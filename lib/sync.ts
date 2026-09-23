@@ -637,9 +637,10 @@ async function removeLocalItem(
 ): Promise<void> {
   switch (collection) {
     case "watchlist": {
-      await storage.updateWatchlist((list) =>
-        list.filter((p) => p.id !== id),
-      );
+      // Use the storage primitive (not a bare updateWatchlist) so the cascade
+      // to this product's alerts runs: a product deleted on another device must
+      // not leave orphaned alerts here that can never fire.
+      await storage.removeFromWatchlist(id);
       break;
     }
     case "alerts": {

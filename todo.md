@@ -2454,3 +2454,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] `createStorage` now wraps `removeFromWatchlist` to cascade: after removing the product it deletes every alert whose `productId` matches. Cascading in the storage layer (rather than at each of the four call sites) covers every removal path, including the sync engine's `removeLocalItem`
 - [x] Verified on device (rebuilt x86_64+arm64 release APK, clean install): set a scoped alert on Valve Steam Deck OLED, removed the product, and the Alerts tab went to "0 alerts" / "No alerts set"
 - [x] Added a cascade case to `tests/storage.test.ts` (now 70) — verified non-vacuous by reverting the wrapper; E2E root `tsc 0`, lint 0 errors (164 warnings), root `329 passed | 2 skipped` / `1987 passed`
+
+## Phase 286: Device QA round 34 (sync tombstone bypassed the alert cascade)
+
+- [x] Follow-up to Phase 285: the cascade lived in `storage.removeFromWatchlist`, but the sync engine's `removeLocalItem` removed watchlist rows with a bare `updateWatchlist((list) => list.filter(...))` — so a product deleted on another device (arriving as a tombstone) left its alerts orphaned here, exactly the bug Phase 285 fixed for local removals
+- [x] `removeLocalItem`'s watchlist branch now calls `storage.removeFromWatchlist(id)`, so the cascade runs for remote deletions too
+- [x] Added a case to `tests/sync-engine.test.ts` (now 32: a remote watchlist tombstone also clears that product's alerts) — verified non-vacuous by reverting to the bare `updateWatchlist`; E2E root `tsc 0`, lint 0 errors (164 warnings), root `329 passed | 2 skipped` / `1988 passed`

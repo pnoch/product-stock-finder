@@ -328,6 +328,47 @@ describe("syncNow", () => {
     expect(await storage.getWatchlist()).toEqual([]);
   });
 
+  // A product deleted on another device arrives as a tombstone. Removing it
+  // locally must cascade to its alerts too, or they linger as "Unknown Product"
+  // and can never fire (the sync path bypassed the storage cascade).
+  it("cascades a remote watchlist tombstone to that product's alerts", async () => {
+    const storage = makeStorage();
+    await storage.addToWatchlist(makeProduct("p1"));
+    await storage.addAlert({
+      id: "a1",
+      productId: "p1",
+      targetPrice: 100,
+      currency: "USD",
+      isActive: true,
+      createdAt: "2026-08-11T00:00:00.000Z",
+    });
+    await storage.setItemSyncMeta("watchlist", "p1", 1000);
+    const pull = vi.fn(
+      async (): Promise<{ lastSyncedAt: number; items: SyncItem[] }> => ({
+        lastSyncedAt: 5000,
+        items: [
+          {
+            collection: "watchlist",
+            id: "p1",
+            data: null,
+            updatedAt: 4000,
+            deletedAt: 4000,
+          },
+        ],
+      }),
+    );
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 6000,
+    });
+    expect(await storage.getWatchlist()).toEqual([]);
+    expect(await storage.getAlerts()).toEqual([]);
+  });
+
   it("preserves local priceHistory while replacing listing state", async () => {
     const storage = makeStorage();
     const localListing = listing("d1", 100, "in_stock");
