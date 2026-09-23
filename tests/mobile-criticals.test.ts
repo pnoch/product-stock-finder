@@ -96,6 +96,22 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 75: launch fired `void checkPriceDropsNow()` / `void loadFxRates()`
+// / `void maybeRefreshFxRates()` with no catch, so a storage read failure was
+// an unhandled rejection.
+describe("launch side effects are guarded", () => {
+  const src = readFileSync(path.join(process.cwd(), "app/_layout.tsx"), "utf8");
+
+  it("guards the launch price check", () => {
+    expect(src).toContain("void checkPriceDropsNow().catch(");
+  });
+
+  it("guards the FX loads", () => {
+    expect(src).toContain("void loadFxRates().catch(");
+    expect(src).toContain("void maybeRefreshFxRates().catch(");
+  });
+});
+
 // QA round 74: the forgot-password paths fetched `${getApiBaseUrl()}/...`
 // without checking the base URL was configured.
 describe("forgot-password checks the API base URL", () => {

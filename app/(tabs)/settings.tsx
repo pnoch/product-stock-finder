@@ -284,7 +284,7 @@ export default function SettingsScreen() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-      void maybeRefreshFxRates();
+      void maybeRefreshFxRates().catch(() => {});
     })();
     return () => {
       cancelled = true;

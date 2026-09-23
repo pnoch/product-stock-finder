@@ -182,8 +182,9 @@ export default function RootLayout() {
         registerPriceCheckTask();
         // Register background health probe task
         registerHealthProbeTask();
-        // Run a foreground check immediately on app launch
-        void checkPriceDropsNow();
+        // Run a foreground check immediately on app launch. A storage read
+        // failure must not reject unhandled.
+        void checkPriceDropsNow().catch((e) => console.error("[Launch] price check failed", e));
         if (isServerConfigured()) {
           // Register for Expo push delivery (best-effort)
           void registerPushToken();
@@ -307,8 +308,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!isServerConfigured()) return;
-    void loadFxRates();
-    void maybeRefreshFxRates();
+    // A storage read failure must not reject unhandled; rates fall back to the
+    // static table.
+    void loadFxRates().catch(() => {});
+    void maybeRefreshFxRates().catch(() => {});
   }, []);
 
   // Ensure minimum 8px padding for top and bottom on mobile

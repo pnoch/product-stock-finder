@@ -2701,3 +2701,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 325: the forgot/reset-password paths fetched `${getApiBaseUrl()}/...` without checking the base URL was configured — mobile `useAuth.forgotPassword` + `login-modal`, desktop `ResetPassword` + Settings forgot-password. On an unconfigured build they hit the relative path and showed a confusing failure
 - [x] All four now throw "This build isn't connected to a server." when the base URL is empty
 - [x] Added 3 guards to `tests/mobile-criticals.test.ts` (now 48) and 1 to `tests/desktop-chart-guard.test.ts` (now 20) — verified non-vacuous by reverting `useAuth.forgotPassword` and desktop `ResetPassword`; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2037 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 327: Device QA round 75 (launch side effects rejected unhandled)
+
+- [x] **`app/_layout.tsx` fired launch side effects with no catch**: `void checkPriceDropsNow()` (whose `runPriceCheckCore` starts with `await getWatchlist()`, which rethrows adapter failures), `void loadFxRates()`, and `void maybeRefreshFxRates()` could each reject unhandled on a storage read failure. `app/(tabs)/settings.tsx` had the same unguarded `void maybeRefreshFxRates()`
+- [x] All four now `.catch(...)` (the price check logs; the FX loads fall back to the static rate table)
+- [x] Added 2 guards to `tests/mobile-criticals.test.ts` (now 50) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2039 passed`
