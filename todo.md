@@ -2683,3 +2683,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`NotificationCenter.handleMarkAll` had no catch**: a storage failure from `markAllNotificationsRead` rejected unhandled and then cleared the badge/history as if the write succeeded (desktop's `handleMarkAllRead` wraps the same call and toasts on failure)
 - [x] It now catches, shows "Couldn't update — We couldn't mark notifications as read. Please try again.", and returns without clearing state
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 44) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2032 passed`
+
+## Phase 324: Device QA round 72 (notification center open swallowed failures)
+
+- [x] Follow-up to Phase 323: `NotificationCenter.handleOpen` awaited `markNotificationRead` with no catch, so a storage failure rejected unhandled and then marked the item read in the UI anyway (desktop's `handleNotificationOpen` wraps the same call and toasts on failure)
+- [x] It now catches, shows "Couldn't update — We couldn't update that notification. Please try again.", and returns without decrementing the badge or marking it read
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 45) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2033 passed`

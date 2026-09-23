@@ -111,7 +111,14 @@ export function NotificationCenter({
       if (Platform.OS !== "web")
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       if (!item.read) {
-        await markNotificationRead(item.id);
+        try {
+          await markNotificationRead(item.id);
+        } catch {
+          // A storage failure must not reject unhandled or mark it read in the
+          // UI when the write didn't land.
+          showAlert("Couldn't update", "We couldn't update that notification. Please try again.");
+          return;
+        }
         decrementUnread();
         setHistory((prev) =>
           prev.map((e) => (e.id === item.id ? { ...e, read: true } : e)),

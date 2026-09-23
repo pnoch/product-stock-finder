@@ -96,6 +96,22 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 72: the notification center's per-item open awaited
+// markNotificationRead with no catch (desktop wraps it).
+describe("notification center open handles failure", () => {
+  it("wraps markNotificationRead in try/catch", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "components/notification-center.tsx"),
+      "utf8",
+    );
+    const start = src.indexOf("const handleOpen");
+    const block = src.slice(start, src.indexOf("[router, decrementUnread]", start));
+    expect(block).toContain("try {");
+    expect(block).toContain("catch");
+    expect(block).toContain("markNotificationRead(item.id)");
+  });
+});
+
 // QA round 71: the notification center's "Mark all read" had no catch, so a
 // storage failure was an unhandled rejection (desktop wraps it).
 describe("notification center mark-all handles failure", () => {
