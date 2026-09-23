@@ -653,7 +653,7 @@ export function Stats() {
           <div className="mt-2">
             <p>Drops on {selectedKey}</p>
             {dropCalendar.byDay.get(selectedKey)!.drops.map((drop) => (
-              <Link key={`${drop.productId}-${drop.from}-${drop.to}`} to={`/product/${drop.productId}`} className="flex items-center gap-2 py-1 text-sm hover:underline">
+              <Link key={`${drop.productId}-${drop.distributorId}-${drop.from}-${drop.to}`} to={`/product/${drop.productId}`} className="flex items-center gap-2 py-1 text-sm hover:underline">
                 <span className="truncate">{drop.name}</span>
                 <span>{formatPrice(drop.from, displayCurrency)} → {formatPrice(drop.to, displayCurrency)}</span>
                 <span>{drop.percent.toFixed(0)}%</span>

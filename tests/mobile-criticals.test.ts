@@ -96,6 +96,19 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 106: the drop-calendar list keyed drops on productId-from-to, but
+// two distributors for the same product can share identical from/to values,
+// producing duplicate React keys.
+describe("drop calendar keys drops uniquely", () => {
+  it("includes the distributorId in the key", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "components/stats/drop-calendar-card.tsx"),
+      "utf8",
+    );
+    expect(src).toContain("${drop.productId}-${drop.distributorId}-${drop.from}-${drop.to}");
+  });
+});
+
 // QA round 104: a server-detected trigger can store triggeredPrice 0, which the
 // triggered-alert card rendered as "→ $0.00" (the digest already guards > 0).
 describe("triggered alert card guards a zero triggered price", () => {

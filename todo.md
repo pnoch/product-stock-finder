@@ -2887,3 +2887,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The digest "Targets Hit" list keyed rows on `productId`**: `computeDigest` emits one `alertTargetsHit` entry per triggered alert, and a product can have several triggered alerts, so two rows shared a `productId` and React logged duplicate-key warnings (and could mis-reconcile). Both the mobile `DigestCard` and the desktop Stats digest rendered `key={t.productId}`
 - [x] `alertTargetsHit` entries now carry the unique `alertId`, and both renderers key on it
 - [x] Added a case to `tests/price-digest.test.ts` (now 31: two triggered alerts for one product get distinct alertIds) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2078 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 358: Device QA round 106 (drop-calendar list had duplicate React keys)
+
+- [x] **The drop-calendar's drop list keyed rows on `productId-from-to`**: two distributors for the same product can have identical from/to values (e.g. both 100→90), producing duplicate React keys in both the mobile `DropCalendarCard` and the desktop Stats drop list. `DropEvent` already carries a unique `distributorId`
+- [x] Both renderers now key on `productId-distributorId-from-to`
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 62) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2079 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

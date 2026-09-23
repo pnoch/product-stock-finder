@@ -182,7 +182,7 @@ export const DropCalendarCard = memo(function DropCalendarCard({
           </Text>
           {selected.drops.map((drop) => (
             <View
-              key={`${drop.productId}-${drop.from}-${drop.to}`}
+              key={`${drop.productId}-${drop.distributorId}-${drop.from}-${drop.to}`}
               style={{ flexDirection: "row", paddingVertical: 3, gap: 8 }}
             >
               <Text
