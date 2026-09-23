@@ -44,7 +44,13 @@ export function analyzeDistributors(
       );
       if (price === null) continue;
       coverage++;
-      totalCost += price + price * (cheapest.taxRate ?? 0);
+      // `??` doesn't sanitize NaN (a malformed server payload could carry one),
+      // which would make totalCost NaN and render the whole row as $NaN.
+      const taxRate =
+        typeof cheapest.taxRate === "number" && Number.isFinite(cheapest.taxRate)
+          ? cheapest.taxRate
+          : 0;
+      totalCost += price + price * taxRate;
     }
 
     if (coverage > 0) {

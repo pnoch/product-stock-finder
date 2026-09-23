@@ -130,6 +130,18 @@ describe("analyzeDistributors", () => {
     const server2u = result.find((r) => r.distributorId === "server2u-my");
     expect(server2u!.totalCost).toBeCloseTo(120, 2); // 100 + 20 tax
   });
+
+  // `??` doesn't sanitize NaN: a malformed server payload could carry a NaN
+  // taxRate and turn the whole row into $NaN.
+  it("treats a NaN tax rate as zero", () => {
+    const result = analyzeDistributors(
+      [makeProduct("p1", [makeListing({ taxRate: NaN })])],
+      "USD",
+    );
+    const server2u = result.find((r) => r.distributorId === "server2u-my");
+    expect(Number.isFinite(server2u!.totalCost)).toBe(true);
+    expect(server2u!.totalCost).toBeCloseTo(100, 2);
+  });
 });
 
 // The Export CSV button used to swallow every outcome: `if (result === "copied")

@@ -2827,3 +2827,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 346: `server/prices.ts`'s `acquireScrapeSlot`/`releaseScrapeSlot` had the same decrement-then-wake race (a racing acquire could take the freed slot and exceed `MAX_CONCURRENT_SCRAPES`), plus its own queue-full rejection
 - [x] The server now uses the shared `createSemaphore(MAX_CONCURRENT_SCRAPES, { maxQueue: MAX_QUEUED_SCRAPES })` (the helper gained an optional `maxQueue`), so slot transfer is exact and the queue cap is preserved
 - [x] Added a queue-full case and a server source guard to `tests/price-source.test.ts` (now 11) — verified non-vacuous by restoring the old server limiter; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2064 passed`
+
+## Phase 348: Device QA round 96 (distributor analysis rendered $NaN on a malformed tax rate)
+
+- [x] **`analyzeDistributors` used `cheapest.taxRate ?? 0`**: `??` does not sanitize `NaN`, so a malformed server payload carrying a NaN tax rate made `totalCost` NaN and rendered the whole Distributor Analysis row as `$NaN`. `findBestDeal` already guards the same field with `Number.isFinite`
+- [x] It now uses `Number.isFinite(cheapest.taxRate) ? cheapest.taxRate : 0`
+- [x] Added a case to `tests/distributor-analysis.test.ts` (now 9: a NaN tax rate is treated as zero) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2065 passed`
