@@ -301,6 +301,10 @@ async function evaluateConfigDb(
   now: number,
   getPrice: PriceLookup,
 ): Promise<void> {
+  // Only events within the blocking window can suppress a new draft
+  // (isEventBlocking returns false past DELIVERY_GRACE_MS), so bound the read
+  // instead of loading every retained event (30 days) every tick — matching the
+  // per-user path below.
   const existing = await db
     .select({
       id: notificationEvents.id,
@@ -308,7 +312,12 @@ async function evaluateConfigDb(
       createdAt: notificationEvents.createdAt,
     })
     .from(notificationEvents)
-    .where(eq(notificationEvents.deviceId, deviceId));
+    .where(
+      and(
+        eq(notificationEvents.deviceId, deviceId),
+        gt(notificationEvents.createdAt, now - DELIVERY_GRACE_MS),
+      ),
+    );
   const delivered = await db
     .select({ eventId: notificationEventDeliveries.eventId })
     .from(notificationEventDeliveries)

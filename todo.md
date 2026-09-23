@@ -2755,3 +2755,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`trending.refresh` deleted then inserted without a transaction**: a failed insert after the `delete(trendingProducts)` committed would leave the trending list empty until the next successful refresh (the previous list is lost). Every other multi-write path in the server uses a transaction
 - [x] The replace now runs in `db.transaction((tx) => { tx.delete(...); tx.insert(...) })`
 - [x] Added a guard to `tests/trending-refresh-guard.test.ts` (now 3) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2050 passed`
+
+## Phase 336: Device QA round 84 (per-device notification evaluation loaded all retained events)
+
+- [x] **`evaluateConfigDb` loaded every retained event for a device on every tick**: its `existing` query filtered only by `deviceId`, so it read up to 30 days of events per device per warmer tick. `isEventBlocking` only ever blocks within `DELIVERY_GRACE_MS` (7 days), and the per-user path (`evaluateUserDb`) already bounds its read by that window
+- [x] The per-device query now filters `gt(notificationEvents.createdAt, now - DELIVERY_GRACE_MS)`, matching the per-user path
+- [x] Added a guard to `tests/notification-dedup-grace.test.ts` (now 3) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2051 passed`

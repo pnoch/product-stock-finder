@@ -86,3 +86,16 @@ describe("dedup is not blocked forever by a non-pulling device", () => {
     expect(await pullPendingEvents("dev-1", 7)).toEqual([]);
   });
 });
+
+// QA round 84: the per-device evaluation loaded every retained event (30 days)
+// on every tick, while isEventBlocking only ever blocks within
+// DELIVERY_GRACE_MS (7 days). The read must be bounded like the per-user path.
+describe("per-device evaluation bounds its event read", () => {
+  it("filters existing events by the delivery grace window", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const src = await readFile("server/notifications/evaluate.ts", "utf8");
+    const start = src.indexOf("async function evaluateConfigDb");
+    const block = src.slice(start, src.indexOf("async function evaluateUserDb", start));
+    expect(block).toContain("gt(notificationEvents.createdAt, now - DELIVERY_GRACE_MS)");
+  });
+});
