@@ -2363,3 +2363,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] `app/w/[token].tsx` now reads `truncated` and renders "500 products (first 500)" plus a warning line ("This share is larger than the 500-product limit — only the first 500 are shown."); `desktop/src/pages/SharedWatchlist.tsx` mirrors it
 - [x] Verified on device (rebuilt x86_64+arm64 release APK): the 520-product share now shows "500 products (first 500)" and the amber warning banner
 - [x] Added a truncation-notice guard to `tests/mobile-criticals.test.ts` (now 13) — verified non-vacuous by removing the notice; the server-side flag already has coverage in `tests/shared-watchlists.test.ts` ("caps the returned products and flags truncation"); E2E root `tsc 0`, lint 0 errors (164 warnings), root `328 passed | 2 skipped` / `1961 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
+
+## Phase 272: Device QA round 20 (Shared Watchlist — exactly-500 share falsely flagged truncated)
+
+- [x] **Off-by-one in the truncation flag**: `sharedWatchlists.get` used `.limit(SHARED_WATCHLIST_MAX_ITEMS)` and then `truncated: items.length >= SHARED_WATCHLIST_MAX_ITEMS`, so a share with *exactly* 500 products was reported as truncated even though nothing was dropped. With Phase 271 now surfacing the flag, that would have shown a false "only the first 500 are shown" warning on a complete share
+- [x] The router now fetches `SHARED_WATCHLIST_MAX_ITEMS + 1` rows, sets `truncated = items.length > MAX`, and slices the extra row off before mapping — so exactly-500 is complete and 501+ is truncated
+- [x] Verified against the live server (rebuilt `dist/`, restarted): a 500-product share returns `truncated: false` with 500 products, a 501-product share returns `truncated: true` with 500 products
+- [x] Added a boundary case to `tests/shared-watchlists.test.ts` (now 10: "does not flag an exactly-500-product share as truncated") — verified non-vacuous by reverting to `>=` + `.limit(MAX)`; E2E root `tsc 0`, lint 0 errors (164 warnings), root `328 passed | 2 skipped` / `1962 passed`

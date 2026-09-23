@@ -749,6 +749,8 @@ export const appRouter = router({
         // because the owner has thousands of items.
         // Filter tombstones in SQL: counting them toward the cap truncated the
         // live products for an owner with many deletions.
+        // Fetch one past the cap so a share with exactly MAX items is not
+        // misreported as truncated (the extra row is dropped before returning).
         const items = await db
           .select()
           .from(watchlistItems)
@@ -758,9 +760,13 @@ export const appRouter = router({
               isNull(watchlistItems.deletedAtMs),
             ),
           )
-          .limit(SHARED_WATCHLIST_MAX_ITEMS);
-        const products = items.map((r) => r.data).filter(Boolean);
-        return { title: row.title, token: row.token, products, truncated: items.length >= SHARED_WATCHLIST_MAX_ITEMS, createdAt: row.createdAt?.toISOString?.() ?? null, expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null } as const;
+          .limit(SHARED_WATCHLIST_MAX_ITEMS + 1);
+        const truncated = items.length > SHARED_WATCHLIST_MAX_ITEMS;
+        const products = items
+          .slice(0, SHARED_WATCHLIST_MAX_ITEMS)
+          .map((r) => r.data)
+          .filter(Boolean);
+        return { title: row.title, token: row.token, products, truncated, createdAt: row.createdAt?.toISOString?.() ?? null, expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null } as const;
       }),
     revoke: protectedProcedure
       .input(z.object({ token: z.string().min(1).max(64) }))

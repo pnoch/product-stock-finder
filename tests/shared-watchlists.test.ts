@@ -141,6 +141,26 @@ describe("sharedWatchlists router", () => {
     expect(res.truncated).toBe(true);
   });
 
+  // A share with exactly the cap must not be flagged as truncated: the old
+  // `items.length >= MAX` check (with `.limit(MAX)`) reported 500-item shares
+  // as truncated even though nothing was dropped.
+  it("does not flag an exactly-500-product share as truncated", async () => {
+    const watchlistRows = Array.from({ length: 500 }, (_, i) => ({
+      deletedAtMs: null,
+      data: { id: `p${i}`, name: `Product ${i}` },
+    }));
+    mockedGetDb.mockResolvedValue(
+      fakeDb({
+        sharedRows: [{ ownerId: 1, token: "tok123", title: "Exactly 500" }],
+        watchlistRows,
+      }) as never,
+    );
+    const caller = appRouter.createCaller(createPublicContext());
+    const res = await caller.sharedWatchlists.get({ token: "tok123" });
+    expect(res.products).toHaveLength(500);
+    expect(res.truncated).toBe(false);
+  });
+
   it("revoke requires auth and returns revoked", async () => {
     mockedGetDb.mockResolvedValue(fakeDb({}) as never);
     const caller = appRouter.createCaller(createAuthedContext(1));
