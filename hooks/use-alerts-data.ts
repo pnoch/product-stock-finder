@@ -21,7 +21,7 @@ import {
   getSettings,
 } from "@/lib/storage";
 import { PriceAlert, Product, BackOrderReminder } from "@/lib/types";
-import { convertPrice } from "@/lib/currency";
+import { computeTotalSaved } from "@/lib/alert-savings";
 import { showAlert } from "@/lib/alert";
 import {
   cancelNotification,
@@ -310,18 +310,7 @@ export function useAlertsData() {
 
   const triggeredAlerts = alerts.filter((a) => a.triggeredAt);
 
-  const totalSaved = triggeredAlerts.reduce((sum, a) => {
-    if (a.triggeredPrice != null) {
-      const delta =
-        a.direction === "rise"
-          ? a.triggeredPrice - a.targetPrice
-          : a.targetPrice - a.triggeredPrice;
-      const saved = convertPrice(Math.max(0, delta), a.currency, displayCurrency);
-      if (saved === null) return sum;
-      return sum + saved;
-    }
-    return sum;
-  }, 0);
+  const totalSaved = computeTotalSaved(triggeredAlerts, displayCurrency);
 
   const handleRearmAlert = useCallback(
     async (alertId: string) => {

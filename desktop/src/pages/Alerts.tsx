@@ -24,10 +24,10 @@ import { storage } from "../storage";
 import { syncDesktopNotifications } from "../server-notifications";
 import {
   formatPrice,
-  convertPrice,
   EXCHANGE_RATES,
 } from "@shared/currency";
 import { getDistributorById } from "@shared/distributors";
+import { computeTotalSaved } from "../../../lib/alert-savings";
 import { formatRelativeTime } from "../../../lib/relative-time";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
@@ -597,18 +597,10 @@ function AlertsTab({
 }) {
   const navigate = useNavigate();
   const triggeredAlerts = useMemo(() => alerts.filter((a) => a.triggeredAt), [alerts]);
-  const totalSaved = useMemo(() => {
-    return triggeredAlerts.reduce((sum, a) => {
-      if (a.triggeredPrice != null) {
-        const delta = a.direction === "rise" ? a.triggeredPrice - a.targetPrice : a.targetPrice - a.triggeredPrice;
-        const saved = Math.max(0, delta);
-        const converted = convertPrice(saved, a.currency, displayCurrency);
-        if (converted === null) return sum;
-        return sum + converted;
-      }
-      return sum;
-    }, 0);
-  }, [triggeredAlerts, displayCurrency]);
+  const totalSaved = useMemo(
+    () => computeTotalSaved(triggeredAlerts, displayCurrency),
+    [triggeredAlerts, displayCurrency],
+  );
 
   if (alerts.length === 0 && triggeredAlerts.length === 0) {
     return (
