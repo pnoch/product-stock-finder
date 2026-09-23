@@ -109,8 +109,12 @@ export async function runPriceCheckCore(opts?: {
   // Basket value alert (fires once per set threshold, then auto-disables)
   if (settings.notificationsEnabled && settings.basketAlertThreshold) {
     const fresh = await getWatchlist();
+    // The threshold is entered in the user's display currency (the sheet says
+    // so), so the total must be computed in that currency too — hardcoding USD
+    // compared a USD total against a EUR/GBP/etc threshold.
+    const basketCurrency = settings.displayCurrency ?? "USD";
     const total = fresh.reduce(
-      (sum, p) => sum + (getBestPrice(p.listings ?? [], "USD")?.price ?? 0),
+      (sum, p) => sum + (getBestPrice(p.listings ?? [], basketCurrency)?.price ?? 0),
       0,
     );
     const threshold = settings.basketAlertThreshold;
@@ -121,7 +125,7 @@ export async function runPriceCheckCore(opts?: {
       if (granted) {
         try {
           const title = "🧺 Basket Alert";
-          const body = `Watchlist value ${formatPrice(total, "USD")} dropped below your ${formatPrice(threshold, "USD")} threshold.`;
+          const body = `Watchlist value ${formatPrice(total, basketCurrency)} dropped below your ${formatPrice(threshold, basketCurrency)} threshold.`;
           if (Platform.OS === "web") {
             // expo-notifications is a no-op on web; use the Notification API.
             // Do NOT `return` on failure: this is inside runPriceCheckCore, so

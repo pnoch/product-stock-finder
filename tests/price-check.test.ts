@@ -17,6 +17,7 @@ const state = vi.hoisted(() => ({
     priceAlerts: true,
     stockAlerts: true,
     healthAlerts: true,
+    basketAlertThreshold: null as number | null,
   },
 }));
 
@@ -45,6 +46,10 @@ vi.mock("../lib/storage", () => ({
   updateProductListings: vi.fn(async () => {}),
   getPriceDigestSnapshot: vi.fn(async () => null),
   savePriceDigestSnapshot: vi.fn(async () => {}),
+  updateSettings: vi.fn(async (patch: Record<string, unknown>) => {
+    state.settingsStore = { ...state.settingsStore, ...patch };
+    return state.settingsStore;
+  }),
   rearmAlert: vi.fn(async () => {}),
   getBackgroundTaskInterval: vi.fn(async (task: string) => state.taskIntervals[task] ?? null),
   saveBackgroundTaskInterval: vi.fn(async (minutes: number | null, task: string) => {
@@ -270,6 +275,25 @@ describe("checkPriceDropsNow", () => {
     // Alert must stay active so it can fire once permission is granted
     expect(state.alertsStore[0]!.isActive).toBe(true);
     expect(state.alertsStore[0]!.triggeredAt).toBeUndefined();
+  });
+
+  // The basket-alert sheet tells the user the threshold is in their display
+  // currency, but the check hardcoded USD — so a EUR user's €500 threshold was
+  // compared against a USD total and fired (or never fired) wrongly.
+  it("evaluates the basket alert in the display currency", async () => {
+    state.settingsStore = {
+      ...state.settingsStore,
+      displayCurrency: "EUR",
+      basketAlertThreshold: 500,
+    };
+    // 520 USD -> 478.40 EUR (rate 0.92). Below the €500 threshold, so it must
+    // fire; a USD total (520) would be above 500 and wrongly skip it.
+    state.watchlistStore = [
+      { id: "p1", listings: [makeListing(520, "USD", "in_stock")] } as unknown as Product,
+    ];
+    await checkPriceDropsNow();
+    expect(state.scheduledNotifications).toHaveLength(1);
+    expect(state.settingsStore.basketAlertThreshold).toBeNull();
   });
 });
 
