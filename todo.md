@@ -2773,3 +2773,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`getDeviceId`'s storage-failure fallback minted a new id per call**: when `AsyncStorage` throws (browser privacy modes), the catch returned `generateId()` fresh each time, so the server saw a different device on every request — breaking device binding and revocation (a revoked device would look like a brand-new one). The desktop variant reads localStorage directly and would reject instead
 - [x] The fallback id is now cached in memory (`memoryFallbackId`) so the device keeps a stable identity for the session
 - [x] Added a case to `tests/device-id.test.ts` (now 3: stable in-memory id when storage fails) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2053 passed`
+
+## Phase 339: Device QA round 87 (desktop device id could reject / churn)
+
+- [x] Follow-up to Phase 338 on desktop: `getDesktopDeviceId` called `localStorage.getItem`/`setItem` outside any try/catch, so a storage failure rejected (the mobile variant falls back to an in-memory id), and its `pending` guard was ineffective because the first `getItem` await happened before the pending check — concurrent callers could each generate an id
+- [x] It now mirrors mobile: the whole read/write is wrapped, a `memoryFallbackId` keeps a stable identity on failure, and the `pending` guard is checked first
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 24) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2054 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

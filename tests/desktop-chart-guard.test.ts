@@ -147,6 +147,15 @@ describe("desktop chart guard", () => {
     expect(block).toContain("catch");
   });
 
+  // QA round 87: desktop getDesktopDeviceId could reject on a storage failure
+  // and minted a new id per call; it must cache a stable in-memory fallback.
+  it("keeps a stable fallback device id on storage failure", async () => {
+    const text = await readFile("desktop/src/lib/device-id.ts", "utf8");
+    expect(text).toContain("memoryFallbackId");
+    expect(text).toContain("try {");
+    expect(text).toContain("catch");
+  });
+
   // QA round 78: desktop Stats saved a digest snapshot on every load, advancing
   // the diff base so the digest showed changes since the last visit rather than
   // since the last sent digest (App.tsx owns the snapshot lifecycle).
