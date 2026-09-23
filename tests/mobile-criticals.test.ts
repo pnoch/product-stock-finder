@@ -96,6 +96,22 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 71: the notification center's "Mark all read" had no catch, so a
+// storage failure was an unhandled rejection (desktop wraps it).
+describe("notification center mark-all handles failure", () => {
+  it("wraps markAllNotificationsRead in try/catch", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "components/notification-center.tsx"),
+      "utf8",
+    );
+    const start = src.indexOf("const handleMarkAll");
+    const block = src.slice(start, src.indexOf("}, [applyUnread]);", start));
+    expect(block).toContain("try {");
+    expect(block).toContain("catch");
+    expect(block).toContain("showAlert");
+  });
+});
+
 // QA round 70: the notification center decremented the unread badge from a
 // stale `unreadCount` closure, so two quick taps under-counted by one.
 describe("notification center decrements unread functionally", () => {

@@ -2677,3 +2677,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`NotificationCenter.handleOpen` decremented the unread badge from a stale closure**: `applyUnread(Math.max(0, unreadCount - 1))` read the `unreadCount` captured when the callback was created, so tapping two unread items in quick succession (before a re-render) decremented by one total instead of two — the badge under-counted
 - [x] Added a `decrementUnread` callback using a functional `setUnreadCount((prev) => ...)` update (which also reports the new value to `onUnreadChange`) and used it in `handleOpen`
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 43) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2031 passed`
+
+## Phase 323: Device QA round 71 (notification center mark-all swallowed failures)
+
+- [x] **`NotificationCenter.handleMarkAll` had no catch**: a storage failure from `markAllNotificationsRead` rejected unhandled and then cleared the badge/history as if the write succeeded (desktop's `handleMarkAllRead` wraps the same call and toasts on failure)
+- [x] It now catches, shows "Couldn't update — We couldn't mark notifications as read. Please try again.", and returns without clearing state
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 44) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2032 passed`

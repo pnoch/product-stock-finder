@@ -18,6 +18,7 @@ import {
 } from "@/lib/notification-center-helpers";
 import { formatRelativeTime } from "@/lib/relative-time";
 import { notificationRouteFor } from "@/lib/notification-routing";
+import { showAlert } from "@/lib/alert";
 import { syncServerNotifications } from "@/lib/server-notifications";
 import {
   getNotificationHistory,
@@ -130,7 +131,14 @@ export function NotificationCenter({
   const handleMarkAll = useCallback(async () => {
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await markAllNotificationsRead();
+    try {
+      await markAllNotificationsRead();
+    } catch {
+      // A storage failure must not reject unhandled or clear the badge as if
+      // the write succeeded.
+      showAlert("Couldn't update", "We couldn't mark notifications as read. Please try again.");
+      return;
+    }
     applyUnread(0);
     setHistory((prev) => prev.map((e) => ({ ...e, read: true })));
   }, [applyUnread]);
