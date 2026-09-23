@@ -2935,3 +2935,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Three `void updateProductListings(...)` sites in `hooks/use-live-prices.ts` had no catch**: `updateProductListings` rethrows adapter failures (its `enqueue` read/write), so a storage failure in `loadSeed`'s sample seed, the product persist debounce, or the watchlist persist effect became an unhandled rejection
 - [x] All three now `.catch(() => {})`; the test mock for `updateProductListings` was updated to resolve (not return `undefined`) so it matches production and the `.catch` chain works
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 66) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2088 passed`
+
+## Phase 366: Device QA round 114 (removing a product left its reminders' notifications scheduled)
+
+- [x] **The removal cascade deleted reminders/watches without cancelling their scheduled notifications**: Phase 344 made `removeFromWatchlist` delete a product's back-order reminders and stock watches, but each carries a `notificationId` for an OS-scheduled notification. Deleting the row left the notification scheduled, so it still fired later with no corresponding reminder/watch
+- [x] The cascade now cancels each removed reminder's/watch's `notificationId`. To avoid a static `storage ↔ notifications` import cycle (notifications imports the storage barrel) and keep expo-notifications out of the server/tests, the canceller is injected via `createStorage(adapter, { cancelNotification })`; the default instance supplies a lazy implementation
+- [x] Added a case to `tests/storage.test.ts` (now 73: the cascade cancels the removed reminders'/watches' notifications) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2089 passed`

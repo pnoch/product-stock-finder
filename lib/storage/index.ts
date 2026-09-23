@@ -18,10 +18,18 @@ export type { StorageAdapter };
 
 export function createStorage(
   adapter: StorageAdapter,
-  opts?: { onChange?: (collection: Collection, itemId: string) => void },
+  opts?: {
+    onChange?: (collection: Collection, itemId: string) => void;
+    // Cancels a scheduled OS notification. Injected so this module never
+    // statically imports expo-notifications (which the server/tests can't
+    // load); the default instance supplies the real implementation.
+    cancelNotification?: (notificationId: string) => Promise<void>;
+  },
 ) {
   const ctx = createContext(adapter);
   ctx.setOnChange(opts?.onChange ?? null);
+  const cancelNotification =
+    opts?.cancelNotification ?? (async () => {});
 
   const watchlist = createWatchlistStorage(ctx);
   const alertsStorage = createAlertsStorage(ctx);
@@ -102,12 +110,22 @@ export function createStorage(
     for (const alert of alerts.filter((a) => a.productId === productId)) {
       await alertsStorage.removeAlert(alert.id);
     }
+    // Reminders/watches carry a scheduled OS notification id. Removing the row
+    // without cancelling the notification leaves it scheduled, so it still
+    // fires with no corresponding reminder. The canceller is injected (see
+    // createStorage) so this module never imports expo-notifications.
     const reminders = await remindersStorage.getBackOrderReminders();
     for (const reminder of reminders.filter((r) => r.productId === productId)) {
+      if (reminder.notificationId) {
+        await cancelNotification(reminder.notificationId).catch(() => {});
+      }
       await remindersStorage.removeBackOrderReminder(reminder.id);
     }
     const watches = await remindersStorage.getStockWatches();
     for (const watch of watches.filter((w) => w.productId === productId)) {
+      if (watch.notificationId) {
+        await cancelNotification(watch.notificationId).catch(() => {});
+      }
       await remindersStorage.removeStockWatch(watch.id);
     }
   }
@@ -152,7 +170,14 @@ export function getDefaultAdapter(): StorageAdapter {
   return AsyncStorage;
 }
 
-export const defaultStorage = createStorage(getDefaultAdapter());
+export const defaultStorage = createStorage(getDefaultAdapter(), {
+  // Lazy so expo-notifications is only pulled in when a reminder/watch with a
+  // scheduled notification is actually removed (keeps it out of server/tests).
+  cancelNotification: async (notificationId) => {
+    const { cancelNotification } = await import("../notifications");
+    await cancelNotification(notificationId);
+  },
+});
 
 // ─── Watchlist ───────────────────────────────────────────────────────────
 export const {

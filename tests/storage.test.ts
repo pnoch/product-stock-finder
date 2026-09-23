@@ -213,6 +213,36 @@ describe("watchlist", () => {
     expect((await getStockWatches()).map((w) => w.id)).toEqual(["w2"]);
   });
 
+  // The cascade deletes reminders/watches; their scheduled OS notifications
+  // must be cancelled too, or they still fire with no corresponding row.
+  it("removeFromWatchlist cancels the removed reminders'/watches' notifications", async () => {
+    const { createStorage } = await import("../lib/storage");
+    const store = new Map<string, string>();
+    const cancelled: string[] = [];
+    const storage = createStorage(
+      {
+        getItem: async (key: string) => store.get(key) ?? null,
+        setItem: async (key: string, value: string) => {
+          store.set(key, value);
+        },
+        removeItem: async (key: string) => {
+          store.delete(key);
+        },
+        multiRemove: async (keys: string[]) => {
+          keys.forEach((key) => store.delete(key));
+        },
+      },
+      { cancelNotification: async (id) => { cancelled.push(id); } },
+    );
+    await storage.saveWatchlist([makeProduct("p1"), makeProduct("p2")]);
+    const base = { productName: "P", distributorId: "d1", distributorName: "D", reminderDate: new Date().toISOString(), createdAt: new Date().toISOString() };
+    await storage.addBackOrderReminder({ id: "r1", productId: "p1", notificationId: "n-r1", ...base } as never);
+    await storage.addStockWatch({ id: "w1", productId: "p1", reminderType: "back_in_stock", notificationId: "n-w1", ...base } as never);
+    await storage.addBackOrderReminder({ id: "r2", productId: "p2", notificationId: "n-r2", ...base } as never);
+    await storage.removeFromWatchlist("p1");
+    expect(cancelled.sort()).toEqual(["n-r1", "n-w1"]);
+  });
+
   it("updateProductListings replaces listings for the matching product only", async () => {
     await saveWatchlist([makeProduct("p1"), makeProduct("p2")]);
     const newListing = {
