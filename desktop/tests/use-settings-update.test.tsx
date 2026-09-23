@@ -115,4 +115,24 @@ describe("useSettings update", () => {
       errSpy.mockRestore();
     }
   });
+
+  // QA round 51: the optimistic patch must be reverted when the write fails,
+  // or the UI shows a setting that was never persisted.
+  it("reverts the optimistic patch when the save fails", async () => {
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const { result } = renderHook(() => useSettings());
+      await waitFor(() => expect(result.current.settings).not.toBeNull());
+      expect(result.current.settings?.theme).toBe("auto");
+
+      mockStorage.updateSettings.mockRejectedValueOnce(new Error("disk full"));
+      await act(async () => {
+        await result.current.update({ theme: "dark" }).catch(() => {});
+      });
+
+      expect(result.current.settings?.theme).toBe("auto");
+    } finally {
+      errSpy.mockRestore();
+    }
+  });
 });

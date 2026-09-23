@@ -2557,3 +2557,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The basket-alert save left a phantom threshold on screen**: both `app/stats.tsx` and `desktop/src/pages/Stats.tsx` set `basketThreshold` optimistically before the write; mobile's catch showed an alert but never reverted, and desktop had no try/catch at all — so a failed save displayed a threshold that was never persisted (and desktop's rejection was unhandled)
 - [x] Both now capture the previous threshold and restore it on failure (desktop also toasts)
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 29) and `tests/desktop-chart-guard.test.ts` (now 12) — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2010 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
+
+## Phase 303: Device QA round 51 (desktop settings update didn't revert on failure)
+
+- [x] Follow-up to Phase 302: the desktop `useSettings.update` hook applied the patch optimistically but its `.catch` only logged — it never restored the previous settings, so every failed settings write (theme, currency, region, interval, LLM fields, web-notification toggle) left the UI showing a value that was never persisted. Mobile's `updateSetting` already reverts
+- [x] `update` now captures the pre-patch value via a `settingsRef` and restores it in the catch
+- [x] Added a behavioral case to `desktop/tests/use-settings-update.test.tsx` (now 3: the optimistic theme patch is reverted when the write rejects) — verified non-vacuous by removing the revert; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2010 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

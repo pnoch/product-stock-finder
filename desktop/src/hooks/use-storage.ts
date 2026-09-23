@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { storage } from "../storage";
 import { onListingUpdated } from "../background";
 import type { Product, PriceAlert, AppSettings } from "../../../lib/types";
@@ -57,6 +57,10 @@ export function useAlerts() {
 export function useSettings() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  // Mirrors `settings` so `update` (with stable deps) can capture the
+  // pre-patch value for a revert without going stale.
+  const settingsRef = useRef<AppSettings | null>(null);
+  settingsRef.current = settings;
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -73,12 +77,18 @@ export function useSettings() {
   }, [refresh]);
 
   const update = useCallback((partial: Partial<AppSettings>) => {
+    const previous = settingsRef.current;
     setSettings((prev) => ({ ...(prev ?? {}), ...partial }) as AppSettings);
     // Use the storage-serialized updateSettings so this shares the write queue
     // with every other settings writer (Watchlist prefs, basket alert, theme)
     // instead of racing a stale snapshot via a private chain.
     const write = storage.updateSettings(partial).then(() => undefined);
-    write.catch((e) => console.error("[settings] save failed", e));
+    write.catch((e) => {
+      // Revert the optimistic update so the UI doesn't show a setting that was
+      // never persisted.
+      if (previous) setSettings(previous);
+      console.error("[settings] save failed", e);
+    });
     return write;
   }, []);
 
