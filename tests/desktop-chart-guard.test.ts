@@ -147,6 +147,16 @@ describe("desktop chart guard", () => {
     expect(block).toContain("catch");
   });
 
+  // QA round 77: desktop Home.refreshDashboard had a redundant read-and-discard
+  // block that also cleared the loadError the previous block had just set.
+  it("has no redundant read-and-discard in desktop Home refresh", async () => {
+    const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    const start = text.indexOf("const refreshDashboard");
+    const block = text.slice(start, text.indexOf("}, [loadDashboard, refreshWatchlist, refreshAlerts]);", start));
+    expect(block).not.toContain("await storage.getWatchlist();");
+    expect(block).not.toContain("await storage.getAlerts();");
+  });
+
   // QA round 76: the desktop CSV import created duplicate alerts on re-import.
   it("skips duplicate alerts in the desktop CSV import", async () => {
     const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");

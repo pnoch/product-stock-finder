@@ -2713,3 +2713,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Re-importing a CSV with target prices accumulated duplicate alerts**: both the mobile and desktop import loops created a new alert for every row with a `targetPrice`, even when the product was already tracked and already had an active alert (`addAlert` has no dedup). Importing the same file twice produced two identical alerts per row
 - [x] Both now pre-load the set of products with an active, untriggered alert and skip alert creation for those (and add each newly-created product to the set, so a CSV with duplicate rows doesn't double-alert either)
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 51) and `tests/desktop-chart-guard.test.ts` (now 21) — verified non-vacuous by reverting both; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2041 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 329: Device QA round 77 (desktop Home refresh had a redundant read-and-discard)
+
+- [x] **`desktop/src/pages/Home.tsx` `refreshDashboard` had a redundant block**: after `refreshWatchlist()`/`refreshAlerts()` (which update the hooks' state), it re-read `storage.getWatchlist()` and `storage.getAlerts()`, discarded both results, and cleared the `loadError` the previous block had just set — dead work that could also mask a real load failure
+- [x] Removed the redundant block
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 22) — verified non-vacuous by restoring the block; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2042 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

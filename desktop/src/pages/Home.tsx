@@ -128,13 +128,6 @@ export function Home() {
       } catch (e) {
         setLoadError(e instanceof Error ? e.message : "Couldn't load dashboard");
       }
-      try {
-        await storage.getWatchlist();
-        await storage.getAlerts();
-        setLoadError(null);
-      } catch (e) {
-        setLoadError(e instanceof Error ? e.message : "Couldn't load dashboard");
-      }
     } finally {
       setRefreshing(false);
     }
