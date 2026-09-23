@@ -96,6 +96,20 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 64: the reminder reschedule had no double-submit guard, so a rapid
+// double-tap scheduled two notifications and orphaned the first.
+describe("reminder reschedule guards against double-submit", () => {
+  it("sets and checks a rescheduling guard", () => {
+    const src = readFileSync(path.join(process.cwd(), "hooks/use-alerts-data.ts"), "utf8");
+    expect(src).toContain("const [rescheduling, setRescheduling] = useState(false)");
+    const start = src.indexOf("const handleReschedule");
+    const block = src.slice(start, src.indexOf("}, [rescheduleTarget, rescheduleDate", start));
+    expect(block).toContain("if (!rescheduleTarget || rescheduling) return;");
+    expect(block).toContain("setRescheduling(true)");
+    expect(block).toContain("setRescheduling(false)");
+  });
+});
+
 // QA round 62: the restock-watch toggle had no double-submit guard, so a rapid
 // double-tap scheduled two confirmation notifications and orphaned the first
 // (replaced) id so it could never be cancelled.

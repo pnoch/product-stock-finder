@@ -44,6 +44,9 @@ export function useAlertsData() {
     useState<BackOrderReminder | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState<Date>(new Date());
   const [showReschedulePicker, setShowReschedulePicker] = useState(false);
+  // Guards against a double-tap rescheduling twice (which orphaned the first
+  // scheduled notification).
+  const [rescheduling, setRescheduling] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadGen = useRef(0);
@@ -243,7 +246,7 @@ export function useAlertsData() {
   );
 
   const handleReschedule = useCallback(async () => {
-    if (!rescheduleTarget) return;
+    if (!rescheduleTarget || rescheduling) return;
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     if (rescheduleDate.getTime() < startOfToday.getTime()) {
@@ -252,6 +255,8 @@ export function useAlertsData() {
     }
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // A double-tap would schedule two notifications and orphan the first.
+    setRescheduling(true);
     // Schedule the new notification BEFORE cancelling the old one: cancelling
     // first meant a scheduling failure left the user with no reminder at all.
     let notifId: string | null = null;
@@ -287,6 +292,8 @@ export function useAlertsData() {
       console.error("[Alerts] reschedule save failed", e);
       showAlert("Reschedule failed", "We couldn't save the new date. Please try again.");
       return;
+    } finally {
+      setRescheduling(false);
     }
     if (Platform.OS !== "web")
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -304,7 +311,7 @@ export function useAlertsData() {
         `You'll be reminded on ${rescheduleDate.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}.`,
       );
     }
-  }, [rescheduleTarget, rescheduleDate, loadData]);
+  }, [rescheduleTarget, rescheduleDate, loadData, rescheduling]);
 
   const getProductName = (productId: string) =>
     products.find((p) => p.id === productId)?.name ?? "Unknown Product";
@@ -369,5 +376,6 @@ export function useAlertsData() {
     setRescheduleDate,
     showReschedulePicker,
     setShowReschedulePicker,
+    rescheduling,
   };
 }
