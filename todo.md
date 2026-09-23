@@ -2545,3 +2545,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phases 293-299: several desktop effects called `storage.getWatchlist()`/`getSettings()` with a bare `.then(...)` and no `.catch`, so a storage read failure became an unhandled rejection — `desktop/src/pages/Alerts.tsx` (names + currency), `desktop/src/pages/Watchlist.tsx` (view prefs), `desktop/src/components/TrendingSection.tsx` (added ids), and `desktop/src/components/SearchModal.tsx` (tracked ids)
 - [x] Each chain now ends in `.catch(() => {})`; the decoration simply keeps its defaults on failure
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 11) asserting each chain has a `.catch` — verified non-vacuous by dropping the Watchlist catch; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2006 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
+
+## Phase 301: Device QA round 49 (mobile unguarded storage.then chains)
+
+- [x] Follow-up to Phase 300 on mobile: `lib/web-notifications.ts` (`setupWebNotifications` read settings with a bare `.then`) and `components/home/trending-section.tsx` (focus effect read the watchlist with a bare `.then`) rejected unhandled on a storage failure
+- [x] Both chains now end in `.catch(() => {})`; polling/added-state simply stay off/empty on failure
+- [x] Added 2 cases to `tests/mobile-criticals.test.ts` (now 28) — verified non-vacuous by reverting the trending-section guard; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2008 passed`

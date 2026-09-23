@@ -215,7 +215,11 @@ export const TrendingSection = memo(function TrendingSection() {
 
   useFocusEffect(
     useCallback(() => {
-      getWatchlist().then((w) => setWatchlistIds(new Set(w.map((p) => p.id))));
+      // A storage read failure must not reject unhandled; the added-state
+      // simply stays empty.
+      getWatchlist()
+        .then((w) => setWatchlistIds(new Set(w.map((p) => p.id))))
+        .catch(() => {});
     }, []),
   );
 

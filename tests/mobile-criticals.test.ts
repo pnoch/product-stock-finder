@@ -72,6 +72,22 @@ describe("sparkline opens Compare focused on the tapped distributor", () => {
   });
 });
 
+// QA round 49: bare storage.then chains rejected unhandled on a storage
+// failure. Each must have a .catch.
+describe("mobile storage.then chains are guarded", () => {
+  for (const [file, needle] of [
+    ["lib/web-notifications.ts", "void getSettings()"],
+    ["components/home/trending-section.tsx", "getWatchlist()"],
+  ] as const) {
+    it(`${file} guards its storage read`, () => {
+      const src = readFileSync(path.join(process.cwd(), file), "utf8");
+      const start = src.indexOf(needle);
+      expect(start).toBeGreaterThan(-1);
+      expect(src.slice(start, start + 500)).toContain(".catch(");
+    });
+  }
+});
+
 // QA round 46: alerts created via the Best-Distributor card or the inline
 // AlertSection were written to storage but never added to the screen's `alerts`
 // state, so the Distributor Targets table (which reads that state) stayed

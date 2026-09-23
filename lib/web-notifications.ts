@@ -118,15 +118,18 @@ export function setupWebNotifications(): () => void {
   if (!isWeb()) return () => {};
   let disposed = false;
   startPushDedupListener();
-  void getSettings().then((settings) => {
-    if (disposed) return;
-    if (
-      settings.webNotificationsEnabled &&
-      window.Notification?.permission === "granted"
-    ) {
-      startPolling();
-    }
-  });
+  // A storage read failure must not reject unhandled; polling simply stays off.
+  void getSettings()
+    .then((settings) => {
+      if (disposed) return;
+      if (
+        settings.webNotificationsEnabled &&
+        window.Notification?.permission === "granted"
+      ) {
+        startPolling();
+      }
+    })
+    .catch(() => {});
   return () => {
     disposed = true;
     stopPolling();
