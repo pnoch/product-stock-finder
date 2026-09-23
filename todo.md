@@ -2953,3 +2953,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`clearAllData`/`clearAccountData` wiped reminders/watches without cancelling their notifications**: both remove the `REMINDERS`/`STOCK_WATCHES` keys, but every reminder/watch carries a scheduled OS notification that stayed scheduled — so after "Delete Account & Data" (or sign-out's account clear) the old reminders still fired
 - [x] Added `cancelAllNotifications` (wraps `cancelAllScheduledNotificationsAsync`) in `lib/notifications.ts`, injected into `createStorage` like `cancelNotification`, and called it at the start of both wipes
 - [x] Added a case to `tests/storage.test.ts` (now 74: clearAllData cancels scheduled notifications) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2091 passed`
+
+## Phase 369: Device QA round 117 (desktop reconcile omitted the stale-event guard)
+
+- [x] **Desktop `reconcileEvent` called `deactivateAlert` without the event time**: mobile passes `event.createdAt` so a stale server event cannot re-deactivate a freshly re-armed alert (the shared `deactivateAlert`'s third arg). Desktop omitted it, so a re-armed alert could be immediately re-triggered by an old event. It also only handled `price_drop`, not `price_rise`
+- [x] Desktop now passes `event.createdAt` and handles both `price_drop` and `price_rise`
+- [x] Updated the desktop test fixtures whose pulled-event `createdAt: 123` (1970) is now correctly rejected by the guard, and added a guard to `tests/desktop-chart-guard.test.ts` (now 26) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2092 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

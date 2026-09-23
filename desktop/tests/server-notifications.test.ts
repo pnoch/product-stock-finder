@@ -97,7 +97,7 @@ describe("syncDesktopNotifications", () => {
         body: "CRS804 is now $480.00!",
         alertId: "a1",
         productId: "mikrotik-crs804-4ddq-hrm",
-        createdAt: 123,
+        createdAt: Date.now(),
       },
     ];
     await syncDesktopNotifications();
@@ -143,7 +143,7 @@ describe("syncDesktopNotifications", () => {
         title: "Back in stock!",
         body: "CRS804 is back!",
         watchId: "w1",
-        createdAt: 123,
+        createdAt: Date.now(),
       },
       {
         id: "e2",
@@ -151,7 +151,7 @@ describe("syncDesktopNotifications", () => {
         title: "Reminder",
         body: "Check CRS804",
         reminderId: "r1",
-        createdAt: 124,
+        createdAt: Date.now(),
       },
     ];
     await syncDesktopNotifications();
@@ -187,7 +187,7 @@ describe("syncDesktopNotifications", () => {
         alertId: "a1",
         productId: "mikrotik-crs804-4ddq-hrm",
         triggeredPrice: 480,
-        createdAt: 123,
+        createdAt: Date.now(),
       },
     ];
     await syncDesktopNotifications();
@@ -214,7 +214,7 @@ describe("syncDesktopNotifications", () => {
         alertId: "a1",
         productId: "mikrotik-crs804-4ddq-hrm",
         triggeredPrice: 480,
-        createdAt: 123,
+        createdAt: Date.now(),
       },
     ];
     await syncDesktopNotifications();
@@ -250,7 +250,7 @@ describe("syncDesktopNotifications", () => {
         alertId: "a1",
         productId: "mikrotik-crs804-4ddq-hrm",
         triggeredPrice: 480,
-        createdAt: 123,
+        createdAt: Date.now(),
       },
       {
         id: "e2",
@@ -260,7 +260,7 @@ describe("syncDesktopNotifications", () => {
         alertId: "a2",
         productId: "mikrotik-crs804-4ddq-hrm",
         triggeredPrice: 450,
-        createdAt: 124,
+        createdAt: Date.now(),
       },
     ];
     await syncDesktopNotifications();

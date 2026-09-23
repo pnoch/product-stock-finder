@@ -161,6 +161,17 @@ describe("desktop chart guard", () => {
     expect(undoBlock).toContain("storage.addAlert(alert)");
   });
 
+  // QA round 117: desktop reconcileEvent omitted the event time, so a stale
+  // server event could re-deactivate a freshly re-armed alert (mobile passes it).
+  it("passes the event time to deactivateAlert in desktop reconcileEvent", async () => {
+    const text = await readFile("desktop/src/server-notifications.ts", "utf8");
+    const start = text.indexOf("async function reconcileEvent");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("async function", start + 10));
+    expect(block).toContain("event.createdAt");
+    expect(block).toMatch(/deactivateAlert\(\s*event\.alertId,\s*event\.triggeredPrice \?\? 0,\s*event\.createdAt,?\s*\)/);
+  });
+
   // QA round 87: desktop getDesktopDeviceId could reject on a storage failure
   // and minted a new id per call; it must cache a stable in-memory fallback.
   it("keeps a stable fallback device id on storage failure", async () => {

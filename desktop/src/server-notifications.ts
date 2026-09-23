@@ -86,8 +86,17 @@ async function pullEvents(): Promise<PushEvent[]> {
 }
 
 async function reconcileEvent(event: PushEvent): Promise<void> {
-  if (event.type === "price_drop" && event.alertId) {
-    await storage.deactivateAlert(event.alertId, event.triggeredPrice ?? 0);
+  // Pass the event time so a stale event cannot re-deactivate a freshly
+  // re-armed alert (mobile does the same).
+  if (
+    (event.type === "price_drop" || event.type === "price_rise") &&
+    event.alertId
+  ) {
+    await storage.deactivateAlert(
+      event.alertId,
+      event.triggeredPrice ?? 0,
+      event.createdAt,
+    );
   }
   if (event.type === "restock" && event.watchId) {
     await storage.removeStockWatch(event.watchId);
