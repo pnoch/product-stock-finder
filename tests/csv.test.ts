@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { watchlistToCsv } from "../lib/csv";
+import { watchlistToCsv, productHistoryToCsv, priceHistoryToCsv } from "../lib/csv";
 import type { Product, DistributorListing } from "../lib/types";
 
 function listing(overrides: Partial<DistributorListing>): DistributorListing {
@@ -90,5 +90,32 @@ describe("watchlistToCsv", () => {
     const cols = csv.split("\n")[1].split(",");
     expect(cols[4]).toBe("");
     expect(cols[5]).toBe("unknown");
+  });
+});
+
+// A multi-distributor history export flattens several listings' histories into
+// one file; without a distributor column the rows are indistinguishable (the
+// Compare export shipped that way until QA round 25).
+describe("price history CSV", () => {
+  it("includes a distributor column between model and date", () => {
+    const csv = priceHistoryToCsv(
+      [{ date: "2026-09-01", price: 100, currency: "USD", stockStatus: "in_stock", distributor: "Getic" }],
+      { name: "CRS804", modelNumber: "CRS804" },
+    );
+    const lines = csv.split("\n");
+    expect(lines[0]).toBe("product,model,distributor,date,price,currency,stockStatus");
+    expect(lines[1].split(",")[2]).toBe("Getic");
+  });
+
+  it("tags every row with its distributor in a per-product export", () => {
+    const p = product("p1", [
+      listing({ distributorId: "getic-gr", priceHistory: [{ date: "2026-09-01", price: 100, currency: "EUR", stockStatus: "in_stock" }] }),
+      listing({ distributorId: "linitx-uk", priceHistory: [{ date: "2026-09-02", price: 90, currency: "GBP", stockStatus: "in_stock" }] }),
+    ]);
+    const csv = productHistoryToCsv(p);
+    const lines = csv.split("\n").slice(1);
+    expect(lines).toHaveLength(2);
+    // Distributor names (not ids) so the file is human-readable.
+    expect(lines.map((l) => l.split(",")[2])).toEqual(["Getic", "Linitx"]);
   });
 });

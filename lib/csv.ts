@@ -1,10 +1,11 @@
 import type { DistributorListing, PricePoint, Product, StockStatus } from "./types";
 import { formatPrice } from "@shared/currency";
 import { getBestPrice } from "./currency";
+import { getDistributorById } from "@shared/distributors";
 
 const SUMMARY_HEADER = "product,model,brand,category,bestPrice,stockStatus";
 const LISTINGS_HEADER = "product,model,brand,category,distributor,price,currency,stockStatus,url";
-const HISTORY_HEADER = "product,model,date,price,currency,stockStatus";
+const HISTORY_HEADER = "product,model,distributor,date,price,currency,stockStatus";
 
 const VALID_STOCK: Set<string> = new Set(["in_stock", "back_order", "out_of_stock", "unknown"]);
 
@@ -100,12 +101,21 @@ export function watchlistToDetailedCsv(
   return lines.join("\n");
 }
 
-export function priceHistoryToCsv(history: PricePoint[], product: Pick<Product, "name" | "modelNumber">): string {
+// A price point tagged with the distributor it came from. Multi-distributor
+// exports (Compare, per-product history) flatten several listings' histories
+// into one file, so without the tag the rows are unattributable.
+export type TaggedPricePoint = PricePoint & { distributor?: string };
+
+export function priceHistoryToCsv(
+  history: TaggedPricePoint[],
+  product: Pick<Product, "name" | "modelNumber">,
+): string {
   const lines: string[] = [HISTORY_HEADER];
   for (const pt of history) {
     const row = [
       escapeCsv(product.name ?? ""),
       escapeCsv(product.modelNumber ?? ""),
+      escapeCsv(pt.distributor ?? ""),
       escapeCsv(pt.date ?? ""),
       escapeCsv(String(pt.price ?? "")),
       escapeCsv(pt.currency ?? ""),
@@ -118,18 +128,24 @@ export function priceHistoryToCsv(history: PricePoint[], product: Pick<Product, 
 
 // ─── Per-product history export with fallback ───────────────────────────────
 export function productHistoryToCsv(product: Product): string {
-  const allHistory: PricePoint[] = (product.listings ?? []).flatMap((l) => l.priceHistory ?? []);
+  const allHistory: TaggedPricePoint[] = (product.listings ?? []).flatMap((l) =>
+    (l.priceHistory ?? []).map((pt) => ({
+      ...pt,
+      distributor: getDistributorById(l.distributorId)?.name ?? l.distributorId,
+    })),
+  );
   if (allHistory.length > 0) {
     const sorted = [...allHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     return priceHistoryToCsv(sorted, { name: product.name, modelNumber: product.modelNumber });
   }
-  const fallback: PricePoint[] = (product.listings ?? [])
+  const fallback: TaggedPricePoint[] = (product.listings ?? [])
     .filter((l) => typeof l.price === "number" && Number.isFinite(l.price))
     .map((l) => ({
       date: l.lastChecked ?? new Date().toISOString().slice(0, 10),
       price: l.price,
       currency: l.currency ?? "USD",
       stockStatus: l.stockStatus ?? "unknown",
+      distributor: getDistributorById(l.distributorId)?.name ?? l.distributorId,
     }));
   return priceHistoryToCsv(fallback, { name: product.name, modelNumber: product.modelNumber });
 }

@@ -345,8 +345,15 @@ export default function CompareScreen() {
       return;
     }
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Tag each point with its distributor: the file flattens every listing's
+    // history, so without the tag the rows are indistinguishable.
     const rows = withHistory
-      .flatMap((l) => l.priceHistory ?? [])
+      .flatMap((l) =>
+        (l.priceHistory ?? []).map((pt) => ({
+          ...pt,
+          distributor: getDistributorById(l.distributorId)?.name ?? l.distributorId,
+        })),
+      )
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const csv = priceHistoryToCsv(rows, {
       name: productName,
