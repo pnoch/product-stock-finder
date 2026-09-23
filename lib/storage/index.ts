@@ -25,6 +25,7 @@ export function createStorage(
 
   const watchlist = createWatchlistStorage(ctx);
   const alertsStorage = createAlertsStorage(ctx);
+  const remindersStorage = createRemindersStorage(ctx);
 
   // ─── Clear All Data ─────────────────────────────────────────────────────────
 
@@ -90,24 +91,31 @@ export function createStorage(
     ]);
   }
 
-  // Removing a product must also remove the alerts scoped to it: an alert for
-  // a product no longer on the watchlist can never fire (price-check skips
-  // products it cannot find) and rendered as "Unknown Product" with a
-  // misleading "N alerts" badge. Cascading here (rather than at each call site)
-  // covers every removal path.
+  // Removing a product must also remove everything scoped to it: an alert,
+  // reminder, or stock watch for a product no longer on the watchlist can never
+  // fire (price-check/restock skip products they cannot find) and rendered as a
+  // stale row with a misleading count. Cascading here (rather than at each call
+  // site) covers every removal path.
   async function removeFromWatchlist(productId: string): Promise<void> {
     await watchlist.removeFromWatchlist(productId);
     const alerts = await alertsStorage.getAlerts();
-    const orphaned = alerts.filter((a) => a.productId === productId);
-    for (const alert of orphaned) {
+    for (const alert of alerts.filter((a) => a.productId === productId)) {
       await alertsStorage.removeAlert(alert.id);
+    }
+    const reminders = await remindersStorage.getBackOrderReminders();
+    for (const reminder of reminders.filter((r) => r.productId === productId)) {
+      await remindersStorage.removeBackOrderReminder(reminder.id);
+    }
+    const watches = await remindersStorage.getStockWatches();
+    for (const watch of watches.filter((w) => w.productId === productId)) {
+      await remindersStorage.removeStockWatch(watch.id);
     }
   }
 
   return {
     ...watchlist,
     ...alertsStorage,
-    ...createRemindersStorage(ctx),
+    ...remindersStorage,
     ...createSettingsStorage(ctx, watchlist),
     ...createDigestFxStorage(ctx),
     ...createFxHistoryStorage(ctx),

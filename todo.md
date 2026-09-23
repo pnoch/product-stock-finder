@@ -2803,3 +2803,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 342 on desktop: `handleRemove`'s Undo restored only the product, while `removeFromWatchlist` cascades to the product's alerts — so undoing a removal silently lost the price alerts
 - [x] `handleRemove` now captures the product's alerts before removal and passes them to `showUndoBar`; `handleUndo` re-adds them after restoring the product
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 25) — verified non-vacuous by reverting the restore; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2059 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 344: Device QA round 92 (removing a product orphaned its reminders and stock watches)
+
+- [x] **The removal cascade only covered alerts**: Phase 285 made `removeFromWatchlist` delete a product's price alerts, but its back-order reminders and stock watches were left behind. They render in the Alerts tab (they store `productName`) but can never fire — `restock.ts` skips a watch whose product is not on the watchlist — so they accumulate as dead rows and inflate the "N reminders" count
+- [x] `removeFromWatchlist` now also deletes the product's reminders and stock watches (the shared `remindersStorage` instance is reused instead of a second `createRemindersStorage(ctx)`)
+- [x] Added a case to `tests/storage.test.ts` (now 72: removal cascades to reminders and watches) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2060 passed`

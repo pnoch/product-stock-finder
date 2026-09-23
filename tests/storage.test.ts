@@ -199,6 +199,20 @@ describe("watchlist", () => {
     expect(alerts.map((a) => a.id)).toEqual(["a2"]);
   });
 
+  // A reminder or stock watch for a removed product can never fire (restock
+  // skips products it cannot find), so removal must cascade to them too.
+  it("removeFromWatchlist cascades to that product's reminders and watches", async () => {
+    await saveWatchlist([makeProduct("p1"), makeProduct("p2")]);
+    const base = { productName: "P", distributorId: "d1", distributorName: "D", reminderDate: new Date().toISOString(), createdAt: new Date().toISOString() };
+    await addBackOrderReminder({ id: "r1", productId: "p1", ...base } as never);
+    await addBackOrderReminder({ id: "r2", productId: "p2", ...base } as never);
+    await addStockWatch({ id: "w1", productId: "p1", reminderType: "back_in_stock", ...base } as never);
+    await addStockWatch({ id: "w2", productId: "p2", reminderType: "back_in_stock", ...base } as never);
+    await removeFromWatchlist("p1");
+    expect((await getBackOrderReminders()).map((r) => r.id)).toEqual(["r2"]);
+    expect((await getStockWatches()).map((w) => w.id)).toEqual(["w2"]);
+  });
+
   it("updateProductListings replaces listings for the matching product only", async () => {
     await saveWatchlist([makeProduct("p1"), makeProduct("p2")]);
     const newListing = {
