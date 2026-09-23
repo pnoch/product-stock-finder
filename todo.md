@@ -2851,3 +2851,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`createStorageBreakerStore`'s `readList` didn't validate entries**: it only checked `Array.isArray`, so a corrupt stored list containing a null/non-object entry made `list.find((e) => e.distributorId === id)` throw. `resilientFetch` does not catch that, so the whole scrape rejected instead of degrading
 - [x] `readList` now filters to entries with a string `distributorId`
 - [x] Added a case to `tests/resilient-fetch.test.ts` (now 31: malformed entries are ignored) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2070 passed`
+
+## Phase 352: Device QA round 100 (Android alert overflow dropped the "More…" button)
+
+- [x] **`showAndroidChoice` could pass 4 buttons to `Alert.alert`**: with 4+ actions and no Cancel it used `slots = 3`, producing 3 actions + "More…" = 4 buttons. Android silently drops the 4th, so the "More…" button (and every action behind it) was unreachable. The same overflow happened with a Cancel present and 3+ actions (2 + More… + Cancel = 4)
+- [x] It now reserves a slot for "More…" when it is needed (2 actions with no Cancel, 1 action with Cancel), so the visible set never exceeds 3
+- [x] Added an Android case to `tests/alert.test.ts` (now 7: never passes more than 3 buttons) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2071 passed`

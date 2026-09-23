@@ -31,9 +31,12 @@ function showAndroidChoice(
 ): void {
   const cancel = buttons.find((b) => b.style === "cancel");
   const actions = buttons.filter((b) => b !== cancel);
-  // Android shows at most 3 buttons. Reserve one slot for Cancel when present,
-  // so the visible set never exceeds 3 (a 4th is silently dropped).
-  const slots = cancel ? 2 : 3;
+  // Android shows at most 3 buttons and silently drops extras. When a "More…"
+  // button is needed it consumes a slot, so show only 2 actions (no cancel) or
+  // 1 action + Cancel — otherwise the 4th button (More…) is dropped and the
+  // remaining actions become unreachable.
+  const needsMore = actions.length > (cancel ? 2 : 3);
+  const slots = needsMore ? (cancel ? 1 : 2) : cancel ? 2 : 3;
   const shown = actions.slice(0, slots);
   const remaining = actions.slice(slots);
   const options: AlertButton[] = [...shown];

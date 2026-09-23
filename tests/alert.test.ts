@@ -72,4 +72,32 @@ describe("showAlert on native", () => {
       { text: "Remove", style: "destructive", onPress },
     ]);
   });
+
+  // Android shows at most 3 buttons and silently drops extras. When a "More…"
+  // button is needed it must consume a slot, or the 4th button is dropped and
+  // the remaining actions become unreachable.
+  it("never passes more than 3 buttons on Android", async () => {
+    const { Platform } = await import("react-native");
+    Platform.OS = "android";
+    showAlert("Pick", "Choose one", [
+      { text: "A" },
+      { text: "B" },
+      { text: "C" },
+      { text: "D" },
+    ]);
+    const buttons = alertMock.mock.calls.at(-1)![2] as unknown[];
+    expect(buttons.length).toBeLessThanOrEqual(3);
+    expect((buttons.at(-1) as { text: string }).text).toBe("More…");
+
+    showAlert("Pick", "Choose one", [
+      { text: "A" },
+      { text: "B" },
+      { text: "C" },
+      { text: "D" },
+      { text: "Cancel", style: "cancel" },
+    ]);
+    const withCancel = alertMock.mock.calls.at(-1)![2] as unknown[];
+    expect(withCancel.length).toBeLessThanOrEqual(3);
+    expect((withCancel.at(-1) as { text: string }).text).toBe("More…");
+  });
 });
