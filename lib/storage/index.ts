@@ -90,6 +90,20 @@ export function createStorage(
     ]);
   }
 
+  // Removing a product must also remove the alerts scoped to it: an alert for
+  // a product no longer on the watchlist can never fire (price-check skips
+  // products it cannot find) and rendered as "Unknown Product" with a
+  // misleading "N alerts" badge. Cascading here (rather than at each call site)
+  // covers every removal path.
+  async function removeFromWatchlist(productId: string): Promise<void> {
+    await watchlist.removeFromWatchlist(productId);
+    const alerts = await alertsStorage.getAlerts();
+    const orphaned = alerts.filter((a) => a.productId === productId);
+    for (const alert of orphaned) {
+      await alertsStorage.removeAlert(alert.id);
+    }
+  }
+
   return {
     ...watchlist,
     ...alertsStorage,
@@ -101,6 +115,7 @@ export function createStorage(
     ...createNotificationsStorage(ctx),
     ...createDiscoveryStorage(ctx),
     ...createBackgroundTaskStorage(ctx),
+    removeFromWatchlist,
     setOnChange: ctx.setOnChange,
     setChangeSuppressed: ctx.setChangeSuppressed,
     clearAllData,

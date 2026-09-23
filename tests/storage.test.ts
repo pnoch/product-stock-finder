@@ -186,6 +186,19 @@ describe("watchlist", () => {
     expect(list[0]!.id).toBe("p2");
   });
 
+  // An alert for a product no longer on the watchlist can never fire
+  // (price-check skips products it cannot find) and rendered as "Unknown
+  // Product" with a misleading "N alerts" badge. Removing the product must
+  // cascade to its alerts.
+  it("removeFromWatchlist cascades to that product's alerts", async () => {
+    await saveWatchlist([makeProduct("p1"), makeProduct("p2")]);
+    await addAlert({ id: "a1", productId: "p1", targetPrice: 100, currency: "USD", isActive: true, createdAt: new Date().toISOString() });
+    await addAlert({ id: "a2", productId: "p2", targetPrice: 100, currency: "USD", isActive: true, createdAt: new Date().toISOString() });
+    await removeFromWatchlist("p1");
+    const alerts = await getAlerts();
+    expect(alerts.map((a) => a.id)).toEqual(["a2"]);
+  });
+
   it("updateProductListings replaces listings for the matching product only", async () => {
     await saveWatchlist([makeProduct("p1"), makeProduct("p2")]);
     const newListing = {
