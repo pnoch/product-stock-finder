@@ -231,6 +231,12 @@ export function useAlertsData() {
               if (Platform.OS !== "web")
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               try {
+                // Cancel the watch's scheduled confirmation notification, or it
+                // still fires after the watch is removed (the product-detail
+                // toggle and the reminder delete both do this).
+                if (watch.notificationId) {
+                  await cancelNotification(watch.notificationId);
+                }
                 await removeStockWatch(watch.id);
                 await loadData();
               } catch (e) {

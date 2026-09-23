@@ -96,6 +96,18 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 69: removing a stock watch from the Alerts screen didn't cancel its
+// scheduled confirmation notification, so it still fired after removal.
+describe("removing a stock watch cancels its notification", () => {
+  it("cancels the watch's notificationId before removing", () => {
+    const src = readFileSync(path.join(process.cwd(), "hooks/use-alerts-data.ts"), "utf8");
+    const start = src.indexOf("const handleRemoveStockWatch");
+    const block = src.slice(start, src.indexOf("}, [loadData]);", start));
+    expect(block).toContain("cancelNotification(watch.notificationId)");
+    expect(block).toContain("removeStockWatch(watch.id)");
+  });
+});
+
 // QA round 68: EditProductSheet.handleSave had no catch, so a storage failure
 // was an unhandled rejection and the sheet closed as if the edit succeeded.
 describe("edit product sheet handles save failure", () => {
