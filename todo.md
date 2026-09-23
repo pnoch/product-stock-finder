@@ -2526,3 +2526,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phases 293-296: the desktop Compare "Alert me if any distributor drops below" handler awaited `storage.addAlert` with no try/catch, so a storage failure was an unhandled rejection with no feedback (mobile wraps it and shows an alert)
 - [x] It now catches and toasts "Couldn't create alert. Please try again." without claiming success
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 9) — verified non-vacuous by reverting the wrapper; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2002 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
+
+## Phase 298: Device QA round 46 (product detail alerts state went stale)
+
+- [x] **Alerts created outside the scoped modal never reached the screen's state**: `handleSetBestAlert` (Best-Distributor card) and `AlertSection` (inline product-wide alert) wrote to storage but did not call `setAlerts`, so the Distributor Targets table — which reads the screen's `alerts` state — stayed stale until the screen reloaded. Only `handleSetAlert` (the scoped `+` modal) updated state
+- [x] `handleSetBestAlert` now appends the new alert to state; `AlertSection` gained an `onAdded` callback wired to `setAlerts` in `app/product/[id].tsx`
+- [x] Verified on device (rebuilt x86_64+arm64 release APK): setting a scoped target via the `+` immediately shows "$649.00 · target $500.00" in the Distributor Targets table
+- [x] Added 2 cases to `tests/mobile-criticals.test.ts` (now 26) — verified non-vacuous by reverting both; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2004 passed`

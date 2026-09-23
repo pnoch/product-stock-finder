@@ -72,6 +72,24 @@ describe("sparkline opens Compare focused on the tapped distributor", () => {
   });
 });
 
+// QA round 46: alerts created via the Best-Distributor card or the inline
+// AlertSection were written to storage but never added to the screen's `alerts`
+// state, so the Distributor Targets table (which reads that state) stayed
+// stale until the screen reloaded.
+describe("product detail keeps its alerts state in sync", () => {
+  const src = readFileSync(path.join(process.cwd(), "app/product/[id].tsx"), "utf8");
+
+  it("adds the best-distributor alert to state", () => {
+    const start = src.indexOf("const handleSetBestAlert");
+    const block = src.slice(start, src.indexOf("}, [id, product, showToast]);", start));
+    expect(block).toContain("setAlerts((prev) => [...prev, alert])");
+  });
+
+  it("wires AlertSection's onAdded to state", () => {
+    expect(src).toMatch(/<AlertSection[^>]*onAdded=\{\(alert\) => setAlerts/);
+  });
+});
+
 // QA round 16: the search screen rendered its filter chrome (tag chips,
 // category/brand pill rows, sort bar) as fixed flex siblings above the results
 // FlatList. On a 1080x2400 device those rows consumed ~2076px, squeezing the

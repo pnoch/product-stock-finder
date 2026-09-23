@@ -7,8 +7,9 @@ import { showAlert } from "@/lib/alert";
 import { useToast } from "@/components/ui/toast";
 import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@shared/currency";
+import type { PriceAlert } from "@/lib/types";
 
-export function AlertSection({ productId, productName, displayCurrency = "USD" }: { productId: string; productName?: string; displayCurrency?: string }) {
+export function AlertSection({ productId, productName, displayCurrency = "USD", onAdded }: { productId: string; productName?: string; displayCurrency?: string; onAdded?: (alert: PriceAlert) => void }) {
   const colors = useColors();
   const { showToast } = useToast();
   const [price, setPrice] = useState("");
@@ -25,6 +26,9 @@ export function AlertSection({ productId, productName, displayCurrency = "USD" }
     try {
       const alert = { id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, targetPrice, currency, isActive: true, createdAt: new Date().toISOString(), direction: "drop" as const };
       await addAlert(alert);
+      // Let the parent refresh its alerts state so the Distributor Targets
+      // table reflects this product-wide target immediately.
+      onAdded?.(alert);
       await schedulePriceAlert(productName ?? "Product", targetPrice, currency, productId).catch(() => {});
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showToast(`Alert created — watching for ${formatPrice(targetPrice, currency)}`, "success");

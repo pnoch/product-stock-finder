@@ -175,6 +175,9 @@ export default function ProductDetailScreen() {
         isActive: true,
       };
       await addAlert(alert);
+      // Keep the parent's alerts state in sync so the Distributor Targets table
+      // reflects the new target immediately (it reads this state).
+      setAlerts((prev) => [...prev, alert]);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showToast(`Alert created — you'll be notified below ${formatPrice(targetPrice, listing.currency)}`, "success");
     } catch {
@@ -499,7 +502,7 @@ export default function ProductDetailScreen() {
             shared product image. */}
         <NotesCard productId={product.id} />
         <TargetTableCard listings={visibleListings} alerts={alerts} productId={product.id} onSetTarget={handleSetTarget} />
-        <AlertSection productId={product.id} productName={product.name} displayCurrency={effectiveCurrency} />
+        <AlertSection productId={product.id} productName={product.name} displayCurrency={effectiveCurrency} onAdded={(alert) => setAlerts((prev) => [...prev, alert])} />
         <ReminderSection productId={product.id} distributorId={reminderTarget?.distributorId} productName={product.name} distributorName={reminderTarget ? getDistributorById(reminderTarget.distributorId)?.name ?? "" : ""} onRemind={() => { if (reminderTarget) setReminderListing(reminderTarget); }} />
       </Animated.ScrollView>
       <ReminderDatePickerModal
