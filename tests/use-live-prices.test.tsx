@@ -13,7 +13,8 @@ import type {
 
 vi.mock("../lib/storage", () => ({
   getWatchlist: vi.fn(),
-  updateProductListings: vi.fn(),
+  // Resolve (not undefined) so callers can chain `.catch` like production.
+  updateProductListings: vi.fn(async () => {}),
 }));
 
 vi.mock("../lib/server-prices", () => ({

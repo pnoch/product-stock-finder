@@ -2929,3 +2929,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`uploadHealthEventToServer` rejections were unhandled**: its `run` reads and writes `pending_health_events` (which rethrows adapter failures), and both callers in `lib/background-tasks/health-alerts.ts` used `void uploadHealthEventToServer({...})` with no `.catch` — so a storage failure became an unhandled rejection
 - [x] Both call sites now `.catch` and log
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 65) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2087 passed`
+
+## Phase 365: Device QA round 113 (live-price persists rejected unhandled)
+
+- [x] **Three `void updateProductListings(...)` sites in `hooks/use-live-prices.ts` had no catch**: `updateProductListings` rethrows adapter failures (its `enqueue` read/write), so a storage failure in `loadSeed`'s sample seed, the product persist debounce, or the watchlist persist effect became an unhandled rejection
+- [x] All three now `.catch(() => {})`; the test mock for `updateProductListings` was updated to resolve (not return `undefined`) so it matches production and the `.catch` chain works
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 66) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2088 passed`

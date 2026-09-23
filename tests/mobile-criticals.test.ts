@@ -96,6 +96,21 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 113: updateProductListings rethrows adapter failures, and three
+// `void updateProductListings(...)` sites in use-live-prices had no catch.
+describe("live-price persists are guarded", () => {
+  it("catches every updateProductListings rejection", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "hooks/use-live-prices.ts"),
+      "utf8",
+    );
+    const calls = src.match(/void updateProductListings\(/g) ?? [];
+    const catches = src.match(/updateProductListings\([^)]*\)\.catch\(/g) ?? [];
+    expect(calls.length).toBe(3);
+    expect(catches.length).toBe(3);
+  });
+});
+
 // QA round 112: uploadHealthEventToServer can reject (its storage read/write
 // rethrows), and both callers used `void` with no catch — an unhandled
 // rejection on a storage failure.

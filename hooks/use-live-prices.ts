@@ -33,7 +33,8 @@ export function useLiveProduct(productId: string) {
       if (base.length === 0) {
         seed = sample;
         if (sample.length > 0) {
-          void updateProductListings(productId, sample);
+          // A storage write failure must not reject unhandled.
+          void updateProductListings(productId, sample).catch(() => {});
         }
       } else {
         seed = mergeSampleHistory(base, sample);
@@ -91,7 +92,7 @@ export function useLiveProduct(productId: string) {
   useEffect(() => {
     if (!loaded || !product || !hasLiveData) return;
     const timer = setTimeout(() => {
-      void updateProductListings(productId, listingsRef.current);
+      void updateProductListings(productId, listingsRef.current).catch(() => {});
     }, PERSIST_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [loaded, product, productId, persistKey, hasLiveData]);
@@ -222,7 +223,7 @@ export function useLiveWatchlist() {
           .slice(idx, idx + count)
           .some((r) => r.data != null);
         idx += count;
-        if (hasLive) void updateProductListings(p.id, p.listings);
+        if (hasLive) void updateProductListings(p.id, p.listings).catch(() => {});
       }
     }, PERSIST_DEBOUNCE_MS);
     return () => clearTimeout(timer);
