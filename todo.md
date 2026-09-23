@@ -2959,3 +2959,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop `reconcileEvent` called `deactivateAlert` without the event time**: mobile passes `event.createdAt` so a stale server event cannot re-deactivate a freshly re-armed alert (the shared `deactivateAlert`'s third arg). Desktop omitted it, so a re-armed alert could be immediately re-triggered by an old event. It also only handled `price_drop`, not `price_rise`
 - [x] Desktop now passes `event.createdAt` and handles both `price_drop` and `price_rise`
 - [x] Updated the desktop test fixtures whose pulled-event `createdAt: 123` (1970) is now correctly rejected by the guard, and added a guard to `tests/desktop-chart-guard.test.ts` (now 26) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2092 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 370: Device QA round 118 (desktop only treated price_drop as stale)
+
+- [x] Follow-up to Phase 369: desktop's `stalePriceDrop` check only matched `event.type === "price_drop"`, while mobile's `staleFired` checks both `price_drop` and `price_rise` — so a stale price_rise event for an inactive alert still fired a desktop notification
+- [x] Desktop now treats both directions as stale
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 27) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2093 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

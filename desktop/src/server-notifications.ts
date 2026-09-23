@@ -206,11 +206,13 @@ async function runSyncDesktopNotifications(): Promise<void> {
     const { sendDesktopNotification } = await import("./notifications");
     for (const event of events) {
       try {
-        const stalePriceDrop =
-          event.type === "price_drop" &&
+        // Both directions: a stale price_rise event for an inactive alert must
+        // be skipped too (mobile checks both).
+        const stalePriceEvent =
+          (event.type === "price_drop" || event.type === "price_rise") &&
           event.alertId &&
           !activeAlertIds.has(event.alertId);
-        if (!stalePriceDrop) {
+        if (!stalePriceEvent) {
           const route = resolveEventRoute(event, activeAlerts, stockWatches, dateReminders);
           await sendDesktopNotification(event.title, event.body, route);
         }

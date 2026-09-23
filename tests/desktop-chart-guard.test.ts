@@ -161,6 +161,16 @@ describe("desktop chart guard", () => {
     expect(undoBlock).toContain("storage.addAlert(alert)");
   });
 
+  // QA round 118: desktop only treated price_drop as stale, so a stale
+  // price_rise event for an inactive alert still fired (mobile checks both).
+  it("skips stale price_rise events in desktop sync", async () => {
+    const text = await readFile("desktop/src/server-notifications.ts", "utf8");
+    const start = text.indexOf("const stalePriceEvent");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("if (!stalePriceEvent)", start));
+    expect(block).toMatch(/event\.type === "price_drop" \|\| event\.type === "price_rise"/);
+  });
+
   // QA round 117: desktop reconcileEvent omitted the event time, so a stale
   // server event could re-deactivate a freshly re-armed alert (mobile passes it).
   it("passes the event time to deactivateAlert in desktop reconcileEvent", async () => {
