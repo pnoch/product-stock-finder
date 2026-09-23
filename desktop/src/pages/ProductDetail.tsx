@@ -164,6 +164,9 @@ export function ProductDetail() {
   // Guards against a double-click / Enter+button double-submit creating two
   // alerts across any of the four alert entry points.
   const [creatingAlert, setCreatingAlert] = useState(false);
+  // Same guard for reminder / restock-watch creation: each mints a fresh random
+  // id, so a double-click created two reminders or two watches.
+  const [savingReminder, setSavingReminder] = useState(false);
   const [perListingAlertId, setPerListingAlertId] = useState<string | null>(null);
   const [perListingAlertPrice, setPerListingAlertPrice] = useState("");
   const [perListingAlertCurrency, setPerListingAlertCurrency] = useState("USD");
@@ -496,7 +499,7 @@ export function ProductDetail() {
   };
 
   const handleSetReminder = async () => {
-    if (!product) return;
+    if (!product || savingReminder) return;
     const distributorId = reminderDistributorId ?? bestListing?.distributorId;
     if (!distributorId) {
       showToast("No distributor available");
@@ -515,6 +518,7 @@ export function ProductDetail() {
       return;
     }
     const dist = DISTRIBUTORS.find((d) => d.id === distributorId);
+    setSavingReminder(true);
     try {
       await storage.addBackOrderReminder({
         id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -529,6 +533,8 @@ export function ProductDetail() {
     } catch {
       setReminderError("Couldn't save your reminder. Please try again.");
       return;
+    } finally {
+      setSavingReminder(false);
     }
     setReminderOpen(false);
     setReminderError(null);
@@ -571,7 +577,7 @@ export function ProductDetail() {
   };
 
   const handleInlineReminder = async () => {
-    if (!product) return;
+    if (!product || savingReminder) return;
     const distributorId = inlineReminderDistributorId ?? bestListing?.distributorId;
     if (!distributorId) {
       showToast("No distributor available");
@@ -590,6 +596,7 @@ export function ProductDetail() {
       return;
     }
     const dist = DISTRIBUTORS.find((d) => d.id === distributorId);
+    setSavingReminder(true);
     try {
       await storage.addBackOrderReminder({
         id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -604,6 +611,8 @@ export function ProductDetail() {
     } catch {
       setInlineReminderError("Couldn't save your reminder. Please try again.");
       return;
+    } finally {
+      setSavingReminder(false);
     }
     setInlineReminderError(null);
     showToast(`Reminder set for ${picked.toLocaleDateString()}`);
@@ -660,6 +669,8 @@ export function ProductDetail() {
       showToast("No distributor available");
       return;
     }
+    if (savingReminder) return;
+    setSavingReminder(true);
     try {
       await storage.addStockWatch({
         id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -675,15 +686,18 @@ export function ProductDetail() {
     } catch {
       showToast("Couldn't set that restock watch. Please try again.");
       return;
+    } finally {
+      setSavingReminder(false);
     }
     setStockWatches((prev) => ({ ...prev, [bestListing.distributorId]: true }));
     showToast("Watching for restock");
   };
 
   const handleToggleListingWatch = async (listing: (typeof visibleListings)[number]) => {
-    if (!product) return;
+    if (!product || savingReminder) return;
     const isWatching = !!stockWatches[listing.distributorId];
     const dist = DISTRIBUTORS.find((d) => d.id === listing.distributorId);
+    setSavingReminder(true);
     try {
       if (isWatching) {
         const watches = await storage.getStockWatches();
@@ -712,6 +726,8 @@ export function ProductDetail() {
       }
     } catch {
       showToast("Couldn't update that restock watch. Please try again.");
+    } finally {
+      setSavingReminder(false);
     }
   };
 

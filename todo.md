@@ -2629,3 +2629,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phases 312/313: `handleToggleStockWatch` had no double-submit guard, so a rapid double-tap on "Watch for Restock" scheduled two confirmation notifications; the second `addStockWatch` replaced the first (same deterministic id), orphaning the first notification id so it could never be cancelled
 - [x] It now checks a `togglingWatch` state, early-returns while in flight, and clears it in `finally` (the reminder handler already dedups via `replacedNotificationId`, so only the watch toggle needed this)
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 38) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2024 passed`
+
+## Phase 315: Device QA round 63 (desktop reminder/watch double-submit)
+
+- [x] Follow-up to Phases 312-314 on desktop: `handleSetReminder`, `handleInlineReminder`, `handleWatchRestock`, and `handleToggleListingWatch` each mint a fresh random id per call with no double-submit guard, so a rapid double-click created two reminders or two restock watches
+- [x] All four now check a shared `savingReminder` state, early-return while in flight, and clear it in `finally`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 18) — verified non-vacuous by reverting `handleInlineReminder`; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2025 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

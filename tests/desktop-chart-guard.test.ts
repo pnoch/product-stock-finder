@@ -147,6 +147,26 @@ describe("desktop chart guard", () => {
     expect(block).toContain("catch");
   });
 
+  // QA round 63: the desktop reminder / restock-watch handlers had no
+  // double-submit guard (each mints a fresh random id).
+  it("guards desktop reminder/watch creation against double-submit", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("const [savingReminder, setSavingReminder] = useState(false)");
+    for (const handler of [
+      "const handleSetReminder",
+      "const handleInlineReminder",
+      "const handleWatchRestock",
+      "const handleToggleListingWatch",
+    ]) {
+      const start = text.indexOf(handler);
+      expect(start).toBeGreaterThan(-1);
+      const block = text.slice(start, start + 1800);
+      expect(block).toContain("savingReminder");
+      expect(block).toContain("setSavingReminder(true)");
+      expect(block).toContain("setSavingReminder(false)");
+    }
+  });
+
   // QA round 61: the desktop product-detail alert flows had no double-submit
   // guard (mobile was fixed in Phase 312).
   it("guards desktop product-detail alert creation against double-submit", async () => {
