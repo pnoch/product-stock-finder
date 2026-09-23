@@ -2875,3 +2875,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`scheduleBackOrderReminder`'s DATE trigger omitted `channelId`**: Phase 252 correctly removed the ineffective `content.channelId` (Android reads the channel from the trigger) but never added `channelId` to the DATE trigger itself — so a scheduled reminder landed on the fallback channel with no HIGH importance/sound/vibration, unlike every immediate notification
 - [x] The DATE trigger now carries `channelIdFor("stock")` on Android
 - [x] Added a case to `tests/android-channel-trigger.test.ts` (now 4: the DATE trigger carries the channelId; also fixed the permission mock to return `status: "granted"`) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2076 passed`
+
+## Phase 356: Device QA round 104 (triggered alert card rendered "→ $0.00")
+
+- [x] **The triggered-alert card rendered a zero triggered price**: a server-detected trigger can store `triggeredPrice: 0` (the digest's `alertTargetsHit` already guards `> 0` for exactly this reason), but the card only checked `!= null`, so it showed `→ $0.00` next to the real target price
+- [x] It now requires `alert.triggeredPrice > 0` before rendering the triggered price
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 61) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2077 passed`

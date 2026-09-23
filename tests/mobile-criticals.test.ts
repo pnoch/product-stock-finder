@@ -96,6 +96,18 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 104: a server-detected trigger can store triggeredPrice 0, which the
+// triggered-alert card rendered as "→ $0.00" (the digest already guards > 0).
+describe("triggered alert card guards a zero triggered price", () => {
+  it("requires triggeredPrice > 0 before rendering it", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "components/alerts/triggered-alert-card.tsx"),
+      "utf8",
+    );
+    expect(src).toMatch(/alert\.triggeredPrice != null && alert\.triggeredPrice > 0/);
+  });
+});
+
 // QA round 90: swipe-delete cascades to the product's alerts (Phase 285), but
 // Undo restored only the product — its price alerts were permanently lost.
 describe("watchlist undo restores the deleted product's alerts", () => {

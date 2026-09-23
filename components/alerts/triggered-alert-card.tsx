@@ -82,7 +82,9 @@ export const TriggeredAlertCard = memo(function TriggeredAlertCard({
             <Text style={{ color: colors.muted, fontSize: 13 }}>
               Target: {formatPrice(alert.targetPrice, alert.currency)}
             </Text>
-            {alert.triggeredPrice != null && (
+            {/* A server-detected trigger can store triggeredPrice 0, which
+                would render as "→ $0.00" (the digest already guards > 0). */}
+            {alert.triggeredPrice != null && alert.triggeredPrice > 0 && (
               <Text
                 style={{
                   color: colors.success,
