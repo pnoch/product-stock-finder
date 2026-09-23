@@ -96,6 +96,18 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 73: verify-email fetched `${getApiBaseUrl()}/api/auth/verify`
+// without checking the base URL was configured, so an unconfigured build hit
+// the relative path and showed a confusing failure (oauth/callback checks it).
+describe("verify-email checks the API base URL", () => {
+  it("bails with a clear error when unconfigured", () => {
+    const src = readFileSync(path.join(process.cwd(), "app/verify-email.tsx"), "utf8");
+    expect(src).toContain("const baseUrl = getApiBaseUrl();");
+    expect(src).toContain("if (!baseUrl)");
+    expect(src).toContain("isn't connected to a server");
+  });
+});
+
 // QA round 72: the notification center's per-item open awaited
 // markNotificationRead with no catch (desktop wraps it).
 describe("notification center open handles failure", () => {

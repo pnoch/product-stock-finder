@@ -2689,3 +2689,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 323: `NotificationCenter.handleOpen` awaited `markNotificationRead` with no catch, so a storage failure rejected unhandled and then marked the item read in the UI anyway (desktop's `handleNotificationOpen` wraps the same call and toasts on failure)
 - [x] It now catches, shows "Couldn't update — We couldn't update that notification. Please try again.", and returns without decrementing the badge or marking it read
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 45) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2033 passed`
+
+## Phase 325: Device QA round 73 (verify-email didn't check the API base URL)
+
+- [x] **`app/verify-email.tsx` fetched `${getApiBaseUrl()}/api/auth/verify` without checking the base URL was configured**: on an unconfigured build `getApiBaseUrl()` returns `""`, so the fetch hit the relative path `/api/auth/verify` and the screen showed a confusing "Verification failed" instead of explaining the build isn't connected. `app/oauth/callback.tsx` guards the same way
+- [x] It now bails with "This build isn't connected to a server. Open the link in the app that requested it." when the base URL is empty
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 46) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2034 passed`

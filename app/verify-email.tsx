@@ -24,7 +24,17 @@ export default function VerifyEmailScreen() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`${getApiBaseUrl()}/api/auth/verify`, {
+        const baseUrl = getApiBaseUrl();
+        // Without this, an unconfigured build fetched the relative path
+        // "/api/auth/verify" and showed a confusing verification failure.
+        if (!baseUrl) {
+          if (!cancelled) {
+            setError("This build isn't connected to a server. Open the link in the app that requested it.");
+            setState("error");
+          }
+          return;
+        }
+        const res = await fetch(`${baseUrl}/api/auth/verify`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token }),
