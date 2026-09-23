@@ -245,4 +245,34 @@ describe("useLiveWatchlist", () => {
     expect(calledIds).toContain("p1");
     expect(calledIds).toContain("p2");
   });
+
+  // An empty watchlist has nothing to refresh, so `refreshAll` must not report
+  // failure — the watchlist header's "Refresh all" button shows a "server is
+  // unreachable" alert whenever it returns false.
+  it("does not report failure when there is nothing to refresh", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue([]);
+    const { result } = renderHook(() => useLiveWatchlist(), {
+      wrapper: makeWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(await result.current.refreshAll()).toBe(true);
+  });
+
+  // The keys must come from a fresh read, not the pre-reload `queries` closure:
+  // a product added since the last render would otherwise never be refetched by
+  // this call (mirrors useLiveProduct.refresh).
+  it("refetches a product that appeared since the last render", async () => {
+    vi.mocked(getWatchlist).mockResolvedValueOnce([]);
+    const { result } = renderHook(() => useLiveWatchlist(), {
+      wrapper: makeWrapper(),
+    });
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(fetchServerPrice).not.toHaveBeenCalled();
+
+    // The watchlist gains a product (e.g. synced from another device).
+    vi.mocked(getWatchlist).mockResolvedValue([product]);
+    await result.current.refreshAll();
+    await waitFor(() => expect(fetchServerPrice).toHaveBeenCalled());
+  });
 });

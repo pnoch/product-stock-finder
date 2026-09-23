@@ -229,13 +229,22 @@ export function useLiveWatchlist() {
   }, [loaded, persistKey, hasLiveData]);
 
   const refreshAll = useCallback(async () => {
+    // Read the watchlist fresh and derive the keys from it rather than the
+    // memoized `queries` closure: a product added since the last render would
+    // otherwise be missed by this call (mirrors useLiveProduct.refresh). An
+    // empty watchlist has nothing to refresh, so report success — the header's
+    // "Refresh all" button shows a "server unreachable" alert on false.
+    const list = await getWatchlist().catch(() => []);
     await reload();
-    const keys = queries.map((q) => q.queryKey);
+    const keys = list.flatMap((p) =>
+      deriveListingQueries(p.modelNumber, p.listings ?? []).map((q) => q.queryKey),
+    );
+    if (keys.length === 0) return true;
     await Promise.all(
       keys.map((key) => queryClient.refetchQueries({ queryKey: key })),
     );
     return keys.some((key) => queryClient.getQueryData(key) != null);
-  }, [reload, queryClient, queries]);
+  }, [reload, queryClient]);
 
   const isRefreshingAny = results.some((r) => r.isFetching);
 

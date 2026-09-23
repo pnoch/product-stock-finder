@@ -2429,3 +2429,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] `onOpenChart={(listing) => router.push(`/compare/${id}?distributor=${listing.distributorId}`)}` so the tapped distributor is the one selected
 - [x] Verified on device (rebuilt x86_64+arm64 release APK): tapping the MikroTik Store EU sparkline on CRS326 opened Compare with "Select Distributors (1/5)" and MikroTik Store EU selected
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 24) — verified non-vacuous by reverting to the ignored-listing handler; E2E root `tsc 0`, lint 0 errors (164 warnings), root `328 passed | 2 skipped` / `1979 passed`
+
+## Phase 282: Device QA round 30 (watchlist "Refresh all" false failure + stale keys)
+
+- [x] **"Refresh all" reported a server failure on an empty watchlist**: `useLiveWatchlist.refreshAll` returned `keys.some((key) => queryClient.getQueryData(key) != null)`, which is `false` when there are no keys — so the watchlist header's Refresh button (and the pull-to-refresh) showed "Couldn't refresh prices — The server is unreachable" even though there was simply nothing to refresh
+- [x] **`refreshAll` used the pre-reload `queries` closure**: it called `reload()` then mapped the memoized `queries` (derived from the previous render's `products`), so a product added since the last render was never refetched by that call. `useLiveProduct.refresh` was already rewritten to derive keys from a fresh read; `refreshAll` now does the same (`getWatchlist()` → `deriveListingQueries`)
+- [x] Added 2 cases to `tests/use-live-prices.test.tsx` (now 10: empty watchlist returns true; a product that appeared since the last render is refetched) — verified non-vacuous by reverting to the stale-closure form; E2E root `tsc 0`, lint 0 errors (164 warnings), root `328 passed | 2 skipped` / `1981 passed`
