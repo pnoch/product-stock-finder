@@ -19,6 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { getWatchlist, getAlerts, getSettings } from "@/lib/storage";
+import { countActiveAlerts } from "@/lib/alert-state";
 import { Product, StockStatus } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { getBestPrice } from "@/lib/currency";
@@ -152,7 +153,7 @@ export default function HomeScreen() {
       const list = await getWatchlist();
       setWatchlist(list);
       const alerts = await getAlerts();
-      setAlertCount(alerts.filter((a) => a.isActive && !a.triggeredAt).length);
+      setAlertCount(countActiveAlerts(alerts));
       const settings = await getSettings();
       setDisplayCurrency(settings?.displayCurrency ?? "USD");
     } catch (e) {

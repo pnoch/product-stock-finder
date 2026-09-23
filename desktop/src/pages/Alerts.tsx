@@ -28,6 +28,7 @@ import {
 } from "@shared/currency";
 import { getDistributorById } from "@shared/distributors";
 import { computeTotalSaved, savingAlerts } from "../../../lib/alert-savings";
+import { countActiveAlerts } from "../../../lib/alert-state";
 import { formatRelativeTime } from "../../../lib/relative-time";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
@@ -171,10 +172,7 @@ export function Alerts() {
   const loading = alertsLoading || remindersLoading;
 
   const activeAlertCount = useMemo(
-    () =>
-      alerts.filter(
-        (a) => a.isActive && !a.triggeredAt && (!a.snoozedUntil || new Date(a.snoozedUntil).getTime() <= Date.now()),
-      ).length,
+    () => countActiveAlerts(alerts),
     [alerts],
   );
 

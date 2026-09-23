@@ -13,6 +13,7 @@ import { useWatchlist, useAlerts } from "../hooks/use-storage";
 import { formatPrice } from "@shared/currency";
 import { getBestPrice, convertPrice } from "@/lib/currency";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
+import { countActiveAlerts } from "../../../lib/alert-state";
 import { storage } from "../storage";
 import { getDistributorById } from "@shared/distributors";
 import { StockBadge } from "../components/StockBadge";
@@ -186,7 +187,7 @@ export function Home() {
     p.listings.some((l) => l.stockStatus === "in_stock"),
   ).length;
 
-  const activeAlerts = alerts.filter((a) => a.isActive).length;
+  const activeAlerts = countActiveAlerts(alerts);
 
   if (products.length === 0) {
     return (

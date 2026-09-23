@@ -5,6 +5,7 @@ import {
   getBackOrderReminders,
   getStockWatches,
 } from "@/lib/storage";
+import { countActiveAlerts } from "@/lib/alert-state";
 
 /**
  * Returns the total count of active items for the Alerts tab badge:
@@ -28,14 +29,9 @@ export function useAlertBadge(): number {
           getBackOrderReminders().catch(() => []),
           getStockWatches().catch(() => []),
         ]);
-        // Exclude snoozed alerts, matching the in-screen "N alerts" count.
-        const now = Date.now();
-        const activeAlerts = alerts.filter(
-          (a) =>
-            a.isActive &&
-            !a.triggeredAt &&
-            (!a.snoozedUntil || new Date(a.snoozedUntil).getTime() <= now),
-        ).length;
+        // Shared predicate so the badge, the Home stat card, and the in-screen
+        // "N alerts" count always agree.
+        const activeAlerts = countActiveAlerts(alerts);
         const activeReminders = reminders.length;
         const activeWatches = watches.length;
         if (active) setCount(activeAlerts + activeReminders + activeWatches);

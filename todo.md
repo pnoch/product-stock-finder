@@ -2472,3 +2472,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's main "Set Alert" modal never seeded its currency**: `alertCurrency` stayed at its `"USD"` initial value because the load handler only seeded `perListingAlertCurrency` and `inlineAlertCurrency` from `settings.displayCurrency`. Mobile seeds all three (`app/product/[id].tsx`), so a EUR/GBP desktop user's alert was created in USD
 - [x] The load handler now also calls `setAlertCurrency(settings.displayCurrency ?? "USD")`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 3) asserting `setAlertCurrency(settings.displayCurrency` — verified non-vacuous by removing the call; E2E root `tsc 0`, lint 0 errors (164 warnings), root `329 passed | 2 skipped` / `1990 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
+
+## Phase 289: Device QA round 37 (active-alert counts disagreed across screens)
+
+- [x] **Five user-visible "active alerts" counts used three different predicates**: the Alerts tab badge and tab counter excluded triggered + snoozed alerts, mobile Home excluded only triggered, and desktop Home excluded neither (`alerts.filter((a) => a.isActive)`) — so a snoozed or triggered alert inflated the Home stat card and the desktop count disagreed with its own Alerts tab
+- [x] Added `isAlertActive` / `countActiveAlerts` in `lib/alert-state.ts` (enabled, not triggered, snooze elapsed) and used it in `hooks/use-alerts-data.ts`, `hooks/use-alert-badge.ts`, `app/(tabs)/index.tsx`, `desktop/src/pages/Home.tsx`, and `desktop/src/pages/Alerts.tsx`
+- [x] Added `tests/alert-state.test.ts` (5 cases: enabled, disabled, triggered, snoozed, elapsed snooze) — verified non-vacuous by reducing the predicate to `isActive`; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `1995 passed`; desktop `tsc 0`, `44 passed` / `219 passed`

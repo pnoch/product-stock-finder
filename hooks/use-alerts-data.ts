@@ -22,6 +22,7 @@ import {
 } from "@/lib/storage";
 import { PriceAlert, Product, BackOrderReminder } from "@/lib/types";
 import { computeTotalSaved } from "@/lib/alert-savings";
+import { countActiveAlerts } from "@/lib/alert-state";
 import { showAlert } from "@/lib/alert";
 import {
   cancelNotification,
@@ -331,7 +332,7 @@ export function useAlertsData() {
   );
 
   const tabCount = {
-    alerts: alerts.filter((a) => a.isActive && !a.triggeredAt && (!a.snoozedUntil || new Date(a.snoozedUntil).getTime() <= Date.now())).length,
+    alerts: countActiveAlerts(alerts),
     reminders: reminders.length + stockWatches.length,
     notifications: unreadNotifications,
   };
