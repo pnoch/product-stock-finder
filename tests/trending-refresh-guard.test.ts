@@ -56,4 +56,15 @@ describe("trending.refresh guard", () => {
     expect(rows[0]!.reason.length).toBeLessThanOrEqual(1000);
     expect(Number.isFinite(Number(rows[0]!.estimatedPrice))).toBe(true);
   });
+
+  // A failed insert after the delete would leave the trending list empty until
+  // the next successful refresh, so the replace must be transactional.
+  it("replaces trending rows in a transaction", async () => {
+    const src = await import("node:fs/promises").then((fs) =>
+      fs.readFile("server/routers/trending.ts", "utf8"),
+    );
+    expect(src).toContain("db.transaction(");
+    expect(src).toContain("tx.delete(trendingProducts)");
+    expect(src).toContain("tx.insert(trendingProducts)");
+  });
 });

@@ -219,10 +219,14 @@ export const trendingRouter = router({
         expiresAt,
       }));
 
-    await db.delete(trendingProducts);
-    if (rows.length > 0) {
-      await db.insert(trendingProducts).values(rows);
-    }
+    // Delete + insert in one transaction: a failed insert after the delete
+    // would leave the trending list empty until the next successful refresh.
+    await db.transaction(async (tx) => {
+      await tx.delete(trendingProducts);
+      if (rows.length > 0) {
+        await tx.insert(trendingProducts).values(rows);
+      }
+    });
 
     return { count: rows.length };
   }),

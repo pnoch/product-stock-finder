@@ -2749,3 +2749,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`components/settings/data-section.tsx` had three unguarded storage paths**: `handleExport` (backup) and `handleExportCsv` had a `try` with only a `finally`, and the import confirmation's `onPress` async block also had no catch — a storage read/write failure rejected unhandled with no feedback
 - [x] All three now catch and report ("Export Failed" / "Import failed")
 - [x] Added 3 guards to `tests/mobile-criticals.test.ts` (now 56) — verified non-vacuous by reverting the CSV export catch; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2049 passed`
+
+## Phase 335: Device QA round 83 (trending refresh wasn't transactional)
+
+- [x] **`trending.refresh` deleted then inserted without a transaction**: a failed insert after the `delete(trendingProducts)` committed would leave the trending list empty until the next successful refresh (the previous list is lost). Every other multi-write path in the server uses a transaction
+- [x] The replace now runs in `db.transaction((tx) => { tx.delete(...); tx.insert(...) })`
+- [x] Added a guard to `tests/trending-refresh-guard.test.ts` (now 3) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2050 passed`
