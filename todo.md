@@ -2587,3 +2587,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's CSV import counted every non-throwing `addToWatchlist` as added**: `addToWatchlist` returns `false` for an already-tracked product (the Phase 270 fix), but `desktop/src/pages/Watchlist.tsx`'s `handleImportFile` ignored the return and did `added += 1` unconditionally — so re-importing a CSV reported "Added N products" for products that were already on the watchlist
 - [x] It now branches on the boolean, counts `duplicates`, and reports "N already tracked" in the summary, matching mobile
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 13) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2016 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 308: Device QA round 56 (dead computation in the distributor selector)
+
+- [x] `components/compare/distributor-selector.tsx` computed `allDistributorIds` with a `useMemo` and then immediately discarded it (`void allDistributorIds`) — dead work on every render, plus a now-unused `useMemo` import
+- [x] Removed both
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 35) — verified non-vacuous by restoring the computation; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2017 passed`

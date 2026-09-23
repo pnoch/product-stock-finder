@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback } from "react";
 import { Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
@@ -33,17 +33,6 @@ export const DistributorSelector = memo(function DistributorSelector({
   priceTrends,
 }: DistributorSelectorProps) {
   const colors = useColors();
-
-  const allDistributorIds = useMemo(
-    () =>
-      sortedListings
-        .filter((l) => l.priceHistory && l.priceHistory.length >= 2)
-        .map((l) => l.distributorId)
-        .sort(),
-    [sortedListings],
-  );
-
-  void allDistributorIds;
 
   const handleSort = useCallback(
     (s: SortBy) => {

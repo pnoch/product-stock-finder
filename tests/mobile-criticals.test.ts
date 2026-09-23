@@ -96,6 +96,19 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 56: the distributor selector computed `allDistributorIds` and then
+// immediately `void`ed it — dead work on every render.
+describe("distributor selector has no dead computation", () => {
+  it("does not compute an unused allDistributorIds", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "components/compare/distributor-selector.tsx"),
+      "utf8",
+    );
+    expect(src).not.toContain("allDistributorIds");
+    expect(src).not.toContain("void allDistributorIds");
+  });
+});
+
 // QA round 54: three exports were referenced nowhere (not even in their own
 // module or tests): parseWatchlistDetailedCsv, getQueuedEditCount, and
 // computeWatchlistStats (plus its WatchlistStats type).
