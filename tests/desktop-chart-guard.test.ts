@@ -97,4 +97,15 @@ describe("desktop chart guard", () => {
     expect(alertBlock).toContain("try {");
     expect(alertBlock).toContain("catch");
   });
+
+  // QA round 44: the desktop "Clear all data" handler awaited the wipe with no
+  // try/catch, so a storage failure was an unhandled rejection with no feedback.
+  it("wraps desktop clear-all-data in try/catch", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const start = text.indexOf("const handleClearAllData");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("\n  };", start));
+    expect(block).toContain("try {");
+    expect(block).toContain("catch");
+  });
 });

@@ -821,9 +821,15 @@ export function Settings() {
   }, []);
 
   const handleClearAllData = async () => {
-    await storage.clearAllData();
-    setClearConfirm(false);
-    window.location.reload();
+    try {
+      await storage.clearAllData();
+      setClearConfirm(false);
+      window.location.reload();
+    } catch (e) {
+      // A storage failure must not reject unhandled with no feedback.
+      setImportExportMessage(e instanceof Error ? e.message : "Couldn't clear data. Please try again.");
+      setClearConfirm(false);
+    }
   };
 
   const handleDeleteAccount = useCallback(async () => {
