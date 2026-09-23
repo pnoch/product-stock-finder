@@ -142,6 +142,25 @@ describe("computeDigest", () => {
     expect(result.alertTargetsHit[0].productId).toBe("p1");
   });
 
+  // A product can have several triggered alerts, so the entry needs a unique id
+  // (alertId) — keying the render on productId produced duplicate React keys.
+  it("gives each triggered alert a unique alertId", () => {
+    const previous: DigestSnapshot = { lastDigestAt: LAST, products: [] };
+    const watchlist = [
+      makeProduct("p1", "CRS804", [
+        { price: 85, currency: "USD", stockStatus: "in_stock" },
+      ]),
+    ];
+    const alerts = [
+      makeAlert({ id: "a1", triggeredAt: "2026-08-11T08:00:00.000Z" }),
+      makeAlert({ id: "a2", triggeredAt: "2026-08-11T09:00:00.000Z" }),
+    ];
+    const result = computeDigest(previous, watchlist, makeSettings(), alerts);
+    expect(result.alertTargetsHit).toHaveLength(2);
+    expect(result.alertTargetsHit.map((t) => t.alertId)).toEqual(["a1", "a2"]);
+    expect(new Set(result.alertTargetsHit.map((t) => t.alertId)).size).toBe(2);
+  });
+
   it("excludes active (not-yet-triggered) alerts from targets hit", () => {
     const previous: DigestSnapshot = { lastDigestAt: LAST, products: [] };
     const watchlist = [

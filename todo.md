@@ -2881,3 +2881,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The triggered-alert card rendered a zero triggered price**: a server-detected trigger can store `triggeredPrice: 0` (the digest's `alertTargetsHit` already guards `> 0` for exactly this reason), but the card only checked `!= null`, so it showed `→ $0.00` next to the real target price
 - [x] It now requires `alert.triggeredPrice > 0` before rendering the triggered price
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 61) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2077 passed`
+
+## Phase 357: Device QA round 105 (digest targets-hit list had duplicate React keys)
+
+- [x] **The digest "Targets Hit" list keyed rows on `productId`**: `computeDigest` emits one `alertTargetsHit` entry per triggered alert, and a product can have several triggered alerts, so two rows shared a `productId` and React logged duplicate-key warnings (and could mis-reconcile). Both the mobile `DigestCard` and the desktop Stats digest rendered `key={t.productId}`
+- [x] `alertTargetsHit` entries now carry the unique `alertId`, and both renderers key on it
+- [x] Added a case to `tests/price-digest.test.ts` (now 31: two triggered alerts for one product get distinct alertIds) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2078 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

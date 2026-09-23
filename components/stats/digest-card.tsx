@@ -219,7 +219,7 @@ export const DigestCard = memo(function DigestCard({
           )}
           {result.alertTargetsHit.map((t) => (
             <Text
-              key={t.productId}
+              key={t.alertId}
               style={{ color: colors.muted, fontSize: 12, paddingVertical: 3 }}
             >
               {t.name} at {formatPrice(t.price, t.currency)}

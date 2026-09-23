@@ -47,6 +47,9 @@ export interface DigestResult {
     to: StockStatus;
   }[];
   alertTargetsHit: {
+    // A product can have several triggered alerts, so the id (not productId)
+    // is the unique key for rendering.
+    alertId: string;
     productId: string;
     name: string;
     price: number;
@@ -175,6 +178,7 @@ export function computeDigest(
     .map((a) => {
       const product = watchlist.find((p) => p.id === a.productId);
       return {
+        alertId: a.id,
         productId: a.productId,
         name: product?.name ?? a.productId,
         // `??` doesn't fall back on 0, and a server-detected trigger can store

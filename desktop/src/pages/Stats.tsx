@@ -532,7 +532,7 @@ export function Stats() {
               {digest.alertTargetsHit.length > 0 && (
                 <div>
                   {digest.alertTargetsHit.slice(0, 3).map((t) => (
-                    <p key={t.productId} className="text-gray-600 dark:text-gray-400">
+                    <p key={t.alertId} className="text-gray-600 dark:text-gray-400">
                       🎯 <span className="text-gray-900 dark:text-gray-100">{t.name}</span> at{" "}
                       {formatPrice(t.price, t.currency)}
                     </p>
