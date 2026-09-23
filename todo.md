@@ -2611,3 +2611,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The Compare cross-distributor alert had no double-submit guard**: `handleCrossAlert` mints a fresh alert id on each call, so a rapid double-tap created two identical "alert me if any distributor drops below X" alerts (and scheduled two notifications). Both mobile (`app/compare/[id].tsx`) and desktop (`desktop/src/pages/Compare.tsx`) were affected
 - [x] Both now track a `creatingAlert` state, early-return while a creation is in flight, and clear it in `finally`
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 36) and `tests/desktop-chart-guard.test.ts` (now 16) — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2021 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 312: Device QA round 60 (product-detail alert double-submit)
+
+- [x] Follow-up to Phase 311: the product-detail alert flows had no double-submit guard — `handleSetBestAlert` (Best-Distributor card) and `handleSetAlert` (the scoped PriceAlertModal, whose Set Alert button and `onSubmitEditing` both call it) each mint a fresh alert id per call, so a rapid double-tap or Enter+button created two alerts
+- [x] Both now check a shared `creatingAlert` state, early-return while a creation is in flight, and clear it in `finally`
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 37) — verified non-vacuous by reverting `handleSetAlert`; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2022 passed`

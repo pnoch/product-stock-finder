@@ -96,6 +96,25 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 60: the product-detail alert flows (best-distributor card and the
+// scoped PriceAlertModal) had no double-submit guard, so a rapid double-tap or
+// Enter+button created two alerts.
+describe("product detail alert creation guards against double-submit", () => {
+  const src = readFileSync(path.join(process.cwd(), "app/product/[id].tsx"), "utf8");
+
+  it("sets and checks a creatingAlert guard", () => {
+    expect(src).toContain("const [creatingAlert, setCreatingAlert] = useState(false)");
+    for (const handler of ["const handleSetBestAlert", "const handleSetAlert"]) {
+      const start = src.indexOf(handler);
+      expect(start).toBeGreaterThan(-1);
+      const block = src.slice(start, src.indexOf("}, [", start));
+      expect(block).toContain("creatingAlert");
+      expect(block).toContain("setCreatingAlert(true)");
+      expect(block).toContain("setCreatingAlert(false)");
+    }
+  });
+});
+
 // QA round 59: the Compare cross-distributor alert had no double-submit guard,
 // so a rapid double-tap created two identical alerts.
 describe("compare cross-alert guards against double-submit", () => {

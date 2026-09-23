@@ -70,6 +70,8 @@ export default function ProductDetailScreen() {
   const [alertDirection, setAlertDirection] = useState<"drop" | "rise">("drop");
   const [alertPrice, setAlertPrice] = useState("");
   const [alertCurrency, setAlertCurrency] = useState("USD");
+  // Guards against a double-tap / Enter+button double-submit creating two alerts.
+  const [creatingAlert, setCreatingAlert] = useState(false);
 
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!id) {
@@ -156,13 +158,14 @@ export default function ProductDetailScreen() {
   );
 
   const handleSetBestAlert = useCallback(async (listing: DistributorListing, targetPrice: number) => {
-    if (!id) return;
+    if (!id || creatingAlert) return;
     const granted = await ensureNotificationPermission();
     if (!granted) {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showAlert("Permission Denied", Platform.OS === "web" ? "Please allow notifications in your browser to receive price alerts." : "Please enable notifications in your device settings to receive price alerts.");
       return;
     }
+    setCreatingAlert(true);
     try {
       await schedulePriceAlert(product?.name ?? "Product", targetPrice, listing.currency, id);
       const alert: PriceAlert = {
@@ -183,8 +186,10 @@ export default function ProductDetailScreen() {
     } catch {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showAlert("Couldn't create alert", "We couldn't save your price alert. Please try again.");
+    } finally {
+      setCreatingAlert(false);
     }
-  }, [id, product, showToast]);
+  }, [id, product, showToast, creatingAlert]);
 
   const handleSetTarget = useCallback((distributorId: string) => {
     setAlertDistributorId(distributorId);
@@ -194,7 +199,7 @@ export default function ProductDetailScreen() {
   }, []);
 
   const handleSetAlert = useCallback(async () => {
-    if (!id) return;
+    if (!id || creatingAlert) return;
     const price = parseFloat(alertPrice);
     if (!Number.isFinite(price) || price <= 0) {
       showAlert("Invalid Price", "Please enter a valid target price.");
@@ -206,6 +211,7 @@ export default function ProductDetailScreen() {
       showAlert("Permission Denied", Platform.OS === "web" ? "Please allow notifications in your browser to receive price alerts." : "Please enable notifications in your device settings to receive price alerts.");
       return;
     }
+    setCreatingAlert(true);
     try {
       await schedulePriceAlert(product?.name ?? "Product", price, alertCurrency, id);
       const newAlert: PriceAlert = {
@@ -230,8 +236,10 @@ export default function ProductDetailScreen() {
     } catch {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showAlert("Couldn't create alert", "We couldn't save your price alert. Please try again.");
+    } finally {
+      setCreatingAlert(false);
     }
-  }, [id, product, alertPrice, alertCurrency, alertDistributorId, alertDirection, showToast]);
+  }, [id, product, alertPrice, alertCurrency, alertDistributorId, alertDirection, showToast, creatingAlert]);
 
   const alertSuggestions = useMemo(
     () => suggestAlertPrices(product?.listings ?? [], alertCurrency),
