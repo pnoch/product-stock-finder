@@ -147,6 +147,16 @@ describe("desktop chart guard", () => {
     expect(block).toContain("catch");
   });
 
+  // QA round 76: the desktop CSV import created duplicate alerts on re-import.
+  it("skips duplicate alerts in the desktop CSV import", async () => {
+    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const start = text.indexOf("const handleImportFile");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("}, [refresh, showToast]);", start));
+    expect(block).toContain("existingAlertProductIds");
+    expect(block).toMatch(/row\.targetPrice !== null && !existingAlertProductIds\.has\(product\.id\)/);
+  });
+
   // QA round 74: desktop ResetPassword / Settings forgot-password fetched
   // `${getApiBaseUrl()}/...` without checking the base URL was configured.
   it("guards desktop auth fetches against an empty base URL", async () => {

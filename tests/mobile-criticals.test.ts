@@ -96,6 +96,19 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 76: the CSV import created a new alert for every row with a target
+// price, even for already-tracked products, so re-importing accumulated
+// duplicate alerts (addAlert has no dedup).
+describe("CSV import doesn't duplicate alerts", () => {
+  it("skips alert creation when an active alert already exists", () => {
+    const src = readFileSync(path.join(process.cwd(), "app/(tabs)/watchlist.tsx"), "utf8");
+    const start = src.indexOf("const handleImportCsv");
+    const block = src.slice(start, src.indexOf("}, [reload, loadData]);", start));
+    expect(block).toContain("existingAlertProductIds");
+    expect(block).toMatch(/row\.targetPrice !== null && !existingAlertProductIds\.has\(product\.id\)/);
+  });
+});
+
 // QA round 75: launch fired `void checkPriceDropsNow()` / `void loadFxRates()`
 // / `void maybeRefreshFxRates()` with no catch, so a storage read failure was
 // an unhandled rejection.

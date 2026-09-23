@@ -474,6 +474,11 @@ export function Watchlist() {
       let added = 0;
       let skipped = 0;
       let duplicates = 0;
+      // Track which products already have an active alert so re-importing the
+      // same CSV doesn't accumulate duplicate alerts (addAlert has no dedup).
+      const existingAlertProductIds = new Set(
+        (await storage.getAlerts()).filter((a) => a.isActive && !a.triggeredAt).map((a) => a.productId),
+      );
       for (let i = 0; i < rows.length; i += 50) {
         const chunk = rows.slice(i, i + 50);
         for (const row of chunk) {
@@ -487,7 +492,7 @@ export function Watchlist() {
             // products that were already on the watchlist (mobile does the same).
             if (await storage.addToWatchlist(product as Product)) added += 1;
             else duplicates += 1;
-            if (row.targetPrice !== null) {
+            if (row.targetPrice !== null && !existingAlertProductIds.has(product.id)) {
               await storage.addAlert({
                 id: `alert-${product.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
                 productId: product.id,
@@ -496,6 +501,7 @@ export function Watchlist() {
                 createdAt: new Date().toISOString(),
                 isActive: true,
               } as never);
+              existingAlertProductIds.add(product.id);
             }
           } catch {
             skipped += 1;

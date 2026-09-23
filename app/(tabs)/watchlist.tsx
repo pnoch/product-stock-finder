@@ -32,6 +32,7 @@ import { PRODUCT_CATALOG } from "@shared/catalog";
 import {
   getSettings,
   updateSettings,
+  getAlerts,
   getTagDefinitions,
   addToWatchlist,
   addAlert,
@@ -543,6 +544,11 @@ export default function WatchlistScreen() {
       let added = 0;
       let skipped = 0;
       let duplicates = 0;
+      // Track which products already have an active alert so re-importing the
+      // same CSV doesn't accumulate duplicate alerts (addAlert has no dedup).
+      const existingAlertProductIds = new Set(
+        (await getAlerts()).filter((a) => a.isActive && !a.triggeredAt).map((a) => a.productId),
+      );
       // Process in chunks of 50 to keep UI responsive and respect sync 200 cap via queue.
       for (let i = 0; i < rows.length; i += 50) {
         const chunk = rows.slice(i, i + 50);
@@ -569,7 +575,7 @@ export default function WatchlistScreen() {
             // creates its alert either way.
             if (await addToWatchlist(product as Product)) added += 1;
             else duplicates += 1;
-            if (row.targetPrice !== null) {
+            if (row.targetPrice !== null && !existingAlertProductIds.has(product.id)) {
               await addAlert({
                 id: `alert-${product.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
                 productId: product.id,
@@ -578,6 +584,7 @@ export default function WatchlistScreen() {
                 createdAt: new Date().toISOString(),
                 isActive: true,
               } as unknown as never);
+              existingAlertProductIds.add(product.id);
             }
           } catch {
             skipped += 1;

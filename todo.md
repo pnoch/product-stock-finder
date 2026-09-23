@@ -2707,3 +2707,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`app/_layout.tsx` fired launch side effects with no catch**: `void checkPriceDropsNow()` (whose `runPriceCheckCore` starts with `await getWatchlist()`, which rethrows adapter failures), `void loadFxRates()`, and `void maybeRefreshFxRates()` could each reject unhandled on a storage read failure. `app/(tabs)/settings.tsx` had the same unguarded `void maybeRefreshFxRates()`
 - [x] All four now `.catch(...)` (the price check logs; the FX loads fall back to the static rate table)
 - [x] Added 2 guards to `tests/mobile-criticals.test.ts` (now 50) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2039 passed`
+
+## Phase 328: Device QA round 76 (CSV import accumulated duplicate alerts)
+
+- [x] **Re-importing a CSV with target prices accumulated duplicate alerts**: both the mobile and desktop import loops created a new alert for every row with a `targetPrice`, even when the product was already tracked and already had an active alert (`addAlert` has no dedup). Importing the same file twice produced two identical alerts per row
+- [x] Both now pre-load the set of products with an active, untriggered alert and skip alert creation for those (and add each newly-created product to the set, so a CSV with duplicate rows doesn't double-alert either)
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 51) and `tests/desktop-chart-guard.test.ts` (now 21) — verified non-vacuous by reverting both; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2041 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
