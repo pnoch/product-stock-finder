@@ -40,6 +40,13 @@ describe("mobile release blockers", () => {
     expect(src).toContain("truncated");
     expect(src).toContain("first 500");
   });
+
+  // QA round 21: the shared-watchlist header hardcoded "products", so a
+  // single-product share rendered "1 products" (verified on web). Pluralize.
+  it("pluralizes the shared-watchlist product count", () => {
+    const src = readFileSync(path.join(process.cwd(), "app/w/[token].tsx"), "utf8");
+    expect(src).toMatch(/product\{products\.length === 1 \? "" : "s"\}/);
+  });
 });
 
 // QA round 16: the search screen rendered its filter chrome (tag chips,

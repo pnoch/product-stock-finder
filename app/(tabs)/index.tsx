@@ -696,12 +696,12 @@ export default function HomeScreen() {
             {watchlist.length > 3 && (
               <TouchableOpacity activeOpacity={0.7}
                 onPress={() => router.push("/(tabs)/watchlist")}
-                accessibilityLabel={`View all ${watchlist.length} products`}
+                accessibilityLabel={`View all ${watchlist.length} product${watchlist.length === 1 ? "" : "s"}`}
                 accessibilityRole="button"
                 style={{ alignItems: "center", paddingVertical: 8 }}
               >
                 <Text style={{ color: colors.primary, fontWeight: "600" }}>
-                  View all {watchlist.length} products →
+                  View all {watchlist.length} product{watchlist.length === 1 ? "" : "s"} →
                 </Text>
               </TouchableOpacity>
             )}

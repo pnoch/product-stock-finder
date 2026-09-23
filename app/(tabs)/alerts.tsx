@@ -166,11 +166,11 @@ export default function AlertsScreen() {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.primary + "14", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
             <IconSymbol name="bell.fill" size={12} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>{tabCount.alerts} alerts</Text>
+            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>{tabCount.alerts} alert{tabCount.alerts === 1 ? "" : "s"}</Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.warning + "14", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
             <IconSymbol name="calendar" size={12} color={colors.warning} />
-            <Text style={{ color: colors.warning, fontSize: 12, fontWeight: "700" }}>{tabCount.reminders} reminders</Text>
+            <Text style={{ color: colors.warning, fontSize: 12, fontWeight: "700" }}>{tabCount.reminders} reminder{tabCount.reminders === 1 ? "" : "s"}</Text>
           </View>
         </View>
       </View>

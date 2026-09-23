@@ -60,7 +60,7 @@ export const StatsShareCard = forwardRef<
           {formatPrice(basketTotal, displayCurrency)}
         </Text>
         <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
-          {productCount} products
+          {productCount} product{productCount === 1 ? "" : "s"}
         </Text>
 
         {drops.length > 0 && (

@@ -85,7 +85,7 @@ export const BasketValueCard = memo(function BasketValueCard({
         {formatPrice(basket.total, displayCurrency)}
       </Animated.Text>
       <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
-        {basket.productCount} products
+        {basket.productCount} product{basket.productCount === 1 ? "" : "s"}
         {basket.excludedCount > 0
           ? ` · ${basket.excludedCount} excluded (no stock)`
           : ""}

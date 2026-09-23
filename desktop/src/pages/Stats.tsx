@@ -362,7 +362,7 @@ export function Stats() {
           <p className="text-2xl font-bold mt-1">
             {basket ? formatPrice(basket.total, displayCurrency) : "—"}
           </p>
-          <p className="text-xs text-gray-400 mt-1">{basket?.productCount ?? 0} products</p>
+          <p className="text-xs text-gray-400 mt-1">{basket?.productCount ?? 0} product{(basket?.productCount ?? 0) === 1 ? "" : "s"}</p>
           {basketThreshold != null && (
             <p className="text-xs text-gray-400 mt-1">
               🔔 Alert below {formatPrice(basketThreshold, displayCurrency)}

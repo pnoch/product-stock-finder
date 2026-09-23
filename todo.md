@@ -2370,3 +2370,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] The router now fetches `SHARED_WATCHLIST_MAX_ITEMS + 1` rows, sets `truncated = items.length > MAX`, and slices the extra row off before mapping — so exactly-500 is complete and 501+ is truncated
 - [x] Verified against the live server (rebuilt `dist/`, restarted): a 500-product share returns `truncated: false` with 500 products, a 501-product share returns `truncated: true` with 500 products
 - [x] Added a boundary case to `tests/shared-watchlists.test.ts` (now 10: "does not flag an exactly-500-product share as truncated") — verified non-vacuous by reverting to `>=` + `.limit(MAX)`; E2E root `tsc 0`, lint 0 errors (164 warnings), root `328 passed | 2 skipped` / `1962 passed`
+
+## Phase 273: Device QA round 21 (hardcoded plurals — "1 products" / "1 alerts")
+
+- [x] **Shared Watchlist said "1 products"**: the header hardcoded the plural (`{products.length} products`), so a single-product share rendered "1 products" (verified on web via Playwright against the rebuilt `dist-web`). The desktop parity page already pluralized correctly
+- [x] Fixed the shared-watchlist header and swept the same hardcoded-plural class across the other count displays that can render with a count of 1: Home "View all N products", Alerts header "N alerts" / "N reminders", the Stats Basket Value card "N products", and the branded `StatsShareCard` "N products"; mirrored the desktop Stats basket line for parity
+- [x] Verified on web (rebuilt `dist-web`): the single-product share now renders "1 product"
+- [x] Added a pluralization guard to `tests/mobile-criticals.test.ts` (now 14) — verified non-vacuous by reverting to the hardcoded "products"; E2E root `tsc 0`, lint 0 errors (164 warnings), root `328 passed | 2 skipped` / `1963 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
