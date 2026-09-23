@@ -2785,3 +2785,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 326: `useAuth.changePassword`, `deleteAccount`, and `resendVerification` all fetched `${getApiBaseUrl()}/api/auth/...` without checking the base URL was configured, so on an unconfigured build they hit the relative path and surfaced a confusing failure (only `forgotPassword` had the guard)
 - [x] All three now throw "This build isn't connected to a server." when the base URL is empty
 - [x] Added a guard to `tests/mobile-criticals.test.ts` (now 58) asserting every auth fetch has the guard — verified non-vacuous by reverting `changePassword`; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2055 passed`
+
+## Phase 341: Device QA round 89 (price-vs-average compared in-stock current against all-status history)
+
+- [x] **`computePriceVsAverage` averaged out-of-stock history points**: `current` is the minimum in-stock listing price, but the 30-day average was computed over every listing's history regardless of stock status. An out-of-stock point (often a different price band) skewed the average, so the "Below average — good time to buy" / "Above average" verdict could be wrong — the same class of bug the all-time-low check fixed by switching to `bestPricePoints` (in-stock only)
+- [x] The average now filters `p.stockStatus === "in_stock"`, matching `current`
+- [x] Added a case to `tests/price-average.test.ts` (now 6: a 1000 out-of-stock point must not pull the average up) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2056 passed`

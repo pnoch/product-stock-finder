@@ -42,8 +42,13 @@ export function computePriceVsAverage(
   if (inStockPrices.length === 0) return null;
   const current = Math.min(...inStockPrices);
 
+  // Compare like with like: `current` is an in-stock price, so the average must
+  // use in-stock history points only. Averaging out-of-stock points (often a
+  // different price band) skewed the verdict — the same class of bug the
+  // all-time-low check fixed by using `bestPricePoints`.
   const points = listings
     .flatMap((l) => l.priceHistory ?? [])
+    .filter((p) => p.stockStatus === "in_stock")
     .map((p) => ({
       t: Date.parse(p.date),
       v: convert(p.price, p.currency, displayCurrency),

@@ -84,4 +84,19 @@ describe("computePriceVsAverage", () => {
     const result = computePriceVsAverage([l], "USD", 30, NOW);
     expect(result).toBeNull(); // no usable points
   });
+
+  // `current` is an in-stock price, so the average must use in-stock history
+  // only. An out-of-stock point (often a different price band) skewed the
+  // verdict — the same class the all-time-low check fixed.
+  it("excludes out-of-stock history points from the average", () => {
+    const l = listing("a", [[10, 100], [5, 100], [0, 100]]);
+    l.priceHistory = l.priceHistory.map((p, i) =>
+      i === 0 ? { ...p, stockStatus: "out_of_stock" as const, price: 1000 } : p,
+    );
+    const result = computePriceVsAverage([l], "USD", 30, NOW);
+    expect(result).not.toBeNull();
+    // The 1000 out-of-stock point must not pull the average up.
+    expect(result!.average).toBe(100);
+    expect(result!.verdict).toBe("at");
+  });
 });
