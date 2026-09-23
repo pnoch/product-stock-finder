@@ -96,6 +96,33 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 82: the Settings data section's export/import handlers had no
+// catch, so a storage read/write failure rejected unhandled.
+describe("settings data section guards its export/import", () => {
+  const src = readFileSync(
+    path.join(process.cwd(), "components/settings/data-section.tsx"),
+    "utf8",
+  );
+
+  it("guards the backup export", () => {
+    const start = src.indexOf("const handleExport = async () => {");
+    const block = src.slice(start, src.indexOf("};", start));
+    expect(block).toContain("catch");
+  });
+
+  it("guards the CSV export", () => {
+    const start = src.indexOf("const handleExportCsv = async () => {");
+    const block = src.slice(start, src.indexOf("};", start));
+    expect(block).toContain("catch");
+  });
+
+  it("guards the import save", () => {
+    const start = src.indexOf("onPress: async () => {");
+    const block = src.slice(start, src.indexOf("},", start));
+    expect(block).toContain("catch");
+  });
+});
+
 // QA round 80: the Distributor Analysis export shared the CSV as a text
 // message (shareText) instead of a .csv file (exportCsvFile), unlike every
 // other CSV export.

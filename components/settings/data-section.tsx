@@ -86,6 +86,10 @@ export function DataSection() {
           ? "Your backup file has been created."
           : "Could not create the backup file on this device.",
       );
+    } catch (e) {
+      // A storage read failure must not reject unhandled.
+      console.error("[DataSection] backup export failed", e);
+      showAlert("Export Failed", "We couldn't create your backup. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -106,6 +110,10 @@ export function DataSection() {
         ok ? "CSV Exported" : "Export Failed",
         ok ? "Your watchlist CSV has been created." : "Could not create the CSV file on this device.",
       );
+    } catch (e) {
+      // A storage read failure must not reject unhandled.
+      console.error("[DataSection] CSV export failed", e);
+      showAlert("Export Failed", "We couldn't export your watchlist. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -164,6 +172,10 @@ export function DataSection() {
               for (const id of result.touchedIds.stockWatches)
                 await setItemSyncMeta("reminders", id, now);
               showAlert("Backup Imported", summary);
+            } catch (e) {
+              // A storage write failure must not reject unhandled.
+              console.error("[DataSection] import save failed", e);
+              showAlert("Import failed", "We couldn't save the imported backup. Please try again.");
             } finally {
               setBusy(false);
             }

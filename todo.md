@@ -2743,3 +2743,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`sharedWatchlists.invite` didn't check expiry**: unlike `get`, `members`, and `join` (which all reject an expired share), `invite` only checked ownership — so an owner could add members to an expired share, silently granting access to a dead share that no one can open
 - [x] `invite` now rejects an expired share with NOT_FOUND "Share expired", matching the other endpoints
 - [x] Added a case to `tests/shared-watchlists.test.ts` (now 11: invite rejects an expired share) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2046 passed`
+
+## Phase 334: Device QA round 82 (settings data section swallowed export/import failures)
+
+- [x] **`components/settings/data-section.tsx` had three unguarded storage paths**: `handleExport` (backup) and `handleExportCsv` had a `try` with only a `finally`, and the import confirmation's `onPress` async block also had no catch — a storage read/write failure rejected unhandled with no feedback
+- [x] All three now catch and report ("Export Failed" / "Import failed")
+- [x] Added 3 guards to `tests/mobile-criticals.test.ts` (now 56) — verified non-vacuous by reverting the CSV export catch; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2049 passed`
