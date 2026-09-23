@@ -65,7 +65,7 @@ describe("buildWatchlistShareText", () => {
     );
     expect(text).not.toContain("Biggest drops");
     expect(text).not.toContain("Stock health");
-    expect(text).toContain("My Watchlist — 1 products");
+    expect(text).toContain("My Watchlist — 1 product");
   });
 
   it("labels the window for each range", () => {

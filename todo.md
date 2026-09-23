@@ -2725,3 +2725,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop Stats saved a digest snapshot on every load**: `loadStats` wrote a fresh `buildDigestSnapshot` after computing the digest (and again when the digest was off), advancing the diff base. The digest sender (`desktop/src/App.tsx` `maybeSendDigest`) owns the snapshot lifecycle and saves only when a digest is actually delivered — so the Stats card showed changes since the last Stats *visit* rather than since the last *sent* digest. Mobile's Stats page is read-only
 - [x] Removed both saves (and the now-unused `buildDigestSnapshot`/`DigestSnapshot`/`LOG_ERROR`/`currency`); Stats is now read-only like mobile
 - [x] Updated `tests/desktop-log-guard.test.ts` (whose old assertion pinned the now-removed `@shared/log` import in Stats) to its real intent: no desktop file reimplements `LOG_ERROR` locally — verified non-vacuous by adding a local definition. Added a digest guard to `tests/desktop-chart-guard.test.ts` (now 23); E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2043 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 331: Device QA round 79 (watchlist share text said "1 products")
+
+- [x] **`buildWatchlistShareText` hardcoded "products"**: a single-product watchlist share read "My Watchlist — 1 products (30d)" and "Basket value: … (1 products)". The existing tests pinned the ungrammatical output
+- [x] Both counts now pluralize (`watchlist.length === 1 ? "" : "s"`, same for `basket.productCount`); updated the two tests that asserted "1 products"
+- [x] Added a guard to `tests/mobile-criticals.test.ts` (now 52) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (158 warnings), root `330 passed | 2 skipped` / `2044 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

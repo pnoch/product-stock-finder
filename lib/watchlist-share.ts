@@ -36,14 +36,14 @@ export function buildWatchlistShareText(input: WatchlistShareInput): string {
   const { watchlist, displayCurrency, days } = input;
 
   const lines: string[] = [
-    `My Watchlist — ${watchlist.length} products (${windowLabel(days)})`,
+    `My Watchlist — ${watchlist.length} product${watchlist.length === 1 ? "" : "s"} (${windowLabel(days)})`,
     "",
   ];
 
   const basket = computeBasketValue(watchlist, displayCurrency);
   if (basket.productCount > 0) {
     lines.push(
-      `Basket value: ${formatPrice(basket.total, displayCurrency)} (${basket.productCount} products)`,
+      `Basket value: ${formatPrice(basket.total, displayCurrency)} (${basket.productCount} product${basket.productCount === 1 ? "" : "s"})`,
     );
   }
 

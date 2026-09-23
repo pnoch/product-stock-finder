@@ -96,6 +96,16 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 79: the watchlist share text hardcoded "products", so a
+// single-product share read "1 products".
+describe("watchlist share text pluralizes", () => {
+  it("pluralizes the product counts", () => {
+    const src = readFileSync(path.join(process.cwd(), "lib/watchlist-share.ts"), "utf8");
+    expect(src).toMatch(/watchlist\.length === 1 \? "" : "s"/);
+    expect(src).toMatch(/basket\.productCount === 1 \? "" : "s"/);
+  });
+});
+
 // QA round 76: the CSV import created a new alert for every row with a target
 // price, even for already-tracked products, so re-importing accumulated
 // duplicate alerts (addAlert has no dedup).

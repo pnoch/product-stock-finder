@@ -32,7 +32,7 @@ describe("buildWatchlistShareMessage", () => {
       now: NOW,
     });
     expect(message).toContain("http://localhost:8081/w/tok123");
-    expect(message).toContain("My Watchlist — 1 products");
+    expect(message).toContain("My Watchlist — 1 product");
   });
 
   it("falls back to plain text summary when shareUrl is absent", () => {
