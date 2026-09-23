@@ -164,13 +164,21 @@ export function Alerts() {
   }, []);
 
   useEffect(() => {
-    storage.getWatchlist().then((w) => {
-      setProductNames(new Map(w.map((p) => [p.id, p.name])));
-      setWatchlistProducts(w);
-    });
-    storage.getSettings().then((s) => {
-      if (s?.displayCurrency) setDisplayCurrency(s.displayCurrency);
-    });
+    // A storage read failure must not reject unhandled; the names/currency are
+    // best-effort decoration and the lists still render without them.
+    storage
+      .getWatchlist()
+      .then((w) => {
+        setProductNames(new Map(w.map((p) => [p.id, p.name])));
+        setWatchlistProducts(w);
+      })
+      .catch(() => {});
+    storage
+      .getSettings()
+      .then((s) => {
+        if (s?.displayCurrency) setDisplayCurrency(s.displayCurrency);
+      })
+      .catch(() => {});
     void loadNotifications();
   }, [loadNotifications]);
 

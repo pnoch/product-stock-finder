@@ -29,7 +29,7 @@ export function TrendingSection() {
 
     storage.getWatchlist().then((w) => {
       setAddedIds(new Set(w.map((p) => p.id)));
-    });
+    }).catch(() => {});
   }, []);
 
   // Trending products come from the server, not the local watchlist, so the

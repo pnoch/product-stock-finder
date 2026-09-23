@@ -251,6 +251,8 @@ export function Watchlist() {
   const displayCurrency = settings?.displayCurrency ?? "USD";
 
   useEffect(() => {
+    // A storage read failure must not reject unhandled; the view prefs simply
+    // keep their defaults.
     storage.getSettings().then((s) => {
       const defs = (s.tagDefinitions ?? {}) as Record<string, TagDefinition>;
       setTagDefinitions(defs);
@@ -265,7 +267,7 @@ export function Watchlist() {
         setPriceMinInput(min === 0 ? "" : String(min));
         setPriceMaxInput(max === Number.MAX_SAFE_INTEGER ? "" : String(max));
       }
-    });
+    }).catch(() => {});
   }, [settings]);
 
   useEffect(() => {

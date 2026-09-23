@@ -2539,3 +2539,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Follow-up to Phase 298 on desktop: `createPriceAlert` wrote to storage but returned only `{ ok, id }`, and none of its four callers (main Set Alert, inline alert, per-listing alert, quick alert) updated the screen's `alerts` state — so the Distributor Targets table (which reads `alerts`) stayed stale until reload
 - [x] `createPriceAlert` now returns the created `alert`, and all four callers append it via `setAlerts((prev) => [...prev, alert])`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 10) — verified non-vacuous by dropping one `setAlerts` call; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2005 passed`; desktop `tsc 0`, `44 passed` / `219 passed`
+
+## Phase 300: Device QA round 48 (desktop unguarded storage.then chains)
+
+- [x] Follow-up to Phases 293-299: several desktop effects called `storage.getWatchlist()`/`getSettings()` with a bare `.then(...)` and no `.catch`, so a storage read failure became an unhandled rejection — `desktop/src/pages/Alerts.tsx` (names + currency), `desktop/src/pages/Watchlist.tsx` (view prefs), `desktop/src/components/TrendingSection.tsx` (added ids), and `desktop/src/components/SearchModal.tsx` (tracked ids)
+- [x] Each chain now ends in `.catch(() => {})`; the decoration simply keeps its defaults on failure
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 11) asserting each chain has a `.catch` — verified non-vacuous by dropping the Watchlist catch; E2E root `tsc 0`, lint 0 errors (164 warnings), root `330 passed | 2 skipped` / `2006 passed`; desktop `tsc 0`, `44 passed` / `219 passed`

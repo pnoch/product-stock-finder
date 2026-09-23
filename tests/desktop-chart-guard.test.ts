@@ -132,4 +132,23 @@ describe("desktop chart guard", () => {
     expect(callers.length).toBe(4);
     expect((text.match(/setAlerts\(\(prev\) => \[\.\.\.prev, alert\]\)/g) ?? []).length).toBeGreaterThanOrEqual(4);
   });
+
+  // QA round 48: unguarded storage.then chains rejected unhandled on a storage
+  // failure. Each must have a .catch.
+  it("guards desktop storage.then chains with .catch", async () => {
+    const cases: Array<[string, string]> = [
+      ["desktop/src/pages/Alerts.tsx", "storage\n      .getWatchlist()"],
+      ["desktop/src/pages/Alerts.tsx", "storage\n      .getSettings()"],
+      ["desktop/src/pages/Watchlist.tsx", "storage.getSettings().then((s) => {"],
+      ["desktop/src/components/TrendingSection.tsx", "storage.getWatchlist().then((w) => {"],
+      ["desktop/src/components/SearchModal.tsx", "storage.getWatchlist().then((products) =>"],
+    ];
+    for (const [file, needle] of cases) {
+      const text = await readFile(file, "utf8");
+      const start = text.indexOf(needle);
+      expect(start).toBeGreaterThan(-1);
+      const block = text.slice(start, start + 900);
+      expect(block).toContain(".catch(");
+    }
+  });
 });

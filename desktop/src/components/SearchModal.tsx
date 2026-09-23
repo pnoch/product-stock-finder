@@ -63,7 +63,7 @@ export function SearchModal({
       setQuery("");
       setDiscoverError(null);
       setTimeout(() => inputRef.current?.focus(), 50);
-      storage.getWatchlist().then((products) => setTrackedIds(new Set(products.map((p) => p.id))));
+      storage.getWatchlist().then((products) => setTrackedIds(new Set(products.map((p) => p.id)))).catch(() => {});
       storage.getDiscoveredProducts().then((disc) => {
         // Convert Product[] to catalog shape; limit to 50
         let list = disc.map((p) => ({ id: p.id, name: p.name, modelNumber: p.modelNumber, brand: p.brand, category: p.category, description: p.description ?? "" }));
