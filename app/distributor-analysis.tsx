@@ -21,6 +21,7 @@ import { formatPrice } from "@shared/currency";
 import { watchlistToDetailedCsv } from "@/lib/csv";
 import { exportCsvFile } from "@/lib/csv-export";
 import { showAlert } from "@/lib/alert";
+import { goBackOrHome } from "@/lib/navigation";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SkeletonList } from "@/components/ui/skeleton";
 
@@ -87,7 +88,9 @@ export default function DistributorAnalysisScreen() {
           accessibilityRole="button"
           onPress={() => {
             if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
+            // A deep-linked cold start has no history, where a bare back()
+            // silently does nothing; fall back to a safe route.
+            goBackOrHome(router, "/(tabs)/watchlist");
           }}
           style={{ marginRight: 12 }}
         >

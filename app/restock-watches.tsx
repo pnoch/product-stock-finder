@@ -17,6 +17,7 @@ import type { BackOrderReminder } from "@/lib/types";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { showAlert } from "@/lib/alert";
+import { goBackOrHome } from "@/lib/navigation";
 
 const STATUS_LABELS: Record<string, string> = {
   in_stock: "In Stock",
@@ -82,7 +83,9 @@ export default function RestockWatchesScreen() {
           accessibilityRole="button"
           onPress={() => {
             if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
+            // A deep-linked cold start has no history, where a bare back()
+            // silently does nothing; fall back to a safe route.
+            goBackOrHome(router, "/(tabs)/alerts");
           }}
           style={{ marginRight: 12 }}
         >

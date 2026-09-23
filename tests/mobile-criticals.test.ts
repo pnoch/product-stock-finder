@@ -96,6 +96,19 @@ describe("orphaned product-detail hook stays deleted", () => {
   });
 });
 
+// QA round 108: restock-watches and distributor-analysis used a bare
+// router.back(), which silently no-ops on a deep-linked cold start (the
+// goBackOrHome helper exists for exactly this).
+describe("standalone screens use goBackOrHome", () => {
+  for (const file of ["app/restock-watches.tsx", "app/distributor-analysis.tsx"]) {
+    it(`${file} falls back to a safe route`, () => {
+      const src = readFileSync(path.join(process.cwd(), file), "utf8");
+      expect(src).toContain("goBackOrHome(router");
+      expect(src).not.toMatch(/router\.back\(\)/);
+    });
+  }
+});
+
 // QA round 106: the drop-calendar list keyed drops on productId-from-to, but
 // two distributors for the same product can share identical from/to values,
 // producing duplicate React keys.

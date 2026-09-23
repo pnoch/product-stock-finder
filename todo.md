@@ -2899,3 +2899,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`serializeItem`/`applyLocalItem` assumed `listings`/`priceHistory` were always arrays**: a corrupt or legacy stored product (or a pulled product) lacking `listings` made `product.listings.map(...)` throw. `collectDirty` is not per-item guarded, so the throw aborted the entire sync pass (not just that item) — every other module defensively uses `?? []`
 - [x] Both functions now use `(product.listings ?? [])`, `(l.priceHistory ?? [])`, and `(existing.listings ?? [])`
 - [x] Added 2 cases to `tests/sync-engine.test.ts` (now 34: serialize and apply a product with no listings) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2081 passed`
+
+## Phase 360: Device QA round 108 (two screens used a bare back() that no-ops on deep links)
+
+- [x] **`restock-watches.tsx` and `distributor-analysis.tsx` used bare `router.back()`**: a deep-linked cold start (web URL, notification tap) lands with no navigation history, where `router.back()` silently does nothing — the back button appeared dead. Every other screen uses `goBackOrHome`, which falls back to a safe route
+- [x] Both now call `goBackOrHome(router, "/(tabs)/alerts")` / `goBackOrHome(router, "/(tabs)/watchlist")`
+- [x] Added 2 guards to `tests/mobile-criticals.test.ts` (now 64) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2083 passed`
