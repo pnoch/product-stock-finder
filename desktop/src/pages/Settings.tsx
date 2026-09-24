@@ -42,7 +42,7 @@ import { watchlistToCsv } from "../../../lib/csv";
 import type { AppSettings, Product, DistributorListing } from "../../../lib/types";
 import { getDistributorById } from "@shared/distributors";
 import { getAllParserIds } from "../../../lib/scrapers/registry";
-import { isWebNotificationsSupported, requestWebNotificationPermission, displayWebNotification } from "../../../lib/web-notifications";
+import { requestWebNotificationPermission } from "../../../lib/web-notifications";
 import { isPushSupported, ensurePushSubscription, disablePush, getPushStatus, hasVapidKey } from "../lib/web-push";
 import packageJson from "../../package.json";
 
@@ -330,17 +330,18 @@ export function Settings() {
   }, [draftLlmOllamaUrl, settings?.llmOllamaUrl, update]);
 
   const handleTestNotification = useCallback(async () => {
-    if (!isWebNotificationsSupported()) {
-      setTestNotifMessage("Notifications aren't available in this browser");
-      return;
-    }
-    const permission = await requestWebNotificationPermission();
-    if (permission !== "granted") {
-      setTestNotifMessage("Notification permission not granted");
-      return;
-    }
-    displayWebNotification("Notifications working", "Product Stock Finder will alert you here.");
-    setTestNotifMessage("Test notification sent");
+    // Exercise the same path real alerts use (Tauri native, falling back to the
+    // web Notification API). The old handler only called displayWebNotification,
+    // which is a no-op in a Tauri webview (isWeb() is false), so "Test
+    // notification sent" could appear without anything being shown.
+    const { sendDesktopNotification } = await import("../notifications");
+    const shown = await sendDesktopNotification(
+      "Notifications working",
+      "Product Stock Finder will alert you here.",
+    );
+    setTestNotifMessage(
+      shown ? "Test notification sent" : "Notification permission not granted",
+    );
   }, []);
 
   const handleSyncNow = useCallback(async () => {

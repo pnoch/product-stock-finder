@@ -221,6 +221,18 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 147: desktop's "Test notification" only called
+  // displayWebNotification (a no-op in a Tauri webview), never the
+  // sendDesktopNotification path real alerts use.
+  it("tests the real notification path on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const start = text.indexOf("const handleTestNotification = useCallback");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("}, []);", start));
+    expect(block).toContain("sendDesktopNotification");
+    expect(block).not.toContain("displayWebNotification(");
+  });
+
   // QA round 146: mobile's compare cross-alert checks notification permission
   // before creating the alert; desktop's handleCrossAlert saved it regardless,
   // so it could never notify.

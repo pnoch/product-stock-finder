@@ -3133,3 +3133,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's `handleCrossAlert` (compare screen) created a cross-distributor price alert without checking notification permission**, while mobile's compare flow calls `ensureNotificationPermission` first — so a desktop user with notifications denied got an alert that could never notify
 - [x] Extracted the desktop permission check to `desktop/src/lib/notification-permission.ts` (ProductDetail re-exports it) and gated `handleCrossAlert` on it
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 51) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2123 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 399: Device QA round 147 (desktop "Test notification" didn't test the real path)
+
+- [x] **Desktop's "Test notification" button only called `displayWebNotification`**, which is a no-op in a Tauri webview (`isWeb()` is false) — so it could report "Test notification sent" without anything being shown, and never exercised the `sendDesktopNotification` Tauri path real alerts use
+- [x] Desktop's test handler now calls `sendDesktopNotification` (Tauri native, falling back to the web Notification API) and reports success/failure from its result; dropped the now-unused imports
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 52) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2124 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
