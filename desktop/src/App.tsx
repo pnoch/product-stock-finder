@@ -42,6 +42,7 @@ import { loadFxRates, maybeRefreshFxRates } from "../../lib/fx";
 import { runLaunchSequence } from "./lib/launch";
 import { cleanupStaleDevices } from "./lib/device-cleanup";
 import { backfillLocalHistory } from "./lib/history-sync";
+import { evaluateBasketAlert } from "./lib/basket-alert";
 
 function NotFound() {
   const navigate = useNavigate();
@@ -323,6 +324,16 @@ export default function App() {
         if (nextDigest) await storage.savePriceDigestSnapshot(nextDigest);
       } catch {
         // digest failures are non-fatal
+      }
+      // Basket value alert: mobile evaluates this after every sweep; the
+      // desktop stored the threshold but never fired it.
+      try {
+        await evaluateBasketAlert(storage, async (title, body, route) => {
+          const { sendDesktopNotification } = await import("./notifications");
+          return sendDesktopNotification(title, body, route);
+        });
+      } catch {
+        // basket alert failures are non-fatal
       }
     }).catch(() => () => {});
     return () => {

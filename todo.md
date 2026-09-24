@@ -3786,3 +3786,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Home's hint also referenced a "+" control the desktop does not have (its empty state offers an "Add Product" button)
 - [x] Changed all four to desktop "click"/"Click" wording; Home now names the actual control ("Click Add Product…")
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 154) and updated the round-192 guard's copied assertion — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2230 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
+
+## Phase 507: Device QA round 255 (desktop basket alert threshold was settable but never fired)
+
+- [x] **Mobile evaluates the basket-value alert after every price sweep (`lib/background-tasks/price-check.ts`): when the watchlist total (best in-stock price per product, in the display currency) is at or below `basketAlertThreshold`, it notifies and clears the threshold. The desktop let users set the threshold (Stats → 🧺 Basket Value Alert) but had no evaluation code at all**, so desktop basket alerts never fired
+- [x] Added `desktop/src/lib/basket-alert.ts` (`evaluateBasketAlert(storage, notify)`) mirroring mobile: fires once, keeps the threshold if the send fails so it retries, clears it only on success
+- [x] Wired it into the desktop's `onPricesChecked` handler in `desktop/src/App.tsx`
+- [x] Added `desktop/tests/basket-alert.test.ts` (4 tests) and a wiring guard to `tests/desktop-p1-parity.test.ts` — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2231 passed`; desktop `tsc 0`, `47 passed` / `231 passed`

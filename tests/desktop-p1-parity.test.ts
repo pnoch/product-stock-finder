@@ -31,4 +31,11 @@ describe("desktop P1 parity", () => {
     const app = await readFile("desktop/src/App.tsx", "utf8");
     expect(app).toContain("backfillLocalHistory(trpcClient, await storage.getWatchlist())");
   });
+
+  it("evaluates the basket alert after price sweeps", async () => {
+    const app = await readFile("desktop/src/App.tsx", "utf8");
+    expect(app).toContain("evaluateBasketAlert(storage");
+    const helper = await readFile("desktop/src/lib/basket-alert.ts", "utf8");
+    expect(helper).toContain("basketAlertThreshold: null");
+  });
 });
