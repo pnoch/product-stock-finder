@@ -91,11 +91,24 @@ export function subscribeAuth(listener: Listener): () => void {
 
 // Clears the local session when the server reports this device was signed out
 // from another device (DEVICE_REVOKED_ERR_MSG). Called from the tRPC
-// revoked-device link.
+// revoked-device link. Mobile shows an alert explaining the sign-out; the
+// desktop surfaces the same message as an OS notification (best-effort, and
+// only when notifications are permitted).
 export function handleDeviceRevoked(): void {
   clearUserInfo();
   removeSessionToken();
   notify();
+  void import("../notifications")
+    .then((m) =>
+      m.sendDesktopNotification(
+        "Signed Out",
+        "You were signed out on another device.",
+        "/",
+      ),
+    )
+    .catch(() => {
+      // Notification is best-effort; the session is already cleared.
+    });
 }
 
 export function mapUser(data: {

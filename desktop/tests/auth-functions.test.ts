@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { invoke } from "@tauri-apps/api/core";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
@@ -9,7 +10,6 @@ vi.mock("../src/lib/api-base", () => ({
   getAppId: vi.fn(() => "test-app"),
   getOAuthPortalUrl: vi.fn(() => ""),
 }));
-
 import {
   signInWithEmail,
   signUpWithEmail,
@@ -161,7 +161,7 @@ describe("desktop auth functions", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("handleDeviceRevoked clears the session and notifies", () => {
+  it("handleDeviceRevoked clears the session and explains the sign-out", async () => {
     localStorage.setItem("desktop_session_token", "tok-revoked");
     localStorage.setItem(
       "desktop_user_info",
@@ -184,5 +184,14 @@ describe("desktop auth functions", () => {
     expect(getSessionToken()).toBeNull();
     expect(getUserInfo()).toBeNull();
     expect(listener).toHaveBeenCalled();
+    await vi.waitFor(() => {
+      expect(invoke).toHaveBeenCalledWith(
+        "send_notification",
+        expect.objectContaining({
+          title: "Signed Out",
+          body: "You were signed out on another device.",
+        }),
+      );
+    });
   });
 });

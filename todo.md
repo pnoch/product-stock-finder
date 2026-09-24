@@ -3712,3 +3712,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's `DropCalendarCard` visibly highlights the selected day (primary background + 2px border); the desktop day button only toggled `aria-pressed`, so clicking a day gave no visual selection feedback**, leaving keyboard/screen-reader users the only ones who could tell a day was selected
 - [x] The desktop's selected day now renders `bg-brand-600 text-white ring-2 ring-brand-400`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 144) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2219 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
+
+## Phase 495: Device QA round 243 (desktop signed out on revocation with no explanation)
+
+- [x] **Mobile's `registerDeviceRevokedHandler` shows "Signed Out / You were signed out on another device."; the desktop `handleDeviceRevoked` (added in round 239) cleared the session silently**, so a revoked desktop user landed in the signed-out state with no idea why
+- [x] `handleDeviceRevoked` now fires the same message as an OS notification (`sendDesktopNotification`, best-effort, dynamically imported to avoid a use-auth ↔ notifications cycle)
+- [x] Extended `desktop/tests/auth-functions.test.ts` (asserts the notification payload) and the wiring guard in `tests/desktop-email-auth.test.ts` — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2219 passed`; desktop `tsc 0`, `46 passed` / `227 passed`

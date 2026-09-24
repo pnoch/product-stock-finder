@@ -36,5 +36,6 @@ describe("desktop email auth", () => {
     expect(trpc).toMatch(/links:\s*\[\s*revokedDeviceLink/);
     expect(trpc).toContain("DEVICE_REVOKED_ERR_MSG");
     expect(hooks).toContain("handleDeviceRevoked");
+    expect(hooks).toContain("You were signed out on another device.");
   });
 });
