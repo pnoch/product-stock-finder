@@ -3145,3 +3145,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Stock Watches rows showed only the status badge**, while mobile's `StockWatchCard` also renders a "👀 Watching" badge — so a desktop user couldn't tell a row was an active watch at a glance
 - [x] Desktop's stock-watch rows now render the same "👀 Watching" badge
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 53) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2125 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 401: Device QA round 149 (desktop distributor analysis had no CSV export)
+
+- [x] **Desktop's Distributor Analysis page had no export**, while mobile's `distributor-analysis` screen has an "Export CSV" button that writes `watchlistToDetailedCsv` — so a desktop user couldn't get the per-listing analysis out of the app
+- [x] Desktop's page now has an "Export CSV" button (Tauri save dialog, browser download fallback) using `watchlistToDetailedCsv`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 54) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2126 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 149: mobile's distributor-analysis screen exports the detailed
+  // listings CSV; desktop's page had no export.
+  it("exports CSV from the desktop distributor analysis", async () => {
+    const text = await readFile("desktop/src/pages/DistributorAnalysis.tsx", "utf8");
+    expect(text).toContain("watchlistToDetailedCsv");
+    expect(text).toContain("Export CSV");
+    expect(text).toContain("handleExport");
+  });
+
   // QA round 148: mobile's StockWatchCard shows a "👀 Watching" badge; desktop's
   // Stock Watches rows showed only the status badge.
   it("shows the Watching badge on desktop stock watches", async () => {
