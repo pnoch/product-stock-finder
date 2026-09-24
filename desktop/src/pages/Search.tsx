@@ -473,7 +473,10 @@ export function Search() {
       {manualOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeManualModal}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-semibold mb-3">Manual Add</h3>
+            <h3 className="font-semibold mb-1">Add Custom Product ✨</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              Paste anything — a model number, product name, or a spec-sheet paragraph. AI cleans it up.
+            </p>
             <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)} rows={3} placeholder="Paste a model number, product name, or spec paragraph…" aria-label="Paste product text" className="w-full px-3 py-2 rounded-lg border text-sm mb-2" />
             <button onClick={handleManualParse} disabled={!pasteText.trim() || manualParsing} className="w-full mb-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50">{manualParsing ? "Parsing…" : "Parse with AI"}</button>
             <input value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="https://distributor.com/product/..." aria-label="Distributor URL" className="w-full px-3 py-2 rounded-lg border text-sm mb-2" />

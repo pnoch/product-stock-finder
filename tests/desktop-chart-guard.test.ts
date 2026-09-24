@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 163: mobile's manual-add sheet is titled "Add Custom Product ✨"
+  // with a "Paste anything … AI cleans it up." hint; desktop's modal was titled
+  // "Manual Add" with no hint.
+  it("titles the desktop manual-add modal like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    expect(text).toContain("Add Custom Product ✨");
+    expect(text).toContain("AI cleans it up.");
+  });
+
   // QA round 162: mobile shows the "Discover with AI" footer whenever there is
   // a query (even with partial catalog matches); desktop only showed it when
   // there were zero results.

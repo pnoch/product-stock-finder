@@ -3229,3 +3229,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop only showed "Discover with AI" when the catalog returned zero results**, while mobile shows the Discover footer whenever there is a query (even with partial matches) — so on desktop a query that matched the wrong catalog item couldn't be AI-discovered
 - [x] Desktop now shows the Discover footer (and its error/loading states) for any non-empty query, matching mobile
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 67) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2139 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 415: Device QA round 163 (desktop manual-add modal lacked mobile's title and hint)
+
+- [x] **Desktop's manual-add modal was titled "Manual Add" with no hint**, while mobile's `ManualAddSheet` is titled "Add Custom Product ✨" with "Paste anything — a model number, product name, or a spec-sheet paragraph. AI cleans it up." — so a desktop user didn't know what the field accepted
+- [x] Desktop's modal now uses the same title and hint
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 68) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2140 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
