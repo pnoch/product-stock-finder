@@ -221,6 +221,20 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 131: desktop's watchlist sort used `a.name.localeCompare` and
+  // `new Date(...).getTime()` directly, so a malformed product (missing name /
+  // invalid date) threw or produced a NaN comparator (implementation-defined
+  // order). Mobile's sortWatchlist guards both.
+  it("keeps desktop watchlist sort NaN-safe and name-guarded", async () => {
+    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const start = text.indexOf("const sorted = useMemo");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("}, [filtered, sortKey, sortAsc, displayCurrency, dealScores]);", start));
+    expect(block).toMatch(/\(a\.name \?\? ""\)\.localeCompare\(b\.name \?\? ""\)/);
+    expect(block).not.toMatch(/new Date\(a\.lastRefreshed/);
+    expect(block).toMatch(/Date\.parse\(a\.lastRefreshed/);
+  });
+
   // QA round 126: desktop's notification list always rendered health events
   // with the red warning icon/color, so a "recovered" event looked like an
   // ongoing outage. Mobile uses healthIcon/healthColor to show a green

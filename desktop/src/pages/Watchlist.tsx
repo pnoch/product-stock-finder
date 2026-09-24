@@ -348,7 +348,9 @@ export function Watchlist() {
       let cmp = 0;
       switch (sortKey) {
         case "name":
-          cmp = a.name.localeCompare(b.name);
+          // `?? ""` so a malformed product without a name doesn't throw; the
+          // id tiebreak keeps the order deterministic (mobile does the same).
+          cmp = (a.name ?? "").localeCompare(b.name ?? "") || a.id.localeCompare(b.id);
           break;
         case "price": {
           const aPrice = getBestPrice(a.listings, displayCurrency)?.price ?? null;
@@ -374,9 +376,11 @@ export function Watchlist() {
           break;
         }
         case "lastUpdated": {
-          const aTime = new Date(a.lastRefreshed ?? a.addedAt).getTime();
-          const bTime = new Date(b.lastRefreshed ?? b.addedAt).getTime();
-          cmp = aTime - bTime;
+          // NaN-safe: an invalid date made the comparator return NaN, which is
+          // implementation-defined ordering (mobile guards the same way).
+          const aTime = Date.parse(a.lastRefreshed ?? a.addedAt ?? "") || 0;
+          const bTime = Date.parse(b.lastRefreshed ?? b.addedAt ?? "") || 0;
+          cmp = aTime - bTime || a.id.localeCompare(b.id);
           break;
         }
       }

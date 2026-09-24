@@ -3037,3 +3037,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's bulk import (`Search.tsx` and `SearchModal.tsx`) used a plain `for` loop with no per-item error handling**: one `addToWatchlist` rejection aborted the whole import as an unhandled rejection, and the success toast still claimed every product was imported. Mobile's `BulkImportModal` uses `Promise.allSettled` and reports skipped items
 - [x] Both desktop call sites now use `Promise.allSettled`, mark only the fulfilled writes as tracked, and report `Imported N · M failed`
 - [x] Added a guard to `tests/desktop-search-chrome-guard.test.ts` (now 4) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2107 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 383: Device QA round 131 (desktop watchlist sort threw / misordered on malformed products)
+
+- [x] **Desktop's watchlist sort called `a.name.localeCompare(b.name)` and `new Date(a.lastRefreshed ?? a.addedAt).getTime()` directly**: a product with no name threw, and an invalid date produced a `NaN` comparator (implementation-defined ordering). Mobile's `sortWatchlist` guards both (`(a.name ?? "").localeCompare(...) || a.id.localeCompare(b.id)` and `Date.parse(...) || 0`)
+- [x] Desktop's `name` sort now uses the `?? ""` guard with an id tiebreak, and `lastUpdated` uses `Date.parse(...) || 0` with an id tiebreak
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 37) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2108 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
