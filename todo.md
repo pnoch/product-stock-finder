@@ -3673,3 +3673,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's watchlist row had no per-product tag assignment**, while mobile's `ProductCard` has an "Edit tags" (tag icon) action that opens the tag picker for that product — so a desktop user couldn't tag a watched product
 - [x] Desktop's row now has an "Edit tags" action opening an "Assign tags" modal backed by `storage.setProductTags` (with inline create via Manage Tags)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 141) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2213 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 489: Device QA round 237 (desktop movers empty state lacked the hint)
+
+- [x] **Desktop's movers empty state said only "No movers yet"**, while mobile's `MoversCard` adds "Not enough price history yet." — so a desktop user didn't know why the list was empty
+- [x] Desktop's Top Drops / Top Gainers empty states now include the hint
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 142) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2214 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

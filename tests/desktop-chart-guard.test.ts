@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 237: mobile's movers empty state adds "Not enough price history
+  // yet."; desktop's said only "No movers yet".
+  it("adds the movers empty-state subtitle on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toContain("Not enough price history yet.");
+  });
+
   // QA round 236: mobile's product card has an "Edit tags" action per product;
   // desktop's watchlist row had no per-product tag assignment.
   it("has a per-product tag picker on the desktop watchlist", async () => {

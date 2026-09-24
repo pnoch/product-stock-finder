@@ -418,7 +418,10 @@ export function Stats() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 mt-2">No movers yet</p>
+            <div className="mt-2">
+              <p className="text-sm text-gray-400">No movers yet</p>
+              <p className="text-xs text-gray-400">Not enough price history yet.</p>
+            </div>
           )}
         </div>
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
@@ -439,7 +442,10 @@ export function Stats() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 mt-2">No movers yet</p>
+            <div className="mt-2">
+              <p className="text-sm text-gray-400">No movers yet</p>
+              <p className="text-xs text-gray-400">Not enough price history yet.</p>
+            </div>
           )}
         </div>
       </div>
