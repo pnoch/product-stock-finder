@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 211: mobile's compare has a "Current Prices" table (selected
+  // listings with chart colors, converted prices, stock); desktop lacked it.
+  it("shows the Current Prices table on desktop compare", async () => {
+    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    expect(text).toContain("Current Prices");
+    expect(text).toContain("No distributors selected");
+  });
+
   // QA round 210: mobile's CheapestRegionCard shows a per-row stock pill;
   // desktop's region rows showed only the price.
   it("shows a stock pill per region row on desktop compare", async () => {

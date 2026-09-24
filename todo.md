@@ -3517,3 +3517,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's "Cheapest by Region" rows showed only the price**, while mobile's `CheapestRegionCard` shows a per-row stock-status pill (In Stock / Back Order / Out of Stock / Unknown) — so a desktop user couldn't see stock availability per region
 - [x] Desktop's region rows now render a `StockBadge` under the price
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 115) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2187 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 463: Device QA round 211 (desktop compare had no Current Prices table)
+
+- [x] **Desktop's compare screen had no "Current Prices" table**, while mobile's `CurrentPricesTable` lists every selected distributor with its chart color, name/country, price, ≈ converted price, and stock pill — so a desktop user couldn't read the current prices behind the chart
+- [x] Desktop's compare now has the "Current Prices" section (with the mobile empty state "No distributors selected"), using the selection-order chart color and a `StockBadge`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 116) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2188 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
