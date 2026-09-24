@@ -3026,3 +3026,8 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's notification list built its route inline and never handled `type === "digest"`** (mobile's `notificationRouteFor` sends digest events to `/stats`), and it dropped health events that lacked a `distributorId` — so those rows rendered as non-clickable `<div>`s instead of links
 - [x] Desktop now routes `digest` → `/stats` and health events without a distributor → `/health`, matching mobile
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 36) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2104 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 381: Device QA round 129 (desktop Stats chart caption lied about "Top 3 by value")
+
+- [x] **Desktop Stats' price-history chart took `products.slice(0, 3)`** (watchlist order) while its caption read "Top 3 of N by value" — so the chart showed the first three products, not the three most valuable. Now ranks by best price descending before slicing (and derives the distributor legend from the same set)
+- [x] Added a guard to `tests/desktop-stats-parity.test.ts` (now 3) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2105 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

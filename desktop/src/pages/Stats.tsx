@@ -7,7 +7,7 @@ import { useToast } from "../hooks/use-toast";
 import { EmptyState } from "../components/EmptyState";
 import { MultiLineChart } from "../components/MultiLineChart";
 import { formatPrice, CURRENCY_SYMBOLS } from "@shared/currency";
-import { convertPrice } from "@/lib/currency";
+import { convertPrice, getBestPrice } from "@/lib/currency";
 import { DISTRIBUTORS } from "@shared/distributors";
 import type { Product } from "../../../lib/types";
 import {
@@ -177,8 +177,17 @@ export function Stats() {
             cutoff.setDate(cutoff.getDate() - days);
             return cutoff.toISOString().slice(0, 10);
           })();
+    // The caption says "Top 3 ... by value", so rank by best price (descending)
+    // rather than taking the first three in watchlist order.
+    const topByValue = [...products]
+      .sort((a, b) => {
+        const pa = getBestPrice(a.listings ?? [], displayCurrency)?.price ?? -1;
+        const pb = getBestPrice(b.listings ?? [], displayCurrency)?.price ?? -1;
+        return pb - pa;
+      })
+      .slice(0, 3);
     const dateMap = new Map<string, Record<string, number | string>>();
-    products.slice(0, 3).forEach((p) => {
+    topByValue.forEach((p) => {
       (p.listings ?? []).forEach((listing) => {
         const dist = DISTRIBUTORS.find((d) => d.id === listing.distributorId);
         const name = dist?.name ?? listing.distributorId;
@@ -194,11 +203,9 @@ export function Stats() {
     const data = dates.map((d) => dateMap.get(d)!);
     const distributors = Array.from(
       new Set(
-        products
-          .slice(0, 3)
-          .flatMap((p) =>
-            (p.listings ?? []).map((l) => DISTRIBUTORS.find((d) => d.id === l.distributorId)?.name ?? l.distributorId),
-          ),
+        topByValue.flatMap((p) =>
+          (p.listings ?? []).map((l) => DISTRIBUTORS.find((d) => d.id === l.distributorId)?.name ?? l.distributorId),
+        ),
       ),
     );
     return { data, distributors };
