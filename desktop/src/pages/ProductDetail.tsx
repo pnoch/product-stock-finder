@@ -546,7 +546,7 @@ export function ProductDetail() {
     }
     setReminderOpen(false);
     setReminderError(null);
-    showToast(`Reminder set for ${picked.toLocaleDateString()}`);
+    showToast(`Reminder set for ${picked.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`);
   };
 
   const handleInlineAlert = async () => {
@@ -623,7 +623,7 @@ export function ProductDetail() {
       setSavingReminder(false);
     }
     setInlineReminderError(null);
-    showToast(`Reminder set for ${picked.toLocaleDateString()}`);
+    showToast(`Reminder set for ${picked.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`);
   };
 
   const handleShare = async () => {

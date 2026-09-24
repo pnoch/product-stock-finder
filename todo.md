@@ -3743,3 +3743,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's `DataFreshnessCard` formats "Oldest check" with a month name and its health-detail sample timestamps use `{ month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }`; the desktop used bare `toLocaleDateString()`/`toLocaleString()`** for both
 - [x] Aligned the desktop Stats freshness "Oldest check" and HealthDetail sample timestamps (visible text + tooltip title) to mobile's formats
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 148) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2223 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
+
+## Phase 500: Device QA round 248 (reminder toasts used a locale-numeric date)
+
+- [x] **Mobile's `ReminderSection` toast and both desktop reminder toasts rendered the target date as `1/5/2026` (bare `toLocaleDateString()`), while the reminder card and the date-picker modal render `Jan 5, 2026`** — inconsistent within mobile and across platforms
+- [x] Unified all three on the month-name format (`{ month: "short", day: "numeric", year: "numeric" }`)
+- [x] Added a guard to `tests/mobile-criticals.test.ts` covering both the mobile and desktop toasts — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2224 passed`; desktop `tsc 0`, `46 passed` / `227 passed`

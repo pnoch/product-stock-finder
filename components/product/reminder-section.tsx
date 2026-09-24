@@ -54,7 +54,7 @@ export function ReminderSection({
         await cancelNotification(replacedNotificationId).catch(() => {});
       }
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showToast(`Reminder set for ${d.toLocaleDateString()}`, "success");
+      showToast(`Reminder set for ${d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`, "success");
     } catch {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showAlert("Couldn't set reminder", "We couldn't save your reminder. Please try again.");

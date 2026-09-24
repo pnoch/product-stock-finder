@@ -235,6 +235,28 @@ describe("reminder section guards against double-submit", () => {
   });
 });
 
+// QA round 248: ReminderSection's toast and the desktop reminder toasts used a
+// locale-numeric date ("1/5/2026") while the reminder card and date-picker modal
+// use month names ("Jan 5, 2026"); unify on the month-name format.
+describe("reminder dates use the month-name format", () => {
+  it("formats the mobile and desktop reminder toasts", () => {
+    const mobile = readFileSync(
+      path.join(process.cwd(), "components/product/reminder-section.tsx"),
+      "utf8",
+    );
+    expect(mobile).toContain(
+      'Reminder set for ${d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}',
+    );
+    const desktop = readFileSync(
+      path.join(process.cwd(), "desktop/src/pages/ProductDetail.tsx"),
+      "utf8",
+    );
+    expect(desktop).toContain(
+      'Reminder set for ${picked.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}',
+    );
+  });
+});
+
 // QA round 82: the Settings data section's export/import handlers had no
 // catch, so a storage read/write failure rejected unhandled.
 describe("settings data section guards its export/import", () => {
