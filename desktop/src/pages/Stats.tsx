@@ -756,9 +756,21 @@ export function Stats() {
           </p>
           {stockHealth ? (
             <div className="space-y-1 text-sm">
-              <p className="text-gray-600 dark:text-gray-400">
-                {stockHealth.inStockPct}% in stock · {stockHealth.fullyOutOfStock} fully out of stock · {stockHealth.backOrderOnly} back-order everywhere
-              </p>
+              {/* Mobile's StockHealthCard shows three labelled columns. */}
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{stockHealth.inStockPct}%</p>
+                  <p className="text-[11px] text-gray-400">Listings in stock</p>
+                </div>
+                <div className="flex-1">
+                  <p className="text-lg font-bold text-red-600 dark:text-red-400">{stockHealth.fullyOutOfStock}</p>
+                  <p className="text-[11px] text-gray-400">Fully out of stock</p>
+                </div>
+                <div className="flex-1">
+                  <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{stockHealth.backOrderOnly}</p>
+                  <p className="text-[11px] text-gray-400">Back-order everywhere</p>
+                </div>
+              </div>
               <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 mt-2">
                 <div
                   className="bg-emerald-500 h-2 rounded-full transition-all duration-500"

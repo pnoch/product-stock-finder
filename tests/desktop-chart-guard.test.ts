@@ -221,6 +221,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 230: mobile's StockHealthCard shows "Listings in stock" / "Fully
+  // out of stock" / "Back-order everywhere" columns; desktop used a compressed
+  // single line.
+  it("matches mobile's stock-health labels on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toContain("Listings in stock");
+    expect(text).toContain("Fully out of stock");
+    expect(text).toContain("Back-order everywhere");
+  });
+
   // QA round 229: mobile's freshness labels are "Stale (>7 days)" and "Oldest
   // check"; desktop's were "Stale" and "Oldest update".
   it("matches mobile's freshness labels on desktop", async () => {
@@ -896,7 +906,7 @@ describe("desktop chart guard", () => {
   it("shows the full freshness and stock-health rows on desktop Stats", async () => {
     const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
     expect(text).toContain("Avg data points / listing");
-    expect(text).toContain("back-order everywhere");
+    expect(text).toContain("Back-order everywhere");
   });
 
   // QA round 150: mobile's compare screen exports the price history as CSV;

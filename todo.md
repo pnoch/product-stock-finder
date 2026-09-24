@@ -3631,3 +3631,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Data Freshness rows read "Stale" and "Oldest update"**, while mobile's `DataFreshnessCard` uses "Stale (>7 days)" and "Oldest check" — inconsistent wording between platforms
 - [x] Desktop's labels now match mobile
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 134) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2206 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 482: Device QA round 230 (desktop stock-health labels differed)
+
+- [x] **Desktop's Stock Health used a compressed single line ("N% in stock · N fully out of stock · N back-order everywhere")**, while mobile's `StockHealthCard` shows "Listings in stock" / "Fully out of stock" / "Back-order everywhere" as labelled columns
+- [x] Desktop now shows the same three labelled columns (keeping the progress bar); updated the round-151 guard to the new label
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 135) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2207 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
