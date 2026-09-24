@@ -221,6 +221,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 219: mobile's cross-alert card says "Alert me if any distributor
+  // drops below" / "{price} (5% below current best of {best})"; desktop's said
+  // "Alert me below {target}" / "5% below the best in-stock price, any
+  // distributor".
+  it("matches mobile's cross-alert copy on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    expect(text).toContain("Alert me if any distributor drops below");
+    expect(text).toContain("(5% below current best of {formatPrice(crossBest, displayCurrency)})");
+  });
+
   // QA round 218: mobile's healthColor returns "warning" (amber) for
   // non-recovered health events; desktop colored them red.
   it("colors non-recovered desktop health notifications amber", async () => {

@@ -3565,3 +3565,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop colored non-recovered health notifications red**, while mobile's `healthColor` returns "warning" (amber) for anything but a recovery — so a blocked/down distributor looked like a hard error on desktop
 - [x] Desktop's non-recovered health icon now uses the amber styling, matching mobile
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 123) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2195 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 471: Device QA round 219 (desktop cross-alert copy differed from mobile)
+
+- [x] **Desktop's cross-alert card read "Alert me below {target}" / "5% below the best in-stock price, any distributor"**, while mobile's `CrossAlertCTA` says "Alert me if any distributor drops below" / "{price} (5% below current best of {best})" — inconsistent wording and the desktop didn't show the current best
+- [x] Desktop now computes `crossBest` (the cheapest in-stock price) and uses mobile's copy
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 124) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2196 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

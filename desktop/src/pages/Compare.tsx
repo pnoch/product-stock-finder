@@ -455,15 +455,20 @@ export function Compare() {
     [sortedListings, displayCurrency],
   );
 
-  const alertTarget = useMemo(() => {
+  const crossBest = useMemo(() => {
     const inStock = sortedListings.filter((l) => l.stockStatus === "in_stock");
     if (inStock.length === 0) return null;
     const vals = inStock
       .map((l) => convertPrice(l.price, l.currency, displayCurrency))
       .filter((v): v is number => v !== null && Number.isFinite(v));
     if (vals.length === 0) return null;
-    return Math.round(Math.min(...vals) * 0.95 * 100) / 100;
+    return Math.min(...vals);
   }, [sortedListings, displayCurrency]);
+
+  const alertTarget = useMemo(
+    () => (crossBest === null ? null : Math.round(crossBest * 0.95 * 100) / 100),
+    [crossBest],
+  );
 
   const handleCrossAlert = useCallback(async () => {
     if (!id || !product || alertTarget === null || creatingAlert) return;
@@ -711,11 +716,13 @@ export function Compare() {
         )}
       </div>
 
-      {alertTarget !== null && (
+      {alertTarget !== null && crossBest !== null && (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
           <div className="flex-1">
-            <div className="text-sm font-semibold">Alert me below {formatPrice(alertTarget, displayCurrency)}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">5% below the best in-stock price, any distributor</div>
+            <div className="text-sm font-semibold">Alert me if any distributor drops below</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {formatPrice(alertTarget, displayCurrency)} (5% below current best of {formatPrice(crossBest, displayCurrency)})
+            </div>
           </div>
           <button
             onClick={handleCrossAlert}
