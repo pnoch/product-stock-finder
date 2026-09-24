@@ -3541,3 +3541,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's filtered-empty watchlist state read "No products match this filter."** with no guidance, while mobile says "No products match your filters" with "Try adjusting your filters or search — or add a new product to track." and a "Clear Filters" button
 - [x] Desktop's filtered-empty state now matches mobile
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 119) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2191 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 467: Device QA round 215 (desktop sync status hid sync errors)
+
+- [x] **Desktop computed the sync status inline from `lastSyncedAt`**, so it always showed "Last synced Nm ago" and silently hid `meta.lastSyncError`. Mobile's `formatSyncStatus` reports the error (with an error tone) and also prefers `lastSyncOkAt` over `lastSyncedAt`
+- [x] Desktop now loads the full `SyncMeta` and uses `formatSyncStatus(syncMeta, isAuthenticated, now)`, rendering the label with the tone color (error → red, success → emerald)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 120) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2192 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

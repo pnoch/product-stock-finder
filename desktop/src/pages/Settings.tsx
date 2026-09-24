@@ -37,11 +37,11 @@ import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
-import { getSyncSetup } from "../../../lib/sync";
+import { getSyncSetup, formatSyncStatus, type SyncStatus } from "../../../lib/sync";
 import type { DeviceInfo } from "../../../server/devices";
 import { buildBackup, parseBackup, applyBackup } from "../../../lib/backup";
 import { watchlistToCsv } from "../../../lib/csv";
-import type { AppSettings, Product, DistributorListing } from "../../../lib/types";
+import type { AppSettings, Product, DistributorListing, SyncMeta } from "../../../lib/types";
 import { getDistributorById } from "@shared/distributors";
 import { getAllParserIds } from "../../../lib/scrapers/registry";
 import { requestWebNotificationPermission } from "../../../lib/web-notifications";
@@ -174,7 +174,7 @@ export function Settings() {
   );
   const { user, isAuthenticated, login, logout } = useAuth();
   const connection = useConnection();
-  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+  const [syncMeta, setSyncMeta] = useState<SyncMeta | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -183,7 +183,7 @@ export function Settings() {
     const refresh = async () => {
       const meta = await storage.getSyncMeta();
       if (!cancelled) {
-        setLastSyncedAt(meta.lastSyncedAt || null);
+        setSyncMeta(meta);
         setNow(Date.now());
       }
     };
@@ -195,16 +195,20 @@ export function Settings() {
     };
   }, [isAuthenticated]);
 
-  const syncStatus = !isAuthenticated
-    ? "Sign in to sync across devices"
-    : !lastSyncedAt
-      ? "Not synced yet"
-      : (() => {
-          const minutes = Math.floor((now - lastSyncedAt) / 60000);
-          if (minutes < 1) return "Synced just now";
-          if (minutes < 60) return `Last synced ${minutes}m ago`;
-          return `Last synced ${Math.floor(minutes / 60)}h ago`;
-        })();
+  // Use the shared formatter so a failed sync surfaces (mobile's
+  // formatSyncStatus reports lastSyncError); the previous inline logic always
+  // showed the last-success time and hid errors.
+  const syncStatus: SyncStatus = syncMeta
+    ? formatSyncStatus(syncMeta, isAuthenticated, now)
+    : isAuthenticated
+      ? { label: "Not synced yet", tone: "muted" }
+      : { label: "Sign in to sync across devices", tone: "muted" };
+  const syncStatusClass =
+    syncStatus.tone === "error"
+      ? "text-red-600 dark:text-red-400"
+      : syncStatus.tone === "success"
+        ? "text-emerald-600 dark:text-emerald-400"
+        : "text-gray-500 dark:text-gray-400";
 
   const handleSignIn = async () => {
     await login(await buildLoginUrl());
@@ -355,7 +359,7 @@ export function Settings() {
     try {
       await setup.syncNow();
       const meta = await storage.getSyncMeta();
-      setLastSyncedAt(meta.lastSyncedAt || null);
+      setSyncMeta(meta);
       setSyncMessage("Synced just now");
     } catch {
       setSyncMessage("Sync failed");
@@ -937,7 +941,7 @@ export function Settings() {
                     </button>
                   </div>
                 )}
-                <p className="text-xs text-gray-400 mt-1">{syncStatus}</p>
+                <p className={`text-xs mt-1 ${syncStatusClass}`}>{syncStatus.label}</p>
                 {syncMessage && (<p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{syncMessage}</p>)}
               </div>
               <div className="flex items-center gap-2">
@@ -1007,8 +1011,8 @@ export function Settings() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium">Sign in to sync</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {syncStatus}
+                <p className={`text-sm ${syncStatusClass}`}>
+                  {syncStatus.label}
                 </p>
               </div>
               <button

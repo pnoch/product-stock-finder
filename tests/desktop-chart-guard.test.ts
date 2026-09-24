@@ -221,6 +221,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 215: mobile surfaces a failed sync via formatSyncStatus
+  // (lastSyncError); desktop's inline sync status always showed the
+  // last-success time and hid errors.
+  it("surfaces sync errors on desktop via formatSyncStatus", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toMatch(/formatSyncStatus\(syncMeta, isAuthenticated, now\)/);
+    expect(text).toContain("syncStatus.label");
+    expect(text).not.toMatch(/const syncStatus = !isAuthenticated/);
+  });
+
   // QA round 214: mobile's filtered-empty watchlist state says "No products
   // match your filters" with guidance; desktop's said "No products match this
   // filter." with none.
