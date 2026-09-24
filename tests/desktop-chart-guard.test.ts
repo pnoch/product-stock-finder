@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 210: mobile's CheapestRegionCard shows a per-row stock pill;
+  // desktop's region rows showed only the price.
+  it("shows a stock pill per region row on desktop compare", async () => {
+    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    expect(text).toMatch(/<StockBadge status=\{item\.listing\.stockStatus\} \/>/);
+  });
+
   // QA round 209: mobile's health-detail "Distributor not found" is an
   // EmptyStateView with a subtitle and a Go back CTA; desktop's was a plain line.
   it("matches mobile's health-detail not-found state on desktop", async () => {

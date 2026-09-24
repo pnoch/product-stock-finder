@@ -3511,3 +3511,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's health-detail "Distributor not found" was a plain line**, while mobile's `EmptyStateView` shows a subtitle ("We couldn't find this distributor. Check the link or browse distributor health.") and a "Go back" CTA — so a desktop user hitting a bad link had no guidance
 - [x] Desktop's not-found state now shows the subtitle and a "Go back" button
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 114) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2186 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 462: Device QA round 210 (desktop compare region rows omitted the stock pill)
+
+- [x] **Desktop's "Cheapest by Region" rows showed only the price**, while mobile's `CheapestRegionCard` shows a per-row stock-status pill (In Stock / Back Order / Out of Stock / Unknown) — so a desktop user couldn't see stock availability per region
+- [x] Desktop's region rows now render a `StockBadge` under the price
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 115) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2187 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

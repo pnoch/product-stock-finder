@@ -694,11 +694,15 @@ export function Compare() {
                       {dist?.name ?? item.listing.distributorId}
                     </span>
                   </div>
-                  <span className={`text-sm font-semibold ${i === 0 ? "text-emerald-700 dark:text-emerald-300" : ""}`}>
-                    {formatPrice(item.listing.price, item.listing.currency)}
-                    {item.listing.currency !== displayCurrency && (
-                      <> ≈ {formatPrice(item.converted, displayCurrency)}</>
-                    )}
+                  <span className="flex flex-col items-end gap-1">
+                    <span className={`text-sm font-semibold ${i === 0 ? "text-emerald-700 dark:text-emerald-300" : ""}`}>
+                      {formatPrice(item.listing.price, item.listing.currency)}
+                      {item.listing.currency !== displayCurrency && (
+                        <> ≈ {formatPrice(item.converted, displayCurrency)}</>
+                      )}
+                    </span>
+                    {/* Mobile's CheapestRegionCard shows a per-row stock pill. */}
+                    <StockBadge status={item.listing.stockStatus} />
                   </span>
                 </div>
               );
