@@ -221,6 +221,17 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 135: desktop Stats computed the digest against a null snapshot
+  // (treating every product as new) and rendered nothing when the digest was
+  // enabled but no snapshot existed yet. Mobile returns null and shows a
+  // "Digest scheduled" placeholder.
+  it("shows a digest-scheduled placeholder on desktop Stats", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toContain("digestPending");
+    expect(text).toMatch(/setDigest\(snapshot \? computeDigest\(snapshot, list, settings, alerts\) : null\)/);
+    expect(text).toContain("Digest scheduled");
+  });
+
   // QA round 134: desktop Home's "Reminders" stat counted only date reminders,
   // but the Alerts tab it navigates to counts reminders + stock watches, so the
   // card understated the destination.

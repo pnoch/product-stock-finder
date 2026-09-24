@@ -3061,3 +3061,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop Home's "Reminders" stat counted only date reminders** (`getBackOrderReminders().length`), but the Alerts tab it navigates to shows `reminders.length + watches.length` — so the dashboard card disagreed with its destination whenever stock watches existed
 - [x] Desktop Home now loads stock watches too and sets `reminderCount = reminders.length + stockWatches.length`, matching the Alerts tab
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 40) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2111 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 387: Device QA round 135 (desktop Stats vanished the digest card before the first digest)
+
+- [x] **Desktop Stats computed the digest against a null snapshot** (`computeDigest(snapshot, ...)` with `snapshot === null`), so before the first digest was delivered every product was reported as "new", and when the digest was enabled but no snapshot existed the whole card rendered nothing. Mobile returns `null` and shows a "Digest scheduled" placeholder (only when the watchlist is non-empty)
+- [x] Desktop now computes the digest only when a snapshot exists (`snapshot ? computeDigest(...) : null`) and renders a "Digest scheduled" placeholder otherwise
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 41) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2112 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

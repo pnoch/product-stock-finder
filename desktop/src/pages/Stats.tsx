@@ -49,6 +49,7 @@ export function Stats() {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [digest, setDigest] = useState<DigestResult | null>(null);
   const [digestFrequency, setDigestFrequency] = useState("off");
+  const [digestPending, setDigestPending] = useState(false);
   const [basketThreshold, setBasketThreshold] = useState<number | null>(null);
   const [basketSheetOpen, setBasketSheetOpen] = useState(false);
   const [basketDraft, setBasketDraft] = useState("");
@@ -94,13 +95,21 @@ export function Stats() {
       setBasketThreshold(settings?.basketAlertThreshold ?? null);
       if (frequency === "off") {
         setDigest(null);
+        setDigestPending(false);
         return;
       }
       // Read-only: the digest sender (App.tsx `maybeSendDigest`) owns the
       // snapshot lifecycle and advances it only when a digest is delivered.
       // Saving here advanced the diff base on every Stats visit, so the card
       // showed changes since the last visit rather than since the last digest.
-      setDigest(computeDigest(snapshot, list, settings, alerts));
+      // Mobile returns null when there is no snapshot; computing against null
+      // treated every product as new.
+      setDigest(snapshot ? computeDigest(snapshot, list, settings, alerts) : null);
+      // Enabled but no snapshot yet: the first digest hasn't been delivered, so
+      // there is nothing to diff against. Mobile shows a "Digest scheduled"
+      // placeholder (only when the watchlist is non-empty); without this the
+      // whole card vanished.
+      setDigestPending(!snapshot && list.length > 0);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Couldn't load statistics");
     }
@@ -432,6 +441,11 @@ export function Stats() {
           >
             Go to Settings
           </Link>
+        </div>
+      ) : digestPending ? (
+        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
+          <p className="text-sm text-gray-500 dark:text-gray-400">Digest scheduled</p>
+          <p className="text-sm text-gray-400 mt-2">Your first digest will appear here once it&apos;s sent.</p>
         </div>
       ) : (
         digest && (
