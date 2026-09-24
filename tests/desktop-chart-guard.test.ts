@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 233: mobile's Home still shows Trending with an empty watchlist so
+  // a new user can discover products; desktop's empty state hid it.
+  it("shows Trending in the desktop empty-watchlist Home", async () => {
+    const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    const start = text.indexOf("if (products.length === 0) {");
+    const block = text.slice(start, text.indexOf("\n  }\n", start));
+    expect(block).toContain("<TrendingSection />");
+  });
+
   // QA round 232: mobile's trending section shows "Couldn't load" + "Retry" on
   // fetch failure; desktop swallowed the error and hid the section.
   it("shows a trending retry state on desktop", async () => {

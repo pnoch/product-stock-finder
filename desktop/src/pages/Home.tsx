@@ -214,6 +214,11 @@ export function Home() {
             <Plus className="w-4 h-4" /> Add Product
           </Link>
         </div>
+        {/* Mobile shows Trending even with an empty watchlist so a new user can
+            still discover products. */}
+        <div className="mt-6">
+          <TrendingSection />
+        </div>
       </div>
     );
   }

@@ -3649,3 +3649,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's TrendingSection swallowed `fetchTrending` failures** (`.catch(() => {})`) and then rendered `null`, so the section silently vanished with no way to recover. Mobile's `TrendingSection` shows "Couldn't load" with a "Retry" button
 - [x] Desktop now tracks `loadError`, exposes a `load` retry, and renders the "Couldn't load" + Retry state
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 137) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2209 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 485: Device QA round 233 (desktop empty-watchlist Home hid Trending)
+
+- [x] **Desktop's empty-watchlist Home early-returned without the `TrendingSection`**, while mobile renders Trending below the stat cards regardless — so a brand-new desktop user had no in-app way to discover products
+- [x] Desktop's empty state now renders `<TrendingSection />`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 138) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2210 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
