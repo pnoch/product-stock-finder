@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 165: mobile's bulk-import modal is titled "Import List 📋";
+  // desktop's was titled "Bulk Import".
+  it("titles the desktop bulk-import modal like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    expect(text).toContain("Import List 📋");
+  });
+
   // QA round 164: mobile's manual-add sheet labels the parse button "Clean up
   // with AI" and the URL field "Paste distributor URL"; desktop said "Parse
   // with AI" with no URL label.

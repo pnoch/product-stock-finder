@@ -3241,3 +3241,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's manual-add modal labelled the parse button "Parse with AI" and left the URL field unlabelled**, while mobile's `ManualAddSheet` uses "Clean up with AI" and "Paste distributor URL" — inconsistent wording between platforms
 - [x] Desktop now uses "Clean up with AI" and adds the "Paste distributor URL" label; updated `desktop/tests/manual-add-ai.test.tsx` to the new button name
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 69) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2141 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 417: Device QA round 165 (desktop bulk-import modal title differed from mobile)
+
+- [x] **Desktop's bulk-import modal was titled "Bulk Import"**, while mobile's `BulkImportModal` is titled "Import List 📋" — inconsistent wording between platforms
+- [x] Desktop now uses "Import List 📋"
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 70) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2142 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

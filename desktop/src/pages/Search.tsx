@@ -455,7 +455,7 @@ export function Search() {
       {bulkOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setBulkOpen(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-semibold mb-2 flex items-center gap-2"><Upload className="w-4 h-4" /> Bulk Import</h3>
+            <h3 className="font-semibold mb-2 flex items-center gap-2"><Upload className="w-4 h-4" /> Import List 📋</h3>
             <p className="text-xs text-gray-500 mb-2">Paste model numbers (e.g. CRS326-24S) — one per line or comma-separated.</p>
             <textarea value={bulkText} onChange={(e) => setBulkText(e.target.value)} rows={6} placeholder="CRS804-4DDQ-hRM\nCCR2216-1G-12XS-2XQ" className="w-full p-3 rounded-lg border text-sm mb-3" />
             {bulkText.trim() && (
