@@ -897,15 +897,25 @@ function RemindersTab({
   onDeleteWatch: (id: string) => void;
   onReschedule: (r: BackOrderReminder) => void;
 }) {
+  const navigate = useNavigate();
   const hasItems = reminders.length > 0 || watches.length > 0;
 
   if (!hasItems) {
     return (
-      <EmptyState
-        icon={<Clock className="w-12 h-12" />}
-        title="No reminders or watches"
-        description="Set reminders from product details to track restock dates."
-      />
+      <div className="text-center">
+        <EmptyState
+          icon={<Clock className="w-12 h-12" />}
+          title="No reminders set"
+          description='Open a back-order product listing and tap "Remind me" or "Watch for Restock".'
+        />
+        <button
+          onClick={() => navigate("/search")}
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+          aria-label="Browse products to set reminders"
+        >
+          <Clock className="w-4 h-4" /> Browse Products
+        </button>
+      </div>
     );
   }
 

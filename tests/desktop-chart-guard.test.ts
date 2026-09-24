@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 160: mobile's reminders empty state has a "Browse Products" CTA;
+  // desktop's had none.
+  it("has a Browse Products CTA in the desktop reminders empty state", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toContain('title="No reminders set"');
+    expect(text).toContain("Browse products to set reminders");
+  });
+
   // QA round 159: mobile's Alerts tab shows an info banner when active alerts
   // exist; desktop's AlertsTab had none.
   it("shows the active-alerts info banner on desktop", async () => {

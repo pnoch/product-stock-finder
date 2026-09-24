@@ -3211,3 +3211,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Alerts tab showed no info banner when active alerts existed**, while mobile's Alerts tab renders "You'll be notified when a product's price drops below your target." — so a desktop user got no confirmation of what active alerts do
 - [x] Desktop's `AlertsTab` now shows the same banner above the active alerts
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 64) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2136 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 412: Device QA round 160 (desktop reminders empty state had no CTA)
+
+- [x] **Desktop's reminders empty state had no "Browse Products" CTA**, while mobile's reminders tab empty state links to search — so a desktop user with no reminders had no path forward
+- [x] Desktop's reminders empty state now matches mobile (title "No reminders set", the "Remind me"/"Watch for Restock" hint, and a Browse Products button)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 65) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2137 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
