@@ -3283,3 +3283,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's reminder rows always read "Due {date}"**, while mobile's `ReminderCard` says "Was due {date}" for past reminders and "Remind on {date}" otherwise — so a desktop user couldn't tell a past-due reminder from an upcoming one at a glance
 - [x] Desktop now uses the same "Was due "/"Remind on " labels
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 76) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2148 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 424: Device QA round 172 (desktop reschedule modal title lacked the emoji)
+
+- [x] **Desktop's reschedule modal was titled "Reschedule Reminder"**, while mobile's `RescheduleModal` is titled "Reschedule Reminder 📅" — inconsistent wording between platforms
+- [x] Desktop's title now includes the 📅 emoji
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 77) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2149 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

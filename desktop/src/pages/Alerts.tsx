@@ -517,7 +517,7 @@ export function Alerts() {
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold flex items-center gap-2">
-                <Calendar className="w-4 h-4" /> Reschedule Reminder
+                <Calendar className="w-4 h-4" /> Reschedule Reminder 📅
               </h3>
               <button
                 onClick={() => setRescheduleTarget(null)}

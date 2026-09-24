@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 172: mobile's RescheduleModal title is "Reschedule Reminder 📅";
+  // desktop's was "Reschedule Reminder" without the emoji.
+  it("titles the desktop reschedule modal like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toContain("Reschedule Reminder 📅");
+  });
+
   // QA round 171: mobile's ReminderCard says "Was due {date}" for past
   // reminders and "Remind on {date}" otherwise; desktop always said "Due".
   it("labels past vs future desktop reminders like mobile", async () => {
