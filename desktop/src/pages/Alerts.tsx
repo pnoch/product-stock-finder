@@ -17,6 +17,7 @@ import {
   Pause,
   Pencil,
   X,
+  Info,
 } from "lucide-react";
 import { useAlerts } from "../hooks/use-storage";
 import { useToast } from "../hooks/use-toast";
@@ -672,6 +673,14 @@ function AlertsTab({
 
   return (
     <div className="space-y-3">
+      {alerts.filter((a) => !a.triggeredAt).length > 0 && (
+        <div className="flex items-center gap-2 p-3 bg-brand-600/10 border border-brand-600/20 rounded-xl">
+          <Info className="w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0" />
+          <p className="text-sm text-brand-600 dark:text-brand-400">
+            You&apos;ll be notified when a product&apos;s price drops below your target.
+          </p>
+        </div>
+      )}
       {alerts.filter((a) => !a.triggeredAt).map((alert, idx) => (
         <div
           key={alert.id}

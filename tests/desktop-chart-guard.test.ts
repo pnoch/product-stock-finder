@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 159: mobile's Alerts tab shows an info banner when active alerts
+  // exist; desktop's AlertsTab had none.
+  it("shows the active-alerts info banner on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toContain("You&apos;ll be notified when a product&apos;s price drops below your target.");
+  });
+
   // QA round 158: mobile's digestPlaceholder returns null when the watchlist is
   // empty (the whole card is hidden); desktop showed "Digest off" even with no
   // products.
