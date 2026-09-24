@@ -9,6 +9,7 @@ import { discoverProduct, toDiscoverErrorState } from "../../../lib/llm-discover
 import { discoverListings, customProductSlug } from "../../../lib/listing-discovery";
 import { manualAddProduct, rediscoverProduct } from "../../../lib/manual-add";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
+import { nextTagColor } from "../../../lib/tags";
 import type { TagDefinition } from "../../../lib/types";
 import { TagFilterRow } from "../components/TagFilterRow";
 import { countTagMatches, filterWatchlist } from "../../../lib/watchlist-org";
@@ -27,6 +28,7 @@ export function Search() {
   const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
   const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
   const [tagPickerFor, setTagPickerFor] = useState<string | null>(null);
+  const [newTagName, setNewTagName] = useState("");
   const trackedIdsArray = useMemo(() => Array.from(trackedIds), [trackedIds]);
   const [discovering, setDiscovering] = useState(false);
   const [discoverError, setDiscoverError] = useState<{ title: string; message: string; retry: boolean } | null>(null);
@@ -167,6 +169,23 @@ export function Search() {
       showToast(errState.title);
     } finally { setDiscovering(false); }
   }, [query, discovering, navigate]);
+
+  const handleCreateTag = useCallback(async () => {
+    const name = newTagName.trim();
+    if (!name || !tagPickerFor) return;
+    try {
+      const current = await storage.getTagDefinitions();
+      const tag = await storage.createTag(name, nextTagColor(current));
+      setTagDefinitions({ ...current, [tag.id]: tag });
+      setPendingTags((prev) => ({
+        ...prev,
+        [tagPickerFor]: [...(prev[tagPickerFor] ?? []), tag.id],
+      }));
+      setNewTagName("");
+    } catch {
+      showToast("Couldn't create tag");
+    }
+  }, [newTagName, tagPickerFor, showToast]);
 
   const bulkPreview = useMemo(() => matchModels(parseModelInput(bulkText)), [bulkText]);
   const bulkNew = useMemo(() => bulkPreview.matched.filter((p) => !trackedIds.has(p.id)), [bulkPreview, trackedIdsArray, trackedIds]);
@@ -445,7 +464,27 @@ export function Search() {
                 const sel = (pendingTags[tagPickerFor] ?? []).includes(def.id);
                 return <label key={def.id} className="flex items-center gap-2 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"><input type="checkbox" checked={sel} onChange={() => setPendingTags((prev) => { const cur = prev[tagPickerFor] ?? []; const nxt = sel ? cur.filter((id) => id !== def.id) : [...cur, def.id]; return { ...prev, [tagPickerFor]: nxt }; })} /><span className="w-3 h-3 rounded-full" style={{ backgroundColor: def.color }} /><span className="text-sm">{def.name}</span></label>;
               })}
-              {Object.keys(tagDefinitions).length === 0 && <p className="text-sm text-gray-500">No tags yet.</p>}
+              {Object.keys(tagDefinitions).length === 0 && <p className="text-sm text-gray-500">No tags yet — create one below.</p>}
+            </div>
+            {/* Mobile's TagPickerSheet creates tags inline; desktop's search
+                picker only toggled existing tags. */}
+            <div className="mt-3">
+              <input
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                maxLength={24}
+                placeholder="New tag name"
+                aria-label="New tag name"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+              />
+              <button
+                onClick={() => void handleCreateTag()}
+                disabled={!newTagName.trim()}
+                aria-label="Create tag"
+                className="mt-2 w-full px-3 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-50"
+              >
+                Create tag
+              </button>
             </div>
             <div className="flex justify-end gap-2 mt-4"><button onClick={() => setTagPickerFor(null)} className="px-3 py-1.5 rounded-lg border text-sm">Done</button><button onClick={() => { setPendingTags((p) => { const n = { ...p }; delete n[tagPickerFor]; return n; }); setTagPickerFor(null); }} className="px-3 py-1.5 text-sm text-gray-500">Clear</button></div>
           </div>

@@ -3247,3 +3247,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's bulk-import modal was titled "Bulk Import"**, while mobile's `BulkImportModal` is titled "Import List 📋" — inconsistent wording between platforms
 - [x] Desktop now uses "Import List 📋"
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 70) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2142 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 418: Device QA round 166 (desktop search tag picker couldn't create tags)
+
+- [x] **Desktop's search "Assign tags" modal only toggled existing tags**, while mobile's `TagPickerSheet` lets you create a new tag inline ("New tag name" + "Create tag") — so a desktop user with no tags had to leave search to create one
+- [x] Desktop's search tag picker now has the inline "New tag name" input and "Create tag" button, adding the new tag to the pending selection
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 71) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2143 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 166: mobile's TagPickerSheet creates tags inline; desktop's search
+  // "Assign tags" modal only toggled existing tags.
+  it("creates tags inline in the desktop search tag picker", async () => {
+    const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    expect(text).toContain("handleCreateTag");
+    expect(text).toContain("New tag name");
+    expect(text).toContain("Create tag");
+  });
+
   // QA round 165: mobile's bulk-import modal is titled "Import List 📋";
   // desktop's was titled "Bulk Import".
   it("titles the desktop bulk-import modal like mobile", async () => {
