@@ -3157,3 +3157,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Compare screen had only Share / Save image**, while mobile's `compare/[id]` has an "Export price history as CSV" button that writes `priceHistoryToCsv` — so a desktop user couldn't export the multi-distributor history
 - [x] Desktop's Compare now has an "Export CSV" button (Tauri save dialog, browser download fallback) using `priceHistoryToCsv` over the sorted listings' history
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 55) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2127 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 403: Device QA round 151 (desktop Stats omitted freshness/stock-health rows)
+
+- [x] **Desktop's Stats Data Freshness card omitted "Avg data points / listing"** and its Stock Health card omitted "Back-order everywhere", both of which mobile's `DataFreshnessCard` / `StockHealthCard` render — so a desktop user couldn't see those metrics
+- [x] Desktop Stats now shows both rows
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 56) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2128 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

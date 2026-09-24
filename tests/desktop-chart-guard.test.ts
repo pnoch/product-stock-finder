@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 151: mobile's DataFreshnessCard shows "Avg data points / listing"
+  // and StockHealthCard shows "Back-order everywhere"; desktop's Stats omitted
+  // both rows.
+  it("shows the full freshness and stock-health rows on desktop Stats", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toContain("Avg data points / listing");
+    expect(text).toContain("back-order everywhere");
+  });
+
   // QA round 150: mobile's compare screen exports the price history as CSV;
   // desktop's had only Share / Save image.
   it("exports price history CSV from the desktop compare screen", async () => {

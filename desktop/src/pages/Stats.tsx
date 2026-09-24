@@ -707,6 +707,10 @@ export function Stats() {
           {freshness ? (
             <div className="space-y-1 text-sm">
               <p className="text-gray-600 dark:text-gray-400">
+                Avg data points / listing:{" "}
+                <span className="font-medium text-gray-900 dark:text-gray-100">{freshness.avgHistoryPoints}</span>
+              </p>
+              <p className="text-gray-600 dark:text-gray-400">
                 Stale: <span className="font-medium text-gray-900 dark:text-gray-100">{freshness.staleCount}</span> · Never checked:{" "}
                 <span className="font-medium text-gray-900 dark:text-gray-100">{freshness.neverCheckedCount}</span>
               </p>
@@ -726,7 +730,7 @@ export function Stats() {
           {stockHealth ? (
             <div className="space-y-1 text-sm">
               <p className="text-gray-600 dark:text-gray-400">
-                {stockHealth.inStockPct}% in stock · {stockHealth.fullyOutOfStock} fully out of stock
+                {stockHealth.inStockPct}% in stock · {stockHealth.fullyOutOfStock} fully out of stock · {stockHealth.backOrderOnly} back-order everywhere
               </p>
               <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 mt-2">
                 <div
