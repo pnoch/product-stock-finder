@@ -3607,3 +3607,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's mover sections were headed plain gray "Top Drops" / "Top Gainers"**, while mobile's `MoversCard` uses "▼ Top Drops" (green) and "▲ Top Gainers" (red) — so the direction wasn't obvious on desktop
 - [x] Desktop's headers now match mobile; updated `desktop/tests/stats-polish.test.tsx`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 130) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2202 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 478: Device QA round 226 (desktop mover change was plain text, not a pill)
+
+- [x] **Desktop rendered the mover change as plain colored text**, while mobile's `MoveRow` wraps it in a colored pill (`color + "22"` background) — inconsistent styling between platforms
+- [x] Desktop's mover change is now a colored pill (emerald for drops, red for gainers)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 131) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2203 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

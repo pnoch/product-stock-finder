@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 226: mobile's mover change is a colored pill; desktop's was plain
+  // text.
+  it("renders the desktop mover change as a pill", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toContain("text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 rounded-full px-2 py-0.5");
+    expect(text).toContain("text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30 rounded-full px-2 py-0.5");
+  });
+
   // QA round 225: mobile's mover headers are "▼ Top Drops" (green) and
   // "▲ Top Gainers" (red); desktop's were plain gray "Top Drops"/"Top Gainers".
   it("matches mobile's mover headers on desktop", async () => {

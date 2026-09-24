@@ -411,7 +411,9 @@ export function Stats() {
                     <p className="text-sm font-medium truncate">{m.productName}</p>
                     <p className="text-xs text-gray-400 truncate">{m.distributorName} · {formatPrice(m.oldPrice, m.currency)} → {formatPrice(m.newPrice, m.currency)}</p>
                   </div>
-                  <span className="text-xs font-bold text-emerald-600">{m.changePct.toFixed(1)}%</span>
+                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 rounded-full px-2 py-0.5">
+                    {m.changePct.toFixed(1)}%
+                  </span>
                 </div>
               ))}
             </div>
@@ -430,7 +432,9 @@ export function Stats() {
                     <p className="text-sm font-medium truncate">{m.productName}</p>
                     <p className="text-xs text-gray-400 truncate">{m.distributorName} · {formatPrice(m.oldPrice, m.currency)} → {formatPrice(m.newPrice, m.currency)}</p>
                   </div>
-                  <span className="text-xs font-bold text-red-600">{m.changePct > 0 ? "+" : ""}{m.changePct.toFixed(1)}%</span>
+                  <span className="text-xs font-bold text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30 rounded-full px-2 py-0.5">
+                    {m.changePct > 0 ? "+" : ""}{m.changePct.toFixed(1)}%
+                  </span>
                 </div>
               ))}
             </div>
