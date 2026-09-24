@@ -887,6 +887,20 @@ export function ProductDetail() {
             <span className="text-gray-300 dark:text-gray-600">|</span>
             <span>{product.category}</span>
           </div>
+          {/* Mobile's DetailHeader shows the product region (best deal's region,
+              else the first listing's). */}
+          {(() => {
+            const region =
+              (bestDeal
+                ? DISTRIBUTORS.find((d) => d.id === bestDeal.distributorId)?.region
+                : undefined) ??
+              (product.listings?.[0]
+                ? DISTRIBUTORS.find((d) => d.id === product.listings[0].distributorId)?.region
+                : undefined);
+            return region ? (
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{region}</p>
+            ) : null;
+          })()}
           {product.description && (
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
               {product.description}

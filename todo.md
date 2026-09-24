@@ -3373,3 +3373,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's `ProductInfoCard` shows a "Distributors / In Stock / Best Price" stats row**, while desktop's header only had the Best Price card — so a desktop user couldn't see how many distributors were listed or how many were in stock
 - [x] Desktop's header now shows the same three-stat row; updated `desktop/tests/best-price-signals.test.tsx` for the now-duplicated "Best Price" label
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 91) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2163 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 439: Device QA round 187 (desktop header omitted the product region)
+
+- [x] **Mobile's `DetailHeader` shows the product region** (the best deal's distributor region, else the first listing's), while desktop's header omitted it — so a desktop user couldn't see where the product ships from
+- [x] Desktop's header now shows the region (using `DISTRIBUTORS.find`, matching the file's convention)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 92) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2164 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

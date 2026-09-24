@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 187: mobile's DetailHeader shows the product region; desktop's
+  // header omitted it.
+  it("shows the product region on the desktop header", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("Mobile's DetailHeader shows the product region");
+    expect(text).toMatch(/d\.id === bestDeal\.distributorId\)\?\.region/);
+  });
+
   // QA round 186: mobile's ProductInfoCard shows Distributors / In Stock /
   // Best Price; desktop's header only had the Best Price card.
   it("shows the Distributors and In Stock stats on desktop", async () => {
