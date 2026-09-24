@@ -41,6 +41,7 @@ import { getApiBaseUrl } from "./lib/api-base";
 import { loadFxRates, maybeRefreshFxRates } from "../../lib/fx";
 import { runLaunchSequence } from "./lib/launch";
 import { cleanupStaleDevices } from "./lib/device-cleanup";
+import { backfillLocalHistory } from "./lib/history-sync";
 
 function NotFound() {
   const navigate = useNavigate();
@@ -268,6 +269,13 @@ export default function App() {
     if (isAuthenticated) {
       syncRef.current?.syncNow();
       void cleanupStaleDevices(trpcClient);
+      void (async () => {
+        try {
+          await backfillLocalHistory(trpcClient, await storage.getWatchlist());
+        } catch {
+          // history backfill is best-effort
+        }
+      })();
     }
   }, [isAuthenticated, trpcClient]);
 

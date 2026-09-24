@@ -26,4 +26,9 @@ describe("desktop P1 parity", () => {
     expect(app).toContain("cleanupStaleDevices");
     expect(app).toContain("void cleanupStaleDevices(trpcClient)");
   });
+
+  it("backfills local price history to the server on sign-in", async () => {
+    const app = await readFile("desktop/src/App.tsx", "utf8");
+    expect(app).toContain("backfillLocalHistory(trpcClient, await storage.getWatchlist())");
+  });
 });
