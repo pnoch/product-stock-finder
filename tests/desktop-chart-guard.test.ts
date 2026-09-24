@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 238: mobile's drop-calendar count reads "N price drops in the last
+  // 30 days"; desktop's said "N drops in 30 days".
+  it("matches mobile's drop-calendar count text on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toContain("price drop{dropCalendar.totalDrops === 1 ? \"\" : \"s\"} in the last 30 days");
+  });
+
   // QA round 237: mobile's movers empty state adds "Not enough price history
   // yet."; desktop's said only "No movers yet".
   it("adds the movers empty-state subtitle on desktop", async () => {

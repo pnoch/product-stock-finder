@@ -650,7 +650,7 @@ export function Stats() {
       <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
         <p className="text-sm text-gray-500 dark:text-gray-400">Drop Calendar</p>
         <p className="text-lg font-bold mt-1">
-          {dropCalendar.totalDrops} {dropCalendar.totalDrops === 1 ? "drop" : "drops"} in 30 days
+          {dropCalendar.totalDrops} price drop{dropCalendar.totalDrops === 1 ? "" : "s"} in the last 30 days
         </p>
         <div className="grid grid-cols-7 gap-1 mt-3" role="grid" aria-label="Price drop calendar, last 30 days">
           {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
