@@ -989,6 +989,9 @@ function RemindersTab({
                     }
                   />
                 )}
+                <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 text-xs font-semibold shrink-0">
+                  👀 Watching
+                </span>
                 <button
                   onClick={() => onDeleteWatch(w.id)}
                   className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"

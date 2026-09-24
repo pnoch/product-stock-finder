@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 148: mobile's StockWatchCard shows a "👀 Watching" badge; desktop's
+  // Stock Watches rows showed only the status badge.
+  it("shows the Watching badge on desktop stock watches", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toContain("👀 Watching");
+  });
+
   // QA round 147: desktop's "Test notification" only called
   // displayWebNotification (a no-op in a Tauri webview), never the
   // sendDesktopNotification path real alerts use.

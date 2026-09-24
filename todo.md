@@ -3139,3 +3139,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's "Test notification" button only called `displayWebNotification`**, which is a no-op in a Tauri webview (`isWeb()` is false) — so it could report "Test notification sent" without anything being shown, and never exercised the `sendDesktopNotification` Tauri path real alerts use
 - [x] Desktop's test handler now calls `sendDesktopNotification` (Tauri native, falling back to the web Notification API) and reports success/failure from its result; dropped the now-unused imports
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 52) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2124 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 400: Device QA round 148 (desktop stock watches lacked the "Watching" badge)
+
+- [x] **Desktop's Stock Watches rows showed only the status badge**, while mobile's `StockWatchCard` also renders a "👀 Watching" badge — so a desktop user couldn't tell a row was an active watch at a glance
+- [x] Desktop's stock-watch rows now render the same "👀 Watching" badge
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 53) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2125 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
