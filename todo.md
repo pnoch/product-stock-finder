@@ -3692,3 +3692,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Added `handleDeviceRevoked()` to `desktop/src/hooks/use-auth.ts` (clears session token + user info, notifies auth subscribers)
 - [x] Added the `revokedDeviceLink` to `desktop/src/lib/trpc.ts` (mirrors mobile)
 - [x] Added a wiring guard to `tests/desktop-email-auth.test.ts` and a behavior test to `desktop/tests/auth-functions.test.ts` — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2216 passed`; desktop `tsc 0`, `44 passed` / `221 passed`
+
+## Phase 492: Device QA round 240 (desktop never swept stale device bindings)
+
+- [x] **Mobile's sign-in effect (`app/_layout.tsx`) calls `cleanupStaleDevices()` (removes device bindings unseen for 30+ days); the desktop's authenticated effect only called `syncNow()`**, so stale devices lingered forever in the desktop Settings device list (the server only purges revoked-device rows, never stale bindings — a client has to ask)
+- [x] Added `desktop/src/lib/device-cleanup.ts` (`cleanupStaleDevices(client, timeoutMs)` — timeout-guarded, returns 0 on failure)
+- [x] Wired it into the desktop's authenticated effect in `desktop/src/App.tsx`
+- [x] Added `desktop/tests/device-cleanup.test.ts` (3 tests) and a wiring guard to `tests/desktop-p1-parity.test.ts` — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2217 passed`; desktop `tsc 0`, `45 passed` / `224 passed`

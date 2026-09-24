@@ -40,6 +40,7 @@ import { SAMPLE_LISTINGS, freshenSampleListings } from "../../lib/sample-data";
 import { getApiBaseUrl } from "./lib/api-base";
 import { loadFxRates, maybeRefreshFxRates } from "../../lib/fx";
 import { runLaunchSequence } from "./lib/launch";
+import { cleanupStaleDevices } from "./lib/device-cleanup";
 
 function NotFound() {
   const navigate = useNavigate();
@@ -264,8 +265,11 @@ export default function App() {
   }, [trpcClient]);
 
   useEffect(() => {
-    if (isAuthenticated) syncRef.current?.syncNow();
-  }, [isAuthenticated]);
+    if (isAuthenticated) {
+      syncRef.current?.syncNow();
+      void cleanupStaleDevices(trpcClient);
+    }
+  }, [isAuthenticated, trpcClient]);
 
   useEffect(() => {
     void runLaunchSequence({

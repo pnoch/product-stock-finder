@@ -20,4 +20,10 @@ describe("desktop P1 parity", () => {
     expect(alerts).toContain("remindersError");
     expect(alerts).toContain("loadReminders");
   });
+
+  it("sweeps stale device bindings on sign-in", async () => {
+    const app = await readFile("desktop/src/App.tsx", "utf8");
+    expect(app).toContain("cleanupStaleDevices");
+    expect(app).toContain("void cleanupStaleDevices(trpcClient)");
+  });
 });
