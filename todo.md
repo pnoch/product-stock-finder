@@ -3175,3 +3175,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Watchlist header had no "Add Product" button**, while mobile's `WatchlistHeader` renders a primary + button that opens search — so a desktop user had no in-context way to add a product from the watchlist
 - [x] Desktop's Watchlist header now has an "Add Product" button linking to `/search`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 58) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2130 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 406: Device QA round 154 (desktop mislabeled the watchlist summary "Total Value")
+
+- [x] **Desktop labelled the watchlist summary "Total Value"**, but the shared `computeWatchlistSummary` sums every listing across all stock statuses — its own comment says it is NOT the basket value. Mobile correctly labels it "All Listings Value", so desktop's wording overstated the figure
+- [x] Desktop now labels it "All Listings Value"
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 59) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2131 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

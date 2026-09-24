@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 154: desktop labelled the watchlist summary "Total Value", but the
+  // shared computeWatchlistSummary sums every listing (all statuses) — mobile
+  // correctly labels it "All Listings Value".
+  it("labels the desktop watchlist summary All Listings Value", async () => {
+    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    expect(text).toContain("All Listings Value");
+    expect(text).not.toContain("Total Value");
+  });
+
   // QA round 153: mobile's WatchlistHeader has an "Add product" (+) button;
   // desktop's Watchlist header had none.
   it("has an Add Product button in the desktop watchlist header", async () => {

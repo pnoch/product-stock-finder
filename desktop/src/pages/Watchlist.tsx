@@ -1046,7 +1046,7 @@ export function Watchlist() {
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
         <div className="flex items-baseline justify-between">
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            Total Value
+            All Listings Value
           </span>
           <span className="text-2xl font-bold">
             {formatPrice(summary.totalValue, displayCurrency)}
