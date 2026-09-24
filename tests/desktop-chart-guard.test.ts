@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 198: mobile's notification rows describe each alert type; desktop's
+  // Stock/Price Alerts rows had no descriptions.
+  it("describes the desktop notification toggles", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toContain("Notify when item comes in stock");
+    expect(text).toContain("Notify when price drops below target");
+    expect(text).toContain("Notify when a distributor is blocked or down");
+  });
+
   // QA round 197: mobile's account-deletion button reads "Delete Account &
   // Data"; desktop's was "Delete account & data".
   it("titles the desktop account-deletion button like mobile", async () => {
