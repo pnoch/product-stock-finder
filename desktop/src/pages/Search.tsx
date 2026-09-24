@@ -174,10 +174,16 @@ export function Search() {
     if (bulkImporting || bulkNew.length === 0) return;
     setBulkImporting(true);
     try {
-      for (const it of bulkNew) await storage.addToWatchlist({ ...it, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
-      setTrackedIds((prev) => new Set([...prev, ...bulkNew.map((p) => p.id)]));
+      // allSettled so one storage rejection doesn't abort the rest of the
+      // import (mobile does the same); only count the writes that landed.
+      const results = await Promise.allSettled(
+        bulkNew.map((it) => storage.addToWatchlist({ ...it, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] })),
+      );
+      const added = bulkNew.filter((_, i) => results[i].status === "fulfilled");
+      setTrackedIds((prev) => new Set([...prev, ...added.map((p) => p.id)]));
       setBulkText(""); setBulkOpen(false);
-      showToast(`Imported ${bulkNew.length}`);
+      const failed = bulkNew.length - added.length;
+      showToast(failed > 0 ? `Imported ${added.length} · ${failed} failed` : `Imported ${added.length}`);
     } finally { setBulkImporting(false); }
   };
   const handleManualParse = async () => {

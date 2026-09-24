@@ -3031,3 +3031,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 
 - [x] **Desktop Stats' price-history chart took `products.slice(0, 3)`** (watchlist order) while its caption read "Top 3 of N by value" — so the chart showed the first three products, not the three most valuable. Now ranks by best price descending before slicing (and derives the distributor legend from the same set)
 - [x] Added a guard to `tests/desktop-stats-parity.test.ts` (now 3) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2105 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 382: Device QA round 130 (desktop bulk import aborted on the first storage failure)
+
+- [x] **Desktop's bulk import (`Search.tsx` and `SearchModal.tsx`) used a plain `for` loop with no per-item error handling**: one `addToWatchlist` rejection aborted the whole import as an unhandled rejection, and the success toast still claimed every product was imported. Mobile's `BulkImportModal` uses `Promise.allSettled` and reports skipped items
+- [x] Both desktop call sites now use `Promise.allSettled`, mark only the fulfilled writes as tracked, and report `Imported N · M failed`
+- [x] Added a guard to `tests/desktop-search-chrome-guard.test.ts` (now 4) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2107 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
