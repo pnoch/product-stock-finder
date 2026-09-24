@@ -3361,3 +3361,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's empty product-note state read "No note yet."**, while mobile's `NotesCard` shows "Add a private note…" (a call to action) — inconsistent wording between platforms
 - [x] Desktop's empty state now reads "Add a private note…"
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 89) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2161 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 437: Device QA round 185 (desktop last-refreshed text wasn't color-coded)
+
+- [x] **Desktop's header showed "Updated {time}" in plain gray**, while mobile's `ProductInfoCard` shows "Last refreshed: {time}" colored by freshness (`getLastRefreshedColor`) — so a desktop user couldn't see whether the data was stale
+- [x] Desktop's header now shows "Last refreshed: …" colored by freshness
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 90) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2162 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

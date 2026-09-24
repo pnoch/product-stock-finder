@@ -1205,9 +1205,23 @@ export function ProductDetail() {
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Refresh
         </button>
         {lastRefreshedAt ? (
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            Updated {formatLastRefreshed(new Date(lastRefreshedAt).toISOString())}
-          </span>
+          (() => {
+            // Mobile's ProductInfoCard colors the "Last refreshed" text by
+            // freshness (green <1h, amber <6h, red older).
+            const iso = new Date(lastRefreshedAt).toISOString();
+            const key = getLastRefreshedColor(iso);
+            const cls =
+              key === "green"
+                ? "text-emerald-600 dark:text-emerald-400"
+                : key === "yellow"
+                  ? "text-amber-600 dark:text-amber-400"
+                  : key === "red"
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-gray-500 dark:text-gray-400";
+            return (
+              <span className={`text-xs ${cls}`}>Last refreshed: {formatLastRefreshed(iso)}</span>
+            );
+          })()
         ) : null}
       </div>
 

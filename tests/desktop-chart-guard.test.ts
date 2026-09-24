@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 185: mobile's ProductInfoCard colors "Last refreshed" by freshness;
+  // desktop's header showed "Updated …" in plain gray.
+  it("colors the desktop last-refreshed text", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("Last refreshed: {formatLastRefreshed(iso)}");
+    expect(text).toMatch(/getLastRefreshedColor\(iso\)/);
+  });
+
   // QA round 184: mobile's NotesCard empty state says "Add a private note…";
   // desktop's said "No note yet.".
   it("uses mobile's empty note text on desktop", async () => {
