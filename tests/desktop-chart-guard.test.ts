@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 161: mobile's SearchEmptyState shows a "Try searching for RTX
+  // 4090, Pi 5, CRS326, or AirPods Max" hint; desktop's empty state had none.
+  it("shows the search suggestion hint on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    expect(text).toContain("Try searching for RTX 4090, Pi 5, CRS326, or AirPods Max");
+  });
+
   // QA round 160: mobile's reminders empty state has a "Browse Products" CTA;
   // desktop's had none.
   it("has a Browse Products CTA in the desktop reminders empty state", async () => {

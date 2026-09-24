@@ -3217,3 +3217,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's reminders empty state had no "Browse Products" CTA**, while mobile's reminders tab empty state links to search — so a desktop user with no reminders had no path forward
 - [x] Desktop's reminders empty state now matches mobile (title "No reminders set", the "Remind me"/"Watch for Restock" hint, and a Browse Products button)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 65) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2137 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 413: Device QA round 161 (desktop search empty state had no suggestion hint)
+
+- [x] **Desktop's search empty state showed only "No products found."**, while mobile's `SearchEmptyState` shows a "Try searching for RTX 4090, Pi 5, CRS326, or AirPods Max" hint (when no query/tags) — so a desktop user had no starting point
+- [x] Desktop's empty state now shows the same suggestion hint (only when no query and no tag filter)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 66) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2138 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

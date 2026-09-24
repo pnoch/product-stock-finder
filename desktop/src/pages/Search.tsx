@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef, useDeferredValue } from "react";
 import { useNavigate } from "react-router";
-import { Search as SearchIcon, Check, Plus, Wand2, Loader2, Upload, PenLine, X } from "lucide-react";
+import { Search as SearchIcon, Check, Plus, Wand2, Loader2, Upload, PenLine, X, Lightbulb } from "lucide-react";
 import { PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCatalogByPrice } from "@shared/catalog";
 import Fuse from "fuse.js";
 import { storage } from "../storage";
@@ -397,6 +397,12 @@ export function Search() {
         {sortedResults.length === 0 && (
           <div className="text-center py-12">
             <p className="text-sm text-gray-500 mb-4">No products found.</p>
+            {!query.trim() && searchTagIds.length === 0 && (
+              <p className="inline-flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400">
+                <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
+                Try searching for RTX 4090, Pi 5, CRS326, or AirPods Max
+              </p>
+            )}
             {query.trim() && !discovering && <button onClick={handleDiscover} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-brand-500/30 bg-brand-500/10 text-brand-600 text-sm font-medium"><Wand2 className="w-4 h-4" /> Discover with AI</button>}
             {discoverError && (
               <div role="alert" className="mt-4 mx-auto max-w-md p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-left">
