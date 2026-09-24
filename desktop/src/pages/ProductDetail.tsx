@@ -1518,6 +1518,11 @@ export function ProductDetail() {
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               aria-label="Product model"
             />
+            {editModel.trim() !== (product.modelNumber ?? "") && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                Model changed — listings will re-match on next refresh.
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Brand</label>

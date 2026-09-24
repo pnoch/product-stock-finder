@@ -3073,3 +3073,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's server-notification upload omitted `modelNumber`** for alerts, stock watches, and date reminders. The server resolves prices by model number and only knows the static catalog (`build-events.ts`: `alert.modelNumber ?? product?.modelNumber`), so manually added / rediscovered products got no server-side notifications. Mobile sends the model for every referenced product (with an explicit comment)
 - [x] Desktop now builds a `modelByProductId` map from the watchlist and includes `modelNumber` on all three upload arrays; the `PushConfig` type and the desktop health-probe test mock were updated
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 42) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2113 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 389: Device QA round 137 (desktop edit modal didn't warn on a model change)
+
+- [x] **Desktop's Edit Product modal gave no feedback when the model number changed**, while mobile's `EditProductSheet` shows "Model changed — listings will re-match on next refresh." — so a desktop user could rename the model and not know the listings would be re-matched
+- [x] Desktop now shows the same amber warning under the Model field when `editModel.trim() !== (product.modelNumber ?? "")`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 43) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2114 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

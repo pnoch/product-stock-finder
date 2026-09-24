@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 137: mobile's Edit Product sheet warns that changing the model
+  // re-matches listings on the next refresh; desktop's edit modal didn't.
+  it("warns when the model changes in the desktop edit modal", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("Model changed — listings will re-match on next refresh.");
+    expect(text).toMatch(/editModel\.trim\(\) !== \(product\.modelNumber \?\? ""\)/);
+  });
+
   // QA round 136: desktop's server-notification upload omitted modelNumber, so
   // manually added / rediscovered products (absent from the static catalog) got
   // no server-side notifications. Mobile sends it.
