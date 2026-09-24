@@ -3667,3 +3667,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's "Enable Notifications" row had no description**, while mobile's row reads "Receive alerts on your device" — so a desktop user didn't know what the master toggle did
 - [x] Desktop's row now shows the description
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 140) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2212 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 488: Device QA round 236 (desktop watchlist rows had no per-product tag editing)
+
+- [x] **Desktop's watchlist row had no per-product tag assignment**, while mobile's `ProductCard` has an "Edit tags" (tag icon) action that opens the tag picker for that product — so a desktop user couldn't tag a watched product
+- [x] Desktop's row now has an "Edit tags" action opening an "Assign tags" modal backed by `storage.setProductTags` (with inline create via Manage Tags)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 141) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2213 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

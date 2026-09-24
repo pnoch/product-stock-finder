@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 236: mobile's product card has an "Edit tags" action per product;
+  // desktop's watchlist row had no per-product tag assignment.
+  it("has a per-product tag picker on the desktop watchlist", async () => {
+    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    expect(text).toMatch(/aria-label=\{`Edit tags for \$\{product\.name\}`\}/);
+    expect(text).toContain("handleToggleProductTag");
+    expect(text).toContain("setProductTags");
+  });
+
   // QA round 235: mobile's "Enable Notifications" row has the description
   // "Receive alerts on your device"; desktop's had none.
   it("describes the desktop enable-notifications row", async () => {
