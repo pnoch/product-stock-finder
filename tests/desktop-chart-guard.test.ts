@@ -197,6 +197,16 @@ describe("desktop chart guard", () => {
     expect(block).not.toContain("alert.triggeredPrice ?? alert.targetPrice");
   });
 
+  // QA round 126: desktop's notification list always rendered health events
+  // with the red warning icon/color, so a "recovered" event looked like an
+  // ongoing outage. Mobile uses healthIcon/healthColor to show a green
+  // checkmark for recoveries.
+  it("renders recovered health notifications as success on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toMatch(/n\.type === "health" && n\.healthStatus === "recovered"/);
+    expect(text).toMatch(/n\.healthStatus === "recovered" \? "bg-emerald-50/);
+  });
+
   // QA round 125: desktop imported convertPrice/getBestPrice from
   // @shared/currency (static rates) in several views, bypassing the live FX
   // overlay that lib/currency.ts applies — so those views disagreed with

@@ -3008,3 +3008,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Four desktop views imported `convertPrice`/`getBestPrice` from `@shared/currency`** (static `EXCHANGE_RATES`), bypassing the live-rate overlay that `lib/currency.ts` applies via `setExchangeRates` (loaded on desktop launch through `loadFxRates`). Mobile and desktop's own Home/Compare use `@/lib/currency`, so Watchlist (sort + row best price), Stats (price-history chart), ProductDetail, and `PriceHistoryChart` disagreed with the rest of the app once live rates loaded — wrong best-price ordering and converted values
 - [x] All four now import `convertPrice`/`getBestPrice` from `@/lib/currency` (formatting/constants still come from `@shared/currency`)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 33) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2101 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 378: Device QA round 126 (desktop showed recovered health events as outages)
+
+- [x] **Desktop's notification list always rendered health events with the red warning icon and color**, ignoring `healthStatus === "recovered"` — so a "distributor recovered" event looked like an ongoing outage. Mobile's `NotificationCenter` uses `healthIcon`/`healthColor` to show a green checkmark for recoveries
+- [x] Desktop now picks `CircleCheck` and the emerald styling when `n.type === "health" && n.healthStatus === "recovered"`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 34) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2102 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
