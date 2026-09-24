@@ -190,9 +190,9 @@ describe("desktop chart guard", () => {
   // (Phase 356).
   it("guards the desktop triggered-price display against a zero", async () => {
     const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
-    const start = text.indexOf("Triggered at");
+    const start = text.indexOf("Target: {formatPrice(alert.targetPrice");
     expect(start).toBeGreaterThan(-1);
-    const block = text.slice(start, text.indexOf("alert.currency,", start));
+    const block = text.slice(start, text.indexOf("Triggered on", start));
     expect(block).toMatch(/alert\.triggeredPrice && alert\.triggeredPrice > 0/);
     expect(block).not.toContain("alert.triggeredPrice ?? alert.targetPrice");
   });
@@ -219,6 +219,19 @@ describe("desktop chart guard", () => {
     expect(text).toMatch(/const resolveStatusColor = \(h: DistributorHealth\)/);
     expect(text).not.toMatch(/backgroundColor: statusColors\[h\.status\]/);
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
+  });
+
+  // QA round 169: mobile's TriggeredAlertCard shows the direction arrow plus
+  // "Target: $X → $Y"; desktop's triggered row showed only "Triggered at $Y on
+  // DATE", omitting the target and direction.
+  it("shows the target and direction on desktop triggered alerts", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const start = text.indexOf("Target: {formatPrice(alert.targetPrice");
+    const block = text.slice(start, text.indexOf("Triggered on", start));
+    expect(block).toContain("→ {formatPrice(alert.triggeredPrice");
+    const dirStart = text.indexOf("isTriggered ? (");
+    const dirBlock = text.slice(dirStart, text.indexOf("Target: {formatPrice(alert.targetPrice", dirStart));
+    expect(dirBlock).toContain("Price rise alert");
   });
 
   // QA round 168: desktop's alert row appended the raw direction enum

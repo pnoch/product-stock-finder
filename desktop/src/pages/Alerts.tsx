@@ -798,17 +798,22 @@ function AlertRow({
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {isTriggered ? (
             <>
-              Triggered at{" "}
-              {formatPrice(
-                // A server-detected trigger can store triggeredPrice 0, which
-                // `??` doesn't fall back on — it rendered "Triggered at $0.00".
-                // Mobile guards `> 0` (Phase 356).
-                alert.triggeredPrice && alert.triggeredPrice > 0
-                  ? alert.triggeredPrice
-                  : alert.targetPrice,
-                alert.currency,
+              {alert.direction && (
+                <span className="mr-1 inline-flex items-center align-middle">
+                  {alert.direction === "rise" ? (
+                    <TrendingUp className="w-3.5 h-3.5 inline text-red-500" aria-label="Price rise alert" />
+                  ) : (
+                    <TrendingDown className="w-3.5 h-3.5 inline text-emerald-500" aria-label="Price drop alert" />
+                  )}
+                </span>
+              )}
+              Target: {formatPrice(alert.targetPrice, alert.currency)}
+              {alert.triggeredPrice && alert.triggeredPrice > 0 && (
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                  {" "}→ {formatPrice(alert.triggeredPrice, alert.currency)}
+                </span>
               )}{" "}
-              on {new Date(alert.triggeredAt!).toLocaleDateString()}
+              · Triggered on {new Date(alert.triggeredAt!).toLocaleDateString()}
             </>
           ) : (
             <>

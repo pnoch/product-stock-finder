@@ -3265,3 +3265,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's alert row appended the raw `alert.direction` enum** ("drop"/"rise") as text, while mobile's `AlertCard` renders a direction arrow icon (up/red for rise, down/green for drop) — the desktop text was a leaked internal value
 - [x] Desktop now renders the matching TrendingUp/TrendingDown icon with an accessible label
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 73) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2145 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 421: Device QA round 169 (desktop triggered alerts omitted the target and direction)
+
+- [x] **Desktop's triggered alert row showed only "Triggered at $Y on DATE"**, while mobile's `TriggeredAlertCard` shows the direction arrow plus "Target: $X → $Y" — so a desktop user couldn't see what target the alert had or which direction it was
+- [x] Desktop's triggered row now shows the direction icon, "Target: $X", and the "→ $Y" triggered price (still guarding a zero triggeredPrice)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 74) and updated the round-120 guard to the new markup — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2146 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
