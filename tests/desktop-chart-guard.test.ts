@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 190: mobile's triggered section header is "Alert History (N)";
+  // desktop's was "Price Drop History (N)".
+  it("labels the desktop triggered section Alert History", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toContain("Alert History ({triggeredAlerts.length})");
+    expect(text).not.toContain("Price Drop History");
+  });
+
   // QA round 189: mobile's compare toggleSelect toasts when the 5-distributor
   // cap is hit; desktop silently ignored the click.
   it("warns when the desktop compare selection cap is reached", async () => {

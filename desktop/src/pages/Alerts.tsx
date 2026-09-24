@@ -717,7 +717,7 @@ function AlertsTab({
           )}
           <div className="flex items-center gap-2">
             <RotateCcw className="w-4 h-4 text-emerald-600" />
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Price Drop History ({triggeredAlerts.length})</h3>
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Alert History ({triggeredAlerts.length})</h3>
           </div>
           {triggeredAlerts.map((alert, idx) => (
             <div

@@ -3391,3 +3391,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's compare distributor toggle silently ignored a click once 5 were selected**, while mobile's `toggleSelect` shows "You can compare up to 5 distributors" — so a desktop user couldn't tell why the selection wouldn't grow
 - [x] Desktop now warns (via `handleToggleSelect`, avoiding a side effect inside the state updater) when the cap is reached
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 94) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2166 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 442: Device QA round 190 (desktop labeled the section "Price Drop History")
+
+- [x] **Desktop's triggered-alert section header read "Price Drop History (N)"**, while mobile's alerts tab reads "Alert History (N)" — the section also holds rise alerts, so the desktop label was inaccurate
+- [x] Desktop's header now reads "Alert History (N)"
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 95) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2167 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
