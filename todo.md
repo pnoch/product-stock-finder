@@ -3385,3 +3385,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's empty region state showed only "No distributors in {region}."**, while mobile's `DistributorListingSection` offers a "Show All" button that resets the region filter — so a desktop user had to find the filter control to recover
 - [x] Desktop's empty state now offers the "Show All" button
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 93) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2165 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 441: Device QA round 189 (desktop compare silently ignored the 5-distributor cap)
+
+- [x] **Desktop's compare distributor toggle silently ignored a click once 5 were selected**, while mobile's `toggleSelect` shows "You can compare up to 5 distributors" — so a desktop user couldn't tell why the selection wouldn't grow
+- [x] Desktop now warns (via `handleToggleSelect`, avoiding a side effect inside the state updater) when the cap is reached
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 94) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2166 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

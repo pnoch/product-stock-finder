@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 189: mobile's compare toggleSelect toasts when the 5-distributor
+  // cap is hit; desktop silently ignored the click.
+  it("warns when the desktop compare selection cap is reached", async () => {
+    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    expect(text).toContain("You can compare up to 5 distributors");
+    expect(text).toMatch(/const handleToggleSelect = useCallback/);
+    expect(text).toMatch(/onClick=\{\(\) => handleToggleSelect\(listing\.distributorId\)\}/);
+  });
+
   // QA round 188: mobile's empty region state offers a "Show All" button;
   // desktop's "No distributors in {region}." had none.
   it("offers Show All in the desktop empty region state", async () => {

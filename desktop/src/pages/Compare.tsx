@@ -340,6 +340,18 @@ export function Compare() {
       return next;
     });
   }, []);
+  const handleToggleSelect = useCallback(
+    (distributorId: string) => {
+      // Mobile shows a toast when the 5-distributor cap is hit; desktop
+      // silently ignored the click.
+      if (!selected.has(distributorId) && selected.size >= 5) {
+        showToast("You can compare up to 5 distributors");
+        return;
+      }
+      toggleSelect(distributorId);
+    },
+    [selected, toggleSelect, showToast],
+  );
 
   const timeRangeTyped = useMemo(() => toTimeRange(timeRange), [timeRange]);
 
@@ -733,7 +745,7 @@ export function Compare() {
             return (
               <button
                 key={listing.distributorId}
-                onClick={() => toggleSelect(listing.distributorId)}
+                onClick={() => handleToggleSelect(listing.distributorId)}
                 disabled={disabled || atLimit}
                 aria-pressed={isSelected}
                 aria-label={`${isSelected ? "Deselect" : "Select"} ${distributor?.name ?? listing.distributorId}`}
