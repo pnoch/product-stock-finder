@@ -336,6 +336,21 @@ describe("desktop chart guard", () => {
     expect(text).toContain("Back-order everywhere");
   });
 
+  // QA round 247: mobile formats the freshness "Oldest check" date
+  // (month-name) and health sample timestamps (month-name + 2-digit time);
+  // desktop used bare toLocaleDateString()/toLocaleString().
+  it("formats freshness and health sample dates like mobile on desktop", async () => {
+    const stats = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(stats).toMatch(
+      /new Date\(freshness\.oldestCheck\)\.toLocaleDateString\(undefined, \{\s*month: "short",\s*day: "numeric",\s*year: "numeric",\s*\}\)/,
+    );
+
+    const health = await readFile("desktop/src/pages/HealthDetail.tsx", "utf8");
+    expect(health).toContain(
+      'new Date(s.at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })',
+    );
+  });
+
   // QA round 229: mobile's freshness labels are "Stale (>7 days)" and "Oldest
   // check"; desktop's were "Stale" and "Oldest update".
   it("matches mobile's freshness labels on desktop", async () => {

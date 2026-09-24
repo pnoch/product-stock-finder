@@ -140,9 +140,9 @@ export function HealthDetail() {
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
               {g.samples.map((s, i) => (
                 <div key={`${s.at}-${i}`} className="flex items-center gap-3 px-4 py-3">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: statusColors[s.status] }} title={`${s.status} · ${new Date(s.at).toLocaleString()}`} />
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: statusColors[s.status] }} title={`${s.status} · ${new Date(s.at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}`} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{new Date(s.at).toLocaleString()}</p>
+                    <p className="text-sm font-medium">{new Date(s.at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{s.reason || s.status}{sanitizeResponseTimeMs(s.responseTimeMs) != null ? ` · ${sanitizeResponseTimeMs(s.responseTimeMs)}ms` : ""}</p>
                   </div>
                 </div>

@@ -753,7 +753,11 @@ export function Stats() {
               <p className="text-xs text-gray-400">
                 Oldest check{" "}
                 {freshness.oldestCheck
-                  ? new Date(freshness.oldestCheck).toLocaleDateString()
+                  ? new Date(freshness.oldestCheck).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
                   : "—"}
               </p>
             </div>

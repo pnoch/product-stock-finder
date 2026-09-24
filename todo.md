@@ -3737,3 +3737,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Moved `formatLastSeen` into shared `lib/relative-time.ts`; `components/settings/device-management/device-utils.ts` now re-exports it (mobile import + its test unchanged)
 - [x] Desktop Settings device row now uses `formatLastSeen(d.lastSeenAt)`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 147) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2222 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
+
+## Phase 499: Device QA round 247 (desktop freshness/health dates were locale-numeric)
+
+- [x] **Mobile's `DataFreshnessCard` formats "Oldest check" with a month name and its health-detail sample timestamps use `{ month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }`; the desktop used bare `toLocaleDateString()`/`toLocaleString()`** for both
+- [x] Aligned the desktop Stats freshness "Oldest check" and HealthDetail sample timestamps (visible text + tooltip title) to mobile's formats
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 148) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2223 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
