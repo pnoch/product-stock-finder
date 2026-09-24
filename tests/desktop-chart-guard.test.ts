@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 180: mobile's ReminderDatePickerModal title is "Set Reminder 📅";
+  // desktop's was "Set Reminder".
+  it("titles the desktop reminder modal like mobile", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain('title="Set Reminder 📅"');
+  });
+
   // QA round 179: desktop's re-enable only refreshed lastChecked and never
   // cleared the circuit breaker, so the distributor stayed in cooldown while the
   // UI showed "OK" (mobile clears it via clearDistributorBreaker).

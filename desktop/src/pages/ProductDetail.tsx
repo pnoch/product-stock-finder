@@ -1869,7 +1869,7 @@ export function ProductDetail() {
           setReminderOpen(false);
           setReminderError(null);
         }}
-        title="Set Reminder"
+        title="Set Reminder 📅"
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-300">

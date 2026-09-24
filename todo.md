@@ -3331,3 +3331,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's `handleReenableDistributor` only refreshed `lastChecked` and never cleared the circuit breaker**, so the distributor stayed in cooldown (still skipped by the health probe) while the UI showed "OK". Mobile clears it via `clearDistributorBreaker` with an explanatory comment. The shared helper also used `getDefaultAdapter()` (IndexedDB in a Tauri webview), a different store from the desktop probe's localStorage adapter
 - [x] `clearDistributorBreaker` now accepts an optional adapter; desktop passes a localStorage adapter matching its health probe
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 84) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2156 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 432: Device QA round 180 (desktop reminder modal title lacked the emoji)
+
+- [x] **Desktop's reminder date-picker modal was titled "Set Reminder"**, while mobile's `ReminderDatePickerModal` is titled "Set Reminder 📅" — inconsistent wording between platforms
+- [x] Desktop's title now includes the 📅 emoji
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 85) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2157 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
