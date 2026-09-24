@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   updated: [] as { productId: string; distributorId: string; status: string }[],
   scheduled: [] as unknown[],
   permissions: true,
+  recorded: [] as unknown[],
 }));
 
 vi.mock("../lib/storage", () => ({
@@ -24,6 +25,9 @@ vi.mock("../lib/storage", () => ({
       state.updated.push({ productId, distributorId, status });
     },
   ),
+  recordNotificationEvent: vi.fn(async (event: unknown) => {
+    state.recorded.push(event);
+  }),
 }));
 
 vi.mock("../lib/notifications", () => ({
@@ -61,6 +65,7 @@ describe("checkRestocks", () => {
     state.removed = [];
     state.updated = [];
     state.scheduled = [];
+    state.recorded = [];
     state.settings = { stockAlerts: true };
     state.permissions = true;
   });
@@ -83,6 +88,41 @@ describe("checkRestocks", () => {
     await checkRestocks();
     expect(state.scheduled).toHaveLength(1);
     expect(state.removed).toEqual(["w1"]);
+  });
+
+  // QA round 140: the restock history write used the module-level default store
+  // (IndexedDB in a Tauri webview) instead of the injected store the desktop
+  // passes, so desktop restock events never reached the Alerts tab.
+  it("records the restock event through the injected store", async () => {
+    state.watches = [makeWatch()];
+    state.watchlist = [
+      {
+        id: "p1",
+        listings: [
+          {
+            distributorId: "d1",
+            stockStatus: "in_stock",
+            price: 100,
+            currency: "USD",
+          },
+        ],
+      },
+    ];
+    const custom = {
+      getStockWatches: vi.fn(async () => state.watches.map((w) => ({ ...w }))),
+      getWatchlist: vi.fn(async () => state.watchlist),
+      getSettings: vi.fn(async () => ({ ...state.settings })),
+      removeStockWatch: vi.fn(async (id: string) => {
+        state.removed.push(id);
+      }),
+      updateStockWatchStatus: vi.fn(async () => {}),
+      recordNotificationEvent: vi.fn(async (event: unknown) => {
+        state.recorded.push(event);
+      }),
+    };
+    await checkRestocks(custom as never);
+    expect(custom.recordNotificationEvent).toHaveBeenCalledTimes(1);
+    expect(state.recorded).toHaveLength(1);
   });
 
   it("does not fire when watch was already in_stock", async () => {

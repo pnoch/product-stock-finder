@@ -14,6 +14,7 @@ export interface RestockStorage {
   getSettings: typeof defaultStorageModule.getSettings;
   removeStockWatch: typeof defaultStorageModule.removeStockWatch;
   updateStockWatchStatus: typeof defaultStorageModule.updateStockWatchStatus;
+  recordNotificationEvent: typeof defaultStorageModule.recordNotificationEvent;
 }
 
 // Serializes concurrent checkRestocks calls (background task + foreground check)
@@ -95,10 +96,12 @@ async function runCheckRestocks(storage: RestockStorage): Promise<void> {
         continue;
       }
       // Record in the in-app history so the Notification Center reflects
-      // locally-fired restocks, not just server events.
+      // locally-fired restocks, not just server events. Use the injected store:
+      // the module-level default resolves to IndexedDB in a Tauri webview, a
+      // different store from the desktop UI's localStorage, so desktop restock
+      // events never reached the Alerts tab.
       try {
-        const { recordNotificationEvent } = await import("./storage");
-        await recordNotificationEvent({
+        await storage.recordNotificationEvent({
           id: `local-restock-${watch.id}-${Date.now()}`,
           type: "restock",
           title: "🟢 Back In Stock!",

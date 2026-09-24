@@ -3091,3 +3091,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's server-notification pull never tracked displayed event ids**, so it re-ran `reconcileEvent` for every pulled event on every sync. A replay (the server can return the same event again) then deleted a stock watch / reminder the user had re-created after the first delivery. Mobile tracks `displayedIds`, marks an event only when it was actually shown, and skips reconciliation for already-delivered events
 - [x] Desktop now loads `getDisplayedEventIds()`, records `recordDisplayedEventId` only when `sendDesktopNotification` returns true, and skips `reconcileEvent` for already-displayed events; the desktop health-probe test mock was updated
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 45) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2116 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 392: Device QA round 140 (desktop restock events never reached the Alerts tab)
+
+- [x] **`lib/restock.ts` recorded the restock notification through the module-level default store** (`await import("./storage")`), not the injected `storage` the desktop passes. The module default resolves to IndexedDB in a Tauri webview — a different store from the desktop UI's localStorage — so a desktop restock fired the OS notification but the event never appeared in the Alerts tab (and the unread count stayed wrong)
+- [x] `RestockStorage` now requires `recordNotificationEvent`, and the restock history write uses the injected `storage`; the `tests/restock.test.ts` mock was updated
+- [x] Added a test asserting the injected store receives the event — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2117 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
