@@ -3749,3 +3749,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's `ReminderSection` toast and both desktop reminder toasts rendered the target date as `1/5/2026` (bare `toLocaleDateString()`), while the reminder card and the date-picker modal render `Jan 5, 2026`** — inconsistent within mobile and across platforms
 - [x] Unified all three on the month-name format (`{ month: "short", day: "numeric", year: "numeric" }`)
 - [x] Added a guard to `tests/mobile-criticals.test.ts` covering both the mobile and desktop toasts — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2224 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
+
+## Phase 501: Device QA round 249 (desktop alert tabs showed "(0)" counts)
+
+- [x] **Mobile's `TabSwitcher` renders a count only when non-zero (`Alerts`, `Alerts (3)`); the desktop's Alerts/Reminders tab buttons always rendered the count**, so empty tabs read "Alerts (0)" / "Reminders (0)"
+- [x] Desktop tabs now omit the count when zero (Notifications already did)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 149) and updated `tests/desktop-list-awareness.test.ts`'s existing tab-count assertion to the conditional form — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2225 passed`; desktop `tsc 0`, `46 passed` / `227 passed`

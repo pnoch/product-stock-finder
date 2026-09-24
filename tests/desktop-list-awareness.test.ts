@@ -13,6 +13,6 @@ describe("desktop list awareness", () => {
     const alerts = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
     expect(watchlist).toContain("computeProductInsights");
     expect(watchlist).toContain("All-time low");
-    expect(alerts).toMatch(/Alerts \(\{/);
+    expect(alerts).toMatch(/Alerts\{activeAlertCount > 0 \? ` \(\$\{activeAlertCount\}\)`/);
   });
 });

@@ -684,6 +684,16 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and tap "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 249: mobile's tab switcher omits a zero count ("Alerts", not
+  // "Alerts (0)"); desktop always rendered the count on Alerts/Reminders.
+  it("omits zero tab counts on the desktop alerts tabs", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toContain('Alerts{activeAlertCount > 0 ? ` (${activeAlertCount})` : ""}');
+    expect(text).toContain(
+      'Reminders{reminders.length + watches.length > 0 ? ` (${reminders.length + watches.length})` : ""}',
+    );
+  });
+
   // QA round 191: mobile's reminders headers are "Watching for Restock (N)" and
   // "Date Reminders (N)"; desktop's were "Stock Watches" / "Date Reminders"
   // without counts.
