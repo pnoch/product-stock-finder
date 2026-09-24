@@ -317,6 +317,18 @@ describe("desktop chart guard", () => {
     expect(text).toContain("loadError");
   });
 
+  // QA round 253: mobile's Compare CSV export bails with "Nothing to export"
+  // when no listing has price history; desktop wrote a header-only CSV and
+  // reported success.
+  it("guards the desktop compare CSV export against empty history", async () => {
+    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const start = text.indexOf("const handleExportCsv");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("const getTrend", start));
+    expect(block).toContain("withHistory.length === 0");
+    expect(block).toContain('"Nothing to export');
+  });
+
   // QA round 252: mobile renders trending prices with formatPrice; desktop used
   // a local currencySymbol map (USD/EUR/GBP only) + toLocaleString() (no fixed
   // decimals), so non-major currencies and cents rendered differently.

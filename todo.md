@@ -3773,3 +3773,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's trending row renders the estimated price with `formatPrice(price, currency)`; the desktop used a local `currencySymbol` map covering only USD/EUR/GBP plus `toLocaleString()` without fixed decimals**, so e.g. MYR showed as "MYR 1,299" instead of "RM1,299.00" and cents were dropped everywhere
 - [x] Desktop trending row now uses `formatPrice` (same helper as the rest of the app)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 152) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2228 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
+
+## Phase 505: Device QA round 253 (desktop compare CSV export had no empty guard)
+
+- [x] **Mobile's Compare CSV export refuses when no listing has price history ("Nothing to export" / "No price history is available for this product yet."); the desktop's `handleExportCsv` had no such guard**, so it wrote a header-only CSV (with no data rows) and reported "Price history exported" — a misleading success
+- [x] Desktop export now bails with "Nothing to export — no price history yet" and builds rows from only the listings that have history
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 153) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2229 passed`; desktop `tsc 0`, `46 passed` / `227 passed`

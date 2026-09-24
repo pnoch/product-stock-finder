@@ -525,8 +525,18 @@ export function Compare() {
   // Share / Save image.
   const handleExportCsv = useCallback(async () => {
     if (!product) return;
+    // Mobile refuses to export when no listing has history ("Nothing to
+    // export"); without this the desktop wrote a header-only CSV and reported
+    // success.
+    const withHistory = sortedListings.filter(
+      (l) => l.priceHistory && l.priceHistory.length > 0,
+    );
+    if (withHistory.length === 0) {
+      showToast("Nothing to export — no price history yet");
+      return;
+    }
     try {
-      const rows = sortedListings
+      const rows = withHistory
         .flatMap((l) =>
           (l.priceHistory ?? []).map((pt) => ({
             ...pt,
