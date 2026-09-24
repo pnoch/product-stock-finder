@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 206: mobile's Home header shows "Product Stock Finder" /
+  // "Global availability monitor"; desktop's said "Dashboard".
+  it("matches mobile's Home header on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    expect(text).toContain("Product Stock Finder");
+    expect(text).toContain("Global availability monitor");
+    expect(text).not.toContain(">Dashboard</h1>");
+  });
+
   // QA round 205: desktop rendered route-less notifications as a plain div, so
   // they could never be marked read individually; mobile's always-pressable
   // item marks read regardless of route.

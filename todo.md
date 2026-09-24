@@ -3487,3 +3487,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop rendered a notification with no route as a plain `<div>`**, so clicking it did nothing and it stayed unread forever — mobile's notification item is always pressable and marks read regardless of route. Reachable for server events without a product/distributor link
 - [x] Desktop's route-less notification row is now a focusable `role="button"` that calls `handleNotificationOpen` on click/Enter/Space
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 110) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2182 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 458: Device QA round 206 (desktop Home header said "Dashboard")
+
+- [x] **Desktop's Home header read "Dashboard"**, while mobile's Home shows "Product Stock Finder" with the "Global availability monitor" subtitle — inconsistent branding between platforms
+- [x] Desktop's Home header now matches mobile; updated `desktop/tests/pages.test.tsx`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 111) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2183 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

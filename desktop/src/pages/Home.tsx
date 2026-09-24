@@ -221,7 +221,10 @@ export function Home() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Product Stock Finder</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Global availability monitor</p>
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => void refreshDashboard()}

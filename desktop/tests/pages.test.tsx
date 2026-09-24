@@ -92,7 +92,7 @@ describe("Home page", () => {
     const queryClient = renderHomeWithProviders();
     try {
       await waitFor(() => {
-        expect(screen.getByText("Dashboard")).toBeInTheDocument();
+        expect(screen.getByText("Product Stock Finder")).toBeInTheDocument();
       });
     } finally {
       queryClient.clear();
