@@ -221,6 +221,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 191: mobile's reminders headers are "Watching for Restock (N)" and
+  // "Date Reminders (N)"; desktop's were "Stock Watches" / "Date Reminders"
+  // without counts.
+  it("labels the desktop reminder sections with counts", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toContain("Watching for Restock ({watches.length})");
+    expect(text).toContain("Date Reminders ({reminders.length})");
+    expect(text).not.toContain("Stock Watches");
+  });
+
   // QA round 190: mobile's triggered section header is "Alert History (N)";
   // desktop's was "Price Drop History (N)".
   it("labels the desktop triggered section Alert History", async () => {

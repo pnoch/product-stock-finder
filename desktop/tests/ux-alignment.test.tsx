@@ -196,7 +196,7 @@ describe("query-param intakes", () => {
     mockStorage.getStockWatches.mockResolvedValue([]);
     const qc = renderAlerts("/alerts?tab=reminders");
     try {
-      await waitFor(() => expect(screen.getByText("Date Reminders")).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText(/Date Reminders/)).toBeInTheDocument());
       expect(screen.getByText("Reminder Product")).toBeInTheDocument();
     } finally {
       qc.clear();
@@ -210,7 +210,7 @@ describe("query-param intakes", () => {
     const qc = renderAlerts("/alerts?tab=zzz");
     try {
       await waitFor(() => expect(screen.getByText("No price alerts")).toBeInTheDocument());
-      expect(screen.queryByText("Date Reminders")).not.toBeInTheDocument();
+      expect(screen.queryByText(/Date Reminders/)).not.toBeInTheDocument();
     } finally {
       qc.clear();
     }

@@ -937,7 +937,7 @@ function RemindersTab({
       {reminders.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-            Date Reminders
+            Date Reminders ({reminders.length})
           </h2>
           <div className="space-y-2">
             {reminders.map((r, idx) => {
@@ -992,7 +992,7 @@ function RemindersTab({
       {watches.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-            Stock Watches
+            Watching for Restock ({watches.length})
           </h2>
           <div className="space-y-2">
             {watches.map((w, idx) => (

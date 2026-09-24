@@ -3397,3 +3397,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's triggered-alert section header read "Price Drop History (N)"**, while mobile's alerts tab reads "Alert History (N)" — the section also holds rise alerts, so the desktop label was inaccurate
 - [x] Desktop's header now reads "Alert History (N)"
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 95) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2167 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 443: Device QA round 191 (desktop reminder headers lacked counts)
+
+- [x] **Desktop's reminder sections were headed "Date Reminders" and "Stock Watches" without counts**, while mobile's alerts tab reads "Date Reminders (N)" and "Watching for Restock (N)" — so a desktop user couldn't tell how many were in each section, and "Stock Watches" differed from mobile's wording
+- [x] Desktop's headers now read "Date Reminders ({n})" and "Watching for Restock ({n})"; updated `desktop/tests/ux-alignment.test.tsx` and `desktop/tests/nav-header.test.tsx` for the new text
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 96) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2168 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

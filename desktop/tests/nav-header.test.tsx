@@ -121,7 +121,7 @@ describe("nav header parity", () => {
     );
     await waitFor(() => expect(screen.getByText("Alerts & Reminders")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "go reminders" }));
-    await waitFor(() => expect(screen.getByText("Date Reminders")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Date Reminders/)).toBeInTheDocument());
     expect(screen.getByText("Reminder Product")).toBeInTheDocument();
   });
 
