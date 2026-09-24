@@ -781,7 +781,7 @@ export function Stats() {
             className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="font-semibold text-lg mb-1">Basket Value Alert</h3>
+            <h3 className="font-semibold text-lg mb-1">🧺 Basket Value Alert</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               Notify me when the total watchlist value drops below this amount
               ({displayCurrency}). Fires once, then turns off.

@@ -3619,3 +3619,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop rendered the insights "Dropping now" count in gray**, while mobile's `InsightsCard` uses `colors.primary` (sapphire) — inconsistent emphasis between platforms
 - [x] Desktop's count now uses `text-brand-600 dark:text-brand-400`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 132) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2204 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 480: Device QA round 228 (desktop basket alert modal title lacked the emoji)
+
+- [x] **Desktop's basket alert modal was titled "Basket Value Alert"**, while mobile's `BasketAlertSheet` is titled "🧺 Basket Value Alert" — inconsistent wording between platforms
+- [x] Desktop's title now includes the 🧺 emoji
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 133) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2205 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

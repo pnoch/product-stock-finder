@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 228: mobile's basket alert sheet title is "🧺 Basket Value Alert";
+  // desktop's was "Basket Value Alert".
+  it("titles the desktop basket alert modal like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toContain("🧺 Basket Value Alert");
+  });
+
   // QA round 227: mobile's "Dropping now" count uses colors.primary; desktop's
   // was gray.
   it("colors the desktop Dropping now count like mobile", async () => {
