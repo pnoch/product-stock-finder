@@ -46,7 +46,7 @@ describe("health web fallback", () => {
     ]);
     const qc = renderHealth();
     try {
-      await userEvent.click(screen.getByRole("button", { name: /test all/i }));
+      await userEvent.click(screen.getAllByRole("button", { name: /test all/i })[0]);
       await waitFor(() => expect(mockHealthQuery).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(screen.getByText(/Server2U/)).toBeInTheDocument());
       expect(screen.queryByText("no tauri")).not.toBeInTheDocument();
@@ -66,7 +66,7 @@ describe("health web fallback", () => {
     ]);
     const qc = renderHealth();
     try {
-      await userEvent.click(screen.getByRole("button", { name: /test all/i }));
+      await userEvent.click(screen.getAllByRole("button", { name: /test all/i })[0]);
       await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("check_distributor_health"));
       expect(mockHealthQuery).not.toHaveBeenCalled();
     } finally {

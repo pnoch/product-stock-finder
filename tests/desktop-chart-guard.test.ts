@@ -221,6 +221,17 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 208: mobile distinguishes "No distributor health data" (with a
+  // Test All Distributors CTA) from "No matches" (with a Show All CTA);
+  // desktop showed the "no data" line whenever the filter matched nothing.
+  it("splits the desktop health empty states like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Health.tsx", "utf8");
+    expect(text).toContain("No distributor health data");
+    expect(text).toContain("No matches");
+    expect(text).toContain("No distributors match the selected filter.");
+    expect(text).toMatch(/health\.length === 0 \?/);
+  });
+
   // QA round 207: mobile's distributor-analysis empty state is "No distributor
   // data yet" with a subtitle, Browse Products CTA, and Try Again; desktop's was
   // a single "Add products to see distributor analysis." line.

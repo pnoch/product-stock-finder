@@ -301,12 +301,37 @@ export function Health() {
             </button>
           );
         })}
-        {filtered.length === 0 && (
-          <p className="text-center text-gray-500 mt-10">
-            No distributor health data. Tap &quot;Test All Distributors&quot; to run a
-            check.
-          </p>
-        )}
+        {health.length === 0 ? (
+          <div className="text-center mt-10">
+            <p className="font-semibold text-gray-700 dark:text-gray-200">
+              No distributor health data
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Tap &quot;Test All Distributors&quot; to run a check.
+            </p>
+            <button
+              onClick={() => void runTest()}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+              aria-label="Test All Distributors"
+            >
+              Test All Distributors
+            </button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center mt-10">
+            <p className="font-semibold text-gray-700 dark:text-gray-200">No matches</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              No distributors match the selected filter.
+            </p>
+            <button
+              onClick={() => setFilter("all")}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Show all distributors"
+            >
+              Show All
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

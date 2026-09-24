@@ -3499,3 +3499,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's distributor-analysis empty state was a single "Add products to see distributor analysis." line**, while mobile's `EmptyStateView` shows "No distributor data yet" with a subtitle, a "Browse Products" CTA, and "Try Again" — so a desktop user had no path forward
 - [x] Desktop's empty state now shows the title, subtitle, Browse Products, and Try Again
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 112) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2184 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 460: Device QA round 208 (desktop health filter empty state was misleading)
+
+- [x] **Desktop showed the "No distributor health data. Tap Test All Distributors…" message whenever the filter matched nothing** — even when health data existed — while mobile distinguishes "No distributor health data" (with a Test All Distributors CTA) from "No matches" (with a Show All CTA)
+- [x] Desktop now renders both empty states with the matching CTAs; updated `desktop/tests/health.test.tsx` and `desktop/tests/health-fallback.test.tsx` for the now-duplicated "Test All Distributors" label
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 113) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2185 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

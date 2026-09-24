@@ -55,7 +55,7 @@ describe("Health", () => {
         <Health />
       </MemoryRouter>,
     );
-    const button = await screen.findByText("Test All Distributors");
+    const button = (await screen.findAllByText("Test All Distributors"))[0];
     fireEvent.click(button);
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith("check_distributor_health");
@@ -68,7 +68,7 @@ describe("Health", () => {
         <Health />
       </MemoryRouter>,
     );
-    const button = await screen.findByText("Test All Distributors");
+    const button = (await screen.findAllByText("Test All Distributors"))[0];
     fireEvent.click(button);
     expect(await screen.findByText(/Server2U/)).toBeDefined();
     expect(await screen.findByText(/NAS Store EU/)).toBeDefined();
@@ -80,6 +80,6 @@ describe("Health", () => {
         <Health />
       </MemoryRouter>,
     );
-    expect(await screen.findByText("Test All Distributors")).toBeDefined();
+    expect((await screen.findAllByText("Test All Distributors")).length).toBeGreaterThan(0);
   });
 });
