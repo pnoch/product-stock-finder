@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 192: mobile's alerts empty state is "No alerts set" / 'Open a
+  // product and tap "Set Alert"…'; desktop's was "No price alerts".
+  it("matches mobile's alerts empty-state copy on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toContain('title="No alerts set"');
+    expect(text).toContain('Open a product and tap "Set Alert" to get notified when the price drops.');
+  });
+
   // QA round 191: mobile's reminders headers are "Watching for Restock (N)" and
   // "Date Reminders (N)"; desktop's were "Stock Watches" / "Date Reminders"
   // without counts.

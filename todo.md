@@ -3403,3 +3403,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's reminder sections were headed "Date Reminders" and "Stock Watches" without counts**, while mobile's alerts tab reads "Date Reminders (N)" and "Watching for Restock (N)" — so a desktop user couldn't tell how many were in each section, and "Stock Watches" differed from mobile's wording
 - [x] Desktop's headers now read "Date Reminders ({n})" and "Watching for Restock ({n})"; updated `desktop/tests/ux-alignment.test.tsx` and `desktop/tests/nav-header.test.tsx` for the new text
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 96) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2168 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 444: Device QA round 192 (desktop alerts empty-state copy differed from mobile)
+
+- [x] **Desktop's alerts empty state read "No price alerts" / "Set price alerts from product details…"**, while mobile's is "No alerts set" / 'Open a product and tap "Set Alert"…' — inconsistent wording between platforms
+- [x] Desktop's empty state now matches mobile; updated `desktop/tests/ux-alignment.test.tsx`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 97) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2169 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

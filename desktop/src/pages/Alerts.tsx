@@ -657,8 +657,8 @@ function AlertsTab({
       <div className="text-center">
         <EmptyState
           icon={<Bell className="w-12 h-12" />}
-          title="No price alerts"
-          description="Set price alerts from product details to get notified when prices drop."
+          title="No alerts set"
+          description='Open a product and tap "Set Alert" to get notified when the price drops.'
         />
         <button
           onClick={() => navigate("/search")}
