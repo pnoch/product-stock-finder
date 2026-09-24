@@ -741,7 +741,9 @@ export function Stats() {
           )}
         </div>
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Stock Health</p>
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Stock Health{stockHealth ? ` (${stockHealth.totalListings} listing${stockHealth.totalListings === 1 ? "" : "s"})` : ""}
+          </p>
           {stockHealth ? (
             <div className="space-y-1 text-sm">
               <p className="text-gray-600 dark:text-gray-400">

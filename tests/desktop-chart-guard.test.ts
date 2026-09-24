@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 156: mobile's StockHealthCard header reads "Stock Health (N
+  // listings)"; desktop's dedicated Stock Health card header omitted the count.
+  it("shows the listing count in the desktop stock-health header", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toMatch(/Stock Health\{stockHealth \? ` \(\$\{stockHealth\.totalListings\} listing/);
+  });
+
   // QA round 155: mobile's BasketValueCard labels it "Basket Value (best
   // in-stock prices)" and shows the excluded count; desktop's Stats card showed
   // neither.

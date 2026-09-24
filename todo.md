@@ -3187,3 +3187,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Stats basket card was labelled just "Basket Value" and omitted the excluded count**, while mobile's `BasketValueCard` reads "Basket Value (best in-stock prices)" and appends "· N excluded (no stock)" — so a desktop user couldn't tell the figure used best in-stock prices or that some products were skipped
 - [x] Desktop's basket card now shows the qualifier and the excluded count
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 60) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2132 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 408: Device QA round 156 (desktop stock-health header omitted the listing count)
+
+- [x] **Desktop's dedicated Stock Health card header read just "Stock Health"**, while mobile's `StockHealthCard` header reads "Stock Health (N listings)" — so the desktop card didn't state its sample size
+- [x] Desktop's Stock Health header now includes the listing count
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 61) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2133 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
