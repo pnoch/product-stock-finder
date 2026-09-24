@@ -1746,6 +1746,7 @@ export function Settings() {
             onClick={handleExportCsv}
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
             aria-label="Export CSV"
+            title="Save watchlist as CSV (prices in display currency)"
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
@@ -1753,6 +1754,7 @@ export function Settings() {
             onClick={handleExportBackup}
             className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
             aria-label="Export Backup"
+            title="Save watchlist, alerts and settings to a file"
           >
             <Download className="w-4 h-4" /> Export Backup
           </button>
@@ -1760,6 +1762,7 @@ export function Settings() {
             onClick={handleImportBackup}
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
             aria-label="Import Backup"
+            title="Restore from a backup file (merges by id)"
           >
             <Upload className="w-4 h-4" /> Import Backup
           </button>

@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 202: mobile's data rows describe each action; desktop's buttons
+  // had no descriptions (added as tooltips).
+  it("describes the desktop data buttons", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toContain("Save watchlist as CSV (prices in display currency)");
+    expect(text).toContain("Save watchlist, alerts and settings to a file");
+    expect(text).toContain("Restore from a backup file (merges by id)");
+  });
+
   // QA round 201: mobile's data buttons are "Export Backup" / "Import Backup";
   // desktop's were "Export full backup" / "Import backup".
   it("titles the desktop backup buttons like mobile", async () => {
