@@ -221,6 +221,21 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 145: mobile's handleToggleStockWatch checks notification
+  // permission before creating a restock watch; desktop's handleWatchRestock
+  // and handleToggleListingWatch saved the watch regardless, so it could never
+  // fire a notification.
+  it("checks notification permission before creating desktop restock watches", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    for (const fn of ["const handleWatchRestock = async () => {", "const handleToggleListingWatch = async ("]) {
+      const start = text.indexOf(fn);
+      expect(start).toBeGreaterThan(-1);
+      const block = text.slice(start, text.indexOf("\n  };", start));
+      expect(block).toContain("checkNotificationPermission");
+      expect(block).toContain("Enable notifications to watch for restocks.");
+    }
+  });
+
   // QA round 144: the server caps device labels at 64 chars and mobile's rename
   // modal sets maxLength={64}, but desktop's rename input had no cap — a longer
   // label made the server reject the rename.
@@ -527,7 +542,7 @@ describe("desktop chart guard", () => {
     ]) {
       const start = text.indexOf(handler);
       expect(start).toBeGreaterThan(-1);
-      const block = text.slice(start, start + 1800);
+      const block = text.slice(start, start + 2400);
       expect(block).toContain("savingReminder");
       expect(block).toContain("setSavingReminder(true)");
       expect(block).toContain("setSavingReminder(false)");

@@ -682,6 +682,13 @@ export function ProductDetail() {
       return;
     }
     if (savingReminder) return;
+    // Mobile checks notification permission before creating a restock watch;
+    // without it the watch is saved but no notification can ever fire.
+    const granted = await checkNotificationPermission();
+    if (!granted) {
+      showToast("Enable notifications to watch for restocks.");
+      return;
+    }
     setSavingReminder(true);
     try {
       await storage.addStockWatch({
@@ -722,6 +729,13 @@ export function ProductDetail() {
         });
         showToast("Stopped watching");
       } else {
+        // Mobile checks notification permission before creating a restock watch;
+        // without it the watch is saved but no notification can ever fire.
+        const granted = await checkNotificationPermission();
+        if (!granted) {
+          showToast("Enable notifications to watch for restocks.");
+          return;
+        }
         await storage.addStockWatch({
           id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           productId: product.id,
