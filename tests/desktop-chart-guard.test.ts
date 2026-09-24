@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 157: mobile's DigestCard header reads "Digest — {periodLabel}"
+  // ("this week"/"today"); desktop's read just "Digest".
+  it("labels the desktop digest period", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toMatch(/Digest — \{digestFrequency === "weekly" \? "this week" : "today"\}/);
+  });
+
   // QA round 156: mobile's StockHealthCard header reads "Stock Health (N
   // listings)"; desktop's dedicated Stock Health card header omitted the count.
   it("shows the listing count in the desktop stock-health header", async () => {

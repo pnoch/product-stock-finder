@@ -3193,3 +3193,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's dedicated Stock Health card header read just "Stock Health"**, while mobile's `StockHealthCard` header reads "Stock Health (N listings)" — so the desktop card didn't state its sample size
 - [x] Desktop's Stock Health header now includes the listing count
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 61) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2133 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 409: Device QA round 157 (desktop digest card didn't state its period)
+
+- [x] **Desktop's digest card header read just "Digest"**, while mobile's `DigestCard` header reads "Digest — {periodLabel}" ("this week" / "today") — so a desktop user couldn't tell the digest's window
+- [x] Desktop's digest header now includes the period label from `digestFrequency`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 62) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2134 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

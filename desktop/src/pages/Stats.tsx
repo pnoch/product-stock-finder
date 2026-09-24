@@ -456,7 +456,9 @@ export function Stats() {
       ) : (
         digest && (
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Digest</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Digest — {digestFrequency === "weekly" ? "this week" : "today"}
+          </p>
           {digest.valueDelta && (
             <p className="text-sm mt-1">
               <span className="text-gray-500 dark:text-gray-400">
