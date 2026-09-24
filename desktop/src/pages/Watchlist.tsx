@@ -1331,7 +1331,8 @@ export function Watchlist() {
 
         {sorted.length === 0 && (
           <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400 space-y-3">
-            <p>No products match this filter.</p>
+            <p className="font-semibold text-gray-700 dark:text-gray-200">No products match your filters</p>
+            <p>Try adjusting your filters or search — or add a new product to track.</p>
             {products.length > 0 && (
               <button
                 onClick={() => {
@@ -1346,7 +1347,7 @@ export function Watchlist() {
                 className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 transition-colors"
                 aria-label="Clear all filters"
               >
-                Clear filters
+                Clear Filters
               </button>
             )}
           </div>

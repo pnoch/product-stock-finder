@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 214: mobile's filtered-empty watchlist state says "No products
+  // match your filters" with guidance; desktop's said "No products match this
+  // filter." with none.
+  it("matches mobile's filtered-empty watchlist copy on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    expect(text).toContain("No products match your filters");
+    expect(text).toContain("Try adjusting your filters or search — or add a new product to track.");
+  });
+
   // QA round 213: mobile's watchlist no-products state is "No products yet"
   // with the "track … across 25 distributors" description, a tip, and a
   // Browse Products action; desktop's said "No products in watchlist".

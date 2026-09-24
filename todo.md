@@ -3535,3 +3535,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's watchlist no-products state read "No products in watchlist" / "Search for products to start tracking prices and stock availability." / "Add products"**, while mobile shows "No products yet" / "Add products to track their availability and prices globally across 25 distributors." / "Browse Products" plus a discovery tip — so the desktop lacked the tip and used different wording
 - [x] Desktop's empty state now matches mobile (title, description, Browse Products action, and the "Tip: Search for MikroTik CRS, Ubiquiti U7, RTX 4090, Pi 5, etc." hint)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 118) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2190 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 466: Device QA round 214 (desktop filtered-empty watchlist copy differed)
+
+- [x] **Desktop's filtered-empty watchlist state read "No products match this filter."** with no guidance, while mobile says "No products match your filters" with "Try adjusting your filters or search — or add a new product to track." and a "Clear Filters" button
+- [x] Desktop's filtered-empty state now matches mobile
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 119) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2191 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
