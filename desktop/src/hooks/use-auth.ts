@@ -89,6 +89,15 @@ export function subscribeAuth(listener: Listener): () => void {
   };
 }
 
+// Clears the local session when the server reports this device was signed out
+// from another device (DEVICE_REVOKED_ERR_MSG). Called from the tRPC
+// revoked-device link.
+export function handleDeviceRevoked(): void {
+  clearUserInfo();
+  removeSessionToken();
+  notify();
+}
+
 export function mapUser(data: {
   id?: number;
   openId?: string | null;

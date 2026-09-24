@@ -3685,3 +3685,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's drop-calendar count read "N drops in 30 days"**, while mobile's `DropCalendarCard` reads "N price drops in the last 30 days" — inconsistent wording between platforms
 - [x] Desktop's count text now matches mobile
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 143) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2215 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 491: Device QA round 239 (desktop ignored the device-revoked error)
+
+- [x] **Mobile's tRPC client (`lib/trpc.ts`) installs a `revokedDeviceLink` that detects `DEVICE_REVOKED_ERR_MSG` and signs the user out when this device is revoked from another device; the desktop client had no such link**, so a revoked desktop device stayed "signed in" with every request silently failing
+- [x] Added `handleDeviceRevoked()` to `desktop/src/hooks/use-auth.ts` (clears session token + user info, notifies auth subscribers)
+- [x] Added the `revokedDeviceLink` to `desktop/src/lib/trpc.ts` (mirrors mobile)
+- [x] Added a wiring guard to `tests/desktop-email-auth.test.ts` and a behavior test to `desktop/tests/auth-functions.test.ts` — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2216 passed`; desktop `tsc 0`, `44 passed` / `221 passed`

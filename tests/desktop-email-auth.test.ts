@@ -28,4 +28,13 @@ describe("desktop email auth", () => {
     expect(settings).toContain("resendVerification");
     expect(settings).toContain("Resend");
   });
+
+  it("signs out a revoked device from the tRPC layer", async () => {
+    const trpc = await readFile("desktop/src/lib/trpc.ts", "utf8");
+    const hooks = await readFile("desktop/src/hooks/use-auth.ts", "utf8");
+    expect(trpc).toContain("revokedDeviceLink");
+    expect(trpc).toMatch(/links:\s*\[\s*revokedDeviceLink/);
+    expect(trpc).toContain("DEVICE_REVOKED_ERR_MSG");
+    expect(hooks).toContain("handleDeviceRevoked");
+  });
 });

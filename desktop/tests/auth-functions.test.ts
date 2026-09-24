@@ -20,6 +20,7 @@ import {
   getSessionToken,
   getUserInfo,
   subscribeAuth,
+  handleDeviceRevoked,
 } from "../src/hooks/use-auth";
 import { getApiBaseUrl } from "../src/lib/api-base";
 
@@ -158,5 +159,30 @@ describe("desktop auth functions", () => {
     vi.mocked(getApiBaseUrl).mockReturnValueOnce("");
     await expect(signInWithEmail("a@b.com", "secret123")).rejects.toThrow("Server not configured");
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("handleDeviceRevoked clears the session and notifies", () => {
+    localStorage.setItem("desktop_session_token", "tok-revoked");
+    localStorage.setItem(
+      "desktop_user_info",
+      JSON.stringify({
+        id: 1,
+        openId: "email:1",
+        name: null,
+        email: "a@b.com",
+        loginMethod: "email",
+        lastSignedIn: "2026-01-01T00:00:00.000Z",
+      }),
+    );
+    const listener = vi.fn();
+    const unsub = subscribeAuth(listener);
+    try {
+      handleDeviceRevoked();
+    } finally {
+      unsub();
+    }
+    expect(getSessionToken()).toBeNull();
+    expect(getUserInfo()).toBeNull();
+    expect(listener).toHaveBeenCalled();
   });
 });
