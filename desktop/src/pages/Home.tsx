@@ -102,11 +102,14 @@ export function Home() {
   const loadDashboard = useCallback(async () => {
     setLoadError(null);
     try {
-      const [reminders, settings] = await Promise.all([
+      const [reminders, stockWatches, settings] = await Promise.all([
         storage.getBackOrderReminders(),
+        storage.getStockWatches(),
         storage.getSettings(),
       ]);
-      setReminderCount(reminders.length);
+      // Match the Alerts tab's Reminders count (date reminders + stock watches);
+      // counting only date reminders understated the card the user lands on.
+      setReminderCount(reminders.length + stockWatches.length);
       setDisplayCurrency(settings?.displayCurrency ?? "USD");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Couldn't load dashboard");

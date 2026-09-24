@@ -3055,3 +3055,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's `isLowestEver` mapped unconvertible prior points to `Infinity`** (`convertPrice(...) ?? Infinity`), so a history whose points all lacked a rate produced `priorMin = Infinity` and the badge claimed "Lowest Price Ever" for any current price. Mobile's `BestDistributorCard` filters nulls and returns false when none remain
 - [x] Desktop now filters unconvertible prior points and returns false when none remain; the compare selection sort (`withHistory`) also no longer falls back to the raw price (same mixed-currency class as round 132)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 39) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2110 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 386: Device QA round 134 (desktop Home reminders stat understated the Alerts tab)
+
+- [x] **Desktop Home's "Reminders" stat counted only date reminders** (`getBackOrderReminders().length`), but the Alerts tab it navigates to shows `reminders.length + watches.length` — so the dashboard card disagreed with its destination whenever stock watches existed
+- [x] Desktop Home now loads stock watches too and sets `reminderCount = reminders.length + stockWatches.length`, matching the Alerts tab
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 40) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2111 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

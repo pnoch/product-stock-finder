@@ -221,6 +221,17 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 134: desktop Home's "Reminders" stat counted only date reminders,
+  // but the Alerts tab it navigates to counts reminders + stock watches, so the
+  // card understated the destination.
+  it("counts stock watches in the desktop Home reminders stat", async () => {
+    const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    const start = text.indexOf("const loadDashboard = useCallback");
+    const block = text.slice(start, text.indexOf("}, []);", start));
+    expect(block).toContain("getStockWatches");
+    expect(block).toMatch(/setReminderCount\(reminders\.length \+ stockWatches\.length\)/);
+  });
+
   // QA round 133: desktop's "Lowest Price Ever" badge mapped unconvertible
   // prior points to Infinity, so an all-unconvertible history claimed "lowest
   // ever"; the compare selection sort also fell back to the raw price. Mobile
