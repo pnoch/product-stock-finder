@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 184: mobile's NotesCard empty state says "Add a private note…";
+  // desktop's said "No note yet.".
+  it("uses mobile's empty note text on desktop", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("Add a private note…");
+    expect(text).not.toContain("No note yet.");
+  });
+
   // QA round 183: mobile's NotesCard placeholder is "Private note (only visible
   // on this device)…"; desktop's said "Add a note about this product…".
   it("uses mobile's note placeholder on desktop", async () => {

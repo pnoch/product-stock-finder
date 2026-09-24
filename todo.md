@@ -3355,3 +3355,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's product-note placeholder read "Add a note about this product…"**, while mobile's `NotesCard` uses "Private note (only visible on this device)…" — so a desktop user didn't know the note is device-local
 - [x] Desktop's placeholder now matches mobile
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 88) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2160 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 436: Device QA round 184 (desktop empty-note text differed from mobile)
+
+- [x] **Desktop's empty product-note state read "No note yet."**, while mobile's `NotesCard` shows "Add a private note…" (a call to action) — inconsistent wording between platforms
+- [x] Desktop's empty state now reads "Add a private note…"
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 89) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2161 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

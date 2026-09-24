@@ -981,7 +981,7 @@ export function ProductDetail() {
         ) : note ? (
           <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{note}</p>
         ) : (
-          <p className="text-sm text-gray-500 dark:text-gray-400">No note yet.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Add a private note…</p>
         )}
       </div>
 
