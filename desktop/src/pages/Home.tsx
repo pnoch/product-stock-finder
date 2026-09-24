@@ -211,7 +211,7 @@ export function Home() {
             className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
             aria-label="Add products to your watchlist"
           >
-            <Plus className="w-4 h-4" /> Add Products
+            <Plus className="w-4 h-4" /> Add Product
           </Link>
         </div>
       </div>

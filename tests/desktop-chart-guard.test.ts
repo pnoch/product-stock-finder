@@ -221,6 +221,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 194: mobile's stats empty-state CTA is "Browse Products" and Home's
+  // is "Add Product"; desktop used "Add Products" for both.
+  it("matches mobile's empty-state CTA labels on desktop", async () => {
+    const stats = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(stats).toContain("Browse Products");
+    const home = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    expect(home).toContain("Add Product");
+    expect(home).not.toContain("Add Products");
+  });
+
   // QA round 193: mobile's Home empty state says "No products tracked yet" and
   // shows a "Try: RTX 4090, Pi 5, CRS326, or U7 Pro Max" hint; desktop's said
   // "No products tracked" with no hint.
