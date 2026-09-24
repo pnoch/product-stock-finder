@@ -3523,3 +3523,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's compare screen had no "Current Prices" table**, while mobile's `CurrentPricesTable` lists every selected distributor with its chart color, name/country, price, ≈ converted price, and stock pill — so a desktop user couldn't read the current prices behind the chart
 - [x] Desktop's compare now has the "Current Prices" section (with the mobile empty state "No distributors selected"), using the selection-order chart color and a `StockBadge`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 116) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2188 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 464: Device QA round 212 (desktop compare header title wasn't "Compare Prices")
+
+- [x] **Desktop's compare header showed the product name as the title**, while mobile's `CompareHeader` title is "Compare Prices" with the product name as the subtitle — so a desktop user couldn't tell the screen's purpose at a glance
+- [x] Desktop's header title is now "Compare Prices", with the product name (plus brand/model) as the subtitle
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 117) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2189 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 212: mobile's CompareHeader title is "Compare Prices"; desktop's
+  // header showed the product name as the title.
+  it("titles the desktop compare header Compare Prices", async () => {
+    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    expect(text).toMatch(/<h1 className="text-2xl font-bold">Compare Prices<\/h1>/);
+  });
+
   // QA round 211: mobile's compare has a "Current Prices" table (selected
   // listings with chart colors, converted prices, stock); desktop lacked it.
   it("shows the Current Prices table on desktop compare", async () => {

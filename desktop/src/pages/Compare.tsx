@@ -598,9 +598,9 @@ export function Compare() {
       )}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{product.name}</h1>
+          <h1 className="text-2xl font-bold">Compare Prices</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            {product.brand} · {product.modelNumber}
+            {product.name} · {product.brand} {product.modelNumber}
           </p>
         </div>
         <div className="flex items-center gap-2">
