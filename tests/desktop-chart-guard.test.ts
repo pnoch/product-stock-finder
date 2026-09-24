@@ -317,6 +317,15 @@ describe("desktop chart guard", () => {
     expect(text).toContain("loadError");
   });
 
+  // QA round 252: mobile renders trending prices with formatPrice; desktop used
+  // a local currencySymbol map (USD/EUR/GBP only) + toLocaleString() (no fixed
+  // decimals), so non-major currencies and cents rendered differently.
+  it("formats trending prices with formatPrice on desktop", async () => {
+    const text = await readFile("desktop/src/components/TrendingSection.tsx", "utf8");
+    expect(text).toContain("formatPrice(product.estimatedPrice, product.currency)");
+    expect(text).not.toContain("currencySymbol(");
+  });
+
   // QA round 231: mobile's DigestCard has "Price Changes", "Stock Changes", and
   // "🎯 Targets Hit" section headers; desktop's digest card lacked them.
   it("adds the desktop digest section headers", async () => {

@@ -3767,3 +3767,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's Home watchlist preview link reads `View all N products →`; the desktop's rendered `View all N →`**, so the number had no noun
 - [x] Desktop Home link now matches mobile (the `aria-label` already included "product(s)")
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 151) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2227 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
+
+## Phase 504: Device QA round 252 (desktop trending prices used a partial symbol map)
+
+- [x] **Mobile's trending row renders the estimated price with `formatPrice(price, currency)`; the desktop used a local `currencySymbol` map covering only USD/EUR/GBP plus `toLocaleString()` without fixed decimals**, so e.g. MYR showed as "MYR 1,299" instead of "RM1,299.00" and cents were dropped everywhere
+- [x] Desktop trending row now uses `formatPrice` (same helper as the rest of the app)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 152) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2228 passed`; desktop `tsc 0`, `46 passed` / `227 passed`

@@ -2,17 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router";
 import { Flame, Plus, Check } from "lucide-react";
 import { fetchTrending } from "@shared/trending";
+import { formatPrice } from "@shared/currency";
 import type { TrendingProduct } from "../../../lib/types";
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
 import { ProductImage } from "./ProductImage";
-
-function currencySymbol(c: string) {
-  if (c === "USD") return "$";
-  if (c === "EUR") return "€";
-  if (c === "GBP") return "£";
-  return c + " ";
-}
 
 export function TrendingSection() {
   const [products, setProducts] = useState<TrendingProduct[]>([]);
@@ -171,8 +165,7 @@ export function TrendingSection() {
               <p className="font-medium truncate">{product.name}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {product.category} · {product.brand} ·{" "}
-                {currencySymbol(product.currency)}
-                {product.estimatedPrice.toLocaleString()}
+                {formatPrice(product.estimatedPrice, product.currency)}
               </p>
               <p className="text-xs text-gray-400 dark:text-gray-500 italic">
                 {product.reason}
