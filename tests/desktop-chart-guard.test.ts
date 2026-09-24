@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 246: mobile's device row shows relative last-seen ("last seen 2h
+  // ago"); desktop showed an absolute date, losing recency.
+  it("uses relative last-seen on the desktop device list", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toContain("formatLastSeen(d.lastSeenAt)");
+    expect(text).not.toContain("Active {new Date(d.lastSeenAt)");
+  });
+
   // QA round 245: mobile's alert-card uses month-name dates for "Snoozed
   // until" and "Triggered"; desktop used bare toLocaleDateString().
   it("formats alert-card dates like mobile on desktop", async () => {

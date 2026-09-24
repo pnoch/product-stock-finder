@@ -37,6 +37,7 @@ import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
+import { formatLastSeen } from "../../../lib/relative-time";
 import { getSyncSetup, formatSyncStatus, type SyncStatus } from "../../../lib/sync";
 import type { DeviceInfo } from "../../../server/devices";
 import { buildBackup, parseBackup, applyBackup } from "../../../lib/backup";
@@ -1214,7 +1215,7 @@ export function Settings() {
                         )}
                       </div>
                       <p className="text-xs text-gray-500 truncate">{d.deviceId}</p>
-                      {d.lastSeenAt > 0 && <p className="text-xs text-gray-400">Active {new Date(d.lastSeenAt).toLocaleDateString()}</p>}
+                      {d.lastSeenAt > 0 && <p className="text-xs text-gray-400">{formatLastSeen(d.lastSeenAt)}</p>}
                     </div>
                     <div className="flex items-center gap-1 ml-2">
                       <button onClick={() => { setRenameTarget(d); setRenameLabel(d.label ?? ""); }} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-600" aria-label={`Rename ${d.label ?? d.deviceId}`} title="Rename">

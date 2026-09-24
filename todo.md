@@ -3730,3 +3730,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's `alert-card.tsx` formats "Snoozed until" (`{ month: "short", day: "numeric" }`) and "Triggered" (`{ month: "short", day: "numeric", year: "numeric" }`) with month names; the desktop's alert card used bare `toLocaleDateString()` for Snoozed/Triggered/Created**, so the same alert read differently across platforms
 - [x] Aligned all three desktop alert-card dates to mobile's month-name formats
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 146) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2221 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
+
+## Phase 498: Device QA round 246 (desktop device row showed an absolute date, not last-seen)
+
+- [x] **Mobile's `DeviceRow` renders `formatLastSeen(lastSeenAt)` → "last seen 2h ago"; the desktop's device list rendered `Active {toLocaleDateString()}`**, so recency was lost behind a date
+- [x] Moved `formatLastSeen` into shared `lib/relative-time.ts`; `components/settings/device-management/device-utils.ts` now re-exports it (mobile import + its test unchanged)
+- [x] Desktop Settings device row now uses `formatLastSeen(d.lastSeenAt)`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 147) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2222 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
