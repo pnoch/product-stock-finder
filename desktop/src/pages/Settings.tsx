@@ -1382,7 +1382,10 @@ export function Settings() {
         </div>
         <div className="space-y-1">
           <label className="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer">
-            <span className="text-sm font-medium">Enable Notifications</span>
+            <span>
+              <span className="block text-sm font-medium">Enable Notifications</span>
+              <span className="block text-xs text-gray-500 dark:text-gray-400">Receive alerts on your device</span>
+            </span>
             <span className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"

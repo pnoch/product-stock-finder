@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 235: mobile's "Enable Notifications" row has the description
+  // "Receive alerts on your device"; desktop's had none.
+  it("describes the desktop enable-notifications row", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toContain("Receive alerts on your device");
+  });
+
   // QA round 234: mobile's device row marks the current device with a "This
   // device" badge; desktop appended " (current)" to the label.
   it("marks the desktop current device like mobile", async () => {

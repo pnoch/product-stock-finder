@@ -3661,3 +3661,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop appended " (current)" to the current device's label**, while mobile's `DeviceRow` shows a distinct "This device" badge — inconsistent emphasis between platforms
 - [x] Desktop now shows the "This device" badge next to the label
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 139) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2211 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 487: Device QA round 235 (desktop enable-notifications row lacked its description)
+
+- [x] **Desktop's "Enable Notifications" row had no description**, while mobile's row reads "Receive alerts on your device" — so a desktop user didn't know what the master toggle did
+- [x] Desktop's row now shows the description
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 140) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2212 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
