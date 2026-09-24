@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 216: mobile shows "Local-only mode — prices are fetched on this
+  // device" when the server isn't configured; desktop always said "Sign in to
+  // sync across devices".
+  it("shows the desktop local-only sync status when unconfigured", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toContain("Local-only mode — prices are fetched on this device");
+  });
+
   // QA round 215: mobile surfaces a failed sync via formatSyncStatus
   // (lastSyncError); desktop's inline sync status always showed the
   // last-success time and hid errors.

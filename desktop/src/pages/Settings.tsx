@@ -202,7 +202,9 @@ export function Settings() {
     ? formatSyncStatus(syncMeta, isAuthenticated, now)
     : isAuthenticated
       ? { label: "Not synced yet", tone: "muted" }
-      : { label: "Sign in to sync across devices", tone: "muted" };
+      : getApiBaseUrl()
+        ? { label: "Sign in to sync across devices", tone: "muted" }
+        : { label: "Local-only mode — prices are fetched on this device", tone: "muted" };
   const syncStatusClass =
     syncStatus.tone === "error"
       ? "text-red-600 dark:text-red-400"
