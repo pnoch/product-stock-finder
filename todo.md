@@ -3427,3 +3427,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's settings section was titled "Share Watchlist"**, while mobile's settings section is "Collaborative Watchlist" — inconsistent wording between platforms
 - [x] Desktop's section now reads "Collaborative Watchlist"
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 100) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2172 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 448: Device QA round 196 (desktop settings section titled "Data Management")
+
+- [x] **Desktop's data section was titled "Data Management"**, while mobile's `DataSection` is titled "Data" — inconsistent wording between platforms
+- [x] Desktop's section now reads "Data"
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 101) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2173 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

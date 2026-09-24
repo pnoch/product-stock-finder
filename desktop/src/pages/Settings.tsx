@@ -1720,7 +1720,7 @@ export function Settings() {
 
       {/* Import/Export Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-        <h2 className="text-lg font-semibold mb-4">Data Management</h2>
+        <h2 className="text-lg font-semibold mb-4">Data</h2>
         <div className="flex gap-3">
           <button
             onClick={handleExport}

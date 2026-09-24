@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 196: mobile's data section title is "Data"; desktop's was "Data
+  // Management".
+  it("titles the desktop data section Data", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toContain(">Data</h2>");
+    expect(text).not.toContain("Data Management");
+  });
+
   // QA round 195: mobile's settings section is "Collaborative Watchlist";
   // desktop's was "Share Watchlist".
   it("titles the desktop share section Collaborative Watchlist", async () => {
