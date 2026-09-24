@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 173: mobile's StockWatchCard appends "· last checked" after the
+  // status; desktop's stock-watch rows omitted it.
+  it("shows the last-checked hint on desktop stock watches", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toContain("· last checked");
+  });
+
   // QA round 172: mobile's RescheduleModal title is "Reschedule Reminder 📅";
   // desktop's was "Reschedule Reminder" without the emoji.
   it("titles the desktop reschedule modal like mobile", async () => {

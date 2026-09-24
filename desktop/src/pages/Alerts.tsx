@@ -1021,6 +1021,7 @@ function RemindersTab({
                     }
                   />
                 )}
+                <span className="text-xs text-gray-400 shrink-0">· last checked</span>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 text-xs font-semibold shrink-0">
                   👀 Watching
                 </span>

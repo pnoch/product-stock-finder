@@ -3289,3 +3289,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's reschedule modal was titled "Reschedule Reminder"**, while mobile's `RescheduleModal` is titled "Reschedule Reminder 📅" — inconsistent wording between platforms
 - [x] Desktop's title now includes the 📅 emoji
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 77) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2149 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 425: Device QA round 173 (desktop stock watches omitted the last-checked hint)
+
+- [x] **Desktop's stock-watch rows showed only the status badge**, while mobile's `StockWatchCard` appends "· last checked" after the status — so a desktop user couldn't tell the status was a snapshot
+- [x] Desktop's stock-watch rows now show the "· last checked" hint
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 78) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2150 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
