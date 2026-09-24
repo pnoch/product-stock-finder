@@ -430,6 +430,10 @@ export function ProductDetail() {
 
   const handleSaveEdit = async () => {
     if (!product) return;
+    // Require both name and model, like mobile's canSave: updateProductDetails
+    // only applies a trimmed non-empty model, so saving a blank model silently
+    // kept the old one while the UI implied it changed.
+    if (!editName.trim() || !editModel.trim()) return;
     setEditError(null);
     try {
       await storage.updateProductDetails(product.id, {
@@ -1569,6 +1573,7 @@ export function ProductDetail() {
               onClick={handleSaveEdit}
               disabled={
                 !editName.trim() ||
+                !editModel.trim() ||
                 (editName.trim() === (product.name ?? "") &&
                   editModel.trim() === (product.modelNumber ?? "") &&
                   editBrand.trim() === (product.brand ?? "") &&

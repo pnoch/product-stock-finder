@@ -3079,3 +3079,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Edit Product modal gave no feedback when the model number changed**, while mobile's `EditProductSheet` shows "Model changed — listings will re-match on next refresh." — so a desktop user could rename the model and not know the listings would be re-matched
 - [x] Desktop now shows the same amber warning under the Model field when `editModel.trim() !== (product.modelNumber ?? "")`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 43) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2114 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 390: Device QA round 138 (desktop edit modal saved a blank model)
+
+- [x] **Desktop's Edit Product Save button only required a non-empty name** (`!editName.trim()`), while mobile's `EditProductSheet` requires both name and model (`canSave`). `updateProductDetails` only applies a trimmed non-empty model, so saving a blank model silently kept the old one while the UI implied it changed
+- [x] Desktop now disables Save unless both name and model are non-empty, and `handleSaveEdit` guards the same condition
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 44) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2115 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

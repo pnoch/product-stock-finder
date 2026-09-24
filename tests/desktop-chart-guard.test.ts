@@ -221,6 +221,18 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 138: mobile's edit sheet requires both name and model non-empty
+  // (canSave); desktop's Save only checked the name, so a blank model silently
+  // kept the old one while the UI implied it changed.
+  it("requires name and model in the desktop edit modal", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const start = text.indexOf("const handleSaveEdit = async () =>");
+    const block = text.slice(start, text.indexOf("const handleSaveAlert", start));
+    expect(block).toMatch(/if \(!editName\.trim\(\) \|\| !editModel\.trim\(\)\) return;/);
+    const btn = text.slice(text.indexOf("aria-label=\"Save product changes\"") - 700, text.indexOf("aria-label=\"Save product changes\""));
+    expect(btn).toMatch(/!editName\.trim\(\) \|\|\s*!editModel\.trim\(\)/);
+  });
+
   // QA round 137: mobile's Edit Product sheet warns that changing the model
   // re-matches listings on the next refresh; desktop's edit modal didn't.
   it("warns when the model changes in the desktop edit modal", async () => {
