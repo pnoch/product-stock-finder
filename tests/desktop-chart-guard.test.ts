@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 170: mobile's TriggeredAlertCard button says "Watch Again";
+  // desktop's said "Rearm".
+  it("labels the desktop rearm button Watch Again", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toContain("Watch Again");
+    expect(text).not.toMatch(/>\s*Rearm\s*</);
+  });
+
   // QA round 169: mobile's TriggeredAlertCard shows the direction arrow plus
   // "Target: $X → $Y"; desktop's triggered row showed only "Triggered at $Y on
   // DATE", omitting the target and direction.

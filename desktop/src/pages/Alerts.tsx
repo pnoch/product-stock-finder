@@ -840,7 +840,7 @@ function AlertRow({
           aria-label="Rearm price alert"
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          Rearm
+          Watch Again
         </button>
       ) : (
         <>
