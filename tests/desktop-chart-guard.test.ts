@@ -221,6 +221,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 207: mobile's distributor-analysis empty state is "No distributor
+  // data yet" with a subtitle, Browse Products CTA, and Try Again; desktop's was
+  // a single "Add products to see distributor analysis." line.
+  it("matches mobile's distributor-analysis empty state on desktop", async () => {
+    const text = await readFile("desktop/src/pages/DistributorAnalysis.tsx", "utf8");
+    expect(text).toContain("No distributor data yet");
+    expect(text).toContain("compare coverage and average prices across distributors.");
+    expect(text).toContain("Try Again");
+  });
+
   // QA round 206: mobile's Home header shows "Product Stock Finder" /
   // "Global availability monitor"; desktop's said "Dashboard".
   it("matches mobile's Home header on desktop", async () => {

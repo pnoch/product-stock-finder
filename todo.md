@@ -3493,3 +3493,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Home header read "Dashboard"**, while mobile's Home shows "Product Stock Finder" with the "Global availability monitor" subtitle — inconsistent branding between platforms
 - [x] Desktop's Home header now matches mobile; updated `desktop/tests/pages.test.tsx`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 111) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2183 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 459: Device QA round 207 (desktop distributor-analysis empty state had no CTA)
+
+- [x] **Desktop's distributor-analysis empty state was a single "Add products to see distributor analysis." line**, while mobile's `EmptyStateView` shows "No distributor data yet" with a subtitle, a "Browse Products" CTA, and "Try Again" — so a desktop user had no path forward
+- [x] Desktop's empty state now shows the title, subtitle, Browse Products, and Try Again
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 112) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2184 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

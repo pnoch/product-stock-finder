@@ -110,9 +110,30 @@ export function DistributorAnalysis() {
           </button>
         </div>
       ) : analysis.length === 0 ? (
-        <p className="text-center text-gray-500 dark:text-gray-400 mt-10">
-          Add products to see distributor analysis.
-        </p>
+        <div className="text-center mt-10">
+          <p className="font-semibold text-gray-700 dark:text-gray-200">
+            No distributor data yet
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-md mx-auto">
+            Add a few products to your watchlist to compare coverage and average prices across distributors.
+          </p>
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <button
+              onClick={() => navigate("/search")}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+              aria-label="Browse products"
+            >
+              Browse Products
+            </button>
+            <button
+              onClick={() => void loadData()}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Try again"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
       ) : (
         <div>
           {analysis.map((a) => {
