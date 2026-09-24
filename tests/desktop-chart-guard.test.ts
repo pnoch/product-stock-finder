@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 204: mobile's check-interval options are "Manual only" / "Every
+  // hour" / "Once a day"; desktop's were "Manual" / "Hourly" / "Daily".
+  it("labels the desktop check-interval options like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toContain("Manual only");
+    expect(text).toContain("Every hour");
+    expect(text).toContain("Once a day");
+  });
+
   // QA round 203: desktop hardcoded the privacy URL and support email on a
   // domain lib/legal-links.ts warns may not be registered; mobile derives them
   // from the configured web base / EXPO_PUBLIC_SUPPORT_EMAIL.

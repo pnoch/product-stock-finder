@@ -1340,18 +1340,22 @@ export function Settings() {
           <h2 className="text-lg font-semibold">Check Interval</h2>
         </div>
         <div className="flex gap-2">
-          {(["manual", "hourly", "daily"] as const).map((interval) => (
+          {([
+            { value: "manual", label: "Manual only" },
+            { value: "hourly", label: "Every hour" },
+            { value: "daily", label: "Once a day" },
+          ] as const).map(({ value, label }) => (
             <button
-              key={interval}
-              onClick={() => update({ checkInterval: interval })}
+              key={value}
+              onClick={() => update({ checkInterval: value })}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                settings.checkInterval === interval
+                settings.checkInterval === value
                   ? "bg-brand-600 text-white"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
-              aria-label={`Set check interval to ${interval}`}
+              aria-label={`Set check interval to ${label}`}
             >
-              {interval.charAt(0).toUpperCase() + interval.slice(1)}
+              {label}
             </button>
           ))}
         </div>

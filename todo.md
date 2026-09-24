@@ -3475,3 +3475,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop hardcoded the Privacy Policy URL (`https://productstockfinder.app/privacy`) and support email (`support@productstockfinder.app`)**, while mobile derives them via `getPrivacyPolicyUrl()` / `getSupportMailtoUrl()` — `lib/legal-links.ts` warns that domain "may not be registered" and the real support address is `support@productstockfinder.savvylife.icu`, so the desktop links were likely dead
 - [x] Desktop now uses `getPrivacyPolicyUrl()` / `getSupportMailtoUrl()`, and renders "Not configured" instead of an empty `href` when no web base is available
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 108) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2180 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 456: Device QA round 204 (desktop check-interval labels were terse)
+
+- [x] **Desktop's check-interval buttons showed "Manual" / "Hourly" / "Daily"**, while mobile's options are "Manual only" / "Every hour" / "Once a day" — inconsistent wording between platforms
+- [x] Desktop's options now use mobile's labels
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 109) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2181 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
