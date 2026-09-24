@@ -478,7 +478,8 @@ export function Search() {
               Paste anything — a model number, product name, or a spec-sheet paragraph. AI cleans it up.
             </p>
             <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)} rows={3} placeholder="Paste a model number, product name, or spec paragraph…" aria-label="Paste product text" className="w-full px-3 py-2 rounded-lg border text-sm mb-2" />
-            <button onClick={handleManualParse} disabled={!pasteText.trim() || manualParsing} className="w-full mb-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50">{manualParsing ? "Parsing…" : "Parse with AI"}</button>
+            <button onClick={handleManualParse} disabled={!pasteText.trim() || manualParsing} className="w-full mb-3 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50">{manualParsing ? "Parsing…" : "Clean up with AI"}</button>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Paste distributor URL</p>
             <input value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="https://distributor.com/product/..." aria-label="Distributor URL" className="w-full px-3 py-2 rounded-lg border text-sm mb-2" />
             <button onClick={handleUrlFetch} disabled={!isUrlLike(urlInput) || urlParsing} className="w-full mb-3 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50">{urlParsing ? "Fetching…" : "Fetch from URL"}</button>
             {manualError && (

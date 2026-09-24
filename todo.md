@@ -3235,3 +3235,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's manual-add modal was titled "Manual Add" with no hint**, while mobile's `ManualAddSheet` is titled "Add Custom Product ✨" with "Paste anything — a model number, product name, or a spec-sheet paragraph. AI cleans it up." — so a desktop user didn't know what the field accepted
 - [x] Desktop's modal now uses the same title and hint
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 68) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2140 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 416: Device QA round 164 (desktop manual-add buttons didn't match mobile)
+
+- [x] **Desktop's manual-add modal labelled the parse button "Parse with AI" and left the URL field unlabelled**, while mobile's `ManualAddSheet` uses "Clean up with AI" and "Paste distributor URL" — inconsistent wording between platforms
+- [x] Desktop now uses "Clean up with AI" and adds the "Paste distributor URL" label; updated `desktop/tests/manual-add-ai.test.tsx` to the new button name
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 69) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2141 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

@@ -221,6 +221,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 164: mobile's manual-add sheet labels the parse button "Clean up
+  // with AI" and the URL field "Paste distributor URL"; desktop said "Parse
+  // with AI" with no URL label.
+  it("labels the desktop manual-add buttons like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    expect(text).toContain("Clean up with AI");
+    expect(text).toContain("Paste distributor URL");
+    expect(text).not.toContain("Parse with AI");
+  });
+
   // QA round 163: mobile's manual-add sheet is titled "Add Custom Product ✨"
   // with a "Paste anything … AI cleans it up." hint; desktop's modal was titled
   // "Manual Add" with no hint.

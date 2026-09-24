@@ -106,7 +106,7 @@ describe("manual add AI assist", () => {
     fireEvent.change(screen.getByLabelText("Paste product text"), {
       target: { value: "MikroTik CRS326-24G switch" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Parse with AI" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clean up with AI" }));
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText("Product name *")).toHaveValue("CRS326 Switch");
@@ -150,7 +150,7 @@ describe("manual add AI assist", () => {
     fireEvent.change(screen.getByLabelText("Paste product text"), {
       target: { value: "some obscure gadget" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Parse with AI" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clean up with AI" }));
 
     expect(await screen.findByText("Discovery Failed")).toBeInTheDocument();
 
@@ -184,7 +184,7 @@ describe("manual add AI assist", () => {
     fireEvent.change(screen.getByLabelText("Paste product text"), {
       target: { value: "CRS326" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Parse with AI" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clean up with AI" }));
 
     expect(await screen.findByText("Sign-in Required")).toBeInTheDocument();
   });
