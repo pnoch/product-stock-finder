@@ -81,7 +81,7 @@ export function RestockWatches() {
         <div className="text-center mt-10">
           <p className="text-center text-gray-500 dark:text-gray-400">
             No restock watches. Open a product and click &quot;Watch for
-            Restock&quot; to add one.
+            Restock&quot; to get notified when it&apos;s back in stock.
           </p>
           <Link
             to="/search"

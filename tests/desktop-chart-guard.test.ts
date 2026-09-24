@@ -684,6 +684,13 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and tap "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 250: mobile's restock-watches empty state promises "to get
+  // notified when it's back in stock"; desktop's said only "to add one".
+  it("matches the restock-watches empty-state outcome on desktop", async () => {
+    const text = await readFile("desktop/src/pages/RestockWatches.tsx", "utf8");
+    expect(text).toContain("to get notified when it&apos;s back in stock.");
+  });
+
   // QA round 249: mobile's tab switcher omits a zero count ("Alerts", not
   // "Alerts (0)"); desktop always rendered the count on Alerts/Reminders.
   it("omits zero tab counts on the desktop alerts tabs", async () => {

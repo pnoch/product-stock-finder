@@ -3755,3 +3755,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's `TabSwitcher` renders a count only when non-zero (`Alerts`, `Alerts (3)`); the desktop's Alerts/Reminders tab buttons always rendered the count**, so empty tabs read "Alerts (0)" / "Reminders (0)"
 - [x] Desktop tabs now omit the count when zero (Notifications already did)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 149) and updated `tests/desktop-list-awareness.test.ts`'s existing tab-count assertion to the conditional form — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2225 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
+
+## Phase 502: Device QA round 250 (desktop restock empty state didn't explain the outcome)
+
+- [x] **Mobile's restock-watches empty state reads `Open a product and tap "Watch for Restock" to get notified when it's back in stock.`; the desktop's said `...to add one.`**, which didn't say what a watch does
+- [x] Desktop now states the outcome (keeping the intentional "click" wording, guarded by `tests/desktop-search-polish.test.ts`)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 150) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2226 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
