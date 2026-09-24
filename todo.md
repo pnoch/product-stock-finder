@@ -3421,3 +3421,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop used "Add Products" for both the Home and Stats empty-state CTAs**, while mobile uses "Add Product" (Home) and "Browse Products" (Stats) — inconsistent wording between platforms
 - [x] Desktop Home's CTA now reads "Add Product" and Stats' reads "Browse Products"
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 99) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2171 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 447: Device QA round 195 (desktop settings section titled "Share Watchlist")
+
+- [x] **Desktop's settings section was titled "Share Watchlist"**, while mobile's settings section is "Collaborative Watchlist" — inconsistent wording between platforms
+- [x] Desktop's section now reads "Collaborative Watchlist"
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 100) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2172 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

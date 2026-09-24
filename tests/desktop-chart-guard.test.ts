@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 195: mobile's settings section is "Collaborative Watchlist";
+  // desktop's was "Share Watchlist".
+  it("titles the desktop share section Collaborative Watchlist", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toContain("Collaborative Watchlist");
+  });
+
   // QA round 194: mobile's stats empty-state CTA is "Browse Products" and Home's
   // is "Add Product"; desktop used "Add Products" for both.
   it("matches mobile's empty-state CTA labels on desktop", async () => {

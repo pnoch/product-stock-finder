@@ -1239,7 +1239,7 @@ export function Settings() {
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
         <div className="flex items-center gap-3 mb-3">
           <Share2 className="w-5 h-5 text-brand-600 dark:text-brand-400" />
-          <h2 className="text-lg font-semibold">Share Watchlist</h2>
+          <h2 className="text-lg font-semibold">Collaborative Watchlist</h2>
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Create a read-only public link to your watchlist. Anyone with the link can view it.</p>
         {!isAuthenticated ? (
