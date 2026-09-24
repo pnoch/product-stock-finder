@@ -62,7 +62,19 @@ export function HealthDetail() {
     return (
       <div className="p-6 max-w-3xl mx-auto">
         <button onClick={() => navigate(-1)} className="text-blue-600 mb-4" aria-label="Go back">‹ Back</button>
-        <p className="text-center text-gray-500 mt-10">Distributor not found</p>
+        <div className="text-center mt-10">
+          <p className="font-semibold text-gray-700 dark:text-gray-200">Distributor not found</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            We couldn&apos;t find this distributor. Check the link or browse distributor health.
+          </p>
+          <button
+            onClick={() => navigate("/health")}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+            aria-label="Go back to health"
+          >
+            Go back
+          </button>
+        </div>
       </div>
     );
   }

@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 209: mobile's health-detail "Distributor not found" is an
+  // EmptyStateView with a subtitle and a Go back CTA; desktop's was a plain line.
+  it("matches mobile's health-detail not-found state on desktop", async () => {
+    const text = await readFile("desktop/src/pages/HealthDetail.tsx", "utf8");
+    expect(text).toContain("We couldn&apos;t find this distributor. Check the link or browse distributor health.");
+    expect(text).toMatch(/aria-label="Go back to health"/);
+  });
+
   // QA round 208: mobile distinguishes "No distributor health data" (with a
   // Test All Distributors CTA) from "No matches" (with a Show All CTA);
   // desktop showed the "no data" line whenever the filter matched nothing.
