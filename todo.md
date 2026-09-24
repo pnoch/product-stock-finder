@@ -3295,3 +3295,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's stock-watch rows showed only the status badge**, while mobile's `StockWatchCard` appends "· last checked" after the status — so a desktop user couldn't tell the status was a snapshot
 - [x] Desktop's stock-watch rows now show the "· last checked" hint
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 78) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2150 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 426: Device QA round 174 (desktop listing freshness text wasn't color-coded)
+
+- [x] **Desktop's Distributor Targets table rendered the freshness cell as plain gray text**, while mobile's `DistributorListingCard` colors it by freshness (green <1h, amber <6h, red older) and prefixes "🕐 Updated" — so a desktop user couldn't spot a stale listing
+- [x] Desktop's cell now uses `getLastRefreshedColor` for the color and the "🕐 Updated" prefix
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 79) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2151 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

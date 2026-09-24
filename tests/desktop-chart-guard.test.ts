@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 174: mobile's DistributorListingCard colors the freshness text
+  // (green <1h, amber <6h, red older); desktop's table cell was always gray.
+  it("colors the desktop listing freshness text", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("getLastRefreshedColor(listing.lastChecked)");
+    expect(text).toContain("🕐 Updated {formatLastRefreshed(listing.lastChecked)}");
+  });
+
   // QA round 173: mobile's StockWatchCard appends "· last checked" after the
   // status; desktop's stock-watch rows omitted it.
   it("shows the last-checked hint on desktop stock watches", async () => {

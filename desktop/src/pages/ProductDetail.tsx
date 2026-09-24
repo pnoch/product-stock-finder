@@ -20,7 +20,7 @@ import { useToast } from "../hooks/use-toast";
 import { getApiBaseUrl } from "../lib/api-base";
 import { formatPrice, EXCHANGE_RATES } from "@shared/currency";
 import { getBestPrice, convertPrice } from "@/lib/currency";
-import { formatLastRefreshed } from "../../../lib/last-refreshed";
+import { formatLastRefreshed, getLastRefreshedColor } from "../../../lib/last-refreshed";
 import { computePriceVsAverage } from "../../../lib/price-average";
 import { DISTRIBUTORS } from "@shared/distributors";
 import {
@@ -1362,8 +1362,26 @@ export function ProductDetail() {
                         expectedDate={listing.expectedDate}
                       />
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
-                      {formatLastRefreshed(listing.lastChecked)}
+                    <td className="px-4 py-3 text-xs">
+                      {(() => {
+                        // Mobile's DistributorListingCard colors the freshness
+                        // text (green <1h, amber <6h, red older); desktop's cell
+                        // was always gray.
+                        const key = getLastRefreshedColor(listing.lastChecked);
+                        const cls =
+                          key === "green"
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : key === "yellow"
+                              ? "text-amber-600 dark:text-amber-400"
+                              : key === "red"
+                                ? "text-red-600 dark:text-red-400"
+                                : "text-gray-500 dark:text-gray-400";
+                        return (
+                          <span className={cls}>
+                            🕐 Updated {formatLastRefreshed(listing.lastChecked)}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
