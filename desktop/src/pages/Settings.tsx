@@ -21,6 +21,8 @@ import {
 import { useSettings } from "../hooks/use-storage";
 import { useToast } from "../hooks/use-toast";
 import { storage } from "../storage";
+import { clearDistributorBreaker } from "../../../lib/scrapers/breaker-clear";
+import type { StorageAdapter } from "../../../lib/storage/adapter";
 import { startPricePoller, stopPricePoller } from "../background";
 import { EXCHANGE_RATES, CURRENCY_SYMBOLS } from "@shared/currency";
 import {
@@ -559,6 +561,15 @@ export function Settings() {
           return storage.updateProductListings(product.id, updatedListings);
         });
       await Promise.all(tasks);
+      // Clear the circuit breaker too. The health probe stores it through a
+      // localStorage adapter; refreshing lastChecked alone left the distributor
+      // in cooldown (still skipped) while the UI showed "OK" (mobile does the
+      // same via clearDistributorBreaker).
+      const breakerAdapter: Pick<StorageAdapter, "getItem" | "setItem"> = {
+        getItem: async (k: string) => localStorage.getItem(k),
+        setItem: async (k: string, v: string) => localStorage.setItem(k, v),
+      };
+      await clearDistributorBreaker(distributorId, breakerAdapter).catch(() => {});
       setProducts((prev) =>
         prev.map((p) => ({
           ...p,

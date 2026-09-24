@@ -221,6 +221,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 179: desktop's re-enable only refreshed lastChecked and never
+  // cleared the circuit breaker, so the distributor stayed in cooldown while the
+  // UI showed "OK" (mobile clears it via clearDistributorBreaker).
+  it("clears the circuit breaker when re-enabling on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const start = text.indexOf("const handleReenableDistributor");
+    const block = text.slice(start, text.indexOf("showToast(\"Distributor re-enabled\")", start));
+    expect(block).toContain("clearDistributorBreaker(distributorId");
+  });
+
   // QA round 178: mobile's DistributorListingCard shows "{country} · {region}";
   // desktop's Distributor cell showed only the country + flag.
   it("shows the distributor region on desktop listings", async () => {

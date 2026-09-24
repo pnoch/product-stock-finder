@@ -3325,3 +3325,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Distributor cell showed only "{country} {flag}"**, while mobile's `DistributorListingCard` shows "{country} · {region}" — so a desktop user couldn't see a distributor's region
 - [x] Desktop's cell now includes the region
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 83) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2155 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 431: Device QA round 179 (desktop re-enable left the circuit breaker armed)
+
+- [x] **Desktop's `handleReenableDistributor` only refreshed `lastChecked` and never cleared the circuit breaker**, so the distributor stayed in cooldown (still skipped by the health probe) while the UI showed "OK". Mobile clears it via `clearDistributorBreaker` with an explanatory comment. The shared helper also used `getDefaultAdapter()` (IndexedDB in a Tauri webview), a different store from the desktop probe's localStorage adapter
+- [x] `clearDistributorBreaker` now accepts an optional adapter; desktop passes a localStorage adapter matching its health probe
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 84) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2156 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
