@@ -3259,3 +3259,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The same inline-tag-creation gap existed in desktop's `SearchModal`** (the other search surface): it only toggled existing tags and pointed at the watchlist. Mobile's `TagPickerSheet` creates tags inline
 - [x] Desktop's `SearchModal` tag picker now has the inline "New tag name" input and "Create tag" button; removed the now-unused `navigate` import and updated `tests/desktop-tags-pointer-guard.test.ts`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 72) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2144 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 420: Device QA round 168 (desktop alert row printed the raw direction enum)
+
+- [x] **Desktop's alert row appended the raw `alert.direction` enum** ("drop"/"rise") as text, while mobile's `AlertCard` renders a direction arrow icon (up/red for rise, down/green for drop) — the desktop text was a leaked internal value
+- [x] Desktop now renders the matching TrendingUp/TrendingDown icon with an accessible label
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 73) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2145 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

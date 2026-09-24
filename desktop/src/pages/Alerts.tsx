@@ -814,7 +814,15 @@ function AlertRow({
             <>
               Target: {formatPrice(alert.targetPrice, alert.currency)} · Created{" "}
               {new Date(alert.createdAt).toLocaleDateString()}
-              {alert.direction ? ` · ${alert.direction}` : ""}
+              {alert.direction && (
+                <span className="ml-1 inline-flex items-center align-middle">
+                  {alert.direction === "rise" ? (
+                    <TrendingUp className="w-3.5 h-3.5 inline text-red-500" aria-label="Price rise alert" />
+                  ) : (
+                    <TrendingDown className="w-3.5 h-3.5 inline text-emerald-500" aria-label="Price drop alert" />
+                  )}
+                </span>
+              )}
             </>
           )}
         </p>

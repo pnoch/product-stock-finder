@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 168: desktop's alert row appended the raw direction enum
+  // ("drop"/"rise") as text; mobile renders a direction arrow icon.
+  it("renders the alert direction as an icon on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).not.toMatch(/` · \$\{alert\.direction\}`/);
+    expect(text).toContain('aria-label="Price rise alert"');
+    expect(text).toContain('aria-label="Price drop alert"');
+  });
+
   // QA round 167: the same inline-tag-creation gap existed in desktop's
   // SearchModal (the other search surface).
   it("creates tags inline in the desktop SearchModal tag picker", async () => {
