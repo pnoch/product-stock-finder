@@ -46,6 +46,7 @@ import { getDistributorById } from "@shared/distributors";
 import { getAllParserIds } from "../../../lib/scrapers/registry";
 import { requestWebNotificationPermission } from "../../../lib/web-notifications";
 import { isPushSupported, ensurePushSubscription, disablePush, getPushStatus, hasVapidKey } from "../lib/web-push";
+import { getSupportMailtoUrl, getPrivacyPolicyUrl } from "../../../lib/legal-links";
 import packageJson from "../../package.json";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -1907,7 +1908,7 @@ export function Settings() {
               </p>
             </div>
             <a
-              href="mailto:support@productstockfinder.app"
+              href={getSupportMailtoUrl()}
               className="ml-2 shrink-0 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
               aria-label="Contact support"
             >
@@ -1921,15 +1922,21 @@ export function Settings() {
                 How we handle your data
               </p>
             </div>
-            <a
-              href="https://productstockfinder.app/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-2 shrink-0 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
-              aria-label="Open privacy policy"
-            >
-              View
-            </a>
+            {getPrivacyPolicyUrl() ? (
+              <a
+                href={getPrivacyPolicyUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-2 shrink-0 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+                aria-label="Open privacy policy"
+              >
+                View
+              </a>
+            ) : (
+              <span className="ml-2 shrink-0 text-xs text-gray-400" aria-label="Privacy policy not configured">
+                Not configured
+              </span>
+            )}
           </div>
         </div>
       </div>

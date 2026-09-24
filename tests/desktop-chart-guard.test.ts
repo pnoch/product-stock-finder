@@ -221,6 +221,17 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 203: desktop hardcoded the privacy URL and support email on a
+  // domain lib/legal-links.ts warns may not be registered; mobile derives them
+  // from the configured web base / EXPO_PUBLIC_SUPPORT_EMAIL.
+  it("derives the desktop legal links from lib/legal-links", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toContain("getPrivacyPolicyUrl()");
+    expect(text).toContain("getSupportMailtoUrl()");
+    expect(text).not.toContain("https://productstockfinder.app/privacy");
+    expect(text).not.toContain("mailto:support@productstockfinder.app");
+  });
+
   // QA round 202: mobile's data rows describe each action; desktop's buttons
   // had no descriptions (added as tooltips).
   it("describes the desktop data buttons", async () => {

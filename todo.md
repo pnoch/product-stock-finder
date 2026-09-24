@@ -3469,3 +3469,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's data buttons had no descriptions**, while mobile's `DataSection` rows describe each action ("Save watchlist, alerts and settings to a file" / "Restore from a backup file (merges by id)" / "Save watchlist as CSV (prices in display currency)") — so a desktop user couldn't tell what each button did
 - [x] Desktop's Export CSV / Export Backup / Import Backup buttons now carry the descriptions as `title` tooltips
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 107) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2179 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 455: Device QA round 203 (desktop hardcoded legal links on an unregistered domain)
+
+- [x] **Desktop hardcoded the Privacy Policy URL (`https://productstockfinder.app/privacy`) and support email (`support@productstockfinder.app`)**, while mobile derives them via `getPrivacyPolicyUrl()` / `getSupportMailtoUrl()` — `lib/legal-links.ts` warns that domain "may not be registered" and the real support address is `support@productstockfinder.savvylife.icu`, so the desktop links were likely dead
+- [x] Desktop now uses `getPrivacyPolicyUrl()` / `getSupportMailtoUrl()`, and renders "Not configured" instead of an empty `href` when no web base is available
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 108) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2180 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
