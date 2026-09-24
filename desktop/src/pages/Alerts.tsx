@@ -443,11 +443,15 @@ export function Alerts() {
             <div className="space-y-2">
               {notifications.map((n) => {
                 const route =
-                  n.type === "health" && n.distributorId
-                    ? `/health/${n.distributorId}`
-                    : n.productId
-                      ? `/product/${n.productId}`
-                      : null;
+                  n.type === "health"
+                    ? n.distributorId
+                      ? `/health/${n.distributorId}`
+                      : "/health"
+                    : n.type === "digest"
+                      ? "/stats"
+                      : n.productId
+                        ? `/product/${n.productId}`
+                        : null;
                 const itemClassName = `flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border ${n.read ? "border-gray-200 dark:border-gray-700" : "border-brand-200 dark:border-brand-800 bg-brand-50/40 dark:bg-brand-900/10"} `;
                 const TypeIcon =
                   n.type === "health" && n.healthStatus === "recovered"

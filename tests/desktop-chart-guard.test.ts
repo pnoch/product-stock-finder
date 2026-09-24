@@ -197,6 +197,19 @@ describe("desktop chart guard", () => {
     expect(block).not.toContain("alert.triggeredPrice ?? alert.targetPrice");
   });
 
+  // QA round 128: desktop's notification list never routed digest events
+  // (mobile's notificationRouteFor sends type "digest" → /stats) and dropped
+  // health events that lacked a distributorId, so those rows weren't clickable.
+  it("routes digest and health notifications in the desktop list", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const start = text.indexOf("const route =");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("const itemClassName", start));
+    expect(block).toContain('n.type === "digest"');
+    expect(block).toContain('"/stats"');
+    expect(block).toMatch(/n\.type === "health"[\s\S]*?"\/health"/);
+  });
+
   // QA round 127: desktop's health list colored rows by raw status, so a probe
   // whose reason classifies as a block (Cloudflare interstitial) showed as a
   // hard error/working color. Mobile's resolveStatusColor shows those amber.
