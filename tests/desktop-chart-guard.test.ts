@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 162: mobile shows the "Discover with AI" footer whenever there is
+  // a query (even with partial catalog matches); desktop only showed it when
+  // there were zero results.
+  it("shows the Discover footer for any desktop search query", async () => {
+    const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    expect(text).toMatch(/\{query\.trim\(\) && \(\s*<div className="pt-4">/);
+    expect(text).toMatch(/aria-label="Discover with AI"/);
+  });
+
   // QA round 161: mobile's SearchEmptyState shows a "Try searching for RTX
   // 4090, Pi 5, CRS326, or AirPods Max" hint; desktop's empty state had none.
   it("shows the search suggestion hint on desktop", async () => {

@@ -403,7 +403,26 @@ export function Search() {
                 Try searching for RTX 4090, Pi 5, CRS326, or AirPods Max
               </p>
             )}
-            {query.trim() && !discovering && <button onClick={handleDiscover} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-brand-500/30 bg-brand-500/10 text-brand-600 text-sm font-medium"><Wand2 className="w-4 h-4" /> Discover with AI</button>}
+          </div>
+        )}
+        {/* Mobile shows the Discover footer whenever there is a query, even with
+            partial catalog matches, so the exact product can still be found. */}
+        {query.trim() && (
+          <div className="pt-4">
+            {discovering ? (
+              <div className="flex flex-col items-center gap-2 py-4">
+                <Loader2 className="w-6 h-6 animate-spin text-brand-600" />
+                <span className="text-sm text-gray-500">Discovering...</span>
+              </div>
+            ) : (
+              <button
+                onClick={handleDiscover}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-4 rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600 text-sm font-medium"
+                aria-label="Discover with AI"
+              >
+                <Wand2 className="w-5 h-5" /> Discover with AI
+              </button>
+            )}
             {discoverError && (
               <div role="alert" className="mt-4 mx-auto max-w-md p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-left">
                 <p className="text-sm font-semibold text-red-700 dark:text-red-300">{discoverError.title}</p>
@@ -411,7 +430,6 @@ export function Search() {
                 {discoverError.retry && <button onClick={() => void handleDiscover()} className="mt-2 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700">Retry</button>}
               </div>
             )}
-            {discovering && <div className="flex flex-col items-center gap-2 mt-4"><Loader2 className="w-6 h-6 animate-spin text-brand-600" /><span className="text-sm text-gray-500">Discovering...</span></div>}
           </div>
         )}
       </div>

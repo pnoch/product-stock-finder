@@ -3223,3 +3223,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's search empty state showed only "No products found."**, while mobile's `SearchEmptyState` shows a "Try searching for RTX 4090, Pi 5, CRS326, or AirPods Max" hint (when no query/tags) — so a desktop user had no starting point
 - [x] Desktop's empty state now shows the same suggestion hint (only when no query and no tag filter)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 66) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2138 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 414: Device QA round 162 (desktop hid Discover with AI when results existed)
+
+- [x] **Desktop only showed "Discover with AI" when the catalog returned zero results**, while mobile shows the Discover footer whenever there is a query (even with partial matches) — so on desktop a query that matched the wrong catalog item couldn't be AI-discovered
+- [x] Desktop now shows the Discover footer (and its error/loading states) for any non-empty query, matching mobile
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 67) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2139 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
