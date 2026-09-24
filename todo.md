@@ -3761,3 +3761,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's restock-watches empty state reads `Open a product and tap "Watch for Restock" to get notified when it's back in stock.`; the desktop's said `...to add one.`**, which didn't say what a watch does
 - [x] Desktop now states the outcome (keeping the intentional "click" wording, guarded by `tests/desktop-search-polish.test.ts`)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 150) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2226 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
+
+## Phase 503: Device QA round 251 (desktop Home watchlist link omitted the noun)
+
+- [x] **Mobile's Home watchlist preview link reads `View all N products →`; the desktop's rendered `View all N →`**, so the number had no noun
+- [x] Desktop Home link now matches mobile (the `aria-label` already included "product(s)")
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 151) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2227 passed`; desktop `tsc 0`, `46 passed` / `227 passed`

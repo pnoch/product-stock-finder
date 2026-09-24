@@ -684,6 +684,15 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and tap "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 251: mobile's watchlist preview link reads "View all N products →";
+  // desktop's omitted the noun ("View all N →").
+  it("labels the desktop Home watchlist link like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    expect(text).toContain(
+      'View all {products.length} product{products.length === 1 ? "" : "s"} →',
+    );
+  });
+
   // QA round 250: mobile's restock-watches empty state promises "to get
   // notified when it's back in stock"; desktop's said only "to add one".
   it("matches the restock-watches empty-state outcome on desktop", async () => {

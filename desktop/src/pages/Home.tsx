@@ -363,7 +363,7 @@ export function Home() {
               className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline"
               aria-label={`View all ${products.length} product${products.length === 1 ? "" : "s"}`}
             >
-              View all {products.length} →
+              View all {products.length} product{products.length === 1 ? "" : "s"} →
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
