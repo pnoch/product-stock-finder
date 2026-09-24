@@ -64,6 +64,32 @@ export function buildDayKeys(days: number, now: number): string[] {
   return keys;
 }
 
+// Trailing `days` grid ending today: leading blanks for the weekday offset,
+// then one cell per day anchored to local midnight. Shared so the desktop grid
+// aligns to weekdays like mobile's (a bare 30-cell grid drifted off-column).
+export function buildGridCells(days: number, now: number): (number | null)[] {
+  const cells: (number | null)[] = [];
+  const nowDate = new Date(now);
+  const todayMidnight = new Date(
+    nowDate.getFullYear(),
+    nowDate.getMonth(),
+    nowDate.getDate(),
+  );
+  const dayTs: number[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(
+      todayMidnight.getFullYear(),
+      todayMidnight.getMonth(),
+      todayMidnight.getDate() - i,
+    );
+    dayTs.push(d.getTime());
+  }
+  const startOffset = new Date(dayTs[0]!).getDay(); // local 0=Sun
+  for (let i = 0; i < startOffset; i++) cells.push(null);
+  for (const ts of dayTs) cells.push(ts);
+  return cells;
+}
+
 export function computeDropCalendar(
   watchlist: Product[],
   displayCurrency: string,

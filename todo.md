@@ -3163,3 +3163,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Stats Data Freshness card omitted "Avg data points / listing"** and its Stock Health card omitted "Back-order everywhere", both of which mobile's `DataFreshnessCard` / `StockHealthCard` render — so a desktop user couldn't see those metrics
 - [x] Desktop Stats now shows both rows
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 56) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2128 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 404: Device QA round 152 (desktop drop calendar drifted off weekday alignment)
+
+- [x] **Desktop's drop-calendar grid laid 30 consecutive days into a 7-column grid with no leading blanks**, so the columns drifted off weekday alignment (a day in the "Monday" column wasn't Monday). Mobile's `buildGridCells` pads by the first day's weekday and renders a weekday header
+- [x] Moved `buildGridCells` into `lib/drop-calendar.ts` (mobile re-exports it) and desktop Stats now uses it with the S–S weekday header
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 57) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2129 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

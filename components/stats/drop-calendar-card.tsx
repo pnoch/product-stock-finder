@@ -3,39 +3,13 @@ import { Text, View, TouchableOpacity, useWindowDimensions } from "react-native"
 import { useFocusEffect } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@shared/currency";
-import { dateKey } from "@/lib/drop-calendar";
+import { dateKey, buildGridCells } from "@/lib/drop-calendar";
 import type {
   DropCalendarResult,
   DropDay,
 } from "@/lib/drop-calendar";
 
-
-// Trailing `days` grid ending today: leading blanks for weekday offset,
-// then one cell per day anchored to local midnight. Uses calendar-date
-// arithmetic (setDate) rather than fixed 24h steps so a DST transition cannot
-// skip a day or shift the grid.
-export function buildGridCells(days: number, now: number): (number | null)[] {
-  const cells: (number | null)[] = [];
-  const nowDate = new Date(now);
-  const todayMidnight = new Date(
-    nowDate.getFullYear(),
-    nowDate.getMonth(),
-    nowDate.getDate(),
-  );
-  const dayTs: number[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(
-      todayMidnight.getFullYear(),
-      todayMidnight.getMonth(),
-      todayMidnight.getDate() - i,
-    );
-    dayTs.push(d.getTime());
-  }
-  const startOffset = new Date(dayTs[0]!).getDay(); // local 0=Sun
-  for (let i = 0; i < startOffset; i++) cells.push(null);
-  for (const ts of dayTs) cells.push(ts);
-  return cells;
-}
+export { buildGridCells };
 
 export const DropCalendarCard = memo(function DropCalendarCard({
   result,

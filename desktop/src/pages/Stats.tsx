@@ -18,7 +18,7 @@ import {
   type MoversWindow,
 } from "../../../lib/watchlist-stats";
 import { computeDigest, type DigestResult } from "../../../lib/price-digest";
-import { computeDropCalendar, buildDayKeys } from "../../../lib/drop-calendar";
+import { computeDropCalendar, dateKey, buildGridCells } from "../../../lib/drop-calendar";
 import { computeProductInsights } from "../../../lib/product-insights";
 import { rankDeals, dealBandLabel } from "../../../lib/deal-score";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
@@ -174,7 +174,8 @@ export function Stats() {
     () => computeDropCalendar(products ?? [], displayCurrency, 30),
     [products, displayCurrency],
   );
-  const last30DayKeys = useMemo(() => buildDayKeys(30, Date.now()), []);
+  // Leading blanks so the columns align to weekdays, like mobile's grid.
+  const dropCalendarCells = useMemo(() => buildGridCells(30, Date.now()), []);
 
   const chartData = useMemo(() => {
     if (!products || products.length === 0) return { data: [], distributors: [] };
@@ -628,7 +629,16 @@ export function Stats() {
           {dropCalendar.totalDrops} {dropCalendar.totalDrops === 1 ? "drop" : "drops"} in 30 days
         </p>
         <div className="grid grid-cols-7 gap-1 mt-3" role="grid" aria-label="Price drop calendar, last 30 days">
-          {last30DayKeys.map((key) => {
+          {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+            <div key={`hdr-${i}`} className="w-8 h-4 flex items-center justify-center text-[10px] font-medium text-gray-400" aria-hidden>
+              {d}
+            </div>
+          ))}
+          {dropCalendarCells.map((ts, i) => {
+            if (ts === null) {
+              return <div key={`blank-${i}`} className="w-8 h-8" aria-hidden />;
+            }
+            const key = dateKey(ts);
             const day = dropCalendar.byDay.get(key);
             const dropCount = day?.dropCount ?? 0;
             const hasDrops = dropCount > 0;

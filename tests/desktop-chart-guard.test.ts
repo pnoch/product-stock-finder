@@ -166,7 +166,7 @@ describe("desktop chart guard", () => {
   // drops vanished. It must use the shared calendar-date helper.
   it("uses the shared calendar-date helper for desktop drop-calendar keys", async () => {
     const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
-    expect(text).toContain("buildDayKeys");
+    expect(text).toContain("buildGridCells");
     expect(text).not.toMatch(/now - i \* 24 \* 60 \* 60 \* 1000/);
   });
 
@@ -219,6 +219,16 @@ describe("desktop chart guard", () => {
     expect(text).toMatch(/const resolveStatusColor = \(h: DistributorHealth\)/);
     expect(text).not.toMatch(/backgroundColor: statusColors\[h\.status\]/);
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
+  });
+
+  // QA round 152: desktop's drop-calendar grid laid 30 consecutive days into a
+  // 7-column grid with no leading blanks, so the columns drifted off weekday
+  // alignment (mobile's buildGridCells pads by the first day's weekday).
+  it("aligns the desktop drop calendar to weekdays", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toContain("buildGridCells");
+    expect(text).toMatch(/dropCalendarCells\.map/);
+    expect(text).not.toMatch(/last30DayKeys\.map/);
   });
 
   // QA round 151: mobile's DataFreshnessCard shows "Avg data points / listing"
