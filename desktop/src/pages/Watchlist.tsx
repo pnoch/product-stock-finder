@@ -16,6 +16,7 @@ import {
   Settings2,
   X,
   Plus,
+  Lightbulb,
 } from "lucide-react";
 import { useWatchlist, useSettings } from "../hooks/use-storage";
 import { useToast } from "../hooks/use-toast";
@@ -660,10 +661,16 @@ export function Watchlist() {
         )}
         <EmptyState
           icon={<Package className="w-8 h-8" />}
-          title="No products in watchlist"
-          description="Search for products to start tracking prices and stock availability."
-          action={{ label: "Add products", to: "/search" }}
+          title="No products yet"
+          description="Add products to track their availability and prices globally across 25 distributors."
+          action={{ label: "Browse Products", to: "/search" }}
         />
+        <div className="flex justify-center">
+          <p className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400">
+            <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
+            Tip: Search for MikroTik CRS, Ubiquiti U7, RTX 4090, Pi 5, etc.
+          </p>
+        </div>
       </div>
     );
   }

@@ -3529,3 +3529,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's compare header showed the product name as the title**, while mobile's `CompareHeader` title is "Compare Prices" with the product name as the subtitle — so a desktop user couldn't tell the screen's purpose at a glance
 - [x] Desktop's header title is now "Compare Prices", with the product name (plus brand/model) as the subtitle
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 117) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2189 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 465: Device QA round 213 (desktop watchlist no-products copy differed from mobile)
+
+- [x] **Desktop's watchlist no-products state read "No products in watchlist" / "Search for products to start tracking prices and stock availability." / "Add products"**, while mobile shows "No products yet" / "Add products to track their availability and prices globally across 25 distributors." / "Browse Products" plus a discovery tip — so the desktop lacked the tip and used different wording
+- [x] Desktop's empty state now matches mobile (title, description, Browse Products action, and the "Tip: Search for MikroTik CRS, Ubiquiti U7, RTX 4090, Pi 5, etc." hint)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 118) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2190 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

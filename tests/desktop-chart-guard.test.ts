@@ -221,6 +221,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 213: mobile's watchlist no-products state is "No products yet"
+  // with the "track … across 25 distributors" description, a tip, and a
+  // Browse Products action; desktop's said "No products in watchlist".
+  it("matches mobile's watchlist empty state on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    expect(text).toContain('title="No products yet"');
+    expect(text).toContain("track their availability and prices globally across 25 distributors.");
+    expect(text).toContain("Tip: Search for MikroTik CRS, Ubiquiti U7, RTX 4090, Pi 5, etc.");
+  });
+
   // QA round 212: mobile's CompareHeader title is "Compare Prices"; desktop's
   // header showed the product name as the title.
   it("titles the desktop compare header Compare Prices", async () => {
