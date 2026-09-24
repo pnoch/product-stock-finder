@@ -218,6 +218,7 @@ async function runSyncDesktopNotifications(): Promise<void> {
 
     const events = await pullEvents();
     const { sendDesktopNotification } = await import("./notifications");
+    const displayedIds = new Set(await storage.getDisplayedEventIds());
     for (const event of events) {
       try {
         // Both directions: a stale price_rise event for an inactive alert must
@@ -226,9 +227,12 @@ async function runSyncDesktopNotifications(): Promise<void> {
           (event.type === "price_drop" || event.type === "price_rise") &&
           event.alertId &&
           !activeAlertIds.has(event.alertId);
-        if (!stalePriceEvent) {
+        if (!stalePriceEvent && !displayedIds.has(event.id)) {
           const route = resolveEventRoute(event, activeAlerts, stockWatches, dateReminders);
-          await sendDesktopNotification(event.title, event.body, route);
+          // Only mark displayed when something was actually shown; otherwise the
+          // event would be dropped forever even after permissions are granted.
+          const shown = await sendDesktopNotification(event.title, event.body, route);
+          if (shown) await storage.recordDisplayedEventId(event.id);
         }
         // Record in the in-app Notification Center too; without this server
         // events showed as OS toasts but the Alerts tab stayed empty.
@@ -247,7 +251,12 @@ async function runSyncDesktopNotifications(): Promise<void> {
         } catch {
           // history recording is best-effort
         }
-        await reconcileEvent(event);
+        // Skip reconciliation for an event already delivered in a previous sync:
+        // a replay must not delete a watch/reminder the user re-created after
+        // the first delivery (mobile does the same).
+        if (!displayedIds.has(event.id)) {
+          await reconcileEvent(event);
+        }
       } catch {
         // skip this event; keep processing the rest
       }

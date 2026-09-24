@@ -57,6 +57,9 @@ vi.mock("../src/storage", () => ({
     deactivateAlert: async () => {},
     removeStockWatch: async () => {},
     removeBackOrderReminder: async () => {},
+    getDisplayedEventIds: async () => [],
+    recordDisplayedEventId: async () => {},
+    recordNotificationEvent: async () => {},
   },
 }));
 

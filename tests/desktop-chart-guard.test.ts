@@ -221,6 +221,17 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 139: desktop's server-notification pull never tracked displayed
+  // event ids, so every sync reconciled every event — a replay deleted a
+  // watch/reminder the user re-created after the first delivery. Mobile tracks
+  // displayedIds and skips reconciliation for already-delivered events.
+  it("skips reconciliation for already-delivered events on desktop", async () => {
+    const text = await readFile("desktop/src/server-notifications.ts", "utf8");
+    expect(text).toContain("getDisplayedEventIds");
+    expect(text).toContain("recordDisplayedEventId");
+    expect(text).toMatch(/if \(!displayedIds\.has\(event\.id\)\) \{\s*await reconcileEvent\(event\);/);
+  });
+
   // QA round 138: mobile's edit sheet requires both name and model non-empty
   // (canSave); desktop's Save only checked the name, so a blank model silently
   // kept the old one while the UI implied it changed.

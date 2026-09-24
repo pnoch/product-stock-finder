@@ -3085,3 +3085,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Edit Product Save button only required a non-empty name** (`!editName.trim()`), while mobile's `EditProductSheet` requires both name and model (`canSave`). `updateProductDetails` only applies a trimmed non-empty model, so saving a blank model silently kept the old one while the UI implied it changed
 - [x] Desktop now disables Save unless both name and model are non-empty, and `handleSaveEdit` guards the same condition
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 44) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2115 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 391: Device QA round 139 (desktop re-deleted re-created watches on an event replay)
+
+- [x] **Desktop's server-notification pull never tracked displayed event ids**, so it re-ran `reconcileEvent` for every pulled event on every sync. A replay (the server can return the same event again) then deleted a stock watch / reminder the user had re-created after the first delivery. Mobile tracks `displayedIds`, marks an event only when it was actually shown, and skips reconciliation for already-delivered events
+- [x] Desktop now loads `getDisplayedEventIds()`, records `recordDisplayedEventId` only when `sendDesktopNotification` returns true, and skips `reconcileEvent` for already-displayed events; the desktop health-probe test mock was updated
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 45) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2116 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
