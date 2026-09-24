@@ -7,6 +7,7 @@ import {
   Plus,
   ArrowRight,
   RefreshCw,
+  Lightbulb,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useWatchlist, useAlerts } from "../hooks/use-storage";
@@ -195,9 +196,15 @@ export function Home() {
         )}
         <EmptyState
           icon={<Package className="w-8 h-8" />}
-          title="No products tracked"
-          description="Add products to your watchlist to see your dashboard."
+          title="No products tracked yet"
+          description="Tap + to add a product to your watchlist and track prices across 25 distributors"
         />
+        <div className="flex justify-center mt-3">
+          <p className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-amber-300/40 bg-amber-50 dark:bg-amber-900/20 text-xs text-gray-500 dark:text-gray-400">
+            <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
+            Try: RTX 4090, Pi 5, CRS326, or U7 Pro Max
+          </p>
+        </div>
         <div className="flex justify-center mt-4">
           <Link
             to="/search"

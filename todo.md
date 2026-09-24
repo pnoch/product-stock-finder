@@ -3409,3 +3409,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's alerts empty state read "No price alerts" / "Set price alerts from product details…"**, while mobile's is "No alerts set" / 'Open a product and tap "Set Alert"…' — inconsistent wording between platforms
 - [x] Desktop's empty state now matches mobile; updated `desktop/tests/ux-alignment.test.tsx`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 97) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2169 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 445: Device QA round 193 (desktop Home empty state differed from mobile)
+
+- [x] **Desktop's Home empty state read "No products tracked" with "Add products to your watchlist to see your dashboard."**, while mobile's says "No products tracked yet" with "Tap + to add a product… across 25 distributors" plus a "Try: RTX 4090, Pi 5, CRS326, or U7 Pro Max" hint — desktop lacked the discovery hint
+- [x] Desktop's Home empty state now matches mobile (title, description, and hint)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 98) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2170 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

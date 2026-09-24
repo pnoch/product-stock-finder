@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 193: mobile's Home empty state says "No products tracked yet" and
+  // shows a "Try: RTX 4090, Pi 5, CRS326, or U7 Pro Max" hint; desktop's said
+  // "No products tracked" with no hint.
+  it("matches mobile's Home empty state on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    expect(text).toContain('title="No products tracked yet"');
+    expect(text).toContain("Try: RTX 4090, Pi 5, CRS326, or U7 Pro Max");
+  });
+
   // QA round 192: mobile's alerts empty state is "No alerts set" / 'Open a
   // product and tap "Set Alert"…'; desktop's was "No price alerts".
   it("matches mobile's alerts empty-state copy on desktop", async () => {
