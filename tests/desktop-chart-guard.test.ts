@@ -317,6 +317,23 @@ describe("desktop chart guard", () => {
     expect(text).toContain("loadError");
   });
 
+  // QA round 254: desktop copy used mobile's "tap" wording in Health/Home/Alerts
+  // (the Home hint also referenced a "+" control the desktop doesn't have).
+  it("uses desktop click wording instead of mobile tap", async () => {
+    const health = await readFile("desktop/src/pages/Health.tsx", "utf8");
+    const home = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    const alerts = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(health).toContain('Click &quot;Test All Distributors&quot; to run a check.');
+    expect(home).toContain("Click Add Product to add a product to your watchlist");
+    expect(alerts).toContain('Open a product and click "Set Alert"');
+    expect(alerts).toContain(
+      'Open a back-order product listing and click "Remind me" or "Watch for Restock"',
+    );
+    for (const text of [health, home, alerts]) {
+      expect(text.toLowerCase()).not.toContain("tap ");
+    }
+  });
+
   // QA round 253: mobile's Compare CSV export bails with "Nothing to export"
   // when no listing has price history; desktop wrote a header-only CSV and
   // reported success.
@@ -698,11 +715,12 @@ describe("desktop chart guard", () => {
   });
 
   // QA round 192: mobile's alerts empty state is "No alerts set" / 'Open a
-  // product and tap "Set Alert"…'; desktop's was "No price alerts".
+  // product and click "Set Alert"…'; desktop's was "No price alerts".
+  // (Round 254 replaced mobile's "tap" with desktop's "click".)
   it("matches mobile's alerts empty-state copy on desktop", async () => {
     const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
     expect(text).toContain('title="No alerts set"');
-    expect(text).toContain('Open a product and tap "Set Alert" to get notified when the price drops.');
+    expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
   // QA round 251: mobile's watchlist preview link reads "View all N products →";

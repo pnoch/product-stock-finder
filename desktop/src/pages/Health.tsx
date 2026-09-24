@@ -307,7 +307,7 @@ export function Health() {
               No distributor health data
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Tap &quot;Test All Distributors&quot; to run a check.
+              Click &quot;Test All Distributors&quot; to run a check.
             </p>
             <button
               onClick={() => void runTest()}

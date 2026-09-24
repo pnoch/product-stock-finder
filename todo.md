@@ -3779,3 +3779,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's Compare CSV export refuses when no listing has price history ("Nothing to export" / "No price history is available for this product yet."); the desktop's `handleExportCsv` had no such guard**, so it wrote a header-only CSV (with no data rows) and reported "Price history exported" — a misleading success
 - [x] Desktop export now bails with "Nothing to export — no price history yet" and builds rows from only the listings that have history
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 153) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2229 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
+
+## Phase 506: Device QA round 254 (desktop copy still said "tap")
+
+- [x] **Four desktop strings carried mobile's "tap" wording** (a pointer-desktop app): Health "Tap "Test All Distributors" to run a check.", Home "Tap + to add a product…", and Alerts "…and tap "Set Alert"…" / "…and tap "Remind me" or "Watch for Restock"."
+- [x] Home's hint also referenced a "+" control the desktop does not have (its empty state offers an "Add Product" button)
+- [x] Changed all four to desktop "click"/"Click" wording; Home now names the actual control ("Click Add Product…")
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 154) and updated the round-192 guard's copied assertion — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2230 passed`; desktop `tsc 0`, `46 passed` / `227 passed`

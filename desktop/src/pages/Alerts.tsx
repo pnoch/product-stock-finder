@@ -673,7 +673,7 @@ function AlertsTab({
         <EmptyState
           icon={<Bell className="w-12 h-12" />}
           title="No alerts set"
-          description='Open a product and tap "Set Alert" to get notified when the price drops.'
+          description='Open a product and click "Set Alert" to get notified when the price drops.'
         />
         <button
           onClick={() => navigate("/search")}
@@ -942,7 +942,7 @@ function RemindersTab({
         <EmptyState
           icon={<Clock className="w-12 h-12" />}
           title="No reminders set"
-          description='Open a back-order product listing and tap "Remind me" or "Watch for Restock".'
+          description='Open a back-order product listing and click "Remind me" or "Watch for Restock".'
         />
         <button
           onClick={() => navigate("/search")}
