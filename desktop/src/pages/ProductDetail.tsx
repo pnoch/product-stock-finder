@@ -880,13 +880,9 @@ export function ProductDetail() {
         <ProductImage productId={product.id} size={96} />
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{product.name}</h1>
-          <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 dark:text-gray-400">
-            <span>{product.brand}</span>
-            <span className="text-gray-300 dark:text-gray-600">|</span>
-            <span>{product.modelNumber}</span>
-            <span className="text-gray-300 dark:text-gray-600">|</span>
-            <span>{product.category}</span>
-          </div>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {product.brand} · {product.category} · {product.modelNumber}
+          </p>
           {/* Mobile's DetailHeader shows the product region (best deal's region,
               else the first listing's). */}
           {(() => {

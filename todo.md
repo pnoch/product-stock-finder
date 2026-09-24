@@ -3589,3 +3589,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Best Price card had no explanation**, while mobile's `BestDistributorCard` shows "Cheapest in-stock option" / "Cheapest orderable option" / "Cheapest available option" based on the listing's status
 - [x] Desktop's card now shows the matching subtitle
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 127) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2199 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 475: Device QA round 223 (desktop product header subline differed)
+
+- [x] **Desktop's product header subline was "{brand} | {modelNumber} | {category}"**, while mobile's `DetailHeader` shows "{brand} · {category} · {modelNumber}" — different separators and field order
+- [x] Desktop's subline now matches mobile
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 128) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2200 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 223: mobile's DetailHeader subline is "{brand} · {category} ·
+  // {modelNumber}"; desktop's was "{brand} | {modelNumber} | {category}".
+  it("matches mobile's product header subline on desktop", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("{product.brand} · {product.category} · {product.modelNumber}");
+  });
+
   // QA round 222: mobile's BestDistributorCard shows a "Cheapest in-stock
   // option" (etc.) subtitle; desktop's Best Price card omitted it.
   it("explains the desktop best-price card like mobile", async () => {
