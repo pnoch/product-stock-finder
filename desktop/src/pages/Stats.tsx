@@ -401,7 +401,7 @@ export function Stats() {
           <p className="text-xs text-gray-400 mt-1">{stockHealth?.totalListings ?? 0} listing{(stockHealth?.totalListings ?? 0) === 1 ? "" : "s"}</p>
         </div>
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Top Drops</p>
+          <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">▼ Top Drops</p>
           {movers && movers.drops.length > 0 ? (
             <div className="mt-2 space-y-2">
               {movers.drops.map((m) => (
@@ -420,7 +420,7 @@ export function Stats() {
           )}
         </div>
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Top Gainers</p>
+          <p className="text-sm font-semibold text-red-600 dark:text-red-400">▲ Top Gainers</p>
           {movers && movers.gainers.length > 0 ? (
             <div className="mt-2 space-y-2">
               {movers.gainers.map((m) => (

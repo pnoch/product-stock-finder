@@ -91,8 +91,8 @@ beforeEach(() => {
 describe("stats movers lists", () => {
   it("lists all top movers, not just the biggest", async () => {
     renderStats();
-    expect(await screen.findByText("Top Drops")).toBeInTheDocument();
-    expect(await screen.findByText("Top Gainers")).toBeInTheDocument();
+    expect(await screen.findByText("▼ Top Drops")).toBeInTheDocument();
+    expect(await screen.findByText("▲ Top Gainers")).toBeInTheDocument();
     for (const name of [
       "Drop Product Alpha",
       "Drop Product Beta",

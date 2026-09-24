@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 225: mobile's mover headers are "▼ Top Drops" (green) and
+  // "▲ Top Gainers" (red); desktop's were plain gray "Top Drops"/"Top Gainers".
+  it("matches mobile's mover headers on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toContain("▼ Top Drops");
+    expect(text).toContain("▲ Top Gainers");
+  });
+
   // QA round 224: mobile's drop-calendar cells show the day-of-month (count in
   // the label); desktop's drop cells showed the drop count.
   it("shows the day number in desktop drop-calendar cells", async () => {

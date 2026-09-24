@@ -3601,3 +3601,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's drop-calendar cells rendered the drop count** on drop days, while mobile's `DropCalendarCard` renders the day-of-month number with the count in the label — so the desktop grid read as numbers-of-drops rather than a calendar
 - [x] Desktop's cells now render `Number(key.slice(8, 10))` like mobile
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 129) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2201 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 477: Device QA round 225 (desktop mover headers differed from mobile)
+
+- [x] **Desktop's mover sections were headed plain gray "Top Drops" / "Top Gainers"**, while mobile's `MoversCard` uses "▼ Top Drops" (green) and "▲ Top Gainers" (red) — so the direction wasn't obvious on desktop
+- [x] Desktop's headers now match mobile; updated `desktop/tests/stats-polish.test.tsx`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 130) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2202 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
