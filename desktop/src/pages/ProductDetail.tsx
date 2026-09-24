@@ -1519,9 +1519,21 @@ export function ProductDetail() {
           </table>
           {visibleListings.length === 0 && (
             <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-              {regionFilter !== "all"
-                ? `No distributors in ${regionFilter}.`
-                : "No distributor listings available."}
+              {regionFilter !== "all" ? (
+                <>
+                  <p>{`No distributors in ${regionFilter}.`}</p>
+                  {/* Mobile's empty region state offers a Show All button. */}
+                  <button
+                    onClick={() => setRegionFilter("all")}
+                    className="mt-3 inline-flex items-center px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
+                    aria-label="Show all regions"
+                  >
+                    Show All
+                  </button>
+                </>
+              ) : (
+                "No distributor listings available."
+              )}
             </div>
           )}
         </div>

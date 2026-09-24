@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 188: mobile's empty region state offers a "Show All" button;
+  // desktop's "No distributors in {region}." had none.
+  it("offers Show All in the desktop empty region state", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toMatch(/aria-label="Show all regions"/);
+    expect(text).toContain('setRegionFilter("all")');
+  });
+
   // QA round 187: mobile's DetailHeader shows the product region; desktop's
   // header omitted it.
   it("shows the product region on the desktop header", async () => {
