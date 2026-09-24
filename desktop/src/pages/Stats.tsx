@@ -670,7 +670,7 @@ export function Stats() {
                     "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
                   }`}
                 >
-                  {dropCount}
+                  {Number(key.slice(8, 10))}
                 </button>
               );
             }

@@ -221,6 +221,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 224: mobile's drop-calendar cells show the day-of-month (count in
+  // the label); desktop's drop cells showed the drop count.
+  it("shows the day number in desktop drop-calendar cells", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const start = text.indexOf("dropCalendarCells.map((ts, i) => {");
+    const block = text.slice(start, start + 1400);
+    expect(block).not.toMatch(/>\s*\{dropCount\}\s*<\/button>/);
+    expect(block).toMatch(/\{Number\(key\.slice\(8, 10\)\)\}/);
+  });
+
   // QA round 223: mobile's DetailHeader subline is "{brand} · {category} ·
   // {modelNumber}"; desktop's was "{brand} | {modelNumber} | {category}".
   it("matches mobile's product header subline on desktop", async () => {

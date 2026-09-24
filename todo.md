@@ -3595,3 +3595,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's product header subline was "{brand} | {modelNumber} | {category}"**, while mobile's `DetailHeader` shows "{brand} · {category} · {modelNumber}" — different separators and field order
 - [x] Desktop's subline now matches mobile
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 128) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2200 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 476: Device QA round 224 (desktop drop-calendar cells showed the count, not the day)
+
+- [x] **Desktop's drop-calendar cells rendered the drop count** on drop days, while mobile's `DropCalendarCard` renders the day-of-month number with the count in the label — so the desktop grid read as numbers-of-drops rather than a calendar
+- [x] Desktop's cells now render `Number(key.slice(8, 10))` like mobile
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 129) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2201 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
