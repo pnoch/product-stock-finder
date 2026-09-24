@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 167: the same inline-tag-creation gap existed in desktop's
+  // SearchModal (the other search surface).
+  it("creates tags inline in the desktop SearchModal tag picker", async () => {
+    const text = await readFile("desktop/src/components/SearchModal.tsx", "utf8");
+    expect(text).toContain("handleCreateTag");
+    expect(text).toContain("New tag name");
+    expect(text).toContain("Create tag");
+  });
+
   // QA round 166: mobile's TagPickerSheet creates tags inline; desktop's search
   // "Assign tags" modal only toggled existing tags.
   it("creates tags inline in the desktop search tag picker", async () => {

@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from "react";
-import { useNavigate } from "react-router";
 import { Search, Check, Plus, Wand2, Loader2, Upload, PenLine, X } from "lucide-react";
 import { PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCatalogByPrice } from "@shared/catalog";
 import Fuse from "fuse.js";
@@ -11,6 +10,7 @@ import { discoverListings, customProductSlug } from "../../../lib/listing-discov
 import { manualAddProduct, rediscoverProduct } from "../../../lib/manual-add";
 import { useToast } from "../hooks/use-toast";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
+import { nextTagColor } from "../../../lib/tags";
 import type { TagDefinition } from "../../../lib/types";
 
 import { RECENT_KEY, loadRecent, recordRecent, type CatalogSort, CATALOG_SORT_OPTIONS, PillFilterRow } from "./search-chrome";
@@ -32,6 +32,7 @@ export function SearchModal({
   const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
   const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
   const [tagPickerFor, setTagPickerFor] = useState<string | null>(null);
+  const [newTagName, setNewTagName] = useState("");
   const trackedIdsArray = useMemo(() => Array.from(trackedIds), [trackedIds]);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
@@ -50,7 +51,6 @@ export function SearchModal({
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [catalogSort, setCatalogSort] = useState<CatalogSort>("relevance");
   const inputRef = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
 
   // Reset only on the closed→open transition. Running on every `open` render
   // (or after an unrelated re-render) could clear a query the user had already
@@ -167,6 +167,23 @@ export function SearchModal({
 
   const bulkPreview = useMemo(() => matchModels(parseModelInput(bulkText)), [bulkText]);
   const bulkNew = useMemo(() => bulkPreview.matched.filter((p) => !trackedIds.has(p.id)), [bulkPreview, trackedIdsArray, trackedIds]);
+
+  const handleCreateTag = useCallback(async () => {
+    const name = newTagName.trim();
+    if (!name || !tagPickerFor) return;
+    try {
+      const current = await storage.getTagDefinitions();
+      const tag = await storage.createTag(name, nextTagColor(current));
+      setTagDefinitions({ ...current, [tag.id]: tag });
+      setPendingTags((prev) => ({
+        ...prev,
+        [tagPickerFor]: [...(prev[tagPickerFor] ?? []), tag.id],
+      }));
+      setNewTagName("");
+    } catch {
+      showToast("Couldn't create tag");
+    }
+  }, [newTagName, tagPickerFor, showToast]);
 
   const handleBulkImport = async () => {
     if (bulkImporting || bulkNew.length === 0) return;
@@ -449,17 +466,28 @@ export function SearchModal({
                 );
               })}
               {Object.keys(tagDefinitions).length === 0 && (
-                <div>
-                  <p className="text-sm text-gray-500">No tags yet. Create tags in Watchlist.</p>
-                  <button
-                    onClick={() => { onClose(); navigate("/watchlist"); }}
-                    aria-label="Go to watchlist to create tags"
-                    className="mt-1 text-xs text-brand-600 hover:underline"
-                  >
-                    Go to Watchlist
-                  </button>
-                </div>
+                <p className="text-sm text-gray-500">No tags yet — create one below.</p>
               )}
+            </div>
+            {/* Mobile's TagPickerSheet creates tags inline; this modal only
+                toggled existing tags. */}
+            <div className="mt-3">
+              <input
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                maxLength={24}
+                placeholder="New tag name"
+                aria-label="New tag name"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+              />
+              <button
+                onClick={() => void handleCreateTag()}
+                disabled={!newTagName.trim()}
+                aria-label="Create tag"
+                className="mt-2 w-full px-3 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-50"
+              >
+                Create tag
+              </button>
             </div>
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => setTagPickerFor(null)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">Done</button>

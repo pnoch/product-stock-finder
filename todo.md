@@ -3253,3 +3253,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's search "Assign tags" modal only toggled existing tags**, while mobile's `TagPickerSheet` lets you create a new tag inline ("New tag name" + "Create tag") — so a desktop user with no tags had to leave search to create one
 - [x] Desktop's search tag picker now has the inline "New tag name" input and "Create tag" button, adding the new tag to the pending selection
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 71) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2143 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 419: Device QA round 167 (desktop SearchModal tag picker couldn't create tags)
+
+- [x] **The same inline-tag-creation gap existed in desktop's `SearchModal`** (the other search surface): it only toggled existing tags and pointed at the watchlist. Mobile's `TagPickerSheet` creates tags inline
+- [x] Desktop's `SearchModal` tag picker now has the inline "New tag name" input and "Create tag" button; removed the now-unused `navigate` import and updated `tests/desktop-tags-pointer-guard.test.ts`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 72) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2144 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
