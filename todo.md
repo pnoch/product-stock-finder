@@ -3109,3 +3109,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Distributor Targets section showed neither the product-wide alert footer nor the empty-state hint**, while mobile's `TargetTableCard` renders "Any distributor · target …" when a product-wide alert exists and "Set per-distributor targets with + to compare them here." when none do — so a desktop user couldn't tell a product-wide alert was active
 - [x] Desktop now renders both, using `productWideAlert` / `scopedAlertFor`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 47) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2119 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 395: Device QA round 143 (desktop product note had no length cap)
+
+- [x] **Desktop's product-note textarea had no `maxLength`**, while mobile's `NotesCard` caps the note at `maxLength={500}` — a desktop user could paste an unbounded note into the shared `product_notes` store
+- [x] Desktop's note textarea now sets `maxLength={500}`, matching mobile
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 48) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2120 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

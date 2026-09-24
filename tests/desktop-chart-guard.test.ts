@@ -221,6 +221,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 143: mobile's NotesCard caps the note at maxLength={500}; desktop's
+  // note textarea had no cap.
+  it("caps the desktop product note at 500 chars", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const start = text.indexOf('aria-label="Product note"');
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start - 500, start);
+    expect(block).toContain("maxLength={500}");
+  });
+
   // QA round 142: mobile's TargetTableCard shows a product-wide alert footer
   // ("Any distributor · target …") and an empty-state hint; desktop's
   // Distributor Targets section showed neither.

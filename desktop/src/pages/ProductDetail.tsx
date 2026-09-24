@@ -943,6 +943,7 @@ export function ProductDetail() {
               onChange={(e) => setDraftNote(e.target.value)}
               placeholder="Add a note about this product…"
               rows={3}
+              maxLength={500}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               aria-label="Product note"
             />
