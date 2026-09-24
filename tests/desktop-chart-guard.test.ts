@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 234: mobile's device row marks the current device with a "This
+  // device" badge; desktop appended " (current)" to the label.
+  it("marks the desktop current device like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toContain("This device");
+    expect(text).not.toContain("{isCurrent && \" (current)\"}");
+  });
+
   // QA round 233: mobile's Home still shows Trending with an empty watchlist so
   // a new user can discover products; desktop's empty state hid it.
   it("shows Trending in the desktop empty-watchlist Home", async () => {

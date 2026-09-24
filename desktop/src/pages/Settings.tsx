@@ -1205,7 +1205,14 @@ export function Settings() {
                 return (
                   <div key={d.deviceId} className={`flex items-center justify-between p-3 rounded-lg border ${isCurrent ? "border-brand-200 bg-brand-50 dark:bg-brand-900/10 dark:border-brand-800" : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30"}`}>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{d.label ?? `${d.deviceId.slice(0, 12)}…`}{isCurrent && " (current)"}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium truncate">{d.label ?? `${d.deviceId.slice(0, 12)}…`}</p>
+                        {isCurrent && (
+                          <span className="inline-flex shrink-0 px-1.5 py-0.5 rounded-lg bg-brand-600/15 text-brand-600 dark:text-brand-400 text-[10px] font-semibold">
+                            This device
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-500 truncate">{d.deviceId}</p>
                       {d.lastSeenAt > 0 && <p className="text-xs text-gray-400">Active {new Date(d.lastSeenAt).toLocaleDateString()}</p>}
                     </div>

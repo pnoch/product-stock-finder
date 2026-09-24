@@ -3655,3 +3655,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's empty-watchlist Home early-returned without the `TrendingSection`**, while mobile renders Trending below the stat cards regardless — so a brand-new desktop user had no in-app way to discover products
 - [x] Desktop's empty state now renders `<TrendingSection />`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 138) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2210 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 486: Device QA round 234 (desktop device row marked current differently)
+
+- [x] **Desktop appended " (current)" to the current device's label**, while mobile's `DeviceRow` shows a distinct "This device" badge — inconsistent emphasis between platforms
+- [x] Desktop now shows the "This device" badge next to the label
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 139) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2211 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
