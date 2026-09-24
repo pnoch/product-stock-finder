@@ -3199,3 +3199,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's digest card header read just "Digest"**, while mobile's `DigestCard` header reads "Digest — {periodLabel}" ("this week" / "today") — so a desktop user couldn't tell the digest's window
 - [x] Desktop's digest header now includes the period label from `digestFrequency`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 62) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2134 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 410: Device QA round 158 (desktop showed "Digest off" on an empty watchlist)
+
+- [x] **Desktop showed the "Digest off" card even when the watchlist was empty**, while mobile's `digestPlaceholder` returns `null` for an empty watchlist so the whole digest card is hidden — the desktop card was noise before any products were tracked
+- [x] Desktop now renders nothing for the digest card when `products.length === 0`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 63) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2135 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

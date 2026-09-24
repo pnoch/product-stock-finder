@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 158: mobile's digestPlaceholder returns null when the watchlist is
+  // empty (the whole card is hidden); desktop showed "Digest off" even with no
+  // products.
+  it("hides the desktop digest card on an empty watchlist", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toMatch(/products\.length === 0 \? null : digestFrequency === "off"/);
+  });
+
   // QA round 157: mobile's DigestCard header reads "Digest — {periodLabel}"
   // ("this week"/"today"); desktop's read just "Digest".
   it("labels the desktop digest period", async () => {

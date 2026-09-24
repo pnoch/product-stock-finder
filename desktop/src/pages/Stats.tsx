@@ -436,7 +436,7 @@ export function Stats() {
         </div>
       </div>
 
-      {digestFrequency === "off" ? (
+      {products.length === 0 ? null : digestFrequency === "off" ? (
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
           <p className="text-sm text-gray-500 dark:text-gray-400">Digest off</p>
           <p className="text-sm text-gray-400 mt-2">Enable daily or weekly price digests to see changes here.</p>
