@@ -221,6 +221,18 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 146: mobile's compare cross-alert checks notification permission
+  // before creating the alert; desktop's handleCrossAlert saved it regardless,
+  // so it could never notify.
+  it("checks notification permission in the desktop compare cross-alert", async () => {
+    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const start = text.indexOf("const handleCrossAlert = useCallback");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("}, [id, product, alertTarget", start));
+    expect(block).toContain("checkNotificationPermission");
+    expect(block).toContain("Enable notifications to receive price alerts.");
+  });
+
   // QA round 145: mobile's handleToggleStockWatch checks notification
   // permission before creating a restock watch; desktop's handleWatchRestock
   // and handleToggleListingWatch saved the watch regardless, so it could never

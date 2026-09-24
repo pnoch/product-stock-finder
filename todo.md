@@ -3127,3 +3127,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's `handleWatchRestock` and `handleToggleListingWatch` created restock watches without checking notification permission**, while mobile's `handleToggleStockWatch` calls `ensureNotificationPermission` first — so a desktop user with notifications denied got a saved watch that could never fire a notification
 - [x] Both desktop handlers now call `checkNotificationPermission` and toast "Enable notifications to watch for restocks." when denied; widened the existing double-submit guard's slice window
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 50) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2122 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 398: Device QA round 146 (desktop compare cross-alert skipped the permission check)
+
+- [x] **Desktop's `handleCrossAlert` (compare screen) created a cross-distributor price alert without checking notification permission**, while mobile's compare flow calls `ensureNotificationPermission` first — so a desktop user with notifications denied got an alert that could never notify
+- [x] Extracted the desktop permission check to `desktop/src/lib/notification-permission.ts` (ProductDetail re-exports it) and gated `handleCrossAlert` on it
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 51) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2123 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

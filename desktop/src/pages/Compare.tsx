@@ -8,6 +8,7 @@ import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
 import type { Product, PriceAlert } from "../../../lib/types";
 import { buildShareText } from "../../../lib/price-share";
 import { copyTextWithFallback, saveNodeAsPng } from "../lib/share";
+import { checkNotificationPermission } from "../lib/notification-permission";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
@@ -453,6 +454,13 @@ export function Compare() {
 
   const handleCrossAlert = useCallback(async () => {
     if (!id || !product || alertTarget === null || creatingAlert) return;
+    // Mobile's compare cross-alert checks notification permission first; without
+    // it the alert is saved but can never notify.
+    const granted = await checkNotificationPermission();
+    if (!granted) {
+      showToast("Enable notifications to receive price alerts.");
+      return;
+    }
     const alert: PriceAlert = {
       id: `cross-${id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       productId: id,
