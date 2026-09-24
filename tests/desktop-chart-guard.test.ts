@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 199: mobile's label is "Test Notification"; desktop's button said
+  // "Test notification".
+  it("titles the desktop test-notification button like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toMatch(/>\s*Test Notification\s*<\/button>/);
+    expect(text).not.toMatch(/>\s*Test notification\s*<\/button>/);
+  });
+
   // QA round 198: mobile's notification rows describe each alert type; desktop's
   // Stock/Price Alerts rows had no descriptions.
   it("describes the desktop notification toggles", async () => {

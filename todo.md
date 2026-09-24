@@ -3445,3 +3445,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Stock Alerts and Price Alerts rows had no descriptions**, while mobile's notification rows describe each type ("Notify when item comes in stock" / "Notify when price drops below target") — so a desktop user couldn't tell what each toggle did
 - [x] Desktop's Stock/Price Alerts rows now show the same descriptions (Health Alerts already had one)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 103) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2175 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 451: Device QA round 199 (desktop "Test notification" casing differed)
+
+- [x] **Desktop's test-notification button read "Test notification"**, while mobile's notifications section row is labeled "Test Notification" — inconsistent casing between platforms
+- [x] Desktop's button now reads "Test Notification"
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 104) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2176 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
