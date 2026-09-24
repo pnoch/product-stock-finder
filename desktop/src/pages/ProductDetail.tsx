@@ -1556,7 +1556,7 @@ export function ProductDetail() {
           setEditOpen(false);
           setEditError(null);
         }}
-        title="Edit product"
+        title="Edit Product ✏️"
       >
         <div className="space-y-4">
           {editError && (

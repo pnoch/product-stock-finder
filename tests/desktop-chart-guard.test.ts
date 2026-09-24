@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 181: mobile's EditProductSheet title is "Edit Product ✏️";
+  // desktop's edit-product modal was "Edit product".
+  it("titles the desktop edit-product modal like mobile", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain('title="Edit Product ✏️"');
+    expect(text).not.toContain('title="Edit product"');
+  });
+
   // QA round 180: mobile's ReminderDatePickerModal title is "Set Reminder 📅";
   // desktop's was "Set Reminder".
   it("titles the desktop reminder modal like mobile", async () => {

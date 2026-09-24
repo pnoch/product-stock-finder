@@ -3337,3 +3337,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's reminder date-picker modal was titled "Set Reminder"**, while mobile's `ReminderDatePickerModal` is titled "Set Reminder 📅" — inconsistent wording between platforms
 - [x] Desktop's title now includes the 📅 emoji
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 85) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2157 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 433: Device QA round 181 (desktop edit-product modal title differed from mobile)
+
+- [x] **Desktop's edit-product modal was titled "Edit product"**, while mobile's `EditProductSheet` is titled "Edit Product ✏️" — inconsistent wording between platforms
+- [x] Desktop's title now reads "Edit Product ✏️"
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 86) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2158 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
