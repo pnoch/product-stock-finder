@@ -1035,6 +1035,14 @@ export function ProductDetail() {
                 {bestDistributor.name} · {bestDistributor.country}{" "}
                 {bestDistributor.countryFlag}
               </p>
+              {/* Mobile's BestDistributorCard explains why this is best. */}
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                {bestListing.stockStatus === "in_stock"
+                  ? "Cheapest in-stock option"
+                  : bestListing.stockStatus === "back_order"
+                    ? "Cheapest orderable option"
+                    : "Cheapest available option"}
+              </p>
             </div>
             <div className="flex flex-col items-end gap-2">
               <StockBadge

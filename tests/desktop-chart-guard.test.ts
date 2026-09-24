@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 222: mobile's BestDistributorCard shows a "Cheapest in-stock
+  // option" (etc.) subtitle; desktop's Best Price card omitted it.
+  it("explains the desktop best-price card like mobile", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("Cheapest in-stock option");
+    expect(text).toContain("Cheapest orderable option");
+    expect(text).toContain("Cheapest available option");
+  });
+
   // QA round 221: mobile's ChartCard offers 6M/1Y ranges and shows "Select up
   // to 5 distributors to overlay" plus range hints; desktop only had 1W/1M/3M/
   // All and no hints.
