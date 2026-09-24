@@ -3466,6 +3466,6 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 
 ## Phase 454: Device QA round 202 (desktop data buttons had no descriptions)
 
-- [x] **Desktop's data buttons had no descriptions**, while mobile's `DataSource` rows describe each action ("Save watchlist, alerts and settings to a file" / "Restore from a backup file (merges by id)" / "Save watchlist as CSV (prices in display currency)") — so a desktop user couldn't tell what each button did
+- [x] **Desktop's data buttons had no descriptions**, while mobile's `DataSection` rows describe each action ("Save watchlist, alerts and settings to a file" / "Restore from a backup file (merges by id)" / "Save watchlist as CSV (prices in display currency)") — so a desktop user couldn't tell what each button did
 - [x] Desktop's Export CSV / Export Backup / Import Backup buttons now carry the descriptions as `title` tooltips
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 107) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2179 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
