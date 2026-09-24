@@ -387,11 +387,16 @@ export function Compare() {
       return { ...l, distName: dist?.name ?? l.distributorId, dist };
     });
     if (sortBy === "price") {
-      return listings.sort(
-        (a, b) =>
-          (convertPrice(a.price, a.currency, displayCurrency) ?? a.price) -
-          (convertPrice(b.price, b.currency, displayCurrency) ?? b.price),
-      );
+      return listings.sort((a, b) => {
+        // Null-safe: falling back to the raw price mixed currencies when a
+        // listing's rate was unavailable (mobile sorts those last).
+        const pa = convertPrice(a.price, a.currency, displayCurrency);
+        const pb = convertPrice(b.price, b.currency, displayCurrency);
+        if (pa === null && pb === null) return 0;
+        if (pa === null) return 1;
+        if (pb === null) return -1;
+        return pa - pb;
+      });
     }
     if (sortBy === "trend") {
       return listings.sort((a, b) => {
@@ -413,9 +418,15 @@ export function Compare() {
       (l) => l.stockStatus !== "out_of_stock" && l.price > 0,
     );
     if (!inStock.length) return null;
-    return inStock.reduce((best, curr) => {
-      const currConv = convertPrice(curr.price, curr.currency, displayCurrency) ?? curr.price;
-      const bestConv = convertPrice(best.price, best.currency, displayCurrency) ?? best.price;
+    // Skip listings whose currency can't be converted rather than falling back
+    // to the raw price, which mixed currencies in the comparison.
+    const convertible = inStock.filter(
+      (l) => convertPrice(l.price, l.currency, displayCurrency) !== null,
+    );
+    if (!convertible.length) return null;
+    return convertible.reduce((best, curr) => {
+      const currConv = convertPrice(curr.price, curr.currency, displayCurrency)!;
+      const bestConv = convertPrice(best.price, best.currency, displayCurrency)!;
       return currConv < bestConv ? curr : best;
     });
   }, [sortedListings, displayCurrency]);

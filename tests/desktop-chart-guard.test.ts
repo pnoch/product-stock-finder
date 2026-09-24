@@ -221,6 +221,21 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 132: desktop's Compare price sort and "Best Price" card fell back
+  // to the raw price when a listing's currency couldn't be converted, mixing
+  // currencies in the comparison. Mobile sorts unconvertible listings last.
+  it("does not mix currencies in the desktop compare price sort", async () => {
+    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const sortStart = text.indexOf('if (sortBy === "price")');
+    expect(sortStart).toBeGreaterThan(-1);
+    const sortBlock = text.slice(sortStart, text.indexOf('if (sortBy === "trend")', sortStart));
+    expect(sortBlock).not.toMatch(/convertPrice\([^)]*\) \?\? a\.price/);
+    expect(sortBlock).toMatch(/if \(pa === null\) return 1/);
+    const cheapStart = text.indexOf("const cheapest = useMemo");
+    const cheapBlock = text.slice(cheapStart, text.indexOf("}, [sortedListings, displayCurrency]);", cheapStart));
+    expect(cheapBlock).not.toMatch(/convertPrice\([^)]*\) \?\? (curr|best)\.price/);
+  });
+
   // QA round 131: desktop's watchlist sort used `a.name.localeCompare` and
   // `new Date(...).getTime()` directly, so a malformed product (missing name /
   // invalid date) threw or produced a NaN comparator (implementation-defined

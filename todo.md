@@ -3043,3 +3043,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's watchlist sort called `a.name.localeCompare(b.name)` and `new Date(a.lastRefreshed ?? a.addedAt).getTime()` directly**: a product with no name threw, and an invalid date produced a `NaN` comparator (implementation-defined ordering). Mobile's `sortWatchlist` guards both (`(a.name ?? "").localeCompare(...) || a.id.localeCompare(b.id)` and `Date.parse(...) || 0`)
 - [x] Desktop's `name` sort now uses the `?? ""` guard with an id tiebreak, and `lastUpdated` uses `Date.parse(...) || 0` with an id tiebreak
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 37) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2108 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 384: Device QA round 132 (desktop compare price sort mixed currencies)
+
+- [x] **Desktop's Compare price sort and "Best Price" card fell back to the raw price when a listing's currency couldn't be converted** (`convertPrice(...) ?? a.price`), so an unrated-currency listing was compared by its raw magnitude against converted ones — a wrong "best price" and order. Mobile's `sortedListings` returns `null` for unconvertible listings and sorts them last
+- [x] Desktop's price sort now null-checks (`pa === null → 1`, `pb === null → -1`) and the `cheapest` card filters out unconvertible listings instead of using the raw price
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 38) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2109 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
