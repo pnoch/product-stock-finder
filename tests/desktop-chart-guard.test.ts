@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 197: mobile's account-deletion button reads "Delete Account &
+  // Data"; desktop's was "Delete account & data".
+  it("titles the desktop account-deletion button like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toContain("Delete Account & Data");
+    expect(text).not.toContain("Delete account & data");
+  });
+
   // QA round 196: mobile's data section title is "Data"; desktop's was "Data
   // Management".
   it("titles the desktop data section Data", async () => {

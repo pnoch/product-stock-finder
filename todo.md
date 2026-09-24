@@ -3433,3 +3433,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's data section was titled "Data Management"**, while mobile's `DataSection` is titled "Data" — inconsistent wording between platforms
 - [x] Desktop's section now reads "Data"
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 101) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2173 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 449: Device QA round 197 (desktop account-deletion button casing differed)
+
+- [x] **Desktop's account-deletion button read "Delete account & data"**, while mobile's `AccountSection` button reads "Delete Account & Data" — inconsistent casing between platforms
+- [x] Desktop's button now reads "Delete Account & Data"
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 102) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2174 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
