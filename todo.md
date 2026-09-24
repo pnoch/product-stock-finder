@@ -3049,3 +3049,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Compare price sort and "Best Price" card fell back to the raw price when a listing's currency couldn't be converted** (`convertPrice(...) ?? a.price`), so an unrated-currency listing was compared by its raw magnitude against converted ones — a wrong "best price" and order. Mobile's `sortedListings` returns `null` for unconvertible listings and sorts them last
 - [x] Desktop's price sort now null-checks (`pa === null → 1`, `pb === null → -1`) and the `cheapest` card filters out unconvertible listings instead of using the raw price
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 38) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2109 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 385: Device QA round 133 (desktop "Lowest Price Ever" badge lied on unconvertible history)
+
+- [x] **Desktop's `isLowestEver` mapped unconvertible prior points to `Infinity`** (`convertPrice(...) ?? Infinity`), so a history whose points all lacked a rate produced `priorMin = Infinity` and the badge claimed "Lowest Price Ever" for any current price. Mobile's `BestDistributorCard` filters nulls and returns false when none remain
+- [x] Desktop now filters unconvertible prior points and returns false when none remain; the compare selection sort (`withHistory`) also no longer falls back to the raw price (same mixed-currency class as round 132)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 39) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2110 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

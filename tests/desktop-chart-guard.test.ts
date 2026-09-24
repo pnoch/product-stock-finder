@@ -221,6 +221,22 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 133: desktop's "Lowest Price Ever" badge mapped unconvertible
+  // prior points to Infinity, so an all-unconvertible history claimed "lowest
+  // ever"; the compare selection sort also fell back to the raw price. Mobile
+  // filters nulls and sorts unconvertible listings last.
+  it("does not treat unconvertible prices as lowest-ever on desktop", async () => {
+    const detail = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const start = detail.indexOf("const isLowestEver = useMemo");
+    const block = detail.slice(start, detail.indexOf("}, [bestListing, displayCurrency]);", start));
+    expect(block).not.toContain("?? Infinity");
+    expect(block).toMatch(/filter\(\(v\): v is number => v !== null\)/);
+    const compare = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const selStart = compare.indexOf("const withHistory = (product.listings ?? [])");
+    const selBlock = compare.slice(selStart, compare.indexOf("setSelected(new Set(withHistory.slice(0, 3)", selStart));
+    expect(selBlock).not.toMatch(/convertPrice\([^)]*\) \?\? [ab]\.price/);
+  });
+
   // QA round 132: desktop's Compare price sort and "Best Price" card fell back
   // to the raw price when a listing's currency couldn't be converted, mixing
   // currencies in the comparison. Mobile sorts unconvertible listings last.

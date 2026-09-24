@@ -378,9 +378,14 @@ export function ProductDetail() {
     if (!bestListing || !hist || hist.length < 2) return false;
     // Compare in the display currency, like the rest of the page: hardcoding
     // USD mixed units, so a EUR/GBP user's "lowest ever" badge was wrong.
-    const priorMin = Math.min(
-      ...hist.slice(0, -1).map((p) => convertPrice(p.price, p.currency, displayCurrency) ?? Infinity),
-    );
+    // Skip unconvertible points rather than mapping them to Infinity — that
+    // made an all-unconvertible history claim "lowest ever" (mobile filters).
+    const priorPoints = hist
+      .slice(0, -1)
+      .map((p) => convertPrice(p.price, p.currency, displayCurrency))
+      .filter((v): v is number => v !== null);
+    if (priorPoints.length === 0) return false;
+    const priorMin = Math.min(...priorPoints);
     const current = convertPrice(bestListing.price, bestListing.currency, displayCurrency);
     if (current === null) return false;
     return current < priorMin;

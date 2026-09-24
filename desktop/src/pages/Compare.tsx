@@ -315,8 +315,13 @@ export function Compare() {
     const withHistory = (product.listings ?? [])
       .filter((l) => l.priceHistory && l.priceHistory.length >= 2)
       .sort((a, b) => {
-        const aConv = convertPrice(a.price, a.currency, displayCurrency) ?? a.price;
-        const bConv = convertPrice(b.price, b.currency, displayCurrency) ?? b.price;
+        // Null-safe: the raw-price fallback mixed currencies when a rate was
+        // unavailable (mobile sorts unconvertible listings last).
+        const aConv = convertPrice(a.price, a.currency, displayCurrency);
+        const bConv = convertPrice(b.price, b.currency, displayCurrency);
+        if (aConv === null && bConv === null) return 0;
+        if (aConv === null) return 1;
+        if (bConv === null) return -1;
         return aConv - bConv;
       });
     setSelected(new Set(withHistory.slice(0, 3).map((l) => l.distributorId)));
