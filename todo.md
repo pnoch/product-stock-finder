@@ -3706,3 +3706,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Added `desktop/src/lib/history-sync.ts` (`backfillLocalHistory(client, watchlist)` — caps to `MAX_UPLOAD_HISTORY_POINTS`, per-listing failures non-fatal)
 - [x] Wired it into the desktop's authenticated effect in `desktop/src/App.tsx`
 - [x] Added `desktop/tests/history-sync.test.ts` (3 tests) and a wiring guard to `tests/desktop-p1-parity.test.ts` — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2218 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
+
+## Phase 494: Device QA round 242 (desktop drop calendar had no selected-day highlight)
+
+- [x] **Mobile's `DropCalendarCard` visibly highlights the selected day (primary background + 2px border); the desktop day button only toggled `aria-pressed`, so clicking a day gave no visual selection feedback**, leaving keyboard/screen-reader users the only ones who could tell a day was selected
+- [x] The desktop's selected day now renders `bg-brand-600 text-white ring-2 ring-brand-400`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 144) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2219 passed`; desktop `tsc 0`, `46 passed` / `227 passed`

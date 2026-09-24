@@ -680,7 +680,9 @@ export function Stats() {
                   aria-pressed={selectedKey === key}
                   onClick={() => setSelectedKey((k) => (k === key ? null : key))}
                   className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium ${
-                    "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
+                    selectedKey === key
+                      ? "bg-brand-600 text-white ring-2 ring-brand-400"
+                      : "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
                   }`}
                 >
                   {Number(key.slice(8, 10))}

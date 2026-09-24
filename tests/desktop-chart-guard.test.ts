@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 242: mobile highlights the selected drop-calendar day; desktop
+  // only set aria-pressed, so a click gave no visual selection feedback.
+  it("highlights the selected drop-calendar day on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toMatch(
+      /selectedKey === key\s*\?\s*"bg-brand-600 text-white ring-2 ring-brand-400"/,
+    );
+  });
+
   // QA round 238: mobile's drop-calendar count reads "N price drops in the last
   // 30 days"; desktop's said "N drops in 30 days".
   it("matches mobile's drop-calendar count text on desktop", async () => {
