@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 231: mobile's DigestCard has "Price Changes", "Stock Changes", and
+  // "🎯 Targets Hit" section headers; desktop's digest card lacked them.
+  it("adds the desktop digest section headers", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toContain(">Price Changes</p>");
+    expect(text).toContain(">Stock Changes</p>");
+    expect(text).toContain(">🎯 Targets Hit</p>");
+  });
+
   // QA round 230: mobile's StockHealthCard shows "Listings in stock" / "Fully
   // out of stock" / "Back-order everywhere" columns; desktop used a compressed
   // single line.

@@ -495,6 +495,7 @@ export function Stats() {
             <div className="mt-2 space-y-2 text-sm">
               {digest.priceChanges.length > 0 && (
                 <div>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Price Changes</p>
                   {digest.priceChanges.slice(0, 3).map((c) => (
                     <p key={c.productId} className="text-gray-600 dark:text-gray-400">
                       <span className="text-gray-900 dark:text-gray-100">{c.name}</span>{" "}
@@ -550,6 +551,7 @@ export function Stats() {
               )}
               {digest.stockChanges.length > 0 && (
                 <div>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Stock Changes</p>
                   {digest.stockChanges.slice(0, 3).map((s) => (
                     <p key={s.productId} className="text-gray-600 dark:text-gray-400">
                       <span className="text-gray-900 dark:text-gray-100">{s.name}</span>: {s.from} → {s.to}
@@ -562,9 +564,10 @@ export function Stats() {
               )}
               {digest.alertTargetsHit.length > 0 && (
                 <div>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">🎯 Targets Hit</p>
                   {digest.alertTargetsHit.slice(0, 3).map((t) => (
                     <p key={t.alertId} className="text-gray-600 dark:text-gray-400">
-                      🎯 <span className="text-gray-900 dark:text-gray-100">{t.name}</span> at{" "}
+                      <span className="text-gray-900 dark:text-gray-100">{t.name}</span> at{" "}
                       {formatPrice(t.price, t.currency)}
                     </p>
                   ))}
