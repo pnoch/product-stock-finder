@@ -221,6 +221,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 141: mobile's price-alert modal shows suggested target prices
+  // (Near low / Below avg / Under current) via suggestAlertPrices; desktop's
+  // modal had none.
+  it("shows alert price suggestions in the desktop alert modal", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("suggestAlertPrices");
+    expect(text).toMatch(/alertSuggestions\.map\(\(s\) =>/);
+    expect(text).toMatch(/setAlertPrice\(String\(s\.price\)\)/);
+  });
+
   // QA round 139: desktop's server-notification pull never tracked displayed
   // event ids, so every sync reconciled every event — a replay deleted a
   // watch/reminder the user re-created after the first delivery. Mobile tracks

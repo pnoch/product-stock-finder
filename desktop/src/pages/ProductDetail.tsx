@@ -29,6 +29,7 @@ import {
 } from "../../../lib/region-filter";
 import type { Product, PriceAlert, DistributorListing } from "../../../lib/types";
 import { scopedAlertFor, productWideAlert, alertDeltaPct } from "../../../lib/alert-scope";
+import { suggestAlertPrices } from "../../../lib/alert-suggestions";
 import { findBestDeal } from "../../../lib/best-deal";
 import { computeDealScore, dealBandLabel } from "../../../lib/deal-score";
 import { composeLiveListings } from "../../../lib/live-prices";
@@ -169,6 +170,12 @@ export function ProductDetail() {
   const [perListingAlertDirection, setPerListingAlertDirection] = useState<"drop" | "rise">("drop");
   const [alertDirection, setAlertDirection] = useState<"drop" | "rise">("drop");
   const [alertDistributorId, setAlertDistributorId] = useState<string | null>(null);
+  // Suggested target prices (Near low / Below avg / Under current), matching
+  // mobile's PriceAlertModal chips.
+  const alertSuggestions = useMemo(
+    () => suggestAlertPrices(product?.listings ?? [], alertCurrency),
+    [product?.listings, alertCurrency],
+  );
   const [reminderOpen, setReminderOpen] = useState(false);
   const [reminderDateInput, setReminderDateInput] = useState(() => new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
   const [reminderDistributorId, setReminderDistributorId] = useState<string | null>(null);
@@ -1656,6 +1663,21 @@ export function ProductDetail() {
               <label className="block text-sm font-medium mb-1">
                 Target Price
               </label>
+              {alertSuggestions.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {alertSuggestions.map((s) => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      onClick={() => setAlertPrice(String(s.price))}
+                      className="px-3 py-1.5 rounded-full border border-brand-500/40 bg-brand-500/10 text-brand-600 dark:text-brand-400 text-xs font-semibold hover:bg-brand-500/20 transition-colors"
+                      aria-label={`Set price to ${s.label}`}
+                    >
+                      {s.label} · {formatPrice(s.price, alertCurrency)}
+                    </button>
+                  ))}
+                </div>
+              )}
               <input
                 type="number"
                 value={alertPrice}

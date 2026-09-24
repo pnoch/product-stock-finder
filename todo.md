@@ -3097,3 +3097,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`lib/restock.ts` recorded the restock notification through the module-level default store** (`await import("./storage")`), not the injected `storage` the desktop passes. The module default resolves to IndexedDB in a Tauri webview — a different store from the desktop UI's localStorage — so a desktop restock fired the OS notification but the event never appeared in the Alerts tab (and the unread count stayed wrong)
 - [x] `RestockStorage` now requires `recordNotificationEvent`, and the restock history write uses the injected `storage`; the `tests/restock.test.ts` mock was updated
 - [x] Added a test asserting the injected store receives the event — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2117 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 393: Device QA round 141 (desktop alert modal had no price suggestions)
+
+- [x] **Desktop's Set Price Alert modal had no suggested target prices**, while mobile's `PriceAlertModal` renders chips from `suggestAlertPrices` (Near low / Below avg / Under current) that fill the target field — so a desktop user had to type a price blind
+- [x] Desktop now computes `alertSuggestions` from `suggestAlertPrices(product.listings, alertCurrency)` and renders the same chips above the Target Price input
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 46) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2118 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
