@@ -3115,3 +3115,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's product-note textarea had no `maxLength`**, while mobile's `NotesCard` caps the note at `maxLength={500}` — a desktop user could paste an unbounded note into the shared `product_notes` store
 - [x] Desktop's note textarea now sets `maxLength={500}`, matching mobile
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 48) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2120 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 396: Device QA round 144 (desktop device rename had no length cap)
+
+- [x] **Desktop's device-rename input had no `maxLength`**, while the server caps labels at 64 (`z.string().min(1).max(64)`) and mobile's `RenameDeviceModal` sets `maxLength={64}` — a longer desktop label made the rename mutation fail
+- [x] Desktop's rename input now sets `maxLength={64}`, matching mobile and the server cap
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 49) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2121 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

@@ -1212,7 +1212,7 @@ export function Settings() {
                   <h3 className="font-semibold text-sm">Rename device</h3>
                   <button onClick={() => setRenameTarget(null)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
                 </div>
-                <input value={renameLabel} onChange={(e) => setRenameLabel(e.target.value)} placeholder="Device label" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm mb-3" />
+                <input value={renameLabel} onChange={(e) => setRenameLabel(e.target.value)} maxLength={64} placeholder="Device label" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm mb-3" />
                 <div className="flex justify-end gap-2">
                   <button onClick={() => setRenameTarget(null)} className="px-3 py-2 rounded-lg border text-sm">Cancel</button>
                   <button onClick={handleRename} disabled={renaming || !renameLabel.trim()} className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm disabled:opacity-50">{renaming ? "Saving…" : "Save"}</button>
