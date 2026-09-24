@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router";
 import { Flame, Plus, Check } from "lucide-react";
 import { fetchTrending } from "@shared/trending";
@@ -17,20 +17,27 @@ function currencySymbol(c: string) {
 export function TrendingSection() {
   const [products, setProducts] = useState<TrendingProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const { toast, showToast } = useToast();
   const navigate = useNavigate();
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
     fetchTrending()
       .then((data) => setProducts(data))
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    load();
 
     storage.getWatchlist().then((w) => {
       setAddedIds(new Set(w.map((p) => p.id)));
     }).catch(() => {});
-  }, []);
+  }, [load]);
 
   // Trending products come from the server, not the local watchlist, so the
   // product detail screen (which reads the watchlist) can't resolve them until
@@ -105,6 +112,31 @@ export function TrendingSection() {
     );
   }
 
+  if (loadError && products.length === 0) {
+    // Mobile shows a "Couldn't load" retry instead of silently hiding the
+    // section when fetchTrending fails.
+    return (
+      <div>
+        <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
+          <Flame className="w-5 h-5 text-orange-500" />
+          Trending Now
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+          Hard-to-find products from the community
+        </p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 dark:text-gray-400">Couldn&apos;t load</span>
+          <button
+            onClick={load}
+            className="px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+            aria-label="Retry loading trending"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
   if (products.length === 0) return null;
 
   return (

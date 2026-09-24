@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 232: mobile's trending section shows "Couldn't load" + "Retry" on
+  // fetch failure; desktop swallowed the error and hid the section.
+  it("shows a trending retry state on desktop", async () => {
+    const text = await readFile("desktop/src/components/TrendingSection.tsx", "utf8");
+    expect(text).toContain("Couldn&apos;t load");
+    expect(text).toContain('aria-label="Retry loading trending"');
+    expect(text).toContain("loadError");
+  });
+
   // QA round 231: mobile's DigestCard has "Price Changes", "Stock Changes", and
   // "🎯 Targets Hit" section headers; desktop's digest card lacked them.
   it("adds the desktop digest section headers", async () => {

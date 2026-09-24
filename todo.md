@@ -3643,3 +3643,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's digest card had no "Price Changes" / "Stock Changes" / "🎯 Targets Hit" section headers** (it showed the rows without labels, and the target emoji inline), while mobile's `DigestCard` labels each section — so desktop rows were ambiguous
 - [x] Desktop's digest card now shows the three headers and drops the inline 🎯 (now on the header)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 136) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2208 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 484: Device QA round 232 (desktop trending section hid fetch failures)
+
+- [x] **Desktop's TrendingSection swallowed `fetchTrending` failures** (`.catch(() => {})`) and then rendered `null`, so the section silently vanished with no way to recover. Mobile's `TrendingSection` shows "Couldn't load" with a "Retry" button
+- [x] Desktop now tracks `loadError`, exposes a `load` retry, and renders the "Couldn't load" + Retry state
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 137) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2209 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
