@@ -3169,3 +3169,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's drop-calendar grid laid 30 consecutive days into a 7-column grid with no leading blanks**, so the columns drifted off weekday alignment (a day in the "Monday" column wasn't Monday). Mobile's `buildGridCells` pads by the first day's weekday and renders a weekday header
 - [x] Moved `buildGridCells` into `lib/drop-calendar.ts` (mobile re-exports it) and desktop Stats now uses it with the S–S weekday header
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 57) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2129 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 405: Device QA round 153 (desktop watchlist header had no Add Product button)
+
+- [x] **Desktop's Watchlist header had no "Add Product" button**, while mobile's `WatchlistHeader` renders a primary + button that opens search — so a desktop user had no in-context way to add a product from the watchlist
+- [x] Desktop's Watchlist header now has an "Add Product" button linking to `/search`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 58) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2130 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

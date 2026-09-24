@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 153: mobile's WatchlistHeader has an "Add product" (+) button;
+  // desktop's Watchlist header had none.
+  it("has an Add Product button in the desktop watchlist header", async () => {
+    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    expect(text).toMatch(/aria-label="Add product"/);
+    expect(text).toMatch(/navigate\("\/search"\)/);
+  });
+
   // QA round 152: desktop's drop-calendar grid laid 30 consecutive days into a
   // 7-column grid with no leading blanks, so the columns drifted off weekday
   // alignment (mobile's buildGridCells pads by the first day's weekday).

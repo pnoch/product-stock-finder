@@ -15,6 +15,7 @@ import {
   Tag as TagIcon,
   Settings2,
   X,
+  Plus,
 } from "lucide-react";
 import { useWatchlist, useSettings } from "../hooks/use-storage";
 import { useToast } from "../hooks/use-toast";
@@ -1025,6 +1026,13 @@ export function Watchlist() {
               aria-label="Manage tags"
             >
               <Settings2 className="w-4 h-4" /> Manage Tags
+            </button>
+            <button
+              onClick={() => navigate("/search")}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
+              aria-label="Add product"
+            >
+              <Plus className="w-4 h-4" /> Add Product
             </button>
             {checking && checkProgress && (
               <span className="text-xs text-gray-500">Checking {checkProgress.current}/{checkProgress.total} products</span>
