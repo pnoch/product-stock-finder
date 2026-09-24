@@ -255,12 +255,12 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
 
       <Text style={{ fontSize: 12, color: colors.muted, marginTop: 12 }}>
         {provider === "forge"
-          ? "Uses the built-in Forge API for image generation and insights."
+          ? "Uses the built-in service. AI discovery and price insights run on the server; no key needed."
           : provider === "openai"
-            ? "Requires an OpenAI API key. Used for price insights, product discovery, and image generation."
+            ? "Requires an OpenAI API key. Used for product discovery and price insights."
             : provider === "ollama"
-              ? "Uses Ollama Cloud. Requires an API key from ollama.com."
-              : "Uses your local Ollama installation. Run 'ollama pull llava' to download a model."}
+              ? "Uses Ollama Cloud. Requires an API key from ollama.com; used for product discovery and price insights."
+              : "Runs against an Ollama server on the app server's host (loopback only). Run 'ollama pull llama3.2' to download the default model."}
       </Text>
     </View>
   );

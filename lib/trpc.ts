@@ -5,6 +5,7 @@ import superjson from "superjson";
 import type { AppRouter } from "@/server/routers";
 import { getApiBaseUrl } from "@/constants/oauth";
 import { getDeviceId } from "@/lib/device-id";
+import { getSettings } from "@/lib/storage";
 import { handleDeviceRevoked } from "@/lib/device-revoked";
 import { getBackgroundAppState } from "@/lib/background-safe-timers";
 import { backgroundFetch } from "@/lib/background-fetch";
@@ -29,6 +30,28 @@ const FOREGROUND_TRPC_TIMEOUT_MS = 15_000;
  * use the same serialization format (superjson).
  */
 export const trpc = createTRPCReact<AppRouter>();
+
+/**
+ * Forwards the user's BYO-LLM provider config as `x-llm-*` request headers so
+ * the server can route discovery/insights through their own key. Returns an
+ * empty object for the built-in Forge provider (or when settings are unreadable)
+ * so the default path sends nothing extra.
+ */
+export async function byoLlmHeaders(): Promise<Record<string, string>> {
+  try {
+    const settings = await getSettings();
+    const provider = settings?.llmProvider;
+    if (!provider || provider === "forge") return {};
+    const headers: Record<string, string> = {};
+    headers["x-llm-provider"] = provider;
+    if (settings.llmApiKey) headers["x-llm-key"] = settings.llmApiKey;
+    if (settings.llmModel) headers["x-llm-model"] = settings.llmModel;
+    if (settings.llmOllamaUrl) headers["x-llm-url"] = settings.llmOllamaUrl;
+    return headers;
+  } catch {
+    return {};
+  }
+}
 
 /**
  * Detects the device-revoked error server-side and clears the local session
@@ -72,9 +95,14 @@ export function createTRPCClient() {
           // Never let a device-id failure reject header construction for every
           // request.
           const deviceId = await getDeviceId().catch(() => undefined);
+          // BYO-LLM: forward the user's provider config so the server routes
+          // discovery/insights through their own key. Never sent for the built-in
+          // Forge provider.
+          const llmHeaders = await byoLlmHeaders();
           return {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...(deviceId ? { "x-device-id": deviceId } : {}),
+            ...llmHeaders,
           };
         },
         // Custom fetch to include credentials for cookie-based auth

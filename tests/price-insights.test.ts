@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import type { PriceSnapshot, PricePoint } from "../lib/types";
 
 vi.mock("../server/price-cache", () => ({
@@ -160,6 +160,42 @@ describe("getInsight single-flight", () => {
     const second = await getInsight("mikrotik-crs804-4ddq-hrm");
     expect(second).not.toBeNull();
     expect(second!.insight).toContain("Single-flight result.");
+  });
+});
+
+describe("getInsight BYO-LLM", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.unstubAllGlobals();
+    clearInsightsForTests();
+    mockedGetCached.mockResolvedValue(snapshot);
+    mockedGetHistory.mockResolvedValue(history);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("routes through the user's provider instead of the built-in LLM", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [{ message: { content: "BYO insight." } }],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await getInsight("mikrotik-crs804-4ddq-hrm", {
+      provider: "openai",
+      apiKey: "sk-1",
+    });
+    expect(result).not.toBeNull();
+    expect(result!.insight).toBe("BYO insight.");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.openai.com/v1/chat/completions",
+      expect.anything(),
+    );
+    expect(mockedInvokeLLM).not.toHaveBeenCalled();
   });
 });
 

@@ -2,8 +2,8 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../_core/trpc";
 import { checkRateLimit } from "../rate-limit";
-import { invokeLLM } from "../_core/llm";
 import { tryConsumeBudget } from "../spend-budget";
+import { invokeUserLlm, userLlmConfigFromHeaders } from "../user-llm";
 
 const DISCOVERY_PROMPT = `You are a product discovery assistant. Given a product search query, return a JSON object with:
 
@@ -38,15 +38,19 @@ export const discoveryRouter = router({
     .input(z.object({ query: z.string().min(1).max(200) }))
     .mutation(async ({ ctx, input }) => {
       checkRateLimit(ctx, "discovery.discover", 10, 60_000);
+      // BYO-LLM: when the device has configured its own provider the call is
+      // user-funded, so the process-wide spend budget (which guards the
+      // operator's paid provider) does not apply.
+      const userLlm = userLlmConfigFromHeaders(ctx.req.headers);
       // Process-wide cap: per-user rate limits don't bound total provider spend.
-      if (!tryConsumeBudget("discovery.discover")) {
+      if (!userLlm && !tryConsumeBudget("discovery.discover")) {
         throw new TRPCError({
           code: "TOO_MANY_REQUESTS",
           message: "Discovery is temporarily unavailable. Try again later.",
         });
       }
       const prompt = `${DISCOVERY_PROMPT}\n\nSearch query: ${input.query}`;
-      const result = await invokeLLM({
+      const result = await invokeUserLlm(userLlm, {
         messages: [
           { role: "system", content: prompt },
           { role: "user", content: input.query },

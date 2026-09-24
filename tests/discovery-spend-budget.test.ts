@@ -12,17 +12,20 @@ import { invokeLLM } from "../server/_core/llm";
 import { tryConsumeBudget } from "../server/spend-budget";
 import type { TrpcContext } from "../server/_core/context";
 
-function ctx(): TrpcContext {
+function ctx(headers: Record<string, string> = {}): TrpcContext {
   return {
     user: { id: 1, openId: "o", name: "U", role: "user" } as never,
-    req: { protocol: "https", hostname: "localhost", headers: {}, ip: "1.2.3.4", socket: { remoteAddress: "1.2.3.4" } } as never,
+    req: { protocol: "https", hostname: "localhost", headers, ip: "1.2.3.4", socket: { remoteAddress: "1.2.3.4" } } as never,
     res: {} as never,
     deviceId: null,
   };
 }
 
 describe("discovery.discover spend budget", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.unstubAllGlobals();
+  });
 
   it("refuses without calling the LLM once the budget is spent", async () => {
     vi.mocked(tryConsumeBudget).mockReturnValue(false);
@@ -51,5 +54,35 @@ describe("discovery.discover spend budget", () => {
     await caller.discover({ query: "rtx 5090" });
     expect(tryConsumeBudget).toHaveBeenCalledWith("discovery.discover");
     expect(invokeLLM).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes through the user's provider and skips the budget for BYO-LLM", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                product: { name: "RTX 5090", modelNumber: "RTX5090" },
+                retailers: [],
+              }),
+            },
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const caller = discoveryRouter.createCaller(
+      ctx({ "x-llm-provider": "openai", "x-llm-key": "sk-1" }),
+    );
+    await caller.discover({ query: "rtx 5090" });
+    expect(tryConsumeBudget).not.toHaveBeenCalled();
+    expect(invokeLLM).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.openai.com/v1/chat/completions",
+      expect.anything(),
+    );
   });
 });

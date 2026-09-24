@@ -3793,3 +3793,15 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Added `desktop/src/lib/basket-alert.ts` (`evaluateBasketAlert(storage, notify)`) mirroring mobile: fires once, keeps the threshold if the send fails so it retries, clears it only on success
 - [x] Wired it into the desktop's `onPricesChecked` handler in `desktop/src/App.tsx`
 - [x] Added `desktop/tests/basket-alert.test.ts` (4 tests) and a wiring guard to `tests/desktop-p1-parity.test.ts` — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2231 passed`; desktop `tsc 0`, `47 passed` / `231 passed`
+
+## Phase 508: BYO-LLM settings now take effect (server-proxied)
+
+- [x] **Gap:** the AI/LLM settings (`llmProvider`/`llmApiKey`/`llmModel`/`llmOllamaUrl`) were stored and synced but no code read them, so the section's promise ("used for price insights, product discovery…") was never honored
+- [x] Added `server/user-llm.ts`: reads the config from bounded `x-llm-*` request headers, routes to the user's provider, and normalizes responses to the OpenAI shape callers already consume
+  - `openai` → fixed `https://api.openai.com/v1/chat/completions`; `ollama` → fixed `https://ollama.com/api/chat`; `ollama-local` → loopback-only URL (SSRF guard); `forge`/absent → built-in `invokeLLM`
+  - key used per-request and never persisted/logged; provider errors surface only the HTTP status
+- [x] `discovery.discover` and `insights.get` consume the headers; BYO calls skip the process spend budget (user-funded), Forge calls are unchanged
+- [x] Mobile + desktop tRPC clients forward `x-llm-*` from `AppSettings` (nothing sent for Forge)
+- [x] `images.get` stays on the built-in service (separate image API + shared cache); both LLM sections' copy corrected to state the real scope
+- [x] Documented the headers in `server/README.md`
+- [x] Tests: `tests/user-llm.test.ts` (SSRF/loopback, routing, error hygiene), `tests/byo-llm-wiring.test.ts`, BYO cases in `tests/discovery-spend-budget.test.ts` / `tests/price-insights.test.ts`, `desktop/tests/byo-llm-headers.test.ts` — all verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `333 passed | 2 skipped` / `2248 passed`; desktop `tsc 0`, `48 passed` / `235 passed`

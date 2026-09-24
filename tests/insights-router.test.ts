@@ -41,7 +41,10 @@ describe("insights router", () => {
       insight: "Price is down 7% over 30 days.",
       generatedAt: 1000,
     });
-    expect(mockedGetInsight).toHaveBeenCalledWith("mikrotik-crs804-4ddq-hrm");
+    expect(mockedGetInsight).toHaveBeenCalledWith(
+      "mikrotik-crs804-4ddq-hrm",
+      null,
+    );
   });
 
   it("returns null when there is no insight", async () => {

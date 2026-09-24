@@ -23,6 +23,7 @@ import {
   upsertSyncItem,
 } from "./sync-db";
 import { sharedWatchlists, sharedWatchlistMembers, watchlistItems } from "../drizzle/schema";
+import { userLlmConfigFromHeaders } from "./user-llm";
 
 const LOCAL_ORIGIN_FALLBACK = "http://localhost:8081";
 
@@ -441,7 +442,7 @@ export const appRouter = router({
       .input(z.object({ productId: z.string().min(1).max(191) }))
       .query(async ({ ctx, input }) => {
         checkRateLimit(ctx, "insights.get", 30, 60_000);
-        return getInsight(input.productId);
+        return getInsight(input.productId, userLlmConfigFromHeaders(ctx.req.headers));
       }),
   }),
 

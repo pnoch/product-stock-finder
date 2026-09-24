@@ -63,6 +63,24 @@ deviceLabels, revokedDevices. Migrations in `drizzle/migrations/`; apply with `p
   LLM/image endpoints (defaults 300/300/200). In-memory, so a multi-replica
   deploy multiplies the ceiling by replica count.
 
+## BYO-LLM (user-provided provider)
+
+Clients may forward their own LLM provider config as request headers so
+`discovery.discover` and `insights.get` run on the user's key instead of the
+built-in Forge service:
+
+- `x-llm-provider` — `openai` | `ollama` | `ollama-local` (absent or `forge` = built-in)
+- `x-llm-key` — provider API key (OpenAI, Ollama Cloud)
+- `x-llm-model` — optional model override
+- `x-llm-url` — optional Ollama URL; `ollama-local` accepts loopback hosts only
+
+`server/user-llm.ts` routes these calls. Hosts are fixed (`api.openai.com`,
+`ollama.com`) except `ollama-local`, which is loopback-restricted to avoid SSRF.
+The key is used per-request and never persisted; provider errors surface only the
+HTTP status (never the response body, which can echo the key). BYO calls skip the
+process spend budget — they spend the user's quota, not the operator's. Image
+generation (`images.get`) always uses the built-in service.
+
 ## Web Build
 
 The web app exports as an SPA (`web.output: "single"` in `app.config.ts`), so

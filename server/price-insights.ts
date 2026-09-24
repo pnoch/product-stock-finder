@@ -7,8 +7,8 @@ import { computeDealScore } from "../lib/deal-score";
 import { getCachedPrice } from "./price-cache";
 import { getHistory } from "./price-history";
 import { getDb } from "./db";
-import { invokeLLM } from "./_core/llm";
 import { tryConsumeBudget } from "./spend-budget";
+import { invokeUserLlm, type UserLlmConfig } from "./user-llm";
 import type { DistributorListing } from "../lib/types";
 
 export const INSIGHT_TTL_MS = 24 * 60 * 60 * 1000;
@@ -29,6 +29,7 @@ export interface PriceInsight {
 
 export async function getInsight(
   productId: string,
+  userLlm: UserLlmConfig | null = null,
 ): Promise<PriceInsight | null> {
   const cached = await readCached(productId);
   if (cached && Date.now() - cached.generatedAt < INSIGHT_TTL_MS) {
@@ -36,7 +37,7 @@ export async function getInsight(
   }
   const existing = inFlightInsights.get(productId);
   if (existing) return existing;
-  const run = generateFreshInsight(productId, cached).finally(() => {
+  const run = generateFreshInsight(productId, cached, userLlm).finally(() => {
     inFlightInsights.delete(productId);
   });
   inFlightInsights.set(productId, run);
@@ -46,12 +47,14 @@ export async function getInsight(
 async function generateFreshInsight(
   productId: string,
   stale: PriceInsight | null,
+  userLlm: UserLlmConfig | null,
 ): Promise<PriceInsight | null> {
   const context = await buildInsightContext(productId);
   if (!context) return null;
   // Budget is checked only on the billable path (cache hits returned earlier).
-  if (!tryConsumeBudget("insights.get")) return stale;
-  const text = await generateInsight(context);
+  // A BYO-LLM call is user-funded, so the operator's spend budget doesn't apply.
+  if (!userLlm && !tryConsumeBudget("insights.get")) return stale;
+  const text = await generateInsight(context, userLlm);
   if (!text) {
     // LLM failed: serve stale cache if available rather than null
     return stale;
@@ -144,9 +147,10 @@ async function buildInsightContext(
 
 async function generateInsight(
   context: Record<string, unknown>,
+  userLlm: UserLlmConfig | null,
 ): Promise<string | null> {
   try {
-    const result = await invokeLLM({
+    const result = await invokeUserLlm(userLlm, {
       messages: [
         {
           role: "system",
