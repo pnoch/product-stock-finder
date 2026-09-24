@@ -476,7 +476,22 @@ export function Alerts() {
                     {content}
                   </Link>
                 ) : (
-                  <div key={n.id} className={itemClassName}>
+                  // No route (e.g. an event without a product/distributor):
+                  // still mark it read on click, which mobile's always-pressable
+                  // item does.
+                  <div
+                    key={n.id}
+                    className={`${itemClassName} cursor-pointer`}
+                    onClick={() => void handleNotificationOpen(n)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        void handleNotificationOpen(n);
+                      }
+                    }}
+                  >
                     {content}
                   </div>
                 );

@@ -3481,3 +3481,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's check-interval buttons showed "Manual" / "Hourly" / "Daily"**, while mobile's options are "Manual only" / "Every hour" / "Once a day" — inconsistent wording between platforms
 - [x] Desktop's options now use mobile's labels
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 109) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2181 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 457: Device QA round 205 (desktop route-less notifications couldn't be marked read)
+
+- [x] **Desktop rendered a notification with no route as a plain `<div>`**, so clicking it did nothing and it stayed unread forever — mobile's notification item is always pressable and marks read regardless of route. Reachable for server events without a product/distributor link
+- [x] Desktop's route-less notification row is now a focusable `role="button"` that calls `handleNotificationOpen` on click/Enter/Space
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 110) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2182 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 205: desktop rendered route-less notifications as a plain div, so
+  // they could never be marked read individually; mobile's always-pressable
+  // item marks read regardless of route.
+  it("marks route-less desktop notifications read on click", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toMatch(/onClick=\{\(\) => void handleNotificationOpen\(n\)\}[\s\S]*?role="button"/);
+  });
+
   // QA round 204: mobile's check-interval options are "Manual only" / "Every
   // hour" / "Once a day"; desktop's were "Manual" / "Hourly" / "Daily".
   it("labels the desktop check-interval options like mobile", async () => {
