@@ -163,7 +163,7 @@ describe("best-price signals", () => {
     ]);
     renderProductDetail();
     await waitFor(() => {
-      expect(screen.getByText("Best Price")).toBeInTheDocument();
+      expect(screen.getAllByText("Best Price").length).toBeGreaterThan(0);
     });
     expect(screen.queryByText(/[▼▲] \d+%/)).not.toBeInTheDocument();
     expect(screen.queryByText("Lowest Price Ever")).not.toBeInTheDocument();
@@ -255,7 +255,7 @@ describe("best-price signals", () => {
     ]);
     renderProductDetail();
     await waitFor(() => {
-      expect(screen.getByText("Best Price")).toBeInTheDocument();
+      expect(screen.getAllByText("Best Price").length).toBeGreaterThan(0);
     });
     expect(screen.queryByText(/Infinity/)).not.toBeInTheDocument();
     expect(screen.queryByText(/[▼▲] \d+%/)).not.toBeInTheDocument();

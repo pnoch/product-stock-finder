@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 186: mobile's ProductInfoCard shows Distributors / In Stock /
+  // Best Price; desktop's header only had the Best Price card.
+  it("shows the Distributors and In Stock stats on desktop", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("Stats row — mobile's ProductInfoCard");
+    expect(text).toMatch(/>Distributors</);
+    expect(text).toMatch(/>In Stock</);
+  });
+
   // QA round 185: mobile's ProductInfoCard colors "Last refreshed" by freshness;
   // desktop's header showed "Updated …" in plain gray.
   it("colors the desktop last-refreshed text", async () => {

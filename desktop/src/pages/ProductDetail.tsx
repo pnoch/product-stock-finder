@@ -927,6 +927,27 @@ export function ProductDetail() {
         </button>
       </div>
 
+      {/* Stats row — mobile's ProductInfoCard shows Distributors / In Stock /
+          Best Price; desktop only had the Best Price card. */}
+      <div className="grid grid-cols-3 gap-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+        <div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Distributors</p>
+          <p className="text-xl font-bold">{visibleListings.length}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">In Stock</p>
+          <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+            {visibleListings.filter((l) => l.stockStatus === "in_stock").length}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Best Price</p>
+          <p className="text-xl font-bold text-brand-600 dark:text-brand-400">
+            {best ? formatPrice(best.price, best.currency) : "N/A"}
+          </p>
+        </div>
+      </div>
+
       {/* Product Note */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
         <div className="flex items-center justify-between mb-2">

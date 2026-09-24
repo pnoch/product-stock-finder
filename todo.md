@@ -3367,3 +3367,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's header showed "Updated {time}" in plain gray**, while mobile's `ProductInfoCard` shows "Last refreshed: {time}" colored by freshness (`getLastRefreshedColor`) — so a desktop user couldn't see whether the data was stale
 - [x] Desktop's header now shows "Last refreshed: …" colored by freshness
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 90) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2162 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 438: Device QA round 186 (desktop header omitted the Distributors/In Stock stats)
+
+- [x] **Mobile's `ProductInfoCard` shows a "Distributors / In Stock / Best Price" stats row**, while desktop's header only had the Best Price card — so a desktop user couldn't see how many distributors were listed or how many were in stock
+- [x] Desktop's header now shows the same three-stat row; updated `desktop/tests/best-price-signals.test.tsx` for the now-duplicated "Best Price" label
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 91) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2163 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
