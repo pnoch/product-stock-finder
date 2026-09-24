@@ -3343,3 +3343,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's edit-product modal was titled "Edit product"**, while mobile's `EditProductSheet` is titled "Edit Product ✏️" — inconsistent wording between platforms
 - [x] Desktop's title now reads "Edit Product ✏️"
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 86) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2158 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 434: Device QA round 182 (desktop distributor alert modal had no suggestions)
+
+- [x] **Desktop's dedicated "Set Distributor Alert" modal had no suggested target prices**, while mobile's per-distributor target flow reuses the shared `PriceAlertModal` (which shows the Near low / Below avg / Under current chips) — so a desktop user had to type a target blind
+- [x] Desktop's modal now shows per-listing suggestion chips computed in the modal's currency (`perListingAlertSuggestions`)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 87) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2159 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 182: mobile's per-distributor target flow uses the same
+  // PriceAlertModal with suggestion chips; desktop's dedicated "Set Distributor
+  // Alert" modal had none.
+  it("shows suggestions in the desktop distributor alert modal", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("perListingAlertSuggestions");
+    expect(text).toMatch(/perListingAlertSuggestions\.map\(\(s\) =>/);
+  });
+
   // QA round 181: mobile's EditProductSheet title is "Edit Product ✏️";
   // desktop's edit-product modal was "Edit product".
   it("titles the desktop edit-product modal like mobile", async () => {

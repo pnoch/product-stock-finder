@@ -166,6 +166,10 @@ export function ProductDetail() {
     () => suggestAlertPrices(product?.listings ?? [], alertCurrency),
     [product?.listings, alertCurrency],
   );
+  const perListingAlertSuggestions = useMemo(
+    () => suggestAlertPrices(product?.listings ?? [], perListingAlertCurrency),
+    [product?.listings, perListingAlertCurrency],
+  );
   const [reminderOpen, setReminderOpen] = useState(false);
   const [reminderDateInput, setReminderDateInput] = useState(() => new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
   const [reminderDistributorId, setReminderDistributorId] = useState<string | null>(null);
@@ -1813,6 +1817,21 @@ export function ProductDetail() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Target Price</label>
+            {perListingAlertSuggestions.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {perListingAlertSuggestions.map((s) => (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => setPerListingAlertPrice(String(s.price))}
+                    className="px-3 py-1.5 rounded-full border border-brand-500/40 bg-brand-500/10 text-brand-600 dark:text-brand-400 text-xs font-semibold hover:bg-brand-500/20 transition-colors"
+                    aria-label={`Set price to ${s.label}`}
+                  >
+                    {s.label} · {formatPrice(s.price, perListingAlertCurrency)}
+                  </button>
+                ))}
+              </div>
+            )}
             <input
               type="number"
               value={perListingAlertPrice}
