@@ -460,7 +460,7 @@ export function Alerts() {
                     : TYPE_ICONS[n.type] ?? Bell;
                 const content = (
                   <>
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${n.type === "health" ? (n.healthStatus === "recovered" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400" : "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400") : n.type === "reminder" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"}`}>
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${n.type === "health" ? (n.healthStatus === "recovered" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400" : "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400") : n.type === "reminder" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"}`}>
                       <TypeIcon className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">

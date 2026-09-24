@@ -3559,3 +3559,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Home stat cards read "Total Tracked" and "Alerts Active"**, while mobile's are "Tracked" and "Alerts" — inconsistent wording between platforms
 - [x] Desktop's labels now match mobile; updated `desktop/tests/home-activity.test.tsx` and `desktop/tests/pages.test.tsx`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 122) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2194 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 470: Device QA round 218 (desktop colored non-recovered health events red)
+
+- [x] **Desktop colored non-recovered health notifications red**, while mobile's `healthColor` returns "warning" (amber) for anything but a recovery — so a blocked/down distributor looked like a hard error on desktop
+- [x] Desktop's non-recovered health icon now uses the amber styling, matching mobile
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 123) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2195 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

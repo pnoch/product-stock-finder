@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 218: mobile's healthColor returns "warning" (amber) for
+  // non-recovered health events; desktop colored them red.
+  it("colors non-recovered desktop health notifications amber", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toMatch(/n\.healthStatus === "recovered" \? "bg-emerald-50[^"]*" : "bg-amber-50/);
+    expect(text).not.toMatch(/n\.healthStatus === "recovered" \? "bg-emerald-50[^"]*" : "bg-red-50/);
+  });
+
   // QA round 217: mobile's Home stat labels are "Tracked" and "Alerts";
   // desktop's were "Total Tracked" and "Alerts Active".
   it("matches mobile's Home stat labels on desktop", async () => {
