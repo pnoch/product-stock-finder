@@ -3103,3 +3103,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Set Price Alert modal had no suggested target prices**, while mobile's `PriceAlertModal` renders chips from `suggestAlertPrices` (Near low / Below avg / Under current) that fill the target field — so a desktop user had to type a price blind
 - [x] Desktop now computes `alertSuggestions` from `suggestAlertPrices(product.listings, alertCurrency)` and renders the same chips above the Target Price input
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 46) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2118 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 394: Device QA round 142 (desktop Distributor Targets omitted the product-wide footer)
+
+- [x] **Desktop's Distributor Targets section showed neither the product-wide alert footer nor the empty-state hint**, while mobile's `TargetTableCard` renders "Any distributor · target …" when a product-wide alert exists and "Set per-distributor targets with + to compare them here." when none do — so a desktop user couldn't tell a product-wide alert was active
+- [x] Desktop now renders both, using `productWideAlert` / `scopedAlertFor`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 47) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2119 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

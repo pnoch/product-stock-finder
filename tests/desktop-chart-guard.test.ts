@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 142: mobile's TargetTableCard shows a product-wide alert footer
+  // ("Any distributor · target …") and an empty-state hint; desktop's
+  // Distributor Targets section showed neither.
+  it("shows the product-wide target footer on desktop", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("Any distributor · target");
+    expect(text).toContain("Set per-distributor targets with + to compare them here.");
+  });
+
   // QA round 141: mobile's price-alert modal shows suggested target prices
   // (Near low / Below avg / Under current) via suggestAlertPrices; desktop's
   // modal had none.

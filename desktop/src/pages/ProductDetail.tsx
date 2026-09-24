@@ -1492,6 +1492,29 @@ export function ProductDetail() {
               );
             })}
           </ul>
+          {(() => {
+            // Mobile's TargetTableCard shows the product-wide alert footer and an
+            // empty-state hint; desktop omitted both.
+            const wide = productWideAlert(alerts, product.id);
+            const anyScoped = (product.listings ?? []).some((l) =>
+              scopedAlertFor(alerts, product.id, l.distributorId, l.currency),
+            );
+            if (wide) {
+              return (
+                <p className="text-xs text-gray-500 dark:text-gray-400 pt-3">
+                  Any distributor · target {formatPrice(wide.targetPrice, wide.currency)}
+                </p>
+              );
+            }
+            if (!anyScoped) {
+              return (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                  Set per-distributor targets with + to compare them here.
+                </p>
+              );
+            }
+            return null;
+          })()}
         </div>
       )}
 
