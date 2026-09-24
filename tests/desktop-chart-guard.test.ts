@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 227: mobile's "Dropping now" count uses colors.primary; desktop's
+  // was gray.
+  it("colors the desktop Dropping now count like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const start = text.indexOf(">Dropping now</p>");
+    const block = text.slice(start - 200, start);
+    expect(block).toContain("text-brand-600 dark:text-brand-400");
+  });
+
   // QA round 226: mobile's mover change is a colored pill; desktop's was plain
   // text.
   it("renders the desktop mover change as a pill", async () => {

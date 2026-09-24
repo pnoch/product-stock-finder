@@ -3613,3 +3613,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop rendered the mover change as plain colored text**, while mobile's `MoveRow` wraps it in a colored pill (`color + "22"` background) — inconsistent styling between platforms
 - [x] Desktop's mover change is now a colored pill (emerald for drops, red for gainers)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 131) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2203 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 479: Device QA round 227 (desktop "Dropping now" count wasn't brand-colored)
+
+- [x] **Desktop rendered the insights "Dropping now" count in gray**, while mobile's `InsightsCard` uses `colors.primary` (sapphire) — inconsistent emphasis between platforms
+- [x] Desktop's count now uses `text-brand-600 dark:text-brand-400`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 132) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2204 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

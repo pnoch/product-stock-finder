@@ -612,7 +612,7 @@ export function Stats() {
               <p className="text-xs text-gray-400">At all-time low</p>
             </div>
             <div className="flex-1">
-              <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{insights.droppingCount}</p>
+              <p className="text-lg font-bold text-brand-600 dark:text-brand-400">{insights.droppingCount}</p>
               <p className="text-xs text-gray-400">Dropping now</p>
             </div>
             <div className="flex-1">
