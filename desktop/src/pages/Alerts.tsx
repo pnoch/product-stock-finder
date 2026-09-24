@@ -978,7 +978,11 @@ function RemindersTab({
                   )}
                   <p className={`text-sm ${isPast ? "text-amber-700 dark:text-amber-300" : "text-gray-500 dark:text-gray-400"}`}>
                     {r.distributorName} · {isPast ? "Was due " : "Remind on "}
-                    {new Date(r.reminderDate).toLocaleDateString()}
+                    {new Date(r.reminderDate).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
                   </p>
                 </div>
                 <button

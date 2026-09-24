@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 244: mobile's reminder card renders "Jan 5, 2026"; desktop's used
+  // bare toLocaleDateString() → locale-numeric "1/5/2026" for the same date.
+  it("formats reminder dates like mobile on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toContain('month: "short"');
+    expect(text).toContain('"Was due " : "Remind on "');
+  });
+
   // QA round 242: mobile highlights the selected drop-calendar day; desktop
   // only set aria-pressed, so a click gave no visual selection feedback.
   it("highlights the selected drop-calendar day on desktop", async () => {

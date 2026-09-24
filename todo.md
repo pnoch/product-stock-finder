@@ -3718,3 +3718,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's `registerDeviceRevokedHandler` shows "Signed Out / You were signed out on another device."; the desktop `handleDeviceRevoked` (added in round 239) cleared the session silently**, so a revoked desktop user landed in the signed-out state with no idea why
 - [x] `handleDeviceRevoked` now fires the same message as an OS notification (`sendDesktopNotification`, best-effort, dynamically imported to avoid a use-auth ↔ notifications cycle)
 - [x] Extended `desktop/tests/auth-functions.test.ts` (asserts the notification payload) and the wiring guard in `tests/desktop-email-auth.test.ts` — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2219 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
+
+## Phase 496: Device QA round 244 (desktop reminder card date format differed)
+
+- [x] **Mobile's `ReminderCard` renders the reminder date as `Jan 5, 2026` (`toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })`); the desktop's reminder card used bare `toLocaleDateString()`**, producing the locale-numeric `1/5/2026` for the same reminder
+- [x] Desktop's Alerts reminder card now uses mobile's month-name format
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 145) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2220 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
