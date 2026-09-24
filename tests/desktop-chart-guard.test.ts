@@ -221,6 +221,18 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 221: mobile's ChartCard offers 6M/1Y ranges and shows "Select up
+  // to 5 distributors to overlay" plus range hints; desktop only had 1W/1M/3M/
+  // All and no hints.
+  it("adds the 6M/1Y ranges and chart hints on desktop compare", async () => {
+    const chips = await readFile("desktop/src/components/TimeRangeChips.tsx", "utf8");
+    expect(chips).toContain('{ key: "6m", label: "6M" }');
+    expect(chips).toContain('{ key: "1y", label: "1Y" }');
+    const compare = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    expect(compare).toContain("Select up to 5 distributors to overlay");
+    expect(compare).toContain("Showing all available history — up to 1Y retained (older points may be limited)");
+  });
+
   // QA round 220: mobile's distributor sort chips are "Trend ▼" / "Price" /
   // "A–Z"; desktop's were "Name" / "Price" / "Trend".
   it("matches mobile's distributor sort labels on desktop", async () => {

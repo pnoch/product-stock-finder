@@ -3577,3 +3577,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's compare distributor sort chips read "Name" / "Price" / "Trend"**, while mobile's `DistributorSelector` chips are "Trend ▼" / "Price" / "A–Z" — inconsistent wording between platforms
 - [x] Desktop's labels now match mobile ("A–Z" / "Price" / "Trend ▼")
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 125) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2197 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 473: Device QA round 221 (desktop compare lacked 6M/1Y ranges and chart hints)
+
+- [x] **Desktop's compare time-range chips only offered 1W/1M/3M/All** (mobile's ChartCard has 1W/1M/3M/6M/1Y/All) and the chart section lacked mobile's "Select up to 5 distributors to overlay" subtitle and range hints ("Showing all available history — up to 1Y retained (older points may be limited)" / "Showing all available history")
+- [x] Added the 6M/1Y chips (with `toTimeRange` mappings) and the subtitle + hints
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 126) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2198 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

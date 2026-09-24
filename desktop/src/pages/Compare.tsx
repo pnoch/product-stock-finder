@@ -45,6 +45,10 @@ function toTimeRange(k: string): TimeRange {
       return "1M";
     case "3m":
       return "3M";
+    case "6m":
+      return "6M";
+    case "1y":
+      return "1Y";
     default:
       return "All";
   }
@@ -845,6 +849,20 @@ export function Compare() {
           <h2 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">
             Price History ({displayCurrency})
           </h2>
+          {/* Mobile's ChartCard shows this subtitle and range-specific hints. */}
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Select up to 5 distributors to overlay
+          </p>
+          {(timeRange === "6m" || timeRange === "1y") && (
+            <p className="text-[11px] italic text-gray-500 dark:text-gray-400 mb-2">
+              Showing all available history — up to 1Y retained (older points may be limited)
+            </p>
+          )}
+          {timeRange === "all" && (
+            <p className="text-[11px] italic text-gray-500 dark:text-gray-400 mb-2">
+              Showing all available history
+            </p>
+          )}
           {chartSeries.length >= 2 ? (
             <SeriesChart series={chartSeries} displayCurrency={displayCurrency} />
           ) : (
