@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { createTRPCClient } from "../lib/trpc";
 import { getDistributorById } from "@shared/distributors";
 import { computeHealthStats, createHealthService, sanitizeResponseTimeMs, type HealthStats } from "../../../lib/scrapers/health";
+import { classifyFetchStatus } from "../../../lib/scrapers/resilient";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 
 type HealthStatus = "working" | "blocked" | "error";
@@ -163,6 +164,15 @@ export function Health() {
     error: "#EF4444",
   };
 
+  // A probe can report `working`/`error` with a reason that classifies as a
+  // block (e.g. a Cloudflare interstitial). Mobile's resolveStatusColor shows
+  // those amber so a block isn't misread as a hard failure.
+  const resolveStatusColor = (h: DistributorHealth): string => {
+    if (h.status === "blocked") return statusColors.blocked;
+    if (h.reason && classifyFetchStatus(h.reason) === "blocked") return statusColors.blocked;
+    return statusColors[h.status];
+  };
+
   const overallWorkingPct = health.length > 0 ? Math.round((counts.working / health.length) * 100) : 0;
 
   return (
@@ -255,7 +265,7 @@ export function Health() {
             >
               <span
                 className="w-2.5 h-2.5 rounded-full mr-3 shrink-0"
-                style={{ backgroundColor: statusColors[h.status] }}
+                style={{ backgroundColor: resolveStatusColor(h) }}
               />
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">
@@ -278,10 +288,10 @@ export function Health() {
                 </span>
                 {s ? (
                   <>
-                    <span className="text-xs font-bold" style={{ color: statusColors[h.status] }}>
+                    <span className="text-xs font-bold" style={{ color: resolveStatusColor(h) }}>
                       {s.uptimePct}% {s.trend === "up" ? "▲" : s.trend === "down" ? "▼" : "–"}
                     </span>
-                    <HealthSparkline data={s.sparkline} color={statusColors[h.status]} />
+                    <HealthSparkline data={s.sparkline} color={resolveStatusColor(h)} />
                   </>
                 ) : (
                   <span className="text-xs text-gray-400">–</span>

@@ -197,6 +197,17 @@ describe("desktop chart guard", () => {
     expect(block).not.toContain("alert.triggeredPrice ?? alert.targetPrice");
   });
 
+  // QA round 127: desktop's health list colored rows by raw status, so a probe
+  // whose reason classifies as a block (Cloudflare interstitial) showed as a
+  // hard error/working color. Mobile's resolveStatusColor shows those amber.
+  it("resolves blocked-classified reasons to warning on desktop health", async () => {
+    const text = await readFile("desktop/src/pages/Health.tsx", "utf8");
+    expect(text).toContain("classifyFetchStatus");
+    expect(text).toMatch(/const resolveStatusColor = \(h: DistributorHealth\)/);
+    expect(text).not.toMatch(/backgroundColor: statusColors\[h\.status\]/);
+    expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
+  });
+
   // QA round 126: desktop's notification list always rendered health events
   // with the red warning icon/color, so a "recovered" event looked like an
   // ongoing outage. Mobile uses healthIcon/healthColor to show a green

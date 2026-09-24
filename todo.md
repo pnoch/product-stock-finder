@@ -3014,3 +3014,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's notification list always rendered health events with the red warning icon and color**, ignoring `healthStatus === "recovered"` — so a "distributor recovered" event looked like an ongoing outage. Mobile's `NotificationCenter` uses `healthIcon`/`healthColor` to show a green checkmark for recoveries
 - [x] Desktop now picks `CircleCheck` and the emerald styling when `n.type === "health" && n.healthStatus === "recovered"`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 34) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2102 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 379: Device QA round 127 (desktop health list miscolored blocked-classified reasons)
+
+- [x] **Desktop's health list colored every row by its raw status** (`statusColors[h.status]`), while mobile's `resolveStatusColor` (app/health.tsx) shows amber whenever the row's `reason` classifies as a block via `classifyFetchStatus` — e.g. a Cloudflare interstitial recorded with status `error`/`working` was shown as a hard red failure instead of a block
+- [x] Desktop now has a `resolveStatusColor` that mirrors mobile (status `blocked`, or a reason that classifies as blocked → amber) and uses it for the dot, uptime text, and sparkline
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 35) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2103 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
