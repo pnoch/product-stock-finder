@@ -3181,3 +3181,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop labelled the watchlist summary "Total Value"**, but the shared `computeWatchlistSummary` sums every listing across all stock statuses — its own comment says it is NOT the basket value. Mobile correctly labels it "All Listings Value", so desktop's wording overstated the figure
 - [x] Desktop now labels it "All Listings Value"
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 59) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2131 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 407: Device QA round 155 (desktop basket card omitted its qualifier and excluded count)
+
+- [x] **Desktop's Stats basket card was labelled just "Basket Value" and omitted the excluded count**, while mobile's `BasketValueCard` reads "Basket Value (best in-stock prices)" and appends "· N excluded (no stock)" — so a desktop user couldn't tell the figure used best in-stock prices or that some products were skipped
+- [x] Desktop's basket card now shows the qualifier and the excluded count
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 60) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2132 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

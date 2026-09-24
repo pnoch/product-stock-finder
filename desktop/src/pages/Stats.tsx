@@ -357,7 +357,7 @@ export function Stats() {
       <div ref={summaryRef} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Basket Value</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Basket Value (best in-stock prices)</p>
             <button
               onClick={() => {
                 setBasketDraft(basketThreshold != null ? String(basketThreshold) : "");
@@ -372,7 +372,12 @@ export function Stats() {
           <p className="text-2xl font-bold mt-1">
             {basket ? formatPrice(basket.total, displayCurrency) : "—"}
           </p>
-          <p className="text-xs text-gray-400 mt-1">{basket?.productCount ?? 0} product{(basket?.productCount ?? 0) === 1 ? "" : "s"}</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {basket?.productCount ?? 0} product{(basket?.productCount ?? 0) === 1 ? "" : "s"}
+            {basket && basket.excludedCount > 0
+              ? ` · ${basket.excludedCount} excluded (no stock)`
+              : ""}
+          </p>
           {basketThreshold != null && (
             <p className="text-xs text-gray-400 mt-1">
               🔔 Alert below {formatPrice(basketThreshold, displayCurrency)}

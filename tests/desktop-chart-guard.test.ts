@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 155: mobile's BasketValueCard labels it "Basket Value (best
+  // in-stock prices)" and shows the excluded count; desktop's Stats card showed
+  // neither.
+  it("labels and details the desktop basket value card", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toContain("Basket Value (best in-stock prices)");
+    expect(text).toContain("excluded (no stock)");
+  });
+
   // QA round 154: desktop labelled the watchlist summary "Total Value", but the
   // shared computeWatchlistSummary sums every listing (all statuses) — mobile
   // correctly labels it "All Listings Value".
