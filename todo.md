@@ -3724,3 +3724,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's `ReminderCard` renders the reminder date as `Jan 5, 2026` (`toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })`); the desktop's reminder card used bare `toLocaleDateString()`**, producing the locale-numeric `1/5/2026` for the same reminder
 - [x] Desktop's Alerts reminder card now uses mobile's month-name format
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 145) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2220 passed`; desktop `tsc 0`, `46 passed` / `227 passed`
+
+## Phase 497: Device QA round 245 (desktop alert-card dates were locale-numeric)
+
+- [x] **Mobile's `alert-card.tsx` formats "Snoozed until" (`{ month: "short", day: "numeric" }`) and "Triggered" (`{ month: "short", day: "numeric", year: "numeric" }`) with month names; the desktop's alert card used bare `toLocaleDateString()` for Snoozed/Triggered/Created**, so the same alert read differently across platforms
+- [x] Aligned all three desktop alert-card dates to mobile's month-name formats
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 146) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2221 passed`; desktop `tsc 0`, `46 passed` / `227 passed`

@@ -221,6 +221,21 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 245: mobile's alert-card uses month-name dates for "Snoozed
+  // until" and "Triggered"; desktop used bare toLocaleDateString().
+  it("formats alert-card dates like mobile on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toMatch(
+      /Snoozed until \{new Date\(alert\.snoozedUntil!\)\.toLocaleDateString\(undefined, \{ month: "short", day: "numeric" \}\)/,
+    );
+    expect(text).toMatch(
+      /Triggered on \{new Date\(alert\.triggeredAt!\)\.toLocaleDateString\(undefined/,
+    );
+    expect(text).toMatch(
+      /Created\{" "\}\s*\{new Date\(alert\.createdAt\)\.toLocaleDateString\(undefined/,
+    );
+  });
+
   // QA round 244: mobile's reminder card renders "Jan 5, 2026"; desktop's used
   // bare toLocaleDateString() → locale-numeric "1/5/2026" for the same date.
   it("formats reminder dates like mobile on desktop", async () => {

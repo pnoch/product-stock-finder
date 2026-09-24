@@ -808,7 +808,7 @@ function AlertRow({
               at {(() => { const d = getDistributorById(alert.distributorId!); return d ? `${d.countryFlag} ${d.name}` : alert.distributorId; })()}
             </span>
           ) : null}
-          {isSnoozed && <span className="ml-2 text-xs font-semibold text-amber-600 dark:text-amber-400">Snoozed until {new Date(alert.snoozedUntil!).toLocaleDateString()}</span>}
+          {isSnoozed && <span className="ml-2 text-xs font-semibold text-amber-600 dark:text-amber-400">Snoozed until {new Date(alert.snoozedUntil!).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>}
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {isTriggered ? (
@@ -828,12 +828,20 @@ function AlertRow({
                   {" "}→ {formatPrice(alert.triggeredPrice, alert.currency)}
                 </span>
               )}{" "}
-              · Triggered on {new Date(alert.triggeredAt!).toLocaleDateString()}
+              · Triggered on {new Date(alert.triggeredAt!).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
             </>
           ) : (
             <>
               Target: {formatPrice(alert.targetPrice, alert.currency)} · Created{" "}
-              {new Date(alert.createdAt).toLocaleDateString()}
+              {new Date(alert.createdAt).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
               {alert.direction && (
                 <span className="ml-1 inline-flex items-center align-middle">
                   {alert.direction === "rise" ? (
