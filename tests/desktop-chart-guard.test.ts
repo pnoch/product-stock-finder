@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 183: mobile's NotesCard placeholder is "Private note (only visible
+  // on this device)…"; desktop's said "Add a note about this product…".
+  it("uses mobile's note placeholder on desktop", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toContain("Private note (only visible on this device)…");
+  });
+
   // QA round 182: mobile's per-distributor target flow uses the same
   // PriceAlertModal with suggestion chips; desktop's dedicated "Set Distributor
   // Alert" modal had none.
