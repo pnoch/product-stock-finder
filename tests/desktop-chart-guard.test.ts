@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 229: mobile's freshness labels are "Stale (>7 days)" and "Oldest
+  // check"; desktop's were "Stale" and "Oldest update".
+  it("matches mobile's freshness labels on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toContain("Stale (&gt;7 days):");
+    expect(text).toContain("Oldest check");
+    expect(text).not.toContain("Oldest update");
+  });
+
   // QA round 228: mobile's basket alert sheet title is "🧺 Basket Value Alert";
   // desktop's was "Basket Value Alert".
   it("titles the desktop basket alert modal like mobile", async () => {

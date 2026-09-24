@@ -736,11 +736,11 @@ export function Stats() {
                 <span className="font-medium text-gray-900 dark:text-gray-100">{freshness.avgHistoryPoints}</span>
               </p>
               <p className="text-gray-600 dark:text-gray-400">
-                Stale: <span className="font-medium text-gray-900 dark:text-gray-100">{freshness.staleCount}</span> · Never checked:{" "}
+                Stale (&gt;7 days): <span className="font-medium text-gray-900 dark:text-gray-100">{freshness.staleCount}</span> · Never checked:{" "}
                 <span className="font-medium text-gray-900 dark:text-gray-100">{freshness.neverCheckedCount}</span>
               </p>
               <p className="text-xs text-gray-400">
-                Oldest update{" "}
+                Oldest check{" "}
                 {freshness.oldestCheck
                   ? new Date(freshness.oldestCheck).toLocaleDateString()
                   : "—"}
