@@ -203,9 +203,13 @@ export function Stats() {
         const name = dist?.name ?? listing.distributorId;
         (listing.priceHistory ?? []).forEach((pt) => {
           if (pt.date < cutoffStr) return;
+          // Skip unconvertible points rather than plotting the raw price, which
+          // mixed currencies on a chart labelled in the display currency.
+          const converted = convertPrice(pt.price, pt.currency, displayCurrency);
+          if (converted === null || !Number.isFinite(converted)) return;
           if (!dateMap.has(pt.date)) dateMap.set(pt.date, { date: pt.date });
           const row = dateMap.get(pt.date)!;
-          row[name] = convertPrice(pt.price, pt.currency, displayCurrency) ?? pt.price;
+          row[name] = converted;
         });
       });
     });

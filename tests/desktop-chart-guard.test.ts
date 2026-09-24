@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 177: desktop's Stats price-history chart fell back to the raw
+  // price for an unconvertible point, plotting mixed currencies on a chart
+  // labelled in the display currency.
+  it("skips unconvertible points in the desktop Stats chart", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).not.toMatch(/convertPrice\([^)]*\) \?\? pt\.price/);
+    expect(text).toMatch(/const converted = convertPrice\(pt\.price, pt\.currency, displayCurrency\)/);
+  });
+
   // QA round 176: desktop's bestListing matcher fell back to the raw price when
   // a listing's currency couldn't be converted, mixing currencies and possibly
   // falsely matching the best price (mobile skips unconvertible listings).

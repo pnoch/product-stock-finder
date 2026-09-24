@@ -3313,3 +3313,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's `bestListing` matcher fell back to the raw price when a listing's currency couldn't be converted** (`convertPrice(...) ?? l.price`), so an unconvertible listing could falsely match the best price and be highlighted/marked best. Mobile's `bestInStockListing` skips unconvertible listings
 - [x] Desktop now computes `converted` once and skips null (same class as rounds 132/133/135)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 81) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2153 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 429: Device QA round 177 (desktop Stats chart plotted mixed currencies)
+
+- [x] **Desktop's Stats price-history chart fell back to the raw price for an unconvertible point** (`convertPrice(...) ?? pt.price`), plotting mixed currencies on a chart labelled in the display currency (same class as rounds 132/133/135/176)
+- [x] Desktop's chart now skips unconvertible points instead of using the raw price
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 82) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2154 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
