@@ -7,6 +7,7 @@ import { convertPrice } from "@/lib/currency";
 import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
 import type { Product, PriceAlert } from "../../../lib/types";
 import { buildShareText } from "../../../lib/price-share";
+import { priceHistoryToCsv } from "../../../lib/csv";
 import { copyTextWithFallback, saveNodeAsPng } from "../lib/share";
 import { checkNotificationPermission } from "../lib/notification-permission";
 import { StockBadge } from "../components/StockBadge";
@@ -499,6 +500,48 @@ export function Compare() {
     }
   }, [product]);
 
+  // Mobile's compare screen exports the price history as CSV; desktop's had only
+  // Share / Save image.
+  const handleExportCsv = useCallback(async () => {
+    if (!product) return;
+    try {
+      const rows = sortedListings
+        .flatMap((l) =>
+          (l.priceHistory ?? []).map((pt) => ({
+            ...pt,
+            distributor: getDistributorById(l.distributorId)?.name ?? l.distributorId,
+          })),
+        )
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const csv = priceHistoryToCsv(rows, {
+        name: product.name,
+        modelNumber: product.modelNumber ?? product.id,
+      });
+      const fileName = `${product.id}-price-history-${new Date().toISOString().slice(0, 10)}.csv`;
+      if (typeof window !== "undefined" && (window as unknown as { __TAURI__?: unknown }).__TAURI__) {
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const { writeFile } = await import("@tauri-apps/plugin-fs");
+        const filePath = await save({ defaultPath: fileName, filters: [{ name: "CSV", extensions: ["csv"] }] });
+        if (!filePath) return;
+        await writeFile(filePath, new TextEncoder().encode(csv));
+        showToast(`Exported to ${filePath}`);
+      } else {
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast("Price history exported");
+      }
+    } catch {
+      showToast("Couldn't export the price history");
+    }
+  }, [product, sortedListings, showToast]);
+
   const getTrend = (priceHistory: { price: number; date: string }[] | undefined) => {
     if (!priceHistory || priceHistory.length < 2) return "flat";
     const recent = priceHistory[priceHistory.length - 1].price;
@@ -577,6 +620,13 @@ export function Compare() {
             aria-label="Save comparison image"
           >
             Save image
+          </button>
+          <button
+            onClick={() => void handleExportCsv()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+            aria-label="Export price history as CSV"
+          >
+            Export CSV
           </button>
           <TimeRangeChips selected={timeRange} onSelect={setTimeRange} />
         </div>

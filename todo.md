@@ -3151,3 +3151,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Distributor Analysis page had no export**, while mobile's `distributor-analysis` screen has an "Export CSV" button that writes `watchlistToDetailedCsv` — so a desktop user couldn't get the per-listing analysis out of the app
 - [x] Desktop's page now has an "Export CSV" button (Tauri save dialog, browser download fallback) using `watchlistToDetailedCsv`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 54) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2126 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 402: Device QA round 150 (desktop compare had no CSV export)
+
+- [x] **Desktop's Compare screen had only Share / Save image**, while mobile's `compare/[id]` has an "Export price history as CSV" button that writes `priceHistoryToCsv` — so a desktop user couldn't export the multi-distributor history
+- [x] Desktop's Compare now has an "Export CSV" button (Tauri save dialog, browser download fallback) using `priceHistoryToCsv` over the sorted listings' history
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 55) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2127 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

@@ -221,6 +221,15 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 150: mobile's compare screen exports the price history as CSV;
+  // desktop's had only Share / Save image.
+  it("exports price history CSV from the desktop compare screen", async () => {
+    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    expect(text).toContain("priceHistoryToCsv");
+    expect(text).toContain("handleExportCsv");
+    expect(text).toContain("Export price history as CSV");
+  });
+
   // QA round 149: mobile's distributor-analysis screen exports the detailed
   // listings CSV; desktop's page had no export.
   it("exports CSV from the desktop distributor analysis", async () => {
