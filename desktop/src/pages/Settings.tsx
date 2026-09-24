@@ -890,7 +890,7 @@ export function Settings() {
             className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium disabled:opacity-50"
             aria-label="Check connection now"
           >
-            {connection.isRefreshing ? "Checking" : "Check now"}
+            {connection.isRefreshing ? "Checking" : "Check Now"}
           </button>
         </div>
         <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">

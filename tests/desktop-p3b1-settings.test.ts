@@ -6,7 +6,7 @@ describe("desktop P3b-1 settings", () => {
     const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
     expect(text).toContain("useConnection");
     expect(text).toContain("ConnectionBadge");
-    expect(text).toContain("Check now");
+    expect(text).toContain("Check Now");
   });
 
   it("has a sync-now action", async () => {

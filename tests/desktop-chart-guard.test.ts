@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 200: mobile's connection button reads "Check Now"; desktop's said
+  // "Check now".
+  it("titles the desktop connection button like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toContain('"Checking" : "Check Now"');
+  });
+
   // QA round 199: mobile's label is "Test Notification"; desktop's button said
   // "Test notification".
   it("titles the desktop test-notification button like mobile", async () => {

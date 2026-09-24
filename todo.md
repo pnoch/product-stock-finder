@@ -3451,3 +3451,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's test-notification button read "Test notification"**, while mobile's notifications section row is labeled "Test Notification" — inconsistent casing between platforms
 - [x] Desktop's button now reads "Test Notification"
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 104) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2176 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 452: Device QA round 200 (desktop connection button casing differed)
+
+- [x] **Desktop's connection check button read "Check now"**, while mobile's `ConnectionSection` reads "Check Now" — inconsistent casing between platforms
+- [x] Desktop's button now reads "Check Now"; updated `tests/desktop-p3b1-settings.test.ts`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 105) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2177 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
