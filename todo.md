@@ -3307,3 +3307,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Distributor Targets table omitted each distributor's payment methods**, while mobile's `DistributorListingCard` shows "💳 Online Payment · Bank Transfer · …" per listing — so a desktop user couldn't see accepted payment methods per distributor
 - [x] Desktop's Distributor cell now shows the payment methods; updated `desktop/tests/nav-header.test.tsx` (the text now appears twice)
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 80) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2152 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 428: Device QA round 176 (desktop best-listing matcher mixed currencies)
+
+- [x] **Desktop's `bestListing` matcher fell back to the raw price when a listing's currency couldn't be converted** (`convertPrice(...) ?? l.price`), so an unconvertible listing could falsely match the best price and be highlighted/marked best. Mobile's `bestInStockListing` skips unconvertible listings
+- [x] Desktop now computes `converted` once and skips null (same class as rounds 132/133/135)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 81) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2153 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

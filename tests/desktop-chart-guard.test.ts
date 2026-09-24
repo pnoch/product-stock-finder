@@ -221,6 +221,17 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 176: desktop's bestListing matcher fell back to the raw price when
+  // a listing's currency couldn't be converted, mixing currencies and possibly
+  // falsely matching the best price (mobile skips unconvertible listings).
+  it("skips unconvertible listings when matching the desktop best listing", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const start = text.indexOf("const bestListing = useMemo");
+    const block = text.slice(start, text.indexOf("}, [visibleListings, best, displayCurrency]);", start));
+    expect(block).not.toMatch(/convertPrice\([^)]*\) \?\? l\.price/);
+    expect(block).toMatch(/const converted = convertPrice\(l\.price, l\.currency, displayCurrency\)/);
+  });
+
   // QA round 175: mobile's DistributorListingCard shows each distributor's
   // payment methods; desktop's Distributor Targets table omitted them.
   it("shows payment methods per listing on desktop", async () => {

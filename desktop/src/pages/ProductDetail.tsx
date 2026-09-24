@@ -321,12 +321,14 @@ export function ProductDetail() {
 
   const bestListing = useMemo(() => {
     if (!best) return null;
-    return visibleListings.find(
-      (l) =>
-        l.stockStatus !== "out_of_stock" &&
-        l.price > 0 &&
-        Math.abs((convertPrice(l.price, l.currency, displayCurrency) ?? l.price) - best.price) < 0.01,
-    );
+    return visibleListings.find((l) => {
+      if (l.stockStatus === "out_of_stock" || l.price <= 0) return false;
+      // Skip unconvertible listings rather than falling back to the raw price,
+      // which mixed currencies and could falsely match the best price (mobile's
+      // bestInStockListing skips them).
+      const converted = convertPrice(l.price, l.currency, displayCurrency);
+      return converted !== null && Math.abs(converted - best.price) < 0.01;
+    });
   }, [visibleListings, best, displayCurrency]);
 
   const bestDistributor = useMemo(() => {
