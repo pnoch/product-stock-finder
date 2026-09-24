@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 178: mobile's DistributorListingCard shows "{country} · {region}";
+  // desktop's Distributor cell showed only the country + flag.
+  it("shows the distributor region on desktop listings", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toMatch(/dist\?\.region \? ` · \$\{dist\.region\}`/);
+  });
+
   // QA round 177: desktop's Stats price-history chart fell back to the raw
   // price for an unconvertible point, plotting mixed currencies on a chart
   // labelled in the display currency.

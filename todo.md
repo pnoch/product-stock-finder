@@ -3319,3 +3319,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Stats price-history chart fell back to the raw price for an unconvertible point** (`convertPrice(...) ?? pt.price`), plotting mixed currencies on a chart labelled in the display currency (same class as rounds 132/133/135/176)
 - [x] Desktop's chart now skips unconvertible points instead of using the raw price
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 82) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2154 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 430: Device QA round 178 (desktop listing cell omitted the distributor region)
+
+- [x] **Desktop's Distributor cell showed only "{country} {flag}"**, while mobile's `DistributorListingCard` shows "{country} · {region}" — so a desktop user couldn't see a distributor's region
+- [x] Desktop's cell now includes the region
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 83) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2155 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

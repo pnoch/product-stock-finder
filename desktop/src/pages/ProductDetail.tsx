@@ -1325,7 +1325,8 @@ export function ProductDetail() {
                           {dist?.name ?? listing.distributorId}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {dist?.country} {dist?.countryFlag}
+                          {dist?.country}
+                          {dist?.region ? ` · ${dist.region}` : ""} {dist?.countryFlag}
                         </p>
                         {dist?.paymentMethods && dist.paymentMethods.length > 0 && (
                           <p className="text-xs text-gray-400 mt-0.5 truncate" title={dist.paymentMethods.join(" · ")}>
