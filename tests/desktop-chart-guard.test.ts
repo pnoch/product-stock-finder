@@ -221,6 +221,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 217: mobile's Home stat labels are "Tracked" and "Alerts";
+  // desktop's were "Total Tracked" and "Alerts Active".
+  it("matches mobile's Home stat labels on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    expect(text).toContain('label="Tracked"');
+    expect(text).toContain('label="Alerts"');
+    expect(text).not.toContain("Total Tracked");
+    expect(text).not.toContain("Alerts Active");
+  });
+
   // QA round 216: mobile shows "Local-only mode — prices are fetched on this
   // device" when the server isn't configured; desktop always said "Sign in to
   // sync across devices".

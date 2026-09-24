@@ -269,7 +269,7 @@ export function Home() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={<Package className="w-5 h-5" />}
-          label="Total Tracked"
+          label="Tracked"
           value={products.length}
           delay={0}
           onClick={() => navigate("/watchlist")}
@@ -283,7 +283,7 @@ export function Home() {
         />
         <StatCard
           icon={<Bell className="w-5 h-5" />}
-          label="Alerts Active"
+          label="Alerts"
           value={activeAlerts}
           delay={160}
           onClick={() => navigate("/alerts?tab=alerts")}

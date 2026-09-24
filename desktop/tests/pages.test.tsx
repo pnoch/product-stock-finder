@@ -103,9 +103,9 @@ describe("Home page", () => {
     const queryClient = renderHomeWithProviders();
     try {
       await waitFor(() => {
-        expect(screen.getByText("Total Tracked")).toBeInTheDocument();
+        expect(screen.getByText("Tracked")).toBeInTheDocument();
         expect(screen.getByText("In Stock")).toBeInTheDocument();
-        expect(screen.getByText("Alerts Active")).toBeInTheDocument();
+        expect(screen.getByText("Alerts")).toBeInTheDocument();
         expect(screen.getByText("Reminders")).toBeInTheDocument();
       });
     } finally {

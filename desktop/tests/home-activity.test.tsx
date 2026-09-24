@@ -183,9 +183,9 @@ describe("home stat card links", () => {
     ]);
     mockStorage.getWatchlist.mockResolvedValue([good]);
     const cases = [
-      { card: "Total Tracked", path: "watchlist", expected: "none" },
+      { card: "Tracked", path: "watchlist", expected: "none" },
       { card: "In Stock", path: "watchlist", expected: "inStock=1" },
-      { card: "Alerts Active", path: "alerts", expected: "tab=alerts" },
+      { card: "Alerts", path: "alerts", expected: "tab=alerts" },
       { card: "Reminders", path: "alerts", expected: "tab=reminders" },
     ];
     for (const c of cases) {

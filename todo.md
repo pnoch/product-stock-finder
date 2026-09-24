@@ -3553,3 +3553,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop always showed "Sign in to sync across devices" when signed out**, while mobile distinguishes an unconfigured server with "Local-only mode — prices are fetched on this device" — so a desktop user without a configured server was told to sign in pointlessly
 - [x] Desktop's sync-status fallback now checks `getApiBaseUrl()` and shows the local-only message when unconfigured
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 121) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2193 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 469: Device QA round 217 (desktop Home stat labels differed from mobile)
+
+- [x] **Desktop's Home stat cards read "Total Tracked" and "Alerts Active"**, while mobile's are "Tracked" and "Alerts" — inconsistent wording between platforms
+- [x] Desktop's labels now match mobile; updated `desktop/tests/home-activity.test.tsx` and `desktop/tests/pages.test.tsx`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 122) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2194 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
