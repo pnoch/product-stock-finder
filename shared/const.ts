@@ -5,6 +5,10 @@ export const AXIOS_TIMEOUT_MS = 30_000;
 export const UNAUTHED_ERR_MSG = "Please login (10001)";
 export const NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
 export const DEVICE_REVOKED_ERR_MSG = "This device was signed out (10003)";
+// Returned when a user's BYO-LLM provider rejects the request (bad/expired key).
+// The client matches on this token and shows "check your API key" copy instead
+// of a generic server error. Never contains the provider response body.
+export const BYO_LLM_AUTH_ERR_MSG = "AI provider rejected the API key (10004)";
 export const PRICE_HISTORY_SYNC_DAYS = 30;
 export const PRICE_HISTORY_DAYS = 365;
 // How long a server price snapshot counts as fresh. Shared by the server

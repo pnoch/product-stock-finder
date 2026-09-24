@@ -28,6 +28,7 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
 }));
 
 import { discoverProduct, toDiscoverErrorState, DiscoveryAuthError, DiscoveryError } from "../lib/llm-discovery";
+import { BYO_LLM_AUTH_ERR_MSG } from "../shared/const";
 
 describe("discoverProduct", () => {
   beforeEach(() => {
@@ -75,6 +76,18 @@ describe("discoverProduct", () => {
     await expect(discoverProduct("nonexistent")).rejects.toMatchObject({ name: "DiscoveryError", kind: "server" });
   });
 
+  it("maps a rejected BYO key to a byo-auth error", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 412,
+      json: async () => ({ error: { json: { message: BYO_LLM_AUTH_ERR_MSG } } }),
+    });
+    await expect(discoverProduct("rtx 5090")).rejects.toMatchObject({
+      name: "DiscoveryError",
+      kind: "byo-auth",
+    });
+  });
+
   it("returns null on invalid JSON response", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -96,6 +109,15 @@ describe("toDiscoverErrorState", () => {
     expect(toDiscoverErrorState(new DiscoveryAuthError(401))).toEqual({
       title: "Sign-in Required",
       message: "Please sign in to use AI discovery.",
+      retry: false,
+    });
+  });
+
+  it("maps BYO-LLM key rejection to an actionable, non-retry prompt", () => {
+    expect(toDiscoverErrorState(new DiscoveryError("byo-auth", "boom"))).toEqual({
+      title: "Check your API key",
+      message:
+        "Your AI provider rejected the API key. Update it in Settings → AI / LLM, or switch back to the built-in provider.",
       retry: false,
     });
   });

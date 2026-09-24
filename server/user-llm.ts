@@ -4,8 +4,25 @@ import {
   type InvokeParams,
   type InvokeResult,
 } from "./_core/llm";
+import { BYO_LLM_AUTH_ERR_MSG } from "../shared/const.js";
 
 export type UserLlmProvider = "forge" | "openai" | "ollama" | "ollama-local";
+
+/**
+ * Thrown when the user's own provider rejects the request (401/403) — almost
+ * always a bad or expired API key. Callers map this to actionable copy rather
+ * than a generic server error. The message is a fixed token; the provider's
+ * response body (which can echo the key) is never included.
+ */
+export class UserLlmAuthError extends Error {
+  kind = "auth" as const;
+  status: number;
+  constructor(status: number) {
+    super(BYO_LLM_AUTH_ERR_MSG);
+    this.status = status;
+    this.name = "UserLlmAuthError";
+  }
+}
 
 export interface UserLlmConfig {
   provider: UserLlmProvider;
@@ -125,7 +142,12 @@ async function postJson(url: string, body: unknown, apiKey?: string): Promise<un
     clearTimeout(timer);
   }
   if (!res.ok) {
-    // Surface only the status — the provider body can echo the key back.
+    // A 401/403 from the user's provider means the key was rejected — surface a
+    // distinct, actionable error. Otherwise report only the status: the
+    // provider body can echo the key back.
+    if (res.status === 401 || res.status === 403) {
+      throw new UserLlmAuthError(res.status);
+    }
     throw new Error(`LLM provider error (${res.status})`);
   }
   return res.json();

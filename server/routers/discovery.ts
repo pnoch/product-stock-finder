@@ -3,7 +3,12 @@ import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../_core/trpc";
 import { checkRateLimit } from "../rate-limit";
 import { tryConsumeBudget } from "../spend-budget";
-import { invokeUserLlm, userLlmConfigFromHeaders } from "../user-llm";
+import {
+  UserLlmAuthError,
+  invokeUserLlm,
+  userLlmConfigFromHeaders,
+} from "../user-llm";
+import { BYO_LLM_AUTH_ERR_MSG } from "../../shared/const.js";
 
 const DISCOVERY_PROMPT = `You are a product discovery assistant. Given a product search query, return a JSON object with:
 
@@ -50,13 +55,27 @@ export const discoveryRouter = router({
         });
       }
       const prompt = `${DISCOVERY_PROMPT}\n\nSearch query: ${input.query}`;
-      const result = await invokeUserLlm(userLlm, {
-        messages: [
-          { role: "system", content: prompt },
-          { role: "user", content: input.query },
-        ],
-        maxTokens: 500,
-      });
+      let result: Awaited<ReturnType<typeof invokeUserLlm>>;
+      try {
+        result = await invokeUserLlm(userLlm, {
+          messages: [
+            { role: "system", content: prompt },
+            { role: "user", content: input.query },
+          ],
+          maxTokens: 500,
+        });
+      } catch (e) {
+        // A rejected BYO key is actionable (fix it in Settings), so return a
+        // non-auth status the client can map to "check your API key" — using
+        // 401/403 would be mistaken for "sign in required".
+        if (e instanceof UserLlmAuthError) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: BYO_LLM_AUTH_ERR_MSG,
+          });
+        }
+        throw e;
+      }
 
       const content = result.choices?.[0]?.message?.content;
       if (typeof content !== "string") {

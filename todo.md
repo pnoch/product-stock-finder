@@ -3805,3 +3805,11 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] `images.get` stays on the built-in service (separate image API + shared cache); both LLM sections' copy corrected to state the real scope
 - [x] Documented the headers in `server/README.md`
 - [x] Tests: `tests/user-llm.test.ts` (SSRF/loopback, routing, error hygiene), `tests/byo-llm-wiring.test.ts`, BYO cases in `tests/discovery-spend-budget.test.ts` / `tests/price-insights.test.ts`, `desktop/tests/byo-llm-headers.test.ts` — all verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `333 passed | 2 skipped` / `2248 passed`; desktop `tsc 0`, `48 passed` / `235 passed`
+
+## Phase 509: rejected BYO-LLM key shows actionable copy
+
+- [x] **Gap:** a bad/expired user key made the provider return 401 → discovery surfaced a generic "Server error (500). Try again in a moment." with a Retry that could never succeed (mobile's hand-rolled copy fell through to the *parse* branch)
+- [x] `server/user-llm.ts` throws `UserLlmAuthError` on provider 401/403; `discovery.discover` maps it to a `PRECONDITION_FAILED` tRPC error carrying `BYO_LLM_AUTH_ERR_MSG` (not 401/403, which the client reserves for "sign in required")
+- [x] `lib/llm-discovery.ts` parses the tRPC error message, maps it to a new `byo-auth` error kind, and `toDiscoverErrorState` returns a non-retry "Check your API key" state
+- [x] Mobile `app/search.tsx` now uses the shared mapper (was duplicating the messages, so the new kind would have shown a parse error); desktop already did
+- [x] Tests: auth-error case in `tests/user-llm.test.ts`, router mapping in `tests/discovery-spend-budget.test.ts`, client mapping in `tests/llm-discovery.test.ts`, mobile-mapper guard in `tests/mobile-criticals.test.ts` — all verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `333 passed | 2 skipped` / `2253 passed`; desktop `tsc 0`, `48 passed` / `235 passed`

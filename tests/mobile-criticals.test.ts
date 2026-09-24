@@ -716,3 +716,14 @@ describe("count labels pluralize", () => {
     });
   }
 });
+
+// The mobile search hand-rolled its discovery error copy, so a rejected
+// BYO-LLM key fell through to the "parse error" branch and offered a Retry that
+// could never succeed. It now shares toDiscoverErrorState with desktop.
+describe("search discovery errors use the shared mapper", () => {
+  it("maps via toDiscoverErrorState and honors its retry flag", () => {
+    const src = readFileSync(path.join(process.cwd(), "app/search.tsx"), "utf8");
+    expect(src).toContain("toDiscoverErrorState(e)");
+    expect(src).toContain("state.retry");
+  });
+});

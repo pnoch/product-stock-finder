@@ -11,6 +11,7 @@ import { discoveryRouter } from "../server/routers/discovery";
 import { invokeLLM } from "../server/_core/llm";
 import { tryConsumeBudget } from "../server/spend-budget";
 import type { TrpcContext } from "../server/_core/context";
+import { BYO_LLM_AUTH_ERR_MSG } from "../shared/const";
 
 function ctx(headers: Record<string, string> = {}): TrpcContext {
   return {
@@ -84,5 +85,23 @@ describe("discovery.discover spend budget", () => {
       "https://api.openai.com/v1/chat/completions",
       expect.anything(),
     );
+  });
+
+  it("maps a rejected BYO key to an actionable precondition error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: { message: "bad key" } }),
+      }),
+    );
+    const caller = discoveryRouter.createCaller(
+      ctx({ "x-llm-provider": "openai", "x-llm-key": "sk-1" }),
+    );
+    await expect(caller.discover({ query: "rtx 5090" })).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+      message: BYO_LLM_AUTH_ERR_MSG,
+    });
   });
 });

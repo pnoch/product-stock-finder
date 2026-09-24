@@ -77,9 +77,12 @@ built-in Forge service:
 `server/user-llm.ts` routes these calls. Hosts are fixed (`api.openai.com`,
 `ollama.com`) except `ollama-local`, which is loopback-restricted to avoid SSRF.
 The key is used per-request and never persisted; provider errors surface only the
-HTTP status (never the response body, which can echo the key). BYO calls skip the
-process spend budget — they spend the user's quota, not the operator's. Image
-generation (`images.get`) always uses the built-in service.
+HTTP status (never the response body, which can echo the key). A `401`/`403` from
+the user's provider is rethrown as a `PRECONDITION_FAILED` tRPC error carrying
+`BYO_LLM_AUTH_ERR_MSG`, so the client shows "check your API key" copy instead of
+a generic server error (using 401/403 would be mistaken for "sign in required").
+BYO calls skip the process spend budget — they spend the user's quota, not the
+operator's. Image generation (`images.get`) always uses the built-in service.
 
 ## Web Build
 

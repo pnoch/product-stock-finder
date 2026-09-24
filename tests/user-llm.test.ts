@@ -5,6 +5,7 @@ import {
   userLlmConfigFromHeaders,
 } from "../server/user-llm";
 import { invokeLLM } from "../server/_core/llm";
+import { BYO_LLM_AUTH_ERR_MSG } from "../shared/const";
 
 vi.mock("../server/_core/llm", () => ({ invokeLLM: vi.fn() }));
 
@@ -155,12 +156,30 @@ describe("invokeUserLlm", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: false,
+        status: 500,
+        json: async () => ({ error: { message: "bad key sk-1" } }),
+      }),
+    );
+    await expect(
+      invokeUserLlm({ provider: "openai", apiKey: "sk-1" }, { messages: [] }),
+    ).rejects.toThrow("LLM provider error (500)");
+  });
+
+  it("flags a rejected BYO key as an auth error with the fixed token", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
         status: 401,
         json: async () => ({ error: { message: "bad key sk-1" } }),
       }),
     );
     await expect(
       invokeUserLlm({ provider: "openai", apiKey: "sk-1" }, { messages: [] }),
-    ).rejects.toThrow("LLM provider error (401)");
+    ).rejects.toMatchObject({
+      name: "UserLlmAuthError",
+      status: 401,
+      message: BYO_LLM_AUTH_ERR_MSG,
+    });
   });
 });

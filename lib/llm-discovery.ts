@@ -1,6 +1,7 @@
 import { Product, Distributor } from "./types";
 import { getApiBaseUrl } from "@/constants/oauth";
 import { defaultStorage } from "@/lib/storage";
+import { BYO_LLM_AUTH_ERR_MSG } from "@shared/const";
 
 export class DiscoveryAuthError extends Error {
   kind = "auth" as const;
@@ -13,10 +14,10 @@ export class DiscoveryAuthError extends Error {
 }
 
 export class DiscoveryError extends Error {
-  kind: "network" | "server" | "timeout" | "parse";
+  kind: "network" | "server" | "timeout" | "parse" | "byo-auth";
   status?: number;
   cause?: unknown;
-  constructor(kind: "network" | "server" | "timeout" | "parse", message: string, opts?: { status?: number; cause?: unknown }) {
+  constructor(kind: "network" | "server" | "timeout" | "parse" | "byo-auth", message: string, opts?: { status?: number; cause?: unknown }) {
     super(message);
     this.kind = kind;
     this.status = opts?.status;
@@ -31,6 +32,14 @@ export function toDiscoverErrorState(e: unknown): DiscoverErrorState {
   if (e instanceof DiscoveryAuthError) {
     return { title: "Sign-in Required", message: "Please sign in to use AI discovery.", retry: false };
   }
+  if (e instanceof DiscoveryError && e.kind === "byo-auth") {
+    return {
+      title: "Check your API key",
+      message:
+        "Your AI provider rejected the API key. Update it in Settings → AI / LLM, or switch back to the built-in provider.",
+      retry: false,
+    };
+  }
   if (e instanceof DiscoveryError) {
     const message =
       e.kind === "timeout" ? "Discovery timed out. Check your connection and try again."
@@ -40,6 +49,18 @@ export function toDiscoverErrorState(e: unknown): DiscoverErrorState {
     return { title: "Discovery Failed", message, retry: true };
   }
   return { title: "Discovery Failed", message: "We couldn't find that product. Try again.", retry: true };
+}
+
+async function readTrpcErrorMessage(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as {
+      error?: { json?: { message?: unknown }; message?: unknown };
+    };
+    const message = body?.error?.json?.message ?? body?.error?.message;
+    return typeof message === "string" ? message : "";
+  } catch {
+    return "";
+  }
 }
 
 export async function discoverProduct(
@@ -70,7 +91,16 @@ export async function discoverProduct(
     clearTimeout(timeout);
   }
   if (res.status === 401 || res.status === 403) throw new DiscoveryAuthError(res.status);
-  if (!res.ok) throw new DiscoveryError("server", `Discovery failed (${res.status})`, { status: res.status });
+  if (!res.ok) {
+    // The server tags a rejected BYO-LLM key with a distinct token so we can
+    // show "check your API key" instead of a generic server error. tRPC wraps
+    // errors as { error: { json: { message } } } (or { error: { message } }).
+    const message = await readTrpcErrorMessage(res);
+    if (message.includes(BYO_LLM_AUTH_ERR_MSG)) {
+      throw new DiscoveryError("byo-auth", message, { status: res.status });
+    }
+    throw new DiscoveryError("server", `Discovery failed (${res.status})`, { status: res.status });
+  }
   let body: { result?: { data?: { json?: { product?: any; retailers?: any[] } } } };
   try {
     body = (await res.json()) as typeof body;

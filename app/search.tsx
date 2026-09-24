@@ -23,7 +23,7 @@ import { searchCatalog, getAllCatalog, PRODUCT_CATALOG, getAllCategories, getAll
 import { PREVIEW_LIMIT, sortPreviewByStock } from "@/lib/search-preview";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
 import { RecentSearches } from "@/components/search/recent-searches";
-import { DiscoveryAuthError, DiscoveryError, discoverProduct } from "@/lib/llm-discovery";
+import { discoverProduct, toDiscoverErrorState } from "@/lib/llm-discovery";
 import {
   clearRecentSearches,
   getRecentSearches,
@@ -187,31 +187,19 @@ export default function SearchScreen() {
       }
     } catch (e) {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      if (e instanceof DiscoveryAuthError) {
-        showAlert("Sign-in Required", "Please sign in to use AI discovery.", [
-          { text: "OK" },
-        ]);
-      } else if (e instanceof DiscoveryError) {
-        const detail =
-          e.kind === "timeout"
-            ? "Discovery timed out. Check your connection and try again."
-            : e.kind === "network"
-              ? `Network error: ${e.message}`
-              : e.kind === "server"
-                ? e.status
-                  ? `Server error (${e.status}). Try again in a moment.`
-                  : e.message
-                : "We couldn't parse the discovery response. Try again.";
-        showAlert("Discovery Failed", detail, [
-          { text: "Retry", onPress: () => void handleDiscover() },
-          { text: "Cancel", style: "cancel" },
-        ]);
-      } else {
-        showAlert("Discovery Failed", "We couldn't find that product. Try again.", [
-          { text: "Retry", onPress: () => void handleDiscover() },
-          { text: "Cancel", style: "cancel" },
-        ]);
-      }
+      // Single source of truth for discovery error copy (also used by desktop),
+      // including a rejected BYO-LLM key ("Check your API key").
+      const state = toDiscoverErrorState(e);
+      showAlert(
+        state.title,
+        state.message,
+        state.retry
+          ? [
+              { text: "Retry", onPress: () => void handleDiscover() },
+              { text: "Cancel", style: "cancel" },
+            ]
+          : [{ text: "OK" }],
+      );
     } finally {
       setDiscovering(false);
     }
