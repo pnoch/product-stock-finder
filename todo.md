@@ -3571,3 +3571,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's cross-alert card read "Alert me below {target}" / "5% below the best in-stock price, any distributor"**, while mobile's `CrossAlertCTA` says "Alert me if any distributor drops below" / "{price} (5% below current best of {best})" — inconsistent wording and the desktop didn't show the current best
 - [x] Desktop now computes `crossBest` (the cheapest in-stock price) and uses mobile's copy
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 124) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2196 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 472: Device QA round 220 (desktop distributor sort labels differed)
+
+- [x] **Desktop's compare distributor sort chips read "Name" / "Price" / "Trend"**, while mobile's `DistributorSelector` chips are "Trend ▼" / "Price" / "A–Z" — inconsistent wording between platforms
+- [x] Desktop's labels now match mobile ("A–Z" / "Price" / "Trend ▼")
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 125) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2197 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

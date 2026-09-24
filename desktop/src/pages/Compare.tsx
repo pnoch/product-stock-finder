@@ -889,7 +889,7 @@ export function Compare() {
               }`}
               aria-label="Sort by name"
             >
-              Name
+              A–Z
             </button>
             <button
               onClick={() => setSortBy("price")}
@@ -911,7 +911,7 @@ export function Compare() {
               }`}
               aria-label="Sort by trend"
             >
-              Trend
+              Trend ▼
             </button>
           </div>
         </div>

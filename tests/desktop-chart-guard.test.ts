@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 220: mobile's distributor sort chips are "Trend ▼" / "Price" /
+  // "A–Z"; desktop's were "Name" / "Price" / "Trend".
+  it("matches mobile's distributor sort labels on desktop", async () => {
+    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    expect(text).toContain("A–Z");
+    expect(text).toContain("Trend ▼");
+  });
+
   // QA round 219: mobile's cross-alert card says "Alert me if any distributor
   // drops below" / "{price} (5% below current best of {best})"; desktop's said
   // "Alert me below {target}" / "5% below the best in-stock price, any
