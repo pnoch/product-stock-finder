@@ -221,6 +221,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 201: mobile's data buttons are "Export Backup" / "Import Backup";
+  // desktop's were "Export full backup" / "Import backup".
+  it("titles the desktop backup buttons like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(text).toContain("Export Backup");
+    expect(text).toContain("Import Backup");
+    expect(text).not.toContain("Export full backup");
+    expect(text).not.toContain("Import backup");
+  });
+
   // QA round 200: mobile's connection button reads "Check Now"; desktop's said
   // "Check now".
   it("titles the desktop connection button like mobile", async () => {

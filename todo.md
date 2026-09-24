@@ -3457,3 +3457,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's connection check button read "Check now"**, while mobile's `ConnectionSection` reads "Check Now" — inconsistent casing between platforms
 - [x] Desktop's button now reads "Check Now"; updated `tests/desktop-p3b1-settings.test.ts`
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 105) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2177 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 453: Device QA round 201 (desktop backup button labels differed)
+
+- [x] **Desktop's backup buttons read "Export full backup" / "Import backup"**, while mobile's data section reads "Export Backup" / "Import Backup" — inconsistent wording between platforms
+- [x] Desktop's buttons (and their aria-labels) now read "Export Backup" / "Import Backup"; updated `tests/desktop-backup.test.ts`
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 106) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2178 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

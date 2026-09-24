@@ -1752,16 +1752,16 @@ export function Settings() {
           <button
             onClick={handleExportBackup}
             className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
-            aria-label="Export full backup"
+            aria-label="Export Backup"
           >
-            <Download className="w-4 h-4" /> Export full backup
+            <Download className="w-4 h-4" /> Export Backup
           </button>
           <button
             onClick={handleImportBackup}
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
-            aria-label="Import backup"
+            aria-label="Import Backup"
           >
-            <Upload className="w-4 h-4" /> Import backup
+            <Upload className="w-4 h-4" /> Import Backup
           </button>
         </div>
         {importExportMessage && (

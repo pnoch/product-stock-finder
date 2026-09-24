@@ -34,8 +34,8 @@ describe("desktop full backup", () => {
 
   it("wires export/import buttons with sync-meta stamping", async () => {
     const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
-    expect(text).toContain("Export full backup");
-    expect(text).toContain("Import backup");
+    expect(text).toContain("Export Backup");
+    expect(text).toContain("Import Backup");
     expect(text).toContain("setItemSyncMeta");
   });
 });
