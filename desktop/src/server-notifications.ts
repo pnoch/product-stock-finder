@@ -16,6 +16,7 @@ interface PushConfig {
   alerts: Array<{
     id: string;
     productId: string;
+    modelNumber?: string;
     targetPrice: number;
     currency: string;
     distributorId?: string;
@@ -25,12 +26,14 @@ interface PushConfig {
   stockWatches: Array<{
     id: string;
     productId: string;
+    modelNumber?: string;
     distributorId: string;
     lastKnownStatus?: string;
   }>;
   dateReminders: Array<{
     id: string;
     productId: string;
+    modelNumber?: string;
     distributorId: string;
     reminderDate: string;
   }>;
@@ -138,12 +141,21 @@ async function runSyncDesktopNotifications(): Promise<void> {
     }
 
     const alerts = await storage.getAlerts();
+    // The server resolves prices by model number, but only knows the static
+    // catalog. Send the model for every referenced product so manually added /
+    // rediscovered products also get server-side notifications (mobile does the
+    // same).
+    const watchlist = await storage.getWatchlist();
+    const modelByProductId = new Map(
+      watchlist.map((p) => [p.id, p.modelNumber] as const),
+    );
     const activeAlerts = settings.priceAlerts
       ? alerts
           .filter((a) => a.isActive && !a.triggeredAt)
           .map((a) => ({
             id: a.id,
             productId: a.productId,
+            modelNumber: modelByProductId.get(a.productId),
             targetPrice: a.targetPrice,
             currency: a.currency,
             distributorId: a.distributorId,
@@ -156,6 +168,7 @@ async function runSyncDesktopNotifications(): Promise<void> {
       ? (await storage.getStockWatches()).map((w) => ({
           id: w.id,
           productId: w.productId,
+          modelNumber: modelByProductId.get(w.productId),
           distributorId: w.distributorId,
           lastKnownStatus: w.lastKnownStatus,
         }))
@@ -165,6 +178,7 @@ async function runSyncDesktopNotifications(): Promise<void> {
       .map((r) => ({
         id: r.id,
         productId: r.productId,
+        modelNumber: modelByProductId.get(r.productId),
         distributorId: r.distributorId,
         reminderDate: r.reminderDate,
       }));

@@ -46,6 +46,7 @@ vi.mock("../src/storage", () => ({
       healthAlerts: true,
     }),
     getAlerts: async () => [],
+    getWatchlist: async () => [],
     getStockWatches: async () => [],
     getBackOrderReminders: async () => [],
     getPendingHealthEvents: async () => [...state.pending],

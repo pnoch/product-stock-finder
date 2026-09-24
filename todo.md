@@ -3067,3 +3067,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop Stats computed the digest against a null snapshot** (`computeDigest(snapshot, ...)` with `snapshot === null`), so before the first digest was delivered every product was reported as "new", and when the digest was enabled but no snapshot existed the whole card rendered nothing. Mobile returns `null` and shows a "Digest scheduled" placeholder (only when the watchlist is non-empty)
 - [x] Desktop now computes the digest only when a snapshot exists (`snapshot ? computeDigest(...) : null`) and renders a "Digest scheduled" placeholder otherwise
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 41) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2112 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 388: Device QA round 136 (desktop server notifications skipped non-catalog products)
+
+- [x] **Desktop's server-notification upload omitted `modelNumber`** for alerts, stock watches, and date reminders. The server resolves prices by model number and only knows the static catalog (`build-events.ts`: `alert.modelNumber ?? product?.modelNumber`), so manually added / rediscovered products got no server-side notifications. Mobile sends the model for every referenced product (with an explicit comment)
+- [x] Desktop now builds a `modelByProductId` map from the watchlist and includes `modelNumber` on all three upload arrays; the `PushConfig` type and the desktop health-probe test mock were updated
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 42) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2113 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

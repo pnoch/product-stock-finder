@@ -221,6 +221,17 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 136: desktop's server-notification upload omitted modelNumber, so
+  // manually added / rediscovered products (absent from the static catalog) got
+  // no server-side notifications. Mobile sends it.
+  it("sends modelNumber in the desktop server-notification upload", async () => {
+    const text = await readFile("desktop/src/server-notifications.ts", "utf8");
+    expect(text).toContain("modelByProductId");
+    expect(text).toMatch(/modelNumber: modelByProductId\.get\(a\.productId\)/);
+    expect(text).toMatch(/modelNumber: modelByProductId\.get\(w\.productId\)/);
+    expect(text).toMatch(/modelNumber: modelByProductId\.get\(r\.productId\)/);
+  });
+
   // QA round 135: desktop Stats computed the digest against a null snapshot
   // (treating every product as new) and rendered nothing when the digest was
   // enabled but no snapshot existed yet. Mobile returns null and shows a
