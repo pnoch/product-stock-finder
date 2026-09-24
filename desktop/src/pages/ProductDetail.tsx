@@ -1325,6 +1325,11 @@ export function ProductDetail() {
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {dist?.country} {dist?.countryFlag}
                         </p>
+                        {dist?.paymentMethods && dist.paymentMethods.length > 0 && (
+                          <p className="text-xs text-gray-400 mt-0.5 truncate" title={dist.paymentMethods.join(" · ")}>
+                            💳 {dist.paymentMethods.join(" · ")}
+                          </p>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">

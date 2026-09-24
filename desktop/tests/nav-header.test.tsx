@@ -206,6 +206,8 @@ describe("nav header parity", () => {
     );
     const rate = convertPrice(1, "EUR", "USD") as number;
     expect(screen.getByText(`1 EUR = ${rate.toFixed(4)} USD`)).toBeInTheDocument();
-    expect(screen.getByText("💳 Online Payment · Bank Transfer · Credit Card")).toBeInTheDocument();
+    // Payment methods now appear both on the best-distributor card and in the
+    // Distributor Targets table row, so assert at least one is present.
+    expect(screen.getAllByText("💳 Online Payment · Bank Transfer · Credit Card").length).toBeGreaterThan(0);
   });
 });

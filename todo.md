@@ -3301,3 +3301,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's Distributor Targets table rendered the freshness cell as plain gray text**, while mobile's `DistributorListingCard` colors it by freshness (green <1h, amber <6h, red older) and prefixes "🕐 Updated" — so a desktop user couldn't spot a stale listing
 - [x] Desktop's cell now uses `getLastRefreshedColor` for the color and the "🕐 Updated" prefix
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 79) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2151 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 427: Device QA round 175 (desktop listing table omitted payment methods)
+
+- [x] **Desktop's Distributor Targets table omitted each distributor's payment methods**, while mobile's `DistributorListingCard` shows "💳 Online Payment · Bank Transfer · …" per listing — so a desktop user couldn't see accepted payment methods per distributor
+- [x] Desktop's Distributor cell now shows the payment methods; updated `desktop/tests/nav-header.test.tsx` (the text now appears twice)
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 80) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2152 passed`; desktop `tsc 0`, `44 passed` / `220 passed`

@@ -221,6 +221,14 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 175: mobile's DistributorListingCard shows each distributor's
+  // payment methods; desktop's Distributor Targets table omitted them.
+  it("shows payment methods per listing on desktop", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(text).toMatch(/dist\?\.paymentMethods && dist\.paymentMethods\.length > 0/);
+    expect(text).toMatch(/💳 \{dist\.paymentMethods\.join\(" · "\)\}/);
+  });
+
   // QA round 174: mobile's DistributorListingCard colors the freshness text
   // (green <1h, amber <6h, red older); desktop's table cell was always gray.
   it("colors the desktop listing freshness text", async () => {
