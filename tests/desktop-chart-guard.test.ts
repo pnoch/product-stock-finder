@@ -221,6 +221,13 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/color: statusColors\[h\.status\]/);
   });
 
+  // QA round 171: mobile's ReminderCard says "Was due {date}" for past
+  // reminders and "Remind on {date}" otherwise; desktop always said "Due".
+  it("labels past vs future desktop reminders like mobile", async () => {
+    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(text).toContain('isPast ? "Was due " : "Remind on "');
+  });
+
   // QA round 170: mobile's TriggeredAlertCard button says "Watch Again";
   // desktop's said "Rearm".
   it("labels the desktop rearm button Watch Again", async () => {

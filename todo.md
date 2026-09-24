@@ -3277,3 +3277,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop's triggered-alert button said "Rearm"**, while mobile's `TriggeredAlertCard` button says "Watch Again" — inconsistent wording between platforms
 - [x] Desktop's button now reads "Watch Again"
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 75) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2147 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
+
+## Phase 423: Device QA round 171 (desktop reminders always said "Due")
+
+- [x] **Desktop's reminder rows always read "Due {date}"**, while mobile's `ReminderCard` says "Was due {date}" for past reminders and "Remind on {date}" otherwise — so a desktop user couldn't tell a past-due reminder from an upcoming one at a glance
+- [x] Desktop now uses the same "Was due "/"Remind on " labels
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 76) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `330 passed | 2 skipped` / `2148 passed`; desktop `tsc 0`, `44 passed` / `220 passed`
