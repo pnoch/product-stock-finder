@@ -164,14 +164,6 @@ fn show_notification(
     notification.show().map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
-    app.path()
-        .app_data_dir()
-        .map(|p| p.to_string_lossy().to_string())
-        .map_err(|e| e.to_string())
-}
-
 // ─── Import/Export ───────────────────────────────────────────────────────────
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -357,12 +349,6 @@ fn validate_import_schema(data: &ExportData) -> Result<(), String> {
 async fn read_watchlist(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     read_json_file(&data_dir, "watchlist_products")
-}
-
-#[tauri::command]
-async fn write_watchlist(app: tauri::AppHandle, value: serde_json::Value) -> Result<(), String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    write_json_file(&data_dir, "watchlist_products", &value)
 }
 
 // Tauri store-compatible filing helper — snake_case required by Tauri API.
@@ -872,46 +858,6 @@ async fn check_all_prices(products: Vec<WatchedProduct>, api_base_url: String) -
 }
 
 #[tauri::command]
-async fn backfill_local_history(
-    app: tauri::AppHandle,
-    api_base_url: String,
-    session_token: String,
-) -> Result<u64, String> {
-    // prices.uploadHistory is a protectedProcedure, so without a session token
-    // every upload would 401. The renderer normally backfills via the TS path
-    // (lib/history-sync.ts); skip honestly rather than reporting failures.
-    if api_base_url.is_empty() || session_token.is_empty() {
-        return Ok(0);
-    }
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let watchlist_val = read_json_file(&data_dir, "watchlist_products")?;
-    let watchlist: Vec<serde_json::Value> = watchlist_val
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
-
-    let mut uploaded = 0u64;
-    for product in &watchlist {
-        let model_number = product.get("modelNumber").and_then(|v| v.as_str()).unwrap_or("");
-        if model_number.is_empty() {
-            continue;
-        }
-        let listings = product.get("listings").and_then(|v| v.as_array()).cloned().unwrap_or_default();
-        for listing in &listings {
-            let distributor_id = listing.get("distributorId").and_then(|v| v.as_str()).unwrap_or("");
-            let history = listing.get("priceHistory").and_then(|v| v.as_array()).cloned().unwrap_or_default();
-            if distributor_id.is_empty() || history.is_empty() {
-                continue;
-            }
-            if upload_server_history(&api_base_url, &session_token, distributor_id, model_number, &history).await.is_ok() {
-                uploaded += 1;
-            }
-        }
-    }
-    Ok(uploaded)
-}
-
-#[tauri::command]
 async fn fetch_price_insight(
     api_base_url: String,
     product_id: String,
@@ -990,42 +936,6 @@ async fn fetch_product_image(api_base_url: String, product_id: String) -> Result
         Some(v) if !v.is_null() => Ok(Some(v.clone())),
         _ => Ok(None),
     }
-}
-
-async fn upload_server_history(
-    api_base_url: &str,
-    session_token: &str,
-    distributor_id: &str,
-    model_number: &str,
-    points: &[serde_json::Value],
-) -> Result<(), String> {
-    if api_base_url.is_empty() || session_token.is_empty() {
-        return Ok(());
-    }
-    let input = serde_json::json!({
-        "json": {
-            "distributorId": distributor_id,
-            "modelNumber": model_number,
-            "points": points,
-        }
-    });
-    let url = format!(
-        "{}/api/trpc/prices.uploadHistory",
-        api_base_url.trim_end_matches('/')
-    );
-    let client = reqwest::Client::new();
-    let resp = client
-        .post(&url)
-        .header("Authorization", format!("Bearer {}", session_token))
-        .json(&input)
-        .timeout(std::time::Duration::from_secs(8))
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-    if !resp.status().is_success() {
-        return Err(format!("uploadHistory failed: {}", resp.status()));
-    }
-    Ok(())
 }
 
 async fn scrape_distributor(
@@ -1748,9 +1658,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             send_notification,
-            get_app_data_dir,
             read_watchlist,
-            write_watchlist,
             set_value_for_key,
             export_watchlist,
             import_watchlist,
@@ -1761,7 +1669,6 @@ pub fn run() {
             read_value_for_key,
             check_all_prices,
             run_full_price_check,
-            backfill_local_history,
             fetch_price_insight,
             fetch_product_image,
             check_distributor_health,

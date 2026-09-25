@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 
 describe("desktop chart guard", () => {
   it("renders price history only through the shared component", async () => {
@@ -2010,6 +2010,79 @@ describe("desktop chart guard", () => {
       expect(start).toBeGreaterThan(-1);
       const block = text.slice(start, start + 900);
       expect(block).toContain(".catch(");
+    }
+  });
+
+  // QA round 304: the JS↔Rust boundary has no type checker. Four commands had
+  // drifted into unreachable dead code (nothing in the renderer or the Rust
+  // called them), and a rename on one side silently breaks a button or a
+  // persisted collection. Guard the contract in both directions.
+  it("keeps desktop invoke names and mirrored storage keys in sync with Rust", async () => {
+    const rust = await readFile("desktop/src-tauri/src/lib.rs", "utf8");
+
+    const handlerStart = rust.indexOf("generate_handler![");
+    const handlerBody = rust.slice(handlerStart, rust.indexOf("])", handlerStart));
+    const registered = new Set(
+      [...handlerBody.matchAll(/^\s*([a-z_]+)\s*,?\s*$/gm)].map((m) => m[1]!),
+    );
+    expect(registered.size).toBeGreaterThan(10);
+
+    const files: string[] = [];
+    const walk = async (dir: string): Promise<void> => {
+      for (const entry of await readdir(dir, { withFileTypes: true })) {
+        const full = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) await walk(full);
+        else if (/\.tsx?$/.test(entry.name)) files.push(full);
+      }
+    };
+    await walk("desktop/src");
+
+    const invoked = new Set<string>();
+    for (const file of files) {
+      const text = await readFile(file, "utf8");
+      for (const m of text.matchAll(
+        /\b(?:invoke|inv)\s*(?:<[^(]*>)?\s*\(\s*["']([a-z][a-z_]+)["']/g,
+      )) {
+        invoked.add(m[1]!);
+      }
+    }
+    expect(invoked.size).toBeGreaterThan(5);
+    // A typo'd or renamed command is a dead button at runtime, not a type error.
+    for (const name of invoked) {
+      expect(registered.has(name), `invoke("${name}") has no #[tauri::command]`).toBe(true);
+    }
+
+    const allowStart = rust.indexOf("fn is_allowed_storage_key");
+    const allowed = new Set(
+      [...rust
+        .slice(allowStart, rust.indexOf(")\n}", allowStart))
+        .matchAll(/"([a-z_]+)"/g)].map((m) => m[1]!),
+    );
+    expect(allowed.size).toBeGreaterThan(3);
+
+    const storage = await readFile("desktop/src/storage.ts", "utf8");
+    const setStart = storage.indexOf("TAURI_MIRRORED_KEYS = new Set([");
+    const mirrored = [
+      ...storage
+        .slice(setStart, storage.indexOf("]);", setStart))
+        .matchAll(/"([a-z_]+)"/g),
+    ].map((m) => m[1]!);
+    expect(mirrored.length).toBeGreaterThan(3);
+    // A mirrored key the Rust refuses to write is silently dropped (the invoke
+    // catch swallows it), so the file store and localStorage diverge.
+    for (const key of mirrored) {
+      expect(allowed.has(key), `"${key}" is mirrored but not writable in Rust`).toBe(true);
+    }
+
+    // Round-304 cleanup: these had a caller on neither side; they must not come
+    // back without one.
+    for (const gone of [
+      "get_app_data_dir",
+      "backfill_local_history",
+      "upload_server_history",
+      "write_watchlist",
+    ]) {
+      expect(rust).not.toContain(gone);
     }
   });
 });
