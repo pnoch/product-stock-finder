@@ -249,6 +249,57 @@ fn price_element_matches_model(el: &ElementRef, model: &str) -> bool {
         .filter_map(ElementRef::wrap)
         .any(|anc| text_mentions_model(&anc.text().collect::<String>(), model))
 }
+/// Translate a jQuery `:contains(text)` compound into a base selector plus a
+/// text needle, so selector lists shared with the mobile parsers mean the same
+/// thing here. The `scraper` crate cannot parse `:contains`.
+fn split_contains(part: &str) -> (String, Option<String>) {
+    let Some(idx) = part.find(":contains(") else {
+        return (part.trim().to_string(), None);
+    };
+    let after = &part[idx + ":contains(".len()..];
+    let Some(close) = after.find(')') else {
+        return (part.trim().to_string(), None);
+    };
+    let needle = after[..close]
+        .trim()
+        .trim_matches(|c| c == '\'' || c == '"')
+        .to_string();
+    let base = format!("{}{}", &part[..idx], &after[close + 1..]);
+    (base.trim().to_string(), Some(needle))
+}
+
+/// Evaluate a comma-separated selector list with cheerio-compatible
+/// `:contains(text)` support. Parts the crate cannot parse are skipped instead
+/// of changing the meaning of the whole list, and results are returned in
+/// document order (deduplicated) like cheerio rather than by alternative.
+fn select_selector_list<'a>(document: &'a Html, selector: &str) -> Vec<ElementRef<'a>> {
+    let compiled: Vec<(Selector, Option<String>)> = selector
+        .split(',')
+        .filter_map(|part| {
+            let (base, needle) = split_contains(part);
+            Selector::parse(&base).ok().map(|sel| (sel, needle))
+        })
+        .collect();
+    let mut found: Vec<ElementRef<'a>> = Vec::new();
+    // Walk the tree once so results are in document order and each element is
+    // considered only once, like cheerio's `$(list)`.
+    for el in document.root_element().descendants().filter_map(ElementRef::wrap) {
+        let matched = compiled.iter().any(|(sel, needle)| {
+            if !sel.matches(&el) {
+                return false;
+            }
+            match needle.as_deref() {
+                Some(n) => el.text().collect::<String>().contains(n),
+                None => true,
+            }
+        });
+        if matched {
+            found.push(el);
+        }
+    }
+    found
+}
+
 pub fn parse_price_page(
     html: &str,
     url: &str,
@@ -258,19 +309,9 @@ pub fn parse_price_page(
     stock_selector: &str,
 ) -> Result<ScrapeResult, String> {
     let document = Html::parse_document(html);
-    // A selector the `scraper` crate can't parse (e.g. jQuery's `:contains()`,
-    // which cheerio supports but selectors 0.25 does not) makes Selector::parse
-    // return Err and kills the ENTIRE selector list, so the parser always
-    // fails. Fall back to a generic list instead of erroring.
-    let price_sel = Selector::parse(price_selector)
-        .or_else(|_| Selector::parse(".product-price, .price, [data-price]"))
-        .map_err(|e| e.to_string())?;
-    let stock_sel = Selector::parse(stock_selector)
-        .or_else(|_| Selector::parse(".stock-status, .availability, .stock"))
-        .map_err(|e| e.to_string())?;
 
     let mut price_text: Option<String> = None;
-    for el in document.select(&price_sel) {
+    for el in select_selector_list(&document, price_selector) {
         // Walk up to the nearest product container and check whether it names
         // the model. Without this the first unrelated search result's price
         // would be recorded as this product's price.
@@ -285,9 +326,9 @@ pub fn parse_price_page(
     let price = parse_price_from_text(&price_text)
         .ok_or_else(|| format!("Could not parse price: {}", price_text))?;
 
-    let stock_text = document
-        .select(&stock_sel)
-        .next()
+    let stock_els = select_selector_list(&document, stock_selector);
+    let stock_text = stock_els
+        .first()
         .map(|el| el.text().collect::<String>())
         .unwrap_or_default();
 
@@ -345,6 +386,49 @@ mod tests {
         )
         .expect("should find the matching card");
         assert_eq!(result.price, 480.0);
+    }
+
+    #[test]
+    fn parse_price_page_supports_jquery_contains_in_both_selectors() {
+        // rocnoc's prices live in bare table cells (`td:contains('$')`) and
+        // winncom marks stock in a cell (`td:contains('In Stock')`). The scraper
+        // crate cannot parse `:contains`, and before this the whole selector list
+        // silently fell back to a generic one, so the desktop missed prices and
+        // stock the server-side (cheerio) parser found for the same page.
+        let html = r#"
+          <html><body><table><tr>
+            <td>$480.00</td>
+            <td><a href="/p/crs804">MikroTik CRS804-4DDQ-hRM</a></td>
+            <td>In Stock</td>
+          </tr></table></body></html>"#;
+        let result = parse_price_page(
+            html,
+            "https://example.com",
+            "CRS804-4DDQ-hRM",
+            "USD",
+            ".price, td:contains('$')",
+            "td:contains('In Stock')",
+        )
+        .expect("contains selectors must work");
+        assert_eq!(result.price, 480.0);
+        assert_eq!(result.stock_status, "in_stock");
+    }
+
+    #[test]
+    fn parse_price_page_skips_an_unparseable_selector_part() {
+        // One alternative the crate cannot parse must not break the others.
+        let html = r#"<html><body><div class="product"><span class="price">$42.00</span>
+            <a href="/p/crs804">MikroTik CRS804-4DDQ-hRM</a></div></body></html>"#;
+        let result = parse_price_page(
+            html,
+            "https://example.com",
+            "CRS804-4DDQ-hRM",
+            "USD",
+            ".price, div:not-a-real-pseudo()",
+            ".stock",
+        )
+        .expect("the valid alternative must still match");
+        assert_eq!(result.price, 42.0);
     }
 
     #[test]

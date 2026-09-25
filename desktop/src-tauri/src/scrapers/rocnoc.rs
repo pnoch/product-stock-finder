@@ -26,7 +26,7 @@ fn parse_html(html: &str, url: &str, model: &str) -> Result<ScrapeResult, String
         url,
         model,
         "USD",
-        ".price, .product-price, [data-price]",
+        ".price, .product-price, td:contains('$')",
         ".stock, .availability, .product-stock, .stock-status",
     )
 }

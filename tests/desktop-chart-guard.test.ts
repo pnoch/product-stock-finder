@@ -2120,4 +2120,28 @@ describe("desktop chart guard", () => {
       expect(listened.has(name), `Rust emits "${name}" but nothing listens`).toBe(true);
     }
   });
+
+  // QA round 306: the desktop's offline fallback has its own parser set, and the
+  // two `:contains` selectors (rocnoc's price, winncom's stock) diverged — the
+  // Rust selector engine could not parse jQuery's `:contains`, so rocnoc scored
+  // against a substituted `[data-price]` list instead. The engine now supports
+  // it, so both platforms must pass the shared selector through unchanged.
+  it("passes the shared :contains selectors through to the Rust parsers", async () => {
+    for (const name of ["rocnoc", "winncom"]) {
+      const ts = await readFile(`lib/scrapers/${name}.ts`, "utf8");
+      const rust = await readFile(`desktop/src-tauri/src/scrapers/${name}.rs`, "utf8");
+      const containsSelectors = [...ts.matchAll(/"([^"]*:contains[^"]*)"/g)].map((m) => m[1]!);
+      expect(containsSelectors.length, `${name} has no :contains selector`).toBeGreaterThan(0);
+      for (const selector of containsSelectors) {
+        expect(rust, `${name}.rs must use the shared selector`).toContain(selector);
+      }
+    }
+
+    // The engine must implement :contains rather than silently substituting a
+    // generic fallback list (which changed the meaning of the whole selector).
+    const modRs = await readFile("desktop/src-tauri/src/scrapers/mod.rs", "utf8");
+    expect(modRs).toContain("fn split_contains");
+    expect(modRs).toContain("fn select_selector_list");
+    expect(modRs).not.toContain("or_else(|_| Selector::parse");
+  });
 });
