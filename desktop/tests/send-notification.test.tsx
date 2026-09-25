@@ -57,4 +57,25 @@ describe("sendDesktopNotification", () => {
       err.mockRestore();
     }
   });
+
+  // QA round 280: the web fallback returned true even when the browser never
+  // displayed the notification, so callers consumed state (basket threshold,
+  // digest snapshot, restock watch) for an alert the user never saw.
+  it("reports false when the web fallback cannot display", async () => {
+    vi.mocked(invoke).mockRejectedValue(new Error("denied"));
+    Object.defineProperty(window, "Notification", {
+      writable: true,
+      configurable: true,
+      value: Object.assign(vi.fn(), {
+        permission: "denied",
+        requestPermission: vi.fn().mockResolvedValue("denied"),
+      }),
+    });
+    await expect(sendDesktopNotification("t", "b")).resolves.toBe(false);
+  });
+
+  it("reports true when the web fallback displays", async () => {
+    vi.mocked(invoke).mockRejectedValue(new Error("denied"));
+    await expect(sendDesktopNotification("t", "b")).resolves.toBe(true);
+  });
 });

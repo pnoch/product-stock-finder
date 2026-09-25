@@ -17,8 +17,11 @@ export async function sendDesktopNotification(
   try {
     const settings = await storage.getSettings();
     if (!settings?.webNotificationsEnabled) return false;
-    displayWebNotification(title, body);
-    return true;
+    // Report whether the browser actually displayed it. Returning `true`
+    // unconditionally made callers treat an ungranted-permission send as
+    // delivered, so they consumed state (basket threshold, digest snapshot,
+    // restock watch) for a notification the user never saw.
+    return displayWebNotification(title, body);
   } catch (e) {
     console.error("Failed to send notification:", e);
     return false;

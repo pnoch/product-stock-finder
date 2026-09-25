@@ -3959,3 +3959,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Added an optional `notify` parameter (`RestockNotifier`) to `checkRestocks`, ahead of the platform branches — matching the injectable notifiers already used by `maybeSendDigest` and `evaluateBasketAlert`; mobile behaviour is unchanged (default notifier still used)
 - [x] Desktop `App.tsx` now passes a Tauri notifier (`sendDesktopNotification(..., "/alerts")`)
 - [x] Tests: two cases in `tests/restock.test.ts` (injected notifier delivers + consumes the watch; a failed notifier keeps it) + a wiring guard in `tests/desktop-chart-guard.test.ts` (now 163) — each verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2285 passed`; desktop `tsc 0`, `50 passed` / `246 passed`
+
+## Phase 533: Device QA round 280 (web notification fallback reported false success)
+
+- [x] **`desktop/src/notifications.ts`'s web fallback called `displayWebNotification(title, body)` and returned `true` unconditionally**, ignoring that it returns `false` when the browser Notification permission isn't granted. Callers treat that return as "was it shown" and consume state on success — the basket alert clears `basketAlertThreshold`, `maybeSendDigest` saves the digest snapshot, and `checkRestocks` removes the restock watch — so an ungranted-permission desktop saw the alert silently burned (and, for restock, retried forever).
+- [x] The fallback now returns `displayWebNotification(...)`'s actual result, so the "delivered" signal is honest and unconsumed alerts retry
+- [x] Tests: `desktop/tests/send-notification.test.tsx` gained a false/permission-denied case and a true/shown case — verified non-vacuous by restoring the unconditional `true`; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2285 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
