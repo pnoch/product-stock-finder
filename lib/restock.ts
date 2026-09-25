@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
 import * as defaultStorageModule from "./storage";
-import { scheduleStockAlert } from "./notifications";
+import { ensureNotificationPermission, scheduleStockAlert } from "./notifications";
 import { getDistributorById } from "@shared/distributors";
 
 // The subset of the storage API this module needs. Injectable so the desktop
@@ -92,14 +92,21 @@ async function runCheckRestocks(
             const { displayWebNotification } = await import("./web-notifications");
             notified = displayWebNotification("🟢 Back In Stock!", body);
           } else {
-            const id = await scheduleStockAlert(
-              watch.productName,
-              distrib?.name ?? watch.distributorName,
-              currentListing.price,
-              currentListing.currency,
-              watch.productId,
-            );
-            notified = id !== null;
+            // `scheduleNotificationAsync` resolves even when the OS permission
+            // has since been revoked (the alert is scheduled but never shown),
+            // which would consume the watch silently. Gate like the price-drop
+            // path: without permission, keep the watch and retry next cycle.
+            const granted = await ensureNotificationPermission();
+            if (granted) {
+              const id = await scheduleStockAlert(
+                watch.productName,
+                distrib?.name ?? watch.distributorName,
+                currentListing.price,
+                currentListing.currency,
+                watch.productId,
+              );
+              notified = id !== null;
+            }
           }
         } catch {
           notified = false;

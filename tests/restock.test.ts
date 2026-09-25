@@ -31,6 +31,7 @@ vi.mock("../lib/storage", () => ({
 }));
 
 vi.mock("../lib/notifications", () => ({
+  ensureNotificationPermission: vi.fn(async () => state.permissions),
   scheduleStockAlert: vi.fn(async (...args: unknown[]) => {
     state.scheduled.push(args);
     return "notif-id";
@@ -272,5 +273,30 @@ describe("checkRestocks", () => {
     const storage = await import("../lib/storage");
     vi.mocked(storage.getStockWatches).mockRejectedValueOnce(new Error("boom"));
     await expect(checkRestocks()).resolves.toBeUndefined();
+  });
+
+  // QA round 288: `scheduleNotificationAsync` resolves even when the OS
+  // permission has since been revoked (the alert is scheduled but never shown),
+  // so the watch was consumed silently. Gate like the price-drop path.
+  it("keeps the watch when notification permission is missing", async () => {
+    state.permissions = false;
+    state.watches = [makeWatch()];
+    state.watchlist = [
+      {
+        id: "p1",
+        listings: [
+          {
+            distributorId: "d1",
+            stockStatus: "in_stock",
+            price: 100,
+            currency: "USD",
+          },
+        ],
+      },
+    ];
+    await checkRestocks();
+    expect(state.scheduled).toHaveLength(0);
+    expect(state.removed).toEqual([]);
+    expect(state.recorded).toHaveLength(0);
   });
 });

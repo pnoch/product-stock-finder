@@ -4052,3 +4052,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Added both keys to `clearAccountData` and `clearAllData` (extended the wipe test to assert all three keys are removed by both).
 - [ ] Open item recorded: those writes are dead (never read). A future round should either wire them into a support/crash-report flow or delete the writes — I cleared them on wipe rather than removing the writes so the apparent diagnostic intent isn't silently dropped.
 - [x] E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2307 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
+
+## Phase 546: Device QA round 288 (mobile restock ignored a revoked permission)
+
+- [x] **The mobile restock branch called `scheduleStockAlert()` with no permission check.** On iOS/Android `scheduleNotificationAsync` *resolves* even when notification permission has been revoked since the watch was created (the alert is scheduled but never presented), so `notified = true` and the watch was **consumed silently** — removed and written to the history with no alert. The price-drop path already guards this with `ensureNotificationPermission()` before deactivating an alert; restock now matches.
+- [x] `lib/restock.ts` gates the native branch on `ensureNotificationPermission()`; without permission the watch is kept and retried next cycle (the desktop is unaffected — it passes a `notify` and takes the injected-channel branch).
+- [x] Tests: permission-denied case added to `tests/restock.test.ts` (13) + the `ensureNotificationPermission` mock — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2308 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
