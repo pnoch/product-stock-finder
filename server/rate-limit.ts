@@ -1,7 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import type { TrpcContext } from "./_core/context";
 
-const buckets = new Map<string, number[]>();
+interface Bucket {
+  /** The window this key was last used with; each bucket is pruned by its own. */
+  windowMs: number;
+  timestamps: number[];
+}
+
+const buckets = new Map<string, Bucket>();
 let lastPrune = Date.now();
 const PRUNE_INTERVAL = 60_000;
 // Hard cap on distinct keys. Under a rotating-IP flood every key stays "active"
@@ -10,15 +16,18 @@ const PRUNE_INTERVAL = 60_000;
 // client simply gets a fresh bucket.
 const MAX_BUCKETS = 10_000;
 
-function pruneStale(maxAge: number) {
+// Prunes every bucket by ITS OWN window. Pruning with the calling endpoint's
+// window instead let a short-window call truncate a long-window bucket's
+// history to the caller's window, silently loosening that endpoint's limit.
+function pruneStale() {
   const now = Date.now();
   if (now - lastPrune < PRUNE_INTERVAL) return;
   lastPrune = now;
-  const cutoff = now - maxAge;
-  for (const [key, timestamps] of buckets) {
-    const recent = timestamps.filter((t) => t > cutoff);
+  for (const [key, bucket] of buckets) {
+    const cutoff = now - bucket.windowMs;
+    const recent = bucket.timestamps.filter((t) => t > cutoff);
     if (recent.length === 0) buckets.delete(key);
-    else buckets.set(key, recent);
+    else bucket.timestamps = recent;
   }
   // Map preserves insertion order, so the first keys are the oldest.
   while (buckets.size > MAX_BUCKETS) {
@@ -66,11 +75,12 @@ export function checkRateLimitByKey(
 }
 
 function consumeBucket(key: string, limit: number, windowMs: number): void {
-  pruneStale(windowMs);
+  pruneStale();
   const now = Date.now();
   const windowStart = now - windowMs;
-  const timestamps = buckets.get(key) ?? [];
-  const recent = timestamps.filter((t) => t > windowStart);
+  const bucket = buckets.get(key) ?? { windowMs, timestamps: [] };
+  bucket.windowMs = windowMs;
+  const recent = bucket.timestamps.filter((t) => t > windowStart);
   if (recent.length >= limit) {
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
@@ -78,10 +88,11 @@ function consumeBucket(key: string, limit: number, windowMs: number): void {
     });
   }
   recent.push(now);
+  bucket.timestamps = recent;
   // Re-inserting an existing key moves it to the end of the insertion order,
   // making the map an LRU: eviction below drops the least-recently-used bucket.
   buckets.delete(key);
-  buckets.set(key, recent);
+  buckets.set(key, bucket);
   // Enforce the cap on insert too, not only during the 60s prune: a burst of
   // unique keys between prunes would otherwise grow the map unbounded.
   while (buckets.size > MAX_BUCKETS) {

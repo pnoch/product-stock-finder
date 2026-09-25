@@ -4071,3 +4071,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Added the gate (`if (settings.notificationsEnabled === false) return null;`, `undefined` counts as enabled for old settings) — one place covers mobile and desktop since `maybeSendDigest` is shared.
 - [x] Test added to `tests/price-digest.test.ts` — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2310 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
 - [x] Also verified this round (no change needed): `drizzle-kit generate` reports "No schema changes" (migrations match `schema.ts`); the Rust tray badge already counted alerts+reminders+watches (consistent with the round-281 sidebar fix); `/w/:token` exists as a desktop route.
+
+## Phase 549: Device QA round 291 (rate-limiter pruning truncated long windows)
+
+- [x] **`server/rate-limit.ts`'s `pruneStale(maxAge)` pruned EVERY bucket using the *calling* endpoint's window.** So a short-window call truncated a long-window bucket's history down to the caller's window, silently loosening that endpoint's limit. Every endpoint currently uses 60 s, so there was no live impact — but `checkRateLimitByKey` accepts arbitrary windows, making it a landmine for the next endpoint that needs a longer one.
+- [x] Buckets now carry their own `windowMs` and are pruned by it (`pruneStale()` no longer takes a caller window).
+- [x] Test added to `tests/rate-limit-by-key.test.ts`: fill a 1 h bucket (limit 3) with three calls over 4 min, let a 60 s-window call trigger the prune, then assert the 4th long-window call is still refused. **Verified it fails against the committed pre-fix implementation** (via `git show HEAD:server/rate-limit.ts`) and passes with the fix. E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2311 passed`; desktop `tsc 0`, `50 passed` / `248 passed`

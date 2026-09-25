@@ -24,4 +24,30 @@ describe("checkRateLimitByKey", () => {
     checkRateLimitByKey("token:a", 1, 60_000);
     expect(() => checkRateLimitByKey("token:b", 1, 60_000)).not.toThrow();
   });
+
+  // QA round 291: `pruneStale` used the *calling* endpoint's window, so a
+  // short-window call truncated every long-window bucket's history down to the
+  // caller's window — silently loosening that endpoint's limit. Prune each
+  // bucket by its own window instead.
+  it("does not let a short-window call loosen a long-window bucket", () => {
+    vi.useFakeTimers();
+    try {
+      const t0 = Date.now();
+      // Fill a 1h-window bucket (limit 3) with three calls spread over 4 min.
+      for (const offsetMin of [0, 2, 4]) {
+        vi.setSystemTime(t0 + offsetMin * 60_000);
+        checkRateLimitByKey("long:key", 3, 3_600_000);
+      }
+      // >60s after the last prune-triggering call, a short-window call runs the
+      // 60s prune. With the old code it dropped all three long-bucket entries.
+      vi.setSystemTime(t0 + 4 * 60_000 + 61_000);
+      checkRateLimitByKey("short:key", 100, 60_000);
+      // Still inside the long window, so the 4th call must be refused.
+      expect(() => checkRateLimitByKey("long:key", 3, 3_600_000)).toThrow(
+        /Rate limit/,
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
