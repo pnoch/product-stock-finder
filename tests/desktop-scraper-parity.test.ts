@@ -167,7 +167,12 @@ describe("desktop/mobile scraper parity", () => {
   it("keeps the shared price/stock corpora on both platforms", async () => {
     const shared = await readFile("tests/scraping-integration.test.ts", "utf8");
     const rust = await readFile("desktop/src-tauri/src/scrapers/mod.rs", "utf8");
-    for (const sample of ["1.234.567", "12 345,67 Kč", "Preorder available"]) {
+    for (const sample of [
+      "1.234.567",
+      "12 345,67 Kč",
+      "Preorder available",
+      "1.2.3",
+    ]) {
       expect(shared, `shared corpus lost ${sample}`).toContain(sample);
       expect(rust, `Rust corpus lost ${sample}`).toContain(sample);
     }

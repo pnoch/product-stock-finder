@@ -98,6 +98,15 @@ describe("Scraping Integration", () => {
       expect(parsePriceFromText("1,299.00")).toBe(1299);
     });
 
+    it("parsePriceFromText rejects malformed separator runs", () => {
+      // parseFloat used to truncate these to a plausible-looking but wrong
+      // price ("1.2.3" → 1.2); the desktop parser already failed closed.
+      expect(parsePriceFromText("1.2.3")).toBeNull();
+      expect(parsePriceFromText("1,23,456")).toBeNull();
+      expect(parsePriceFromText("1.234.56")).toBeNull();
+      expect(parsePriceFromText("1..2")).toBeNull();
+    });
+
     it("parsePriceFromText rejects non-finite digit runs", () => {
       expect(parsePriceFromText("9".repeat(400))).toBeNull();
     });

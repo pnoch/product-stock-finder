@@ -553,6 +553,11 @@ mod tests {
             ("Was $100 Now $80", Some(100.0)),
             ("20% off $80", Some(20.0)),
             ("no price", None),
+            // Malformed separator runs must fail closed on both platforms.
+            ("1.2.3", None),
+            ("1,23,456", None),
+            ("1.234.56", None),
+            ("1..2", None),
         ]
     }
 

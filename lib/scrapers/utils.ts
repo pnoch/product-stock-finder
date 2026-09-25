@@ -112,7 +112,10 @@ export function parsePriceFromText(text: string): number | null {
   } else {
     normalized = raw.replace(/,/g, "");
   }
-  const num = parseFloat(normalized);
+  // `Number` (not `parseFloat`) so a malformed separator run ("1.2.3",
+  // "1,23,456") is rejected outright: parseFloat silently truncated it to a
+  // plausible-looking but wrong price, while the desktop parser fails closed.
+  const num = Number(normalized);
   // Reject non-finite (a long digit run overflows to Infinity) as well as
   // zero, which is never a valid price.
   return !Number.isFinite(num) || num === 0 ? null : num;
