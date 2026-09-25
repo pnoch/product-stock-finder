@@ -36,6 +36,11 @@ vi.mock("expo-haptics", () => ({
   ImpactFeedbackStyle: { Light: "Light" },
   NotificationFeedbackType: { Success: "Success", Error: "Error" },
 }));
+// The boundary now renders an IconSymbol, whose module (expo-symbols) does not
+// parse under jsdom.
+vi.mock("@/components/ui/icon-symbol", () => ({
+  IconSymbol: () => null,
+}));
 vi.mock("@/hooks/use-colors", () => ({
   useColors: () => ({
     background: "#F8FAFC",

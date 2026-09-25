@@ -744,18 +744,20 @@ export function Settings() {
     return statuses;
   }, [products]);
 
-  const getDistributorHealth = (lastSuccess: string | null): { label: string; emoji: string } => {
+  // Status glyphs are a coloured dot, not an emoji: emoji depend on a system
+  // emoji font and render as empty boxes on many Linux desktops.
+  const getDistributorHealth = (lastSuccess: string | null): { label: string; dot: string } => {
     if (!lastSuccess) {
-      return { label: "Never Checked", emoji: "❓" };
+      return { label: "Never Checked", dot: "bg-gray-400" };
     }
     const hoursSince = (Date.now() - new Date(lastSuccess).getTime()) / (1000 * 60 * 60);
     if (hoursSince < 24) {
-      return { label: "OK", emoji: "✅" };
+      return { label: "OK", dot: "bg-emerald-500" };
     }
     if (hoursSince < 168) {
-      return { label: "Stale", emoji: "⚠️" };
+      return { label: "Stale", dot: "bg-amber-500" };
     }
-    return { label: "Failed", emoji: "❌" };
+    return { label: "Failed", dot: "bg-red-500" };
   };
 
   const handleReenableDistributor = useCallback(async (distributorId: string) => {
@@ -1352,7 +1354,11 @@ export function Settings() {
                 <div key={id} className="flex items-center justify-between py-2.5">
                   <div className="min-w-0">
                     <p className="text-sm font-medium">
-                      {distributor.countryFlag} {distributor.name} <span aria-hidden="true">{health.emoji}</span>
+                      <span
+                        aria-hidden="true"
+                        className={`inline-block w-2 h-2 rounded-full mr-1.5 align-middle ${health.dot}`}
+                      />
+                      {distributor.countryFlag} {distributor.name}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {status.lastSuccess

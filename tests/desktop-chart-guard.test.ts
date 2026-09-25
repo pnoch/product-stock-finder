@@ -725,6 +725,29 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // Phase 539 (emoji sweep A): distributor-health status glyphs and the error
+  // boundaries used emoji, which render as empty "tofu" boxes without a system
+  // emoji font. They are now a coloured dot / icon.
+  it("renders health status and error states without emoji", async () => {
+    const desktop = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(desktop).toContain('dot: "bg-emerald-500"');
+    expect(desktop).not.toContain('emoji: "❓"');
+    const mobile = await readFile(
+      "components/settings/scraper-status-section.tsx",
+      "utf8",
+    );
+    expect(mobile).toContain("backgroundColor: health.color");
+    expect(mobile).not.toMatch(/emoji:\s*"/);
+    for (const file of [
+      "components/app-error-boundary.tsx",
+      "components/route-error-boundary.tsx",
+    ]) {
+      const src = await readFile(file, "utf8");
+      expect(src, file).toContain("exclamationmark.triangle.fill");
+      expect(src, file).not.toContain("⚠️");
+    }
+  });
+
   // Phase 538: the onboarding tour rendered emoji, which depend on a system
   // emoji font — absent on many Linux desktops, where they drew as empty "tofu"
   // boxes. Both surfaces now render icons.

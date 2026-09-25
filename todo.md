@@ -4003,3 +4003,11 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Guard added to `tests/desktop-chart-guard.test.ts` (now 167) asserting both surfaces carry `icon:` and no `emoji: "` — verified non-vacuous by reverting the desktop slide.
 - [x] E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2301 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
 - [ ] **Remaining emoji (76 sites, mirrored across both platforms)** — deliberately not swept in this commit. Categories: decorative prefixes in JSX (`💳`/`🕐`/`🎉`/`👀`/`🔥`/`🏅`/`🧺`/`🎯`/`➕`/`➖`/`📅`/`✏️`/`📋`), status glyphs (`❓`/`✅`/`⚠️`/`❌` in distributor health), and **notification titles** (`🟢 Back In Stock!`, `🧺 Basket Alert`, health alerts) which the OS renders. Many are pinned by existing tests (e.g. `"Add Custom Product ✨"`, `"👀 Watching"`). Needs a phased decision per category.
+
+## Phase 539: Emoji sweep A — status glyphs and error states
+
+- [x] Distributor-health status used emoji (`❓`/`✅`/`⚠️`/`❌`) on both platforms; now a coloured dot (desktop `Settings.tsx` returns a Tailwind `dot` class; mobile `scraper-status-section.tsx` returns the `color` and renders a dot). The status label already rendered on the right, so nothing is lost.
+- [x] The two mobile error boundaries (`app-error-boundary.tsx`, `route-error-boundary.tsx`) drew `⚠️`; now `IconSymbol name="exclamationmark.triangle.fill"` in the existing tinted circle.
+- [x] `tests/app-error-boundary.test.tsx` gained an `@/components/ui/icon-symbol` mock (its module, `expo-symbols`, doesn't parse under jsdom — same mock the other IconSymbol-rendering tests use).
+- [x] Guard added to `tests/desktop-chart-guard.test.ts` (now 168) — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2302 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
+- [ ] Still to sweep (category B): decorative JSX prefixes (💳 🕐 🎉 👀 🔥 🏅 🧺 🎯 ➕ ➖ 📅 ✏️ 📋 ✨). Category C (notification titles) deliberately left as-is — OS-rendered, emoji is conventional there. Also noted: `distributor.countryFlag` is an emoji flag used across many screens — a separate decision (would need a flag asset or country code).

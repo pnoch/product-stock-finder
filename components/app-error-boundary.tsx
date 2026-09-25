@@ -3,6 +3,7 @@ import { Text, View, Pressable, Platform } from "react-native";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useColors } from "@/hooks/use-colors";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import * as Haptics from "expo-haptics";
 
 function ThemedAppFallback({
@@ -34,7 +35,7 @@ function ThemedAppFallback({
           marginBottom: 16,
         }}
       >
-        <Text style={{ fontSize: 32 }}>⚠️</Text>
+        <IconSymbol name="exclamationmark.triangle.fill" size={32} color={colors.error} />
       </View>
       <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>
         Something went wrong

@@ -16,19 +16,19 @@ import type { Product } from "@/lib/types";
 function getDistributorHealth(
   lastSuccess: string | null,
   colors: ReturnType<typeof useColors>,
-): { label: string; emoji: string; color: string } {
+): { label: string; color: string } {
   if (!lastSuccess) {
-    return { label: "Never Checked", emoji: "❓", color: colors.muted };
+    return { label: "Never Checked", color: colors.muted };
   }
   const hoursSince =
     (Date.now() - new Date(lastSuccess).getTime()) / (1000 * 60 * 60);
   if (hoursSince < 24) {
-    return { label: "OK", emoji: "✅", color: colors.success };
+    return { label: "OK", color: colors.success };
   }
   if (hoursSince < 168) {
-    return { label: "Stale", emoji: "⚠️", color: colors.warning };
+    return { label: "Stale", color: colors.warning };
   }
-  return { label: "Failed", emoji: "❌", color: colors.error };
+  return { label: "Failed", color: colors.error };
 }
 
 export function ScraperStatusSection({
@@ -133,7 +133,14 @@ export function ScraperStatusSection({
                   >
                     {distributor.countryFlag} {distributor.name}
                   </Text>
-                  <Text style={{ fontSize: 14 }}>{health.emoji}</Text>
+                  <View
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
+                      backgroundColor: health.color,
+                    }}
+                  />
                 </View>
                 <Text style={{ color: colors.muted, fontSize: 12 }}>
                   {status.lastSuccess
