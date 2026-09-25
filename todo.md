@@ -3995,3 +3995,11 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Tests: `tests/shared-watchlists.test.ts` (members-only gating for outsider/owner/member, `setMembersOnly` owner-only, `listJoined` mapping + expiry drop; fake DB now models `update`) + a wiring guard in `tests/desktop-chart-guard.test.ts` (now 166) — each verified non-vacuous. The three desktop Settings test mocks gained the new `sharedWatchlists` hooks.
 - [x] Note: an owner enabling members-only should invite people first — the share link is then useless on its own. The invite itself still sends no email/push; "delivery" here means the share surfaces in the invitee's "Shared with me" list.
 - [x] E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2300 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
+
+## Phase 538: Onboarding tour renders icons, not emoji
+
+- [x] **Reported bug:** the first-run tour drew a hollow "tofu" rectangle above each title. The slides used bare emoji (`🛒`/`✨`/`🔔`), which need a system emoji font — absent on many Linux desktops, so the glyph rendered as an empty box.
+- [x] Desktop `OnboardingModal` now renders lucide icons (`ShoppingCart`/`Sparkles`/`Bell`) in a tinted rounded slot; mobile `onboarding-screen` uses `IconSymbol` (`cart.fill`/`sparkles`/`bell`, all already mapped for Android/web) in a tinted circle. Captions unchanged.
+- [x] Guard added to `tests/desktop-chart-guard.test.ts` (now 167) asserting both surfaces carry `icon:` and no `emoji: "` — verified non-vacuous by reverting the desktop slide.
+- [x] E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2301 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
+- [ ] **Remaining emoji (76 sites, mirrored across both platforms)** — deliberately not swept in this commit. Categories: decorative prefixes in JSX (`💳`/`🕐`/`🎉`/`👀`/`🔥`/`🏅`/`🧺`/`🎯`/`➕`/`➖`/`📅`/`✏️`/`📋`), status glyphs (`❓`/`✅`/`⚠️`/`❌` in distributor health), and **notification titles** (`🟢 Back In Stock!`, `🧺 Basket Alert`, health alerts) which the OS renders. Many are pinned by existing tests (e.g. `"Add Custom Product ✨"`, `"👀 Watching"`). Needs a phased decision per category.

@@ -725,6 +725,26 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // Phase 538: the onboarding tour rendered emoji, which depend on a system
+  // emoji font — absent on many Linux desktops, where they drew as empty "tofu"
+  // boxes. Both surfaces now render icons.
+  it("renders onboarding icons instead of emoji", async () => {
+    const modal = await readFile("desktop/src/components/OnboardingModal.tsx", "utf8");
+    expect(modal).toContain("ShoppingCart");
+    expect(modal).toContain("Sparkles");
+    expect(modal).toContain("Bell");
+    expect(modal).not.toMatch(/emoji:\s*\"/);
+    const screen = await readFile(
+      "components/onboarding/onboarding-screen.tsx",
+      "utf8",
+    );
+    expect(screen).toContain('icon: "cart.fill"');
+    expect(screen).toContain('icon: "sparkles"');
+    expect(screen).toContain('icon: "bell"');
+    expect(screen).not.toMatch(/emoji:\s*\"/);
+    expect(screen).toContain("IconSymbol");
+  });
+
   // Phase 537: members-only shares + the "shared with me" list.
   it("wires members-only gating and the shared-with-me list", async () => {
     for (const file of [

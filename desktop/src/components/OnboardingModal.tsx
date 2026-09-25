@@ -1,20 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
+import { Bell, ShoppingCart, Sparkles } from "lucide-react";
 import { Modal } from "./Modal";
 import { hasSeenOnboarding, setOnboardingSeen } from "../../../lib/onboarding";
 
+// Icons, not emoji: emoji glyphs depend on a system emoji font, which is absent
+// on many Linux desktops and renders as an empty "tofu" box in the tour.
 const SLIDES = [
   {
-    emoji: "🛒",
+    icon: ShoppingCart,
     title: "Track Prices Everywhere",
     body: "Monitor products across 25 global distributors in one watchlist.",
   },
   {
-    emoji: "✨",
+    icon: Sparkles,
     title: "Add Anything",
     body: "Search the catalog, paste a list of model numbers, or add any product manually with AI.",
   },
   {
-    emoji: "🔔",
+    icon: Bell,
     title: "Never Miss a Drop",
     body: "Price alerts, restock watches, and weekly digests keep you ahead.",
   },
@@ -86,8 +89,14 @@ export function OnboardingModal({
           else if (e.key === "ArrowLeft" && index > 0) setIndex(index - 1);
         }}
       >
-        <div className="text-5xl mb-4" aria-hidden="true">
-          {slide.emoji}
+        <div
+          className="w-20 h-20 rounded-2xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center mb-4"
+          aria-hidden="true"
+        >
+          <slide.icon
+            className="w-10 h-10 text-brand-600 dark:text-brand-400"
+            strokeWidth={1.75}
+          />
         </div>
         <div aria-live="polite" aria-atomic="true" className="flex flex-col items-center">
           <h3 className="text-xl font-semibold mb-2">{slide.title}</h3>

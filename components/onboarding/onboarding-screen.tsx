@@ -11,24 +11,27 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/use-colors";
 import { setOnboardingSeen } from "@/lib/onboarding";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 
+// Icons, not emoji: emoji glyphs depend on a system emoji font, which is absent
+// on many Linux desktops and renders as an empty "tofu" box in the tour.
 const SLIDES = [
   {
-    emoji: "🛒",
+    icon: "cart.fill",
     title: "Track Prices Everywhere",
     body: "Monitor products across 25 global distributors in one watchlist.",
   },
   {
-    emoji: "✨",
+    icon: "sparkles",
     title: "Add Anything",
     body: "Search the catalog, paste a list of model numbers, or add any product manually with AI.",
   },
   {
-    emoji: "🔔",
+    icon: "bell",
     title: "Never Miss a Drop",
     body: "Price alerts, restock watches, and weekly digests keep you ahead.",
   },
-];
+] as const;
 
 export function OnboardingScreen({
   onComplete,
@@ -92,7 +95,18 @@ export function OnboardingScreen({
               paddingHorizontal: 40,
             }}
           >
-            <Text style={{ fontSize: 72 }}>{item.emoji}</Text>
+            <View
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: 24,
+                backgroundColor: colors.primary + "18",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <IconSymbol name={item.icon} size={44} color={colors.primary} />
+            </View>
             <Text
               style={{
                 color: colors.foreground,
