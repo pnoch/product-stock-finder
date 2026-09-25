@@ -396,6 +396,81 @@ mod tests {
         assert!(text_mentions_model("CRS326-24G-2S+", "CRS326"));
     }
 
+    /// The shared parser's stock-status corpus (tests/scraping-integration.test.ts).
+    fn shared_stock_cases() -> Vec<(&'static str, &'static str)> {
+        vec![
+            ("In Stock", "in_stock"),
+            ("Out of Stock", "out_of_stock"),
+            ("Back Order", "back_order"),
+            ("unknown", "unknown"),
+            ("Add to Cart", "in_stock"),
+            ("Backorder", "back_order"),
+            ("Pre-order", "back_order"),
+            ("Sold Out", "out_of_stock"),
+            ("Available", "in_stock"),
+            ("Currently unavailable", "out_of_stock"),
+            ("Temporarily Unavailable", "out_of_stock"),
+            ("Not available", "out_of_stock"),
+            ("Backorder available", "back_order"),
+            ("Pre-order available", "back_order"),
+            ("Not in stock", "out_of_stock"),
+            ("Currently not in stock", "out_of_stock"),
+            ("Temporarily not in stock", "out_of_stock"),
+            // Hyphen-less spelling: a preorder is a back-order, not stock.
+            ("Preorder available", "back_order"),
+        ]
+    }
+
+    #[test]
+    fn infer_stock_status_agrees_with_the_shared_parser() {
+        for (text, expected) in shared_stock_cases() {
+            assert_eq!(
+                infer_stock_status(text),
+                expected,
+                "infer_stock_status({text:?})"
+            );
+        }
+    }
+
+    /// The shared parser's price corpus (tests/scraping-integration.test.ts).
+    fn shared_price_cases() -> Vec<(&'static str, Option<f64>)> {
+        vec![
+            ("$123.45", Some(123.45)),
+            ("€1,234.56", Some(1234.56)),
+            ("£99", Some(99.0)),
+            ("RM 1,299.00", Some(1299.0)),
+            ("invalid", None),
+            ("€ 1.234,56", Some(1234.56)),
+            ("1 234,56 Kč", Some(1234.56)),
+            ("1.234,56 €", Some(1234.56)),
+            ("R 12 345.67", Some(12345.67)),
+            ("12 345,67 Kč", Some(12345.67)),
+            ("1.299", Some(1299.0)),
+            ("1.299 €", Some(1299.0)),
+            ("1.234.567", Some(1234567.0)),
+            ("1,299.00", Some(1299.0)),
+            ("Was $100 Now $80", Some(100.0)),
+            ("20% off $80", Some(20.0)),
+            ("no price", None),
+        ]
+    }
+
+    #[test]
+    fn parse_price_from_text_agrees_with_the_shared_parser() {
+        for (text, expected) in shared_price_cases() {
+            assert_eq!(
+                parse_price_from_text(text),
+                expected,
+                "parse_price_from_text({text:?})"
+            );
+        }
+    }
+
+    #[test]
+    fn parse_price_from_text_rejects_non_finite_digit_runs() {
+        assert_eq!(parse_price_from_text(&"9".repeat(400)), None);
+    }
+
     /// The shared parser's `matchesModel` test corpus (tests/scrapers/utils.test.ts).
     /// Both platforms must agree: a stricter desktop rule silently reports "no
     /// price found" for pages the server-side parser handles.

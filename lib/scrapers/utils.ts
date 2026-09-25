@@ -36,6 +36,9 @@ export function inferStockStatus(text: string): StockStatus {
     lower.includes("back order") ||
     lower.includes("backorder") ||
     lower.includes("pre-order") ||
+    // Stores spell it without the hyphen too; missing it classified a preorder
+    // as in_stock (a false in-stock / restock signal).
+    lower.includes("preorder") ||
     lower.includes("expected")
   ) {
     return "back_order";

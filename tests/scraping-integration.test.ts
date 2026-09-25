@@ -69,6 +69,14 @@ describe("Scraping Integration", () => {
       expect(inferStockStatus("Pre-order available")).toBe("back_order");
     });
 
+    it("inferStockStatus should treat a hyphen-less preorder as back-order", () => {
+      // "Preorder available" is a back-order, not stock. The desktop Rust parser
+      // already treated "preorder" as a back-order signal, so the shared parser
+      // disagreeing made the same listing in_stock server-side/mobile.
+      expect(inferStockStatus("Preorder available")).toBe("back_order");
+      expect(inferStockStatus("Preorder")).toBe("back_order");
+    });
+
     it("parsePriceFromText should handle comma-decimal formats", () => {
       expect(parsePriceFromText("€ 1.234,56")).toBe(1234.56);
       expect(parsePriceFromText("1 234,56 Kč")).toBe(1234.56);

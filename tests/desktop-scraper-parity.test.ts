@@ -140,4 +140,36 @@ describe("desktop/mobile scraper parity", () => {
       "locator.wait_for(None)",
     );
   });
+
+  it("keeps the Rust stock-status markers identical to the shared parser", async () => {
+    // The shared parser and the Rust fallback must classify the same text the
+    // same way. `preorder` was missing from the shared list, so a store's
+    // "Preorder available" was in_stock server-side/mobile while the desktop
+    // said back_order.
+    const ts = await readFile("lib/scrapers/utils.ts", "utf8");
+    const tsStart = ts.indexOf("export function inferStockStatus");
+    const tsBody = ts.slice(tsStart, ts.indexOf("\n}", tsStart));
+    const tsMarkers = [...tsBody.matchAll(/includes\("([^"]+)"\)/g)]
+      .map((m) => m[1]!)
+      .sort();
+
+    const rust = await readFile("desktop/src-tauri/src/scrapers/mod.rs", "utf8");
+    const rustStart = rust.indexOf("pub fn infer_stock_status");
+    const rustBody = rust.slice(rustStart, rust.indexOf("\n}", rustStart));
+    const rustMarkers = [...rustBody.matchAll(/contains\("([^"]+)"\)/g)]
+      .map((m) => m[1]!)
+      .sort();
+
+    expect(tsMarkers.length).toBeGreaterThan(10);
+    expect(rustMarkers).toEqual(tsMarkers);
+  });
+
+  it("keeps the shared price/stock corpora on both platforms", async () => {
+    const shared = await readFile("tests/scraping-integration.test.ts", "utf8");
+    const rust = await readFile("desktop/src-tauri/src/scrapers/mod.rs", "utf8");
+    for (const sample of ["1.234.567", "12 345,67 Kč", "Preorder available"]) {
+      expect(shared, `shared corpus lost ${sample}`).toContain(sample);
+      expect(rust, `Rust corpus lost ${sample}`).toContain(sample);
+    }
+  });
 });
