@@ -1,6 +1,7 @@
 import { formatPrice } from "@shared/currency";
 import { getBestPrice } from "./currency";
 import { isInQuietHours } from "./quiet-hours";
+import { productStatus } from "./watchlist-org";
 import type { AppSettings, PriceAlert, Product, StockStatus } from "./types";
 
 export interface DigestProductState {
@@ -67,20 +68,11 @@ function productState(
   // `?? []`, and app/stats.tsx calls computeDigest directly with no try/catch.
   const listings = product.listings ?? [];
   const best = getBestPrice(listings, displayCurrency);
-  const inStock = listings.some(
-    (l) => l.stockStatus === "in_stock" && l.price > 0,
-  );
-  const backOrder = listings.some(
-    (l) => l.stockStatus === "back_order",
-  );
-  const stockStatus: StockStatus = inStock
-    ? "in_stock"
-    : backOrder
-      ? "back_order"
-      : listings.length === 0 ||
-          listings.some((l) => l.stockStatus === "unknown")
-        ? "unknown"
-        : "out_of_stock";
+  // Reuse the canonical product-level rollup (lib/watchlist-org) so the digest
+  // agrees with the watchlist card. The previous inline logic differed for a
+  // mixed out_of_stock + unknown product: the watchlist showed "Out of Stock"
+  // while the digest recorded "unknown", reporting a spurious stock change.
+  const stockStatus = productStatus(product);
   return {
     productId: product.id,
     name: product.name,

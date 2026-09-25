@@ -3903,3 +3903,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's restock-watch remove confirm names the product ("Stop watching for X? This cannot be undone."); the desktop's was generic ("Stop watching for this restock?")** — no indication of which watch was about to be removed. The desktop also surfaced the raw storage error (`e.message`) instead of mobile's friendly "We couldn't remove that watch. Please try again."
 - [x] `RestockWatches.handleRemove` now takes the product name and uses the friendly error copy
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 160) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2271 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
+
+## Phase 524: Device QA round 269 (digest stock rollup diverged from the watchlist)
+
+- [x] **`computeDigest`'s `productState` hand-rolled its own product-level stock rollup, which disagreed with the canonical `productStatus` (`lib/watchlist-org.ts`) the watchlist cards use.** For a product with an out_of_stock listing *and* an unknown listing, the watchlist showed "Out of Stock" while the digest recorded "unknown" — so a stock change was reported (and a digest sent) when nothing the user could see had changed.
+- [x] `productState` now reuses `productStatus`, so the digest and watchlist agree
+- [x] Added a regression test to `tests/price-digest.test.ts` — verified non-vacuous by restoring the inline logic; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2272 passed`; desktop `tsc 0`, `49 passed` / `243 passed`

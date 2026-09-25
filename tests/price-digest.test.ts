@@ -119,6 +119,31 @@ describe("computeDigest", () => {
     expect(result.stockChanges[0].to).toBe("in_stock");
   });
 
+  it("rolls up stock status like the watchlist (out_of_stock beats unknown)", () => {
+    // One out_of_stock + one unknown listing: the watchlist's productStatus
+    // rolls this up to "out_of_stock". The digest's old inline logic treated any
+    // unknown listing as "unknown", so it reported a spurious stock change.
+    const previous: DigestSnapshot = {
+      lastDigestAt: LAST,
+      products: [
+        {
+          productId: "p1",
+          name: "CRS804",
+          bestPrice: null,
+          stockStatus: "out_of_stock",
+        },
+      ],
+    };
+    const watchlist = [
+      makeProduct("p1", "CRS804", [
+        { price: 95, currency: "USD", stockStatus: "out_of_stock" },
+        { price: 96, currency: "USD", stockStatus: "unknown" },
+      ]),
+    ];
+    const result = computeDigest(previous, watchlist, makeSettings(), []);
+    expect(result.stockChanges).toHaveLength(0);
+  });
+
   it("reports alert targets hit within the window", () => {
     const previous: DigestSnapshot = {
       lastDigestAt: LAST,
