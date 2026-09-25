@@ -125,8 +125,15 @@ async fn fetch_with_browser_page(
 
     if let Some(selector) = wait_for_selector {
         let locator = page.locator(selector);
-        locator.wait_for(None).await
-            .map_err(|e| e.to_string())?;
+        // Mirror the shared browser path: a missing selector is not a fetch
+        // failure. Mobile waits 10s and then returns whatever loaded, whereas
+        // erroring here discarded a JS-rendered page and fell back to plain
+        // HTML, which cannot contain the results at all (and stalled 30s doing
+        // it).
+        let options = playwright_rs::WaitForOptions::builder()
+            .timeout(10_000.0)
+            .build();
+        let _ = locator.wait_for(Some(options)).await;
     }
 
     page.content().await

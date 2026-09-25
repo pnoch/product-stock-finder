@@ -102,4 +102,42 @@ describe("desktop/mobile scraper parity", () => {
     expect(shared).toContain("MikroTikCRS326-24G-2S+IN");
     expect(rust).toContain("MikroTikCRS326-24G-2S+IN");
   });
+
+  it("every Rust browser parser waits for the same selector as mobile", async () => {
+    // A wait for a selector the page never renders used to fail the whole
+    // browser fetch (see the soft-fail test below) and send the desktop down a
+    // plain-HTML path that cannot contain JS-rendered results. The wait target
+    // itself must match the shared per-distributor value.
+    const dir = "lib/scrapers";
+    let checked = 0;
+    for (const file of await readdir(dir)) {
+      if (!file.endsWith(".ts")) continue;
+      const name = file.slice(0, -3);
+      const ts = await readFile(path.join(dir, file), "utf8");
+      if (!/useBrowser:\s*true/.test(ts)) continue;
+      const tsWait = ts.match(/waitForSelector:\s*"([^"]+)"/)?.[1] ?? null;
+      const rust = await readFile(
+        `desktop/src-tauri/src/scrapers/${name}.rs`,
+        "utf8",
+      );
+      const rustWait =
+        rust.match(/fetch_with_browser\(\s*[^,]+,\s*Some\("([^"]+)"\)/)?.[1] ?? null;
+      checked++;
+      expect(rustWait, `${name} browser wait selector drifted`).toBe(tsWait);
+    }
+    expect(checked).toBeGreaterThan(10);
+  });
+
+  it("soft-fails a missing browser wait selector like the shared path", async () => {
+    const browserRs = await readFile(
+      "desktop/src-tauri/src/scrapers/browser.rs",
+      "utf8",
+    );
+    expect(browserRs, "a missing selector must not fail the fetch").toMatch(
+      /let _ = locator\.wait_for\(/,
+    );
+    expect(browserRs, "30s hard-fail wait is gone").not.toContain(
+      "locator.wait_for(None)",
+    );
+  });
 });
