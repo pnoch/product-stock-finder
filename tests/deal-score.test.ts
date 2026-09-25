@@ -185,3 +185,19 @@ describe("dealBandLabel", () => {
     expect(dealBandLabel("wait")).toBe("Wait for a drop");
   });
 });
+
+// QA round 281: like the insights "Dropping ×N" badge, the streak factor must
+// read the best in-stock series — the all-listing average rises when a
+// distributor's history ends, hiding a real run of drops.
+describe("computeDealScore streak factor", () => {
+  it("counts the streak from the best in-stock series, not the average", () => {
+    const a = listing(priced([100, 95, 90, 85, 80]));
+    const b = listing(priced([40, 40], [D[0], D[1]]), "d2");
+    b.stockStatus = "out_of_stock";
+    for (const p of b.priceHistory) p.stockStatus = "out_of_stock";
+    const result = computeDealScore([a, b], "USD");
+    expect(result).not.toBeNull();
+    // Four trailing drops on A, capped at 3 → full streak factor.
+    expect(result!.factors.streak).toBe(10);
+  });
+});

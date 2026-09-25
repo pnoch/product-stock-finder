@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router";
 import { storage } from "../storage";
+import { countActiveAlerts } from "../../../lib/alert-state";
 import {
   LayoutDashboard,
   List,
@@ -29,14 +30,26 @@ const navItems = [
 ];
 
 export function Sidebar() {
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [alertsBadge, setAlertsBadge] = useState(0);
   const { pathname } = useLocation();
 
   useEffect(() => {
     const load = async () => {
       try {
-        const history = await storage.getNotificationHistory();
-        setUnreadCount(history.filter((e) => !e.read).length);
+        // Match the mobile Alerts tab badge (hooks/use-alert-badge): active
+        // price alerts + date reminders + restock watches, all sharing the
+        // canonical countActiveAlerts predicate. The desktop previously counted
+        // *unread notifications* here — a different sub-tab's data — so the two
+        // platforms disagreed. Unread stays visible on the Alerts page's
+        // Notifications sub-tab.
+        const [alerts, reminders, watches] = await Promise.all([
+          storage.getAlerts(),
+          storage.getBackOrderReminders(),
+          storage.getStockWatches(),
+        ]);
+        setAlertsBadge(
+          countActiveAlerts(alerts) + reminders.length + watches.length,
+        );
       } catch {
         // best-effort — badge stays hidden
       }
@@ -73,9 +86,9 @@ export function Sidebar() {
             >
               <Icon className="w-5 h-5 shrink-0" />
               <span className="hidden lg:block truncate">{label}</span>
-              {to === "/alerts" && unreadCount > 0 && (
+              {to === "/alerts" && alertsBadge > 0 && (
                 <span className="absolute right-1.5 lg:static lg:ml-auto flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-brand-600 text-white text-[11px] font-semibold">
-                  {unreadCount > 99 ? "99+" : unreadCount}
+                  {alertsBadge > 99 ? "99+" : alertsBadge}
                 </span>
               )}
             </NavLink>

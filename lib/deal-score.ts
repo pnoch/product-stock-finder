@@ -1,5 +1,5 @@
 import type { DistributorListing, Product } from "./types";
-import { dropStreak, mergedPoints } from "./product-insights";
+import { bestPricePoints, dropStreak, mergedPoints } from "./product-insights";
 
 export type DealBand = "hot" | "fair" | "wait";
 
@@ -28,9 +28,8 @@ export function computeDealScore(
   if (points.length < MIN_POINTS) return null;
   const spanDays = (points[points.length - 1].t - points[0].t) / 86400000;
   if (spanDays < MIN_SPAN_DAYS) return null;
-  const window = points.filter(
-    (p) => p.t >= points[points.length - 1].t - RANGE_DAYS * 86400000,
-  );
+  const cutoffMs = points[points.length - 1].t - RANGE_DAYS * 86400000;
+  const window = points.filter((p) => p.t >= cutoffMs);
   const values = window.map((p) => p.v);
   const lo = Math.min(...values);
   const hi = Math.max(...values);
@@ -41,7 +40,14 @@ export function computeDealScore(
   const first = recent[0] ?? current;
   const move = first > 0 ? ((current - first) / first) * 100 : 0;
   const trend = move <= -5 ? 30 : move >= 5 ? 0 : 30 * (1 - (move + 5) / 10);
-  const streak = dropStreak(values);
+  // Like the insights "Dropping ×N" badge, the streak must read the best
+  // in-stock series (windowed to the same 90 days). `values` averages every
+  // listing, so a distributor's history ending would make the average rise on
+  // the last point and hide a real run of drops.
+  const bestWindow = bestPricePoints(listings, currency).filter(
+    (p) => p.t >= cutoffMs,
+  );
+  const streak = dropStreak(bestWindow.map((p) => p.v));
   const streakScore = Math.min(streak, 3) / 3;
   const mean = values.reduce((a, b) => a + b, 0) / values.length;
   const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length;
