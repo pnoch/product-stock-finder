@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Text, View, TextInput, TouchableOpacity, Keyboard, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { addAlert } from "@/lib/storage";
-import { schedulePriceAlert } from "@/lib/notifications";
+import { ensureNotificationPermission, schedulePriceAlert } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
 import { useToast } from "@/components/ui/toast";
 import { useColors } from "@/hooks/use-colors";
@@ -22,6 +22,20 @@ export function AlertSection({ productId, productName, displayCurrency = "USD", 
     if (adding) return;
     const targetPrice = parseFloat(price);
     if (!Number.isFinite(targetPrice) || targetPrice <= 0) { showAlert("Invalid price", "Please enter a valid target price."); return; }
+    // Same gate as every other alert-creation path (product detail, compare,
+    // desktop): without notification permission the alert saves but can never
+    // notify, yet the toast below promises it will.
+    const granted = await ensureNotificationPermission();
+    if (!granted) {
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showAlert(
+        "Permission Denied",
+        Platform.OS === "web"
+          ? "Please allow notifications in your browser to receive price alerts."
+          : "Please enable notifications in your device settings to receive price alerts.",
+      );
+      return;
+    }
     setAdding(true);
     try {
       const alert = { id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, targetPrice, currency, isActive: true, createdAt: new Date().toISOString(), direction: "drop" as const };

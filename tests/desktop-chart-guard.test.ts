@@ -725,6 +725,21 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 289: `AlertSection` was the only alert-creation path that didn't
+  // check notification permission, so its "Alert created — watching for X" toast
+  // promised notifications that could never be delivered (the other mobile
+  // paths and the desktop all gate).
+  it("gates AlertSection on notification permission", async () => {
+    const text = await readFile("components/product/alert-section.tsx", "utf8");
+    const parseAt = text.indexOf("parseFloat(price)");
+    const gateAt = text.indexOf("await ensureNotificationPermission();");
+    const addAlertAt = text.indexOf("await addAlert(alert);");
+    expect(parseAt).toBeGreaterThan(-1);
+    expect(gateAt).toBeGreaterThan(parseAt);
+    expect(gateAt).toBeLessThan(addAlertAt);
+    expect(text).toContain('"Permission Denied"');
+  });
+
   // QA round 285: mobile's logout clears the previous account's synced
   // collections and sync cursor (`clearAccountData`) so the next account on the
   // device cannot inherit or re-upload them; the desktop's logout only removed
