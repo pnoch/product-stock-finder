@@ -725,6 +725,26 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // Phase 537: members-only shares + the "shared with me" list.
+  it("wires members-only gating and the shared-with-me list", async () => {
+    for (const file of [
+      "app/(tabs)/settings.tsx",
+      "desktop/src/pages/Settings.tsx",
+    ]) {
+      const src = await readFile(file, "utf8");
+      expect(src, file).toContain("sharedWatchlists.setMembersOnly.useMutation()");
+      expect(src, file).toContain("sharedWatchlists.listJoined.useQuery()");
+      expect(src, file).toContain("membersOnly");
+    }
+    const routers = await readFile("server/routers.ts", "utf8");
+    expect(routers).toContain("setMembersOnly: protectedProcedure");
+    expect(routers).toContain("listJoined: protectedProcedure");
+    expect(routers).toContain("This share is members-only");
+    // The members-only column ships as a migration.
+    const schema = await readFile("drizzle/schema.ts", "utf8");
+    expect(schema).toContain('membersOnly: boolean("membersOnly")');
+  });
+
   // Phase 536: invite-by-email + roster management for shared watchlists.
   it("wires invite-by-email and the member roster on both platforms", async () => {
     for (const file of [

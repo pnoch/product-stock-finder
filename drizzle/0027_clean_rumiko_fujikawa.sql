@@ -1,0 +1,1 @@
+ALTER TABLE `shared_watchlists` ADD `membersOnly` boolean DEFAULT false NOT NULL;

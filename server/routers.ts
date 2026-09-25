@@ -742,7 +742,7 @@ export const appRouter = router({
           .from(sharedWatchlists)
           .where(eq(sharedWatchlists.token, input.token))
           .limit(1);
-        const row = rows[0] as unknown as { ownerId: number; token: string; title: string; createdAt: Date; expiresAt: Date | null; updatedAt?: Date } | undefined;
+        const row = rows[0] as unknown as { ownerId: number; token: string; title: string; createdAt: Date; expiresAt: Date | null; updatedAt?: Date; membersOnly?: boolean } | undefined;
         if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
         if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) {
           await db.delete(sharedWatchlists).where(eq(sharedWatchlists.token, input.token));
@@ -765,6 +765,14 @@ export const appRouter = router({
             )
             .limit(1);
           isMember = memberRows.length > 0;
+        }
+        // Members-only shares: the token alone is not sufficient. Actionable
+        // message (the caller already holds the token, so this leaks nothing).
+        if (row.membersOnly && !isOwner && !isMember) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "This share is members-only. Ask the owner to invite you.",
+          });
         }
         // Cap the shared payload: a public endpoint must not return an
         // arbitrarily large watchlist (or read every row into memory) just
@@ -812,15 +820,74 @@ export const appRouter = router({
         .orderBy(desc(sharedWatchlists.createdAt));
       const origin = getOrigin(ctx.req as unknown as { headers: Record<string, unknown> });
       return {
-        links: (rows as unknown as { token: string; title: string; createdAt: Date | null; expiresAt: Date | null }[]).map((r) => ({
+        links: (rows as unknown as { token: string; title: string; createdAt: Date | null; expiresAt: Date | null; membersOnly: boolean }[]).map((r) => ({
           token: r.token,
           title: r.title,
           shareUrl: `${origin}/w/${r.token}`,
           createdAt: r.createdAt?.toISOString?.() ?? null,
           expiresAt: r.expiresAt ? new Date(r.expiresAt).toISOString() : null,
+          membersOnly: Boolean(r.membersOnly),
         })),
       } as const;
     }),
+    listJoined: protectedProcedure.query(async ({ ctx }) => {
+      checkRateLimit(ctx, "sharedWatchlists.listJoined", 30, 60_000);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      const memberRows = await db
+        .select()
+        .from(sharedWatchlistMembers)
+        .where(eq(sharedWatchlistMembers.userId, ctx.user.id));
+      const origin = getOrigin(ctx.req as unknown as { headers: Record<string, unknown> });
+      const joined = await Promise.all(
+        memberRows.map(async (m) => {
+          const rows = await db
+            .select()
+            .from(sharedWatchlists)
+            .where(eq(sharedWatchlists.token, m.token))
+            .limit(1);
+          const share = rows[0] as unknown as
+            | { ownerId: number; token: string; title: string; expiresAt: Date | null; membersOnly: boolean }
+            | undefined;
+          if (!share) return null;
+          // Drop expired shares (get/members reject them) so the list can't
+          // point at a dead link.
+          if (share.expiresAt && new Date(share.expiresAt).getTime() < Date.now()) {
+            return null;
+          }
+          const owner = await getUserById(share.ownerId);
+          return {
+            token: share.token,
+            title: share.title,
+            shareUrl: `${origin}/w/${share.token}`,
+            ownerName: owner?.name ?? owner?.email ?? null,
+            expiresAt: share.expiresAt ? new Date(share.expiresAt).toISOString() : null,
+            membersOnly: Boolean(share.membersOnly),
+          };
+        }),
+      );
+      return { shares: joined.filter((s): s is NonNullable<typeof s> => s !== null) } as const;
+    }),
+    setMembersOnly: protectedProcedure
+      .input(
+        z.object({
+          token: z.string().min(1).max(64),
+          membersOnly: z.boolean(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "sharedWatchlists.setMembersOnly", 20, 60_000);
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
+        const row = rows[0] as unknown as { ownerId: number } | undefined;
+        if (!row || row.ownerId !== ctx.user.id) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
+        await db
+          .update(sharedWatchlists)
+          .set({ membersOnly: input.membersOnly })
+          .where(and(eq(sharedWatchlists.token, input.token), eq(sharedWatchlists.ownerId, ctx.user.id)));
+        return { membersOnly: input.membersOnly } as const;
+      }),
     extend: protectedProcedure
       .input(z.object({ token: z.string().min(1).max(64) }))
       .mutation(async ({ ctx, input }) => {

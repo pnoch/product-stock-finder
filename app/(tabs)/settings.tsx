@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, View, Platform, ActivityIndicator, TouchableOpacity, TextInput } from "react-native";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { trpc } from "@/lib/trpc";
@@ -41,9 +42,23 @@ function SharedLinksList() {
   const listQuery = trpc.sharedWatchlists.list.useQuery();
   const extendMutation = trpc.sharedWatchlists.extend.useMutation();
   const revokeMutation = trpc.sharedWatchlists.revoke.useMutation();
+  const membersOnlyMutation = trpc.sharedWatchlists.setMembersOnly.useMutation();
   const [busyToken, setBusyToken] = useState<string | null>(null);
 
   const links = listQuery.data?.links ?? [];
+
+  const setMembersOnly = async (token: string, next: boolean) => {
+    if (busyToken) return;
+    setBusyToken(token);
+    try {
+      await membersOnlyMutation.mutateAsync({ token, membersOnly: next });
+      await listQuery.refetch();
+    } catch (e) {
+      showAlert("Update failed", e instanceof Error ? e.message : "Please try again.");
+    } finally {
+      setBusyToken(null);
+    }
+  };
 
   const runFor = async (token: string, action: "extend" | "revoke" | "copy") => {
     if (busyToken) return;
@@ -132,7 +147,13 @@ function SharedLinksList() {
                 </TouchableOpacity>
               ))}
             </View>
-            {!expired && <SharedLinkMembers token={link.token} />}
+            {!expired && (
+              <SharedLinkMembers
+                token={link.token}
+                membersOnly={link.membersOnly}
+                onToggleMembersOnly={(next) => void setMembersOnly(link.token, next)}
+              />
+            )}
           </View>
         );
       })}
@@ -141,7 +162,15 @@ function SharedLinksList() {
 }
 
 // Owner-side member roster + invite-by-email for one share link.
-function SharedLinkMembers({ token }: { token: string }) {
+function SharedLinkMembers({
+  token,
+  membersOnly,
+  onToggleMembersOnly,
+}: {
+  token: string;
+  membersOnly: boolean;
+  onToggleMembersOnly: (next: boolean) => void;
+}) {
   const colors = useColors();
   const membersQuery = trpc.sharedWatchlists.members.useQuery({ token });
   const inviteMutation = trpc.sharedWatchlists.inviteByEmail.useMutation();
@@ -180,6 +209,31 @@ function SharedLinkMembers({ token }: { token: string }) {
 
   return (
     <View style={{ gap: 6, marginTop: 4 }}>
+      <TouchableOpacity activeOpacity={0.85}
+        onPress={() => onToggleMembersOnly(!membersOnly)}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: membersOnly }}
+        accessibilityLabel="Members only"
+        style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+      >
+        <View
+          style={{
+            width: 16,
+            height: 16,
+            borderRadius: 4,
+            borderWidth: 1,
+            borderColor: colors.border,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: membersOnly ? colors.primary : "transparent",
+          }}
+        >
+          {membersOnly && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>✓</Text>}
+        </View>
+        <Text style={{ color: colors.muted, fontSize: 12 }}>
+          Members only (the link alone won&apos;t work)
+        </Text>
+      </TouchableOpacity>
       {members.map((m) => {
         const label = m.name ?? m.email ?? `User ${m.userId}`;
         return (
@@ -243,6 +297,85 @@ function SharedLinkMembers({ token }: { token: string }) {
     </View>
   );
 }
+// Shares the signed-in user was invited to / joined ("Shared with me").
+function JoinedSharedList() {
+  const colors = useColors();
+  const router = useRouter();
+  const joinedQuery = trpc.sharedWatchlists.listJoined.useQuery();
+  const leaveMutation = trpc.sharedWatchlists.leave.useMutation();
+  const [busy, setBusy] = useState(false);
+  const shares = joinedQuery.data?.shares ?? [];
+
+  if (joinedQuery.isLoading || shares.length === 0) return null;
+
+  const leave = async (token: string) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await leaveMutation.mutateAsync({ token });
+      await joinedQuery.refetch();
+    } catch (e) {
+      showAlert("Leave failed", e instanceof Error ? e.message : "Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const actionStyle = {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  } as const;
+
+  return (
+    <View style={{ gap: 8, marginTop: 4 }}>
+      {shares.map((s) => (
+        <View
+          key={s.token}
+          style={{
+            backgroundColor: colors.background,
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: colors.border,
+            padding: 10,
+            gap: 6,
+          }}
+        >
+          <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }} numberOfLines={1}>
+            {s.title}
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 12 }} numberOfLines={1}>
+            Shared by {s.ownerName ?? "another user"}
+            {s.membersOnly ? " · members only" : ""}
+          </Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <TouchableOpacity activeOpacity={0.85}
+              onPress={() => router.push({ pathname: "/w/[token]", params: { token: s.token } })}
+              accessibilityLabel={`Open ${s.title}`}
+              accessibilityRole="button"
+              style={actionStyle}
+            >
+              <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>Open</Text>
+            </TouchableOpacity>
+            <TouchableOpacity activeOpacity={0.85}
+              onPress={() => void leave(s.token)}
+              disabled={busy}
+              accessibilityLabel={`Leave ${s.title}`}
+              accessibilityRole="button"
+              style={{ ...actionStyle, opacity: busy ? 0.5 : 1 }}
+            >
+              <Text style={{ color: colors.error, fontSize: 12, fontWeight: "600" }}>Leave</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function ShareWatchlistButton({
   isAuthenticated,
   onSignIn,
@@ -650,10 +783,12 @@ export default function SettingsScreen() {
         >
           <Text style={{ color: colors.foreground, fontWeight: "600" }}>Share watchlist</Text>
           <Text style={{ color: colors.muted, fontSize: 13 }}>
-            Create a read-only public link to your watchlist. Anyone with the link can view it.
+            Create a read-only link to your watchlist. Anyone with the link can view it unless you
+            make it members-only.
           </Text>
           <ShareWatchlistButton isAuthenticated={isAuthenticated} onSignIn={handleSignIn} />
           {isAuthenticated && <SharedLinksList />}
+          {isAuthenticated && <JoinedSharedList />}
         </View>
 
         <AboutSection />

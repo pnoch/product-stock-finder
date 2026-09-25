@@ -1,5 +1,6 @@
 import {
   bigint,
+  boolean,
   decimal,
   double,
   index,
@@ -370,6 +371,9 @@ export const sharedWatchlists = mysqlTable(
     title: varchar("title", { length: 255 }).notNull().default("My Watchlist"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     expiresAt: timestamp("expiresAt"),
+    // When true the share is only viewable by its owner and invited members —
+    // the token alone is no longer sufficient (`get` gates on membership).
+    membersOnly: boolean("membersOnly").notNull().default(false),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   (table) => [

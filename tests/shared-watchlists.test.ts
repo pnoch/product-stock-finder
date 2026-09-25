@@ -81,6 +81,7 @@ function fakeDb(opts: { sharedRows?: unknown[]; watchlistRows?: unknown[]; membe
       }),
     }),
     delete: () => ({ where: async () => {} }),
+    update: () => ({ set: () => ({ where: async () => {} }) }),
   };
 }
 
@@ -316,5 +317,87 @@ describe("sharedWatchlists router", () => {
     await expect(owner.sharedWatchlists.members({ token: "tok123" })).resolves.toMatchObject({
       members: [{ userId: 2, role: "viewer", name: "Bob", email: "bob@example.com" }],
     });
+  });
+
+  // Phase 537: members-only shares (token alone is not sufficient) + the
+  // "shared with me" list.
+  it("gates a members-only share on membership", async () => {
+    const sharedRows = [
+      { ownerId: 1, token: "tok123", title: "T", expiresAt: null, membersOnly: true },
+    ];
+    // Non-member (even with the token) is refused.
+    mockedGetDb.mockResolvedValue(fakeDb({ sharedRows, memberRows: [] }) as never);
+    await expect(
+      appRouter.createCaller(createAuthedContext(2)).sharedWatchlists.get({ token: "tok123" }),
+    ).rejects.toThrow(/members-only/i);
+
+    // Owner and invited members still see it.
+    mockedGetDb.mockResolvedValue(fakeDb({ sharedRows }) as never);
+    await expect(
+      appRouter.createCaller(createAuthedContext(1)).sharedWatchlists.get({ token: "tok123" }),
+    ).resolves.toMatchObject({ isOwner: true });
+
+    mockedGetDb.mockResolvedValue(
+      fakeDb({ sharedRows, memberRows: [{ userId: 2 }] }) as never,
+    );
+    await expect(
+      appRouter.createCaller(createAuthedContext(2)).sharedWatchlists.get({ token: "tok123" }),
+    ).resolves.toMatchObject({ isMember: true });
+  });
+
+  it("setMembersOnly is owner-only and echoes the value", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({ sharedRows: [{ ownerId: 1, token: "tok123", expiresAt: null }] }) as never,
+    );
+    await expect(
+      appRouter
+        .createCaller(createAuthedContext(1))
+        .sharedWatchlists.setMembersOnly({ token: "tok123", membersOnly: true }),
+    ).resolves.toMatchObject({ membersOnly: true });
+
+    await expect(
+      appRouter
+        .createCaller(createAuthedContext(2))
+        .sharedWatchlists.setMembersOnly({ token: "tok123", membersOnly: true }),
+    ).rejects.toThrow(/not found/i);
+  });
+
+  it("listJoined returns member shares with the owner name", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({
+        memberRows: [{ userId: 2, token: "live" }],
+        sharedRows: [
+          { ownerId: 1, token: "live", title: "Live", expiresAt: null, membersOnly: true },
+        ],
+      }) as never,
+    );
+    mockedGetUserById.mockResolvedValue({ id: 1, name: "Owner", email: "o@example.com" } as never);
+    const res = await appRouter.createCaller(createAuthedContext(2)).sharedWatchlists.listJoined();
+    expect(res.shares).toHaveLength(1);
+    expect(res.shares[0]).toMatchObject({
+      token: "live",
+      title: "Live",
+      ownerName: "Owner",
+      membersOnly: true,
+    });
+  });
+
+  it("listJoined drops an expired share", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({
+        memberRows: [{ userId: 2, token: "dead" }],
+        sharedRows: [
+          {
+            ownerId: 1,
+            token: "dead",
+            title: "Dead",
+            expiresAt: new Date(Date.now() - 1000),
+            membersOnly: false,
+          },
+        ],
+      }) as never,
+    );
+    const res = await appRouter.createCaller(createAuthedContext(2)).sharedWatchlists.listJoined();
+    expect(res.shares).toHaveLength(0);
   });
 });

@@ -106,6 +106,17 @@ vi.mock("../src/lib/trpc", () => ({
       },
       extend: { useMutation: () => ({ mutateAsync: vi.fn() }) },
       revoke: { useMutation: () => ({ mutateAsync: vi.fn() }) },
+      setMembersOnly: { useMutation: () => ({ mutateAsync: vi.fn() }) },
+      inviteByEmail: { useMutation: () => ({ mutateAsync: vi.fn() }) },
+      removeMember: { useMutation: () => ({ mutateAsync: vi.fn() }) },
+      join: { useMutation: () => ({ mutateAsync: vi.fn() }) },
+      leave: { useMutation: () => ({ mutateAsync: vi.fn() }) },
+      members: {
+        useQuery: () => ({ data: { members: [] }, isLoading: false, refetch: vi.fn() }),
+      },
+      listJoined: {
+        useQuery: () => ({ data: { shares: [] }, isLoading: false, refetch: vi.fn() }),
+      },
     },
   },
   createTRPCClient: () => ({
