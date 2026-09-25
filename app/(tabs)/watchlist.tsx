@@ -36,14 +36,20 @@ import {
   getTagDefinitions,
   addToWatchlist,
   addAlert,
+  addBackOrderReminder,
+  addStockWatch,
+  getBackOrderReminders,
+  getStockWatches,
   removeFromWatchlist,
   getSyncMeta,
 } from "@/lib/storage";
+import { scheduleBackOrderReminder } from "@/lib/notifications";
 import { countQueuedEdits } from "@/lib/sync";
 import { computeWatchlistSummary } from "@/lib/watchlist-summary";
 import { computeProductInsights } from "@/lib/product-insights";
 import { computeDealScore } from "@/lib/deal-score";
 import {
+  BackOrderReminder,
   PriceAlert,
   Product,
   TagDefinition,
@@ -119,9 +125,12 @@ export default function WatchlistScreen() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkTagVisible, setBulkTagVisible] = useState(false);
   const [undoProduct, setUndoProduct] = useState<Product | null>(null);
-  // Alerts removed by the cascade when the product was deleted, so Undo can
-  // restore them (removeFromWatchlist deletes a product's alerts).
+  // Everything the removal cascade deletes for a product, so Undo can restore
+  // it (removeFromWatchlist also drops alerts, back-order reminders, and
+  // restock watches).
   const undoAlertsRef = useRef<PriceAlert[]>([]);
+  const undoRemindersRef = useRef<BackOrderReminder[]>([]);
+  const undoWatchesRef = useRef<BackOrderReminder[]>([]);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkingRef = useRef(false);
   const regions = useMemo(() => getAllRegions(), []);
@@ -417,12 +426,22 @@ export default function WatchlistScreen() {
     [reload],
   );
 
-  const showUndoBar = useCallback((product: Product, alerts: PriceAlert[] = []) => {
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    undoAlertsRef.current = alerts;
-    setUndoProduct(product);
-    undoTimer.current = setTimeout(() => setUndoProduct(null), 5000);
-  }, []);
+  const showUndoBar = useCallback(
+    (
+      product: Product,
+      alerts: PriceAlert[] = [],
+      reminders: BackOrderReminder[] = [],
+      watches: BackOrderReminder[] = [],
+    ) => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+      undoAlertsRef.current = alerts;
+      undoRemindersRef.current = reminders;
+      undoWatchesRef.current = watches;
+      setUndoProduct(product);
+      undoTimer.current = setTimeout(() => setUndoProduct(null), 5000);
+    },
+    [],
+  );
 
   const handleSwipeDelete = useCallback(
     async (product: Product) => {
@@ -430,12 +449,20 @@ export default function WatchlistScreen() {
         if (Platform.OS !== "web")
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         try {
-          // Capture the alerts the removal cascade will delete so Undo can
-          // restore them (otherwise undo silently loses the price alerts).
-          const removedAlerts = (await getAlerts()).filter((a) => a.productId === product.id);
+          // Capture everything the removal cascade will delete so Undo can
+          // restore it (otherwise undo silently loses the price alerts,
+          // back-order reminders, and restock watches).
+          const [allAlerts, allReminders, allWatches] = await Promise.all([
+            getAlerts(),
+            getBackOrderReminders(),
+            getStockWatches(),
+          ]);
+          const removedAlerts = allAlerts.filter((a) => a.productId === product.id);
+          const removedReminders = allReminders.filter((r) => r.productId === product.id);
+          const removedWatches = allWatches.filter((w) => w.productId === product.id);
           await removeFromWatchlist(product.id);
           await reload();
-          showUndoBar(product, removedAlerts);
+          showUndoBar(product, removedAlerts, removedReminders, removedWatches);
         } catch (e) {
           console.error("[Watchlist] swipe delete failed", e);
           showAlert("Remove failed", "We couldn't remove that product. Please try again.");
@@ -461,11 +488,35 @@ export default function WatchlistScreen() {
     setUndoProduct(null);
     try {
       await addToWatchlist(undoProduct);
-      // Restore the alerts the removal cascade deleted.
+      // Restore everything the removal cascade deleted, not just the alerts.
       for (const alert of undoAlertsRef.current) {
         await addAlert(alert);
       }
+      for (const reminder of undoRemindersRef.current) {
+        // The cascade cancelled the scheduled notification. Restoring the row
+        // with the dead id would leave a reminder that never fires, so
+        // re-schedule it (only for a future date) and store the new id.
+        let notificationId = reminder.notificationId;
+        const when = new Date(reminder.reminderDate);
+        if (!Number.isNaN(when.getTime()) && when.getTime() > Date.now()) {
+          const notifId = await scheduleBackOrderReminder(
+            reminder.productName,
+            reminder.distributorName,
+            when,
+            reminder.productId,
+          ).catch(() => null);
+          if (notifId) notificationId = notifId;
+        }
+        await addBackOrderReminder({ ...reminder, notificationId });
+      }
+      for (const watch of undoWatchesRef.current) {
+        // Stock watches are detected from status changes, not the (cancelled)
+        // confirmation id, so restoring the row as-is is enough.
+        await addStockWatch(watch);
+      }
       undoAlertsRef.current = [];
+      undoRemindersRef.current = [];
+      undoWatchesRef.current = [];
       await reload();
     } catch (e) {
       console.error("[Watchlist] undo failed", e);

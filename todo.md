@@ -3866,3 +3866,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Updated the existing undo guard's slice window and added a guard asserting the reminder/watch restore — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2266 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
 - [ ] Fixed mobile follow-up: `app/(tabs)/watchlist.tsx` `handleSwipeDelete`/`handleUndo` capture only alerts, so reminders/watches are still lost on undo (and their expo notifications were cancelled — restoring needs re-scheduling). Left for a dedicated mobile round.
 - [x] Note: this round began from a false positive — I read a truncated `grep | head` and thought the desktop had no CSV import; it already has a complete one (`handleImportFile`). Reverted the duplicate before committing.
+
+## Phase 518: Device QA round 263 (mobile undo also dropped reminders and watches)
+
+- [x] Closes the mobile follow-up noted in Phase 517: `app/(tabs)/watchlist.tsx` `handleSwipeDelete` captured only alerts, so the cascade's back-order reminders and restock watches were lost on undo
+- [x] `handleSwipeDelete` now captures all three (in parallel) and `handleUndo` restores them. Date reminders are **re-scheduled** (`scheduleBackOrderReminder`) with the new notification id — the cascade had cancelled the old one, so restoring the dead id would leave a reminder that never fires. Restock watches are restored as-is (status-driven, not id-driven)
+- [x] Updated `tests/mobile-criticals.test.ts`'s existing undo guards and added a reminder/watch case — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2267 passed`; desktop `tsc 0`, `49 passed` / `243 passed`

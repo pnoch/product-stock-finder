@@ -192,7 +192,7 @@ describe("watchlist undo restores the deleted product's alerts", () => {
     const start = src.indexOf("const handleSwipeDelete");
     const block = src.slice(start, src.indexOf("}, [reload, showUndoBar]);", start));
     expect(block).toContain("getAlerts()");
-    expect(block).toContain("showUndoBar(product, removedAlerts)");
+    expect(block).toContain("showUndoBar(product, removedAlerts, removedReminders, removedWatches)");
   });
 
   it("restores them on undo", () => {
@@ -200,6 +200,23 @@ describe("watchlist undo restores the deleted product's alerts", () => {
     const block = src.slice(start, src.indexOf("}, [undoProduct, reload]);", start));
     expect(block).toContain("undoAlertsRef.current");
     expect(block).toContain("await addAlert(alert)");
+  });
+
+  // QA round 263: the cascade also drops back-order reminders and restock
+  // watches (cancelling the scheduled notification); undo restored only alerts.
+  it("captures and restores reminders and restock watches too", () => {
+    const delStart = src.indexOf("const handleSwipeDelete");
+    const delBlock = src.slice(delStart, src.indexOf("}, [reload, showUndoBar]);", delStart));
+    expect(delBlock).toContain("getBackOrderReminders()");
+    expect(delBlock).toContain("getStockWatches()");
+    expect(delBlock).toContain("removedReminders");
+    expect(delBlock).toContain("removedWatches");
+
+    const undStart = src.indexOf("const handleUndo");
+    const undBlock = src.slice(undStart, src.indexOf("}, [undoProduct, reload]);", undStart));
+    expect(undBlock).toContain("scheduleBackOrderReminder(");
+    expect(undBlock).toContain("await addBackOrderReminder(");
+    expect(undBlock).toContain("await addStockWatch(watch)");
   });
 });
 
