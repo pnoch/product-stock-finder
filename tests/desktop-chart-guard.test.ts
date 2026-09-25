@@ -725,6 +725,17 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 284: the desktop probed `/api/trpc/fx.get` for connectivity while
+  // mobile used the dependency-free `/api/health`, so a rate-limited query (or
+  // an FX provider hiccup) could read as "offline" on a reachable server.
+  it("probes the same liveness endpoint on both platforms", async () => {
+    for (const file of ["lib/health.ts", "desktop/src/hooks/use-connection.ts"]) {
+      const src = await readFile(file, "utf8");
+      expect(src, file).toContain("/api/health");
+      expect(src, file).not.toContain("/api/trpc/fx.get");
+    }
+  });
+
   // QA round 283: the digest body renders both in-app and in the notification,
   // so its markers are plain signs — the notification's emoji sweep left the
   // in-app card and the body out of sync. Notification *titles* keep theirs.

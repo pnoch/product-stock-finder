@@ -4027,3 +4027,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The emoji sweep left the digest summary inconsistent with itself:** the in-app digest card now renders `+ 2 product(s) added` / `− … removed` / `Targets Hit`, but `lib/price-digest.ts` (the notification body, and the same lines the card shows) still built them with `➕`/`➖`/`🎯 `. A user reading the in-app digest and then the notification saw different markers.
 - [x] Aligned the digest body to plain signs (`+`/`−`, no `🎯` prefix) so the in-app and notification content match. Notification **titles** keep their emoji by the category-C decision.
 - [x] Guard added to `tests/desktop-chart-guard.test.ts` (now 170) — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2304 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
+
+## Phase 542: Device QA round 284 (desktop probed a rate-limited endpoint for connectivity)
+
+- [x] **Mobile's connection probe hits the dependency-free liveness endpoint `/api/health`; the desktop's hit `/api/trpc/fx.get`.** That made the desktop's "are we online" signal depend on a *rate-limited* tRPC query (`fx.get`, 60/min) and on the FX provider path — a hiccup or a limit hit reads as **offline on a perfectly reachable server**. FX is warmed separately by the desktop's launch sequence, so the probe gained nothing.
+- [x] Desktop `use-connection.ts` now probes `/api/health` with the same 3 s timeout, matching mobile.
+- [x] Guard added to `tests/desktop-chart-guard.test.ts` (now 171) — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2305 passed`; desktop `tsc 0`, `50 passed` / `248 passed`

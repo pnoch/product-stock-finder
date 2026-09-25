@@ -13,7 +13,11 @@ async function checkHealth(): Promise<boolean> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
   try {
-    const res = await fetch(`${baseUrl}/api/trpc/fx.get`, {
+    // The dependency-free liveness endpoint mobile also uses. Probing
+    // `fx.get` made connectivity depend on a rate-limited tRPC query (and on a
+    // provider hiccup), so a reachable server could read as "offline". FX is
+    // warmed separately by the launch sequence.
+    const res = await fetch(`${baseUrl}/api/health`, {
       signal: controller.signal,
     });
     return res.ok;
