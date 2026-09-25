@@ -608,19 +608,19 @@ export function Alerts() {
             {editError && <p className="text-xs text-red-600 dark:text-red-400 mb-3">{editError}</p>}
             <div className="flex flex-wrap gap-2 mb-4">
               {Object.keys(EXCHANGE_RATES).map((c) => (
-                <button key={c} onClick={() => setEditCurrency(c)} className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${editCurrency === c ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200"}`}>{c}</button>
+                <button key={c} onClick={() => setEditCurrency(c)} aria-pressed={editCurrency === c} className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${editCurrency === c ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200"}`}>{c}</button>
               ))}
             </div>
             <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg w-fit mb-4">
               {(["drop", "rise"] as const).map((d) => (
-                <button key={d} onClick={() => setEditDirection(d)} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${editDirection === d ? "bg-white dark:bg-gray-600 shadow-sm" : "text-gray-500 dark:text-gray-400"}`}>{d === "drop" ? "▼ Drops below" : "▲ Rises above"}</button>
+                <button key={d} onClick={() => setEditDirection(d)} aria-pressed={editDirection === d} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${editDirection === d ? "bg-white dark:bg-gray-600 shadow-sm" : "text-gray-500 dark:text-gray-400"}`}>{d === "drop" ? "▼ Drops below" : "▲ Rises above"}</button>
               ))}
             </div>
             {editDistributors.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
-                <button onClick={() => setEditDistributorId(null)} className={`px-3 py-1 rounded-full text-xs font-semibold border ${editDistributorId == null ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"}`}>All distributors</button>
+                <button onClick={() => setEditDistributorId(null)} aria-pressed={editDistributorId == null} className={`px-3 py-1 rounded-full text-xs font-semibold border ${editDistributorId == null ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"}`}>All distributors</button>
                 {editDistributors.map((d) => (
-                  <button key={d.id} onClick={() => setEditDistributorId(d.id)} className={`px-3 py-1 rounded-full text-xs font-semibold border ${editDistributorId === d.id ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"}`}>{d.countryFlag} {d.name}</button>
+                  <button key={d.id} onClick={() => setEditDistributorId(d.id)} aria-pressed={editDistributorId === d.id} className={`px-3 py-1 rounded-full text-xs font-semibold border ${editDistributorId === d.id ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"}`}>{d.countryFlag} {d.name}</button>
                 ))}
               </div>
             )}

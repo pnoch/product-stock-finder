@@ -45,6 +45,7 @@ export function PillFilterRow({
         onClick={() => onSelect(null)}
         className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${selected === null ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
         aria-label={`${label} All`}
+        aria-pressed={selected === null}
       >
         All
       </button>
@@ -56,6 +57,7 @@ export function PillFilterRow({
             onClick={() => onSelect(active ? null : opt)}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${active ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
             aria-label={`${label} ${opt}`}
+            aria-pressed={active}
           >
             {opt}
           </button>

@@ -1310,6 +1310,7 @@ export function Settings() {
             <button
               key={t}
               onClick={() => update({ theme: t })}
+              aria-pressed={settings.theme === t}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 settings.theme === t
                   ? "bg-brand-600 text-white"
@@ -1390,6 +1391,7 @@ export function Settings() {
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
               aria-label={`Set check interval to ${label}`}
+              aria-pressed={settings.checkInterval === value}
             >
               {label}
             </button>
@@ -1754,6 +1756,7 @@ export function Settings() {
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
               aria-label={`Set digest frequency to ${freq}`}
+              aria-pressed={(settings.digestFrequency ?? "off") === freq}
             >
               {freq.charAt(0).toUpperCase() + freq.slice(1)}
             </button>
@@ -1771,6 +1774,7 @@ export function Settings() {
                     : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                 }`}
                 aria-label={`Set digest day to ${day}`}
+                aria-pressed={DAY_LABELS[settings.digestDayOfWeek ?? 0] === day}
               >
                 {day}
               </button>

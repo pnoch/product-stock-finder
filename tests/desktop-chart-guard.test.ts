@@ -725,6 +725,37 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 266: mobile exposes which chip is active on its filter/sort/theme/
+  // direction pickers; several desktop single-select rows rendered an active
+  // style with no aria state, so a screen reader couldn't tell what was chosen.
+  it("exposes the active chip on desktop single-select rows", async () => {
+    const chrome = await readFile("desktop/src/components/search-chrome.tsx", "utf8");
+    expect(chrome).toContain("aria-pressed={selected === null}");
+    expect(chrome).toContain("aria-pressed={active}");
+    for (const file of [
+      "desktop/src/pages/Search.tsx",
+      "desktop/src/components/SearchModal.tsx",
+    ]) {
+      expect(await readFile(file, "utf8")).toContain("aria-pressed={active}");
+    }
+    const product = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(product).toContain("aria-pressed={regionFilter === region}");
+    expect(product).toContain("aria-pressed={alertDirection === dir}");
+    expect(product).toContain("aria-pressed={perListingAlertDirection === dir}");
+    expect(product).toContain("aria-pressed={inlineAlertDirection === dir}");
+    const alerts = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    expect(alerts).toContain("aria-pressed={editCurrency === c}");
+    expect(alerts).toContain("aria-pressed={editDirection === d}");
+    expect(alerts).toContain("aria-pressed={editDistributorId == null}");
+    const compare = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    expect(compare).toContain('aria-pressed={sortBy === "name"}');
+    const settings = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(settings).toContain("aria-pressed={settings.theme === t}");
+    expect(settings).toContain("aria-pressed={settings.checkInterval === value}");
+    expect(settings).toContain('aria-pressed={(settings.digestFrequency ?? "off") === freq}');
+    expect(settings).toContain("aria-pressed={DAY_LABELS[settings.digestDayOfWeek ?? 0] === day}");
+  });
+
   // QA round 265: mobile's range chips expose the selected range
   // (accessibilityRole="radio" + accessibilityState.selected); the desktop's had
   // no selected state and hard-coded the list instead of using TIME_RANGES.

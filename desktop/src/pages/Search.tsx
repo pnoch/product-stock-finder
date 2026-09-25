@@ -374,6 +374,7 @@ export function Search() {
               onClick={() => setCatalogSort(opt.key)}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${active ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
               aria-label={`Sort by ${opt.label}`}
+              aria-pressed={active}
             >
               {opt.label}
             </button>

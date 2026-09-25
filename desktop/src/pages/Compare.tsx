@@ -910,6 +910,7 @@ export function Compare() {
           <div className="flex gap-2">
             <button
               onClick={() => setSortBy("name")}
+              aria-pressed={sortBy === "name"}
               className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
                 sortBy === "name"
                   ? "bg-brand-600 text-white"
@@ -921,6 +922,7 @@ export function Compare() {
             </button>
             <button
               onClick={() => setSortBy("price")}
+              aria-pressed={sortBy === "price"}
               className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
                 sortBy === "price"
                   ? "bg-brand-600 text-white"
@@ -932,6 +934,7 @@ export function Compare() {
             </button>
             <button
               onClick={() => setSortBy("trend")}
+              aria-pressed={sortBy === "trend"}
               className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
                 sortBy === "trend"
                   ? "bg-brand-600 text-white"

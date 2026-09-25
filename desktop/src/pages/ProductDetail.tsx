@@ -1290,6 +1290,7 @@ export function ProductDetail() {
                   : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
               }`}
               aria-label={region === "all" ? "Filter by all regions" : `Filter by ${region} region`}
+              aria-pressed={regionFilter === region}
             >
               {region === "all" ? "All" : region}
             </button>
@@ -1760,6 +1761,7 @@ export function ProductDetail() {
                   onClick={() => setAlertDirection(dir)}
                   className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${alertDirection === dir ? "bg-brand-600 text-white" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
                   aria-label={dir === "drop" ? "Drops below" : "Rises above"}
+                  aria-pressed={alertDirection === dir}
                 >
                   {dir === "drop" ? "▼ Drops below" : "▲ Rises above"}
                 </button>
@@ -1877,6 +1879,8 @@ export function ProductDetail() {
                 key={dir}
                 onClick={() => setPerListingAlertDirection(dir)}
                 className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${perListingAlertDirection === dir ? "bg-brand-600 text-white" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+                aria-label={dir === "drop" ? "Drops below" : "Rises above"}
+                aria-pressed={perListingAlertDirection === dir}
               >
                 {dir === "drop" ? "▼ Drops below" : "▲ Rises above"}
               </button>
@@ -2055,6 +2059,7 @@ export function ProductDetail() {
                 key={dir}
                 onClick={() => setInlineAlertDirection(dir)}
                 className={`flex-1 px-3 py-2 text-xs font-semibold transition-colors ${inlineAlertDirection === dir ? "bg-brand-600 text-white" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"}`}
+                aria-pressed={inlineAlertDirection === dir}
               >
                 {dir === "drop" ? "▼ Drops below" : "▲ Rises above"}
               </button>
