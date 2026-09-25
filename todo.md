@@ -3839,3 +3839,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`llm.test` was a `protectedProcedure`, but the AI/LLM settings section renders signed out.** A signed-out user tapping "Test connection" got a 401 that the client wrapper swallows and reports as "Couldn't reach the server" — a nonexistent connectivity problem.
 - [x] Made `llm.test` public, matching `insights.get` (also public and also accepts a BYO key). It only ever uses the caller's own key, is rate-limited per IP, and with no BYO config returns `{ ok: true, provider: "forge" }` without touching any provider.
 - [x] Updated `server/README.md` and added a signed-out (null-user) case to `tests/llm-router-test.test.ts` — verified non-vacuous by reverting to `protectedProcedure`; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2263 passed`; desktop `tsc 0`, `49 passed` / `241 passed`
+
+## Phase 514: Device QA round 259 (DialogOverlay didn't lock background scroll)
+
+- [x] **The shared `Modal` locks background scrolling while open (ref-counted), but `DialogOverlay` (added in round 256) didn't** — so a dialog opened from a page (basket alert, tag manager, bulk import, …) let the page scroll behind its backdrop. Re-examining round 256's own work surfaced this.
+- [x] Moved the scroll lock into `desktop/src/lib/dialog-stack.ts` as a ref-counted `lockBodyScroll`/`unlockBodyScroll` (so nested dialogs don't unlock early) and used it from both `Modal` and `DialogOverlay`
+- [x] Tests: scroll-lock + nested-lock cases in `desktop/tests/dialog-overlay.test.tsx` — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2263 passed`; desktop `tsc 0`, `49 passed` / `243 passed`

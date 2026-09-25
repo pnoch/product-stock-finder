@@ -1,8 +1,18 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DialogOverlay } from "../src/components/DialogOverlay";
 import { Modal } from "../src/components/Modal";
+import { resetDialogStackForTests } from "../src/lib/dialog-stack";
+
+beforeEach(() => {
+  resetDialogStackForTests();
+  document.body.style.overflow = "";
+});
+afterEach(() => {
+  resetDialogStackForTests();
+  document.body.style.overflow = "";
+});
 
 describe("DialogOverlay", () => {
   it("renders an accessible modal dialog and focuses into it", async () => {
@@ -78,6 +88,42 @@ describe("DialogOverlay", () => {
     await userEvent.keyboard("{Escape}");
     expect(closeOverlay).toHaveBeenCalledTimes(1);
     expect(closeModal).not.toHaveBeenCalled();
+  });
+
+  it("locks background scroll while open and restores it on close", () => {
+    const { rerender } = render(
+      <DialogOverlay open onClose={() => {}} label="Test dialog">
+        <button>a</button>
+      </DialogOverlay>,
+    );
+    expect(document.body.style.overflow).toBe("hidden");
+    rerender(
+      <DialogOverlay open={false} onClose={() => {}} label="Test dialog">
+        <button>a</button>
+      </DialogOverlay>,
+    );
+    expect(document.body.style.overflow).toBe("");
+  });
+
+  it("keeps the scroll lock while a nested dialog remains open", () => {
+    const { rerender } = render(
+      <>
+        <Modal open onClose={() => {}} title="Base">
+          <button>base</button>
+        </Modal>
+        <DialogOverlay open onClose={() => {}} label="Top">
+          <button>top</button>
+        </DialogOverlay>
+      </>,
+    );
+    expect(document.body.style.overflow).toBe("hidden");
+    // Close only the overlay: the Modal is still open, so scroll stays locked.
+    rerender(
+      <Modal open onClose={() => {}} title="Base">
+        <button>base</button>
+      </Modal>,
+    );
+    expect(document.body.style.overflow).toBe("hidden");
   });
 
   it("renders nothing when closed", () => {

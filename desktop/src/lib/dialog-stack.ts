@@ -16,6 +16,25 @@ export function isTopDialog(token: symbol): boolean {
   return stack[stack.length - 1] === token;
 }
 
+// Background scroll lock, ref-counted so nested dialogs don't unlock early (the
+// first cleanup would otherwise restore scrolling while a dialog is still open).
+let scrollLocks = 0;
+
+export function lockBodyScroll(): void {
+  scrollLocks += 1;
+  if (typeof document !== "undefined") {
+    document.body.style.overflow = "hidden";
+  }
+}
+
+export function unlockBodyScroll(): void {
+  scrollLocks = Math.max(0, scrollLocks - 1);
+  if (scrollLocks === 0 && typeof document !== "undefined") {
+    document.body.style.overflow = "";
+  }
+}
+
 export function resetDialogStackForTests(): void {
   stack.length = 0;
+  scrollLocks = 0;
 }

@@ -1,8 +1,12 @@
 import { useEffect, useRef, useId } from "react";
 import { X } from "lucide-react";
-import { isTopDialog, popDialog, pushDialog } from "../lib/dialog-stack";
-
-let openModalCount = 0;
+import {
+  isTopDialog,
+  lockBodyScroll,
+  popDialog,
+  pushDialog,
+  unlockBodyScroll,
+} from "../lib/dialog-stack";
 
 export function Modal({
   open,
@@ -26,8 +30,7 @@ export function Modal({
 
   useEffect(() => {
     if (!open) return;
-    openModalCount += 1;
-    document.body.style.overflow = "hidden";
+    lockBodyScroll();
     previousActiveRef.current = document.activeElement as HTMLElement | null;
     // focus first focusable element
     const dialog = dialogRef.current;
@@ -40,10 +43,7 @@ export function Modal({
       requestAnimationFrame(() => (first as HTMLElement).focus());
     }
     return () => {
-      openModalCount = Math.max(0, openModalCount - 1);
-      if (openModalCount === 0) {
-        document.body.style.overflow = "";
-      }
+      unlockBodyScroll();
       // restore focus
       if (previousActiveRef.current) {
         previousActiveRef.current.focus();

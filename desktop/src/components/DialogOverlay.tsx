@@ -1,5 +1,11 @@
 import { useEffect, useRef } from "react";
-import { isTopDialog, popDialog, pushDialog } from "../lib/dialog-stack";
+import {
+  isTopDialog,
+  lockBodyScroll,
+  popDialog,
+  pushDialog,
+  unlockBodyScroll,
+} from "../lib/dialog-stack";
 
 /**
  * Backdrop + accessible container for the dialog panels that are too custom for
@@ -30,6 +36,7 @@ export function DialogOverlay({
     if (!open) return;
     const token = tokenRef.current as symbol;
     pushDialog(token);
+    lockBodyScroll();
     previousActiveRef.current = document.activeElement as HTMLElement | null;
     const overlay = overlayRef.current;
     if (overlay) {
@@ -72,6 +79,7 @@ export function DialogOverlay({
     return () => {
       window.removeEventListener("keydown", handler);
       popDialog(token);
+      unlockBodyScroll();
       if (previousActiveRef.current) {
         previousActiveRef.current.focus();
         previousActiveRef.current = null;
