@@ -937,7 +937,16 @@ async fn scrape_distributor(
     distributor_id: &str,
     model: &str,
 ) -> Result<scrapers::ScrapeResult, String> {
-    match distributor_id {
+    // Circuit breaker, mirroring the shared resilient fetch: a distributor that
+    // is blocking or repeatedly failing is skipped until its cooldown expires
+    // instead of being hammered (which compounds a block).
+    if let Some(remaining_ms) = scrapers::breaker::cooldown_remaining(distributor_id) {
+        let minutes = remaining_ms.div_ceil(60_000);
+        return Err(format!(
+            "{distributor_id} is in cooldown for another {minutes} minute(s) after repeated failures"
+        ));
+    }
+    let result = match distributor_id {
         "server2u" | "server2u-my" => scrapers::server2u::scrape(model, false).await,
         "linitx-uk" => scrapers::linitx::scrape(model, false).await,
         "interprojekt-pl" => scrapers::interprojekt::scrape(model, false).await,
@@ -964,7 +973,12 @@ async fn scrape_distributor(
         "multilink-us" => scrapers::multilink::scrape(model, true).await,
         "neobits-us" => scrapers::neobits::scrape(model, true).await,
         _ => Err(format!("No scraper for distributor: {}", distributor_id)),
-    }
+    };
+    scrapers::breaker::record(
+        distributor_id,
+        scrapers::breaker::outcome_for(&result),
+    );
+    result
 }
 
 // Matches PRICE_SNAPSHOT_TTL_MS in shared/const.ts (1 hour).

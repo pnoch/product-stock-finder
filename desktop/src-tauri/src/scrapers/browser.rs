@@ -136,6 +136,13 @@ async fn fetch_with_browser_page(
         let _ = locator.wait_for(Some(options)).await;
     }
 
-    page.content().await
-        .map_err(|e| e.to_string())
+    let html = page.content().await
+        .map_err(|e| e.to_string())?;
+    // An interstitial returned by the browser is a failure, not content: the
+    // caller then falls back to plain HTTP and the breaker can cool the
+    // distributor down exactly as the shared fetch does.
+    if super::classify_fetch_status(&html, None) == super::FetchClassification::Blocked {
+        return Err(format!("{} (browser)", super::BLOCKED_ERROR_PREFIX));
+    }
+    Ok(html)
 }

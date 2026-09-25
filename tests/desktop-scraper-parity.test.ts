@@ -210,4 +210,41 @@ describe("desktop/mobile scraper parity", () => {
     expect(tsMarkers.length).toBeGreaterThan(5);
     expect(rustMarkers).toEqual(tsMarkers);
   });
+
+  it("keeps the Rust circuit breaker constants in step with the shared defaults", async () => {
+    // The desktop skips a distributor that is blocking or repeatedly failing,
+    // using the same thresholds as the shared resilient fetch. Drift would mean
+    // the desktop hammers (or over-benches) a distributor the mobile path does
+    // not.
+    const ts = await readFile("lib/scrapers/resilient.ts", "utf8");
+    const rust = await readFile(
+      "desktop/src-tauri/src/scrapers/breaker.rs",
+      "utf8",
+    );
+    const pairs: Array<[string, string]> = [
+      [
+        "blockedCooldownMs = opts.blockedCooldownMs ?? 30 * 60 * 1000",
+        "BLOCKED_COOLDOWN_MS: u64 = 30 * 60 * 1000",
+      ],
+      [
+        "failureCooldownMs = opts.failureCooldownMs ?? 15 * 60 * 1000",
+        "FAILURE_COOLDOWN_MS: u64 = 15 * 60 * 1000",
+      ],
+      [
+        "failureThreshold = opts.failureThreshold ?? 3",
+        "FAILURE_THRESHOLD: u32 = 3",
+      ],
+      [
+        "maxCooldownMs = opts.maxCooldownMs ?? 2 * 60 * 60 * 1000",
+        "MAX_COOLDOWN_MS: u64 = 2 * 60 * 60 * 1000",
+      ],
+    ];
+    for (const [tsSnippet, rustSnippet] of pairs) {
+      expect(ts, `shared default changed: ${tsSnippet}`).toContain(tsSnippet);
+      expect(rust, `Rust breaker drifted: ${rustSnippet}`).toContain(rustSnippet);
+    }
+    // Both growth curves stay 1.5x per consecutive block, capped.
+    expect(ts).toContain("Math.pow(1.5, consecutiveFailures - 1)");
+    expect(rust).toContain("1.5_f64.powi");
+  });
 });

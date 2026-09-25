@@ -1,6 +1,7 @@
 pub mod aerial;
 pub mod bhphoto;
 pub mod balticnetworks;
+pub mod breaker;
 pub mod browser;
 pub mod duxtel;
 pub mod flytec;
@@ -65,6 +66,14 @@ pub struct ScrapeJobResult {
 
 /// Markers of an anti-bot interstitial, mirroring `BLOCKED_MARKERS` in
 /// lib/scrapers/resilient.ts so the desktop classifies a block the same way.
+/// Prefix of the error `fetch_html`/`fetch_with_browser` return for an
+/// anti-bot interstitial, so callers (and the breaker) can classify it.
+pub const BLOCKED_ERROR_PREFIX: &str = "Blocked by the site";
+
+pub fn is_blocked_error(message: &str) -> bool {
+    message.starts_with(BLOCKED_ERROR_PREFIX)
+}
+
 pub const BLOCKED_MARKERS: [&str; 9] = [
     "403 Forbidden",
     "Access Denied",
@@ -130,7 +139,7 @@ pub async fn fetch_html(url: &str, rate_limit_ms: u64) -> Result<String, String>
             Ok((body, status)) => match classify_fetch_status(&body, Some(status)) {
                 FetchClassification::Ok => return Ok(body),
                 FetchClassification::Blocked => {
-                    return Err(format!("Blocked by the site (HTTP {status})"));
+                    return Err(format!("{BLOCKED_ERROR_PREFIX} (HTTP {status})"));
                 }
                 FetchClassification::Error => last_error = format!("HTTP {status}"),
             },
