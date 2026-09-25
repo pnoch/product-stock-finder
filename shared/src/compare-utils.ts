@@ -10,6 +10,20 @@ export const CHART_COLORS = [
   "#8B5CF6",
 ];
 
+/**
+ * Deterministic per-distributor chart color, shared by mobile + desktop so the
+ * chart line, legend, selector chip, and table dot always agree. Mobile already
+ * hashed the id (duplicated in three files); the desktop indexed by selection
+ * order, so deselecting one distributor recolored all the others.
+ */
+export function distributorColor(distributorId: string): string {
+  let h = 0;
+  for (let i = 0; i < distributorId.length; i++) {
+    h = ((h << 5) - h + distributorId.charCodeAt(i)) | 0;
+  }
+  return CHART_COLORS[Math.abs(h) % CHART_COLORS.length];
+}
+
 // ─── Time range options ───────────────────────────────────────────────────────
 export type TimeRange = "1W" | "1M" | "3M" | "6M" | "1Y" | "All";
 export const TIME_RANGES: TimeRange[] = ["1W", "1M", "3M", "6M", "1Y", "All"];

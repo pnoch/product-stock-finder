@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterByRange, cheapestByRegion } from "@shared/compare-utils";
+import { filterByRange, cheapestByRegion, distributorColor, CHART_COLORS } from "@shared/compare-utils";
 
 const now = Date.now();
 const DAY = 86_400_000;
@@ -88,5 +88,18 @@ describe("cheapestByRegion", () => {
       },
     ];
     expect(cheapestByRegion(listings)).toEqual([]);
+  });
+});
+
+describe("distributorColor", () => {
+  it("is deterministic, always within the palette, and pins known ids", () => {
+    expect(distributorColor("mikrotik")).toBe(distributorColor("mikrotik"));
+    // Pinned so a regression to a constant / index-based color fails: mobile and
+    // desktop must agree on the hash mapping.
+    expect(distributorColor("mikrotik")).toBe("#F59E0B");
+    expect(distributorColor("MikroTik")).toBe("#00C896");
+    for (const id of ["a", "mikrotik", "ubiquiti", "streakwave", ""]) {
+      expect(CHART_COLORS).toContain(distributorColor(id));
+    }
   });
 });

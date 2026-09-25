@@ -3915,3 +3915,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The mobile product card rendered `StockBadge status={productStatus(product)}` but built its accessibility label from a separate inline rollup** that fell back to "out of stock" for anything not in_stock/back_order. For an all-`unknown` product the badge said "Unknown" while a screen reader announced "out of stock".
 - [x] The label now derives from `bestStatus` (the same value the badge renders, incl. "unknown")
 - [x] Added a guard to `tests/mobile-criticals.test.ts` — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2273 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
+
+## Phase 526: Device QA round 271 (chart colors were duplicated and unstable)
+
+- [x] **Compare chart colors were implemented three different ways:** mobile defined an identical `hashId` in three files (`app/compare/[id].tsx`, `current-prices-table.tsx`, `distributor-selector.tsx`); the desktop kept its own **8-color** palette (vs the shared 5) and indexed colors by *selection order*. Consequence: on desktop, deselecting one distributor **recolored all the others** (chart lines, selector chips, table dots), and mobile/desktop could assign a different color to the same distributor.
+- [x] Added `distributorColor(id)` to `shared/src/compare-utils.ts` (deterministic hash over the shared `CHART_COLORS`) and switched all six call sites to it; removed the three local `hashId`s and the desktop's duplicated palette
+- [x] Tests: `tests/compare-utils.test.ts` pins known id→color mappings (so a constant/index regression fails) + a source guard in `tests/desktop-chart-guard.test.ts` (no local `hashId`, all four files use `distributorColor`) — both verified non-vacuous; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2275 passed`; desktop `tsc 0`, `49 passed` / `243 passed`

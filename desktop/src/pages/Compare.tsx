@@ -14,7 +14,7 @@ import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
 import { TimeRangeChips } from "../components/TimeRangeChips";
-import { filterByRange, cheapestByRegion, type TimeRange } from "@shared/compare-utils";
+import { filterByRange, cheapestByRegion, distributorColor, type TimeRange } from "@shared/compare-utils";
 import {
   GitCompareArrows,
   Share2,
@@ -25,17 +25,6 @@ import {
   ArrowLeft,
   RefreshCw,
 } from "lucide-react";
-
-const CHART_COLORS = [
-  "#0F52BA",
-  "#00C896",
-  "#F59E0B",
-  "#EF4444",
-  "#8B5CF6",
-  "#EC4899",
-  "#06B6D4",
-  "#84CC16",
-];
 
 function toTimeRange(k: string): TimeRange {
   switch (k) {
@@ -372,10 +361,9 @@ export function Compare() {
     return list.map((l) => {
       const distributor = getDistributorById(l.distributorId);
       const filtered = filterByRange(l.priceHistory, range);
-      const colorIdx = Array.from(selectedIds).indexOf(l.distributorId);
       return {
         label: distributor?.name ?? l.distributorId,
-        color: CHART_COLORS[(colorIdx >= 0 ? colorIdx : 0) % CHART_COLORS.length],
+        color: distributorColor(l.distributorId),
         data: filtered as { price: number; currency: string; date: string }[],
       };
     });
@@ -762,8 +750,7 @@ export function Compare() {
               .filter((l) => selected.has(l.distributorId))
               .map((l) => {
                 const distributor = getDistributorById(l.distributorId);
-                const colorIdx = Array.from(selected).indexOf(l.distributorId);
-                const color = CHART_COLORS[(colorIdx >= 0 ? colorIdx : 0) % CHART_COLORS.length];
+                const color = distributorColor(l.distributorId);
                 const converted = convertPrice(l.price, l.currency, displayCurrency);
                 return (
                   <div key={l.distributorId} className="flex items-center gap-3 py-2.5">
@@ -804,8 +791,7 @@ export function Compare() {
             const distributor = getDistributorById(listing.distributorId);
             const isSelected = selected.has(listing.distributorId);
             const hasHistory = listing.priceHistory && listing.priceHistory.length >= 2;
-            const colorIdx = Array.from(selected).indexOf(listing.distributorId);
-            const chipColor = isSelected ? CHART_COLORS[colorIdx % CHART_COLORS.length] : "#d1d5db";
+            const chipColor = isSelected ? distributorColor(listing.distributorId) : "#d1d5db";
             const trend = priceTrends.get(listing.distributorId);
             const disabled = !hasHistory && !isSelected;
             const atLimit = !isSelected && selected.size >= 5;

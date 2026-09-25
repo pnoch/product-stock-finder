@@ -725,6 +725,25 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 271: chart colors were duplicated — mobile defined hashId in three
+  // files and the desktop kept its own 8-color palette + selection-order
+  // indexing (deselecting a distributor recolored the rest, and mobile/desktop
+  // could disagree). All now use the shared distributorColor.
+  it("assigns distributor colors from the shared helper", async () => {
+    for (const file of [
+      "app/compare/[id].tsx",
+      "components/compare/current-prices-table.tsx",
+      "components/compare/distributor-selector.tsx",
+      "desktop/src/pages/Compare.tsx",
+    ]) {
+      const src = await readFile(file, "utf8");
+      expect(src, file).toContain("distributorColor(");
+      expect(src, file).not.toContain("hashId(");
+    }
+    const shared = await readFile("shared/src/compare-utils.ts", "utf8");
+    expect(shared).toContain("export function distributorColor");
+  });
+
   // QA round 268: mobile's restock-watch remove confirm names the product and
   // shows friendly error copy; the desktop used generic wording and the raw
   // storage error message.

@@ -50,18 +50,12 @@ import { useColors } from "@/hooks/use-colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import {
-  CHART_COLORS,
+  distributorColor,
   TimeRange,
   SortBy,
   filterByRange,
 } from "@shared/compare-utils";
 import { LOG_ERROR } from "@shared/log";
-
-function hashId(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
 
 // ─── Compare Screen ───────────────────────────────────────────────────────────
 export default function CompareScreen() {
@@ -330,7 +324,7 @@ export default function CompareScreen() {
       const filtered = filterByRange(l.priceHistory!, timeRange);
       return {
         label: distributor?.name ?? l.distributorId,
-        color: CHART_COLORS[hashId(l.distributorId) % CHART_COLORS.length],
+        color: distributorColor(l.distributorId),
         data: filtered,
         currency: l.currency,
       };

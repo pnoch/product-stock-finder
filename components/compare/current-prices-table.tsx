@@ -4,13 +4,7 @@ import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
-import { CHART_COLORS } from "@shared/compare-utils";
-
-function hashId(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
+import { distributorColor } from "@shared/compare-utils";
 
 interface Props {
   listings: DistributorListing[];
@@ -76,7 +70,7 @@ export function CurrentPricesTable({ listings, selected, displayCurrency = "USD"
       {selectedListings.map((l, i) => {
         const distributor = getDistributorById(l.distributorId);
         const converted = convertPrice(l.price, l.currency, displayCurrency);
-        const color = CHART_COLORS[hashId(l.distributorId) % CHART_COLORS.length];
+        const color = distributorColor(l.distributorId);
         const label = stockLabel[l.stockStatus] ?? l.stockStatus;
         const isUnknown = l.stockStatus === "unknown";
         const isPositive = l.stockStatus === "in_stock";
