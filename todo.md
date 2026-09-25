@@ -4045,3 +4045,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`recent_searches` lives under its own key outside `STORAGE_KEYS`, so neither `clearAccountData` (logout) nor `clearAllData` (Settings → Danger Zone) removed it.** Consequence: "Clear all data" left the user's search terms behind, and the **next account on the device still saw the previous user's recent searches** on the Search screen (the same class as the Phase-543 desktop logout leak — `recently_viewed`, its sibling, *is* wiped).
 - [x] Exported `RECENT_SEARCHES_KEY` from `lib/recent-searches.ts` and added it to both wipe lists; the desktop's `search-chrome.tsx` now aliases that key instead of re-typing `"recent_searches"` (a second definition that could drift from the one the wipe uses).
 - [x] Test added to `tests/clear-account-data.test.ts` (both wipes remove the key) — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2307 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
+
+## Phase 545: Device QA round 287 (error breadcrumbs outlived every wipe)
+
+- [x] **The two error boundaries persist `last_error` (500 chars of `error.message`) and `last_route_error` to AsyncStorage, and nothing anywhere reads them** — unread diagnostics that can embed user data (error messages often interpolate ids/emails) and survived every wipe, including "Delete My Data".
+- [x] Added both keys to `clearAccountData` and `clearAllData` (extended the wipe test to assert all three keys are removed by both).
+- [ ] Open item recorded: those writes are dead (never read). A future round should either wire them into a support/crash-report flow or delete the writes — I cleared them on wipe rather than removing the writes so the apparent diagnostic intent isn't silently dropped.
+- [x] E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2307 passed`; desktop `tsc 0`, `50 passed` / `248 passed`

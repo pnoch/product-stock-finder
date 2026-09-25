@@ -60,12 +60,16 @@ describe("clearAccountData vs clearAllData", () => {
   // QA round 286: `recent_searches` had its own key outside STORAGE_KEYS, so
   // neither wipe removed it — "Clear all data" (and the next user on the
   // device) still saw the previous user's search terms.
-  it("both wipes remove recent searches", async () => {
+  it("both wipes remove recent searches and error breadcrumbs", async () => {
     for (const wipe of ["clearAccountData", "clearAllData"] as const) {
       const { storage, map } = makeStorage();
       map.set("recent_searches", JSON.stringify(["rtx 5090", "crs326"]));
+      map.set("last_error", "boom: user bob@example.com");
+      map.set("last_route_error", "boom");
       await storage[wipe]();
-      expect(map.has("recent_searches"), wipe).toBe(false);
+      for (const key of ["recent_searches", "last_error", "last_route_error"]) {
+        expect(map.has(key), `${wipe} should clear ${key}`).toBe(false);
+      }
     }
   });
 

@@ -68,6 +68,10 @@ export function createStorage(
       // Search terms are user activity like recently_viewed; leaving them meant
       // the next account on the device still saw the previous one's queries.
       RECENT_SEARCHES_KEY,
+      // Error-boundary breadcrumbs (written, never read) can embed user data and
+      // otherwise outlive every wipe.
+      "last_error",
+      "last_route_error",
       "distributor_watches",
       "triggered_alert_history",
       "product_notes",
@@ -103,6 +107,8 @@ export function createStorage(
       "distributor_health_history",
       "recently_viewed",
       RECENT_SEARCHES_KEY,
+      "last_error",
+      "last_route_error",
       "distributor_watches",
       "triggered_alert_history",
       "product_notes",
