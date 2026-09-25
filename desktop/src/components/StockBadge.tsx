@@ -38,22 +38,19 @@ export function StockBadge({
   expectedDate?: string;
 }) {
   const c = config[status] ?? config.unknown;
-  const parsed = expectedDate ? new Date(expectedDate) : null;
-  const formattedDate =
-    parsed && !Number.isNaN(parsed.getTime())
-      ? parsed.toLocaleDateString(undefined, {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })
-      : null;
+  // `expectedDate` is a human-readable string from the parsers/sample data
+  // ("Sept 15, 2026", "Aug 2026"), not an ISO date. Passing it through
+  // `new Date(...)` normalized "Sept"→"Sep" and fabricated "Aug 1, 2026" for a
+  // month-only value; mobile renders it verbatim. Only back-order listings
+  // carry one.
+  const showExpected = status === "back_order" && Boolean(expectedDate);
   return (
     <span
       className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
       {c.label}
-      {formattedDate ? ` · ${formattedDate}` : ""}
+      {showExpected ? ` · ${expectedDate}` : ""}
     </span>
   );
 }
