@@ -725,6 +725,16 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 268: mobile's restock-watch remove confirm names the product and
+  // shows friendly error copy; the desktop used generic wording and the raw
+  // storage error message.
+  it("names the product in the desktop restock-watch confirm", async () => {
+    const text = await readFile("desktop/src/pages/RestockWatches.tsx", "utf8");
+    expect(text).toContain("Stop watching for ${productName}? This cannot be undone.");
+    expect(text).toContain("We couldn't remove that watch. Please try again.");
+    expect(text).toContain("handleRemove(watch.id, watch.productName)");
+  });
+
   // QA round 267: mobile's DetailHeader shows an In Stock badge when a best deal
   // exists; the desktop product header omitted it.
   it("shows the in-stock badge in the desktop product header", async () => {

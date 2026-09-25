@@ -3897,3 +3897,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Added it to the desktop header
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 159) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2270 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
 - [x] Swept (found clean): reschedule/edit-alert validation and error copy, `addBackOrderReminder` upsert semantics, `analyzeDistributors`/`computeDropCalendar`/`computeHealthStats` domain logic, Cheapest-by-Region + Current Prices rows, compare color assignment, health dashboard stats.
+
+## Phase 523: Device QA round 268 (desktop restock remove used generic copy)
+
+- [x] **Mobile's restock-watch remove confirm names the product ("Stop watching for X? This cannot be undone."); the desktop's was generic ("Stop watching for this restock?")** — no indication of which watch was about to be removed. The desktop also surfaced the raw storage error (`e.message`) instead of mobile's friendly "We couldn't remove that watch. Please try again."
+- [x] `RestockWatches.handleRemove` now takes the product name and uses the friendly error copy
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 160) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2271 passed`; desktop `tsc 0`, `49 passed` / `243 passed`

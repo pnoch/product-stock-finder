@@ -32,13 +32,16 @@ export function RestockWatches() {
     loadWatches();
   }, [loadWatches]);
 
-  const handleRemove = useCallback(async (id: string) => {
-    if (!window.confirm("Stop watching for this restock? This cannot be undone.")) return;
+  const handleRemove = useCallback(async (id: string, productName: string) => {
+    // Name the product like mobile does ("Stop watching for X?"); the generic
+    // wording gave no indication of which watch was about to be removed.
+    if (!window.confirm(`Stop watching for ${productName}? This cannot be undone.`)) return;
     try {
       await storage.removeStockWatch(id);
       setWatches((prev) => prev.filter((w) => w.id !== id));
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : "Couldn't remove watch");
+    } catch {
+      // Friendly copy, not the raw storage error (mobile's alert).
+      showToast("We couldn't remove that watch. Please try again.");
     }
   }, [showToast]);
 
@@ -121,7 +124,7 @@ export function RestockWatches() {
                   </div>
                 </div>
                 <button
-                  onClick={() => handleRemove(watch.id)}
+                  onClick={() => handleRemove(watch.id, watch.productName)}
                   className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
                   aria-label={`Remove ${watch.productName} from restock watches`}
                 >
