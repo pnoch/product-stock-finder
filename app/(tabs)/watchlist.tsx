@@ -390,42 +390,6 @@ export default function WatchlistScreen() {
     exitSelection();
   }, [reload, loadData, exitSelection]);
 
-  const handleDelete = useCallback(
-    (productId: string, productName: string) => {
-      const doRemove = async () => {
-        if (Platform.OS !== "web")
-          Haptics.notificationAsync(
-            Haptics.NotificationFeedbackType.Warning,
-          );
-        try {
-          await removeFromWatchlist(productId);
-          await reload();
-        } catch (e) {
-          console.error("[Watchlist] remove failed", e);
-          showAlert("Remove failed", "We couldn't remove that product. Please try again.");
-        }
-      };
-      if (Platform.OS === "web") {
-        if (
-          typeof window !== "undefined" &&
-          window.confirm(`Remove "${productName}" from your watchlist?`)
-        ) {
-          void doRemove();
-        }
-        return;
-      }
-      Alert.alert(
-        "Remove Product",
-        `Remove "${productName}" from your watchlist?`,
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Remove", style: "destructive", onPress: doRemove },
-        ],
-      );
-    },
-    [reload],
-  );
-
   const showUndoBar = useCallback(
     (
       product: Product,
@@ -443,43 +407,55 @@ export default function WatchlistScreen() {
     [],
   );
 
-  const handleSwipeDelete = useCallback(
+  // Capture everything the removal cascade will delete, remove the product, then
+  // offer Undo. Shared by the card's Delete button and the swipe action so both
+  // give the same recovery (the card's Delete used to remove with no undo).
+  const removeProductWithUndo = useCallback(
     async (product: Product) => {
-      const doDelete = async () => {
-        if (Platform.OS !== "web")
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        try {
-          // Capture everything the removal cascade will delete so Undo can
-          // restore it (otherwise undo silently loses the price alerts,
-          // back-order reminders, and restock watches).
-          const [allAlerts, allReminders, allWatches] = await Promise.all([
-            getAlerts(),
-            getBackOrderReminders(),
-            getStockWatches(),
-          ]);
-          const removedAlerts = allAlerts.filter((a) => a.productId === product.id);
-          const removedReminders = allReminders.filter((r) => r.productId === product.id);
-          const removedWatches = allWatches.filter((w) => w.productId === product.id);
-          await removeFromWatchlist(product.id);
-          await reload();
-          showUndoBar(product, removedAlerts, removedReminders, removedWatches);
-        } catch (e) {
-          console.error("[Watchlist] swipe delete failed", e);
-          showAlert("Remove failed", "We couldn't remove that product. Please try again.");
-        }
-      };
+      if (Platform.OS !== "web")
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      try {
+        const [allAlerts, allReminders, allWatches] = await Promise.all([
+          getAlerts(),
+          getBackOrderReminders(),
+          getStockWatches(),
+        ]);
+        const removedAlerts = allAlerts.filter((a) => a.productId === product.id);
+        const removedReminders = allReminders.filter((r) => r.productId === product.id);
+        const removedWatches = allWatches.filter((w) => w.productId === product.id);
+        await removeFromWatchlist(product.id);
+        await reload();
+        showUndoBar(product, removedAlerts, removedReminders, removedWatches);
+      } catch (e) {
+        console.error("[Watchlist] remove failed", e);
+        showAlert("Remove failed", "We couldn't remove that product. Please try again.");
+      }
+    },
+    [reload, showUndoBar],
+  );
+
+  const handleDelete = useCallback(
+    (product: Product) => {
+      const doRemove = () => void removeProductWithUndo(product);
       if (Platform.OS === "web") {
-        if (typeof window !== "undefined" && window.confirm(`Remove "${product.name}" from your watchlist?`)) {
-          void doDelete();
+        if (
+          typeof window !== "undefined" &&
+          window.confirm(`Remove "${product.name}" from your watchlist?`)
+        ) {
+          doRemove();
         }
         return;
       }
-      Alert.alert("Remove Product", `Remove "${product.name}" from your watchlist?`, [
-        { text: "Cancel", style: "cancel" },
-        { text: "Remove", style: "destructive", onPress: doDelete },
-      ]);
+      Alert.alert(
+        "Remove Product",
+        `Remove "${product.name}" from your watchlist?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Remove", style: "destructive", onPress: doRemove },
+        ],
+      );
     },
-    [reload, showUndoBar],
+    [removeProductWithUndo],
   );
 
   const handleUndo = useCallback(async () => {
@@ -953,7 +929,7 @@ export default function WatchlistScreen() {
         }
         renderSectionHeader={renderSectionHeader}
         renderItem={({ item }) => (
-          <SwipeableCard enabled={!selectionMode} onDelete={() => handleSwipeDelete(item as Product)}>
+          <SwipeableCard enabled={!selectionMode} onDelete={() => handleDelete(item as Product)}>
             <ProductCard
               product={item as Product}
               displayCurrency={displayCurrency}
@@ -970,7 +946,7 @@ export default function WatchlistScreen() {
               selected={selectedIds.has(item.id)}
               onPress={() => handleProductPress(item)}
               onLongPress={() => handleProductLongPress(item)}
-              onDelete={() => handleDelete(item.id, item.name)}
+              onDelete={() => handleDelete(item as Product)}
               onTagPress={() => setPickerProduct(item)}
               tagDefinitions={tagDefinitions}
             />

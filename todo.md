@@ -3872,3 +3872,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Closes the mobile follow-up noted in Phase 517: `app/(tabs)/watchlist.tsx` `handleSwipeDelete` captured only alerts, so the cascade's back-order reminders and restock watches were lost on undo
 - [x] `handleSwipeDelete` now captures all three (in parallel) and `handleUndo` restores them. Date reminders are **re-scheduled** (`scheduleBackOrderReminder`) with the new notification id — the cascade had cancelled the old one, so restoring the dead id would leave a reminder that never fires. Restock watches are restored as-is (status-driven, not id-driven)
 - [x] Updated `tests/mobile-criticals.test.ts`'s existing undo guards and added a reminder/watch case — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2267 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
+
+## Phase 519: Device QA round 264 (mobile card Delete had no undo)
+
+- [x] **Mobile's two delete affordances were inconsistent: the swipe offered Undo, but the product card's Delete button called a separate handler that removed the product (and its cascaded alerts/reminders/watches) permanently with no recovery** — while the desktop's equivalent trash button does show Undo.
+- [x] Extracted `removeProductWithUndo(product)` and routed both the SwipeableCard and the ProductCard through one `handleDelete`; removed the duplicate `handleSwipeDelete`
+- [x] Reworked `tests/mobile-criticals.test.ts`'s undo guards (they sliced `handleSwipeDelete`, now gone) and asserted **both** `onDelete` call sites are wired to the undo path — verified non-vacuous by reverting the card caller; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2267 passed`; desktop `tsc 0`, `49 passed` / `243 passed`

@@ -185,14 +185,26 @@ describe("best-distributor lowest-ever badge uses the display currency", () => {
 
 // QA round 90: swipe-delete cascades to the product's alerts (Phase 285), but
 // Undo restored only the product — its price alerts were permanently lost.
-describe("watchlist undo restores the deleted product's alerts", () => {
+// Round 264: the card's Delete button removed with no undo at all; both paths
+// now share `removeProductWithUndo`.
+describe("watchlist undo restores the deleted product's cascade", () => {
   const src = readFileSync(path.join(process.cwd(), "app/(tabs)/watchlist.tsx"), "utf8");
 
-  it("captures the alerts before deleting", () => {
-    const start = src.indexOf("const handleSwipeDelete");
+  it("captures the cascade before deleting", () => {
+    const start = src.indexOf("const removeProductWithUndo");
     const block = src.slice(start, src.indexOf("}, [reload, showUndoBar]);", start));
     expect(block).toContain("getAlerts()");
+    expect(block).toContain("getBackOrderReminders()");
+    expect(block).toContain("getStockWatches()");
     expect(block).toContain("showUndoBar(product, removedAlerts, removedReminders, removedWatches)");
+  });
+
+  it("routes both delete affordances through the undo path", () => {
+    // The card's Delete button previously called a no-undo handler; both the
+    // SwipeableCard and the ProductCard must now use the undo path.
+    expect(src).not.toContain("handleSwipeDelete");
+    const wired = src.match(/onDelete=\{\(\) => handleDelete\(item as Product\)\}/g);
+    expect(wired?.length).toBe(2);
   });
 
   it("restores them on undo", () => {
@@ -200,23 +212,9 @@ describe("watchlist undo restores the deleted product's alerts", () => {
     const block = src.slice(start, src.indexOf("}, [undoProduct, reload]);", start));
     expect(block).toContain("undoAlertsRef.current");
     expect(block).toContain("await addAlert(alert)");
-  });
-
-  // QA round 263: the cascade also drops back-order reminders and restock
-  // watches (cancelling the scheduled notification); undo restored only alerts.
-  it("captures and restores reminders and restock watches too", () => {
-    const delStart = src.indexOf("const handleSwipeDelete");
-    const delBlock = src.slice(delStart, src.indexOf("}, [reload, showUndoBar]);", delStart));
-    expect(delBlock).toContain("getBackOrderReminders()");
-    expect(delBlock).toContain("getStockWatches()");
-    expect(delBlock).toContain("removedReminders");
-    expect(delBlock).toContain("removedWatches");
-
-    const undStart = src.indexOf("const handleUndo");
-    const undBlock = src.slice(undStart, src.indexOf("}, [undoProduct, reload]);", undStart));
-    expect(undBlock).toContain("scheduleBackOrderReminder(");
-    expect(undBlock).toContain("await addBackOrderReminder(");
-    expect(undBlock).toContain("await addStockWatch(watch)");
+    expect(block).toContain("scheduleBackOrderReminder(");
+    expect(block).toContain("await addBackOrderReminder(");
+    expect(block).toContain("await addStockWatch(watch)");
   });
 });
 
