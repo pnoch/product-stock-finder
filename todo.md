@@ -3813,3 +3813,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] `lib/llm-discovery.ts` parses the tRPC error message, maps it to a new `byo-auth` error kind, and `toDiscoverErrorState` returns a non-retry "Check your API key" state
 - [x] Mobile `app/search.tsx` now uses the shared mapper (was duplicating the messages, so the new kind would have shown a parse error); desktop already did
 - [x] Tests: auth-error case in `tests/user-llm.test.ts`, router mapping in `tests/discovery-spend-budget.test.ts`, client mapping in `tests/llm-discovery.test.ts`, mobile-mapper guard in `tests/mobile-criticals.test.ts` — all verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `333 passed | 2 skipped` / `2253 passed`; desktop `tsc 0`, `48 passed` / `235 passed`
+
+## Phase 510: "Test connection" for the BYO-LLM provider
+
+- [x] Added a protected `llm.test` endpoint (`server/routers/llm.ts`) that probes the caller's configured provider with a minimal request and returns `{ ok, provider, reason? }` (`reason` = `auth` for a rejected key, `error` otherwise); Forge returns ok without calling any provider
+- [x] Client helpers `lib/server-llm.ts` (mobile, timeout-guarded) and `desktop/src/lib/server-llm.ts`; the tRPC clients already forward the `x-llm-*` headers
+- [x] "Test connection" button in both LLM settings UIs (shown only for non-Forge providers) with ok / rejected-key / failure feedback
+- [x] Tests: `tests/llm-router-test.test.ts` (forge, ok, auth, error) + wiring guards in `tests/byo-llm-wiring.test.ts` — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `334 passed | 2 skipped` / `2259 passed`; desktop `tsc 0`, `48 passed` / `235 passed`

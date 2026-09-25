@@ -384,6 +384,27 @@ export function Settings() {
   const [shareError, setShareError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
 
+  const [testingLlm, setTestingLlm] = useState(false);
+  const handleTestLlm = useCallback(async () => {
+    if (testingLlm) return;
+    setTestingLlm(true);
+    try {
+      const { testLlmConnection } = await import("../lib/server-llm");
+      const res = await testLlmConnection();
+      if (!res) {
+        showToast("Couldn't reach the server. Try again.");
+      } else if (res.ok) {
+        showToast("Connection OK — provider responded");
+      } else if (res.reason === "auth") {
+        showToast("Check your API key — the provider rejected it");
+      } else {
+        showToast("Connection failed — check the URL and model");
+      }
+    } finally {
+      setTestingLlm(false);
+    }
+  }, [testingLlm, showToast]);
+
   const [pushState, setPushState] = useState<"unknown" | "on" | "off">("unknown");
   const [pushBusy, setPushBusy] = useState(false);
   const [webNotifHint, setWebNotifHint] = useState<string | null>(null);
@@ -1562,6 +1583,17 @@ export function Settings() {
           <option value="ollama">Ollama Cloud</option>
           <option value="ollama-local">Ollama Local</option>
         </select>
+
+        {llmProvider !== "forge" && (
+          <button
+            onClick={() => void handleTestLlm()}
+            disabled={testingLlm}
+            className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-60"
+            aria-label="Test LLM connection"
+          >
+            {testingLlm ? "Testing…" : "Test connection"}
+          </button>
+        )}
 
         {llmProvider === "openai" && (
           <div className="mt-4">

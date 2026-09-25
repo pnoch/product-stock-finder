@@ -30,3 +30,27 @@ describe("BYO-LLM client wiring", () => {
     expect(insights).toContain("if (!userLlm && !tryConsumeBudget(");
   });
 });
+
+describe("BYO-LLM connection test", () => {
+  it("registers the llm.test endpoint", async () => {
+    const routers = await readFile("server/routers.ts", "utf8");
+    expect(routers).toContain("llm: llmRouter");
+    const router = await readFile("server/routers/llm.ts", "utf8");
+    expect(router).toContain("invokeUserLlm(userLlm");
+    expect(router).toContain('e instanceof UserLlmAuthError ? "auth" : "error"');
+  });
+
+  it("wires a Test connection control in both settings UIs", async () => {
+    const mobile = await readFile(
+      "components/settings/llm-settings-section.tsx",
+      "utf8",
+    );
+    expect(mobile).toContain("testLlmConnection()");
+    expect(mobile).toContain("Test connection");
+    expect(mobile).toContain('provider !== "forge"');
+
+    const desktop = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(desktop).toContain("testLlmConnection()");
+    expect(desktop).toContain("Test connection");
+  });
+});

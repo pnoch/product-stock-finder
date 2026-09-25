@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { SectionHeader } from "./section-header";
 import { RadioPicker } from "./radio-picker";
+import { testLlmConnection } from "@/lib/server-llm";
+import { showAlert } from "@/lib/alert";
 import type { AppSettings } from "@/lib/types";
 
 const LLM_PROVIDERS = [
@@ -45,6 +47,37 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
   }, [draftOllamaUrl, settings.llmOllamaUrl, onUpdate]);
 
   const provider = settings.llmProvider ?? "forge";
+  const [testing, setTesting] = useState(false);
+
+  const handleTest = async () => {
+    if (testing) return;
+    setTesting(true);
+    try {
+      const providerLabel =
+        LLM_PROVIDERS.find((p) => p.value === provider)?.label ?? provider;
+      const res = await testLlmConnection();
+      if (!res) {
+        showAlert(
+          "Test unavailable",
+          "Couldn't reach the server. Check your connection and try again.",
+        );
+      } else if (res.ok) {
+        showAlert("Connection OK", `Your ${providerLabel} provider responded.`);
+      } else if (res.reason === "auth") {
+        showAlert(
+          "Check your API key",
+          `Your ${providerLabel} provider rejected the key.`,
+        );
+      } else {
+        showAlert(
+          "Connection failed",
+          `Your ${providerLabel} provider didn't respond. Check the URL and model.`,
+        );
+      }
+    } finally {
+      setTesting(false);
+    }
+  };
 
   return (
     <View>
@@ -57,6 +90,34 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
         value={provider}
         onSelect={(v: string) => onUpdate("llmProvider", v as AppSettings["llmProvider"])}
       />
+
+      {provider !== "forge" && (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={handleTest}
+          disabled={testing}
+          accessibilityRole="button"
+          accessibilityLabel="Test connection"
+          style={{
+            marginTop: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            paddingVertical: 10,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: colors.surface,
+            opacity: testing ? 0.6 : 1,
+          }}
+        >
+          {testing && <ActivityIndicator size="small" color={colors.primary} />}
+          <Text style={{ color: colors.primary, fontSize: 14, fontWeight: "600" }}>
+            {testing ? "Testing…" : "Test connection"}
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {provider === "openai" && (
         <View style={{ marginTop: 12 }}>

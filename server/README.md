@@ -84,6 +84,12 @@ a generic server error (using 401/403 would be mistaken for "sign in required").
 BYO calls skip the process spend budget — they spend the user's quota, not the
 operator's. Image generation (`images.get`) always uses the built-in service.
 
+`llm.test` (protected) probes the caller's configured provider with a minimal
+request so the settings screen can confirm a key/URL works before discovery
+fails on it; it returns `{ ok, provider, reason? }` where `reason` is `auth`
+(rejected key) or `error`. With no BYO config it returns `{ ok: true, provider:
+"forge" }` without calling any provider.
+
 ## Web Build
 
 The web app exports as an SPA (`web.output: "single"` in `app.config.ts`), so

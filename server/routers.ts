@@ -24,6 +24,7 @@ import {
 } from "./sync-db";
 import { sharedWatchlists, sharedWatchlistMembers, watchlistItems } from "../drizzle/schema";
 import { userLlmConfigFromHeaders } from "./user-llm";
+import { llmRouter } from "./routers/llm";
 
 const LOCAL_ORIGIN_FALLBACK = "http://localhost:8081";
 
@@ -637,6 +638,8 @@ export const appRouter = router({
   }),
 
   discovery: discoveryRouter,
+
+  llm: llmRouter,
 
   trending: trendingRouter,
 
