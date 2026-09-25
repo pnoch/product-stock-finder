@@ -3909,3 +3909,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **`computeDigest`'s `productState` hand-rolled its own product-level stock rollup, which disagreed with the canonical `productStatus` (`lib/watchlist-org.ts`) the watchlist cards use.** For a product with an out_of_stock listing *and* an unknown listing, the watchlist showed "Out of Stock" while the digest recorded "unknown" — so a stock change was reported (and a digest sent) when nothing the user could see had changed.
 - [x] `productState` now reuses `productStatus`, so the digest and watchlist agree
 - [x] Added a regression test to `tests/price-digest.test.ts` — verified non-vacuous by restoring the inline logic; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2272 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
+
+## Phase 525: Device QA round 270 (product card a11y label contradicted its badge)
+
+- [x] **The mobile product card rendered `StockBadge status={productStatus(product)}` but built its accessibility label from a separate inline rollup** that fell back to "out of stock" for anything not in_stock/back_order. For an all-`unknown` product the badge said "Unknown" while a screen reader announced "out of stock".
+- [x] The label now derives from `bestStatus` (the same value the badge renders, incl. "unknown")
+- [x] Added a guard to `tests/mobile-criticals.test.ts` — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2273 passed`; desktop `tsc 0`, `49 passed` / `243 passed`

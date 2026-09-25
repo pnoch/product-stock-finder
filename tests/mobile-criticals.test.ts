@@ -742,3 +742,20 @@ describe("search discovery errors use the shared mapper", () => {
     expect(src).toContain("state.retry");
   });
 });
+
+// QA round 270: the product card's accessibility label rolled up stock status
+// inline, announcing "out of stock" for an all-unknown product whose visible
+// badge says "Unknown". It now derives from the same productStatus as the badge.
+describe("product card stock a11y label matches its badge", () => {
+  it("derives the label from bestStatus, not an inline rollup", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "components/watchlist/product-card.tsx"),
+      "utf8",
+    );
+    expect(src).toContain('bestStatus === "in_stock"');
+    expect(src).toContain('bestStatus === "unknown"');
+    expect(src).not.toContain(
+      '(product.listings ?? []).some((l) => l.stockStatus === "in_stock")',
+    );
+  });
+});

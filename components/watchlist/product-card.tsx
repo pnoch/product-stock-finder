@@ -218,11 +218,16 @@ export const ProductCard = memo(function ProductCard({
       accessibilityLabel={[
         product.name,
         bestPrice ? formatPrice(bestPrice.price, bestPrice.currency) : null,
-        (product.listings ?? []).some((l) => l.stockStatus === "in_stock")
+        // Derive from the same value the badge renders: the inline rollup here
+        // announced "out of stock" for an all-unknown product whose badge says
+        // "Unknown".
+        bestStatus === "in_stock"
           ? "in stock"
-          : (product.listings ?? []).some((l) => l.stockStatus === "back_order")
+          : bestStatus === "back_order"
             ? "back order"
-            : "out of stock",
+            : bestStatus === "unknown"
+              ? "unknown"
+              : "out of stock",
       ]
         .filter(Boolean)
         .join(", ")}
