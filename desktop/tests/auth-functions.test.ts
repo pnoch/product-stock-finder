@@ -1,8 +1,18 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { invoke } from "@tauri-apps/api/core";
+// Imported at the top so it satisfies `import/first`; vitest hoists the
+// `vi.mock` calls above it, so the mock below still applies.
+import { sendDesktopNotification } from "../src/notifications";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
+}));
+
+// `handleDeviceRevoked` imports this dynamically. Mocking it removes the real
+// module-load latency the test used to wait on (with the default 1s
+// `vi.waitFor` timeout that made it flake under a loaded parallel run); the
+// OS-notification payload itself is covered by tests/send-notification.test.tsx.
+vi.mock("../src/notifications", () => ({
+  sendDesktopNotification: vi.fn(async () => true),
 }));
 
 vi.mock("../src/lib/api-base", () => ({
@@ -185,12 +195,10 @@ describe("desktop auth functions", () => {
     expect(getUserInfo()).toBeNull();
     expect(listener).toHaveBeenCalled();
     await vi.waitFor(() => {
-      expect(invoke).toHaveBeenCalledWith(
-        "send_notification",
-        expect.objectContaining({
-          title: "Signed Out",
-          body: "You were signed out on another device.",
-        }),
+      expect(vi.mocked(sendDesktopNotification)).toHaveBeenCalledWith(
+        "Signed Out",
+        "You were signed out on another device.",
+        "/",
       );
     });
   });
