@@ -63,6 +63,34 @@ async function readTrpcErrorMessage(res: Response): Promise<string> {
   }
 }
 
+/**
+ * Auth + BYO-LLM headers for the discovery request. Each client registers its
+ * own builder (mobile/desktop have separate auth and tRPC clients) — this
+ * module cannot import either. Without them the protected `discovery.discover`
+ * endpoint rejects with 401 wherever there is no session cookie (native mobile
+ * and the desktop app, whose sessions are Bearer tokens), which the UI reported
+ * as a bogus "Sign-in Required"; it also meant the user's configured BYO-LLM
+ * provider was ignored for discovery.
+ */
+type DiscoveryHeadersProvider = () => Promise<Record<string, string>>;
+let discoveryHeadersProvider: DiscoveryHeadersProvider | null = null;
+
+export function setDiscoveryHeadersProvider(
+  provider: DiscoveryHeadersProvider | null,
+): void {
+  discoveryHeadersProvider = provider;
+}
+
+async function discoveryHeaders(): Promise<Record<string, string>> {
+  if (!discoveryHeadersProvider) return {};
+  try {
+    return await discoveryHeadersProvider();
+  } catch {
+    // Best-effort: never let header construction break discovery.
+    return {};
+  }
+}
+
 export async function discoverProduct(
   query: string,
 ): Promise<{ product: Product; retailers: Distributor[] } | null> {
@@ -75,7 +103,10 @@ export async function discoverProduct(
   try {
     res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(await discoveryHeaders()),
+      },
       credentials: "include",
       body: JSON.stringify({ json: { query } }),
       signal: controller.signal,

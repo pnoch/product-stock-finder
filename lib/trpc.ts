@@ -82,6 +82,26 @@ const revokedDeviceLink: TRPCLink<AppRouter> = () => {
  * Creates the tRPC client with proper configuration.
  * Call this once in your app's root layout.
  */
+/**
+ * Auth + BYO-LLM headers for any request to the API. Exported so non-tRPC call
+ * sites (e.g. `lib/llm-discovery`'s raw fetch, which the tRPC client can't wrap)
+ * can carry the same session and provider config.
+ */
+export async function trpcHeaders(): Promise<Record<string, string>> {
+  const token = await Auth.getSessionToken();
+  // Never let a device-id failure reject header construction for every request.
+  const deviceId = await getDeviceId().catch(() => undefined);
+  // BYO-LLM: forward the user's provider config so the server routes
+  // discovery/insights through their own key. Never sent for the built-in Forge
+  // provider.
+  const llmHeaders = await byoLlmHeaders();
+  return {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(deviceId ? { "x-device-id": deviceId } : {}),
+    ...llmHeaders,
+  };
+}
+
 export function createTRPCClient() {
   return trpc.createClient({
     links: [
@@ -90,21 +110,7 @@ export function createTRPCClient() {
         url: `${getApiBaseUrl()}/api/trpc`,
         // tRPC v11: transformer MUST be inside httpBatchLink, not at root
         transformer: superjson,
-        async headers() {
-          const token = await Auth.getSessionToken();
-          // Never let a device-id failure reject header construction for every
-          // request.
-          const deviceId = await getDeviceId().catch(() => undefined);
-          // BYO-LLM: forward the user's provider config so the server routes
-          // discovery/insights through their own key. Never sent for the built-in
-          // Forge provider.
-          const llmHeaders = await byoLlmHeaders();
-          return {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...(deviceId ? { "x-device-id": deviceId } : {}),
-            ...llmHeaders,
-          };
-        },
+        headers: trpcHeaders,
         // Custom fetch to include credentials for cookie-based auth
         fetch(url, options) {
           if (getBackgroundAppState() === "background") {

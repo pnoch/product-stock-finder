@@ -56,6 +56,21 @@ const revokedDeviceLink: TRPCLink<AppRouter> = () => {
   };
 };
 
+/**
+ * Auth + BYO-LLM headers for any request to the API. Exported so non-tRPC call
+ * sites (e.g. `lib/llm-discovery`'s raw fetch, which the tRPC client can't wrap)
+ * can carry the same session and provider config.
+ */
+export async function trpcHeaders(): Promise<Record<string, string>> {
+  const token = getSessionToken();
+  const deviceId = await getDesktopDeviceId();
+  return {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    "x-device-id": deviceId,
+    ...(await byoLlmHeaders()),
+  };
+}
+
 export function createTRPCClient() {
   return trpc.createClient({
     links: [
@@ -63,15 +78,7 @@ export function createTRPCClient() {
       httpBatchLink({
         url: `${getApiBaseUrl()}/api/trpc`,
         transformer: superjson,
-        async headers() {
-          const token = getSessionToken();
-          const deviceId = await getDesktopDeviceId();
-          return {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            "x-device-id": deviceId,
-            ...(await byoLlmHeaders()),
-          };
-        },
+        headers: trpcHeaders,
       }),
     ],
   });

@@ -30,7 +30,8 @@ import { onPricesChecked, onPriceDropsTriggered, startPricePoller } from "./back
 import { onNotificationActivated } from "./notifications";
 import { maybeSendDigest } from "../../lib/price-digest";
 import { useAuth } from "./hooks/use-auth";
-import { trpc, createTRPCClient } from "./lib/trpc";
+import { trpc, createTRPCClient, trpcHeaders } from "./lib/trpc";
+import { setDiscoveryHeadersProvider } from "../../lib/llm-discovery";
 import { setupSync, registerSyncSetup, type SyncSetup } from "../../lib/sync";
 import { storage } from "./storage";
 import { syncDesktopNotifications } from "./server-notifications";
@@ -43,6 +44,10 @@ import { runLaunchSequence } from "./lib/launch";
 import { cleanupStaleDevices } from "./lib/device-cleanup";
 import { backfillLocalHistory } from "./lib/history-sync";
 import { evaluateBasketAlert } from "./lib/basket-alert";
+
+// Discovery does a raw fetch (the tRPC client can't wrap its abort/timeout
+// needs), so register the API headers it must carry — auth + BYO-LLM.
+setDiscoveryHeadersProvider(trpcHeaders);
 
 function NotFound() {
   const navigate = useNavigate();

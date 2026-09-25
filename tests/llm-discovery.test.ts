@@ -27,7 +27,7 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
   },
 }));
 
-import { discoverProduct, toDiscoverErrorState, DiscoveryAuthError, DiscoveryError } from "../lib/llm-discovery";
+import { discoverProduct, toDiscoverErrorState, DiscoveryAuthError, DiscoveryError, setDiscoveryHeadersProvider } from "../lib/llm-discovery";
 import { BYO_LLM_AUTH_ERR_MSG } from "../shared/const";
 
 describe("discoverProduct", () => {
@@ -74,6 +74,40 @@ describe("discoverProduct", () => {
   it("throws typed DiscoveryError on fetch failure", async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
     await expect(discoverProduct("nonexistent")).rejects.toMatchObject({ name: "DiscoveryError", kind: "server" });
+  });
+
+  // QA round 299: the raw discovery fetch carried no auth/BYO headers, so the
+  // protected endpoint 401'd wherever there was no session cookie (native,
+  // desktop) and the user's own provider was ignored.
+  it("sends the registered API headers (auth + BYO-LLM)", async () => {
+    setDiscoveryHeadersProvider(async () => ({
+      Authorization: "Bearer tok",
+      "x-llm-provider": "openai",
+    }));
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ result: { data: { json: { product: null } } } }),
+    });
+    await discoverProduct("rtx 5090").catch(() => {});
+    const init = mockFetch.mock.calls.at(-1)?.[1] as RequestInit;
+    expect(init.headers).toMatchObject({
+      "Content-Type": "application/json",
+      Authorization: "Bearer tok",
+      "x-llm-provider": "openai",
+    });
+    setDiscoveryHeadersProvider(null);
+  });
+
+  it("omits auth headers when no provider is registered", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ result: { data: { json: { product: null } } } }),
+    });
+    await discoverProduct("rtx 5090").catch(() => {});
+    const init = mockFetch.mock.calls.at(-1)?.[1] as RequestInit;
+    expect(init.headers).toEqual({ "Content-Type": "application/json" });
   });
 
   it("maps a rejected BYO key to a byo-auth error", async () => {

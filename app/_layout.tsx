@@ -51,7 +51,8 @@ import {
 } from "react-native-safe-area-context";
 import type { EdgeInsets, Rect } from "react-native-safe-area-context";
 
-import { trpc, createTRPCClient } from "@/lib/trpc";
+import { trpc, createTRPCClient, trpcHeaders } from "@/lib/trpc";
+import { setDiscoveryHeadersProvider } from "@/lib/llm-discovery";
 import { ToastProvider } from "@/components/ui/toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Colors } from "@/lib/_core/theme";
@@ -79,6 +80,10 @@ const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
 export const unstable_settings = {
   anchor: "(tabs)",
 };
+
+// Discovery does a raw fetch (the tRPC client can't wrap its abort/timeout
+// needs), so register the API headers it must carry — auth + BYO-LLM.
+setDiscoveryHeadersProvider(trpcHeaders);
 
 export default function RootLayout() {
   const initialInsets = initialWindowMetrics?.insets ?? DEFAULT_WEB_INSETS;

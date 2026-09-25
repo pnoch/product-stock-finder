@@ -737,6 +737,24 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/stroke="#e5e7eb"/);
   });
 
+  // QA round 299: the shared discovery client does a raw fetch that the tRPC
+  // client can't wrap, so each app root must register the API-header provider —
+  // otherwise discovery 401s on native/desktop (no session cookie) and ignores
+  // the user's BYO-LLM provider.
+  it("registers the discovery header provider on both platforms", async () => {
+    for (const file of ["app/_layout.tsx", "desktop/src/App.tsx"]) {
+      const src = await readFile(file, "utf8");
+      expect(src, file).toContain("setDiscoveryHeadersProvider(trpcHeaders)");
+    }
+    for (const file of ["lib/trpc.ts", "desktop/src/lib/trpc.ts"]) {
+      const src = await readFile(file, "utf8");
+      expect(src, file).toContain("export async function trpcHeaders(");
+      expect(src, file).toContain("headers: trpcHeaders");
+    }
+    const discovery = await readFile("lib/llm-discovery.ts", "utf8");
+    expect(discovery).toContain("...(await discoveryHeaders())");
+  });
+
   // QA round 297: for a signed-in device the desktop's "Clear All Data" is
   // undone by the next sync (it wipes the sync cursor, so a full pull restores
   // everything) — the Danger Zone now says so.
