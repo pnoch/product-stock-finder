@@ -2,6 +2,101 @@ use playwright_rs::{Browser, Playwright};
 use std::sync::OnceLock;
 use tokio::sync::Mutex;
 
+/// Region-appropriate context signals, mirroring `REGION_SIGNALS` in
+/// lib/scrapers/browser.ts. Hardcoding US signals for every distributor made
+/// non-US stores localize currency/language, so the parser's static currency
+/// label no longer matched the rendered price.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RegionSignals {
+    pub locale: &'static str,
+    pub timezone_id: &'static str,
+    pub latitude: f64,
+    pub longitude: f64,
+}
+
+pub const EUROPE: RegionSignals = RegionSignals {
+    locale: "en-GB",
+    timezone_id: "Europe/Berlin",
+    latitude: 52.52,
+    longitude: 13.405,
+};
+pub const ASIA_PACIFIC: RegionSignals = RegionSignals {
+    locale: "en-AU",
+    timezone_id: "Australia/Sydney",
+    latitude: -33.8688,
+    longitude: 151.2093,
+};
+pub const MIDDLE_EAST: RegionSignals = RegionSignals {
+    locale: "en-AE",
+    timezone_id: "Asia/Dubai",
+    latitude: 25.2048,
+    longitude: 55.2708,
+};
+pub const AFRICA: RegionSignals = RegionSignals {
+    locale: "en-ZA",
+    timezone_id: "Africa/Johannesburg",
+    latitude: -26.2041,
+    longitude: 28.0473,
+};
+pub const NORTH_AMERICA: RegionSignals = RegionSignals {
+    locale: "en-US",
+    timezone_id: "America/New_York",
+    latitude: 40.7128,
+    longitude: -74.006,
+};
+
+/// Website host (without a leading `www.`) -> region, mirroring the
+/// `DISTRIBUTORS` table in shared/src/distributors.ts for every distributor
+/// that has a Rust parser.
+const HOST_REGIONS: [(&str, RegionSignals); 25] = [
+    ("server2u.com", ASIA_PACIFIC),
+    ("linitx.com", EUROPE),
+    ("interprojekt.pl", EUROPE),
+    ("nasstore.eu", EUROPE),
+    ("aerial.net", EUROPE),
+    ("mikrotik-store.eu", EUROPE),
+    ("miro.co.za", AFRICA),
+    ("gear-up.me", MIDDLE_EAST),
+    ("balticnetworks.com", NORTH_AMERICA),
+    ("shop.linktechs.net", NORTH_AMERICA),
+    ("winncom.com", NORTH_AMERICA),
+    ("bhphotovideo.com", NORTH_AMERICA),
+    ("store.duxtel.com", ASIA_PACIFIC),
+    ("wisp.net.au", ASIA_PACIFIC),
+    ("pbtech.co.nz", ASIA_PACIFIC),
+    ("gowifi.co.nz", ASIA_PACIFIC),
+    ("getic.com", EUROPE),
+    ("b2b.100mega.com", EUROPE),
+    ("hellascom.gr", EUROPE),
+    ("roc-noc.com", NORTH_AMERICA),
+    ("networkdevicesinc.com", NORTH_AMERICA),
+    ("flyteccomputers.com", NORTH_AMERICA),
+    ("mbsiwav.com", NORTH_AMERICA),
+    ("shop.multilink.us", NORTH_AMERICA),
+    ("neobits.com", NORTH_AMERICA),
+];
+
+/// Host of a URL without scheme, userinfo, port or a leading `www.`.
+fn host_of(url: &str) -> String {
+    let without_scheme = url.split_once("://").map(|(_, rest)| rest).unwrap_or(url);
+    let authority = without_scheme
+        .split(['/', '?', '#'])
+        .next()
+        .unwrap_or_default();
+    let authority = authority.rsplit('@').next().unwrap_or(authority);
+    let host = authority.split(':').next().unwrap_or(authority);
+    host.trim_start_matches("www.").to_lowercase()
+}
+
+pub fn region_signals_for(url: &str) -> RegionSignals {
+    let host = host_of(url);
+    HOST_REGIONS
+        .iter()
+        .find(|(known, _)| *known == host)
+        .map(|(_, signals)| *signals)
+        .unwrap_or(NORTH_AMERICA)
+}
+
 /// A checked-out browser plus the Playwright driver that owns it. The driver
 /// MUST be kept alive: `impl Drop for Playwright` closes stdin and SIGKILLs the
 /// driver process, which disconnects every browser it launched. Dropping it
@@ -85,8 +180,7 @@ pub async fn fetch_with_browser(
         pool.acquire().await?
     };
 
-    let result =
-        fetch_with_browser_inner(&entry.browser, url, wait_for_selector, timeout_ms).await;
+    let result = fetch_with_browser_inner(&entry.browser, url, wait_for_selector, timeout_ms).await;
 
     let mut pool = pool().lock().await;
     pool.release(entry);
@@ -99,10 +193,25 @@ async fn fetch_with_browser_inner(
     wait_for_selector: Option<&str>,
     timeout_ms: Option<u64>,
 ) -> Result<String, String> {
-    let context = browser.new_context().await
+    // Mirror the shared stealth context for the region: a store that localizes
+    // currency/language for US visitors would otherwise render a price in a
+    // different currency than the parser's static label.
+    let signals = region_signals_for(url);
+    let options = playwright_rs::BrowserContextOptions::builder()
+        .locale(signals.locale.to_string())
+        .timezone_id(signals.timezone_id.to_string())
+        .geolocation(playwright_rs::Geolocation {
+            latitude: signals.latitude,
+            longitude: signals.longitude,
+            accuracy: None,
+        })
+        .permissions(vec!["geolocation".to_string()])
+        .build();
+    let context = browser
+        .new_context_with_options(options)
+        .await
         .map_err(|e| e.to_string())?;
-    let page = context.new_page().await
-        .map_err(|e| e.to_string())?;
+    let page = context.new_page().await.map_err(|e| e.to_string())?;
 
     let result = fetch_with_browser_page(&page, url, wait_for_selector, timeout_ms).await;
 
@@ -118,9 +227,10 @@ async fn fetch_with_browser_page(
     timeout_ms: Option<u64>,
 ) -> Result<String, String> {
     let timeout = timeout_ms.unwrap_or(30_000);
-    let goto_options = playwright_rs::GotoOptions::new()
-        .timeout(std::time::Duration::from_millis(timeout));
-    page.goto(url, Some(goto_options)).await
+    let goto_options =
+        playwright_rs::GotoOptions::new().timeout(std::time::Duration::from_millis(timeout));
+    page.goto(url, Some(goto_options))
+        .await
         .map_err(|e| e.to_string())?;
 
     if let Some(selector) = wait_for_selector {
@@ -136,8 +246,7 @@ async fn fetch_with_browser_page(
         let _ = locator.wait_for(Some(options)).await;
     }
 
-    let html = page.content().await
-        .map_err(|e| e.to_string())?;
+    let html = page.content().await.map_err(|e| e.to_string())?;
     // An interstitial returned by the browser is a failure, not content: the
     // caller then falls back to plain HTTP and the breaker can cool the
     // distributor down exactly as the shared fetch does.
@@ -145,4 +254,43 @@ async fn fetch_with_browser_page(
         return Err(format!("{} (browser)", super::BLOCKED_ERROR_PREFIX));
     }
     Ok(html)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn host_of_strips_scheme_www_port_and_path() {
+        assert_eq!(
+            host_of("https://server2u.com/shop?search=CRS804"),
+            "server2u.com"
+        );
+        assert_eq!(host_of("https://www.aerial.net/shop/x.php"), "aerial.net");
+        assert_eq!(host_of("http://User@Example.COM:8443/a"), "example.com");
+        assert_eq!(host_of("not-a-url"), "not-a-url");
+    }
+
+    #[test]
+    fn region_signals_follow_the_shared_distributor_regions() {
+        assert_eq!(
+            region_signals_for("https://server2u.com/shop?search=x"),
+            ASIA_PACIFIC
+        );
+        assert_eq!(
+            region_signals_for("https://linitx.com/search.php?keywords=x"),
+            EUROPE
+        );
+        assert_eq!(
+            region_signals_for("https://gear-up.me/search?q=x"),
+            MIDDLE_EAST
+        );
+        assert_eq!(region_signals_for("https://miro.co.za/search?s=x"), AFRICA);
+        assert_eq!(
+            region_signals_for("https://www.neobits.com/search?x"),
+            NORTH_AMERICA
+        );
+        // Unknown hosts fall back to the shared default, not to nothing.
+        assert_eq!(region_signals_for("https://example.com/x"), NORTH_AMERICA);
+    }
 }

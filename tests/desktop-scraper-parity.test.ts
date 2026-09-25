@@ -247,4 +247,59 @@ describe("desktop/mobile scraper parity", () => {
     expect(ts).toContain("Math.pow(1.5, consecutiveFailures - 1)");
     expect(rust).toContain("1.5_f64.powi");
   });
+
+  it("keeps the Rust browser region signals aligned with the shared distributors", async () => {
+    // A store that localizes currency for US visitors renders a price the
+    // parser's static currency label does not match, so the browser context
+    // must carry the distributor's region signals on both platforms.
+    const ts = await readFile("shared/src/distributors.ts", "utf8");
+    const entries = [
+      ...ts.matchAll(
+        /\{\s*id: "([^"]+)",[\s\S]*?region: "([^"]+)",[\s\S]*?website: "([^"]+)"/g,
+      ),
+    ];
+    const hostOf = (u: string) =>
+      u.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]!;
+    const byHost = new Map(
+      entries.map(([, , region, website]) => [hostOf(website!), region!]),
+    );
+    expect(byHost.size).toBeGreaterThan(20);
+
+    const rust = await readFile(
+      "desktop/src-tauri/src/scrapers/browser.rs",
+      "utf8",
+    );
+    const tableStart = rust.indexOf("const HOST_REGIONS");
+    const table = rust.slice(tableStart, rust.indexOf("];", tableStart));
+    const rows = [...table.matchAll(/\("([^"]+)", ([A-Z_]+)\)/g)];
+    expect(rows.length).toBeGreaterThan(20);
+    for (const row of rows) {
+      const hostName = row[1]!;
+      const regionConst = row[2]!;
+      const expected = byHost.get(hostName);
+      expect(expected, `${hostName} missing from shared distributors`).toBeDefined();
+      expect(regionConst, `${hostName} region drifted`).toBe(
+        expected!.toUpperCase().replace(/[ -]/g, "_"),
+      );
+    }
+
+    // The five region presets must match the shared REGION_SIGNALS.
+    const sharedBrowser = await readFile("lib/scrapers/browser.ts", "utf8");
+    const presets: Array<[string, string]> = [
+      ["en-GB", "Europe/Berlin"],
+      ["en-AU", "Australia/Sydney"],
+      ["en-AE", "Asia/Dubai"],
+      ["en-ZA", "Africa/Johannesburg"],
+      ["en-US", "America/New_York"],
+    ];
+    for (const [locale, timezone] of presets) {
+      expect(sharedBrowser, `shared preset ${locale}`).toContain(
+        `locale: "${locale}", timezoneId: "${timezone}"`,
+      );
+      expect(rust, `Rust locale ${locale}`).toContain(`locale: "${locale}"`);
+      expect(rust, `Rust timezone ${timezone}`).toContain(
+        `timezone_id: "${timezone}"`,
+      );
+    }
+  });
 });
