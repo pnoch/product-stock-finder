@@ -4091,3 +4091,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Mobile `sendPriceDigestNotification` records after a successful schedule; the desktop digest notifier in `App.tsx` records after a successful `sendDesktopNotification`. Both use a day-keyed id (`local-digest-<YYYY-MM-DD>`) so a same-day retry dedups, and both are best-effort (a history write failure doesn't change delivery).
 - [x] Tests: `tests/send-digest-notification.test.ts` (delivered → recorded with the right type/title/id; failed schedule → not recorded) + a source guard in `tests/desktop-chart-guard.test.ts` (now 175, anchored via `lastIndexOf` since the restock notifier shares the signature) — both verified non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `336 passed | 2 skipped` / `2314 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
 - [x] With this, every delivered notification path records to the in-app history: price-drop, restock, health, basket, digest, and pulled server events.
+
+## Phase 552: Device QA round 294 (Compare chart ignored dark mode)
+
+- [x] **`desktop/src/components/MultiLineChart.tsx` (the Compare page chart) hardcoded light-mode greys** — `stroke="#e5e7eb"`, `fill="#6b7280"`, `bg-white` legend chips, a light-only tooltip — with no dark variants, so in dark mode its axes/labels were low-contrast and the legend rendered as white chips on a dark page. The sibling chart (`PriceHistoryChart`) is theme-aware via `useTheme()`, and the project convention is not to hardcode theme colors.
+- [x] MultiLineChart now derives `isDark` from `useTheme()` and pairs every color (grid/axis/tick/label/tooltip/legend/activeDot/cursor) with a dark variant, using the same palette `PriceHistoryChart` uses.
+- [x] Guard added to `tests/desktop-chart-guard.test.ts` (now 175) — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `336 passed | 2 skipped` / `2315 passed`; desktop `tsc 0`, `50 passed` / `248 passed`

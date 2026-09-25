@@ -725,6 +725,18 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 294: Compare's MultiLineChart hardcoded light-mode greys with no
+  // dark variants, so in dark mode its axes/legend/tooltip were low-contrast
+  // (white legend chips on a dark page) — unlike PriceHistoryChart, which is
+  // theme-aware.
+  it("makes the desktop multi-line chart theme-aware", async () => {
+    const text = await readFile("desktop/src/components/MultiLineChart.tsx", "utf8");
+    expect(text).toContain("useTheme");
+    expect(text).toContain("isDark");
+    expect(text).toContain("dark:bg-gray-800");
+    expect(text).not.toMatch(/stroke="#e5e7eb"/);
+  });
+
   // QA round 293: the desktop digest notifier must record the digest in the
   // in-app history (like price-drop/restock/basket), or the Notifications tab
   // and its unread count diverge from what was actually delivered.
