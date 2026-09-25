@@ -11,6 +11,7 @@ const DIALOG_PAGES = [
   "desktop/src/pages/Watchlist.tsx",
   "desktop/src/pages/Alerts.tsx",
   "desktop/src/pages/Search.tsx",
+  "desktop/src/components/SearchModal.tsx",
 ];
 
 describe("desktop custom dialogs are keyboard-accessible", () => {
@@ -18,8 +19,24 @@ describe("desktop custom dialogs are keyboard-accessible", () => {
     for (const file of DIALOG_PAGES) {
       const src = await readFile(file, "utf8");
       expect(src).toContain("DialogOverlay");
-      expect(src).not.toMatch(/<div className="fixed inset-0 z-50 /);
+      expect(src).not.toMatch(/<div className="fixed inset-0/);
     }
+  });
+
+  it("shares one dialog stack between Modal and DialogOverlay", async () => {
+    // Escape must close only the topmost dialog when an overlay is layered over
+    // a Modal (e.g. SearchModal's tag picker / bulk / manual sheets).
+    const modal = await readFile("desktop/src/components/Modal.tsx", "utf8");
+    const overlay = await readFile(
+      "desktop/src/components/DialogOverlay.tsx",
+      "utf8",
+    );
+    expect(modal).toContain("isTopDialog(");
+    expect(overlay).toContain("isTopDialog(");
+    expect(modal).toContain("pushDialog(");
+    expect(overlay).toContain("pushDialog(");
+    const stack = await readFile("desktop/src/lib/dialog-stack.ts", "utf8");
+    expect(stack).toContain("export function isTopDialog");
   });
 
   it("DialogOverlay provides Escape, focus, and dialog semantics", async () => {

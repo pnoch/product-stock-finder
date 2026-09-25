@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DialogOverlay } from "../src/components/DialogOverlay";
+import { Modal } from "../src/components/Modal";
 
 describe("DialogOverlay", () => {
   it("renders an accessible modal dialog and focuses into it", async () => {
@@ -56,6 +57,27 @@ describe("DialogOverlay", () => {
     expect(screen.getByRole("button", { name: "Two" })).toHaveFocus();
     await userEvent.tab();
     expect(screen.getByRole("button", { name: "One" })).toHaveFocus();
+  });
+
+  it("Escape closes only the topmost dialog, even over a Modal", async () => {
+    const closeModal = vi.fn();
+    const closeOverlay = vi.fn();
+    render(
+      <>
+        <Modal open onClose={closeModal} title="Base">
+          <button>base</button>
+        </Modal>
+        <DialogOverlay open onClose={closeOverlay} label="Top">
+          <button>top</button>
+        </DialogOverlay>
+      </>,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "top" })).toHaveFocus(),
+    );
+    await userEvent.keyboard("{Escape}");
+    expect(closeOverlay).toHaveBeenCalledTimes(1);
+    expect(closeModal).not.toHaveBeenCalled();
   });
 
   it("renders nothing when closed", () => {

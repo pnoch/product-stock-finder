@@ -4,6 +4,7 @@ import { PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCa
 import Fuse from "fuse.js";
 import { storage } from "../storage";
 import { Modal } from "./Modal";
+import { DialogOverlay } from "./DialogOverlay";
 import { ProductImage } from "./ProductImage";
 import { discoverProduct, toDiscoverErrorState } from "../../../lib/llm-discovery";
 import { discoverListings, customProductSlug } from "../../../lib/listing-discovery";
@@ -439,8 +440,8 @@ export function SearchModal({
 
       {/* Tag picker for pre-assignment */}
       {tagPickerFor && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setTagPickerFor(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5" onClick={(e) => e.stopPropagation()}>
+        <DialogOverlay open onClose={() => setTagPickerFor(null)} label="Assign tags" className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-sm">Assign tags</h3>
               <button onClick={() => setTagPickerFor(null)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
@@ -494,13 +495,13 @@ export function SearchModal({
               <button onClick={() => { setPendingTags((prev) => { const n = { ...prev }; delete n[tagPickerFor]; return n; }); setTagPickerFor(null); }} className="px-3 py-1.5 text-sm text-gray-500">Clear</button>
             </div>
           </div>
-        </div>
+        </DialogOverlay>
       )}
 
       {/* Bulk Import Modal */}
       {bulkOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setBulkOpen(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+        <DialogOverlay open onClose={() => setBulkOpen(false)} label="Bulk Import" className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
             <h3 className="font-semibold mb-2">Bulk Import</h3>
             <p className="text-xs text-gray-500 mb-2">Paste model numbers — one per line or comma separated. Eg CRS804-4DDQ-hRM</p>
             <textarea value={bulkText} onChange={(e) => setBulkText(e.target.value)} rows={6} placeholder={"CRS804-4DDQ-hRM\nCCR2216-1G-12XS-2XQ"} className="w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm mb-3" />
@@ -516,13 +517,13 @@ export function SearchModal({
               </button>
             </div>
           </div>
-        </div>
+        </DialogOverlay>
       )}
 
       {/* Manual Add Sheet */}
       {manualOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={closeManualSheet}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+        <DialogOverlay open onClose={closeManualSheet} label="Manual Add" className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
             <h3 className="font-semibold mb-3">Manual Add</h3>
             {manualTimedOut && (
               <div role="alert" className="mb-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-left">
@@ -549,7 +550,7 @@ export function SearchModal({
               <button onClick={handleManualAdd} disabled={manualDiscovering} aria-label="Add manual product" className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-50">{manualDiscovering ? "Discovering…" : "Add"}</button>
             </div>
           </div>
-        </div>
+        </DialogOverlay>
       )}
     </>
   );

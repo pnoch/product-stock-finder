@@ -1,8 +1,5 @@
 import { useEffect, useRef } from "react";
-
-// Tracks the open-dialog stack so Escape only closes the topmost dialog when
-// several are nested (e.g. a picker opened from within a panel).
-const dialogStack: symbol[] = [];
+import { isTopDialog, popDialog, pushDialog } from "../lib/dialog-stack";
 
 /**
  * Backdrop + accessible container for the dialog panels that are too custom for
@@ -32,7 +29,7 @@ export function DialogOverlay({
   useEffect(() => {
     if (!open) return;
     const token = tokenRef.current as symbol;
-    dialogStack.push(token);
+    pushDialog(token);
     previousActiveRef.current = document.activeElement as HTMLElement | null;
     const overlay = overlayRef.current;
     if (overlay) {
@@ -42,7 +39,7 @@ export function DialogOverlay({
       requestAnimationFrame(() => (focusable[0] ?? overlay).focus());
     }
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && dialogStack[dialogStack.length - 1] === token) {
+      if (e.key === "Escape" && isTopDialog(token)) {
         onClose();
       } else if (e.key === "Tab") {
         const el = overlayRef.current;
@@ -74,8 +71,7 @@ export function DialogOverlay({
     window.addEventListener("keydown", handler);
     return () => {
       window.removeEventListener("keydown", handler);
-      const idx = dialogStack.lastIndexOf(token);
-      if (idx !== -1) dialogStack.splice(idx, 1);
+      popDialog(token);
       if (previousActiveRef.current) {
         previousActiveRef.current.focus();
         previousActiveRef.current = null;

@@ -1,8 +1,7 @@
 import { useEffect, useRef, useId } from "react";
 import { X } from "lucide-react";
+import { isTopDialog, popDialog, pushDialog } from "../lib/dialog-stack";
 
-let modalStack: number[] = [];
-let modalIdCounter = 0;
 let openModalCount = 0;
 
 export function Modal({
@@ -20,10 +19,9 @@ export function Modal({
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousActiveRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
-  const modalIdRef = useRef<number | null>(null);
-  if (modalIdRef.current === null) {
-    modalIdCounter += 1;
-    modalIdRef.current = modalIdCounter;
+  const tokenRef = useRef<symbol | null>(null);
+  if (tokenRef.current === null) {
+    tokenRef.current = Symbol("modal");
   }
 
   useEffect(() => {
@@ -56,10 +54,10 @@ export function Modal({
 
   useEffect(() => {
     if (!open) return;
-    const id = modalIdRef.current as number;
-    modalStack.push(id);
+    const id = tokenRef.current as symbol;
+    pushDialog(id);
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && modalStack[modalStack.length - 1] === id) {
+      if (e.key === "Escape" && isTopDialog(id)) {
         onClose();
       }
       if (e.key === "Tab") {
@@ -92,8 +90,7 @@ export function Modal({
     window.addEventListener("keydown", handler);
     return () => {
       window.removeEventListener("keydown", handler);
-      const idx = modalStack.lastIndexOf(id);
-      if (idx !== -1) modalStack.splice(idx, 1);
+      popDialog(id);
     };
   }, [open, onClose]);
 
