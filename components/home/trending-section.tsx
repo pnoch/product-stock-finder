@@ -338,7 +338,7 @@ export const TrendingSection = memo(function TrendingSection() {
             marginBottom: 4,
           }}
         >
-          🔥 Trending Now
+          Trending Now
         </Text>
         <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 12 }}>
           Hard-to-find products from the community
@@ -374,7 +374,7 @@ export const TrendingSection = memo(function TrendingSection() {
             marginBottom: 4,
           }}
         >
-          🔥 Trending Now
+          Trending Now
         </Text>
         <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 12 }}>
           Hard-to-find products from the community
@@ -409,7 +409,7 @@ export const TrendingSection = memo(function TrendingSection() {
           marginBottom: 4,
         }}
       >
-        🔥 Trending Now
+        Trending Now
       </Text>
       <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 12 }}>
         Hard-to-find products from the community

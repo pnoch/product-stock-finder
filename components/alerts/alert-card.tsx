@@ -79,7 +79,7 @@ export const AlertCard = memo(function AlertCard({
           )}
           {snoozed && (
             <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
-              😴 Snoozed until{" "}
+              Snoozed until{" "}
               {new Date(alert.snoozedUntil!).toLocaleDateString(undefined, {
                 month: "short",
                 day: "numeric",

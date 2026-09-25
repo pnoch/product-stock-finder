@@ -437,7 +437,7 @@ export const ProductCard = memo(function ProductCard({
                   fontWeight: "700",
                 }}
               >
-                🏅 All-time low
+                All-time low
               </Text>
             </View>
           )}
@@ -483,7 +483,7 @@ export const ProductCard = memo(function ProductCard({
                   fontWeight: "700",
                 }}
               >
-                🔥 {dealBandLabel(dealScore.band)}
+                {dealBandLabel(dealScore.band)}
               </Text>
             </View>
           )}

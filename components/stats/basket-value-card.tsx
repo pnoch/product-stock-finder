@@ -92,7 +92,7 @@ export const BasketValueCard = memo(function BasketValueCard({
       </Text>
       {alertThreshold != null && (
         <Text style={{ color: colors.primary, fontSize: 11, marginTop: 2 }}>
-          🔔 Alert below {formatPrice(alertThreshold, displayCurrency)}
+          Alert below {formatPrice(alertThreshold, displayCurrency)}
         </Text>
       )}
     </View>

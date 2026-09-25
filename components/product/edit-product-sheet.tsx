@@ -123,7 +123,7 @@ export function EditProductSheet({
                 flex: 1,
               }}
             >
-              Edit Product ✏️
+              Edit Product
             </Text>
             <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={{ padding: 4 }} accessibilityLabel="Close" accessibilityRole="button">
               <IconSymbol

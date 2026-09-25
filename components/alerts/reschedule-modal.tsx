@@ -90,7 +90,7 @@ export function RescheduleModal({
                 marginBottom: 4,
               }}
             >
-              Reschedule Reminder 📅
+              Reschedule Reminder
             </Text>
             <Text
               style={{ color: colors.muted, fontSize: 14, marginBottom: 20 }}

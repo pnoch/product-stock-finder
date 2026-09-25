@@ -887,7 +887,7 @@ export function Watchlist() {
                     </>
                   );
                 })()}
-                {(() => { const d = dealScores.get(product.id); return d?.band === "hot" ? (<span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">🔥 {dealBandLabel(d.band)}</span>) : null; })()}
+                {(() => { const d = dealScores.get(product.id); return d?.band === "hot" ? (<span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">{dealBandLabel(d.band)}</span>) : null; })()}
                 {(product.tags ?? [])
                   .filter((tagId) => tagDefinitions[tagId])
                   .map((tagId) => {

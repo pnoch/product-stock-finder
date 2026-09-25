@@ -168,7 +168,7 @@ function BestDistributorCard({
             borderColor: derivedColors.success44,
           }}
         >
-          <Text style={{ fontSize: 14 }}>🎉</Text>
+          <IconSymbol name="star.fill" size={14} color={colors.success} />
           <Text
             style={{ color: colors.success, fontSize: 12, fontWeight: "700" }}
           >
@@ -282,7 +282,7 @@ function BestDistributorCard({
       </View>
       {distributor?.paymentMethods && (
         <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8 }}>
-          💳 {distributor.paymentMethods.join(" · ")}
+          {distributor.paymentMethods.join(" · ")}
         </Text>
       )}
       {/* Quick-set price alert row */}

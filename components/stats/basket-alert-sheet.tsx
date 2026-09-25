@@ -72,7 +72,7 @@ export const BasketAlertSheet = memo(function BasketAlertSheet({
               marginBottom: 6,
             }}
           >
-            🧺 Basket Value Alert
+            Basket Value Alert
           </Text>
           <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 14 }}>
             Notify me when the total watchlist value drops below this amount

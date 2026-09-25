@@ -289,7 +289,7 @@ export function ManualAddSheet({
                 flex: 1,
               }}
             >
-              Add Custom Product ✨
+              Add Custom Product
             </Text>
             <TouchableOpacity activeOpacity={0.7} onPress={handleClose} style={{ padding: 4 }} accessibilityLabel="Close" accessibilityRole="button">
               <IconSymbol

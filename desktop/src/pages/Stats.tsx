@@ -385,7 +385,7 @@ export function Stats() {
           </p>
           {basketThreshold != null && (
             <p className="text-xs text-gray-400 mt-1">
-              🔔 Alert below {formatPrice(basketThreshold, displayCurrency)}
+              Alert below {formatPrice(basketThreshold, displayCurrency)}
             </p>
           )}
           {basketThreshold != null && basket && basket.total <= basketThreshold && (
@@ -571,7 +571,7 @@ export function Stats() {
               )}
               {digest.alertTargetsHit.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">🎯 Targets Hit</p>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Targets Hit</p>
                   {digest.alertTargetsHit.slice(0, 3).map((t) => (
                     <p key={t.alertId} className="text-gray-600 dark:text-gray-400">
                       <span className="text-gray-900 dark:text-gray-100">{t.name}</span> at{" "}
@@ -587,7 +587,7 @@ export function Stats() {
                 <div>
                   {digest.newProducts.slice(0, 3).map((p) => (
                     <p key={p.productId} className="text-gray-600 dark:text-gray-400">
-                      ➕ <span className="text-gray-900 dark:text-gray-100">{p.name}</span>
+                      + <span className="text-gray-900 dark:text-gray-100">{p.name}</span>
                     </p>
                   ))}
                   {digest.newProducts.length > 3 && (
@@ -599,7 +599,7 @@ export function Stats() {
                 <div>
                   {digest.removedProducts.slice(0, 3).map((p) => (
                     <p key={p.productId} className="text-gray-600 dark:text-gray-400">
-                      ➖ <span className="text-gray-900 dark:text-gray-100">{p.name}</span>
+                      − <span className="text-gray-900 dark:text-gray-100">{p.name}</span>
                     </p>
                   ))}
                   {digest.removedProducts.length > 3 && (
@@ -640,7 +640,7 @@ export function Stats() {
                 .slice(0, 3)
                 .map((p) => (
                   <p key={p.productId} className="text-xs text-emerald-600 truncate">
-                    🏅 {p.name} is at its all-time low
+                    {p.name} is at its all-time low
                   </p>
                 ))}
             </div>
@@ -806,7 +806,7 @@ export function Stats() {
         label="Basket Value Alert"
       >
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-            <h3 className="font-semibold text-lg mb-1">🧺 Basket Value Alert</h3>
+            <h3 className="font-semibold text-lg mb-1">Basket Value Alert</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               Notify me when the total watchlist value drops below this amount
               ({displayCurrency}). Fires once, then turns off.

@@ -79,7 +79,7 @@ export const InsightsCard = memo(function InsightsCard({ result }: { result: Pro
               }}
               numberOfLines={1}
             >
-              🏅 {p.name} is at its all-time low
+              {p.name} is at its all-time low
             </Text>
           ))}
         </View>

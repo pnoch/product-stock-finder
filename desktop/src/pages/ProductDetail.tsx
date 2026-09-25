@@ -923,7 +923,7 @@ export function ProductDetail() {
           )}
           {bestDistributor?.paymentMethods && bestDistributor.paymentMethods.length > 0 && (
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              💳 {bestDistributor.paymentMethods.join(" · ")}
+              {bestDistributor.paymentMethods.join(" · ")}
             </p>
           )}
         </div>
@@ -1395,7 +1395,7 @@ export function ProductDetail() {
                         </p>
                         {dist?.paymentMethods && dist.paymentMethods.length > 0 && (
                           <p className="text-xs text-gray-400 mt-0.5 truncate" title={dist.paymentMethods.join(" · ")}>
-                            💳 {dist.paymentMethods.join(" · ")}
+                            {dist.paymentMethods.join(" · ")}
                           </p>
                         )}
                       </div>
@@ -1451,7 +1451,7 @@ export function ProductDetail() {
                                 : "text-gray-500 dark:text-gray-400";
                         return (
                           <span className={cls}>
-                            🕐 Updated {formatLastRefreshed(listing.lastChecked)}
+                            Updated {formatLastRefreshed(listing.lastChecked)}
                           </span>
                         );
                       })()}
@@ -1635,7 +1635,7 @@ export function ProductDetail() {
           setEditOpen(false);
           setEditError(null);
         }}
-        title="Edit Product ✏️"
+        title="Edit Product"
       >
         <div className="space-y-4">
           {editError && (
@@ -1966,7 +1966,7 @@ export function ProductDetail() {
           setReminderOpen(false);
           setReminderError(null);
         }}
-        title="Set Reminder 📅"
+        title="Set Reminder"
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-300">

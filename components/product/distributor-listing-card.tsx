@@ -224,7 +224,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
           numberOfLines={1}
           ellipsizeMode="tail"
         >
-          💳 {distributor.paymentMethods.join(" · ")}
+          {distributor.paymentMethods.join(" · ")}
         </Text>
       )}
       {(() => {
@@ -242,7 +242,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
               marginTop: distributor?.paymentMethods ? 2 : 8,
             }}
           >
-            🕐 Updated {formatLastRefreshed(listing.lastChecked)}
+            Updated {formatLastRefreshed(listing.lastChecked)}
           </Text>
         );
       })()}

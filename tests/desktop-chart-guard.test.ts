@@ -361,7 +361,7 @@ describe("desktop chart guard", () => {
     const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
     expect(text).toContain(">Price Changes</p>");
     expect(text).toContain(">Stock Changes</p>");
-    expect(text).toContain(">🎯 Targets Hit</p>");
+    expect(text).toContain(">Targets Hit</p>");
   });
 
   // QA round 230: mobile's StockHealthCard shows "Listings in stock" / "Fully
@@ -398,11 +398,11 @@ describe("desktop chart guard", () => {
     expect(text).not.toContain("Oldest update");
   });
 
-  // QA round 228: mobile's basket alert sheet title is "🧺 Basket Value Alert";
-  // desktop's was "Basket Value Alert".
+  // QA round 228: mobile's basket alert sheet title matches desktop's
+  // "Basket Value Alert" (the "🧺 " prefix was dropped in the emoji sweep).
   it("titles the desktop basket alert modal like mobile", async () => {
     const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
-    expect(text).toContain("🧺 Basket Value Alert");
+    expect(text).toContain("Basket Value Alert");
   });
 
   // QA round 227: mobile's "Dropping now" count uses colors.primary; desktop's
@@ -723,6 +723,43 @@ describe("desktop chart guard", () => {
     const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
     expect(text).toContain('title="No alerts set"');
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
+  });
+
+  // Phase 540 (emoji sweep B): decorative emoji in the UI render as empty
+  // "tofu" boxes without a system emoji font. Notification titles (category C)
+  // deliberately keep theirs — the OS renders those. `✓` (U+2713) is a
+  // font-safe dingbat, not an emoji, so it is allowed.
+  it("has no decorative emoji left in the swept UI surfaces", async () => {
+    const swept = ["🔥", "🏅", "🎯", "🧺", "🔔", "➕", "➖", "🎉", "💳", "🕐", "👀", "😴", "📅", "✏️", "📋", "✨"];
+    for (const file of [
+      "components/home/trending-section.tsx",
+      "components/watchlist/product-card.tsx",
+      "components/stats/digest-card.tsx",
+      "components/stats/insights-card.tsx",
+      "components/stats/basket-value-card.tsx",
+      "components/stats/basket-alert-sheet.tsx",
+      "components/alerts/stock-watch-card.tsx",
+      "components/alerts/alert-card.tsx",
+      "components/alerts/reschedule-modal.tsx",
+      "components/product/edit-product-sheet.tsx",
+      "components/product/reminder-date-picker-modal.tsx",
+      "components/product/distributor-listing-card.tsx",
+      "components/best-distributor-card.tsx",
+      "components/search/bulk-import-modal.tsx",
+      "components/search/manual-add-sheet.tsx",
+      "components/settings/device-management/rename-device-modal.tsx",
+      "app/(tabs)/alerts.tsx",
+      "desktop/src/pages/Alerts.tsx",
+      "desktop/src/pages/ProductDetail.tsx",
+      "desktop/src/pages/Search.tsx",
+      "desktop/src/pages/Stats.tsx",
+      "desktop/src/pages/Watchlist.tsx",
+    ]) {
+      const src = await readFile(file, "utf8");
+      for (const ch of swept) {
+        expect(src.includes(ch), `${file} still contains ${ch}`).toBe(false);
+      }
+    }
   });
 
   // Phase 539 (emoji sweep A): distributor-health status glyphs and the error
@@ -1062,7 +1099,7 @@ describe("desktop chart guard", () => {
   // desktop's edit-product modal was "Edit product".
   it("titles the desktop edit-product modal like mobile", async () => {
     const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
-    expect(text).toContain('title="Edit Product ✏️"');
+    expect(text).toContain('title="Edit Product"');
     expect(text).not.toContain('title="Edit product"');
   });
 
@@ -1070,7 +1107,7 @@ describe("desktop chart guard", () => {
   // desktop's was "Set Reminder".
   it("titles the desktop reminder modal like mobile", async () => {
     const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
-    expect(text).toContain('title="Set Reminder 📅"');
+    expect(text).toContain('title="Set Reminder"');
   });
 
   // QA round 179: desktop's re-enable only refreshed lastChecked and never
@@ -1115,7 +1152,7 @@ describe("desktop chart guard", () => {
   it("shows payment methods per listing on desktop", async () => {
     const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
     expect(text).toMatch(/dist\?\.paymentMethods && dist\.paymentMethods\.length > 0/);
-    expect(text).toMatch(/💳 \{dist\.paymentMethods\.join\(" · "\)\}/);
+    expect(text).toMatch(/\{dist\.paymentMethods\.join\(" · "\)\}/);
   });
 
   // QA round 174: mobile's DistributorListingCard colors the freshness text
@@ -1123,7 +1160,7 @@ describe("desktop chart guard", () => {
   it("colors the desktop listing freshness text", async () => {
     const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
     expect(text).toContain("getLastRefreshedColor(listing.lastChecked)");
-    expect(text).toContain("🕐 Updated {formatLastRefreshed(listing.lastChecked)}");
+    expect(text).toContain("Updated {formatLastRefreshed(listing.lastChecked)}");
   });
 
   // QA round 173: mobile's StockWatchCard appends "· last checked" after the
@@ -1133,11 +1170,11 @@ describe("desktop chart guard", () => {
     expect(text).toContain("· last checked");
   });
 
-  // QA round 172: mobile's RescheduleModal title is "Reschedule Reminder 📅";
+  // QA round 172: mobile's RescheduleModal title is "Reschedule Reminder";
   // desktop's was "Reschedule Reminder" without the emoji.
   it("titles the desktop reschedule modal like mobile", async () => {
     const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
-    expect(text).toContain("Reschedule Reminder 📅");
+    expect(text).toContain("Reschedule Reminder");
   });
 
   // QA round 171: mobile's ReminderCard says "Was due {date}" for past
@@ -1195,11 +1232,11 @@ describe("desktop chart guard", () => {
     expect(text).toContain("Create tag");
   });
 
-  // QA round 165: mobile's bulk-import modal is titled "Import List 📋";
+  // QA round 165: mobile's bulk-import modal is titled "Import List";
   // desktop's was titled "Bulk Import".
   it("titles the desktop bulk-import modal like mobile", async () => {
     const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
-    expect(text).toContain("Import List 📋");
+    expect(text).toContain("Import List");
   });
 
   // QA round 164: mobile's manual-add sheet labels the parse button "Clean up
@@ -1212,12 +1249,12 @@ describe("desktop chart guard", () => {
     expect(text).not.toContain("Parse with AI");
   });
 
-  // QA round 163: mobile's manual-add sheet is titled "Add Custom Product ✨"
+  // QA round 163: mobile's manual-add sheet is titled "Add Custom Product"
   // with a "Paste anything … AI cleans it up." hint; desktop's modal was titled
   // "Manual Add" with no hint.
   it("titles the desktop manual-add modal like mobile", async () => {
     const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
-    expect(text).toContain("Add Custom Product ✨");
+    expect(text).toContain("Add Custom Product");
     expect(text).toContain("AI cleans it up.");
   });
 
@@ -1337,11 +1374,11 @@ describe("desktop chart guard", () => {
     expect(text).toContain("handleExport");
   });
 
-  // QA round 148: mobile's StockWatchCard shows a "👀 Watching" badge; desktop's
+  // QA round 148: mobile's StockWatchCard shows a "Watching" badge; desktop's
   // Stock Watches rows showed only the status badge.
   it("shows the Watching badge on desktop stock watches", async () => {
     const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
-    expect(text).toContain("👀 Watching");
+    expect(text).toContain("Watching");
   });
 
   // QA round 147: desktop's "Test notification" only called

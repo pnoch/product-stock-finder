@@ -208,6 +208,6 @@ describe("nav header parity", () => {
     expect(screen.getByText(`1 EUR = ${rate.toFixed(4)} USD`)).toBeInTheDocument();
     // Payment methods now appear both on the best-distributor card and in the
     // Distributor Targets table row, so assert at least one is present.
-    expect(screen.getAllByText("💳 Online Payment · Bank Transfer · Credit Card").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Online Payment · Bank Transfer · Credit Card").length).toBeGreaterThan(0);
   });
 });

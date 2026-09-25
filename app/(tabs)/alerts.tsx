@@ -293,7 +293,7 @@ export default function AlertsScreen() {
                     borderColor: colors.success + "44",
                   }}
                 >
-                  <Text style={{ fontSize: 24 }}>🎉</Text>
+                  <IconSymbol name="star.fill" size={24} color={colors.success} />
                   <View style={{ flex: 1 }}>
                     <Text
                       style={{

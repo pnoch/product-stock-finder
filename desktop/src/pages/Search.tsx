@@ -496,7 +496,7 @@ export function Search() {
       {bulkOpen && (
         <DialogOverlay open onClose={() => setBulkOpen(false)} label="Import List">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
-            <h3 className="font-semibold mb-2 flex items-center gap-2"><Upload className="w-4 h-4" /> Import List 📋</h3>
+            <h3 className="font-semibold mb-2 flex items-center gap-2"><Upload className="w-4 h-4" /> Import List</h3>
             <p className="text-xs text-gray-500 mb-2">Paste model numbers (e.g. CRS326-24S) — one per line or comma-separated.</p>
             <textarea value={bulkText} onChange={(e) => setBulkText(e.target.value)} rows={6} placeholder="CRS804-4DDQ-hRM\nCCR2216-1G-12XS-2XQ" className="w-full p-3 rounded-lg border text-sm mb-3" />
             {bulkText.trim() && (
@@ -514,7 +514,7 @@ export function Search() {
       {manualOpen && (
         <DialogOverlay open onClose={closeManualModal} label="Add Custom Product">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-            <h3 className="font-semibold mb-1">Add Custom Product ✨</h3>
+            <h3 className="font-semibold mb-1">Add Custom Product</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
               Paste anything — a model number, product name, or a spec-sheet paragraph. AI cleans it up.
             </p>

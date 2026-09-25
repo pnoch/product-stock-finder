@@ -116,7 +116,7 @@ export const StockWatchCard = memo(function StockWatchCard({
                 fontWeight: "600",
               }}
             >
-              👀 Watching
+              Watching
             </Text>
           </View>
           <IconActionButton

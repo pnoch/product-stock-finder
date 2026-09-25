@@ -62,7 +62,7 @@ export function RenameDeviceModal({
               marginBottom: 4,
             }}
           >
-            Rename Device ✏️
+            Rename Device
           </Text>
           <Text
             style={{

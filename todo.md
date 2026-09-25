@@ -4011,3 +4011,13 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] `tests/app-error-boundary.test.tsx` gained an `@/components/ui/icon-symbol` mock (its module, `expo-symbols`, doesn't parse under jsdom — same mock the other IconSymbol-rendering tests use).
 - [x] Guard added to `tests/desktop-chart-guard.test.ts` (now 168) — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2302 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
 - [ ] Still to sweep (category B): decorative JSX prefixes (💳 🕐 🎉 👀 🔥 🏅 🧺 🎯 ➕ ➖ 📅 ✏️ 📋 ✨). Category C (notification titles) deliberately left as-is — OS-rendered, emoji is conventional there. Also noted: `distributor.countryFlag` is an emoji flag used across many screens — a separate decision (would need a flag asset or country code).
+
+## Phase 540: Emoji sweep B — decorative JSX emoji
+
+- [x] Removed the decorative emoji prefixes/markers from ~22 mirrored UI files (trending, product card, deal-band badge, digest “Targets Hit”/➕/➖, insights “all-time low”, basket value/sheet, stock-watch “👀 Watching”, snoozed “😴”, reschedule/edit/reminder/import/manual-add/rename modal titles, payment-method and “Updated” lines, desktop equivalents). Added `+`/`−` (plain signs) where a marker carried meaning.
+- [x] The three standalone celebratory `🎉` glyphs (desktop savings card; mobile savings card + “Lowest Price Ever”) became a **star icon** (lucide `Star` / `IconSymbol star.fill`) — the same concept on both platforms.
+- [x] Label text kept otherwise, so accessible names stay meaningful; `✓` (U+2713, a font-safe dingbat — “Added ✓”, “Verified ✓”) is deliberately kept.
+- [x] Updated the guards that pinned the removed emoji: 10 assertions in `tests/desktop-chart-guard.test.ts`, both `🔥` assertions in `tests/deal-score-surfaces.test.ts`, and `desktop/tests/nav-header.test.tsx`'s payment-methods line.
+- [x] New guard: `has no decorative emoji left in the swept UI surfaces` (deny-list over the 22 files) — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2303 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
+- [ ] Category C left as-is by decision: notification titles/bodies (`🟢 Back In Stock!`, `🧺 Basket Alert`, `📈 Price Increase Alert!`, `💰 Price Alert Set`, `📦 Back-Order Reminder`, `📊 Price Digest`, health-alert titles) — rendered by the OS notification surface, where emoji is conventional and a system emoji font is present.
+- [ ] Not swept: `distributor.countryFlag` (an emoji flag) is shown across many screens; converting needs a flag asset or country-code fallback — a separate product call.

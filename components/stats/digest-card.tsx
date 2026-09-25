@@ -214,7 +214,7 @@ export const DigestCard = memo(function DigestCard({
                 marginTop: 10,
               }}
             >
-              🎯 Targets Hit
+              Targets Hit
             </Text>
           )}
           {result.alertTargetsHit.map((t) => (
@@ -230,10 +230,10 @@ export const DigestCard = memo(function DigestCard({
             result.removedProducts.length > 0) && (
             <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8 }}>
               {result.newProducts.length > 0
-                ? `➕ ${result.newProducts.length} added · `
+                ? `+ ${result.newProducts.length} added · `
                 : ""}
               {result.removedProducts.length > 0
-                ? `➖ ${result.removedProducts.length} removed`
+                ? `− ${result.removedProducts.length} removed`
                 : ""}
             </Text>
           )}

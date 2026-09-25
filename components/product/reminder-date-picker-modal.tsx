@@ -74,7 +74,7 @@ export function ReminderDatePickerModal({
               marginBottom: 4,
             }}
           >
-            Set Reminder 📅
+            Set Reminder
           </Text>
           <Text
             style={{ color: colors.muted, fontSize: 14, marginBottom: 20 }}

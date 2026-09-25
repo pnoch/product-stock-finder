@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import {
   BarChart3,
   Bell,
+  Star,
   BellRing,
   Calendar,
   CircleCheck,
@@ -530,7 +531,7 @@ export function Alerts() {
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold flex items-center gap-2">
-                <Calendar className="w-4 h-4" /> Reschedule Reminder 📅
+                <Calendar className="w-4 h-4" /> Reschedule Reminder
               </h3>
               <button
                 onClick={() => setRescheduleTarget(null)}
@@ -716,7 +717,7 @@ function AlertsTab({
         <div className="pt-4 mt-2 border-t border-gray-200 dark:border-gray-700 space-y-3">
           {totalSaved > 0 && (
             <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl">
-              <span className="text-2xl">🎉</span>
+              <Star className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               <div className="flex-1">
                 <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
                   Total Saved: {formatPrice(totalSaved, displayCurrency)}
@@ -1048,7 +1049,7 @@ function RemindersTab({
                 )}
                 <span className="text-xs text-gray-400 shrink-0">· last checked</span>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 text-xs font-semibold shrink-0">
-                  👀 Watching
+                  Watching
                 </span>
                 <button
                   onClick={() => onDeleteWatch(w.id)}

@@ -119,7 +119,7 @@ export function BulkImportModal({
                 flex: 1,
               }}
             >
-              Import List 📋
+              Import List
             </Text>
             <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={{ padding: 4 }} accessibilityLabel="Close" accessibilityRole="button">
               <IconSymbol name="xmark.circle.fill" size={24} color={colors.muted} />
