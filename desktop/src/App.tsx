@@ -302,7 +302,14 @@ export default function App() {
         const { checkRestocks } = await import("../../lib/restock");
         // Pass the desktop store: the module default resolves to IndexedDB in a
         // Tauri webview, which is a different store from the UI's localStorage.
-        await checkRestocks(storage);
+        // The notifier must be the Tauri channel too: the shared default goes
+        // through the browser Notification API, which is not granted in the
+        // webview, so the alert silently never fired and the watch was retried
+        // forever.
+        await checkRestocks(storage, async (title, body) => {
+          const { sendDesktopNotification } = await import("./notifications");
+          return sendDesktopNotification(title, body, "/alerts");
+        });
       } catch {
         // restock failures are non-fatal
       }

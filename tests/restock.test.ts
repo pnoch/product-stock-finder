@@ -125,6 +125,53 @@ describe("checkRestocks", () => {
     expect(state.recorded).toHaveLength(1);
   });
 
+  // QA round 279: the desktop passed no notifier, so the shared default used the
+  // browser Notification API (ungranted in the Tauri webview) — the alert never
+  // fired and the watch was retried forever.
+  it("delivers through an injected notifier instead of the platform default", async () => {
+    state.watches = [makeWatch()];
+    state.watchlist = [
+      {
+        id: "p1",
+        listings: [
+          {
+            distributorId: "d1",
+            stockStatus: "in_stock",
+            price: 100,
+            currency: "USD",
+          },
+        ],
+      },
+    ];
+    const notify = vi.fn(async () => true);
+    await checkRestocks(undefined, notify);
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(state.scheduled).toHaveLength(0);
+    expect(state.removed).toEqual(["w1"]);
+  });
+
+  it("keeps the watch when the injected notifier fails", async () => {
+    state.watches = [makeWatch()];
+    state.watchlist = [
+      {
+        id: "p1",
+        listings: [
+          {
+            distributorId: "d1",
+            stockStatus: "in_stock",
+            price: 100,
+            currency: "USD",
+          },
+        ],
+      },
+    ];
+    const notify = vi.fn(async () => false);
+    await checkRestocks(undefined, notify);
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(state.removed).toEqual([]);
+    expect(state.recorded).toHaveLength(0);
+  });
+
   it("does not fire when watch was already in_stock", async () => {
     state.watches = [makeWatch({ lastKnownStatus: "in_stock" })];
     state.watchlist = [

@@ -17,18 +17,31 @@ export interface RestockStorage {
   recordNotificationEvent: typeof defaultStorageModule.recordNotificationEvent;
 }
 
+/**
+ * Delivers the restock alert. Injectable because the desktop app must use its
+ * own Tauri notification channel (like the digest and basket-alert paths) — the
+ * default `Platform.OS === "web"` branch goes through the browser Notification
+ * API, which is not granted in the Tauri webview, so the alert silently never
+ * fired and the watch was retried forever.
+ */
+export type RestockNotifier = (
+  title: string,
+  body: string,
+) => boolean | Promise<boolean>;
+
 // Serializes concurrent checkRestocks calls (background task + foreground check)
 // so overlapping runs can't both fire a duplicate restock notification.
 let inFlight: Promise<void> | null = null;
 
 export function checkRestocks(
   storage: RestockStorage = defaultStorageModule,
+  notify?: RestockNotifier,
 ): Promise<void> {
   if (inFlight) return inFlight;
   // Best-effort: a storage read failure here must not reject, or it would
   // abort the rest of runPriceCheckCore (including the digest send) even though
   // the restock check is independent.
-  inFlight = runCheckRestocks(storage)
+  inFlight = runCheckRestocks(storage, notify)
     .catch((e) => console.warn("[Restock] check failed", e))
     .finally(() => {
       inFlight = null;
@@ -36,7 +49,10 @@ export function checkRestocks(
   return inFlight;
 }
 
-async function runCheckRestocks(storage: RestockStorage): Promise<void> {
+async function runCheckRestocks(
+  storage: RestockStorage,
+  notify?: RestockNotifier,
+): Promise<void> {
   const watches = await storage.getStockWatches();
   if (watches.length === 0) return;
 
@@ -66,14 +82,15 @@ async function runCheckRestocks(storage: RestockStorage): Promise<void> {
       if (notificationsEnabled) {
         try {
           const distrib = getDistributorById(watch.distributorId);
-          if (Platform.OS === "web") {
+          const body = `${watch.productName} is now available at ${distrib?.name ?? watch.distributorName}.`;
+          if (notify) {
+            // Caller-provided channel (desktop → Tauri notification).
+            notified = await notify("🟢 Back In Stock!", body);
+          } else if (Platform.OS === "web") {
             // No local scheduling on web; show a foreground web notification
             // so the watch isn't consumed without any user-visible alert.
             const { displayWebNotification } = await import("./web-notifications");
-            notified = displayWebNotification(
-              "🟢 Back In Stock!",
-              `${watch.productName} is now available at ${distrib?.name ?? watch.distributorName}.`,
-            );
+            notified = displayWebNotification("🟢 Back In Stock!", body);
           } else {
             const id = await scheduleStockAlert(
               watch.productName,

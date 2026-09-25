@@ -725,6 +725,15 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 279: the desktop must pass its Tauri notifier to checkRestocks —
+  // the shared default uses the browser Notification API, which is ungranted in
+  // the Tauri webview, so restock alerts silently never fired.
+  it("passes the desktop notifier to checkRestocks", async () => {
+    const app = await readFile("desktop/src/App.tsx", "utf8");
+    expect(app).toContain("await checkRestocks(storage, async (title, body) => {");
+    expect(app).toContain("sendDesktopNotification(title, body,");
+  });
+
   // QA round 273: the desktop persisted `utcOffsetMinutes` in the synced
   // quietHours setting. Because settings sync across devices, a desktop's
   // timezone leaked into mobile, whose local isInQuietHours then used that
