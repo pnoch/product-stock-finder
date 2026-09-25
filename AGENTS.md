@@ -9,7 +9,7 @@ Guidance for AI coding agents working in this repository. Read this before touch
 - **App name in UI:** "Product Stock Finder" (see git log — was renamed from "Stock Tracker Pro"; do not revert)
 - **Bundle ID:** `com.app.stocktrackerpro`
 - **Platform targets:** iOS, Android, Web (Expo web)
-- **State:** Local-first with optional backend sync. AsyncStorage is the source of truth when signed out; when signed in, `lib/sync.ts` syncs watchlist/alerts/reminders/settings with the server (last-write-wins + tombstones, server-authoritative timestamps). Live scraping runs through `lib/scrapers/` (plain HTTP → headless browser escalation with circuit breakers). The backend (Express + tRPC + Drizzle) is fully integrated — see server routers below. CRS804 + CRS326 are auto-seeded from `lib/sample-data.ts` at first launch so Home/Watchlist/Product Detail have price history immediately.
+- **State:** Local-first with optional backend sync. AsyncStorage is the source of truth when signed out; when signed in, `lib/sync.ts` syncs watchlist/alerts/reminders/settings with the server (last-write-wins + tombstones, server-authoritative timestamps). Live scraping runs through `lib/scrapers/` (plain HTTP → headless browser escalation with circuit breakers). The backend (Express + tRPC + Drizzle) is fully integrated — see server routers below. The seven `SEED_IDS` from `lib/launch-seed.ts` are auto-seeded at first launch; the two MikroTik ids (CRS804/CRS326) also get seeded price history from `lib/sample-data.ts`, so Home/Watchlist/Product Detail have data immediately.
 
 ## Tech Stack
 
@@ -49,7 +49,7 @@ pnpm qr           # generate dev QR code
 
 ```
 app/                    Expo Router routes (file-based)
-  _layout.tsx           Root layout — seeds CRS804 + CRS326, sets up notifications,
+  _layout.tsx           Root layout — seeds the `SEED_IDS` watchlist, sets up notifications,
                         background price-check task, sync engine (setupSync), push-token
                         registration, server notification pull, fx rate loading, device
                         cleanup, tRPC/QueryClient providers
@@ -171,7 +171,7 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
   `tags?: string[]` of tag ids (synced via `watchlist`). Palette + helpers in
   `lib/tags.ts`; storage CRUD in `lib/storage/`. Rendering/filtering must silently
   ignore orphaned tag ids.
-- **Seeding:** CRS804 and CRS326 are auto-seeded into the watchlist on first launch in `app/_layout.tsx`. Keep seed listings in sync with `lib/sample-data.ts` when adding price history.
+- **Seeding:** the `SEED_IDS` in `lib/launch-seed.ts` are auto-seeded into the watchlist on first launch from `app/_layout.tsx`; the two MikroTik ids (CRS804/CRS326) also receive seeded price history from `lib/sample-data.ts`. Keep the seed list and sample listings in sync.
 - **Currency:** Prices are stored in their native currency; convert via `convertPrice(amount, from, to)` using static rates in `lib/currency.ts`. `getBestPrice` returns the cheapest non-out-of-stock listing in a target currency. Live rates come from `lib/fx.ts` (server-backed).
 - **Scraping:** New distributors go in `lib/scrapers/` as typed `DistributorParser`s registered in `lib/scrapers/registry.ts`, with a test under `tests/scrapers/`. Parsers MUST thread the requested model through `parsePrice(html, model?)` and gate on `modelMismatch` (helpers in `lib/scrapers/utils.ts`) so wrong-product search results are rejected as misses. Blocked detection lives in `resilient.ts` (`classifyFetchStatus`, `BLOCKED_MARKERS`) — do not re-implement marker lists elsewhere. Playwright escalation lives in `lib/scrapers/browser.ts` (node-only); `browser.web.ts` is the web stub with the same export surface so `expo export -p web` stays playwright-free — `tests/scrapers/browser-web.test.ts` guards both surface parity and that only `browser.ts` statically imports playwright.
 - **No comments** unless explaining non-obvious logic. Existing code uses `// ─── Section ───` banners in storage/notifications — match that style for section dividers.

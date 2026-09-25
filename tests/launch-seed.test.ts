@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { readFile } from "node:fs/promises";
 import { seedWatchlistProducts, SEED_IDS } from "../lib/launch-seed";
 
 function mockStorage(existing: Array<{ id: string; listings?: unknown[] }> = []) {
@@ -46,5 +47,13 @@ describe("seedWatchlistProducts", () => {
       storage.updateProductListings.mock.calls[0]!;
     expect(backfilledId).toBe("mikrotik-crs804-4ddq-hrm");
     expect(Array.isArray(backfilledListings)).toBe(true);
+  });
+
+  it("keeps the AGENTS.md seeding description tied to SEED_IDS", async () => {
+    // AGENTS.md used to name only CRS804/CRS326 while SEED_IDS seeds seven
+    // products, so agents reading it believed two products were seeded.
+    const agents = await readFile("AGENTS.md", "utf8");
+    expect(agents).toContain("SEED_IDS");
+    expect(agents).toContain("lib/launch-seed.ts");
   });
 });
