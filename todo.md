@@ -3820,3 +3820,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Client helpers `lib/server-llm.ts` (mobile, timeout-guarded) and `desktop/src/lib/server-llm.ts`; the tRPC clients already forward the `x-llm-*` headers
 - [x] "Test connection" button in both LLM settings UIs (shown only for non-Forge providers) with ok / rejected-key / failure feedback
 - [x] Tests: `tests/llm-router-test.test.ts` (forge, ok, auth, error) + wiring guards in `tests/byo-llm-wiring.test.ts` — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `334 passed | 2 skipped` / `2259 passed`; desktop `tsc 0`, `48 passed` / `235 passed`
+
+## Phase 511: Device QA round 256 (desktop custom dialogs were keyboard-inaccessible)
+
+- [x] **Nine hand-rolled dialog overlays (Settings rename-device; Stats basket alert; Watchlist manage-tags/bulk-tags/product-tags; Alerts reschedule/edit; Search tags/import/manual-add) used a bare `fixed inset-0` div with no Escape-to-close, no focus-on-open/restore, no Tab trap, and no `role="dialog"`/`aria-modal`** — while the shared `Modal` component (used by ProductDetail, SearchModal, Onboarding, DistributorHistory) provides all of it. Keyboard users could open these and not Escape out; screen readers didn't announce them.
+- [x] Added `desktop/src/components/DialogOverlay.tsx` (backdrop + Escape-to-close via a topmost-only stack, focus-on-open, focus restore, Tab trap, `role="dialog"`/`aria-modal`) and converted all nine overlays (inner panels unchanged)
+- [x] Tests: `desktop/tests/dialog-overlay.test.tsx` (5 behavior tests: a11y attrs, focus, Escape, backdrop-vs-child click, Tab trap, closed) + `tests/desktop-dialog-a11y.test.ts` (source guard: no hand-rolled overlays remain) — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2261 passed`; desktop `tsc 0`, `49 passed` / `240 passed`

@@ -34,6 +34,7 @@ import { formatRelativeTime } from "../../../lib/relative-time";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { DialogOverlay } from "../components/DialogOverlay";
 import type {
   BackOrderReminder,
   NotificationHistoryEntry,
@@ -525,11 +526,8 @@ export function Alerts() {
 
       {/* RescheduleModal — desktop port */}
       {rescheduleTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setRescheduleTarget(null)}>
-          <div
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <DialogOverlay open onClose={() => setRescheduleTarget(null)} label="Reschedule Reminder">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold flex items-center gap-2">
                 <Calendar className="w-4 h-4" /> Reschedule Reminder 📅
@@ -596,12 +594,12 @@ export function Alerts() {
               </button>
             </div>
           </div>
-        </div>
+        </DialogOverlay>
       )}
       {/* Edit Alert Modal — desktop Tailwind port of components/product/price-alert-modal.tsx */}
       {editingAlert && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditingAlert(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <DialogOverlay open onClose={() => setEditingAlert(null)} label="Edit Alert">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold text-lg">Edit Alert</h3>
               <button onClick={() => setEditingAlert(null)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close edit modal"><X className="w-4 h-4" /></button>
@@ -635,7 +633,7 @@ export function Alerts() {
               <button onClick={handleSaveEdit} className="flex-1 px-4 py-2.5 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700">Save Changes</button>
             </div>
           </div>
-        </div>
+        </DialogOverlay>
       )}
     </div>
   );

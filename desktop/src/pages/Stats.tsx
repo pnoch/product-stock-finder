@@ -5,6 +5,7 @@ import { copyTextWithFallback, saveNodeAsPng } from "../lib/share";
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
 import { EmptyState } from "../components/EmptyState";
+import { DialogOverlay } from "../components/DialogOverlay";
 import { MultiLineChart } from "../components/MultiLineChart";
 import { formatPrice, CURRENCY_SYMBOLS } from "@shared/currency";
 import { convertPrice, getBestPrice } from "@/lib/currency";
@@ -799,15 +800,12 @@ export function Stats() {
         </div>
       </div>
 
-      {basketSheetOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setBasketSheetOpen(false)}
-        >
-          <div
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <DialogOverlay
+        open={basketSheetOpen}
+        onClose={() => setBasketSheetOpen(false)}
+        label="Basket Value Alert"
+      >
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
             <h3 className="font-semibold text-lg mb-1">🧺 Basket Value Alert</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               Notify me when the total watchlist value drops below this amount
@@ -854,8 +852,7 @@ export function Stats() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+      </DialogOverlay>
     </div>
   );
 }

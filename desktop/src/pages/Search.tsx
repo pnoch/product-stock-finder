@@ -12,6 +12,7 @@ import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import { nextTagColor } from "../../../lib/tags";
 import type { TagDefinition } from "../../../lib/types";
 import { TagFilterRow } from "../components/TagFilterRow";
+import { DialogOverlay } from "../components/DialogOverlay";
 import { countTagMatches, filterWatchlist } from "../../../lib/watchlist-org";
 import { useToast } from "../hooks/use-toast";
 
@@ -456,8 +457,8 @@ export function Search() {
       {toast && <div role="status" className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm shadow-lg">{toast}</div>}
 
       {tagPickerFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setTagPickerFor(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5" onClick={(e) => e.stopPropagation()}>
+        <DialogOverlay open onClose={() => setTagPickerFor(null)} label="Assign tags">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5">
             <div className="flex items-center justify-between mb-3"><h3 className="font-semibold text-sm">Assign tags</h3><button onClick={() => setTagPickerFor(null)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button></div>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {Object.values(tagDefinitions).map((def) => {
@@ -488,12 +489,12 @@ export function Search() {
             </div>
             <div className="flex justify-end gap-2 mt-4"><button onClick={() => setTagPickerFor(null)} className="px-3 py-1.5 rounded-lg border text-sm">Done</button><button onClick={() => { setPendingTags((p) => { const n = { ...p }; delete n[tagPickerFor]; return n; }); setTagPickerFor(null); }} className="px-3 py-1.5 text-sm text-gray-500">Clear</button></div>
           </div>
-        </div>
+        </DialogOverlay>
       )}
 
       {bulkOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setBulkOpen(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+        <DialogOverlay open onClose={() => setBulkOpen(false)} label="Import List">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
             <h3 className="font-semibold mb-2 flex items-center gap-2"><Upload className="w-4 h-4" /> Import List 📋</h3>
             <p className="text-xs text-gray-500 mb-2">Paste model numbers (e.g. CRS326-24S) — one per line or comma-separated.</p>
             <textarea value={bulkText} onChange={(e) => setBulkText(e.target.value)} rows={6} placeholder="CRS804-4DDQ-hRM\nCCR2216-1G-12XS-2XQ" className="w-full p-3 rounded-lg border text-sm mb-3" />
@@ -507,11 +508,11 @@ export function Search() {
             )}
             <div className="flex justify-end gap-2"><button onClick={() => setBulkOpen(false)} className="px-3 py-2 rounded-lg border text-sm">Cancel</button><button onClick={handleBulkImport} disabled={bulkNew.length === 0 || bulkImporting} className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm disabled:opacity-50">{bulkImporting ? "Importing…" : `Import ${bulkNew.length}`}</button></div>
           </div>
-        </div>
+        </DialogOverlay>
       )}
       {manualOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeManualModal}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+        <DialogOverlay open onClose={closeManualModal} label="Add Custom Product">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
             <h3 className="font-semibold mb-1">Add Custom Product ✨</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
               Paste anything — a model number, product name, or a spec-sheet paragraph. AI cleans it up.
@@ -548,7 +549,7 @@ export function Search() {
             </div>
             <div className="flex justify-end gap-2 mt-4"><button onClick={closeManualModal} className="px-3 py-2 rounded-lg border text-sm">Cancel</button><button onClick={handleManualAdd} disabled={manualDiscovering} aria-label="Add manual product" className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm disabled:opacity-50">{manualDiscovering ? "Discovering…" : "Add"}</button></div>
           </div>
-        </div>
+        </DialogOverlay>
       )}
     </div>
   );

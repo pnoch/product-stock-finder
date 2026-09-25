@@ -32,6 +32,7 @@ import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ProductImage } from "../components/ProductImage";
 import { TagFilterRow } from "../components/TagFilterRow";
+import { DialogOverlay } from "../components/DialogOverlay";
 import { countTagMatches, filterWatchlist, groupWatchlist, type StatusFilter } from "../../../lib/watchlist-org";
 import { useConnection } from "../hooks/use-connection";
 import { countQueuedEdits } from "../../../lib/sync";
@@ -1389,9 +1390,12 @@ export function Watchlist() {
           <button onClick={() => setUndoProduct(null)} className="p-1 rounded hover:bg-white/10" aria-label="Dismiss undo">×</button>
         </div>
       )}
-      {manageOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setManageOpen(false); setEditingTagId(null); setManageError(null); }}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <DialogOverlay
+        open={manageOpen}
+        onClose={() => { setManageOpen(false); setEditingTagId(null); setManageError(null); }}
+        label="Manage Tags"
+      >
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold flex items-center gap-2"><TagIcon className="w-4 h-4" /> Manage Tags</h3>
               <button onClick={() => { setManageOpen(false); setEditingTagId(null); setManageError(null); }} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
@@ -1450,12 +1454,10 @@ export function Watchlist() {
               <button onClick={() => { setManageOpen(false); setEditingTagId(null); setManageError(null); }} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium">Close</button>
             </div>
           </div>
-        </div>
-      )}
+      </DialogOverlay>
       {/* BulkTagSheet — assign tags to selection */}
-      {bulkOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setBulkOpen(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <DialogOverlay open={bulkOpen} onClose={() => setBulkOpen(false)} label="Add Tags">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-1">
               <h3 className="font-semibold flex items-center gap-2"><TagIcon className="w-4 h-4" /> Add Tags</h3>
               <button onClick={() => setBulkOpen(false)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
@@ -1498,14 +1500,13 @@ export function Watchlist() {
               <button onClick={() => setBulkOpen(false)} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">Cancel</button>
             </div>
           </div>
-        </div>
-      )}
+      </DialogOverlay>
 
       {/* Product tag picker — per-product tag assignment (mobile's product-card
           "Edit tags" action). */}
       {tagPickerProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setTagPickerProduct(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5" onClick={(e) => e.stopPropagation()}>
+        <DialogOverlay open onClose={() => setTagPickerProduct(null)} label="Assign tags">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-sm">Assign tags</h3>
               <button onClick={() => setTagPickerProduct(null)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close"><X className="w-4 h-4" /></button>
@@ -1530,7 +1531,7 @@ export function Watchlist() {
               <button onClick={() => setTagPickerProduct(null)} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">Done</button>
             </div>
           </div>
-        </div>
+        </DialogOverlay>
       )}
     </div>
   );

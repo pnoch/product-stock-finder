@@ -32,6 +32,7 @@ import {
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useConnection } from "../hooks/use-connection";
 import { ConnectionBadge } from "../components/ConnectionBadge";
+import { DialogOverlay } from "../components/DialogOverlay";
 import { useAuth, buildLoginUrl, signInWithEmail, signUpWithEmail, changePassword, deleteAccount, resendVerification, validateEmailAuth, validateForgotEmail, validatePasswordChange } from "../hooks/use-auth";
 import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
@@ -1254,8 +1255,8 @@ export function Settings() {
             </div>
           ) : null}
           {renameTarget && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setRenameTarget(null)}>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5" onClick={(e) => e.stopPropagation()}>
+            <DialogOverlay open onClose={() => setRenameTarget(null)} label="Rename device">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-sm">Rename device</h3>
                   <button onClick={() => setRenameTarget(null)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
@@ -1266,7 +1267,7 @@ export function Settings() {
                   <button onClick={handleRename} disabled={renaming || !renameLabel.trim()} className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm disabled:opacity-50">{renaming ? "Saving…" : "Save"}</button>
                 </div>
               </div>
-            </div>
+            </DialogOverlay>
           )}
         </div>
       )}
