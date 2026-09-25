@@ -3878,3 +3878,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile's two delete affordances were inconsistent: the swipe offered Undo, but the product card's Delete button called a separate handler that removed the product (and its cascaded alerts/reminders/watches) permanently with no recovery** — while the desktop's equivalent trash button does show Undo.
 - [x] Extracted `removeProductWithUndo(product)` and routed both the SwipeableCard and the ProductCard through one `handleDelete`; removed the duplicate `handleSwipeDelete`
 - [x] Reworked `tests/mobile-criticals.test.ts`'s undo guards (they sliced `handleSwipeDelete`, now gone) and asserted **both** `onDelete` call sites are wired to the undo path — verified non-vacuous by reverting the card caller; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2267 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
+
+## Phase 520: Device QA round 265 (desktop range chips didn't expose the selection)
+
+- [x] **Mobile's compare `ChartCard` chips carry `accessibilityRole="radio"` + `accessibilityState={{ selected }}`; the desktop's `TimeRangeChips` set only an `aria-label`**, so a screen-reader user couldn't tell which range was active. The desktop chips also hard-coded the 1W–All list instead of deriving from the shared `TIME_RANGES` (the previous round's guard asserted that literal list, a drift risk).
+- [x] Rewrote `TimeRangeChips` to map `TIME_RANGES` and expose `role="radio"`/`aria-checked` inside a labelled `role="radiogroup"`
+- [x] Updated the round-221 chip guard to the derived form and `desktop/tests/compare-chart-width.test.tsx` to query the radio role (plus assert `aria-checked`); added a round-265 guard — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2268 passed`; desktop `tsc 0`, `49 passed` / `243 passed`

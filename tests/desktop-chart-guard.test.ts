@@ -460,9 +460,11 @@ describe("desktop chart guard", () => {
   // to 5 distributors to overlay" plus range hints; desktop only had 1W/1M/3M/
   // All and no hints.
   it("adds the 6M/1Y ranges and chart hints on desktop compare", async () => {
+    // Round 265 derives the chips from TIME_RANGES (1W/1M/3M/6M/1Y/All) instead
+    // of the previous hard-coded key/label list.
     const chips = await readFile("desktop/src/components/TimeRangeChips.tsx", "utf8");
-    expect(chips).toContain('{ key: "6m", label: "6M" }');
-    expect(chips).toContain('{ key: "1y", label: "1Y" }');
+    expect(chips).toContain("TIME_RANGES.map");
+    expect(chips).toContain("const key = range.toLowerCase()");
     const compare = await readFile("desktop/src/pages/Compare.tsx", "utf8");
     expect(compare).toContain("Select up to 5 distributors to overlay");
     expect(compare).toContain("Showing all available history — up to 1Y retained (older points may be limited)");
@@ -721,6 +723,16 @@ describe("desktop chart guard", () => {
     const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
     expect(text).toContain('title="No alerts set"');
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
+  });
+
+  // QA round 265: mobile's range chips expose the selected range
+  // (accessibilityRole="radio" + accessibilityState.selected); the desktop's had
+  // no selected state and hard-coded the list instead of using TIME_RANGES.
+  it("exposes the selected time range on the desktop chips", async () => {
+    const text = await readFile("desktop/src/components/TimeRangeChips.tsx", "utf8");
+    expect(text).toContain("TIME_RANGES");
+    expect(text).toContain('role="radio"');
+    expect(text).toContain("aria-checked={selected === key}");
   });
 
   // QA round 262: undo after removing a product restored only the product and

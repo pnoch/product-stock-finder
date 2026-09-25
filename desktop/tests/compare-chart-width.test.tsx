@@ -85,8 +85,9 @@ afterEach(() => {
 describe("compare default time range", () => {
   it("defaults to the 3M range", async () => {
     renderCompare();
-    const chip = await screen.findByRole("button", { name: "Select time range: 3M" });
+    const chip = await screen.findByRole("radio", { name: "Select time range: 3M" });
     expect(chip.className).toContain("bg-brand-600");
+    expect(chip).toHaveAttribute("aria-checked", "true");
   });
 });
 
