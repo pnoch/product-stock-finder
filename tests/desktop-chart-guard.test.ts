@@ -725,6 +725,21 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 273: the desktop persisted `utcOffsetMinutes` in the synced
+  // quietHours setting. Because settings sync across devices, a desktop's
+  // timezone leaked into mobile, whose local isInQuietHours then used that
+  // (stale, foreign) offset instead of device time. It is stamped fresh at
+  // upload instead.
+  it("does not persist a UTC offset in quiet hours", async () => {
+    const settings = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const start = settings.indexOf("QUIET_HOURS_OPTIONS.map");
+    const block = settings.slice(start, settings.indexOf("</button>", start));
+    expect(block).toContain("update({ quietHours: { start, end } })");
+    expect(block).not.toContain("utcOffsetMinutes");
+    const upload = await readFile("desktop/src/server-notifications.ts", "utf8");
+    expect(upload).toContain("utcOffsetMinutes: new Date().getTimezoneOffset()");
+  });
+
   // QA round 271: chart colors were duplicated — mobile defined hashId in three
   // files and the desktop kept its own 8-color palette + selection-order
   // indexing (deselecting a distributor recolored the rest, and mobile/desktop

@@ -1526,16 +1526,13 @@ export function Settings() {
                       update({ quietHours: undefined });
                     } else {
                       const [start, end] = option.split("–");
-                      // Include the device's UTC offset so the Rust poller
-                      // evaluates quiet hours in local time; without it Rust
-                      // falls back to UTC and fires at the wrong wall clock.
-                      update({
-                        quietHours: {
-                          start,
-                          end,
-                          utcOffsetMinutes: new Date().getTimezoneOffset(),
-                        },
-                      });
+                      // Store only the window. `server-notifications.ts` stamps
+                      // the device's current UTC offset when it uploads, so the
+                      // server evaluates quiet hours in the user's timezone.
+                      // Persisting the offset here synced a stale, possibly
+                      // foreign (other-device) timezone into `settings`, which
+                      // then mis-evaluated quiet hours locally.
+                      update({ quietHours: { start, end } });
                     }
                   }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
