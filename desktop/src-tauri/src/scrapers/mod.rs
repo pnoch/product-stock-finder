@@ -26,6 +26,7 @@ pub mod wisp;
 pub mod winncom;
 
 use serde::{Deserialize, Serialize};
+use regex::Regex;
 use scraper::{ElementRef, Html, Selector};
 use std::sync::OnceLock;
 
@@ -173,48 +174,78 @@ pub fn parse_price_from_text(text: &str) -> Option<f64> {
 /// Normalizes for comparison: lowercase, with each run of non-alphanumerics
 /// collapsed to a single space. Keeping a separator (rather than deleting it)
 /// preserves token boundaries, so "CRS326" cannot match inside "CRS3260".
-fn normalize_model(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    let mut in_sep = false;
-    for c in s.chars() {
-        if c.is_ascii_alphanumeric() {
-            out.extend(c.to_lowercase());
-            in_sep = false;
-        } else if !in_sep && !out.is_empty() {
-            out.push(' ');
-            in_sep = true;
-        }
-    }
-    out.trim_end().to_string()
+/// Commerce suffixes that legitimately follow a model which ends with a
+/// separator, mirroring `COMMERCE_SUFFIXES` in lib/scrapers/utils.ts.
+const COMMERCE_SUFFIXES: [&str; 13] = [
+    "rm", "in", "us", "eu", "uk", "au", "nz", "za", "my", "ca", "ch", "sg", "jp",
+];
+
+fn is_commerce_suffix(s: &str) -> bool {
+    COMMERCE_SUFFIXES.contains(&s.to_ascii_lowercase().as_str())
 }
 
-/// True when `text` contains the requested model as a whole token. Mirrors the
-/// mobile `matchesModel` guard: without it a search-results page's first
-/// unrelated price would be recorded as this product's price.
+/// True when `text` contains the requested model as a whole token, with the same
+/// semantics as the shared (cheerio) `matchesModel`:
 ///
-/// The match must sit on a token boundary. A bare `contains` accepted
-/// "CRS326" inside "CRS3260…" (another product), recording its price against
-/// the watched product.
+/// * letters and digits in the model must appear literally (case-insensitively);
+/// * separators in the model match any non-alphanumeric run (lazily), and a
+///   *trailing* separator must match at least one character;
+/// * a preceding LETTER is allowed — cards render the brand glued to the model
+///   ("MikroTikCRS326-24G-2S+IN") — while a preceding DIGIT is not, because it
+///   means a different number ("4032CRS804");
+/// * a trailing 2-3 letter commerce suffix ("+RM", "-IN") is tolerated only
+///   when the model itself ends with a separator.
+///
+/// A stricter rule here silently drops prices the server-side parser finds, so
+/// this must stay in step with the shared corpus.
 pub fn text_mentions_model(text: &str, model: &str) -> bool {
-    let needle = normalize_model(model);
-    if needle.is_empty() {
+    let needle = model.trim();
+    if needle.is_empty() || text.is_empty() {
         return false;
     }
-    let haystack = normalize_model(text);
-    let mut from = 0usize;
-    while let Some(pos) = haystack[from..].find(&needle) {
-        let start = from + pos;
-        let end = start + needle.len();
-        let before_ok = start == 0
-            || !haystack.as_bytes()[start - 1].is_ascii_alphanumeric();
-        let after_ok = end == haystack.len()
-            || !haystack.as_bytes()[end].is_ascii_alphanumeric();
-        if before_ok && after_ok {
+
+    let chars: Vec<char> = needle.chars().collect();
+    let mut pattern = String::new();
+    for (i, ch) in chars.iter().enumerate() {
+        if ch.is_ascii_alphanumeric() {
+            // Alphanumerics are literal in the regex and need no escaping.
+            pattern.push(*ch);
+        } else if i + 1 == chars.len() {
+            pattern.push_str("[^a-z0-9]+?");
+        } else {
+            pattern.push_str("[^a-z0-9]*?");
+        }
+    }
+
+    let Ok(re) = Regex::new(&format!("(?i){pattern}")) else {
+        return false;
+    };
+    let ends_with_separator = !chars
+        .last()
+        .map(|c| c.is_ascii_alphanumeric())
+        .unwrap_or(true);
+
+    for m in re.find_iter(text) {
+        let before_ok = match text[..m.start()].chars().next_back() {
+            None => true,
+            Some(c) => !c.is_ascii_alphanumeric() || c.is_ascii_alphabetic(),
+        };
+        let after_is_alnum = text[m.end()..]
+            .chars()
+            .next()
+            .map(|c| c.is_ascii_alphanumeric())
+            .unwrap_or(false);
+        if before_ok && !after_is_alnum {
             return true;
         }
-        from = start + 1;
-        if from >= haystack.len() {
-            break;
+        if before_ok && ends_with_separator {
+            let tail: String = text[m.end()..]
+                .chars()
+                .take_while(|c| c.is_ascii_alphanumeric())
+                .collect();
+            if (2..=3).contains(&tail.chars().count()) && is_commerce_suffix(&tail) {
+                return true;
+            }
         }
     }
     false
@@ -363,6 +394,45 @@ mod tests {
         assert!(!text_mentions_model("CRS3260-24G", "CRS326"));
         assert!(text_mentions_model("MikroTik CRS326 switch", "CRS326"));
         assert!(text_mentions_model("CRS326-24G-2S+", "CRS326"));
+    }
+
+    /// The shared parser's `matchesModel` test corpus (tests/scrapers/utils.test.ts).
+    /// Both platforms must agree: a stricter desktop rule silently reports "no
+    /// price found" for pages the server-side parser handles.
+    fn shared_matches_model_cases() -> Vec<(&'static str, &'static str, bool)> {
+        vec![
+            ("MikroTik CRS804-4DDQ-hRM RouterOS7", "CRS804-4DDQ-hRM", true),
+            ("hEX-S (RouterOS L4)", "hEX S", true),
+            ("crs326 24g 2s+ rack switch", "CRS326-24G-2S+", true),
+            ("RB5009UG+S+IN", "RB5009", false),
+            ("hEX", "hEX S", false),
+            ("xRB5009y", "RB5009", false),
+            ("4032CRS804 kit", "CRS804", false),
+            ("CRS3260-24G", "CRS326", false),
+            // Aerial renders the brand glued to the model with no separator.
+            ("MikroTikCRS326-24G-2S+IN", "CRS326-24G-2S+", true),
+            ("MikroTikCRS326-24S+2Q+RM", "CRS326-24S+2Q+RM", true),
+            ("MIKROTIK CRS804-4DDQ-HRM", "CrS804-4DdQ-hRm", true),
+            ("RB5009UG+S+IN", "rb5009ug s in", true),
+            ("xRB5009 y RB5009 z", "RB5009", true),
+            ("MikroTik CRS326-24G-2S+RM switch", "CRS326-24G-2S+", true),
+            ("CRS326-24G-2S+IN", "CRS326-24G-2S+", true),
+            ("CRS326-24G-2S+XTX", "CRS326-24G-2S+", false),
+            ("", "RB5009", false),
+            ("some text", "", false),
+            ("some text", "   ", false),
+        ]
+    }
+
+    #[test]
+    fn text_mentions_model_agrees_with_the_shared_parser() {
+        for (text, model, expected) in shared_matches_model_cases() {
+            assert_eq!(
+                text_mentions_model(text, model),
+                expected,
+                "text_mentions_model({text:?}, {model:?})"
+            );
+        }
     }
 
     #[test]

@@ -71,4 +71,35 @@ describe("desktop/mobile scraper parity", () => {
       expect(r.selector, `${name} price selector drifted`).toBe(m.selector);
     }
   });
+
+  it("keeps the Rust model matcher aligned with the shared parser rules", async () => {
+    // The shared `matchesModel` rules the Rust port must mirror: a preceding
+    // LETTER is a brand concatenation (allowed), a preceding DIGIT is not, and a
+    // short commerce suffix is tolerated only after a trailing separator. The
+    // Rust engine only understood the plain whole-token case, so it silently
+    // reported "no price found" for cards the mobile parser handles.
+    const rust = await readFile(
+      "desktop/src-tauri/src/scrapers/mod.rs",
+      "utf8",
+    );
+    expect(rust).toContain("fn text_mentions_model");
+    expect(rust, "preceding-letter rule missing").toContain("is_ascii_alphabetic");
+    expect(rust, "trailing-separator rule missing").toContain("[^a-z0-9]+?");
+    expect(rust, "commerce-suffix rule missing").toContain("is_commerce_suffix");
+
+    const suffixesOf = (src: string, block: RegExp): string[] => {
+      const body = src.match(block)?.[1] ?? "";
+      return [...body.matchAll(/"([a-z]{2})"/g)].map((m) => m[1]!).sort();
+    };
+    const ts = await readFile("lib/scrapers/utils.ts", "utf8");
+    const tsSuffixes = suffixesOf(ts, /const COMMERCE_SUFFIXES = new Set\(\[([\s\S]*?)\]\)/);
+    const rustSuffixes = suffixesOf(rust, /const COMMERCE_SUFFIXES: \[&str; \d+\] = \[([\s\S]*?)\]/);
+    expect(tsSuffixes.length).toBeGreaterThan(5);
+    expect(rustSuffixes).toEqual(tsSuffixes);
+
+    // Both sides must keep the whitespace-less card corpus that caught this.
+    const shared = await readFile("tests/scrapers/utils.test.ts", "utf8");
+    expect(shared).toContain("MikroTikCRS326-24G-2S+IN");
+    expect(rust).toContain("MikroTikCRS326-24G-2S+IN");
+  });
 });
