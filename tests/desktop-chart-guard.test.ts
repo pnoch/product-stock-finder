@@ -725,6 +725,22 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // Phase 536: invite-by-email + roster management for shared watchlists.
+  it("wires invite-by-email and the member roster on both platforms", async () => {
+    for (const file of [
+      "app/(tabs)/settings.tsx",
+      "desktop/src/pages/Settings.tsx",
+    ]) {
+      const src = await readFile(file, "utf8");
+      expect(src, file).toContain("sharedWatchlists.inviteByEmail.useMutation()");
+      expect(src, file).toContain("sharedWatchlists.removeMember.useMutation()");
+      expect(src, file).toContain("sharedWatchlists.members.useQuery(");
+    }
+    const routers = await readFile("server/routers.ts", "utf8");
+    expect(routers).toContain("inviteByEmail: protectedProcedure");
+    expect(routers).toContain("removeMember: protectedProcedure");
+  });
+
   // QA round 281: the collaborative join/leave endpoints had no client at all.
   // Both shared-watchlist pages now offer Join/Leave, driven by `get`'s
   // isOwner/isMember.

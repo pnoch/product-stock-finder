@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, View, Platform, ActivityIndicator, TouchableOpacity } from "react-native";
+import { ScrollView, Text, View, Platform, ActivityIndicator, TouchableOpacity, TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { trpc } from "@/lib/trpc";
@@ -132,9 +132,114 @@ function SharedLinksList() {
                 </TouchableOpacity>
               ))}
             </View>
+            {!expired && <SharedLinkMembers token={link.token} />}
           </View>
         );
       })}
+    </View>
+  );
+}
+
+// Owner-side member roster + invite-by-email for one share link.
+function SharedLinkMembers({ token }: { token: string }) {
+  const colors = useColors();
+  const membersQuery = trpc.sharedWatchlists.members.useQuery({ token });
+  const inviteMutation = trpc.sharedWatchlists.inviteByEmail.useMutation();
+  const removeMutation = trpc.sharedWatchlists.removeMember.useMutation();
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const members = membersQuery.data?.members ?? [];
+
+  const invite = async () => {
+    if (!email.trim() || busy) return;
+    setBusy(true);
+    try {
+      const res = await inviteMutation.mutateAsync({ token, email: email.trim() });
+      await membersQuery.refetch();
+      setEmail("");
+      showAlert("Invited", `${res.name} can now view this share.`);
+    } catch (e) {
+      showAlert("Invite failed", e instanceof Error ? e.message : "Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeMember = async (userId: number) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await removeMutation.mutateAsync({ token, userId });
+      await membersQuery.refetch();
+    } catch (e) {
+      showAlert("Remove failed", e instanceof Error ? e.message : "Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View style={{ gap: 6, marginTop: 4 }}>
+      {members.map((m) => {
+        const label = m.name ?? m.email ?? `User ${m.userId}`;
+        return (
+          <View key={m.userId} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Text style={{ color: colors.muted, fontSize: 12, flex: 1 }} numberOfLines={1}>
+              {label}
+            </Text>
+            <TouchableOpacity activeOpacity={0.85}
+              onPress={() => void removeMember(m.userId)}
+              disabled={busy}
+              accessibilityLabel={`Remove ${label}`}
+              accessibilityRole="button"
+            >
+              <Text style={{ color: colors.error, fontSize: 12, fontWeight: "600" }}>Remove</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      })}
+      {members.length === 0 && (
+        <Text style={{ color: colors.muted, fontSize: 12 }}>No members yet</Text>
+      )}
+      <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+        <TextInput
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Invite by email"
+          placeholderTextColor={colors.muted}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          accessibilityLabel="Invite member by email"
+          style={{
+            flex: 1,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 8,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            color: colors.foreground,
+            fontSize: 12,
+            backgroundColor: colors.surface,
+          }}
+        />
+        <TouchableOpacity activeOpacity={0.85}
+          onPress={() => void invite()}
+          disabled={busy || !email.trim()}
+          accessibilityLabel="Send invite"
+          accessibilityRole="button"
+          style={{
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 16,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            opacity: busy || !email.trim() ? 0.5 : 1,
+          }}
+        >
+          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>Invite</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

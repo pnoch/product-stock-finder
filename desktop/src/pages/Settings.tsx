@@ -128,9 +128,92 @@ function SharedLinksList() {
                 </button>
               ))}
             </div>
+            {!expired && <SharedLinkMembers token={link.token} />}
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// Owner-side member roster + invite-by-email for one share link.
+function SharedLinkMembers({ token }: { token: string }) {
+  const { showToast } = useToast();
+  const membersQuery = trpc.sharedWatchlists.members.useQuery({ token });
+  const inviteMutation = trpc.sharedWatchlists.inviteByEmail.useMutation();
+  const removeMutation = trpc.sharedWatchlists.removeMember.useMutation();
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const members = membersQuery.data?.members ?? [];
+
+  const invite = async () => {
+    if (!email.trim() || busy) return;
+    setBusy(true);
+    try {
+      const res = await inviteMutation.mutateAsync({ token, email: email.trim() });
+      await membersQuery.refetch();
+      setEmail("");
+      showToast(`Invited ${res.name}`);
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Invite failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeMember = async (userId: number) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await removeMutation.mutateAsync({ token, userId });
+      await membersQuery.refetch();
+      showToast("Member removed");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Remove failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 space-y-1">
+      {members.map((m) => {
+        const label = m.name ?? m.email ?? `User ${m.userId}`;
+        return (
+          <div key={m.userId} className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400 flex-1 truncate">{label}</span>
+            <button
+              onClick={() => void removeMember(m.userId)}
+              disabled={busy}
+              aria-label={`Remove ${label}`}
+              className="text-xs text-red-500 disabled:opacity-50"
+            >
+              Remove
+            </button>
+          </div>
+        );
+      })}
+      {members.length === 0 && (
+        <p className="text-xs text-gray-500 dark:text-gray-400">No members yet</p>
+      )}
+      <div className="flex items-center gap-2">
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Invite by email"
+          type="email"
+          aria-label="Invite member by email"
+          className="flex-1 text-xs px-2 py-1 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800"
+        />
+        <button
+          onClick={() => void invite()}
+          disabled={busy || !email.trim()}
+          aria-label="Send invite"
+          className="text-xs px-2 py-1 rounded border bg-white dark:bg-gray-800 text-brand-600 disabled:opacity-50"
+        >
+          Invite
+        </button>
+      </div>
     </div>
   );
 }

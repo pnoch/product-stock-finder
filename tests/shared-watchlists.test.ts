@@ -2,14 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../server/db", () => ({
   getDb: vi.fn(),
+  getUserByEmail: vi.fn(),
+  getUserById: vi.fn(),
 }));
 
 import { appRouter } from "../server/routers";
 import type { TrpcContext } from "../server/_core/context";
 import { sharedWatchlists, sharedWatchlistMembers } from "../drizzle/schema";
-import { getDb } from "../server/db";
+import { getDb, getUserByEmail, getUserById } from "../server/db";
 
 const mockedGetDb = vi.mocked(getDb);
+const mockedGetUserByEmail = vi.mocked(getUserByEmail);
+const mockedGetUserById = vi.mocked(getUserById);
 
 function createAuthedContext(userId = 1): TrpcContext {
   return {
@@ -43,7 +47,17 @@ function fakeDb(opts: { sharedRows?: unknown[]; watchlistRows?: unknown[]; membe
   const watchlistRows = opts.watchlistRows ?? [];
   const memberRows = opts.memberRows ?? [];
   return {
-    insert: () => ({ values: async () => {} }),
+    insert: () => ({
+      values: () => {
+        // Awaitable AND chainable: the create path awaits `.values(...)`, while
+        // invite/join call `.values(...).onDuplicateKeyUpdate(...)`.
+        const p = Promise.resolve() as Promise<unknown> & {
+          onDuplicateKeyUpdate: () => Promise<void>;
+        };
+        p.onDuplicateKeyUpdate = async () => {};
+        return p;
+      },
+    }),
     select: () => ({
       from: (table: unknown) => ({
         where: (..._args: unknown[]) => {
@@ -237,5 +251,70 @@ describe("sharedWatchlists router", () => {
   it("revoke requires auth for public", async () => {
     const caller = appRouter.createCaller(createPublicContext());
     await expect(caller.sharedWatchlists.revoke({ token: "tok123" })).rejects.toThrow();
+  });
+
+  // Phase 536: invite-by-email + roster management (invite was unreachable from
+  // any client because it takes a raw userId).
+  it("inviteByEmail resolves the account and invites it as viewer", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({ sharedRows: [{ ownerId: 1, token: "tok123", expiresAt: null }] }) as never,
+    );
+    mockedGetUserByEmail.mockResolvedValue({ id: 2, name: "Bob", email: "bob@example.com" } as never);
+    const caller = appRouter.createCaller(createAuthedContext(1));
+    await expect(
+      caller.sharedWatchlists.inviteByEmail({ token: "tok123", email: "Bob@Example.com" }),
+    ).resolves.toMatchObject({ invited: true, name: "Bob" });
+    // Emails are matched normalised.
+    expect(mockedGetUserByEmail).toHaveBeenCalledWith("bob@example.com");
+  });
+
+  it("inviteByEmail rejects an unknown email", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({ sharedRows: [{ ownerId: 1, token: "tok123", expiresAt: null }] }) as never,
+    );
+    mockedGetUserByEmail.mockResolvedValue(null as never);
+    const caller = appRouter.createCaller(createAuthedContext(1));
+    await expect(
+      caller.sharedWatchlists.inviteByEmail({ token: "tok123", email: "nobody@example.com" }),
+    ).rejects.toThrow(/No account/i);
+  });
+
+  it("inviteByEmail is owner-only", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({ sharedRows: [{ ownerId: 1, token: "tok123", expiresAt: null }] }) as never,
+    );
+    const caller = appRouter.createCaller(createAuthedContext(2));
+    await expect(
+      caller.sharedWatchlists.inviteByEmail({ token: "tok123", email: "eve@example.com" }),
+    ).rejects.toThrow(/owner/i);
+  });
+
+  it("removeMember is owner-only and succeeds for the owner", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({ sharedRows: [{ ownerId: 1, token: "tok123", expiresAt: null }] }) as never,
+    );
+    const owner = appRouter.createCaller(createAuthedContext(1));
+    await expect(
+      owner.sharedWatchlists.removeMember({ token: "tok123", userId: 2 }),
+    ).resolves.toMatchObject({ removed: true });
+
+    const outsider = appRouter.createCaller(createAuthedContext(2));
+    await expect(
+      outsider.sharedWatchlists.removeMember({ token: "tok123", userId: 1 }),
+    ).rejects.toThrow(/owner/i);
+  });
+
+  it("members lists the roster with display names", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({
+        sharedRows: [{ ownerId: 1, token: "tok123", expiresAt: null }],
+        memberRows: [{ userId: 2, role: "viewer" }],
+      }) as never,
+    );
+    mockedGetUserById.mockResolvedValue({ id: 2, name: "Bob", email: "bob@example.com" } as never);
+    const owner = appRouter.createCaller(createAuthedContext(1));
+    await expect(owner.sharedWatchlists.members({ token: "tok123" })).resolves.toMatchObject({
+      members: [{ userId: 2, role: "viewer", name: "Bob", email: "bob@example.com" }],
+    });
   });
 });

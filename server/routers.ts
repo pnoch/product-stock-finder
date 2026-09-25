@@ -15,7 +15,7 @@ import {
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { getDb } from "./db";
+import { getDb, getUserByEmail, getUserById } from "./db";
 import {
   listChangedItems,
   purgeOldTombstones,
@@ -871,7 +871,76 @@ export const appRouter = router({
         const memberRows = await db.select().from(sharedWatchlistMembers).where(eq(sharedWatchlistMembers.token, input.token));
         const isMember = memberRows.some((m) => m.userId === ctx.user.id);
         if (!isOwner && !isMember) throw new TRPCError({ code: "FORBIDDEN", message: "Not a member" });
-        return { members: memberRows } as const;
+        // Resolve display names for the roster UI — the raw rows only carry
+        // userId/role, which the owner cannot map to a person.
+        const members = await Promise.all(
+          memberRows.map(async (m) => {
+            const u = await getUserById(m.userId);
+            return {
+              userId: m.userId,
+              role: m.role,
+              name: u?.name ?? null,
+              email: u?.email ?? null,
+            };
+          }),
+        );
+        return { members } as const;
+      }),
+    inviteByEmail: protectedProcedure
+      .input(
+        z.object({
+          token: z.string().min(1).max(64),
+          email: z.string().min(3).max(191),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "sharedWatchlists.inviteByEmail", 20, 60_000);
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
+        const row = rows[0] as unknown as { ownerId: number; expiresAt: Date | null } | undefined;
+        if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
+        if (row.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN", message: "Only owner can invite" });
+        if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Share expired" });
+        }
+        // Emails are stored normalised (lowercased) at signup, so match exactly
+        // and don't prefix-search (that would let an owner enumerate accounts).
+        const target = await getUserByEmail(input.email.trim().toLowerCase());
+        if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "No account with that email" });
+        if (target.id === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "You already own this share" });
+        // Invitations are viewer-only: the `editor` role has no enforced
+        // capabilities, so offering it would imply powers that don't exist.
+        await db
+          .insert(sharedWatchlistMembers)
+          .values({ token: input.token, userId: target.id, role: "viewer" })
+          .onDuplicateKeyUpdate({ set: { role: "viewer" } });
+        return { invited: true, name: target.name ?? target.email ?? "member" } as const;
+      }),
+    removeMember: protectedProcedure
+      .input(
+        z.object({
+          token: z.string().min(1).max(64),
+          userId: z.number().int().positive(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        checkRateLimit(ctx, "sharedWatchlists.removeMember", 20, 60_000);
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
+        const row = rows[0] as unknown as { ownerId: number } | undefined;
+        if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
+        if (row.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN", message: "Only owner can remove members" });
+        await db
+          .delete(sharedWatchlistMembers)
+          .where(
+            and(
+              eq(sharedWatchlistMembers.token, input.token),
+              eq(sharedWatchlistMembers.userId, input.userId),
+            ),
+          );
+        return { removed: true } as const;
       }),
     join: protectedProcedure
       .input(z.object({ token: z.string().min(1).max(64) }))
