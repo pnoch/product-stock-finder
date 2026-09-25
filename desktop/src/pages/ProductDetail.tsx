@@ -1551,9 +1551,11 @@ export function ProductDetail() {
             {(product.listings ?? []).map((listing) => {
               const dist = DISTRIBUTORS.find((d) => d.id === listing.distributorId);
               const name = dist?.name ?? listing.distributorId;
-              const alert =
-                scopedAlertFor(alerts, product.id, listing.distributorId, listing.currency) ??
-                productWideAlert(alerts, product.id);
+              // Scoped alert only (matching mobile's TargetTableCard): a
+              // product-wide alert must not occupy the row, or its "+" button
+              // disappears and no per-distributor target can be added. The wide
+              // alert is shown in the footer.
+              const alert = scopedAlertFor(alerts, product.id, listing.distributorId, listing.currency);
               const deltaPct = alert ? alertDeltaPct(listing, alert) : null;
               return (
                 <li key={`${listing.distributorId}-${listing.currency}`} className="flex items-center justify-between gap-3 py-2">

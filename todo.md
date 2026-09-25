@@ -3852,3 +3852,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Matched both to mobile
 - [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 155) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2264 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
 - [ ] Noted (not built): the server's collaborative membership endpoints (`sharedWatchlists.invite/members/join/leave` + the `sharedWatchlistMembers` table) have **no client usage** on mobile or desktop — a dead backend feature that needs a product decision (how to invite: by id? email lookup?) before wiring.
+
+## Phase 516: Device QA round 261 (desktop rows hid the per-distributor "+")
+
+- [x] **The desktop's "Distributor Targets" row set `alert = scopedAlertFor(...) ?? productWideAlert(...)`.** With a product-wide alert present, `alert` became truthy for every row, so the row rendered a delta and **not** the "+" button — a per-distributor target could no longer be added from the table. Mobile's `TargetTableCard` scopes the row to per-distributor alerts only and shows the wide alert in a footer.
+- [x] Desktop row now uses the scoped alert only (wide alert still shown in the footer)
+- [x] Added a guard to `tests/desktop-targets-reminders.test.ts` — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2265 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
