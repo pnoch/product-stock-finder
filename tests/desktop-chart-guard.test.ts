@@ -737,6 +737,33 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/stroke="#e5e7eb"/);
   });
 
+  // QA round 295: Stats' price-history chart coloured distributors by index with
+  // its own palette, so a distributor could be blue on Stats and green on
+  // Compare (which uses the shared distributorColor). It now uses the shared
+  // hash and drops the duplicated palette.
+  it("colours the desktop stats chart by distributor id", async () => {
+    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    expect(text).toContain("distributorColor(id)");
+    expect(text).toContain("colors={chartData.distributorColors}");
+    expect(text).not.toContain("const CHART_COLORS = [");
+  });
+
+  // QA round 295: Compare's real chart is the local SeriesChart (MultiLineChart
+  // is used by Stats); it hardcoded light greys, so its grid/axis labels were
+  // low-contrast in dark mode. (Round 294's label said "Compare" but fixed the
+  // Stats chart.)
+  it("makes the desktop compare series chart theme-aware", async () => {
+    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const at = text.indexOf("function SeriesChart(");
+    expect(at).toBeGreaterThan(-1);
+    const block = text.slice(at, at + 6000);
+    expect(block).toContain("useTheme");
+    expect(block).toContain("isDark");
+    expect(block).toContain("tickFill");
+    expect(block).not.toMatch(/fill="#6b7280"/);
+    expect(block).not.toMatch(/stroke="#e5e7eb"/);
+  });
+
   // QA round 293: the desktop digest notifier must record the digest in the
   // in-app history (like price-drop/restock/basket), or the Notifications tab
   // and its unread count diverge from what was actually delivered.

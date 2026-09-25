@@ -7,6 +7,7 @@ import { useToast } from "../hooks/use-toast";
 import { EmptyState } from "../components/EmptyState";
 import { DialogOverlay } from "../components/DialogOverlay";
 import { MultiLineChart } from "../components/MultiLineChart";
+import { distributorColor } from "@shared/compare-utils";
 import { formatPrice, CURRENCY_SYMBOLS } from "@shared/currency";
 import { convertPrice, getBestPrice } from "@/lib/currency";
 import { DISTRIBUTORS } from "@shared/distributors";
@@ -24,7 +25,6 @@ import { computeProductInsights } from "../../../lib/product-insights";
 import { rankDeals, dealBandLabel } from "../../../lib/deal-score";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
 
-const CHART_COLORS = ["#0F52BA", "#00C896", "#F59E0B", "#EF4444", "#8B5CF6"];
 
 function StatSkeleton() {
   return (
@@ -179,7 +179,7 @@ export function Stats() {
   const dropCalendarCells = useMemo(() => buildGridCells(30, Date.now()), []);
 
   const chartData = useMemo(() => {
-    if (!products || products.length === 0) return { data: [], distributors: [] };
+    if (!products || products.length === 0) return { data: [], distributors: [], distributorColors: [] };
     const cutoffStr =
       days === null
         ? ""
@@ -216,14 +216,21 @@ export function Stats() {
     });
     const dates = Array.from(dateMap.keys()).sort();
     const data = dates.map((d) => dateMap.get(d)!);
-    const distributors = Array.from(
-      new Set(
-        topByValue.flatMap((p) =>
-          (p.listings ?? []).map((l) => DISTRIBUTORS.find((d) => d.id === l.distributorId)?.name ?? l.distributorId),
-        ),
-      ),
+    // Colour by distributor id (the shared hash), not by index: the same
+    // distributor must keep the same colour here and on Compare. Index colours
+    // plus a duplicated local palette made a distributor blue here and green
+    // there.
+    const distributorIds: string[] = [];
+    for (const p of topByValue) {
+      for (const l of p.listings ?? []) {
+        if (!distributorIds.includes(l.distributorId)) distributorIds.push(l.distributorId);
+      }
+    }
+    const distributors = distributorIds.map(
+      (id) => DISTRIBUTORS.find((d) => d.id === id)?.name ?? id,
     );
-    return { data, distributors };
+    const distributorColors = distributorIds.map((id) => distributorColor(id));
+    return { data, distributors, distributorColors };
   }, [products, displayCurrency, days]);
 
   if (loading) {
@@ -724,7 +731,7 @@ export function Stats() {
           <MultiLineChart
             data={chartData.data}
             distributors={chartData.distributors}
-            colors={CHART_COLORS}
+            colors={chartData.distributorColors}
             currencySymbol={CURRENCY_SYMBOLS[displayCurrency] ?? "$"}
           />
         ) : (

@@ -13,6 +13,7 @@ import { checkNotificationPermission } from "../lib/notification-permission";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
+import { useTheme } from "../hooks/use-theme";
 import { TimeRangeChips } from "../components/TimeRangeChips";
 import { filterByRange, cheapestByRegion, distributorColor, type TimeRange } from "@shared/compare-utils";
 import {
@@ -54,6 +55,12 @@ function SeriesChart({
   series: { label: string; color: string; data: { price: number; currency: string; date: string }[] }[];
   displayCurrency: string;
 }) {
+  // Theme-aware: the SVG hardcoded light greys, so in dark mode the grid/axis
+  // labels were low-contrast (the only chart that still did).
+  const { isDark } = useTheme();
+  const gridStroke = isDark ? "#374151" : "#e5e7eb";
+  const tickFill = isDark ? "#9ca3af" : "#6b7280";
+
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [measured, setMeasured] = useState<number | null>(null);
   useEffect(() => {
@@ -165,8 +172,8 @@ function SeriesChart({
             const val = globalMin + t * range;
             return (
               <g key={t}>
-                <line x1={padL} y1={y} x2={width - padR} y2={y} stroke="#e5e7eb" strokeDasharray="4,4" strokeWidth={0.5} />
-                <text x={padL - 6} y={y + 3} fontSize={9} fill="#6b7280" textAnchor="end">
+                <line x1={padL} y1={y} x2={width - padR} y2={y} stroke={gridStroke} strokeDasharray="4,4" strokeWidth={0.5} />
+                <text x={padL - 6} y={y + 3} fontSize={9} fill={tickFill} textAnchor="end">
                   {symbol}
                   {val.toFixed(0)}
                 </text>
@@ -196,7 +203,7 @@ function SeriesChart({
               </g>
             );
           })}
-          {hover && <line x1={hover.x} y1={padT} x2={hover.x} y2={height - padB} stroke="#0F52BA" strokeDasharray="4 4" strokeOpacity={0.35} />}
+          {hover && <line x1={hover.x} y1={padT} x2={hover.x} y2={height - padB} stroke={isDark ? "#3B7DD8" : "#0F52BA"} strokeDasharray="4 4" strokeOpacity={0.35} />}
           {(() => {
             if (sortedSeries[0]?.sorted.length === 0) return null;
             const first = sortedSeries[0]?.sorted ?? [];
@@ -208,7 +215,7 @@ function SeriesChart({
               const x = padL + ((new Date(p.date).getTime() - minDate) / dateRange) * usableW;
               const label = new Date(p.date).toLocaleDateString(undefined, { month: "short", day: "numeric" });
               return (
-                <text key={idx} x={x} y={height - 8} fontSize={9} fill="#6b7280" textAnchor="middle">
+                <text key={idx} x={x} y={height - 8} fontSize={9} fill={tickFill} textAnchor="middle">
                   {label}
                 </text>
               );
