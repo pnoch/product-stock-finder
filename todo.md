@@ -3858,3 +3858,11 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The desktop's "Distributor Targets" row set `alert = scopedAlertFor(...) ?? productWideAlert(...)`.** With a product-wide alert present, `alert` became truthy for every row, so the row rendered a delta and **not** the "+" button — a per-distributor target could no longer be added from the table. Mobile's `TargetTableCard` scopes the row to per-distributor alerts only and shows the wide alert in a footer.
 - [x] Desktop row now uses the scoped alert only (wide alert still shown in the footer)
 - [x] Added a guard to `tests/desktop-targets-reminders.test.ts` — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2265 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
+
+## Phase 517: Device QA round 262 (undo dropped reminders and restock watches)
+
+- [x] **Removing a product cascades (`lib/storage/index.ts removeFromWatchlist`) to its alerts, back-order reminders, and restock watches. Desktop's undo restored only the product + alerts, so a reminder/watch was silently lost on undo; mobile's swipe-undo has the same gap.**
+- [x] Desktop `handleRemove` now captures reminders + watches and `handleUndo` restores them (desktop reminders/watches carry no OS `notificationId`, so restoring the row is sufficient — the server sync re-schedules)
+- [x] Updated the existing undo guard's slice window and added a guard asserting the reminder/watch restore — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2266 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
+- [ ] Fixed mobile follow-up: `app/(tabs)/watchlist.tsx` `handleSwipeDelete`/`handleUndo` capture only alerts, so reminders/watches are still lost on undo (and their expo notifications were cancelled — restoring needs re-scheduling). Left for a dedicated mobile round.
+- [x] Note: this round began from a false positive — I read a truncated `grep | head` and thought the desktop had no CSV import; it already has a complete one (`handleImportFile`). Reverted the duplicate before committing.

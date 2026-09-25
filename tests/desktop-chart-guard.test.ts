@@ -152,9 +152,9 @@ describe("desktop chart guard", () => {
   it("restores the deleted product's alerts on desktop undo", async () => {
     const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
     const start = text.indexOf("const handleRemove");
-    const block = text.slice(start, start + 900);
+    const block = text.slice(start, text.indexOf("const handleToggleProductTag", start));
     expect(block).toContain("storage.getAlerts()");
-    expect(block).toContain("showUndoBar(product, removedAlerts)");
+    expect(block).toContain("showUndoBar(product, removedAlerts, removedReminders, removedWatches)");
     const undoStart = text.indexOf("const handleUndo");
     const undoBlock = text.slice(undoStart, text.indexOf("};", undoStart));
     expect(undoBlock).toContain("undoAlertsRef.current");
@@ -721,6 +721,19 @@ describe("desktop chart guard", () => {
     const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
     expect(text).toContain('title="No alerts set"');
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
+  });
+
+  // QA round 262: undo after removing a product restored only the product and
+  // its alerts; the removal cascade also deletes back-order reminders and
+  // restock watches, which were silently lost.
+  it("restores reminders and restock watches on undo", async () => {
+    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    expect(text).toContain("undoRemindersRef");
+    expect(text).toContain("undoWatchesRef");
+    expect(text).toContain("await storage.addBackOrderReminder(reminder)");
+    expect(text).toContain("await storage.addStockWatch(watch)");
+    expect(text).toContain("removedReminders");
+    expect(text).toContain("removedWatches");
   });
 
   // QA round 260: mobile's shared watchlist says "+N more distributors" and
