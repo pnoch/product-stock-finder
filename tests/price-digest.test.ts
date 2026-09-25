@@ -341,6 +341,22 @@ describe("maybeSendDigest", () => {
     expect(send).not.toHaveBeenCalled();
   });
 
+  it("returns null when notifications are disabled", async () => {
+    // The master toggle silences every channel; the digest used to ignore it, so
+    // turning notifications off still delivered digests.
+    const send = vi.fn(async () => true);
+    const result = await maybeSendDigest(
+      null,
+      [],
+      makeSettings({ notificationsEnabled: false }),
+      [],
+      send,
+      NOW,
+    );
+    expect(result).toBeNull();
+    expect(send).not.toHaveBeenCalled();
+  });
+
   it("returns null when not yet due", async () => {
     const previous: DigestSnapshot = {
       lastDigestAt: "2026-08-11T10:00:00.000Z", // 2h before NOW

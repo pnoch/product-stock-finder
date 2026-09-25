@@ -291,6 +291,12 @@ export async function maybeSendDigest(
     const frequency = settings.digestFrequency ?? "off";
     if (frequency === "off") return null;
 
+    // The master "Enable notifications" toggle silences every alert channel
+    // (restock/health/price all honour it); the digest must too, or turning
+    // notifications off still delivered digests. `undefined` (old settings)
+    // counts as enabled.
+    if (settings.notificationsEnabled === false) return null;
+
     // Respect quiet hours: defer digest until the window ends, so it groups
     // with other alerts and doesn't wake the user. Next tick will retry.
     if (isInQuietHours(settings, new Date(now))) return null;
