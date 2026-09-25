@@ -221,7 +221,7 @@ export function SharedWatchlist() {
                     </span>
                   )}
                 </div>
-                {(p.listings?.length ?? 0) > 0 && (
+                {(p.listings?.length ?? 0) > 0 ? (
                   <div className="mt-2 space-y-1.5">
                     {(p.listings ?? []).slice(0, 5).map((l) => (
                       <div key={l.distributorId} className="flex items-center gap-2">
@@ -235,9 +235,11 @@ export function SharedWatchlist() {
                       </div>
                     ))}
                     {(p.listings ?? []).length > 5 && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">+{(p.listings ?? []).length - 5} more</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">+{(p.listings ?? []).length - 5} more distributors</p>
                     )}
                   </div>
+                ) : (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">No distributor prices yet</p>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button

@@ -723,6 +723,15 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 260: mobile's shared watchlist says "+N more distributors" and
+  // shows "No distributor prices yet" for products without listings; the
+  // desktop said "+N more" and rendered nothing for an empty listing list.
+  it("matches mobile's shared-watchlist listing copy on desktop", async () => {
+    const text = await readFile("desktop/src/pages/SharedWatchlist.tsx", "utf8");
+    expect(text).toContain("more distributors</p>");
+    expect(text).toContain("No distributor prices yet");
+  });
+
   // QA round 251: mobile's watchlist preview link reads "View all N products →";
   // desktop's omitted the noun ("View all N →").
   it("labels the desktop Home watchlist link like mobile", async () => {

@@ -3845,3 +3845,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **The shared `Modal` locks background scrolling while open (ref-counted), but `DialogOverlay` (added in round 256) didn't** — so a dialog opened from a page (basket alert, tag manager, bulk import, …) let the page scroll behind its backdrop. Re-examining round 256's own work surfaced this.
 - [x] Moved the scroll lock into `desktop/src/lib/dialog-stack.ts` as a ref-counted `lockBodyScroll`/`unlockBodyScroll` (so nested dialogs don't unlock early) and used it from both `Modal` and `DialogOverlay`
 - [x] Tests: scroll-lock + nested-lock cases in `desktop/tests/dialog-overlay.test.tsx` — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2263 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
+
+## Phase 515: Device QA round 260 (desktop shared-watchlist listing copy)
+
+- [x] **Desktop's shared-watchlist product card said `+N more` (mobile: `+N more distributors`) and rendered nothing at all for a product with no listings**, where mobile shows a "No distributor prices yet" fallback. So a shared product with no prices looked like a rendering bug on desktop.
+- [x] Matched both to mobile
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 155) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2264 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
+- [ ] Noted (not built): the server's collaborative membership endpoints (`sharedWatchlists.invite/members/join/leave` + the `sharedWatchlistMembers` table) have **no client usage** on mobile or desktop — a dead backend feature that needs a product decision (how to invite: by id? email lookup?) before wiring.
