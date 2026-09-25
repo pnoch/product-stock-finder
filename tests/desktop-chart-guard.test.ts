@@ -737,6 +737,20 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/stroke="#e5e7eb"/);
   });
 
+  // QA round 303: the Tauri insight path calls a Rust command that sent no
+  // headers, so a configured BYO-LLM provider was ignored for price insights in
+  // the desktop app (the browser path's tRPC client sends them).
+  it("forwards BYO-LLM headers to the Rust insight command", async () => {
+    const page = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(page).toContain("llmHeaders: await byoLlmHeaders()");
+    const rust = await readFile("desktop/src-tauri/src/lib.rs", "utf8");
+    const at = rust.indexOf("fn fetch_price_insight");
+    expect(at).toBeGreaterThan(-1);
+    const block = rust.slice(at, rust.indexOf("\n#[tauri::command]", at));
+    expect(block).toContain("llm_headers");
+    expect(block).toContain("req = req.header(");
+  });
+
   // QA round 302: the native JSON import writes five collections; the
   // renderer's rehydrate must read them all, or the imported collection stays
   // stale in localStorage and the next renderer write mirrors it back over the

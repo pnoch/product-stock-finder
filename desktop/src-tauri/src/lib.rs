@@ -912,7 +912,11 @@ async fn backfill_local_history(
 }
 
 #[tauri::command]
-async fn fetch_price_insight(api_base_url: String, product_id: String) -> Result<Option<serde_json::Value>, String> {
+async fn fetch_price_insight(
+    api_base_url: String,
+    product_id: String,
+    llm_headers: Option<std::collections::HashMap<String, String>>,
+) -> Result<Option<serde_json::Value>, String> {
     if api_base_url.is_empty() {
         return Ok(None);
     }
@@ -925,9 +929,24 @@ async fn fetch_price_insight(api_base_url: String, product_id: String) -> Result
         urlencoding::encode(&input.to_string())
     );
     let client = reqwest::Client::new();
-    let resp = client
+    let mut req = client
         .get(&url)
-        .timeout(std::time::Duration::from_secs(8))
+        .timeout(std::time::Duration::from_secs(8));
+    // The app's BYO-LLM config (x-llm-* headers from the renderer). Without them
+    // the server could not route this insight through the user's own provider,
+    // so a configured provider was silently ignored here (the browser path goes
+    // through the tRPC client, which sends them).
+    if let Some(headers) = llm_headers {
+        for (key, value) in headers {
+            if let (Ok(name), Ok(val)) = (
+                reqwest::header::HeaderName::from_bytes(key.as_bytes()),
+                reqwest::header::HeaderValue::from_str(&value),
+            ) {
+                req = req.header(name, val);
+            }
+        }
+    }
+    let resp = req
         .send()
         .await
         .map_err(|e| e.to_string())?;

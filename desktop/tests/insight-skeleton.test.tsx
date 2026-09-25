@@ -26,6 +26,7 @@ vi.mock("../src/lib/trpc", () => ({
     prices: { get: { query: vi.fn().mockResolvedValue(null) } },
     insights: { get: { query: mockInsightsQuery } },
   }),
+  byoLlmHeaders: async () => ({ "x-llm-provider": "openai" }),
 }));
 
 const mockTauriInvoke = vi.hoisted(() => vi.fn());
@@ -125,6 +126,11 @@ describe("tauri insight fetch", () => {
 
     expect(screen.queryByRole("status", { name: /loading insight/i })).not.toBeInTheDocument();
     expect(screen.queryByText("AI insight")).not.toBeInTheDocument();
+    // The app's BYO-LLM config must reach the Rust command.
+    expect(mockTauriInvoke).toHaveBeenCalledWith(
+      "fetch_price_insight",
+      expect.objectContaining({ llmHeaders: { "x-llm-provider": "openai" } }),
+    );
   });
 
   it("logs Tauri insight fetch failures", async () => {

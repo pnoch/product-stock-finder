@@ -295,8 +295,16 @@ export function ProductDetail() {
       setInsightLoading(true);
       try {
         const { invoke } = await import("@tauri-apps/api/core");
+        const { byoLlmHeaders } = await import("../lib/trpc");
         const res = (await withTimeout(
-          invoke("fetch_price_insight", { apiBaseUrl: base, productId: id }),
+          invoke("fetch_price_insight", {
+            apiBaseUrl: base,
+            productId: id,
+            // Forward the user's BYO-LLM config so the server routes this
+            // insight through their provider (the browser path's tRPC client
+            // sends these itself).
+            llmHeaders: await byoLlmHeaders(),
+          }),
           4000,
         )) as { insight?: unknown } | null;
         if (loadIdRef.current === myId) {
