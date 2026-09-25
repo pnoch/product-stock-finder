@@ -259,27 +259,89 @@ const CARD_SELECTOR: &str = "article, .product, .product-item, .productitem, .pr
 /// Generic row containers, used only when no specific card is found.
 const ROW_SELECTOR: &str = "tr, li";
 
-/// True when the price element's *own product card* names the model. Walking
-/// past the card would reach page-level containers (a search-results header
-/// naming the model, `<body>`) whose text would validate any price on the page.
-fn price_element_matches_model(el: &ElementRef, model: &str) -> bool {
-    for selector in [CARD_SELECTOR, ROW_SELECTOR] {
-        if let Ok(sel) = Selector::parse(selector) {
-            if let Some(container) = el
-                .ancestors()
-                .filter_map(ElementRef::wrap)
-                .find(|a| sel.matches(a))
-            {
-                return text_mentions_model(&container.text().collect::<String>(), model);
+/// Nearest ancestor (or the element itself) matching `selector`, mirroring
+/// jQuery's `closest`.
+fn closest_matching<'a>(el: &ElementRef<'a>, selector: &str) -> Option<ElementRef<'a>> {
+    let sel = Selector::parse(selector).ok()?;
+    // `ancestors()` starts at the parent, while `closest` includes the element.
+    if sel.matches(el) {
+        return Some(*el);
+    }
+    el.ancestors()
+        .filter_map(ElementRef::wrap)
+        .find(|a| sel.matches(a))
+}
+
+/// Mirrors lib/scrapers/utils.ts `productRowContext`: the containing product
+/// card, else the generic row, else the element itself — plus the first
+/// descendant link's href. The href matters because many cards name the model
+/// only in the product URL, never in the visible text.
+fn product_row_context(el: &ElementRef) -> (String, String) {
+    fn context_of(node: &ElementRef) -> (String, String) {
+        let href = Selector::parse("a[href]")
+            .ok()
+            .and_then(|sel| node.select(&sel).next())
+            .and_then(|a| a.value().attr("href"))
+            .unwrap_or("")
+            .to_string();
+        (node.text().collect::<String>(), href)
+    }
+    match closest_matching(el, CARD_SELECTOR).or_else(|| closest_matching(el, ROW_SELECTOR)) {
+        Some(container) => context_of(&container),
+        None => context_of(el),
+    }
+}
+
+/// Walk-up distance from a price element to the nearest ancestor whose card
+/// context names the model, mirroring the shared `matchDepth`. `None` means no
+/// level within four matches.
+fn match_depth(el: &ElementRef, model: &str) -> Option<usize> {
+    let nodes = std::iter::once(*el).chain(el.ancestors().filter_map(ElementRef::wrap));
+    for (depth, node) in nodes.take(4).enumerate() {
+        let (text, href) = product_row_context(&node);
+        let has_content = !text.trim().is_empty() || !href.is_empty();
+        if has_content && (text_mentions_model(&text, model) || text_mentions_model(&href, model)) {
+            return Some(depth);
+        }
+    }
+    None
+}
+
+/// Mirrors lib/scrapers/utils.ts `modelMismatch` — true means "reject this
+/// price". The verdict comes from the product card alone when one exists, so a
+/// page header naming the model cannot validate a decoy price; the walk-up
+/// stops at `<body>`/`<html>` for the same reason. A price with no identifying
+/// context at all is accepted (fail open), exactly like the shared parser.
+fn model_mismatch(el: &ElementRef, model: &str) -> bool {
+    if model.trim().is_empty() {
+        return false;
+    }
+    let has_container = closest_matching(el, CARD_SELECTOR).is_some()
+        || closest_matching(el, ROW_SELECTOR).is_some();
+    if has_container {
+        let (text, href) = product_row_context(el);
+        if !text.trim().is_empty() || !href.is_empty() {
+            return !(text_mentions_model(&text, model) || text_mentions_model(&href, model));
+        }
+    }
+    let mut saw_content = false;
+    let nodes = std::iter::once(*el).chain(el.ancestors().filter_map(ElementRef::wrap));
+    for node in nodes.take(4) {
+        let name = node.value().name();
+        if name == "body" || name == "html" {
+            break;
+        }
+        let (text, href) = product_row_context(&node);
+        if !text.trim().is_empty() || !href.is_empty() {
+            saw_content = true;
+            if text_mentions_model(&text, model) || text_mentions_model(&href, model) {
+                return false;
             }
         }
     }
-    // No container boundary: only the element and its immediate parent are safe.
-    el.ancestors()
-        .take(2)
-        .filter_map(ElementRef::wrap)
-        .any(|anc| text_mentions_model(&anc.text().collect::<String>(), model))
+    saw_content
 }
+
 /// Translate a jQuery `:contains(text)` compound into a base selector plus a
 /// text needle, so selector lists shared with the mobile parsers mean the same
 /// thing here. The `scraper` crate cannot parse `:contains`.
@@ -314,7 +376,11 @@ fn select_selector_list<'a>(document: &'a Html, selector: &str) -> Vec<ElementRe
     let mut found: Vec<ElementRef<'a>> = Vec::new();
     // Walk the tree once so results are in document order and each element is
     // considered only once, like cheerio's `$(list)`.
-    for el in document.root_element().descendants().filter_map(ElementRef::wrap) {
+    for el in document
+        .root_element()
+        .descendants()
+        .filter_map(ElementRef::wrap)
+    {
         let matched = compiled.iter().any(|(sel, needle)| {
             if !sel.matches(&el) {
                 return false;
@@ -341,19 +407,54 @@ pub fn parse_price_page(
 ) -> Result<ScrapeResult, String> {
     let document = Html::parse_document(html);
 
-    let mut price_text: Option<String> = None;
-    for el in select_selector_list(&document, price_selector) {
-        // Walk up to the nearest product container and check whether it names
-        // the model. Without this the first unrelated search result's price
-        // would be recorded as this product's price.
-        if price_element_matches_model(&el, model) {
-            price_text = Some(el.text().collect());
+    // Mirror `findPriceElement`: selector alternatives are priority-ordered
+    // (".actual-price, .price" must prefer the actual price, not whichever comes
+    // first in the document), and within one alternative the element whose card
+    // context names the model in the fewest walk-up steps wins, document order
+    // breaking ties.
+    let mut chosen: Option<ElementRef> = None;
+    for alternative in price_selector.split(',') {
+        let (base, needle) = split_contains(alternative);
+        let Ok(sel) = Selector::parse(&base) else {
+            continue;
+        };
+        let candidates: Vec<ElementRef> = document
+            .select(&sel)
+            .filter(|el| match needle.as_deref() {
+                Some(n) => el.text().collect::<String>().contains(n),
+                None => true,
+            })
+            .collect();
+        if candidates.is_empty() {
+            continue;
+        }
+        if model.trim().is_empty() {
+            chosen = candidates.into_iter().next();
+            break;
+        }
+        let mut best: Option<(usize, ElementRef)> = None;
+        for el in candidates {
+            if let Some(depth) = match_depth(&el, model) {
+                let better = match best.as_ref() {
+                    Some((best_depth, _)) => depth < *best_depth,
+                    None => true,
+                };
+                if better {
+                    best = Some((depth, el));
+                }
+            }
+        }
+        if let Some((_, el)) = best {
+            chosen = Some(el);
             break;
         }
     }
 
-    let price_text = price_text
-        .ok_or_else(|| format!("No price found matching model {}", model))?;
+    let price_el = chosen.ok_or_else(|| format!("No price found matching model {}", model))?;
+    if model_mismatch(&price_el, model) {
+        return Err(format!("No price found matching model {}", model));
+    }
+    let price_text: String = price_el.text().collect();
     let price = parse_price_from_text(&price_text)
         .ok_or_else(|| format!("Could not parse price: {}", price_text))?;
 
@@ -636,6 +737,88 @@ mod tests {
         )
         .expect("should find the matching card");
         assert_eq!(result.price, 999.0);
+    }
+
+    fn mismatch_of(html: &str, price_selector: &str, model: &str) -> bool {
+        let document = Html::parse_document(html);
+        let sel = Selector::parse(price_selector).expect("test selector");
+        let el = document.select(&sel).next().expect("price element");
+        model_mismatch(&el, model)
+    }
+
+    /// Mirrors the shared `modelMismatch` suite (tests/scrapers/utils.test.ts).
+    #[test]
+    fn model_mismatch_agrees_with_the_shared_parser() {
+        let row = r#"<html><body><table><tr class="product">
+            <td><a href="/p/crs804">MikroTik CRS804</a></td>
+            <td><span class="price">$480.00</span></td>
+        </tr></table></body></html>"#;
+        // The row names a different product.
+        assert!(mismatch_of(row, ".price", "CRS326-24G-2S+"));
+        // The row names the requested product.
+        assert!(!mismatch_of(row, ".price", "CRS804"));
+        // A price with no identifying context is not rejected (fail open).
+        assert!(!mismatch_of("<span>   </span>", "span", "CRS804"));
+        // The model sits one ancestor above the priced element.
+        assert!(!mismatch_of(
+            r#"<div class="productitem"><div class="info">
+                 <a href="/p/crs326">MikroTik CRS326-24G-2S+RM</a>
+                 <div class="price">$199.00</div></div></div>"#,
+            ".price",
+            "CRS326-24G-2S+",
+        ));
+        // A page-level header five levels up must not validate the price.
+        assert!(mismatch_of(
+            r#"<body><header>Search results for CRS326-24G-2S+</header>
+               <div><div><div><div><span class="price">$5.00</span></div></div></div></div></body>"#,
+            "span.price",
+            "CRS326-24G-2S+",
+        ));
+        // A product container heading above the price still counts.
+        assert!(!mismatch_of(
+            r#"<html><body><div class="product-detail">
+                 <h1>MikroTik CRS804-4DDQ-hRM</h1>
+                 <span class="price-tag">1.181,67 EUR</span></div></body></html>"#,
+            "span.price-tag",
+            "CRS804-4DDQ-hRM",
+        ));
+        // A decoy price whose only model mention is the page <h1>.
+        assert!(mismatch_of(
+            r#"<html><body><h1>Search results for CRS804-4DDQ-hRM</h1>
+               <div><span class="price">$1.00</span></div></body></html>"#,
+            "span.price",
+            "CRS804-4DDQ-hRM",
+        ));
+    }
+
+    #[test]
+    fn model_mismatch_matches_the_model_in_the_product_link_href() {
+        // Many cards name the model only in the product URL.
+        let html = r#"<div class="product-item">
+            <a href="/p/crs804-4ddq-hrm">MikroTik Switch</a>
+            <span class="price">$480.00</span></div>"#;
+        assert!(!mismatch_of(html, ".price", "CRS804-4DDQ-hRM"));
+        assert!(mismatch_of(html, ".price", "CRS326-24G-2S+"));
+    }
+
+    #[test]
+    fn parse_price_page_prefers_selector_order_over_document_order() {
+        // ".actual-price, .compare-at" must choose the actual price even though
+        // the compare-at element comes first in the document.
+        let html = r#"<div class="product">
+            <a href="/p/crs804">MikroTik CRS804-4DDQ-hRM</a>
+            <span class="compare-at">$999.00</span>
+            <span class="actual-price">$480.00</span></div>"#;
+        let result = parse_price_page(
+            html,
+            "https://example.com",
+            "CRS804-4DDQ-hRM",
+            "USD",
+            ".actual-price, .compare-at",
+            ".stock",
+        )
+        .expect("should prefer the actual price");
+        assert_eq!(result.price, 480.0);
     }
 
     #[test]

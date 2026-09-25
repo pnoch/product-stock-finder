@@ -172,4 +172,19 @@ describe("desktop/mobile scraper parity", () => {
       expect(rust, `Rust corpus lost ${sample}`).toContain(sample);
     }
   });
+
+  it("keeps the Rust price-context walk aligned with the shared helpers", async () => {
+    // The Rust must mirror productRowContext / matchDepth / modelMismatch: the
+    // walk starts at the element itself, `closest` includes the element, the
+    // product link href is part of the context, and selector alternatives are
+    // priority-ordered like findPriceElement.
+    const rust = await readFile("desktop/src-tauri/src/scrapers/mod.rs", "utf8");
+    expect(rust).toContain("fn product_row_context");
+    expect(rust).toContain("fn match_depth");
+    expect(rust).toContain("fn model_mismatch");
+    expect(rust, "href must be part of the context").toContain('"a[href]"');
+    expect(rust, "walk must start at the element").toContain("std::iter::once(*el)");
+    expect(rust).toContain("for alternative in price_selector.split(',')");
+    expect(rust, "ancestors() skips self").toContain("if sel.matches(el)");
+  });
 });

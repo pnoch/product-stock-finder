@@ -105,6 +105,16 @@ describe("modelMismatch", () => {
     expect(modelMismatch($(".price").first(), "CRS326-24G-2S+")).toBe(true);
   });
 
+  it("matches the model in the product link href", () => {
+    // Cards frequently name the model only in the product URL.
+    const html = `<div class="product-item">
+      <a href="/p/crs804-4ddq-hrm">MikroTik Switch</a>
+      <span class="price">$480.00</span></div>`;
+    const $$ = cheerio.load(html);
+    expect(modelMismatch($$(".price").first(), "CRS804-4DDQ-hRM")).toBe(false);
+    expect(modelMismatch($$(".price").first(), "CRS326-24G-2S+")).toBe(true);
+  });
+
   it("is false when the row names the requested product", () => {
     expect(modelMismatch($(".price").first(), "CRS804")).toBe(false);
   });
