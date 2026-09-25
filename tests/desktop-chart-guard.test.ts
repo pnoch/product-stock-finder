@@ -725,6 +725,16 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 285: mobile's logout clears the previous account's synced
+  // collections and sync cursor (`clearAccountData`) so the next account on the
+  // device cannot inherit or re-upload them; the desktop's logout only removed
+  // the session token, leaving the previous account's watchlist/alerts/reminders
+  // (and stale sync cursor) on disk.
+  it("clears account data on logout on both platforms", async () => {
+    expect(await readFile("hooks/use-auth.ts", "utf8")).toContain("clearAccountData");
+    expect(await readFile("desktop/src/hooks/use-auth.ts", "utf8")).toContain("clearAccountData");
+  });
+
   // QA round 284: the desktop probed `/api/trpc/fx.get` for connectivity while
   // mobile used the dependency-free `/api/health`, so a rate-limited query (or
   // an FX provider hiccup) could read as "offline" on a reachable server.

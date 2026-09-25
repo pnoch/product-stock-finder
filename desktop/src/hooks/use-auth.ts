@@ -327,6 +327,16 @@ export function useAuth() {
       localStorage.setItem(PENDING_UNREGISTER_KEY, "1");
     }
     removeSessionToken();
+    // Clear the previous account's synced collections and sync cursor, or the
+    // next account signing in on this device inherits them (and can push them to
+    // its own account). Device-local preferences are preserved. Mobile's logout
+    // does the same.
+    try {
+      const { storage } = await import("../storage");
+      await storage.clearAccountData();
+    } catch (e) {
+      console.error("[Auth] Local data clear on logout failed:", e);
+    }
   }, []);
 
   return {
