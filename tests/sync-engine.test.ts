@@ -688,6 +688,100 @@ describe("syncNow", () => {
     expect((await storage.getSettings()).displayCurrency).toBe("GBP");
   });
 
+  it("does not push the device-local BYO-LLM key", async () => {
+    const storage = makeStorage();
+    await storage.saveSettings({
+      ...DEFAULT_SETTINGS,
+      llmApiKey: "sk-local-secret",
+    });
+    await storage.setItemSyncMeta("settings", "settings", 1000);
+    const pull = vi.fn(async () => ({ lastSyncedAt: 2000, items: [] as SyncItem[] }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 3000,
+    });
+    const settingsItem = push.mock.calls[0]![0].find(
+      (i) => i.collection === "settings",
+    );
+    expect(settingsItem).toBeTruthy();
+    // The key must never reach the server (stored at rest / broadcast to other
+    // devices); it stays on the device that entered it.
+    expect((settingsItem!.data as AppSettings).llmApiKey).toBeUndefined();
+    expect((await storage.getSettings()).llmApiKey).toBe("sk-local-secret");
+  });
+
+  it("keeps the local BYO-LLM key when settings are pulled", async () => {
+    const storage = makeStorage();
+    await storage.saveSettings({
+      ...DEFAULT_SETTINGS,
+      llmApiKey: "sk-local-secret",
+    });
+    await storage.setItemSyncMeta("settings", "settings", 1000);
+    // First sync establishes the settings snapshot base so the second sync
+    // takes the per-field merge path (not the no-base fallback).
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull: vi.fn(async () => ({ lastSyncedAt: 100, items: [] as SyncItem[] })),
+      push: vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] })),
+      now: () => 200,
+    });
+    const pull = vi.fn(async () => ({
+      lastSyncedAt: 5000,
+      items: [
+        {
+          collection: "settings" as const,
+          id: "settings",
+          data: { ...DEFAULT_SETTINGS, llmApiKey: "sk-from-another-device" },
+          updatedAt: 4000,
+          deletedAt: null,
+        },
+      ],
+    }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 6000,
+    });
+    expect((await storage.getSettings()).llmApiKey).toBe("sk-local-secret");
+  });
+
+  it("keeps the local BYO-LLM key on the first sync (no merge base)", async () => {
+    const storage = makeStorage();
+    await storage.saveSettings({
+      ...DEFAULT_SETTINGS,
+      llmApiKey: "sk-local-secret",
+    });
+    const pull = vi.fn(async () => ({
+      lastSyncedAt: 5000,
+      items: [
+        {
+          collection: "settings" as const,
+          id: "settings",
+          data: { ...DEFAULT_SETTINGS, llmApiKey: "sk-from-another-device" },
+          updatedAt: 4000,
+          deletedAt: null,
+        },
+      ],
+    }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 6000,
+    });
+    expect((await storage.getSettings()).llmApiKey).toBe("sk-local-secret");
+  });
+
   it("does not push settings with no stamped meta entry", async () => {
     const storage = makeStorage();
     await storage.saveSettings({ ...DEFAULT_SETTINGS, displayCurrency: "EUR" });

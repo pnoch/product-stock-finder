@@ -53,8 +53,23 @@ const COLLECTIONS: Collection[] = [
   "settings",
 ];
 const SETTINGS_ID = "settings";
-
 const inFlight = new WeakMap<Storage, Promise<void>>();
+
+// The BYO-LLM API key is device-local, not a synced preference: pushing it would
+// store the user's secret at rest on the server and broadcast it to every other
+// device. The server only ever needs it per-request (x-llm-key header), so it is
+// stripped from the pushed settings and preserved across pulls.
+function stripDeviceLocalSettings(settings: AppSettings): AppSettings {
+  const copy = { ...settings };
+  delete copy.llmApiKey;
+  return copy;
+}
+
+function withLocalLlmKey(next: AppSettings, local: AppSettings): AppSettings {
+  if (local.llmApiKey) next.llmApiKey = local.llmApiKey;
+  else delete next.llmApiKey;
+  return next;
+}
 
 export async function syncNow(opts: SyncNowOptions): Promise<void> {
   if (!opts.isSignedIn()) return;
@@ -410,7 +425,7 @@ async function collectDirty(
         dirty.push({
           collection: "settings",
           id: SETTINGS_ID,
-          data: local.settings,
+          data: stripDeviceLocalSettings(local.settings),
           updatedAt:
             entry && !isRetry ? entry.updatedAt : freshServerNow,
           deletedAt: null,
@@ -618,11 +633,15 @@ async function applyLocalItem(
       // upgrade) there is no base, so fall back to whole-row LWW.
       const incoming = data as AppSettings;
       const base = (await storage.getSyncMeta()).settingsSnapshot;
+      const local = await storage.getSettings();
       if (!base) {
-        await storage.saveSettings(incoming);
+        // First sync after upgrade: no base to merge against, but this device's
+        // API key must survive (an older server row may still carry one).
+        await storage.saveSettings(
+          withLocalLlmKey({ ...stripDeviceLocalSettings(incoming) }, local),
+        );
         break;
       }
-      const local = await storage.getSettings();
       const merged: AppSettings = { ...incoming };
       for (const key of Object.keys(local) as (keyof AppSettings)[]) {
         const localChanged =
@@ -639,7 +658,7 @@ async function applyLocalItem(
         if (key in local) continue;
         delete (merged as unknown as Record<string, unknown>)[key];
       }
-      await storage.saveSettings(merged);
+      await storage.saveSettings(withLocalLlmKey(merged, local));
       break;
     }
   }
