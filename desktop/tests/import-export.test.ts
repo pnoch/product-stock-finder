@@ -49,8 +49,7 @@ vi.mock("../src/storage", () => ({
 // QA round 302: the native import's renderer rehydrate read four keys, but the
 // Rust import also writes `back_in_stock_watches` — so imported restock watches
 // never reached localStorage and the next renderer write mirrored the stale
-// pre-import watches back over the import (the exact failure the Rust's
-// `storage-imported` comment warns about).
+// pre-import watches back over the import.
 describe("importWatchlistFromJson", () => {
   beforeEach(() => {
     state.savedWatches = [];

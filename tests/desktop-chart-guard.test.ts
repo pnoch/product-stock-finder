@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { readFile, readdir } from "node:fs/promises";
 
+async function desktopSrcFiles(): Promise<string[]> {
+  const files: string[] = [];
+  const walk = async (dir: string): Promise<void> => {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      const full = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) await walk(full);
+      else if (/\.tsx?$/.test(entry.name)) files.push(full);
+    }
+  };
+  await walk("desktop/src");
+  return files;
+}
+
 describe("desktop chart guard", () => {
   it("renders price history only through the shared component", async () => {
     for (const f of [
@@ -2027,15 +2040,7 @@ describe("desktop chart guard", () => {
     );
     expect(registered.size).toBeGreaterThan(10);
 
-    const files: string[] = [];
-    const walk = async (dir: string): Promise<void> => {
-      for (const entry of await readdir(dir, { withFileTypes: true })) {
-        const full = `${dir}/${entry.name}`;
-        if (entry.isDirectory()) await walk(full);
-        else if (/\.tsx?$/.test(entry.name)) files.push(full);
-      }
-    };
-    await walk("desktop/src");
+    const files = await desktopSrcFiles();
 
     const invoked = new Set<string>();
     for (const file of files) {
@@ -2083,6 +2088,36 @@ describe("desktop chart guard", () => {
       "write_watchlist",
     ]) {
       expect(rust).not.toContain(gone);
+    }
+  });
+
+  // QA round 305: Tauri events are the other half of the JS↔Rust contract. A
+  // rename on either side silently kills deep-links, live refreshes, or the
+  // restock/digest work the poller triggers. `storage-imported` was emitted but
+  // no renderer ever listened (the TS import path rehydrates itself).
+  it("keeps Rust event emitters and renderer listeners in sync", async () => {
+    const rust = await readFile("desktop/src-tauri/src/lib.rs", "utf8");
+    const emitted = new Set(
+      [...rust.matchAll(/\.emit(?:_to|_all)?\s*\(\s*"([a-z][a-z-]+)"/g)].map((m) => m[1]!),
+    );
+    expect(emitted.size).toBeGreaterThan(3);
+
+    const listened = new Set<string>();
+    for (const file of await desktopSrcFiles()) {
+      const text = await readFile(file, "utf8");
+      for (const m of text.matchAll(
+        /\b(?:listen|once)\s*(?:<[^(]*>)?\s*\(\s*["']([a-z][a-z-]+)["']/g,
+      )) {
+        listened.add(m[1]!);
+      }
+    }
+    expect(listened.size).toBeGreaterThan(3);
+
+    for (const name of listened) {
+      expect(emitted.has(name), `listen("${name}") has no Rust emit`).toBe(true);
+    }
+    for (const name of emitted) {
+      expect(listened.has(name), `Rust emits "${name}" but nothing listens`).toBe(true);
     }
   });
 });

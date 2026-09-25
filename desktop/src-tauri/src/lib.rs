@@ -460,11 +460,6 @@ async fn import_watchlist(
                 )?;
             }
 
-            // Tell the renderer to reload from disk. Without this the UI kept
-            // showing its pre-import localStorage copy, and the next renderer
-            // write mirrored that stale copy back over the imported files.
-            let _ = app.emit("storage-imported", ());
-
             Ok("Import successful".to_string())
         }
         "csv" => Err("CSV import not yet implemented".to_string()),
