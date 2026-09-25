@@ -5,9 +5,9 @@ import type { TrpcContext } from "../server/_core/context";
 
 vi.mock("../server/_core/llm", () => ({ invokeLLM: vi.fn() }));
 
-function ctx(headers: Record<string, string> = {}): TrpcContext {
+function ctx(headers: Record<string, string> = {}, user: unknown = { id: 1, openId: "o", name: "U", role: "user" }): TrpcContext {
   return {
-    user: { id: 1, openId: "o", name: "U", role: "user" } as never,
+    user: user as never,
     req: { headers } as never,
     res: {} as never,
     deviceId: null,
@@ -26,6 +26,20 @@ describe("llm.test", () => {
     const caller = llmRouter.createCaller(ctx());
     await expect(caller.test()).resolves.toEqual({ ok: true, provider: "forge" });
     expect(invokeLLM).not.toHaveBeenCalled();
+  });
+
+  it("works signed out (public) with the caller's key", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ choices: [{ message: { content: "ok" } }] }),
+      }),
+    );
+    // no user → publicProcedure must still resolve rather than reject as 401
+    const caller = llmRouter.createCaller(ctx(byo, null));
+    await expect(caller.test()).resolves.toEqual({ ok: true, provider: "openai" });
   });
 
   it("reports ok when the user's provider responds", async () => {

@@ -3833,3 +3833,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **More importantly, `Modal` and `DialogOverlay` each kept their own Escape stack**, so an overlay layered over a Modal (exactly this case) would close *both* on Escape. Extracted `desktop/src/lib/dialog-stack.ts` (push/pop/isTopDialog) and moved both components onto it.
 - [x] Converted the three SearchModal sheets to `DialogOverlay` (with `z-[60]`), and extended the source guard to cover SearchModal
 - [x] Tests: nested-stack Escape test in `desktop/tests/dialog-overlay.test.tsx` (asserts only the topmost closes) + expanded `tests/desktop-dialog-a11y.test.ts` — both verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2262 passed`; desktop `tsc 0`, `49 passed` / `241 passed`
+
+## Phase 513: Device QA round 258 (signed-out "Test connection" reported a fake network error)
+
+- [x] **`llm.test` was a `protectedProcedure`, but the AI/LLM settings section renders signed out.** A signed-out user tapping "Test connection" got a 401 that the client wrapper swallows and reports as "Couldn't reach the server" — a nonexistent connectivity problem.
+- [x] Made `llm.test` public, matching `insights.get` (also public and also accepts a BYO key). It only ever uses the caller's own key, is rate-limited per IP, and with no BYO config returns `{ ok: true, provider: "forge" }` without touching any provider.
+- [x] Updated `server/README.md` and added a signed-out (null-user) case to `tests/llm-router-test.test.ts` — verified non-vacuous by reverting to `protectedProcedure`; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2263 passed`; desktop `tsc 0`, `49 passed` / `241 passed`
