@@ -68,6 +68,18 @@ describe("computeProductInsights", () => {
     expect(result.droppingCount).toBe(1);
   });
 
+  it("counts a streak from the best in-stock series, not the all-listing average", () => {
+    // A falls steadily 100→95→90. B is out of stock and its history ends after
+    // the second point, so the all-listing *average* rises on the last point
+    // (B's stale 50 leaves the mean) and the streak reads 0 — a false negative.
+    const a = listing("a", [[4, 100], [2, 95], [0, 90]]);
+    const b = listing("b", [[4, 50], [2, 50]]);
+    b.stockStatus = "out_of_stock";
+    for (const p of b.priceHistory) p.stockStatus = "out_of_stock";
+    const result = computeProductInsights([product("mix", [a, b])], "USD");
+    expect(result.products[0].dropStreak).toBe(2);
+  });
+
   it("buckets volatility by coefficient of variation", () => {
     const result = computeProductInsights(
       [

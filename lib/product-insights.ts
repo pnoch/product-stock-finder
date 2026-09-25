@@ -136,7 +136,11 @@ export function computeProductInsights(
       currentBest !== null &&
       currentBest <= Math.min(...bestHistory) + 0.01;
 
-    const dropStreakCount = dropStreak(points);
+    // The drop streak must read the best in-stock series too. `mergedPoints`
+    // averages every listing, so when a distributor's history ends (e.g. it went
+    // out of stock) the average jumps back up on the last point and a genuinely
+    // falling product reports streak 0 — a false-negative "Dropping" badge.
+    const dropStreakCount = dropStreak(bestHistory);
 
     let vol: ProductInsight["volatility"] = null;
     if (points.length >= 3) {
