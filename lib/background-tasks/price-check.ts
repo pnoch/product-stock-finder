@@ -145,6 +145,22 @@ export async function runPriceCheckCore(opts?: {
               trigger: immediateTrigger("digest"),
             });
           }
+          // Record in the in-app history, like the price-drop/restock paths —
+          // otherwise the Notification Center only shows server events and the
+          // counts diverge from what was delivered. Best-effort: a history write
+          // failure must not block clearing the threshold below.
+          try {
+            const { recordNotificationEvent } = await import("../storage");
+            await recordNotificationEvent({
+              id: `local-basket-${new Date().toISOString().slice(0, 10)}`,
+              type: "digest",
+              title,
+              body,
+              createdAt: Date.now(),
+            });
+          } catch {
+            // best-effort
+          }
           // Only clear the threshold once the alert actually fired; clearing it
           // when permission is denied (or scheduling throws) silently loses the
           // alert forever. Use the serialized patch so a concurrent settings

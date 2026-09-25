@@ -19,6 +19,7 @@ const state = vi.hoisted(() => ({
     healthAlerts: true,
     basketAlertThreshold: null as number | null,
   },
+  recordedNotifications: [] as Array<Record<string, unknown>>,
 }));
 
 // Mock storage + notifications so we can drive checkPriceDropsNow deterministically
@@ -44,6 +45,9 @@ vi.mock("../lib/storage", () => ({
     return true;
   }),
   updateProductListings: vi.fn(async () => {}),
+  recordNotificationEvent: vi.fn(async (e: Record<string, unknown>) => {
+    state.recordedNotifications.push(e);
+  }),
   getPriceDigestSnapshot: vi.fn(async () => null),
   savePriceDigestSnapshot: vi.fn(async () => {}),
   updateSettings: vi.fn(async (patch: Record<string, unknown>) => {
@@ -164,6 +168,7 @@ describe("checkPriceDropsNow", () => {
   it("does nothing when there are no active alerts", async () => {
     await checkPriceDropsNow();
     expect(state.scheduledNotifications).toHaveLength(0);
+    state.recordedNotifications = [];
   });
 
   it("does nothing when the product has no listings", async () => {
@@ -294,6 +299,13 @@ describe("checkPriceDropsNow", () => {
     await checkPriceDropsNow();
     expect(state.scheduledNotifications).toHaveLength(1);
     expect(state.settingsStore.basketAlertThreshold).toBeNull();
+    // Recorded in the in-app history like the price-drop path (the core records
+    // other event types too, so filter for the basket one).
+    const basketEvents = state.recordedNotifications.filter(
+      (e) => e.title === "🧺 Basket Alert",
+    );
+    expect(basketEvents).toHaveLength(1);
+    expect(basketEvents[0]).toMatchObject({ type: "digest" });
   });
 });
 

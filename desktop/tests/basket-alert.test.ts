@@ -29,13 +29,16 @@ function product(price: number): Product {
 
 function makeStorage(settings: BasketAlertSettings, watchlist: Product[] = [product(60)]) {
   const updateSettings = vi.fn().mockResolvedValue(undefined);
+  const recordNotificationEvent = vi.fn().mockResolvedValue(undefined);
   return {
     storage: {
       getSettings: vi.fn().mockResolvedValue(settings),
       getWatchlist: vi.fn().mockResolvedValue(watchlist),
       updateSettings,
+      recordNotificationEvent,
     },
     updateSettings,
+    recordNotificationEvent,
   };
 }
 
@@ -54,6 +57,11 @@ describe("evaluateBasketAlert", () => {
       "/stats",
     );
     expect(updateSettings).toHaveBeenCalledWith({ basketAlertThreshold: null });
+    // Recorded in the in-app history like the price-drop/restock paths.
+    expect(
+      (storage as unknown as { recordNotificationEvent: ReturnType<typeof vi.fn> })
+        .recordNotificationEvent,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it("does not fire above the threshold", async () => {
@@ -91,5 +99,9 @@ describe("evaluateBasketAlert", () => {
     await expect(evaluateBasketAlert(storage, notify)).resolves.toBe(false);
     expect(notify).toHaveBeenCalled();
     expect(updateSettings).not.toHaveBeenCalled();
+    expect(
+      (storage as unknown as { recordNotificationEvent: ReturnType<typeof vi.fn> })
+        .recordNotificationEvent,
+    ).not.toHaveBeenCalled();
   });
 });

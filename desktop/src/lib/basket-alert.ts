@@ -12,6 +12,16 @@ export interface BasketAlertStorage {
   getSettings: () => Promise<BasketAlertSettings>;
   getWatchlist: () => Promise<Product[]>;
   updateSettings: (patch: { basketAlertThreshold: number | null }) => Promise<unknown>;
+  recordNotificationEvent: (event: {
+    id: string;
+    // "digest" is the shared history/routing type whose destination is /stats,
+    // which is where the basket value lives (mobile tags its basket notification
+    // `data.type = "digest"` for the same reason).
+    type: "digest";
+    title: string;
+    body: string;
+    createdAt: number;
+  }) => Promise<unknown>;
 }
 
 /**
@@ -46,6 +56,23 @@ export async function evaluateBasketAlert(
   );
   // Only clear the threshold once the alert actually fired; clearing it on a
   // failed send would lose the alert forever.
-  if (ok) await storage.updateSettings({ basketAlertThreshold: null });
+  if (ok) {
+    await storage.updateSettings({ basketAlertThreshold: null });
+    // Record in the in-app notification history, matching the price-drop and
+    // restock paths: otherwise the Notification Center only shows server events
+    // and its counts diverge from what was actually delivered. Best-effort — a
+    // history write failure must not resurrect the threshold.
+    try {
+      await storage.recordNotificationEvent({
+        id: `local-basket-${new Date().toISOString().slice(0, 10)}`,
+        type: "digest",
+        title: "🧺 Basket Alert",
+        body: `Watchlist value ${formatPrice(total, currency)} dropped below your ${formatPrice(threshold, currency)} threshold.`,
+        createdAt: Date.now(),
+      });
+    } catch {
+      // best-effort
+    }
+  }
   return ok;
 }
