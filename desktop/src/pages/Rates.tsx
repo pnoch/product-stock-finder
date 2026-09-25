@@ -5,6 +5,7 @@ import { storage } from "../storage";
 import { FX_WINDOWS, getFxWindowChange, sliceFxHistoryByRange, type FxWindow } from "../../../lib/fx-history";
 import { maybeRefreshFxRates, refreshFxRates } from "../../../lib/fx";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
+import { useTheme } from "../hooks/use-theme";
 import type { FxHistory } from "../../../lib/storage/fx-history";
 
 const CURRENCY_INFO: Record<string, { flag: string }> = {
@@ -48,6 +49,11 @@ function Sparkline({ values, color, currency }: { values: (number | null)[]; col
 }
 
 export function Rates() {
+  // Theme-aware sparkline stroke: the light brand blue (#0F52BA) is near
+  // invisible on the dark background, where the dark primary (#3B7DD8) is used
+  // — mobile draws this sparkline with `colors.primary`.
+  const { isDark } = useTheme();
+  const sparkColor = isDark ? "#3B7DD8" : "#0F52BA";
   const [history, setHistory] = useState<FxHistory | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -174,7 +180,7 @@ export function Rates() {
               </div>
               <div className="text-lg font-semibold mt-2">{rate >= 10 ? rate.toFixed(2) : rate >= 1 ? rate.toFixed(3) : rate.toFixed(4)}</div>
               <div className={`text-xs font-semibold mt-1 ${chColor}`}>{ch > 0 ? "+" : ""}{ch.toFixed(2)}%</div>
-              <Sparkline values={hist} color="#0F52BA" currency={code} />
+              <Sparkline values={hist} color={sparkColor} currency={code} />
             </div>
           );
         })}

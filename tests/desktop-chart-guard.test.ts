@@ -737,6 +737,16 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/stroke="#e5e7eb"/);
   });
 
+  // QA round 296: Rates' FX sparkline hardcoded the light brand blue with no
+  // dark variant, so it was near-invisible on the dark background — mobile draws
+  // it with `colors.primary`.
+  it("makes the desktop rates sparkline theme-aware", async () => {
+    const text = await readFile("desktop/src/pages/Rates.tsx", "utf8");
+    expect(text).toContain('isDark ? "#3B7DD8" : "#0F52BA"');
+    expect(text).toContain("color={sparkColor}");
+    expect(text).not.toContain('color="#0F52BA"');
+  });
+
   // QA round 295: Stats' price-history chart coloured distributors by index with
   // its own palette, so a distributor could be blue on Stats and green on
   // Compare (which uses the shared distributorColor). It now uses the shared

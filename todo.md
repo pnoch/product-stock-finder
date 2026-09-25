@@ -4103,3 +4103,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Correction to Phase 552:** `MultiLineChart` is rendered by **Stats**, not Compare — Compare renders its own `SeriesChart`. So the round-294 fix was real but mislabelled, and **Compare's actual chart still hardcoded light greys** (`#e5e7eb` grid, `#6b7280` axis labels, `#0F52BA` hover cursor) with no dark variants. `SeriesChart` is now theme-aware via `useTheme()` (grid/axis/label/cursor paired), like the other charts. Phase 552's heading/description in this file were corrected.
 - [x] **Stats' chart coloured distributors by index with its own duplicated `CHART_COLORS` array**, so a distributor could be blue on Stats and green on Compare (which uses the shared `distributorColor(id)` hash — the round-271 principle). Stats now derives the colour from `distributorColor(id)` in the same order as its series and the local palette is gone.
 - [x] Guards added to `tests/desktop-chart-guard.test.ts` (now 177) for both — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `336 passed | 2 skipped` / `2317 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
+
+## Phase 554: Device QA round 296 (Rates sparkline used the light brand blue in dark mode)
+
+- [x] **`desktop/src/pages/Rates.tsx` drew every FX sparkline with a hardcoded `#0F52BA`** (the light-theme primary) and had no dark variant, so on the dark background the line was near-invisible. Mobile's `FxSparklineCard` draws it with `colors.primary`, which is theme-aware.
+- [x] Rates now derives `isDark` from `useTheme()` and passes `isDark ? "#3B7DD8" : "#0F52BA"` (the same pair `PriceHistoryChart` uses).
+- [x] Guard added to `tests/desktop-chart-guard.test.ts` (now 178) — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `336 passed | 2 skipped` / `2318 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
+- [x] Note: the desktop's trend sparklines (`Watchlist.tsx`, `ProductDetail.tsx`) use Tailwind emerald/red hexes — internally consistent with the desktop's Tailwind palette, so left as-is.
