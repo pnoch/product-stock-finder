@@ -897,6 +897,13 @@ export function ProductDetail() {
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{region}</p>
             ) : null;
           })()}
+          {/* Mobile's DetailHeader shows an In Stock badge when a best deal
+              exists (a best deal is always in-stock). */}
+          {bestDeal && (
+            <div className="mt-2">
+              <StockBadge status="in_stock" />
+            </div>
+          )}
           {product.description && (
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
               {product.description}

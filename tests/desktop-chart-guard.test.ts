@@ -725,6 +725,16 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 267: mobile's DetailHeader shows an In Stock badge when a best deal
+  // exists; the desktop product header omitted it.
+  it("shows the in-stock badge in the desktop product header", async () => {
+    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const start = text.indexOf("Product Header");
+    expect(start).toBeGreaterThan(-1);
+    const block = text.slice(start, text.indexOf("headerConversion", start));
+    expect(block).toContain('<StockBadge status="in_stock" />');
+  });
+
   // QA round 266: mobile exposes which chip is active on its filter/sort/theme/
   // direction pickers; several desktop single-select rows rendered an active
   // style with no aria state, so a screen reader couldn't tell what was chosen.

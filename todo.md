@@ -3890,3 +3890,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Mobile exposes the active option on every single-select row (`accessibilityRole="radio"` / `accessibilityState.selected`) — search category/brand/sort, product-detail region + alert direction, alert-edit currency/direction/distributor, compare sort, settings theme/check-interval/digest-frequency/day. Several desktop rows rendered the active *visual* style but had no `aria-pressed`/`role`**, so a screen reader couldn't tell what was selected.
 - [x] Added `aria-pressed` to: `search-chrome.tsx` `PillFilterRow` (All + options), Search page + SearchModal sort chips, ProductDetail region chips + all three direction segmented controls, Alerts edit-modal currency/direction/distributor chips, Compare sort chips, Settings theme / check-interval / digest-frequency / digest-day chips (audited with a script that parses `<button>` tags for conditional active classes)
 - [x] Added a guard covering every site to `tests/desktop-chart-guard.test.ts` (now 158) — verified non-vacuous by reverting one; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2269 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
+
+## Phase 522: Device QA round 267 (desktop product header lacked the in-stock badge)
+
+- [x] **Mobile's `DetailHeader` renders an "In Stock" `StockBadge` when a best deal exists** (a best deal is always in-stock, so it confirms an available option); the desktop product header showed the region/description but not the badge.
+- [x] Added it to the desktop header
+- [x] Added a guard to `tests/desktop-chart-guard.test.ts` (now 159) — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2270 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
+- [x] Swept (found clean): reschedule/edit-alert validation and error copy, `addBackOrderReminder` upsert semantics, `analyzeDistributors`/`computeDropCalendar`/`computeHealthStats` domain logic, Cheapest-by-Region + Current Prices rows, compare color assignment, health dashboard stats.
