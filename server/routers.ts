@@ -748,6 +748,24 @@ export const appRouter = router({
           await db.delete(sharedWatchlists).where(eq(sharedWatchlists.token, input.token));
           throw new TRPCError({ code: "NOT_FOUND", message: "Share expired" });
         }
+        // Membership (for the viewer's Join/Leave control). `get` is public, so
+        // this is best-effort: signed-out viewers simply get false/false.
+        const viewerId = ctx.user?.id ?? null;
+        const isOwner = viewerId !== null && row.ownerId === viewerId;
+        let isMember = false;
+        if (viewerId !== null && !isOwner) {
+          const memberRows = await db
+            .select()
+            .from(sharedWatchlistMembers)
+            .where(
+              and(
+                eq(sharedWatchlistMembers.token, input.token),
+                eq(sharedWatchlistMembers.userId, viewerId),
+              ),
+            )
+            .limit(1);
+          isMember = memberRows.length > 0;
+        }
         // Cap the shared payload: a public endpoint must not return an
         // arbitrarily large watchlist (or read every row into memory) just
         // because the owner has thousands of items.
@@ -770,7 +788,7 @@ export const appRouter = router({
           .slice(0, SHARED_WATCHLIST_MAX_ITEMS)
           .map((r) => r.data)
           .filter(Boolean);
-        return { title: row.title, token: row.token, products, truncated, createdAt: row.createdAt?.toISOString?.() ?? null, expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null } as const;
+        return { title: row.title, token: row.token, products, truncated, createdAt: row.createdAt?.toISOString?.() ?? null, expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null, isOwner, isMember } as const;
       }),
     revoke: protectedProcedure
       .input(z.object({ token: z.string().min(1).max(64) }))

@@ -6,7 +6,7 @@ vi.mock("../server/db", () => ({
 
 import { appRouter } from "../server/routers";
 import type { TrpcContext } from "../server/_core/context";
-import { sharedWatchlists } from "../drizzle/schema";
+import { sharedWatchlists, sharedWatchlistMembers } from "../drizzle/schema";
 import { getDb } from "../server/db";
 
 const mockedGetDb = vi.mocked(getDb);
@@ -38,15 +38,21 @@ function createPublicContext(): TrpcContext {
   };
 }
 
-function fakeDb(opts: { sharedRows?: unknown[]; watchlistRows?: unknown[] }): unknown {
+function fakeDb(opts: { sharedRows?: unknown[]; watchlistRows?: unknown[]; memberRows?: unknown[] }): unknown {
   const sharedRows = opts.sharedRows ?? [];
   const watchlistRows = opts.watchlistRows ?? [];
+  const memberRows = opts.memberRows ?? [];
   return {
     insert: () => ({ values: async () => {} }),
     select: () => ({
       from: (table: unknown) => ({
         where: (..._args: unknown[]) => {
-          let rows = table === sharedWatchlists ? sharedRows : watchlistRows;
+          let rows =
+            table === sharedWatchlists
+              ? sharedRows
+              : table === sharedWatchlistMembers
+                ? memberRows
+                : watchlistRows;
           // The router now filters tombstones in SQL (isNull(deletedAtMs));
           // mirror that so the fake DB behaves like the real one.
           if (table !== sharedWatchlists) {
@@ -159,6 +165,49 @@ describe("sharedWatchlists router", () => {
     const res = await caller.sharedWatchlists.get({ token: "tok123" });
     expect(res.products).toHaveLength(500);
     expect(res.truncated).toBe(false);
+  });
+
+  // QA round 281: `get` now reports the viewer's own membership so the shared
+  // page can offer Join/Leave (those endpoints previously had no client).
+  it("reports owner/member state to the viewer", async () => {
+    const sharedRows = [
+      { ownerId: 1, token: "tok123", title: "T", expiresAt: null },
+    ];
+    mockedGetDb.mockResolvedValue(fakeDb({ sharedRows }) as never);
+    const owner = appRouter.createCaller(createAuthedContext(1));
+    await expect(owner.sharedWatchlists.get({ token: "tok123" })).resolves.toMatchObject({
+      isOwner: true,
+      isMember: false,
+    });
+
+    mockedGetDb.mockResolvedValue(fakeDb({ sharedRows, memberRows: [] }) as never);
+    const outsider = appRouter.createCaller(createAuthedContext(2));
+    await expect(outsider.sharedWatchlists.get({ token: "tok123" })).resolves.toMatchObject({
+      isOwner: false,
+      isMember: false,
+    });
+
+    mockedGetDb.mockResolvedValue(
+      fakeDb({ sharedRows, memberRows: [{ userId: 2 }] }) as never,
+    );
+    const member = appRouter.createCaller(createAuthedContext(2));
+    await expect(member.sharedWatchlists.get({ token: "tok123" })).resolves.toMatchObject({
+      isOwner: false,
+      isMember: true,
+    });
+  });
+
+  it("reports false/false membership to a signed-out viewer", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({
+        sharedRows: [{ ownerId: 1, token: "tok123", title: "T", expiresAt: null }],
+      }) as never,
+    );
+    const anon = appRouter.createCaller(createPublicContext());
+    await expect(anon.sharedWatchlists.get({ token: "tok123" })).resolves.toMatchObject({
+      isOwner: false,
+      isMember: false,
+    });
   });
 
   // An expired share must not accept new members: get/members/join all reject

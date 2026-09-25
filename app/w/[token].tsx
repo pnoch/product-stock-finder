@@ -12,6 +12,7 @@ import { StockBadge } from "@/components/stock-badge";
 import { getDistributorById } from "@shared/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { addToWatchlist, getSettings } from "@/lib/storage";
+import { useAuth } from "@/hooks/use-auth";
 import { normalizeSharedWatchlistProduct } from "@/lib/shared-watchlist";
 import { showAlert } from "@/lib/alert";
 import { productHistoryToCsv, watchlistToDetailedCsv } from "@/lib/csv";
@@ -35,6 +36,31 @@ export default function SharedWatchlistScreen() {
     { token: token ?? "" },
     { enabled: !!token },
   );
+  // Collaborative membership: the join/leave endpoints previously had no client.
+  // `get` reports the viewer's own membership.
+  const { isAuthenticated } = useAuth();
+  const joinMutation = trpc.sharedWatchlists.join.useMutation();
+  const leaveMutation = trpc.sharedWatchlists.leave.useMutation();
+  const handleJoin = async () => {
+    if (!token) return;
+    try {
+      await joinMutation.mutateAsync({ token });
+      await query.refetch();
+      showAlert("Joined", "You've joined this shared watchlist.");
+    } catch {
+      showAlert("Couldn't join", "Please try again.");
+    }
+  };
+  const handleLeave = async () => {
+    if (!token) return;
+    try {
+      await leaveMutation.mutateAsync({ token });
+      await query.refetch();
+      showAlert("Left", "You've left this shared watchlist.");
+    } catch {
+      showAlert("Couldn't leave", "Please try again.");
+    }
+  };
 
   // A missing token disables the query, so isLoading/isError are both false
   // and the screen would render an empty "0 products" page.
@@ -168,6 +194,18 @@ export default function SharedWatchlistScreen() {
             <IconSymbol name="square.and.arrow.up" size={16} color={colors.primary} />
             <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>Export CSV</Text>
           </TouchableOpacity>
+          {isAuthenticated && !query.data?.isOwner && (
+            query.data?.isMember ? (
+              <TouchableOpacity activeOpacity={0.85} onPress={handleLeave} disabled={leaveMutation.isPending} style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 6, opacity: leaveMutation.isPending ? 0.6 : 1 }} accessibilityLabel="Leave shared watchlist" accessibilityRole="button">
+                <Text style={{ color: colors.muted, fontWeight: "600", fontSize: 13 }}>{leaveMutation.isPending ? "Leaving" : "Leave"}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity activeOpacity={0.85} onPress={handleJoin} disabled={joinMutation.isPending} style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primary, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 6, opacity: joinMutation.isPending ? 0.6 : 1 }} accessibilityLabel="Join shared watchlist" accessibilityRole="button">
+                <IconSymbol name="person.crop.circle.badge.plus" size={16} color={colors.primary} />
+                <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>{joinMutation.isPending ? "Joining" : "Join"}</Text>
+              </TouchableOpacity>
+            )
+          )}
         </View>
         <View style={{ marginTop: 16, gap: 12 }}>
           {products.map((product) => {

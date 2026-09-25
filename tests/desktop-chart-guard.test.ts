@@ -725,6 +725,24 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 281: the collaborative join/leave endpoints had no client at all.
+  // Both shared-watchlist pages now offer Join/Leave, driven by `get`'s
+  // isOwner/isMember.
+  it("wires join/leave on both shared-watchlist pages", async () => {
+    for (const file of [
+      "app/w/[token].tsx",
+      "desktop/src/pages/SharedWatchlist.tsx",
+    ]) {
+      const src = await readFile(file, "utf8");
+      expect(src, file).toContain("sharedWatchlists.join.useMutation()");
+      expect(src, file).toContain("sharedWatchlists.leave.useMutation()");
+      expect(src, file).toContain("isOwner");
+      expect(src, file).toContain("isMember");
+    }
+    const routers = await readFile("server/routers.ts", "utf8");
+    expect(routers).toContain("isOwner, isMember } as const;");
+  });
+
   // QA round 279: the desktop must pass its Tauri notifier to checkRestocks —
   // the shared default uses the browser Notification API, which is ungranted in
   // the Tauri webview, so restock alerts silently never fired.

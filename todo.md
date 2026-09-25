@@ -3971,3 +3971,11 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Desktop sidebar Alerts badge counted *unread notifications*, while mobile's Alerts tab badge counted active price alerts + date reminders + restock watches.** Same tab, different data. Aligned the desktop to mobile's semantics (shared `countActiveAlerts` predicate + the reminder/watch lengths); unread stays visible on the Alerts page's Notifications sub-tab. Updated the weak `tests/desktop-notif-history.test.ts` guard, non-vacuous.
 - [x] **`computeDealScore`'s streak factor was the last consumer of the all-listing averaged series** (round 277 fixed the insights badge). It now reads the best in-stock series (`bestPricePoints`), windowed to the same 90 days — consistent with the "Dropping ×N" badge. New regression test in `tests/deal-score.test.ts`, non-vacuous.
 - [x] E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2286 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
+
+## Phase 535: Collaborative shared-watchlist membership now has a client
+
+- [x] Closes the flagged item "membership endpoints have no client". The server already supported `join`/`leave` (self-service, no user lookup needed), but `get` exposed no membership, so no UI could be built.
+- [x] `sharedWatchlists.get` (public) now returns `isOwner`/`isMember` for the viewer (best-effort: signed-out → false/false; skips the members query for the owner)
+- [x] Both shared-watchlist pages gained a Join / Leave control shown to signed-in non-owners: mobile `app/w/[token].tsx` and desktop `desktop/src/pages/SharedWatchlist.tsx` (uses the auth hook + join/leave mutations, refetch on success)
+- [x] Tests: server membership cases in `tests/shared-watchlists.test.ts` (owner / outsider / member / signed-out) + a wiring guard in `tests/desktop-chart-guard.test.ts` (now 164) — each verified non-vacuous; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2289 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
+- [ ] Still deferred: `sharedWatchlists.invite(token, userId)` + a member roster UI. Inviting needs a user-lookup-by-email endpoint (and a privacy decision on email enumeration), so it is out of scope until that is agreed. `members` remains server-only.

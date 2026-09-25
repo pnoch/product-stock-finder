@@ -4,6 +4,7 @@ import { ArrowLeft, Package, PackagePlus } from "lucide-react";
 import { trpc } from "../lib/trpc";
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
+import { useAuth } from "../hooks/use-auth";
 import { normalizeSharedWatchlistProduct } from "../../../lib/shared-watchlist";
 import { productHistoryToCsv, watchlistToDetailedCsv } from "../../../lib/csv";
 import type { Product } from "../../../lib/types";
@@ -44,6 +45,31 @@ export function SharedWatchlist() {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const { toast, showToast } = useToast();
+  const { isAuthenticated } = useAuth();
+  // Collaborative membership: previously the join/leave endpoints had no client
+  // at all. `get` now reports the viewer's own membership.
+  const joinMutation = trpc.sharedWatchlists.join.useMutation();
+  const leaveMutation = trpc.sharedWatchlists.leave.useMutation();
+  const handleJoin = useCallback(async () => {
+    if (!token) return;
+    try {
+      await joinMutation.mutateAsync({ token });
+      await query.refetch();
+      showToast("Joined shared watchlist");
+    } catch {
+      showToast("Couldn't join that share. Please try again.");
+    }
+  }, [token, joinMutation, query, showToast]);
+  const handleLeave = useCallback(async () => {
+    if (!token) return;
+    try {
+      await leaveMutation.mutateAsync({ token });
+      await query.refetch();
+      showToast("Left shared watchlist");
+    } catch {
+      showToast("Couldn't leave that share. Please try again.");
+    }
+  }, [token, leaveMutation, query, showToast]);
 
   useEffect(() => {
     storage
@@ -178,6 +204,27 @@ export function SharedWatchlist() {
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {isAuthenticated && !data.isOwner && (
+            data.isMember ? (
+              <button
+                onClick={handleLeave}
+                disabled={leaveMutation.isPending}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                aria-label="Leave shared watchlist"
+              >
+                {leaveMutation.isPending ? "Leaving" : "Leave"}
+              </button>
+            ) : (
+              <button
+                onClick={handleJoin}
+                disabled={joinMutation.isPending}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-brand-600 text-brand-600 dark:text-brand-400 text-sm font-medium hover:bg-brand-50 dark:hover:bg-brand-900/20 disabled:opacity-50"
+                aria-label="Join shared watchlist"
+              >
+                {joinMutation.isPending ? "Joining" : "Join"}
+              </button>
+            )
+          )}
           <button
             onClick={handleExportCsv}
             disabled={products.length === 0}
