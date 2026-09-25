@@ -725,6 +725,21 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 293: the desktop digest notifier must record the digest in the
+  // in-app history (like price-drop/restock/basket), or the Notifications tab
+  // and its unread count diverge from what was actually delivered.
+  it("records the desktop digest in the notification history", async () => {
+    const app = await readFile("desktop/src/App.tsx", "utf8");
+    // lastIndexOf: the restock notifier shares this signature; the digest one
+    // is the last.
+    const at = app.lastIndexOf("async (title, body) => {");
+    expect(at).toBeGreaterThan(-1);
+    const block = app.slice(at, app.indexOf("return ok;", at));
+    expect(block).toContain("recordNotificationEvent");
+    expect(block).toContain('type: "digest"');
+    expect(block).toContain("local-digest-");
+  });
+
   // QA round 289: `AlertSection` was the only alert-creation path that didn't
   // check notification permission, so its "Alert created — watching for X" toast
   // promised notifications that could never be delivered (the other mobile

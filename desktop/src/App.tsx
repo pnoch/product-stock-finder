@@ -325,7 +325,24 @@ export default function App() {
           await storage.getAlerts(),
           async (title, body) => {
             const { sendDesktopNotification } = await import("./notifications");
-            return sendDesktopNotification(title, body, "/stats");
+            const ok = await sendDesktopNotification(title, body, "/stats");
+            // Record in the in-app history like the price-drop/restock/basket
+            // paths, so the Notifications tab and its unread count don't diverge
+            // from what was actually delivered. Day-keyed id dedups a retry.
+            if (ok) {
+              try {
+                await storage.recordNotificationEvent({
+                  id: `local-digest-${new Date().toISOString().slice(0, 10)}`,
+                  type: "digest",
+                  title,
+                  body,
+                  createdAt: Date.now(),
+                });
+              } catch {
+                // best-effort
+              }
+            }
+            return ok;
           },
         );
         if (nextDigest) await storage.savePriceDigestSnapshot(nextDigest);

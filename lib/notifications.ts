@@ -390,6 +390,21 @@ export async function sendPriceDigestNotification(
       },
       trigger: immediateTrigger("digest"),
     });
+    // Record in the in-app history like every other delivered notification
+    // (server-batched digests are recorded when pulled, the price-drop/restock/
+    // basket paths record locally), so the Notification Center's counts don't
+    // diverge. Day-keyed id dedups a same-day retry.
+    try {
+      await recordNotificationEvent({
+        id: `local-digest-${new Date().toISOString().slice(0, 10)}`,
+        type: "digest",
+        title,
+        body,
+        createdAt: Date.now(),
+      });
+    } catch {
+      // best-effort
+    }
     return true;
   } catch {
     // digest failures are non-fatal
