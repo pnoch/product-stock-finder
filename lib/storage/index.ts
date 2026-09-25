@@ -9,6 +9,7 @@ import { createRemindersStorage } from "./reminders";
 import { createSettingsStorage } from "./settings";
 import { createDigestFxStorage } from "./digest-fx";
 import { createFxHistoryStorage } from "./fx-history";
+import { RECENT_SEARCHES_KEY } from "../recent-searches";
 import { createSyncMetaStorage } from "./sync-meta";
 import { createNotificationsStorage } from "./notifications";
 import { createDiscoveryStorage, createBackgroundTaskStorage } from "./discovery";
@@ -64,6 +65,9 @@ export function createStorage(
       "distributor_health",
       "distributor_health_history",
       "recently_viewed",
+      // Search terms are user activity like recently_viewed; leaving them meant
+      // the next account on the device still saw the previous one's queries.
+      RECENT_SEARCHES_KEY,
       "distributor_watches",
       "triggered_alert_history",
       "product_notes",
@@ -98,6 +102,7 @@ export function createStorage(
       "distributor_health",
       "distributor_health_history",
       "recently_viewed",
+      RECENT_SEARCHES_KEY,
       "distributor_watches",
       "triggered_alert_history",
       "product_notes",

@@ -1,6 +1,8 @@
-import { addRecentSearch, parseRecentSearches, MAX_RECENT_SEARCHES } from "../../../lib/recent-searches";
+import { addRecentSearch, parseRecentSearches, MAX_RECENT_SEARCHES, RECENT_SEARCHES_KEY } from "../../../lib/recent-searches";
 
-export const RECENT_KEY = "recent_searches";
+// Single definition (lib/recent-searches) so the search key can't drift from the
+// one the storage wipe uses.
+export const RECENT_KEY = RECENT_SEARCHES_KEY;
 
 export function loadRecent(): string[] {
   try {

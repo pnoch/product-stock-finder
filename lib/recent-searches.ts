@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const KEY = "recent_searches";
+export const RECENT_SEARCHES_KEY = "recent_searches";
 
 export const MAX_RECENT_SEARCHES = 8;
 
@@ -29,7 +29,7 @@ export interface KeyValueStore {
 
 export async function getRecentSearches(store: KeyValueStore = AsyncStorage): Promise<string[]> {
   try {
-    return parseRecentSearches(await store.getItem(KEY));
+    return parseRecentSearches(await store.getItem(RECENT_SEARCHES_KEY));
   } catch {
     return [];
   }
@@ -43,7 +43,7 @@ export async function recordSearch(
   if (!trimmed) return getRecentSearches(store);
   const updated = addRecentSearch(await getRecentSearches(store), trimmed);
   try {
-    await store.setItem(KEY, JSON.stringify(updated));
+    await store.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
   } catch {
     // Best-effort persistence.
   }
@@ -54,7 +54,7 @@ export async function clearRecentSearches(
   store: KeyValueStore = AsyncStorage,
 ): Promise<void> {
   try {
-    await store.removeItem(KEY);
+    await store.removeItem(RECENT_SEARCHES_KEY);
   } catch {
     // Best-effort persistence.
   }

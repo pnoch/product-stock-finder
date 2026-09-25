@@ -6,7 +6,7 @@ import { createStorage } from "../lib/storage";
 
 function makeStorage() {
   const m = new Map<string, string>();
-  return createStorage({
+  const storage = createStorage({
     getItem: async (k: string) => m.get(k) ?? null,
     setItem: async (k: string, v: string) => {
       m.set(k, v);
@@ -18,13 +18,14 @@ function makeStorage() {
       keys.forEach((k) => m.delete(k));
     },
   });
+  return { storage, map: m };
 }
 
 describe("clearAccountData vs clearAllData", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("clearAccountData preserves device-local preferences", async () => {
-    const storage = makeStorage();
+    const { storage } = makeStorage();
     await storage.saveSettings({
       theme: "dark",
       displayCurrency: "EUR",
@@ -56,8 +57,20 @@ describe("clearAccountData vs clearAllData", () => {
     expect(settings.displayCurrency).toBe("EUR");
   });
 
+  // QA round 286: `recent_searches` had its own key outside STORAGE_KEYS, so
+  // neither wipe removed it — "Clear all data" (and the next user on the
+  // device) still saw the previous user's search terms.
+  it("both wipes remove recent searches", async () => {
+    for (const wipe of ["clearAccountData", "clearAllData"] as const) {
+      const { storage, map } = makeStorage();
+      map.set("recent_searches", JSON.stringify(["rtx 5090", "crs326"]));
+      await storage[wipe]();
+      expect(map.has("recent_searches"), wipe).toBe(false);
+    }
+  });
+
   it("clearAllData wipes preferences too", async () => {
-    const storage = makeStorage();
+    const { storage } = makeStorage();
     await storage.saveSettings({
       theme: "dark",
       displayCurrency: "EUR",
