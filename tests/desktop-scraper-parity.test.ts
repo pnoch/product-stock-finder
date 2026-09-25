@@ -192,4 +192,22 @@ describe("desktop/mobile scraper parity", () => {
     expect(rust).toContain("for alternative in price_selector.split(',')");
     expect(rust, "ancestors() skips self").toContain("if sel.matches(el)");
   });
+
+  it("keeps the Rust blocked-page markers identical to the shared parser", async () => {
+    // The desktop must classify an anti-bot interstitial the same way; a
+    // missing marker turns a block into "content", so the parser reports a
+    // miss and the distributor is retried against the block.
+    const listOf = (src: string, header: string): string[] => {
+      const start = src.indexOf(header);
+      expect(start, `${header} missing`).toBeGreaterThan(-1);
+      const body = src.slice(start, src.indexOf("];", start));
+      return [...body.matchAll(/"([^"]+)"/g)].map((m) => m[1]!);
+    };
+    const ts = await readFile("lib/scrapers/resilient.ts", "utf8");
+    const tsMarkers = listOf(ts, "export const BLOCKED_MARKERS");
+    const rust = await readFile("desktop/src-tauri/src/scrapers/mod.rs", "utf8");
+    const rustMarkers = listOf(rust, "pub const BLOCKED_MARKERS");
+    expect(tsMarkers.length).toBeGreaterThan(5);
+    expect(rustMarkers).toEqual(tsMarkers);
+  });
 });

@@ -63,15 +63,81 @@ pub struct ScrapeJobResult {
     pub history: Vec<serde_json::Value>,
 }
 
-pub async fn fetch_html(url: &str, rate_limit_ms: u64) -> Result<String, reqwest::Error> {
-    tokio::time::sleep(tokio::time::Duration::from_millis(rate_limit_ms)).await;
+/// Markers of an anti-bot interstitial, mirroring `BLOCKED_MARKERS` in
+/// lib/scrapers/resilient.ts so the desktop classifies a block the same way.
+pub const BLOCKED_MARKERS: [&str; 9] = [
+    "403 Forbidden",
+    "Access Denied",
+    "cf-browser-verification",
+    "Checking your browser",
+    // Cloudflare interstitial / Turnstile
+    "Just a moment",
+    "Attention Required",
+    "/cdn-cgi/challenge-platform/scripts/jsd/main.js",
+    // PerimeterX / DataDome
+    "px-captcha",
+    "captcha-delivery.com",
+];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FetchClassification {
+    Ok,
+    Blocked,
+    Error,
+}
+
+/// Mirrors the shared `classifyFetchStatus`: 403/429 or an interstitial marker
+/// is a block, any other 4xx/5xx is an error, everything else is content.
+pub fn classify_fetch_status(body: &str, http_status: Option<u16>) -> FetchClassification {
+    match http_status {
+        Some(403) | Some(429) => return FetchClassification::Blocked,
+        Some(status) if status >= 400 => return FetchClassification::Error,
+        _ => {}
+    }
+    if BLOCKED_MARKERS.iter().any(|marker| body.contains(marker)) {
+        return FetchClassification::Blocked;
+    }
+    FetchClassification::Ok
+}
+
+/// One GET, returning the status alongside the body so the caller can classify
+/// an interstitial (an error page still carries the block markers).
+async fn fetch_once(url: &str) -> Result<(String, u16), reqwest::Error> {
     let resp = get_client()
         .get(url)
         .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
         .send()
         .await?;
-    let resp = resp.error_for_status()?;
-    resp.text().await
+    let status = resp.status().as_u16();
+    let body = resp.text().await?;
+    Ok((body, status))
+}
+
+pub async fn fetch_html(url: &str, rate_limit_ms: u64) -> Result<String, String> {
+    // Mirror the shared resilient path: three attempts with 1s/2s linear
+    // backoff for transient failures, but never retry a block (retrying makes
+    // it worse) and never hand an interstitial back as content. A single
+    // transient 503 used to drop the distributor for the whole refresh.
+    const MAX_RETRIES: u32 = 2;
+    let mut last_error = String::from("no attempt made");
+    for attempt in 0..=MAX_RETRIES {
+        if attempt > 0 {
+            let backoff = 1000 * u64::from(attempt);
+            tokio::time::sleep(tokio::time::Duration::from_millis(backoff)).await;
+        }
+        tokio::time::sleep(tokio::time::Duration::from_millis(rate_limit_ms)).await;
+        match fetch_once(url).await {
+            Ok((body, status)) => match classify_fetch_status(&body, Some(status)) {
+                FetchClassification::Ok => return Ok(body),
+                FetchClassification::Blocked => {
+                    return Err(format!("Blocked by the site (HTTP {status})"));
+                }
+                FetchClassification::Error => last_error = format!("HTTP {status}"),
+            },
+            Err(e) => last_error = e.to_string(),
+        }
+    }
+    Err(last_error)
 }
 
 pub fn infer_stock_status(text: &str) -> String {
@@ -475,6 +541,32 @@ pub fn parse_price_page(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn classify_fetch_status_agrees_with_the_shared_parser() {
+        use FetchClassification::*;
+        let cases: [(Option<u16>, &str, FetchClassification); 12] = [
+            (Some(403), "<html>hi</html>", Blocked),
+            (Some(429), "<html>hi</html>", Blocked),
+            (Some(500), "<html>hi</html>", Error),
+            (Some(404), "<html>hi</html>", Error),
+            (None, "Checking your browser...", Blocked),
+            (None, "cf-browser-verification", Blocked),
+            (None, "403 Forbidden", Blocked),
+            (None, "Access Denied", Blocked),
+            (Some(200), "<html>price $50</html>", Ok),
+            (None, "<html>price $50</html>", Ok),
+            (None, "<title>Just a moment...</title>", Blocked),
+            (None, "Attention Required! | Cloudflare", Blocked),
+        ];
+        for (status, body, expected) in cases {
+            assert_eq!(
+                classify_fetch_status(body, status),
+                expected,
+                "classify_fetch_status({body:?}, {status:?})"
+            );
+        }
+    }
 
     #[test]
     fn text_mentions_model_matches_with_separators() {
