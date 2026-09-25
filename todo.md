@@ -4110,3 +4110,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Rates now derives `isDark` from `useTheme()` and passes `isDark ? "#3B7DD8" : "#0F52BA"` (the same pair `PriceHistoryChart` uses).
 - [x] Guard added to `tests/desktop-chart-guard.test.ts` (now 178) — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `336 passed | 2 skipped` / `2318 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
 - [x] Note: the desktop's trend sparklines (`Watchlist.tsx`, `ProductDetail.tsx`) use Tailwind emerald/red hexes — internally consistent with the desktop's Tailwind palette, so left as-is.
+
+## Phase 555: Device QA round 297 (desktop "Clear All Data" didn't say it re-syncs)
+
+- [x] **For a signed-in device, the desktop's "Clear All Data" is effectively undone:** `clearAllData()` also wipes `SYNC_META`, so the next sync pulls from `lastSyncedAt = 0` and restores the watchlist/alerts/reminders/settings from the server. The button (red, in the Danger Zone, with an "Are you sure?" confirm) looked like a real wipe and then the data reappeared; mobile has no local-only clear (its "Delete My Data" removes the server account too), so there was no parity signal either.
+- [x] The Danger Zone now shows, when signed in: "this clears this device's copy only… use 'Delete Account & Data' to remove it everywhere." (Signed-out local-first users keep the intended local reset.)
+- [x] Guard added to `tests/desktop-chart-guard.test.ts` (now 179) — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `336 passed | 2 skipped` / `2319 passed`; desktop `tsc 0`, `50 passed` / `248 passed`

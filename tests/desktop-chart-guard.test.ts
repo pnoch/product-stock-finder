@@ -737,6 +737,18 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/stroke="#e5e7eb"/);
   });
 
+  // QA round 297: for a signed-in device the desktop's "Clear All Data" is
+  // undone by the next sync (it wipes the sync cursor, so a full pull restores
+  // everything) — the Danger Zone now says so.
+  it("warns that clearing data re-syncs when signed in", async () => {
+    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const at = text.indexOf("Danger Zone");
+    expect(at).toBeGreaterThan(-1);
+    const block = text.slice(at, at + 1000);
+    expect(block).toContain("isAuthenticated");
+    expect(block).toContain("re-syncs");
+  });
+
   // QA round 296: Rates' FX sparkline hardcoded the light brand blue with no
   // dark variant, so it was near-invisible on the dark background — mobile draws
   // it with `colors.primary`.

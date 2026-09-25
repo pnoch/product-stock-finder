@@ -2021,6 +2021,15 @@ export function Settings() {
       {/* Clear All Data Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
         <h2 className="text-lg font-semibold mb-4">Danger Zone</h2>
+        {isAuthenticated && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            {/* A signed-in device re-syncs: clearing the local cursor makes the
+                next sync pull everything back, so the button looked broken. */}
+            Signed in: this clears this device&apos;s copy only. Your account&apos;s data
+            stays on the server and re-syncs — use &quot;Delete Account &amp; Data&quot;
+            to remove it everywhere.
+          </p>
+        )}
         {!clearConfirm ? (
           <button
             onClick={() => setClearConfirm(true)}
