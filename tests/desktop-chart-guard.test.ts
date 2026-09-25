@@ -725,6 +725,18 @@ describe("desktop chart guard", () => {
     expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
   });
 
+  // QA round 283: the digest body renders both in-app and in the notification,
+  // so its markers are plain signs — the notification's emoji sweep left the
+  // in-app card and the body out of sync. Notification *titles* keep theirs.
+  it("keeps the digest body markers emoji-free", async () => {
+    const text = await readFile("lib/price-digest.ts", "utf8");
+    expect(text).toContain("+ ${result.newProducts.length} product(s) added");
+    expect(text).toContain("− ${result.removedProducts.length} product(s) removed");
+    expect(text).not.toContain("🎯 ${t.name}");
+    expect(text).not.toContain("➕");
+    expect(text).not.toContain("➖");
+  });
+
   // Phase 540 (emoji sweep B): decorative emoji in the UI render as empty
   // "tofu" boxes without a system emoji font. Notification titles (category C)
   // deliberately keep theirs — the OS renders those. `✓` (U+2713) is a

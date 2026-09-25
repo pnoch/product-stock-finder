@@ -253,14 +253,12 @@ export function formatDigestNotification(result: DigestResult): {
     lines.push(`${s.name}: ${s.from} → ${s.to}`);
   }
   for (const t of result.alertTargetsHit.slice(0, 2)) {
-    lines.push(
-      `🎯 ${t.name}: target hit at ${formatPrice(t.price, t.currency)}`,
-    );
+    lines.push(`${t.name}: target hit at ${formatPrice(t.price, t.currency)}`);
   }
   if (result.newProducts.length > 0)
-    lines.push(`➕ ${result.newProducts.length} product(s) added`);
+    lines.push(`+ ${result.newProducts.length} product(s) added`);
   if (result.removedProducts.length > 0)
-    lines.push(`➖ ${result.removedProducts.length} product(s) removed`);
+    lines.push(`− ${result.removedProducts.length} product(s) removed`);
 
   if (
     result.priceChanges.length === 0 &&

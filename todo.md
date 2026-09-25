@@ -4021,3 +4021,9 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] New guard: `has no decorative emoji left in the swept UI surfaces` (deny-list over the 22 files) — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2303 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
 - [ ] Category C left as-is by decision: notification titles/bodies (`🟢 Back In Stock!`, `🧺 Basket Alert`, `📈 Price Increase Alert!`, `💰 Price Alert Set`, `📦 Back-Order Reminder`, `📊 Price Digest`, health-alert titles) — rendered by the OS notification surface, where emoji is conventional and a system emoji font is present.
 - [ ] Not swept: `distributor.countryFlag` (an emoji flag) is shown across many screens; converting needs a flag asset or country-code fallback — a separate product call.
+
+## Phase 541: Device QA round 283 (digest body vs in-app card disagreed)
+
+- [x] **The emoji sweep left the digest summary inconsistent with itself:** the in-app digest card now renders `+ 2 product(s) added` / `− … removed` / `Targets Hit`, but `lib/price-digest.ts` (the notification body, and the same lines the card shows) still built them with `➕`/`➖`/`🎯 `. A user reading the in-app digest and then the notification saw different markers.
+- [x] Aligned the digest body to plain signs (`+`/`−`, no `🎯` prefix) so the in-app and notification content match. Notification **titles** keep their emoji by the category-C decision.
+- [x] Guard added to `tests/desktop-chart-guard.test.ts` (now 170) — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2304 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
