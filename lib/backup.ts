@@ -4,6 +4,7 @@ import type {
   PriceAlert,
   Product,
 } from "./types";
+import { stripDeviceLocalSettings } from "./settings-privacy";
 
 export const BACKUP_FORMAT = "product-stock-finder-backup";
 export const BACKUP_VERSION = 1;
@@ -57,7 +58,9 @@ export function buildBackup(input: BackupInput): string {
       alerts: input.alerts,
       reminders: input.reminders,
       stockWatches: input.stockWatches,
-      settings: input.settings,
+      // The BYO-LLM API key is device-local: a backup file is user-shareable and
+      // stored in plaintext, so the secret must not be written into it.
+      settings: stripDeviceLocalSettings(input.settings),
     },
     null,
     2,
@@ -91,7 +94,7 @@ export function parseBackup(json: string): BackupData | null {
     stockWatches: asArray<BackOrderReminder>(obj.stockWatches),
     settings:
       obj.settings && typeof obj.settings === "object"
-        ? (obj.settings as AppSettings)
+        ? stripDeviceLocalSettings(obj.settings as AppSettings)
         : undefined,
   };
 }
@@ -154,6 +157,8 @@ function mergeSettings(current: AppSettings, incoming: AppSettings): AppSettings
   const incomingRecord = incoming as unknown as Record<string, unknown>;
   for (const key of Object.keys(incomingRecord)) {
     if (key === "tagDefinitions") continue;
+    // Device-local: never adopt a key from a (possibly shared) backup file.
+    if (key === "llmApiKey") continue;
     if (
       key in SETTING_DEFAULTS &&
       SETTING_DEFAULTS[key] === incomingRecord[key]

@@ -263,3 +263,40 @@ describe("applyBackup merge-by-id", () => {
     expect(result.settings.shippingRegion).toBe("Americas");
   });
 });
+
+describe("BYO-LLM key is device-local", () => {
+  it("omits the API key from an exported backup", () => {
+    const json = buildBackup({
+      watchlist: [],
+      alerts: [],
+      reminders: [],
+      stockWatches: [],
+      settings: { ...DEFAULT_SETTINGS, llmApiKey: "sk-secret-token" },
+    });
+    expect(json).not.toContain("sk-secret-token");
+    expect(parseBackup(json)!.settings?.llmApiKey).toBeUndefined();
+  });
+
+  it("never adopts a key from an imported backup", () => {
+    const crafted = JSON.stringify({
+      format: "product-stock-finder-backup",
+      version: 1,
+      exportedAt: NOW,
+      watchlist: [],
+      alerts: [],
+      reminders: [],
+      stockWatches: [],
+      settings: { ...DEFAULT_SETTINGS, llmApiKey: "sk-from-file" },
+    });
+    const parsed = parseBackup(crafted)!;
+    expect(parsed.settings?.llmApiKey).toBeUndefined();
+    const result = applyBackup(parsed, {
+      watchlist: [],
+      alerts: [],
+      reminders: [],
+      stockWatches: [],
+      settings: { ...DEFAULT_SETTINGS, llmApiKey: "sk-local" },
+    });
+    expect(result.settings.llmApiKey).toBe("sk-local");
+  });
+});

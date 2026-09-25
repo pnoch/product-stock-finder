@@ -17,6 +17,10 @@ import {
   SYNC_PUSH_MAX_ITEMS,
 } from "@/shared/const";
 import { mergePriceHistory } from "@/lib/price-history";
+import {
+  applyLocalLlmKey,
+  stripDeviceLocalSettings,
+} from "@/lib/settings-privacy";
 
 export interface SyncNowOptions {
   storage: Storage;
@@ -54,22 +58,6 @@ const COLLECTIONS: Collection[] = [
 ];
 const SETTINGS_ID = "settings";
 const inFlight = new WeakMap<Storage, Promise<void>>();
-
-// The BYO-LLM API key is device-local, not a synced preference: pushing it would
-// store the user's secret at rest on the server and broadcast it to every other
-// device. The server only ever needs it per-request (x-llm-key header), so it is
-// stripped from the pushed settings and preserved across pulls.
-function stripDeviceLocalSettings(settings: AppSettings): AppSettings {
-  const copy = { ...settings };
-  delete copy.llmApiKey;
-  return copy;
-}
-
-function withLocalLlmKey(next: AppSettings, local: AppSettings): AppSettings {
-  if (local.llmApiKey) next.llmApiKey = local.llmApiKey;
-  else delete next.llmApiKey;
-  return next;
-}
 
 export async function syncNow(opts: SyncNowOptions): Promise<void> {
   if (!opts.isSignedIn()) return;
@@ -638,7 +626,7 @@ async function applyLocalItem(
         // First sync after upgrade: no base to merge against, but this device's
         // API key must survive (an older server row may still carry one).
         await storage.saveSettings(
-          withLocalLlmKey({ ...stripDeviceLocalSettings(incoming) }, local),
+          applyLocalLlmKey({ ...stripDeviceLocalSettings(incoming) }, local),
         );
         break;
       }
@@ -658,7 +646,7 @@ async function applyLocalItem(
         if (key in local) continue;
         delete (merged as unknown as Record<string, unknown>)[key];
       }
-      await storage.saveSettings(withLocalLlmKey(merged, local));
+      await storage.saveSettings(applyLocalLlmKey(merged, local));
       break;
     }
   }
