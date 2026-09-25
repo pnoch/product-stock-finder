@@ -37,11 +37,15 @@ export async function importWatchlistFromJson(): Promise<string> {
     // that stale copy back over the import.
     try {
       const { invoke: inv } = await import("@tauri-apps/api/core");
-      const [watchlist, alerts, reminders, settings] = await Promise.all([
+      const [watchlist, alerts, reminders, settings, watches] = await Promise.all([
         inv<unknown>("read_watchlist"),
         inv<unknown>("read_value_for_key", { key: "price_alerts" }),
         inv<unknown>("read_value_for_key", { key: "back_order_reminders" }),
         inv<unknown>("read_value_for_key", { key: "app_settings" }),
+        // The Rust import writes back_in_stock_watches too; omitting it left the
+        // renderer's pre-import watches in place, and the next renderer write
+        // mirrored that stale copy back over the import.
+        inv<unknown>("read_value_for_key", { key: "back_in_stock_watches" }),
       ]);
       if (watchlist) {
         await storage.saveWatchlist(
@@ -52,6 +56,7 @@ export async function importWatchlistFromJson(): Promise<string> {
       if (reminders) {
         await storage.saveBackOrderReminders((reminders ?? []) as never);
       }
+      if (watches) await storage.saveStockWatches((watches ?? []) as never);
       if (settings) await storage.saveSettings(settings as never);
     } catch {
       // best effort — the Rust files are the source of truth for the poller

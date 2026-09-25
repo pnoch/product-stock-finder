@@ -737,6 +737,37 @@ describe("desktop chart guard", () => {
     expect(text).not.toMatch(/stroke="#e5e7eb"/);
   });
 
+  // QA round 302: the native JSON import writes five collections; the
+  // renderer's rehydrate must read them all, or the imported collection stays
+  // stale in localStorage and the next renderer write mirrors it back over the
+  // import.
+  it("keeps the native import keys in sync with the renderer rehydrate", async () => {
+    const rust = await readFile("desktop/src-tauri/src/lib.rs", "utf8");
+    const start = rust.indexOf("fn import_watchlist");
+    expect(start).toBeGreaterThan(-1);
+    const importBlock = rust.slice(start, rust.indexOf("\nfn ", start + 5));
+    for (const key of [
+      "watchlist_products",
+      "price_alerts",
+      "back_order_reminders",
+      "app_settings",
+      "back_in_stock_watches",
+    ]) {
+      expect(importBlock, `rust import writes ${key}`).toContain(`"${key}"`);
+    }
+    const importer = await readFile("desktop/src/import-export.ts", "utf8");
+    // The watchlist is rehydrated through its own command.
+    expect(importer).toContain('"read_watchlist"');
+    for (const key of [
+      "price_alerts",
+      "back_order_reminders",
+      "app_settings",
+      "back_in_stock_watches",
+    ]) {
+      expect(importer, `rehydrate reads ${key}`).toContain(`"${key}"`);
+    }
+  });
+
   // QA round 299: the shared discovery client does a raw fetch that the tRPC
   // client can't wrap, so each app root must register the API-header provider —
   // otherwise discovery 401s on native/desktop (no session cookie) and ignores
