@@ -131,6 +131,39 @@ describe("syncServerNotifications dedup", () => {
     expect(state.renderData.at(-1)).toMatchObject({ type: "health" });
   });
 
+  it("suppresses a restock event for a watch the client already removed", async () => {
+    state.stockWatches = [];
+    state.pulledEvents = [
+      {
+        id: "evt-restock",
+        type: "restock",
+        watchId: "w-gone",
+        title: "Back in stock",
+        body: "CRS804 is available",
+        createdAt: 3,
+      },
+    ];
+    await syncServerNotifications();
+    expect(state.rendered).toHaveLength(0);
+    expect(state.recorded).toEqual([]);
+  });
+
+  it("still renders a restock event for a watch the client still holds", async () => {
+    state.stockWatches = [{ id: "w-live" }];
+    state.pulledEvents = [
+      {
+        id: "evt-restock-2",
+        type: "restock",
+        watchId: "w-live",
+        title: "Back in stock",
+        body: "CRS804 is available",
+        createdAt: 3,
+      },
+    ];
+    await syncServerNotifications();
+    expect(state.rendered).toHaveLength(1);
+  });
+
   it("skips rendering AND reconciling an already-displayed event", async () => {
     // A replayed event must not re-run reconciliation: stock-watch ids are
     // deterministic, so re-reconciling would delete a watch the user

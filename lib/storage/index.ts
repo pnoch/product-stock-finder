@@ -13,6 +13,7 @@ import { RECENT_SEARCHES_KEY } from "../recent-searches";
 import { createSyncMetaStorage } from "./sync-meta";
 import { createNotificationsStorage } from "./notifications";
 import { createDiscoveryStorage, createBackgroundTaskStorage } from "./discovery";
+import { bumpSyncGeneration } from "@/lib/sync-gate";
 
 export { DISTRIBUTOR_BREAKER_KEY };
 export type { StorageAdapter };
@@ -47,6 +48,10 @@ export function createStorage(
   // cursor but keeps device-local preferences (onboarding, theme, currency,
   // notification toggles) so signing back in doesn't reset the app.
   async function clearAccountData(): Promise<void> {
+    // Invalidate any sync already in flight before touching the store, so it
+    // cannot re-apply the previous account's rows or recreate sync_meta after
+    // the wipe (see lib/sync-gate.ts).
+    bumpSyncGeneration();
     await ctx.drainQueues();
     // Cancel scheduled notifications for the reminders/watches being wiped, or
     // they still fire after sign-out.

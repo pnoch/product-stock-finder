@@ -18,6 +18,7 @@ import {
   SYNC_PUSH_MAX_BYTES,
   SYNC_PUSH_MAX_ITEMS,
 } from "@/shared/const";
+import { currentSyncGeneration } from "@/lib/sync-gate";
 import { mergePriceHistory } from "@/lib/price-history";
 import {
   applyLocalLlmKey,
@@ -79,6 +80,9 @@ async function doSync(
   inheritedError: string | null = null,
 ): Promise<void> {
   const storage = opts.storage;
+  // Any logout that wipes the store while this sync is in flight bumps the
+  // generation; this run must then stop before writing anything back.
+  const gate = currentSyncGeneration();
   const meta = await storage.getSyncMeta();
   const oldCursor = meta.lastSyncedAt || 0;
   const since = meta.lastSyncedAt || null;
@@ -119,6 +123,9 @@ async function doSync(
     });
     return;
   }
+
+  // The account may have been wiped while the pull was in flight.
+  if (currentSyncGeneration() !== gate) return;
 
   const applied = new Set<string>();
   storage.setChangeSuppressed(true);
@@ -175,7 +182,11 @@ async function doSync(
       for (const id of ids) {
         if (pulledIds.has(`${collection}:${id}`)) continue;
         const entry = meta.items[collection]?.[id];
-        if (entry && entry.updatedAt < cutoff) {
+        // `entry.updatedAt <= oldCursor` means the item was already confirmed
+        // at or before the last successful sync; anything edited since is still
+        // dirty (or was never pushed at all) and must be kept and pushed —
+        // dropping it deleted genuinely local, never-synced work.
+        if (entry && entry.updatedAt < cutoff && entry.updatedAt <= oldCursor) {
           await removeLocalItem(storage, collection, id);
           await storage.clearItemSyncMeta(collection, id);
         }
@@ -320,6 +331,9 @@ async function doSync(
     metaAfter.lastSyncOkAt = opts.now?.() ?? Date.now();
     // Base for the next settings per-field merge (post-merge local state).
     metaAfter.settingsSnapshot = await storage.getSettings();
+    // A wipe during the push must not resurrect the cursor: without it the next
+    // account's first sync is incremental and silently skips rows.
+    if (currentSyncGeneration() !== gate) return;
     await storage.saveSyncMeta(metaAfter);
     for (const { collection, id } of staleTombstonesToClear) {
       await storage.clearItemSyncMeta(collection, id);

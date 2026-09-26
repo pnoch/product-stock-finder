@@ -155,6 +155,7 @@ async function runSyncServerNotifications(): Promise<void> {
           }))
       : [];
     const activeAlertIds = new Set(activeAlerts.map((a) => a.id));
+    const currentWatchIds = new Set((await getStockWatches()).map((w) => w.id));
 
     const stockWatches = settings.stockAlerts
       ? (await getStockWatches()).map((w) => ({
@@ -225,9 +226,16 @@ async function runSyncServerNotifications(): Promise<void> {
     for (const event of events) {
       await recordNotificationEvent(event);
       const staleFired =
-        (event.type === "price_drop" || event.type === "price_rise") &&
-        event.alertId &&
-        !activeAlertIds.has(event.alertId);
+        ((event.type === "price_drop" || event.type === "price_rise") &&
+          event.alertId &&
+          !activeAlertIds.has(event.alertId)) ||
+        // The client's own check may have fired and removed the watch already;
+        // the server still holds the uploaded config and sends its own restock
+        // event for the same restock, which would double-notify (the price path
+        // is guarded the same way).
+        (event.type === "restock" &&
+          Boolean(event.watchId) &&
+          !currentWatchIds.has(event.watchId!));
       if (!staleFired && !displayedIds.has(event.id)) {
         // Only mark displayed when something was actually shown; otherwise the
         // event would be dropped forever even after permissions are granted.

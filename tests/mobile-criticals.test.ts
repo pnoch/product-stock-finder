@@ -215,6 +215,8 @@ describe("watchlist undo restores the deleted product's cascade", () => {
     expect(block).toContain("scheduleBackOrderReminder(");
     expect(block).toContain("await addBackOrderReminder(");
     expect(block).toContain("await addStockWatch(watch)");
+    // A failed re-schedule must clear the cascade-cancelled id, not keep it.
+    expect(block).toContain("notificationId = notifId ?? undefined;");
   });
 });
 

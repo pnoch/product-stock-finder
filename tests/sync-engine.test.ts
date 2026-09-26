@@ -126,8 +126,10 @@ describe("syncNow", () => {
   it("drops stale local items on full resync instead of resurrecting them", async () => {
     const storage = makeStorage();
     await storage.addToWatchlist(makeProduct("old"));
-    // Simulate an item synced long ago (stale meta, older than retention).
+    // Simulate an item synced long ago (stale meta, older than retention) by a
+    // sync that advanced the cursor to that stamp.
     await storage.setItemSyncMeta("watchlist", "old", 1000);
+    await storage.saveSyncMeta({ lastSyncedAt: 1000, items: {} });
     const pull = vi.fn(
       async (): Promise<{
         lastSyncedAt: number;
@@ -148,6 +150,35 @@ describe("syncNow", () => {
       items.map((i) => i.id),
     );
     expect(pushedIds).not.toContain("old");
+  });
+
+  it("keeps a never-pushed local item on full resync even with a stale meta stamp", async () => {
+    const storage = makeStorage();
+    await storage.addToWatchlist(makeProduct("local"));
+    // The edit recorded meta, but every push failed so the cursor never moved
+    // past it. Such an item was never confirmed on the server, so the drop must
+    // not delete it (doing so was silent local data loss).
+    await storage.setItemSyncMeta("watchlist", "local", 1000);
+    const pull = vi.fn(
+      async (): Promise<{
+        lastSyncedAt: number;
+        items: SyncItem[];
+        fullResyncSince?: number | null;
+      }> => ({ lastSyncedAt: 5000, items: [], fullResyncSince: 4000 }),
+    );
+    const push = vi.fn(async (_items: SyncItem[]) => ({ accepted: 0, stamped: [] }));
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull,
+      push,
+      now: () => 6000,
+    });
+    expect((await storage.getWatchlist()).map((p) => p.id)).toEqual(["local"]);
+    const pushedIds = push.mock.calls.flatMap(([items]: SyncItem[][]) =>
+      items.map((i) => i.id),
+    );
+    expect(pushedIds).toContain("local");
   });
 
   it("preserves never-synced local items on full resync", async () => {

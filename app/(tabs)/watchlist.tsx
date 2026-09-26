@@ -485,7 +485,9 @@ export default function WatchlistScreen() {
             when,
             reminder.productId,
           ).catch(() => null);
-          if (notifId) notificationId = notifId;
+          // The cascade cancelled the old schedule, so a failed re-schedule
+          // must not keep the dead id: the row would look armed but never fire.
+          notificationId = notifId ?? undefined;
         }
         await addBackOrderReminder({ ...reminder, notificationId });
       }
