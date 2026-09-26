@@ -92,6 +92,17 @@ describe("appendPricePoint", () => {
   });
 });
 
+describe("appendPricePoint", () => {
+  it("tolerates a missing history array", () => {
+    // The device-scrape branch of refreshListing passed listing.priceHistory
+    // unguarded; the throw was swallowed and the scraped price discarded.
+    const incoming = point("2026-08-11T09:00:00.000Z", 100);
+    expect(
+      appendPricePoint(undefined as unknown as PricePoint[], incoming),
+    ).toEqual([incoming]);
+  });
+});
+
 describe("mergePriceHistory", () => {
   it("tolerates a missing local history array", () => {
     // A listing restored without priceHistory (partial backup/sync payload)

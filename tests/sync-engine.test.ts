@@ -478,6 +478,71 @@ describe("syncNow", () => {
     expect(meta.lastSyncOkAt).toBe(3000);
   });
 
+  it("does not downgrade a newer per-item stamp with a stale snapshot", async () => {
+    // persistSyncMeta merges per item; overlaying a snapshot read before a
+    // concurrent write downgraded that stamp, so the edit was never uploaded.
+    const storage = makeStorage();
+    await storage.setItemSyncMeta("watchlist", "p1", 9000);
+    await storage.saveSyncMeta({
+      lastSyncedAt: 5000,
+      items: { watchlist: { p1: { updatedAt: 1000, deleted: false } } },
+    });
+    const meta = await storage.getSyncMeta();
+    expect(meta.items.watchlist?.p1?.updatedAt).toBe(9000);
+    // A genuinely newer snapshot still wins.
+    await storage.saveSyncMeta({
+      lastSyncedAt: 20000,
+      items: { watchlist: { p1: { updatedAt: 20000, deleted: false } } },
+    });
+    expect((await storage.getSyncMeta()).items.watchlist?.p1?.updatedAt).toBe(20000);
+  });
+
+  it("does not re-push an item that was just pushed and stamped", async () => {
+    // Regression: the item's meta carried the server's push stamp, which is
+    // always > the pull cursor, so every subsequent sync re-pushed it and
+    // advanced its stamp — and a peer device's genuine edit was rejected as
+    // stale against that ever-growing stamp.
+    const storage = makeStorage();
+    await storage.addToWatchlist(makeProduct("p1"));
+    let serverNow = 1000;
+    const stored = new Map<string, { data: unknown; updatedAt: number }>();
+    const pushedItems: SyncItem[][] = [];
+    const pull = vi.fn(async (since: number | null) => {
+      serverNow += 10;
+      const items = [...stored.entries()]
+        .filter(([, v]) => since === null || v.updatedAt > since)
+        .map(([key, v]) => {
+          const [collection, id] = key.split(":") as [never, string];
+          return { collection, id, data: v.data, updatedAt: v.updatedAt, deletedAt: null };
+        });
+      return { lastSyncedAt: serverNow, items };
+    });
+    const push = vi.fn(
+      async (
+        items: SyncItem[],
+      ): Promise<{ accepted: number; stamped: SyncStampedItem[] }> => {
+        pushedItems.push(items);
+        serverNow += 10;
+        const stamped = items.map((i) => {
+          stored.set(`${i.collection}:${i.id}`, {
+            data: i.data,
+            updatedAt: serverNow,
+          });
+          return { collection: i.collection, id: i.id, updatedAt: serverNow };
+        });
+        return { accepted: items.length, stamped };
+      },
+    );
+    const deps = { storage, isSignedIn: () => true, pull, push };
+    await syncNow(deps as never);
+    await syncNow(deps as never);
+    await syncNow(deps as never);
+    // Only the first sync pushes; the later ones have nothing dirty.
+    expect(pushedItems).toHaveLength(1);
+    expect(pushedItems[0]).toHaveLength(1);
+    expect(pushedItems[0]![0]!.id).toBe("p1");
+  });
+
   it("keeps lastSyncedAt unchanged when push fails", async () => {
     const storage = makeStorage();
     await storage.addToWatchlist(makeProduct("p1"));
@@ -888,7 +953,10 @@ describe("syncNow", () => {
       now: () => 3000,
     });
     const meta = await storage.getSyncMeta();
-    expect(meta.items.watchlist?.p1?.updatedAt).toBe(2500);
+    // Capped at the cursor (still a server time): a raw stamp from the push
+    // response is always a few ms past `lastSyncedAt`, which made collectDirty
+    // re-collect the item on every sync and inflate its stamp each time.
+    expect(meta.items.watchlist?.p1?.updatedAt).toBe(2000);
   });
 
   it("does not advance per-item meta for rejected pushes", async () => {

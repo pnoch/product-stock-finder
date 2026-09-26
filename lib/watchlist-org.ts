@@ -86,6 +86,10 @@ export function priceDropPercent(product: Product, displayCurrency: string = "US
   const history = (product.listings ?? []).flatMap((l) => l.priceHistory ?? []);
   let max = 0;
   for (const point of history) {
+    // Purchasable history only, like bestPricePoints/computePriceChange: an
+    // out-of-stock point's price is not an achievable peak, and including it
+    // reported a fake drop that ranked the product first in the Price Drop sort.
+    if (point.stockStatus !== "in_stock") continue;
     const converted = convertPrice(point.price, point.currency, displayCurrency);
     if (converted === null) continue;
     if (converted > max) max = converted;
@@ -201,10 +205,9 @@ export function sortWatchlist(
         const pa = getBestPrice(a.listings ?? [], displayCurrency)?.price ?? Infinity;
         const pb = getBestPrice(b.listings ?? [], displayCurrency)?.price ?? Infinity;
         if (pa !== pb) return pa - pb;
-        return (
-          new Date(b.addedAt ?? 0).getTime() -
-          new Date(a.addedAt ?? 0).getTime()
-        );
+        // `Date.parse(...) || 0` like the recent branch: a malformed addedAt
+        // produced a NaN comparator and an implementation-defined order.
+        return (Date.parse(b.addedAt ?? "") || 0) - (Date.parse(a.addedAt ?? "") || 0);
       });
     case "price_drop":
       return copy.sort((a, b) => {

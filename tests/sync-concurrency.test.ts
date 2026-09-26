@@ -74,7 +74,10 @@ describe("syncNow concurrency", () => {
     const second = push.mock.calls[1]![0];
     expect(second.map((i) => i.id)).toEqual(["p2"]);
     const meta = await storage.getSyncMeta();
-    expect(meta.items.watchlist?.p2?.updatedAt).toBe(6000);
+    // The concurrent local edit's stamp (5000) is newer than the capped server
+    // value for this pass (the fake pull returns a constant cursor of 2000, so
+    // the cap lands at 2000 and the per-item merge keeps the greater stamp).
+    expect(meta.items.watchlist?.p2?.updatedAt).toBe(5000);
   });
 
   it("records an error and preserves tombstones when the push rejects items", async () => {

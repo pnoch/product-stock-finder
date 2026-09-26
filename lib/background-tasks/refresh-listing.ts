@@ -102,7 +102,7 @@ export async function refreshListing(
       url: result.url,
       lastChecked: now,
       priceHistory: appendPricePoint(
-        listing.priceHistory,
+        listing.priceHistory ?? [],
         newPricePoint,
         PRICE_HISTORY_DAYS,
       ),

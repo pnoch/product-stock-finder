@@ -64,10 +64,20 @@ export function createSyncMetaStorage(ctx: StorageContext) {
     const existing = await getSyncMeta();
     const merged: SyncMeta["items"] = { ...existing.items };
     for (const [collection, entries] of Object.entries(meta.items)) {
-      merged[collection as keyof SyncMeta["items"]] = {
-        ...(existing.items[collection as keyof SyncMeta["items"]] ?? {}),
-        ...entries,
-      } as never;
+      const key = collection as keyof SyncMeta["items"];
+      const mergedColumn = { ...(existing.items[key] ?? {}) };
+      for (const [id, entry] of Object.entries(entries ?? {})) {
+        const current = mergedColumn[id];
+        // Per-item max, like `lastSyncedAt` below: the snapshot this caller read
+        // can be older than a stamp a concurrent writer just persisted (the sync
+        // engine reads meta, awaits, then saves). Overlaying it downgraded that
+        // newer stamp, so the edit was never collected as dirty and never
+        // uploaded — a silent lost update.
+        if (!current || entry.updatedAt >= current.updatedAt) {
+          mergedColumn[id] = entry;
+        }
+      }
+      merged[key] = mergedColumn as never;
     }
     await adapter.setItem(
       KEYS.SYNC_META,

@@ -101,6 +101,37 @@ describe("productRegion", () => {
 });
 
 describe("priceDropPercent", () => {
+  it("ignores out-of-stock history points", () => {
+    // Including them reported a fake drop and ranked the product first in the
+    // Price Drop sort; sibling helpers use in-stock history only.
+    const p = {
+      id: "p1",
+      name: "P",
+      addedAt: new Date().toISOString(),
+      listings: [
+        {
+          distributorId: "server2u-my",
+          price: 100,
+          currency: "USD",
+          stockStatus: "in_stock",
+          priceHistory: [
+            { date: "2026-08-01", price: 100, currency: "USD", stockStatus: "in_stock" },
+          ],
+        },
+        {
+          distributorId: "linitx-uk",
+          price: 100,
+          currency: "USD",
+          stockStatus: "out_of_stock",
+          priceHistory: [
+            { date: "2026-08-01", price: 1000, currency: "USD", stockStatus: "out_of_stock" },
+          ],
+        },
+      ],
+    } as unknown as Product;
+    expect(priceDropPercent(p)).toBe(0);
+  });
+
   it("returns null when there is no best in-stock price", () => {
     const p = makeProduct({}, [
       makeListing("d1", { price: 100, stockStatus: "out_of_stock" }),

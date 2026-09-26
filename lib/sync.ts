@@ -275,7 +275,13 @@ async function doSync(
       if (item.deletedAt !== null) stampedTombstones.push({ collection: item.collection, id: item.id });
       const col = metaAfter.items[item.collection] ?? {};
       col[item.id] = {
-        updatedAt: stampedAt,
+        // Cap at the cursor: the push lands a few ms after the pull, so a raw
+        // server stamp is always `> lastSyncedAt` and `collectDirty` re-collected
+        // the item on every sync. Each re-push then inflated the stamp again,
+        // and a peer device's genuine edit looked stale forever (rejected and
+        // retried against an ever-newer stamp). The cursor is still a server
+        // time, so the LWW base stays server-corrected, not client-clocked.
+        updatedAt: Math.min(stampedAt, nextCursor),
         deleted: item.deletedAt !== null,
       };
       metaAfter.items[item.collection] = col;

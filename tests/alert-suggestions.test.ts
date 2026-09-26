@@ -30,6 +30,25 @@ function point(daysAgo: number, price: number, currency = "USD") {
 }
 
 describe("suggestAlertPrices", () => {
+  it("ignores out-of-stock history for near_low", () => {
+    // An out-of-stock point's low price produced a target the alert could never
+    // reach.
+    const result = suggestAlertPrices(
+      [
+        listing({
+          price: 100,
+          stockStatus: "in_stock",
+          priceHistory: [
+            { date: "2026-08-01", price: 100, currency: "USD", stockStatus: "in_stock" },
+            { date: "2026-08-02", price: 20, currency: "USD", stockStatus: "out_of_stock" },
+          ],
+        }),
+      ],
+      "USD",
+    );
+    expect(result.find((s) => s.key === "near_low")?.price).toBe(100);
+  });
+
   it("returns near_low from historical prices", () => {
     const result = suggestAlertPrices(
       [listing({ price: 209, priceHistory: [point(10, 209), point(5, 220)] })],

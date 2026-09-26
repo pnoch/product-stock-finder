@@ -41,7 +41,12 @@ export function suggestAlertPrices(
 ): AlertSuggestion[] {
   const candidates: AlertSuggestion[] = [];
 
-  const allPoints = listings.flatMap((l) => l.priceHistory ?? []);
+  // Purchasable history only (same rule as bestPricePoints/computePriceChange):
+  // an out-of-stock point's low price produced a "Near low"/"Below avg" target
+  // the alert could never reach.
+  const allPoints = listings
+    .flatMap((l) => l.priceHistory ?? [])
+    .filter((p) => p.stockStatus === "in_stock");
   const convertedPoints = allPoints
     .map((p) => convert(p.price, p.currency, currency))
     .filter((v): v is number => v !== null);

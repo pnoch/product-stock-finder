@@ -8,11 +8,15 @@ export function appendPricePoint(
   maxDays = 365,
   now = new Date().toISOString(),
 ): PricePoint[] {
+  // Callers pass a listing's history, which can be missing on data restored
+  // from a partial backup or sync payload (`mergePriceHistory` guards the same
+  // way); without it the scrape result was discarded by the caller's catch.
+  const incoming = history ?? [];
   if (Number.isNaN(Date.parse(point.date))) {
     // Drop invalid incoming point; also prune invalid history entries
-    return history.filter((p) => !Number.isNaN(Date.parse(p.date)));
+    return incoming.filter((p) => !Number.isNaN(Date.parse(p.date)));
   }
-  const validHistory = history.filter((p) => !Number.isNaN(Date.parse(p.date)));
+  const validHistory = incoming.filter((p) => !Number.isNaN(Date.parse(p.date)));
   const day = point.date.slice(0, 10);
   const existingIdx = validHistory.findIndex((p) => p.date.slice(0, 10) === day);
 
