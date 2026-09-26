@@ -231,10 +231,13 @@ async function runSyncServerNotifications(): Promise<void> {
       if (!staleFired && !displayedIds.has(event.id)) {
         // Only mark displayed when something was actually shown; otherwise the
         // event would be dropped forever even after permissions are granted.
+        // Carry the real event type: without it the locally-shown copy is
+        // tagged "server_event" and cannot route to /stats (digest) or /health
+        // on tap, unlike the push copy which keeps the type.
         const shown = await scheduleServerEventNotification(
           event.title,
           event.body,
-          { productId: event.productId },
+          { productId: event.productId, type: event.type },
         );
         if (shown) await recordDisplayedEventId(event.id);
       }

@@ -14,6 +14,8 @@ import type {
 import {
   PRICE_HISTORY_DAYS,
   PRICE_HISTORY_SYNC_DAYS,
+  SYNC_PUSH_ITEM_MAX_BYTES,
+  SYNC_PUSH_MAX_BYTES,
   SYNC_PUSH_MAX_ITEMS,
 } from "@/shared/const";
 import { mergePriceHistory } from "@/lib/price-history";
@@ -205,8 +207,7 @@ async function doSync(
       // with more dirty items than the cap would never sync. Send in batches
       // and merge the verdicts; a failed batch aborts the rest (local changes
       // stay dirty for the next sync).
-      for (let i = 0; i < dirty.length; i += SYNC_PUSH_MAX_ITEMS) {
-        const batch = dirty.slice(i, i + SYNC_PUSH_MAX_ITEMS);
+      for (const batch of batchSyncItems(dirty)) {
         const result = await opts.push(batch);
         stamped = stamped.concat(result.stamped);
         rejected = rejected.concat(
@@ -504,6 +505,45 @@ async function collectLocalState(storage: Storage): Promise<{
   };
 }
 
+function itemBytes(data: unknown): number {
+  try {
+    return JSON.stringify(data ?? null).length;
+  } catch {
+    return Number.POSITIVE_INFINITY;
+  }
+}
+
+// The server rejects a push over either SYNC_PUSH_MAX_ITEMS or
+// SYNC_PUSH_MAX_BYTES outright, and a rejected push is retried with the same
+// dirty items forever. Batch on both: count alone lets 200 history-heavy
+// watchlist items exceed the byte cap.
+function batchSyncItems(items: SyncItem[]): SyncItem[][] {
+  const batches: SyncItem[][] = [];
+  let current: SyncItem[] = [];
+  let bytes = 0;
+  for (const item of items) {
+    const size = itemBytes(item.data);
+    if (
+      current.length > 0 &&
+      (current.length >= SYNC_PUSH_MAX_ITEMS ||
+        bytes + size > SYNC_PUSH_MAX_BYTES)
+    ) {
+      batches.push(current);
+      current = [];
+      bytes = 0;
+    }
+    current.push(item);
+    bytes += size;
+  }
+  if (current.length > 0) batches.push(current);
+  return batches;
+}
+
+// History dominates a watchlist item's size (25 listings × up to 30 days of
+// points), and one item over SYNC_PUSH_ITEM_MAX_BYTES rejects the whole push
+// forever. Trim the pushed copy (never the local one) until it fits.
+const SYNC_HISTORY_FALLBACK_POINTS = [20, 10, 5, 2, 1, 0] as const;
+
 function serializeItem(collection: Collection, item: unknown): unknown {
   if (collection !== "watchlist") return item;
   const product = item as Product;
@@ -513,23 +553,38 @@ function serializeItem(collection: Collection, item: unknown): unknown {
   // Defensive `?? []`: a corrupt/legacy stored product can lack `listings` (or
   // a listing can lack `priceHistory`), and a throw here aborts the whole sync
   // (not just this item) since collectDirty is not per-item guarded.
-  return {
+  const withHistory = (maxPointsPerListing: number | null) => ({
     ...product,
-    listings: (product.listings ?? []).map((l) => ({
-      distributorId: l.distributorId,
-      productId: l.productId,
-      price: l.price,
-      currency: l.currency,
-      stockStatus: l.stockStatus,
-      expectedDate: l.expectedDate,
-      url: l.url,
-      lastChecked: l.lastChecked,
-      taxRate: l.taxRate,
-      priceHistory: (l.priceHistory ?? []).filter(
+    listings: (product.listings ?? []).map((l) => {
+      const withinWindow = (l.priceHistory ?? []).filter(
         (p) => p.date.slice(0, 10) >= cutoffDay,
-      ),
-    })),
-  };
+      );
+      return {
+        distributorId: l.distributorId,
+        productId: l.productId,
+        price: l.price,
+        currency: l.currency,
+        stockStatus: l.stockStatus,
+        expectedDate: l.expectedDate,
+        url: l.url,
+        lastChecked: l.lastChecked,
+        taxRate: l.taxRate,
+        priceHistory:
+          maxPointsPerListing === null
+            ? withinWindow
+            : maxPointsPerListing === 0
+              ? []
+              : withinWindow.slice(-maxPointsPerListing),
+      };
+    }),
+  });
+  let serialized = withHistory(null);
+  if (itemBytes(serialized) < SYNC_PUSH_ITEM_MAX_BYTES) return serialized;
+  for (const keep of SYNC_HISTORY_FALLBACK_POINTS) {
+    serialized = withHistory(keep);
+    if (itemBytes(serialized) < SYNC_PUSH_ITEM_MAX_BYTES) break;
+  }
+  return serialized;
 }
 
 async function applyLocalItem(

@@ -4,6 +4,7 @@ import {
   createMemoryBreakerStore,
   createStorageBreakerStore,
   resilientFetch,
+  BrowserBlockedError,
   BrowserUnavailableError,
   type BreakerEntry,
 } from "../lib/scrapers/resilient";
@@ -201,6 +202,27 @@ describe("resilientFetch", () => {
     expect(outcome.status).toBe("ok");
     expect(outcome.method).toBe("browser");
     expect(browserMock.fetchWithBrowser).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry a definitive browser block", async () => {
+    const fetchMock = vi.fn(
+      async () => new Response("403 Forbidden", { status: 403 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    browserMock.fetchWithBrowser.mockRejectedValue(
+      new BrowserBlockedError("Cloudflare challenge could not be resolved"),
+    );
+    const state = createMemoryBreakerStore();
+    const outcome = await resilientFetch({
+      parser: makeParser({ useBrowser: true }),
+      url: "https://example.com/search?q=CRS804",
+      state,
+    });
+    expect(outcome.status).toBe("blocked");
+    // One navigation, not maxRetries+1: re-driving a blocking challenge only
+    // compounds it and misreports the outcome as a transient error.
+    expect(browserMock.fetchWithBrowser).toHaveBeenCalledTimes(1);
+    expect(await state.get("d1")).toMatchObject({ status: "blocked" });
   });
 
   it("forwards timeoutMs to the browser escalation path", async () => {

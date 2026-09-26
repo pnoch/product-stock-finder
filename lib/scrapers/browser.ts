@@ -2,6 +2,7 @@ import { chromium, Browser, BrowserContext } from "playwright";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { USER_AGENTS } from "./utils";
+import { BrowserBlockedError } from "./resilient";
 import { DISTRIBUTORS } from "@shared/distributors";
 
 const VIEWPORTS = [
@@ -245,7 +246,7 @@ async function createStealthContext(
   }
 
   // Add scripts to evade detection
-  await context.addInitScript(() => {
+  await context.addInitScript((locale: string) => {
     // Override navigator.webdriver
     Object.defineProperty(navigator, "webdriver", {
       get: () => false,
@@ -256,9 +257,11 @@ async function createStealthContext(
       get: () => [1, 2, 3, 4, 5],
     });
 
-    // Override navigator.languages
+    // Override navigator.languages. Derive it from the distributor's region
+    // locale: hardcoding en-US made non-US stores render in USD, so the parser
+    // then converted a wrong-currency price.
     Object.defineProperty(navigator, "languages", {
-      get: () => ["en-US", "en"],
+      get: () => [locale, locale.split("-")[0] ?? "en-US"],
     });
 
     // Override chrome runtime
@@ -286,7 +289,7 @@ async function createStealthContext(
       }
       return getParameter.call(this, parameter);
     };
-  });
+  }, signals.locale);
 
   return context;
 }
@@ -378,7 +381,9 @@ export async function fetchWithBrowser(
       options?.timeoutMs || 30000,
     );
     if (!cloudflareResolved) {
-      throw new Error("Cloudflare challenge could not be resolved");
+      // A 403 body or a challenge that outlasted the timeout is a definitive
+      // block: surface it as such so resilientFetch doesn't retry it.
+      throw new BrowserBlockedError("Cloudflare challenge could not be resolved");
     }
 
     if (options?.waitForSelector) {

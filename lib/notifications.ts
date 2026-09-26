@@ -288,7 +288,18 @@ export async function schedulePriceAlert(
 
 // ─── Send a test notification ─────────────────────────────────────────────────
 export async function sendTestNotification(): Promise<boolean> {
-  if (Platform.OS === "web") return false;
+  if (Platform.OS === "web") {
+    // The web build shows notifications through the Notification API; returning
+    // false unconditionally made the test button always report "Permission
+    // Required" even when notifications were actually granted.
+    const granted = await ensureNotificationPermission();
+    if (!granted) return false;
+    const { displayWebNotification } = await import("./web-notifications");
+    return displayWebNotification(
+      "✅ Notifications Working!",
+      "Product Stock Finder will alert you when prices drop or items come back in stock.",
+    );
+  }
   const granted = await requestNotificationPermissions();
   if (!granted) return false;
   try {

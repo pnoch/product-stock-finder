@@ -1,8 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { createStorage, type Storage } from "../lib/storage";
 import { syncNow } from "../lib/sync";
-import type { Product, SyncItem } from "../lib/types";
-import { SYNC_PUSH_MAX_ITEMS } from "../shared/const";
+import {
+  SYNC_PUSH_ITEM_MAX_BYTES,
+  SYNC_PUSH_MAX_BYTES,
+  SYNC_PUSH_MAX_ITEMS,
+} from "../shared/const";
+import type { DistributorListing, Product, StockStatus, SyncItem } from "../lib/types";
 
 function makeStorage(): Storage {
   const store = new Map<string, string>();
@@ -20,7 +24,33 @@ function makeStorage(): Storage {
   });
 }
 
-function makeProduct(id: string): Product {
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Dates must sit inside serializeItem's 30-day window, which it computes from
+// the real clock, so anchor them to Date.now().
+function history(): DistributorListing["priceHistory"] {
+  return Array.from({ length: 30 }, (_, d) => ({
+    date: new Date(Date.now() - d * DAY_MS).toISOString(),
+    price: 1234.5678 + d,
+    currency: "USD",
+    stockStatus: "in_stock" as StockStatus,
+  }));
+}
+
+function listing(i: number, urlLength: number): DistributorListing {
+  return {
+    distributorId: `dist-${i % 25}`,
+    productId: "p",
+    price: 1234.5678,
+    currency: "USD",
+    stockStatus: "in_stock",
+    url: `https://example.com/${"x".repeat(urlLength)}/${i}`,
+    lastChecked: new Date().toISOString(),
+    priceHistory: history(),
+  };
+}
+
+function product(id: string, listings: number, urlLength: number): Product {
   return {
     id,
     name: `Product ${id}`,
@@ -28,64 +58,84 @@ function makeProduct(id: string): Product {
     brand: "Test",
     category: "Switch",
     description: "",
-    addedAt: "2026-08-01T00:00:00.000Z",
+    addedAt: new Date().toISOString(),
     isWatched: true,
-    listings: [],
+    listings: Array.from({ length: listings }, (_, i) => listing(i, urlLength)),
   };
 }
 
-describe("sync push batching", () => {
-  it("splits a large dirty set into batches within the server cap", async () => {
-    const storage = makeStorage();
-    const total = SYNC_PUSH_MAX_ITEMS * 2 + 5;
-    for (let i = 0; i < total; i++) {
-      await storage.addToWatchlist(makeProduct(`p${i}`));
-    }
+const bytesOf = (data: unknown) => JSON.stringify(data ?? null).length;
 
-    const batches: number[] = [];
-    const push = vi.fn(async (items: SyncItem[]) => {
-      batches.push(items.length);
-      return {
-        accepted: items.length,
-        stamped: items.map((i) => ({
-          collection: i.collection,
-          id: i.id,
-          updatedAt: i.updatedAt,
-        })),
-      };
-    });
+function pushedBatches(push: { mock: { calls: unknown[][] } }): SyncItem[][] {
+  return push.mock.calls.map((call) => call[0] as SyncItem[]);
+}
+
+describe("sync push batching respects the server byte caps", () => {
+  it("splits a large dirty set so no batch exceeds the total byte cap", async () => {
+    const storage = makeStorage();
+    // ~80 KB per product (25 listings x 30 points) x 70 => well over 5 MB.
+    for (let i = 0; i < 70; i++) {
+      await storage.addToWatchlist(product(`bulk-${i}`, 25, 900));
+    }
+    const pull = vi.fn(async () => ({
+      lastSyncedAt: 5000,
+      items: [] as SyncItem[],
+    }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({
+      accepted: 0,
+      stamped: [],
+    }));
 
     await syncNow({
       storage,
       isSignedIn: () => true,
-      pull: vi.fn(async () => ({ lastSyncedAt: 0, items: [] })),
+      pull,
       push,
-      now: () => 1000,
+      now: () => Date.now(),
     });
 
+    const batches = pushedBatches(push);
     expect(batches.length).toBeGreaterThan(1);
-    for (const size of batches) {
-      expect(size).toBeLessThanOrEqual(SYNC_PUSH_MAX_ITEMS);
+    const totalItems = batches.reduce((n, b) => n + b.length, 0);
+    expect(totalItems).toBe(70);
+    for (const batch of batches) {
+      expect(batch.length).toBeLessThanOrEqual(SYNC_PUSH_MAX_ITEMS);
+      const totalBytes = batch.reduce((n, it) => n + bytesOf(it.data), 0);
+      expect(totalBytes).toBeLessThanOrEqual(SYNC_PUSH_MAX_BYTES);
     }
-    expect(batches.reduce((a, b) => a + b, 0)).toBe(total);
   });
 
-  it("keeps local changes dirty when a batch fails", async () => {
+  it("trims an over-cap item's pushed history but keeps it locally", async () => {
     const storage = makeStorage();
-    for (let i = 0; i < 3; i++) {
-      await storage.addToWatchlist(makeProduct(`p${i}`));
-    }
-    const push = vi.fn(async () => {
-      throw new Error("network down");
-    });
+    // 40 listings x 30 points pushes the serialized item over 100 KB.
+    await storage.addToWatchlist(product("heavy", 40, 2000));
+    const pull = vi.fn(async () => ({
+      lastSyncedAt: 5000,
+      items: [] as SyncItem[],
+    }));
+    const push = vi.fn(async (_items: SyncItem[]) => ({
+      accepted: 0,
+      stamped: [],
+    }));
+
     await syncNow({
       storage,
       isSignedIn: () => true,
-      pull: vi.fn(async () => ({ lastSyncedAt: 0, items: [] })),
+      pull,
       push,
-      now: () => 1000,
+      now: () => Date.now(),
     });
-    expect(push).toHaveBeenCalledTimes(1);
-    expect((await storage.getWatchlist()).length).toBe(3);
+
+    const pushed = pushedBatches(push).flat();
+    expect(pushed).toHaveLength(1);
+    const data = pushed[0].data as Product;
+    expect(bytesOf(data)).toBeLessThan(SYNC_PUSH_ITEM_MAX_BYTES);
+    // The pushed copy is trimmed...
+    const pushedPoints = data.listings.flatMap((l) => l.priceHistory).length;
+    // ...but the local copy still has everything storage kept (capped at 500
+    // points per product, but strictly more than the trimmed pushed copy).
+    const local = await storage.getWatchlist();
+    const localPoints = local[0].listings.flatMap((l) => l.priceHistory).length;
+    expect(localPoints).toBeGreaterThan(pushedPoints);
   });
 });

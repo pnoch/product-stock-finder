@@ -10,6 +10,7 @@ const state = vi.hoisted(() => ({
   recorded: [] as string[],
   historyRecorded: [] as Array<Record<string, unknown>>,
   rendered: [] as Array<Record<string, unknown>>,
+  renderData: [] as Array<{ productId?: string; type?: string } | undefined>,
   deactivated: [] as Array<Record<string, unknown>>,
 }));
 
@@ -55,8 +56,13 @@ vi.mock("../lib/storage", () => ({
 
 vi.mock("../lib/notifications", () => ({
   scheduleServerEventNotification: vi.fn(
-    async (title: string, body: string) => {
+    async (
+      title: string,
+      body: string,
+      data?: { productId?: string; type?: string },
+    ) => {
       state.rendered.push({ title, body });
+      state.renderData.push(data);
       // Return true so the caller records the event as displayed.
       return true;
     },
@@ -93,6 +99,7 @@ beforeEach(() => {
   state.recorded = [];
   state.historyRecorded = [];
   state.rendered = [];
+  state.renderData = [];
   state.deactivated = [];
 });
 
@@ -105,6 +112,23 @@ describe("syncServerNotifications dedup", () => {
     expect(state.historyRecorded).toHaveLength(1);
     expect(state.historyRecorded[0]!.id).toBe("evt-1");
     expect(state.deactivated).toEqual([{ alertId: "a1", price: 480 }]);
+  });
+
+  it("passes the event type through so tap routing reaches /stats and /health", async () => {
+    // Without the type, the locally-shown copy is tagged "server_event" and
+    // notificationRouteFor cannot map a digest/health tap.
+    state.pulledEvents = [
+      {
+        id: "evt-health",
+        type: "health",
+        alertId: null,
+        title: "Distributor down",
+        body: "Winncom has been blocked",
+        createdAt: 2,
+      },
+    ];
+    await syncServerNotifications();
+    expect(state.renderData.at(-1)).toMatchObject({ type: "health" });
   });
 
   it("skips rendering AND reconciling an already-displayed event", async () => {

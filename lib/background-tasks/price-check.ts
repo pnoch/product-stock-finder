@@ -236,7 +236,12 @@ export async function runPriceCheckCore(opts?: {
         } your target of ${formatPrice(alert.targetPrice, alert.currency)}!`;
         if (Platform.OS === "web") {
           const { displayWebNotification } = await import("../web-notifications");
-          displayWebNotification(title, body);
+          // The alert is already claimed; if the notification cannot be shown
+          // (permission revoked since the gate), throw so the catch re-arms it
+          // instead of consuming it silently. Mirrors the restock path.
+          if (!displayWebNotification(title, body)) {
+            throw new Error("notification could not be displayed");
+          }
         } else {
           await Notifications.scheduleNotificationAsync({
             content: {

@@ -212,6 +212,19 @@ export class BrowserUnavailableError extends Error {
   }
 }
 
+/**
+ * The site definitively blocked the headless browser (a 403 body or a
+ * challenge that never resolves). Kept distinct from BrowserUnavailableError so
+ * the retry loop can report `blocked` and stop instead of re-driving the same
+ * blocking navigation, which only compounds the block.
+ */
+export class BrowserBlockedError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "BrowserBlockedError";
+  }
+}
+
 let browserUnavailableReason: string | null = null;
 let browserUnavailableAt = 0;
 const BROWSER_UNAVAILABLE_TTL_MS = 60_000;
@@ -313,6 +326,12 @@ async function attemptMethod(
         error: error instanceof Error ? error.message : String(error),
       };
       if (error instanceof BrowserUnavailableError) break;
+      // A definitive block must not be retried: report it so the caller takes
+      // the blocked-cooldown path rather than hammering the challenge.
+      if (error instanceof BrowserBlockedError) {
+        last = { status: "blocked", method, error: last.error };
+        break;
+      }
     }
   }
   return last;
