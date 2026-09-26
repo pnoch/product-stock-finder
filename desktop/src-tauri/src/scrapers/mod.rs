@@ -115,6 +115,9 @@ async fn fetch_once(url: &str) -> Result<(String, u16), reqwest::Error> {
     let resp = get_client()
         .get(url)
         .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        // Same Accept-Language as the shared fetch: without it a store may
+        // render a different language (and currency) than the parser expects.
+        .header("Accept-Language", "en-US,en;q=0.9")
         .send()
         .await?;
     let status = resp.status().as_u16();

@@ -302,4 +302,40 @@ describe("desktop/mobile scraper parity", () => {
       );
     }
   });
+
+  it("keeps the desktop stealth context and headers in step with the shared fetch", async () => {
+    const browserRs = await readFile(
+      "desktop/src-tauri/src/scrapers/browser.rs",
+      "utf8",
+    );
+    const modRs = await readFile("desktop/src-tauri/src/scrapers/mod.rs", "utf8");
+    const sharedBrowser = await readFile("lib/scrapers/browser.ts", "utf8");
+    const sharedUtils = await readFile("lib/scrapers/utils.ts", "utf8");
+
+    // Plain path: the shared fetch sends Accept-Language; without it a store may
+    // render a different language (and currency) than the parser expects.
+    expect(sharedUtils).toContain('"Accept-Language": "en-US,en;q=0.9"');
+    expect(modRs).toContain('.header("Accept-Language", "en-US,en;q=0.9")');
+
+    // Every anti-detection override the shared init script installs must be in
+    // the desktop's script too — a default context reports webdriver = true.
+    const markers = [
+      'navigator, "webdriver"',
+      'navigator, "plugins"',
+      'navigator, "languages"',
+      "chrome = {",
+      "permissions.query",
+      '"Intel Inc."',
+      '"Intel Iris OpenGL Engine"',
+    ];
+    for (const marker of markers) {
+      expect(sharedBrowser, `shared init script lost ${marker}`).toContain(marker);
+      expect(browserRs, `Rust init script lost ${marker}`).toContain(marker);
+    }
+    expect(browserRs).toContain("add_init_script(STEALTH_INIT_SCRIPT)");
+
+    // The browser attempt retries like the shared loop, but never a block.
+    expect(browserRs).toContain("const MAX_RETRIES: u32 = 2;");
+    expect(browserRs).toContain("super::is_blocked_error(&error)");
+  });
 });

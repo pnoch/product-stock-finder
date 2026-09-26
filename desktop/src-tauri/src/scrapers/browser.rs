@@ -45,6 +45,27 @@ pub const NORTH_AMERICA: RegionSignals = RegionSignals {
     longitude: -74.006,
 };
 
+/// Runs before every page, mirroring the shared `addInitScript` block: a
+/// default context reports `navigator.webdriver = true`, which is the first
+/// thing Cloudflare/DataDome check.
+const STEALTH_INIT_SCRIPT: &str = r#"(() => {
+  Object.defineProperty(navigator, "webdriver", { get: () => false });
+  Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+  Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
+  window.chrome = { runtime: {} };
+  const originalQuery = window.navigator.permissions.query;
+  window.navigator.permissions.query = (parameters) =>
+    parameters.name === "notifications"
+      ? Promise.resolve({ state: Notification.permission })
+      : originalQuery(parameters);
+  const getParameter = WebGLRenderingContext.prototype.getParameter;
+  WebGLRenderingContext.prototype.getParameter = function (parameter) {
+    if (parameter === 37445) return "Intel Inc.";
+    if (parameter === 37446) return "Intel Iris OpenGL Engine";
+    return getParameter.call(this, parameter);
+  };
+})();"#;
+
 /// Website host (without a leading `www.`) -> region, mirroring the
 /// `DISTRIBUTORS` table in shared/src/distributors.ts for every distributor
 /// that has a Rust parser.
@@ -180,7 +201,30 @@ pub async fn fetch_with_browser(
         pool.acquire().await?
     };
 
-    let result = fetch_with_browser_inner(&entry.browser, url, wait_for_selector, timeout_ms).await;
+    // Mirror the shared attempt loop: retry a transient failure up to twice, but
+    // never a block (retrying makes it worse) and never a pool-acquire failure
+    // (the browser is unavailable, not the page).
+    const MAX_RETRIES: u32 = 2;
+    let mut result = Err(String::from("no attempt made"));
+    for attempt in 0..=MAX_RETRIES {
+        if attempt > 0 {
+            let backoff = 1000 * u64::from(attempt);
+            tokio::time::sleep(std::time::Duration::from_millis(backoff)).await;
+        }
+        match fetch_with_browser_inner(&entry.browser, url, wait_for_selector, timeout_ms).await {
+            Ok(html) => {
+                result = Ok(html);
+                break;
+            }
+            Err(error) => {
+                let blocked = super::is_blocked_error(&error);
+                result = Err(error);
+                if blocked {
+                    break;
+                }
+            }
+        }
+    }
 
     let mut pool = pool().lock().await;
     pool.release(entry);
@@ -209,6 +253,10 @@ async fn fetch_with_browser_inner(
         .build();
     let context = browser
         .new_context_with_options(options)
+        .await
+        .map_err(|e| e.to_string())?;
+    context
+        .add_init_script(STEALTH_INIT_SCRIPT)
         .await
         .map_err(|e| e.to_string())?;
     let page = context.new_page().await.map_err(|e| e.to_string())?;
