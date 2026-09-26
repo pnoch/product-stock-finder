@@ -56,7 +56,15 @@ export function dedupKeyForHealth(
   );
 }
 
-export function dedupKeyFor(event: NotificationEvent): string {
+export function dedupKeyFor(
+  event: NotificationEvent & { dedupKey?: string },
+): string {
+  // Prefer the key the builder assigned: a digest event already carries
+  // `digest:<scope>:<day>` (and that same value as its id), which the type
+  // branches below replaced with `reminder:undefined` — so re-entering quiet
+  // hours re-pushed the digest in memory mode.
+  if (event.dedupKey) return clampDedupKey(event.dedupKey);
+  if (event.type === "digest" && event.id) return clampDedupKey(event.id);
   if (event.type === "price_drop")
     return clampDedupKey(`price_drop:${event.alertId}`);
   if (event.type === "price_rise")

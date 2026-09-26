@@ -131,7 +131,13 @@ export function createContext(adapter: StorageAdapter): StorageContext {
     if (!raw) return [];
     try {
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
+      if (Array.isArray(parsed)) return parsed;
+      // Valid JSON of the wrong shape: returning [] here let the next write
+      // overwrite the payload with a fresh array. Quarantine it like a corrupt
+      // payload so the original survives for forensics/recovery.
+      await quarantinePayload(adapter, key, raw);
+      console.warn(`[storage] quarantined non-array payload for ${key}`);
+      return [];
     } catch {
       // Corrupt payload: quarantine the raw value for forensics instead of
       // silently dropping it — returning [] here would let the next write

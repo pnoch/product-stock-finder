@@ -25,7 +25,19 @@ export function createFxHistoryStorage(ctx: StorageContext) {
         !Array.isArray(parsed.timestamps)
       )
         return null;
-      return { rates: parsed.rates, timestamps: parsed.timestamps };
+      // Each currency must itself be an array: the outer guard alone let
+      // `{rates:{USD:7.3}}` through and sliceFxHistoryByRange's `.filter` threw
+      // inside the Rates screen's useMemo. Drop invalid series, keep the rest.
+      const rates: typeof parsed.rates = {};
+      const rawRates = parsed.rates as Record<string, unknown>;
+      for (const code of Object.keys(rawRates)) {
+        const series = rawRates[code];
+        if (Array.isArray(series)) {
+          (rates as Record<string, unknown>)[code] = series;
+        }
+      }
+      if (Object.keys(rates).length === 0) return null;
+      return { rates, timestamps: parsed.timestamps };
     } catch {
       return null;
     }

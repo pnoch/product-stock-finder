@@ -59,6 +59,13 @@ describe("FX Rate History Storage", () => {
       JSON.stringify({ rates: "oops", timestamps: [1] }),
     );
     expect(await storage.getFxHistory()).toBeNull();
+    // A valid object whose per-currency value is not an array used to pass the
+    // shape guard and made sliceFxHistoryByRange's `.filter` throw in the Rates
+    // screen's useMemo.
+    mockAdapter.getItem.mockResolvedValue(
+      JSON.stringify({ rates: { USD: 7.3 }, timestamps: [1] }),
+    );
+    expect(await storage.getFxHistory()).toBeNull();
   });
 });
 

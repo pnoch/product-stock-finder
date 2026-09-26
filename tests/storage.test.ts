@@ -721,6 +721,36 @@ describe("clearAllData", () => {
 });
 
 describe("concurrency regression", () => {
+  it("quarantines a valid non-array payload too", async () => {
+    // A valid JSON object under a list key used to read as [] and the next
+    // write overwrote the original payload; quarantine it like corrupt JSON.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const { createStorage } = await import("../lib/storage");
+      const store = new Map<string, string>([
+        ["watchlist_products", JSON.stringify({ not: "an array" })],
+      ]);
+      const storage = createStorage({
+        getItem: async (key: string) => store.get(key) ?? null,
+        setItem: async (key: string, value: string) => {
+          store.set(key, value);
+        },
+        removeItem: async (key: string) => {
+          store.delete(key);
+        },
+        multiRemove: async (keys: string[]) => {
+          keys.forEach((key) => store.delete(key));
+        },
+      });
+      expect(await storage.getWatchlist()).toEqual([]);
+      expect(
+        [...store.keys()].some((k) => k.startsWith("watchlist_products.corrupt-")),
+      ).toBe(true);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("quarantines corrupt payloads instead of silently dropping them", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
