@@ -295,6 +295,20 @@ export default function App() {
       getApiBaseUrl,
       loadFx: loadFxRates,
       maybeRefreshFx: maybeRefreshFxRates,
+      checkPricesOnce: async () => {
+        // Mobile runs checkPriceDropsNow() on launch; the Tauri equivalent is
+        // the same command the Watchlist's manual refresh uses (scrape →
+        // persist → alerts → tray). Best-effort: not in Tauri (web preview) or
+        // no listings yet is not an error.
+        try {
+          const raw = await storage.getWatchlist();
+          if (raw.length === 0) return;
+          const { invoke } = await import("@tauri-apps/api/core");
+          await invoke("run_full_price_check", { apiBaseUrl: getApiBaseUrl() });
+        } catch {
+          // best-effort
+        }
+      },
     });
   }, []);
 

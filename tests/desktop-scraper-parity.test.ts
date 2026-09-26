@@ -390,4 +390,17 @@ describe("desktop/mobile scraper parity", () => {
     expect(tsTests).toContain("returns false exactly at the TTL boundary");
     expect(rust).toContain("is_fresh_snapshot(now as f64 - ttl, now)");
   });
+
+  it("runs a price check on launch on both platforms", async () => {
+    // The mobile evaluates alerts/restock/digest on launch (checkPriceDropsNow);
+    // the desktop only started its poller for a non-manual interval, so a
+    // manual-only desktop never evaluated any of them.
+    const mobileLayout = await readFile("app/_layout.tsx", "utf8");
+    const launch = await readFile("desktop/src/lib/launch.ts", "utf8");
+    const app = await readFile("desktop/src/App.tsx", "utf8");
+    expect(mobileLayout).toContain("checkPriceDropsNow()");
+    expect(launch).toContain("await checkPricesOnce()");
+    expect(app).toContain("checkPricesOnce:");
+    expect(app).toContain('invoke("run_full_price_check"');
+  });
 });

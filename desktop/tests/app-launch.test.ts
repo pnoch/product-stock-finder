@@ -46,6 +46,7 @@ function makeDeps(overrides: Record<string, unknown> = {}) {
     getApiBaseUrl: vi.fn().mockReturnValue("http://api"),
     loadFx: vi.fn().mockResolvedValue(undefined),
     maybeRefreshFx: vi.fn().mockResolvedValue(undefined),
+    checkPricesOnce: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
   return { storage, deps } as unknown as {
@@ -65,6 +66,23 @@ beforeEach(() => {
 });
 
 describe("runLaunchSequence", () => {
+  it("runs a launch price check like the mobile app", async () => {
+    // Mobile's app/_layout.tsx calls checkPriceDropsNow() on launch. Without the
+    // desktop equivalent, the default "manual" interval meant alerts, restock
+    // watches and the digest only ran after a manual refresh.
+    const checkPricesOnce = vi.fn().mockResolvedValue(undefined);
+    const { deps } = makeDeps({ checkPricesOnce });
+    await runLaunchSequence(deps);
+    expect(checkPricesOnce).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps launching when the launch price check fails", async () => {
+    const checkPricesOnce = vi.fn().mockRejectedValue(new Error("offline"));
+    const { deps } = makeDeps({ checkPricesOnce });
+    await expect(runLaunchSequence(deps)).resolves.toBeUndefined();
+    expect(deps.loadFx as ReturnType<typeof vi.fn>).toHaveBeenCalled();
+  });
+
   it("seeds 7 products with freshened listings on empty watchlist", async () => {
     const { storage, deps } = makeDeps();
     await runLaunchSequence(deps);

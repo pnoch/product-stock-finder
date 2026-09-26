@@ -13,6 +13,13 @@ export interface LaunchDeps {
   getApiBaseUrl: () => string;
   loadFx: (storage: Storage) => Promise<void>;
   maybeRefreshFx: (storage: Storage) => Promise<void>;
+  /**
+   * One foreground price check (scrape → persist → alerts → tray). Mirrors the
+   * mobile's `checkPriceDropsNow()` on launch: with the default "manual"
+   * interval the poller never runs, so without this the desktop evaluated
+   * price alerts, restock watches and the digest only after a manual refresh.
+   */
+  checkPricesOnce: () => Promise<void>;
 }
 
 export async function runLaunchSequence(deps: LaunchDeps): Promise<void> {
@@ -25,6 +32,7 @@ export async function runLaunchSequence(deps: LaunchDeps): Promise<void> {
     getApiBaseUrl,
     loadFx,
     maybeRefreshFx,
+    checkPricesOnce,
   } = deps;
 
   await seedWatchlistProducts({ storage, catalog, sampleListings, freshen });
@@ -48,5 +56,12 @@ export async function runLaunchSequence(deps: LaunchDeps): Promise<void> {
     await maybeRefreshFx(storage);
   } catch (e) {
     console.error("[App] fx warm failed", e);
+  }
+
+  // After the FX overlay is warm so the check converts with live rates.
+  try {
+    await checkPricesOnce();
+  } catch (e) {
+    console.error("[App] launch price check failed", e);
   }
 }
