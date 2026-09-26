@@ -881,6 +881,17 @@ describe("desktop chart guard", () => {
   // check notification permission, so its "Alert created — watching for X" toast
   // promised notifications that could never be delivered (the other mobile
   // paths and the desktop all gate).
+  // QA audit: the search path stored `listings: []` (the catalog carries none)
+  // and never discovered any, so any catalog product outside the seed entries
+  // showed no price on Watchlist/Detail/Compare, forever.
+  it("discovers listings when adding from search", async () => {
+    const search = await readFile("app/search.tsx", "utf8");
+    expect(search).toContain("discoverListings");
+    expect(search).toContain("rediscoverProduct({");
+    expect(search).toContain("updateProductListings");
+    expect(search).toContain("listing discovery failed");
+  });
+
   // QA audit: the in-flight guard was set *after* `await
   // ensureNotificationPermission()`, so a double-tap (the button plus
   // onSubmitEditing) passed the check twice and minted two identical alerts.

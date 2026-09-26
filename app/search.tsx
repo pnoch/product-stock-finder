@@ -31,7 +31,9 @@ import {
 } from "@/lib/recent-searches";
 import { SearchEmptyState } from "@/components/search/search-empty-state";
 import { CatalogProductCard } from "@/components/search/catalog-product-card";
-import { addToWatchlist } from "@/lib/storage";
+import { addToWatchlist, updateProductListings } from "@/lib/storage";
+import { rediscoverProduct } from "@/lib/manual-add";
+import { discoverListings } from "@/lib/listing-discovery";
 import { Product } from "@/lib/types";
 import { useSearchData } from "@/hooks/use-search-data";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -327,6 +329,20 @@ export default function SearchScreen() {
           showAlert("Already tracked", `"${item.name}" is already in your watchlist.`);
           return;
         }
+        // The catalog carries no listings and nothing discovered them for this
+        // path, so the product never showed a price. Discover before the tag
+        // sheet can open so the two writes cannot race.
+        let discovered = 0;
+        try {
+          ({ discovered } = await rediscoverProduct({
+            storage: { updateProductListings },
+            discover: discoverListings,
+            productId: item.id,
+            modelNumber: item.modelNumber,
+          }));
+        } catch (e) {
+          console.warn("[Search] listing discovery failed", e);
+        }
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         loadData();
         setPendingTags((prev) => {
@@ -334,7 +350,12 @@ export default function SearchScreen() {
           delete next[item.id];
           return next;
         });
-        showToast(`Added ${item.name} to watchlist`, "success");
+        showToast(
+          discovered > 0
+            ? `Added ${item.name} — prices at ${discovered} distributor${discovered === 1 ? "" : "s"}`
+            : `Added ${item.name} — no prices yet`,
+          "success",
+        );
         if (pending.length > 0) {
           setPostAddProduct(product);
         } else {

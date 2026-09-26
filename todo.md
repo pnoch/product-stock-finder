@@ -4362,3 +4362,10 @@ Method: eight parallel reviews (shared lib, storage+sync, server data/price, ser
 
 ### Verification
 Root `tsc 0`, lint 0 errors (157 warnings), `2375 passed`; desktop `tsc 0`, `266 passed`; `cargo test` 55; `cargo clippy` unchanged.
+
+## Phase 589: Search-added products now discover listings
+
+- [x] **Gap** (from the Phase 588 audit): `app/search.tsx`'s add stored `listings: []`, and the catalog carries no listings — so nothing ever fetched prices for a product added from search results. `lib/listing-discovery.ts` was wired only into the manual-add sheet, leaving every non-seed catalog product with "No distributor data available yet" on Watchlist/Detail/Compare, permanently.
+- [x] Fixed by reusing the already-tested shared helper: after a successful `addToWatchlist`, `handleAdd` awaits `rediscoverProduct` (pumped by `discoverListings`, which searches every distributor server-first and updates the listing array). It runs *before* the tag sheet can open so the two writers cannot race, and its own failure is caught separately — the product stays added and the toast reports either the hit count or "no prices yet".
+- [x] Tests: `tests/desktop-chart-guard.test.ts` guards that the search path wires `discoverListings`/`rediscoverProduct`/`updateProductListings` (non-vacuous — deleting the call fails it); the helper itself is already behaviour-tested by `tests/manual-add.test.ts` and `tests/listing-discovery.test.ts`.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2376 passed`; desktop `tsc 0`, `266 passed`; `cargo test` 55.
