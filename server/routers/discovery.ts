@@ -8,7 +8,10 @@ import {
   invokeUserLlm,
   userLlmConfigFromHeaders,
 } from "../user-llm";
-import { BYO_LLM_AUTH_ERR_MSG } from "../../shared/const.js";
+import {
+  BYO_LLM_AUTH_ERR_MSG,
+  MAX_DISCOVERY_QUERY,
+} from "../../shared/const.js";
 
 const DISCOVERY_PROMPT = `You are a product discovery assistant. Given a product search query, return a JSON object with:
 
@@ -40,7 +43,7 @@ function cleanUrl(value: unknown, max: number): string {
 
 export const discoveryRouter = router({
   discover: protectedProcedure
-    .input(z.object({ query: z.string().min(1).max(200) }))
+    .input(z.object({ query: z.string().min(1).max(MAX_DISCOVERY_QUERY) }))
     .mutation(async ({ ctx, input }) => {
       checkRateLimit(ctx, "discovery.discover", 10, 60_000);
       // BYO-LLM: when the device has configured its own provider the call is

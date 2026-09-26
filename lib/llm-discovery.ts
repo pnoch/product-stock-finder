@@ -1,7 +1,7 @@
 import { Product, Distributor } from "./types";
 import { getApiBaseUrl } from "@/constants/oauth";
 import { defaultStorage } from "@/lib/storage";
-import { BYO_LLM_AUTH_ERR_MSG } from "@shared/const";
+import { BYO_LLM_AUTH_ERR_MSG, MAX_DISCOVERY_QUERY } from "@shared/const";
 
 export class DiscoveryAuthError extends Error {
   kind = "auth" as const;
@@ -96,6 +96,10 @@ export async function discoverProduct(
 ): Promise<{ product: Product; retailers: Distributor[] } | null> {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) throw new DiscoveryError("server", "Server not configured");
+  // The server caps the query at MAX_DISCOVERY_QUERY and rejects longer ones
+  // outright; trim here so a long paste fails loudly as an empty query rather
+  // than as an opaque validation error.
+  const boundedQuery = query.slice(0, MAX_DISCOVERY_QUERY);
   const url = `${baseUrl}/api/trpc/discovery.discover`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15_000);
@@ -108,7 +112,7 @@ export async function discoverProduct(
         ...(await discoveryHeaders()),
       },
       credentials: "include",
-      body: JSON.stringify({ json: { query } }),
+      body: JSON.stringify({ json: { query: boundedQuery } }),
       signal: controller.signal,
     });
   } catch (e) {

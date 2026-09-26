@@ -58,6 +58,24 @@ describe("backfillLocalHistory", () => {
     expect(points.length).toBe(MAX_UPLOAD_HISTORY_POINTS);
   });
 
+  it("drops a malformed point instead of losing the whole listing's history", async () => {
+    const p = product(3);
+    (p.listings[0]!.priceHistory as Array<Record<string, unknown>>).push({
+      // Date-only: the server's strict ISO-UTC regex rejects the whole payload.
+      date: "2026-01-05",
+      price: 5,
+      currency: "USD",
+      stockStatus: "in_stock",
+    });
+    vi.mocked(getWatchlist).mockResolvedValue([p] as never);
+    vi.mocked(uploadServerHistory).mockResolvedValue(true);
+
+    expect(await backfillLocalHistory()).toBe(1);
+    const points = vi.mocked(uploadServerHistory).mock.calls[0]![2];
+    expect(points).toHaveLength(3);
+    expect(points.some((pt) => pt.date === "2026-01-05")).toBe(false);
+  });
+
   it("counts only confirmed uploads", async () => {
     vi.mocked(getWatchlist).mockResolvedValue([product(10)] as never);
     vi.mocked(uploadServerHistory).mockResolvedValue(false);

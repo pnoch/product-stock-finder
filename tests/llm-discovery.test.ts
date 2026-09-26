@@ -28,6 +28,7 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
 }));
 
 import { discoverProduct, toDiscoverErrorState, DiscoveryAuthError, DiscoveryError, setDiscoveryHeadersProvider } from "../lib/llm-discovery";
+import { MAX_DISCOVERY_QUERY } from "../shared/const";
 import { BYO_LLM_AUTH_ERR_MSG } from "../shared/const";
 
 describe("discoverProduct", () => {
@@ -69,6 +70,33 @@ describe("discoverProduct", () => {
     expect(result!.product.name).toBe("Sony WH-1000XM5");
     expect(result!.retailers).toHaveLength(1);
     expect(result!.retailers[0].name).toBe("Amazon");
+  });
+
+  it("bounds the query to the server's MAX_DISCOVERY_QUERY", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        result: {
+          data: {
+            json: {
+              product: {
+                name: "Sony WH-1000XM5",
+                modelNumber: "WH-1000XM5",
+                brand: "Sony",
+                category: "Headphones",
+                description: "Noise-canceling headphones",
+              },
+              retailers: [],
+            },
+          },
+        },
+      }),
+    });
+    await discoverProduct("x".repeat(MAX_DISCOVERY_QUERY + 50));
+    const call = mockFetch.mock.calls.at(-1)!;
+    const body = JSON.parse((call[1] as { body: string }).body);
+    // The server rejects a longer query outright, so the client trims it.
+    expect(body.json.query).toHaveLength(MAX_DISCOVERY_QUERY);
   });
 
   it("throws typed DiscoveryError on fetch failure", async () => {

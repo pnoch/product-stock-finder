@@ -45,3 +45,8 @@ export const SYNC_PULL_MAX_ITEMS = 500;
 // Max price-history points per prices.uploadHistory call. The client must trim
 // to this (keeping the newest) or the whole upload is rejected.
 export const MAX_UPLOAD_HISTORY_POINTS = 200;
+
+// Max length of an AI-discovery search query (discovery.discover). The client
+// trims to this before sending: a longer paste otherwise rejects the call with
+// a validation error the user cannot act on.
+export const MAX_DISCOVERY_QUERY = 200;

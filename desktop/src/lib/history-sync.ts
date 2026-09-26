@@ -1,4 +1,4 @@
-import { MAX_UPLOAD_HISTORY_POINTS } from "../../../shared/const";
+import { sanitizeHistoryPoints } from "../../../shared/src/history-upload";
 import type { PricePoint, Product } from "../../../lib/types";
 
 export interface HistoryUploadClient {
@@ -28,12 +28,10 @@ export async function backfillLocalHistory(
     for (const listing of product.listings ?? []) {
       const history = listing.priceHistory ?? [];
       if (history.length === 0) continue;
-      // The server rejects an upload over MAX_UPLOAD_HISTORY_POINTS outright;
-      // local history can hold more, so send the newest slice.
-      const points =
-        history.length > MAX_UPLOAD_HISTORY_POINTS
-          ? history.slice(-MAX_UPLOAD_HISTORY_POINTS)
-          : history;
+      // The server rejects the whole payload over MAX_UPLOAD_HISTORY_POINTS or
+      // for any single malformed point, so sanitize (filter + trim to newest).
+      const points = sanitizeHistoryPoints(history);
+      if (points.length === 0) continue;
       try {
         await client.prices.uploadHistory.mutate({
           distributorId: listing.distributorId,

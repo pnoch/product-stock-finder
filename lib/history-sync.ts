@@ -1,7 +1,7 @@
 import { isServerConfigured } from "@/constants/oauth";
 import { getWatchlist } from "./storage";
 import { uploadServerHistory } from "./server-prices";
-import { MAX_UPLOAD_HISTORY_POINTS } from "@/shared/const";
+import { sanitizeHistoryPoints } from "@shared/history-upload";
 
 export async function backfillLocalHistory(): Promise<number> {
   if (!isServerConfigured()) return 0;
@@ -14,13 +14,12 @@ export async function backfillLocalHistory(): Promise<number> {
         // history must be skipped, not abort the whole backfill.
         const history = listing.priceHistory ?? [];
         if (history.length === 0) continue;
-        // The server rejects an upload over MAX_UPLOAD_HISTORY_POINTS outright,
-        // and local history can hold up to 500 points. Send the newest slice so
-        // the upload succeeds instead of silently failing.
-        const points =
-          history.length > MAX_UPLOAD_HISTORY_POINTS
-            ? history.slice(-MAX_UPLOAD_HISTORY_POINTS)
-            : history;
+        // The server rejects the whole payload over MAX_UPLOAD_HISTORY_POINTS
+        // or for any single malformed point, so sanitize (filter + trim to the
+        // newest) before sending instead of silently losing the listing's
+        // history.
+        const points = sanitizeHistoryPoints(history);
+        if (points.length === 0) continue;
         try {
           const ok = await uploadServerHistory(
             listing.distributorId,
