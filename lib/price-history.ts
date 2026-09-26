@@ -50,7 +50,9 @@ export function mergePriceHistory(
   now = new Date().toISOString(),
 ): PricePoint[] {
   const byDay = new Map<string, PricePoint>();
-  for (const p of [...local, ...server]) {
+  // Callers pass a listing's history, which can be missing on data restored
+  // from a partial backup or sync payload (the field is required by the type).
+  for (const p of [...(local ?? []), ...(server ?? [])]) {
     if (Number.isNaN(Date.parse(p.date))) continue;
     const day = p.date.slice(0, 10);
     const existing = byDay.get(day);

@@ -87,6 +87,34 @@ describe("backfillLocalHistory", () => {
     expect(state.uploaded).toHaveLength(0);
   });
 
+  it("skips a listing with no history and keeps uploading the rest", async () => {
+    // A listing restored without priceHistory used to throw and abort the whole
+    // backfill; desktop/src/lib/history-sync.ts already guarded it.
+    const product = makeProduct("CRS804", 0);
+    delete (product.listings[0] as { priceHistory?: unknown }).priceHistory;
+    product.listings.push({
+      distributorId: "linitx-uk",
+      productId: "crs804",
+      price: 80,
+      currency: "GBP",
+      stockStatus: "in_stock",
+      url: "https://example.com/2",
+      lastChecked: "2026-08-01T00:00:00.000Z",
+      priceHistory: [
+        {
+          date: "2026-07-01T00:00:00.000Z",
+          price: 80,
+          currency: "GBP",
+          stockStatus: "in_stock",
+        },
+      ],
+    });
+    state.watchlistStore = [product];
+    const count = await backfillLocalHistory();
+    expect(count).toBe(1);
+    expect(state.uploaded[0]).toMatchObject({ distributorId: "linitx-uk" });
+  });
+
   it("returns 0 when the watchlist is empty", async () => {
     const count = await backfillLocalHistory();
     expect(count).toBe(0);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendPricePoint } from "../lib/price-history";
+import { appendPricePoint, mergePriceHistory } from "../lib/price-history";
 import type { PricePoint, StockStatus } from "../lib/types";
 
 function point(
@@ -89,5 +89,19 @@ describe("appendPricePoint", () => {
     );
     expect(result).toHaveLength(1);
     expect(result[0].price).toBe(105);
+  });
+});
+
+describe("mergePriceHistory", () => {
+  it("tolerates a missing local history array", () => {
+    // A listing restored without priceHistory (partial backup/sync payload)
+    // reached this helper and threw, aborting the whole refresh run.
+    const server = [point("2026-08-11T09:00:00.000Z", 105)];
+    expect(
+      mergePriceHistory(undefined as unknown as PricePoint[], server),
+    ).toEqual(server);
+    expect(
+      mergePriceHistory(server, undefined as unknown as PricePoint[]),
+    ).toEqual(server);
   });
 });

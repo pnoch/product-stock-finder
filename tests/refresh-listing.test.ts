@@ -83,6 +83,26 @@ const healthCollector = { record: vi.fn() } as unknown as Parameters<
 describe("refreshListing server snapshot freshness", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("refreshes a listing whose priceHistory is missing", async () => {
+    // A listing restored without history must not abort the refresh (the throw
+    // propagated out of refreshListingsWithinBudget and stopped the run).
+    mockedFetchServerPrice.mockResolvedValue({
+      snapshot: {
+        price: 100,
+        currency: "USD",
+        stockStatus: "in_stock",
+        url: "https://example.com/p1",
+        fetchedAt: Date.now(),
+      },
+      history: [],
+    });
+    const l = listing();
+    delete (l as { priceHistory?: unknown }).priceHistory;
+    const result = await refreshListing(product(), l, healthCollector);
+    expect(result.price).toBe(100);
+    expect(result.priceHistory?.length ?? 0).toBeGreaterThan(0);
+  });
+
   it("ignores a stale server snapshot and falls through to local scrape", async () => {
     mockedFetchServerPrice.mockResolvedValue({
       snapshot: {

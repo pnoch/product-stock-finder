@@ -29,16 +29,15 @@ export async function refreshListing(
       currency: snapshot.currency,
       stockStatus: snapshot.stockStatus,
     };
-    const mergedHistory = mergePriceHistory(
-      listing.priceHistory,
-      serverResult.history,
-    );
-    if (serverResult.history.length < listing.priceHistory.length) {
+    // A listing restored without history must not abort the whole refresh.
+    const localHistory = listing.priceHistory ?? [];
+    const mergedHistory = mergePriceHistory(localHistory, serverResult.history);
+    if (serverResult.history.length < localHistory.length) {
       // Trim to the server cap (newest first) or the upload is rejected whole.
       const points =
-        listing.priceHistory.length > MAX_UPLOAD_HISTORY_POINTS
-          ? listing.priceHistory.slice(-MAX_UPLOAD_HISTORY_POINTS)
-          : listing.priceHistory;
+        localHistory.length > MAX_UPLOAD_HISTORY_POINTS
+          ? localHistory.slice(-MAX_UPLOAD_HISTORY_POINTS)
+          : localHistory;
       void uploadServerHistory(
         listing.distributorId,
         product.modelNumber,
