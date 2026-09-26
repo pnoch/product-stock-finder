@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getApiBaseUrl, getAppId, getOAuthPortalUrl } from "../lib/api-base";
 import { getDesktopDeviceId } from "../lib/device-id";
 import { unregisterServerToken, PENDING_UNREGISTER_KEY } from "../lib/push-unregister";
+import { fetchCurrentUser } from "../../../lib/auth-refresh";
 
 const SESSION_TOKEN_KEY = "desktop_session_token";
 const USER_INFO_KEY = "desktop_user_info";
@@ -236,6 +237,19 @@ export async function deleteAccount(): Promise<void> {
     { confirm: "DELETE" },
     { token: getSessionToken(), fallbackError: "Server account deletion failed" },
   );
+}
+
+/**
+ * Re-fetches the current user from the server so state changed outside the app
+ * (an email verification completed in a browser) clears the Settings banner
+ * without a re-login. Notifies subscribers like the other auth mutations.
+ */
+export async function refreshCurrentUser(): Promise<void> {
+  if (!getSessionToken()) return;
+  const remote = await fetchCurrentUser(getApiBaseUrl());
+  if (!remote) return;
+  setUserInfo(mapUser(remote));
+  notify();
 }
 
 export function useAuth() {

@@ -4,6 +4,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { getApiBaseUrl } from "@/constants/oauth";
+import { fetchCurrentUser } from "@/lib/auth-refresh";
+import { publishAuthUser } from "@/hooks/use-auth";
+import * as Auth from "@/lib/_core/auth";
 
 type State = "verifying" | "success" | "error";
 
@@ -43,6 +46,22 @@ export default function VerifyEmailScreen() {
         if (cancelled) return;
         if (res.ok) {
           setState("success");
+          // Verification happened outside the app, so the cached user still says
+          // emailVerified: false — refresh it or Settings keeps nagging until the
+          // next sign-in.
+          try {
+            const refreshed = await fetchCurrentUser(baseUrl);
+            if (refreshed && !cancelled) {
+              const user = {
+                ...refreshed,
+                lastSignedIn: new Date(refreshed.lastSignedIn),
+              };
+              publishAuthUser(user);
+              await Auth.setUserInfo(user);
+            }
+          } catch {
+            // best effort: the banner clears on the next sign-in
+          }
         } else {
           const data = await res.json().catch(() => ({}));
           setError(data.error || "Verification failed");

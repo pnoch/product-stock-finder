@@ -443,4 +443,19 @@ describe("desktop/mobile scraper parity", () => {
     expect(probe).toContain("recordSample(");
     expect(app).toContain("recordHealthFromPriceCheck");
   });
+
+  it("refreshes a stale verified flag on both platforms", async () => {
+    // Verification completes outside the app (an emailed link opened in a
+    // browser), so both clients must refresh the cached user or the "check your
+    // email" banner survives until a re-login.
+    const shared = await readFile("lib/auth-refresh.ts", "utf8");
+    const mobile = await readFile("app/verify-email.tsx", "utf8");
+    const desktopAuth = await readFile("desktop/src/hooks/use-auth.ts", "utf8");
+    const settings = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    expect(shared).toContain("export async function fetchCurrentUser");
+    expect(mobile).toContain("await fetchCurrentUser(baseUrl)");
+    expect(mobile).toContain("publishAuthUser(");
+    expect(desktopAuth).toContain("refreshCurrentUser");
+    expect(settings).toContain("refreshCurrentUser()");
+  });
 });

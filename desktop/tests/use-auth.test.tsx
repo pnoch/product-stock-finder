@@ -18,7 +18,7 @@ vi.mock("../src/lib/web-push", () => ({
 }));
 
 import { invoke } from "@tauri-apps/api/core";
-import { getSessionToken, setSessionToken, setUserInfo, getUserInfo, useAuth } from "../src/hooks/use-auth";
+import { getSessionToken, setSessionToken, setUserInfo, getUserInfo, useAuth, refreshCurrentUser } from "../src/hooks/use-auth";
 import { PENDING_UNREGISTER_KEY } from "../src/lib/push-unregister";
 
 const mockedInvoke = vi.mocked(invoke);
@@ -64,6 +64,45 @@ describe("desktop auth malformed user", () => {
     expect(getSessionToken()).toBeNull();
     expect(getUserInfo()).toBeNull();
     expect(result.current.isAuthenticated).toBe(false);
+  });
+
+  it("refreshCurrentUser republishes the server's verified flag", async () => {
+    // Verification happens in a browser, so the cached user must be refreshed
+    // or Settings keeps showing "check your email" until a re-login.
+    vi.stubEnv("VITE_API_BASE_URL", "https://api.example.com");
+    const fetchSpy = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        user: {
+          id: 1,
+          openId: "o1",
+          name: "Test",
+          email: "t@example.com",
+          loginMethod: "email",
+          lastSignedIn: "2026-01-01T00:00:00.000Z",
+          emailVerified: true,
+        },
+      }),
+    }));
+    vi.stubGlobal("fetch", fetchSpy);
+    setSessionToken("token-1");
+    setUserInfo({
+      id: 1,
+      openId: "o1",
+      name: "Test",
+      email: "t@example.com",
+      loginMethod: "email",
+      lastSignedIn: new Date().toISOString(),
+      emailVerified: false,
+    });
+    await refreshCurrentUser();
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://api.example.com/api/auth/me",
+      { credentials: "include" },
+    );
+    expect(getUserInfo()?.emailVerified).toBe(true);
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it("drops the local web-push subscription on logout", async () => {

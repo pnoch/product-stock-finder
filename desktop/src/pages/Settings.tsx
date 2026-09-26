@@ -33,7 +33,7 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useConnection } from "../hooks/use-connection";
 import { ConnectionBadge } from "../components/ConnectionBadge";
 import { DialogOverlay } from "../components/DialogOverlay";
-import { useAuth, buildLoginUrl, signInWithEmail, signUpWithEmail, changePassword, deleteAccount, resendVerification, validateEmailAuth, validateForgotEmail, validatePasswordChange } from "../hooks/use-auth";
+import { useAuth, buildLoginUrl, signInWithEmail, signUpWithEmail, changePassword, deleteAccount, resendVerification, refreshCurrentUser, validateEmailAuth, validateForgotEmail, validatePasswordChange } from "../hooks/use-auth";
 import { getApiBaseUrl } from "../lib/api-base";
 import { trpc } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
@@ -671,6 +671,15 @@ export function Settings() {
   const [changeError, setChangeError] = useState<string | null>(null);
   const [changing, setChanging] = useState(false);
   const [resending, setResending] = useState(false);
+
+  // Verification happens in a browser, so the cached user can go stale while
+  // this page is open: refresh on mount and whenever the window regains focus.
+  useEffect(() => {
+    void refreshCurrentUser();
+    const onFocus = () => void refreshCurrentUser();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
 
   const handleChangePassword = async () => {
     const validationError = validatePasswordChange(currentPw, newPw, confirmPw);
