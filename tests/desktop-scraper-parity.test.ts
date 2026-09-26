@@ -458,4 +458,18 @@ describe("desktop/mobile scraper parity", () => {
     expect(desktopAuth).toContain("refreshCurrentUser");
     expect(settings).toContain("refreshCurrentUser()");
   });
+
+  it("repairs products with no listings on both platforms", async () => {
+    // A bulk import (and any lost listings) stores `listings: []`, and only
+    // discovery fills it — on both the mobile price check and the desktop
+    // prices-checked handler.
+    const helper = await readFile("lib/manual-add.ts", "utf8");
+    const mobile = await readFile("app/_layout.tsx", "utf8");
+    const desktop = await readFile("desktop/src/App.tsx", "utf8");
+    expect(helper).toContain("export async function rediscoverMissingListings");
+    expect(mobile).toContain("rediscoverMissingListings({");
+    expect(desktop).toContain("rediscoverMissingListings({");
+    expect(mobile).toContain("discoverListings");
+    expect(desktop).toContain("discoverListings");
+  });
 });

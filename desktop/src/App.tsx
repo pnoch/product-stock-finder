@@ -344,6 +344,22 @@ export default function App() {
       } catch {
         // health recording is non-fatal
       }
+      // Same on desktop: a bulk import stores no listings, so fill them in a
+      // couple at a time (each is a search across every distributor).
+      try {
+        const { rediscoverMissingListings } = await import("../../lib/manual-add");
+        const { discoverListings } = await import("../../lib/listing-discovery");
+        await rediscoverMissingListings({
+          storage: {
+            getWatchlist: () => storage.getWatchlist(),
+            updateProductListings: (id, listings) =>
+              storage.updateProductListings(id, listings),
+          },
+          discover: discoverListings,
+        });
+      } catch {
+        // discovery is best-effort
+      }
       // Evaluate back-in-stock watches after every price sweep. The Rust poller
       // only handles price alerts, so without this a signed-out desktop user
       // with a restock watch never gets notified.

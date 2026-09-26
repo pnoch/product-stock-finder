@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { manualAddProduct, rediscoverProduct, DISCOVER_TIMEOUT_MS } from "../lib/manual-add";
+import {
+  manualAddProduct,
+  rediscoverProduct,
+  rediscoverMissingListings,
+  DISCOVER_TIMEOUT_MS,
+  MISSING_LISTINGS_PER_RUN,
+} from "../lib/manual-add";
 import type { DistributorListing } from "../lib/types";
 
 function deps(overrides = {}) {
@@ -85,5 +91,72 @@ describe("rediscoverProduct", () => {
     await expect(p).resolves.toEqual({ discovered: 0, timedOut: true });
     expect(storage.updateProductListings).not.toHaveBeenCalled();
     vi.useRealTimers();
+  });
+});
+
+describe("rediscoverMissingListings", () => {
+  it("discovers only products without listings, up to the limit", async () => {
+    const discover = vi.fn(async () => [
+      { distributorId: "d1" } as unknown as DistributorListing,
+    ]);
+    const updateProductListings = vi.fn(async () => {});
+    const result = await rediscoverMissingListings({
+      storage: {
+        getWatchlist: async () => [
+          { id: "empty-1", modelNumber: "A", listings: [] },
+          { id: "has", modelNumber: "B", listings: [{ distributorId: "x" }] },
+          { id: "empty-2", modelNumber: "C", listings: [] },
+          { id: "empty-3", modelNumber: "D", listings: [] },
+          { id: "no-model", modelNumber: "", listings: [] },
+        ],
+        updateProductListings,
+      } as never,
+      discover,
+      limit: 2,
+    });
+    expect(result).toEqual({ scanned: 2, discovered: 2 });
+    expect(discover).toHaveBeenCalledTimes(2);
+    expect(updateProductListings).toHaveBeenCalledWith("empty-1", [
+      { distributorId: "d1" },
+    ]);
+  });
+
+  it("keeps going when one product's discovery fails", async () => {
+    let call = 0;
+    const discover = vi.fn(async () => {
+      call += 1;
+      if (call === 1) throw new Error("boom");
+      return [{ distributorId: "d1" } as unknown as DistributorListing];
+    });
+    const result = await rediscoverMissingListings({
+      storage: {
+        getWatchlist: async () => [
+          { id: "a", modelNumber: "A", listings: [] },
+          { id: "b", modelNumber: "B", listings: [] },
+        ],
+        updateProductListings: vi.fn(async () => {}),
+      } as never,
+      discover,
+      limit: 2,
+    });
+    expect(result).toEqual({ scanned: 2, discovered: 1 });
+  });
+
+  it("defaults to a small batch so a big import cannot flood the network", async () => {
+    const discover = vi.fn(async () => []);
+    const products = Array.from({ length: 5 }, (_, i) => ({
+      id: `p${i}`,
+      modelNumber: `M${i}`,
+      listings: [],
+    }));
+    const result = await rediscoverMissingListings({
+      storage: {
+        getWatchlist: async () => products,
+        updateProductListings: vi.fn(async () => {}),
+      } as never,
+      discover,
+    });
+    expect(result.scanned).toBe(MISSING_LISTINGS_PER_RUN);
+    expect(discover).toHaveBeenCalledTimes(MISSING_LISTINGS_PER_RUN);
   });
 });

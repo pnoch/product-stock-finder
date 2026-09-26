@@ -24,9 +24,13 @@ import {
 } from "@/lib/notifications";
 import {
   getSettings,
+  getWatchlist,
+  updateProductListings,
   defaultStorage,
   getSyncMeta,
 } from "@/lib/storage";
+import { rediscoverMissingListings } from "@/lib/manual-add";
+import { discoverListings } from "@/lib/listing-discovery";
 import { seedWatchlistProducts } from "@/lib/launch-seed";
 import {
   registerPriceCheckTask,
@@ -190,6 +194,16 @@ export default function RootLayout() {
         // Run a foreground check immediately on app launch. A storage read
         // failure must not reject unhandled.
         void checkPriceDropsNow().catch((e) => console.error("[Launch] price check failed", e));
+        // Fill in products that have no listings at all: a bulk import stores an
+        // empty array and only discovery fills it. Bounded per run, so a large
+        // import drains over successive launches instead of firing N x 25
+        // requests at once (the desktop does the same after each price check).
+        void rediscoverMissingListings({
+          storage: { getWatchlist, updateProductListings },
+          discover: discoverListings,
+        }).catch((e) =>
+          console.error("[Launch] missing-listings discovery failed", e),
+        );
         if (isServerConfigured()) {
           // Register for Expo push delivery (best-effort)
           void registerPushToken();
