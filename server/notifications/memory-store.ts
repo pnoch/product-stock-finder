@@ -38,6 +38,9 @@ export function listMemoryConfigDevices(): Array<{
 export function removeMemoryDevice(deviceId: string): void {
   memoryConfigs.delete(deviceId);
   memoryDeliveries.delete(deviceId);
+  // A held quiet-hours digest buffer would otherwise leak, and a re-registered
+  // device would flush stale held events.
+  digestBuffers.delete(`d:${deviceId}`);
   for (const [id, event] of memoryEvents) {
     if (event.deviceId === deviceId) memoryEvents.delete(id);
   }

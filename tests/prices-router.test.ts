@@ -172,6 +172,33 @@ describe("prices.uploadHistory validation", () => {
     expect(mockedMergeHistory).not.toHaveBeenCalled();
   });
 
+  it("rejects a date far in the future but allows a small clock skew", async () => {
+    // A whole day of tolerance let a "tomorrow" point win that day's LWW merge
+    // and outlive the purge.
+    const caller = appRouter.createCaller(createAuthedContext());
+    await expect(
+      caller.prices.uploadHistory({
+        distributorId: "server2u-my",
+        modelNumber: "CRS804-4DDQ-hRM",
+        points: [
+          { ...validPoint, date: new Date(Date.now() + 2 * 3_600_000).toISOString() },
+        ],
+      }),
+    ).rejects.toThrow();
+    expect(mockedMergeHistory).not.toHaveBeenCalled();
+
+    mockedMergeHistory.mockResolvedValue(undefined);
+    await expect(
+      caller.prices.uploadHistory({
+        distributorId: "server2u-my",
+        modelNumber: "CRS804-4DDQ-hRM",
+        points: [
+          { ...validPoint, date: new Date(Date.now() + 10 * 60_000).toISOString() },
+        ],
+      }),
+    ).resolves.toEqual({ accepted: 1 });
+  });
+
   it("rejects a non-finite price", async () => {
     const caller = appRouter.createCaller(createAuthedContext());
     await expect(

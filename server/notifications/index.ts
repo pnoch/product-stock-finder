@@ -258,7 +258,17 @@ export async function purgeOldNotificationEvents(now: number): Promise<void> {
   if (!db) {
     const cutoff = now - EVENT_RETENTION_MS;
     for (const [id, event] of memoryEvents) {
-      if (event.createdAt < cutoff) memoryEvents.delete(id);
+      if (event.createdAt < cutoff) {
+        memoryEvents.delete(id);
+        // The DB path cascades deliveries with the event row; the in-memory
+        // store must drop the id explicitly or every device's delivered set
+        // grows for the process lifetime.
+        for (const [scope, delivered] of memoryDeliveries) {
+          if (delivered.delete(id) && delivered.size === 0) {
+            memoryDeliveries.delete(scope);
+          }
+        }
+      }
     }
     return;
   }

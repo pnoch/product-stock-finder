@@ -373,9 +373,12 @@ export const appRouter = router({
                   .refine(
                     (v) => {
                       const t = Date.parse(v);
-                      return !Number.isNaN(t) && t <= Date.now() + 86_400_000;
+                      // One hour of tolerance for client clock skew: a whole day
+                      // let a point dated "tomorrow" (or later today) win that
+                      // day's LWW merge and outlive the purge.
+                      return !Number.isNaN(t) && t <= Date.now() + 3_600_000;
                     },
-                    "date must not be in the future",
+                    "date must not be more than an hour in the future",
                   ),
                 // decimal(12,4) — a larger value fails the insert with a 500.
                 price: z.number().finite().positive().max(99_999_999),

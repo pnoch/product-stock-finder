@@ -16,6 +16,11 @@ import {
   clearNotificationsForTests,
 } from "../server/notifications";
 import { setCachedPrice, clearPriceCacheForTests } from "../server/price-cache";
+import {
+  digestBuffers,
+  memoryDeliveries,
+  memoryEvents,
+} from "../server/notifications/memory-store";
 import { sendPushForDevice } from "../server/push-notifications";
 import type { NotificationConfig } from "../server/notifications";
 
@@ -97,5 +102,40 @@ describe("per-device evaluation bounds its event read", () => {
     const start = src.indexOf("async function evaluateConfigDb");
     const block = src.slice(start, src.indexOf("async function evaluateUserDb", start));
     expect(block).toContain("gt(notificationEvents.createdAt, now - DELIVERY_GRACE_MS)");
+  });
+});
+
+describe("in-memory notification hygiene", () => {
+  beforeEach(() => clearNotificationsForTests());
+
+  it("purge drops delivered ids for purged events", async () => {
+    const { purgeOldNotificationEvents } = await import(
+      "../server/notifications/index"
+    );
+    memoryEvents.set("e1", {
+      id: "e1",
+      type: "price_drop",
+      title: "t",
+      body: "b",
+      createdAt: 1_000,
+      deviceId: "dev-1",
+      userId: null,
+    } as never);
+    memoryDeliveries.set("dev-1", new Set(["e1"]));
+    // Far past any retention window (the constant is module-private).
+    await purgeOldNotificationEvents(Date.now() + 10 * 365 * 86_400_000);
+    expect(memoryEvents.has("e1")).toBe(false);
+    // The DB path cascades deliveries with the event row.
+    expect(memoryDeliveries.size).toBe(0);
+  });
+
+  it("removing a device drops its held quiet-hours buffer", async () => {
+    const { removeMemoryDevice } = await import("../server/notifications/memory-store");
+    digestBuffers.set(
+      "d:dev-1",
+      new Map([["k", { type: "digest", title: "t", body: "b", createdAt: 1 } as never]]),
+    );
+    removeMemoryDevice("dev-1");
+    expect(digestBuffers.has("d:dev-1")).toBe(false);
   });
 });
