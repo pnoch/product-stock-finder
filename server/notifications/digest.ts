@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { isInQuietHours } from "../../lib/quiet-hours";
 import type { AppSettings } from "../../lib/types";
 import { digestBuffers } from "./memory-store";
@@ -9,6 +10,14 @@ import type { EventDraft, NotificationConfig } from "./types";
 // restart only loses the not-yet-flushed window tail). The first tick after
 // the window ends flushes one grouped digest; later ticks resume individual
 // delivery.
+
+// notification_events.id is varchar(128); `digest:<scopeKey>:<day>` overflows
+// for a long device id, and the resulting "Data too long" is not a duplicate-key
+// error, so it aborted the flush (and the held drafts were already consumed).
+function digestId(scopeKey: string, day: string): string {
+  const scope = createHash("sha1").update(scopeKey).digest("hex").slice(0, 24);
+  return `digest:${scope}:${day}`;
+}
 
 export function scopeKeyForDevice(deviceId: string): string {
   return `d:${deviceId}`;
@@ -91,8 +100,10 @@ export function buildDigestDraft(
     lines.push(`+${held.length - MAX_DIGEST_LINES} more`);
   }
   return {
-    id: `digest:${scopeKey}:${day}`,
+    id: digestId(scopeKey, day),
     type: "digest",
+    // The readable key fits varchar(255); the id must fit its own varchar(128)
+    // column, and a device id can be up to 128 chars, so hash the scope there.
     dedupKey: `digest:${scopeKey}:${day}`,
     title: "📊 Price Digest",
     body: lines.join("\n"),

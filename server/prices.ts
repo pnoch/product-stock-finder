@@ -170,6 +170,12 @@ export async function refreshNearExpiry(now: number): Promise<void> {
   );
 }
 
+// Per-process record of the last warm attempt, so pairs whose scrape never
+// resolves still rotate out instead of monopolizing every tick (see
+// pickPairsToWarm).
+const catalogWarmAttempts = new Map<string, number>();
+const imageGenerationAttempts = new Map<string, number>();
+
 export async function warmCatalogRotation(count: number): Promise<number> {
   const pairs = buildCatalogPairs();
   if (pairs.length === 0) return 0;
@@ -178,7 +184,19 @@ export async function warmCatalogRotation(count: number): Promise<number> {
   for (const row of fetchedRows) {
     fetchedAtMap.set(`${row.distributorId}:${row.modelNumber}`, row.fetchedAt);
   }
-  const toWarm = pickPairsToWarm(pairs, fetchedAtMap, count);
+  const toWarm = pickPairsToWarm(
+    pairs,
+    fetchedAtMap,
+    count,
+    catalogWarmAttempts,
+  );
+  const attemptedAt = Date.now();
+  for (const pair of toWarm) {
+    catalogWarmAttempts.set(
+      `${pair.distributorId}:${pair.modelNumber}`,
+      attemptedAt,
+    );
+  }
   const limit = pLimit(3);
   await Promise.all(
     toWarm.map((pair) =>
@@ -192,7 +210,17 @@ export async function warmCatalogRotation(count: number): Promise<number> {
 
 export async function warmProductImages(count: number): Promise<number> {
   const missing = await listProductsMissingImage();
-  const toGenerate = missing.slice(0, count);
+  // Same rotation as the catalog warmer: a product whose generation keeps
+  // failing must not hold the first slots forever.
+  const toGenerate = [...missing]
+    .sort(
+      (a, b) =>
+        (imageGenerationAttempts.get(a) ?? 0) -
+        (imageGenerationAttempts.get(b) ?? 0),
+    )
+    .slice(0, count);
+  const attemptedAt = Date.now();
+  for (const id of toGenerate) imageGenerationAttempts.set(id, attemptedAt);
   const limit2 = pLimit(3);
   await Promise.all(toGenerate.map((productId) => limit2(() => getProductImage(productId))));
   return toGenerate.length;
@@ -200,21 +228,49 @@ export async function warmProductImages(count: number): Promise<number> {
 
 let warmerTickInFlight = false;
 
+// Each step gets its own error boundary: a single shared catch meant one
+// failing step (e.g. a transient DB error in purgeOldHistory) skipped every
+// later step in the tick, starving the remaining purges for that run.
+async function warmerStep(
+  name: string,
+  fn: () => Promise<unknown>,
+): Promise<void> {
+  try {
+    await fn();
+  } catch (error) {
+    console.warn(`[Prices] Warmer step failed: ${name}`, error);
+  }
+}
+
 export async function runWarmerTick(): Promise<void> {
   if (warmerTickInFlight) return;
   warmerTickInFlight = true;
   try {
-    await refreshNearExpiry(Date.now());
-    await warmCatalogRotation(CATALOG_WARM_PER_TICK);
-    await warmProductImages(IMAGES_PER_TICK);
-    await evaluateNotifications(Date.now());
-    await purgeOldHistory(Date.now());
-    await purgeOldNotificationEvents(Date.now());
-    await purgeExpiredAuthTokens(Date.now());
-    await purgeOrphanedInsights();
-    await purgeOrphanedImages();
-    await purgeStalePriceCache(Date.now());
-    await purgeOldRevokedDevices(Date.now());
+    await warmerStep("refreshNearExpiry", () => refreshNearExpiry(Date.now()));
+    await warmerStep("warmCatalogRotation", () =>
+      warmCatalogRotation(CATALOG_WARM_PER_TICK),
+    );
+    await warmerStep("warmProductImages", () =>
+      warmProductImages(IMAGES_PER_TICK),
+    );
+    await warmerStep("evaluateNotifications", () =>
+      evaluateNotifications(Date.now()),
+    );
+    await warmerStep("purgeOldHistory", () => purgeOldHistory(Date.now()));
+    await warmerStep("purgeOldNotificationEvents", () =>
+      purgeOldNotificationEvents(Date.now()),
+    );
+    await warmerStep("purgeExpiredAuthTokens", () =>
+      purgeExpiredAuthTokens(Date.now()),
+    );
+    await warmerStep("purgeOrphanedInsights", () => purgeOrphanedInsights());
+    await warmerStep("purgeOrphanedImages", () => purgeOrphanedImages());
+    await warmerStep("purgeStalePriceCache", () =>
+      purgeStalePriceCache(Date.now()),
+    );
+    await warmerStep("purgeOldRevokedDevices", () =>
+      purgeOldRevokedDevices(Date.now()),
+    );
   } catch (error) {
     console.warn("[Prices] Warmer tick failed:", error);
   } finally {

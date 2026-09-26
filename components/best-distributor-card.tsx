@@ -26,7 +26,12 @@ function BestDistributorCard({
 }) {
   const colors = useColors();
   const distributor = getDistributorById(listing.distributorId);
-  const usdPrice = convertPrice(listing.price, listing.currency, "USD");
+  // Convert to the user's display currency, not a hardcoded USD: the card
+  // showed "≈ $X" to EUR/GBP users even though the rate line below already
+  // targets their display currency.
+  const convertedPrice = displayCurrency
+    ? convertPrice(listing.price, listing.currency, displayCurrency)
+    : null;
 
   const derivedColors = useMemo(
     () => ({
@@ -70,8 +75,14 @@ function BestDistributorCard({
   const isLowestEver = useMemo(() => {
     const hist = listing.priceHistory;
     if (!hist || hist.length < 2) return false;
-    const priorPoints = hist
+    // Order explicitly and compare like the sibling insights badge: the old
+    // `slice(0, -1)` assumed the current point is last (so a reordered payload
+    // silently suppressed the badge) and counted out-of-stock clearance points
+    // as the "lowest ever".
+    const priorPoints = [...hist]
+      .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
       .slice(0, -1)
+      .filter((p) => p.stockStatus === "in_stock")
       .map((p) => convertPrice(p.price, p.currency, displayCurrency))
       .filter((v): v is number => v !== null);
     if (priorPoints.length === 0) return false;
@@ -241,11 +252,13 @@ function BestDistributorCard({
           >
             {formatPrice(listing.price, listing.currency)}
           </Text>
-          {listing.currency !== "USD" && usdPrice !== null && (
-            <Text style={{ color: colors.muted, fontSize: 12 }}>
-              ≈ {formatPrice(usdPrice, "USD")}
-            </Text>
-          )}
+          {displayCurrency &&
+            displayCurrency !== listing.currency &&
+            convertedPrice !== null && (
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                ≈ {formatPrice(convertedPrice, displayCurrency)}
+              </Text>
+            )}
           {displayCurrency !== listing.currency &&
             (() => {
               const rate = convertPrice(1, listing.currency, displayCurrency);

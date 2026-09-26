@@ -761,3 +761,19 @@ describe("product card stock a11y label matches its badge", () => {
     );
   });
 });
+
+describe("best price card uses the display currency and an in-stock series", () => {
+  it("does not hardcode a USD conversion or count out-of-stock history", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "components/best-distributor-card.tsx"),
+      "utf8",
+    );
+    // The "≈" line previously converted to USD for every user, and the
+    // "Lowest Price Ever" badge compared against unsorted, any-status history.
+    expect(src).not.toContain('listing.currency, "USD"');
+    expect(src).toContain(
+      "convertPrice(listing.price, listing.currency, displayCurrency)",
+    );
+    expect(src).toContain('p.stockStatus === "in_stock"');
+  });
+});

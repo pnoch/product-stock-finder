@@ -42,6 +42,13 @@ export function clearDeviceDigestBuffer(deviceId: string): void {
   digestBuffers.delete(`d:${deviceId}`);
 }
 
+export function clearUserDigestBuffer(userId: number): void {
+  // Held quiet-hours drafts are keyed per user too (a user-scoped evaluation);
+  // they are memory-only, so unbinding every device must drop them or a later
+  // tick flushes drafts for a signed-out account.
+  digestBuffers.delete(`u:${userId}`);
+}
+
 export function removeMemoryDevice(deviceId: string): void {
   memoryConfigs.delete(deviceId);
   memoryDeliveries.delete(deviceId);

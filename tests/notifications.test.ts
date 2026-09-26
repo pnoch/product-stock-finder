@@ -131,7 +131,14 @@ describe("evaluateNotifications", () => {
     await evaluateNotifications(Date.now());
     expect(vi.mocked(sendPushForDevice)).toHaveBeenCalledWith(
       "dev-1",
-      expect.arrayContaining([expect.objectContaining({ type: "price_drop" })]),
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "price_drop",
+          // Raw drafts carry routing only under `payload`; the push payload must
+          // be flattened or a background tap cannot deep-link to the product.
+          productId: "mikrotik-crs804-4ddq-hrm",
+        }),
+      ]),
     );
   });
 
@@ -202,7 +209,14 @@ describe("evaluateNotifications", () => {
     expect(inserted).toHaveLength(1);
     expect(vi.mocked(sendPushForDevice)).toHaveBeenCalledWith(
       "dev-1",
-      expect.arrayContaining([expect.objectContaining({ type: "price_drop" })]),
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "price_drop",
+          // Raw drafts carry routing only under `payload`; the push payload must
+          // be flattened or a background tap cannot deep-link to the product.
+          productId: "mikrotik-crs804-4ddq-hrm",
+        }),
+      ]),
     );
     mockedGetDb.mockResolvedValue(null);
   });
@@ -505,7 +519,12 @@ describe("user-scoped notifications (memory)", () => {
     expect(dev1[0]!.id).toBe(dev2[0]!.id);
     expect(vi.mocked(sendPushForUser)).toHaveBeenCalledWith(
       7,
-      expect.arrayContaining([expect.objectContaining({ type: "price_drop" })]),
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "price_drop",
+          productId: "mikrotik-crs804-4ddq-hrm",
+        }),
+      ]),
     );
   });
 
@@ -746,7 +765,12 @@ describe("user-scoped notifications (database)", () => {
     });
     expect(vi.mocked(sendPushForUser)).toHaveBeenCalledWith(
       7,
-      expect.arrayContaining([expect.objectContaining({ type: "price_drop" })]),
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "price_drop",
+          productId: "mikrotik-crs804-4ddq-hrm",
+        }),
+      ]),
     );
     mockedGetDb.mockResolvedValue(null);
   });

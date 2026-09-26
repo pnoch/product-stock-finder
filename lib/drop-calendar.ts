@@ -103,6 +103,9 @@ export function computeDropCalendar(
   for (const product of watchlist) {
     for (const listing of product.listings ?? []) {
       const points = (listing.priceHistory ?? [])
+        // Out-of-stock clearance points are not drops the user can act on;
+        // every sibling analysis filters to in-stock history.
+        .filter((p) => p.stockStatus === "in_stock")
         .map((p) => ({
           t: Date.parse(p.date),
           v: convert(p.price, p.currency, displayCurrency),

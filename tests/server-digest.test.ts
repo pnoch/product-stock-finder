@@ -112,6 +112,19 @@ describe("mergeDigestHeld + buildDigestDraft", () => {
     expect(buffer.get("a")?.title).toBe("New");
   });
 
+  it("bounds the digest id to the notification_events.id column", () => {
+    // A device id can be up to 128 chars, so `digest:<scopeKey>:<day>` exceeded
+    // the varchar(128) primary key and the insert failed with "Data too long"
+    // (not a duplicate-key error), losing the flush.
+    const scope = `d:${"x".repeat(128)}`;
+    const built = buildDigestDraft([draft("k1")], scope, Date.now(), 0);
+    expect(built).not.toBeNull();
+    expect(built!.id.length).toBeLessThanOrEqual(128);
+    // Stable per scope+day, so the same condition reuses its row.
+    const again = buildDigestDraft([draft("k1")], scope, built!.createdAt, 0);
+    expect(again!.id).toBe(built!.id);
+  });
+
   it("returns null for an empty buffer", () => {
     expect(buildDigestDraft([], "d:dev-1", Date.now())).toBeNull();
   });
@@ -188,6 +201,20 @@ describe("server digest hold-and-flush", () => {
       "dev-1",
       expect.arrayContaining([expect.objectContaining({ type: "digest" })]),
     );
+  });
+
+  it("lists a repeated held condition once in the digest", async () => {
+    const now = Date.now();
+    await seedDeviceWithQuietHours(now);
+    await evaluateNotifications(now);
+    // Same condition re-detected on the next tick while still quiet: it is
+    // merged by dedupKey, so the flush must not list it twice.
+    await evaluateNotifications(now + 60000);
+    await evaluateNotifications(now + 3600000);
+    const events = await pullPendingEvents("dev-1");
+    expect(events).toHaveLength(1);
+    const bullets = (events[0]!.body.match(/•/g) ?? []).length;
+    expect(bullets).toBe(1);
   });
 
   it("resumes individual delivery on later ticks", async () => {

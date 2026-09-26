@@ -69,7 +69,10 @@ export function computeMovers(
     for (const listing of product.listings ?? []) {
       const points = (listing.priceHistory ?? [])
         .map((p) => ({ ...p, t: Date.parse(p.date) }))
-        .filter((p) => Number.isFinite(p.t))
+        // Only purchasable history counts, like every sibling analysis
+        // (price-change, insights, alert-suggestions): an out-of-stock
+        // clearance dip is not a price move the user can act on.
+        .filter((p) => Number.isFinite(p.t) && p.stockStatus === "in_stock")
         .sort((a, b) => a.t - b.t);
       const windowed =
         cutoff !== null ? points.filter((p) => p.t >= cutoff) : points;

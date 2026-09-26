@@ -70,6 +70,19 @@ describe("pickPairsToWarm", () => {
     ]);
   });
 
+  it("rotates past a never-resolving pair instead of re-picking it forever", () => {
+    const fetchedAt = new Map<string, number>();
+    // "a:m1" was attempted last tick but its scrape never yielded a result, so
+    // it is not in the cache; without an attempt record it sorted first every
+    // tick and occupied a slot permanently.
+    const attemptedAt = new Map<string, number>([["a:m1", 1000]]);
+    const picked = pickPairsToWarm(pairs, fetchedAt, 2, attemptedAt);
+    expect(picked).toEqual([
+      { distributorId: "a", modelNumber: "m2" },
+      { distributorId: "b", modelNumber: "m1" },
+    ]);
+  });
+
   it("respects the count limit", () => {
     const fetchedAt = new Map<string, number>();
     const picked = pickPairsToWarm(pairs, fetchedAt, 1);

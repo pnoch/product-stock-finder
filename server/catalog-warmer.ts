@@ -25,13 +25,19 @@ export function pickPairsToWarm(
   pairs: CatalogPair[],
   fetchedAtMap: Map<string, number>,
   count: number,
+  // Last time the warmer *tried* each pair. A pair that never yields a result
+  // (the distributor does not carry the model) never reaches the cache, so its
+  // fetchedAt stays 0 and it sorted first on every tick, permanently occupying
+  // the slots and starving the rest of the catalog.
+  attemptedAtMap?: Map<string, number>,
 ): CatalogPair[] {
   const key = (p: CatalogPair) => `${p.distributorId}:${p.modelNumber}`;
+  const rank = (p: CatalogPair) =>
+    Math.max(
+      fetchedAtMap.get(key(p)) ?? 0,
+      attemptedAtMap?.get(key(p)) ?? 0,
+    );
   return [...pairs]
-    .sort((a, b) => {
-      const aAt = fetchedAtMap.get(key(a)) ?? 0;
-      const bAt = fetchedAtMap.get(key(b)) ?? 0;
-      return aAt - bAt;
-    })
+    .sort((a, b) => rank(a) - rank(b))
     .slice(0, count);
 }

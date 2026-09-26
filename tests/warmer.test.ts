@@ -62,12 +62,18 @@ vi.mock("../server/price-cache", async (importOriginal) => {
   listNearExpiry: vi.fn(),
   clearPriceCacheForTests: vi.fn(),
   getAllFetchedAt: vi.fn(async () => ({})),
+  purgeStalePriceCache: vi.fn(),
   };
 });
 
 import { getParserByDistributorId } from "../lib/scrapers/registry";
 import { resilientFetch } from "../lib/scrapers/resilient";
-import { listNearExpiry, setCachedPrice } from "../server/price-cache";
+import {
+  listNearExpiry,
+  purgeStalePriceCache,
+  setCachedPrice,
+} from "../server/price-cache";
+import { purgeOldHistory } from "../server/price-history";
 import { refreshNearExpiry, startWarmer, runWarmerTick } from "../server/prices";
 import { evaluateNotifications } from "../server/notifications";
 import type { ScrapeResult } from "../lib/scrapers/types";
@@ -151,5 +157,16 @@ describe("runWarmerTick reentrancy", () => {
     release();
     await Promise.all([firstP, secondP]);
     expect(vi.mocked(evaluateNotifications)).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("runWarmerTick step isolation", () => {
+  it("continues later steps when an earlier one throws", async () => {
+    vi.mocked(purgeOldHistory).mockRejectedValueOnce(new Error("db down"));
+    vi.mocked(purgeStalePriceCache).mockClear();
+    await runWarmerTick();
+    // Without a per-step boundary the single shared catch skipped every later
+    // purge for the rest of the tick.
+    expect(purgeStalePriceCache).toHaveBeenCalled();
   });
 });

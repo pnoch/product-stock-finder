@@ -35,6 +35,7 @@ import {
 import {
   holdForDigest,
   scopeKeyForDevice,
+  scopeKeyForUser,
   takeDigestHeld,
 } from "../server/notifications/digest";
 import {
@@ -179,6 +180,32 @@ describe("devices (memory backend)", () => {
     expect(await renameDevice(8, "dev-1", "Hijacked")).toBe(false);
     const devices = await listDevicesForUser(7);
     expect(devices[0].label).toBeNull();
+  });
+
+  it("drops the user-scoped held digest buffer when the last device unbinds", async () => {
+    await upsertDeviceConfig("dev-1", baseConfig, 7);
+    const scope = scopeKeyForUser(7);
+    const quietConfig: NotificationConfig = {
+      ...baseConfig,
+      quietHours: { start: "00:00", end: "23:59", utcOffsetMinutes: 0 },
+    };
+    const draft = { dedupKey: "held-user" } as unknown as Parameters<
+      typeof holdForDigest
+    >[2][number];
+    expect(holdForDigest(scope, [quietConfig], [draft], Date.now())).toBe(true);
+    expect(takeDigestHeld(scope)).toHaveLength(1);
+    // Re-hold, then unbind the user's only device.
+    expect(holdForDigest(scope, [quietConfig], [draft], Date.now())).toBe(true);
+    expect(await unbindDevice(7, "dev-1")).toBe(true);
+    expect(takeDigestHeld(scope)).toEqual([]);
+  });
+
+  it("does not revoke a device the caller does not own", async () => {
+    // Writing the revocation before the ownership check let any signed-in
+    // caller create a (self, arbitrary deviceId) row and lock themselves out if
+    // they later bound that id.
+    expect(await signOutDevice(7, "dev-ghost")).toBe(false);
+    expect(await isDeviceRevoked(7, "dev-ghost")).toBe(false);
   });
 
   it("drops a device label when it is unbound so a later owner can't inherit it", async () => {

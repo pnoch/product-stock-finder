@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
 import { Expo } from "expo-server-sdk";
 import {
+  deviceLabels,
+  deviceNotificationConfigs,
   devicePushTokens,
   type InsertDevicePushTokenRow,
 } from "../drizzle/schema";
@@ -165,6 +167,19 @@ export async function pruneDeviceToken(deviceId: string): Promise<void> {
       await db
         .delete(devicePushTokens)
         .where(eq(devicePushTokens.deviceId, deviceId));
+      // A token-only device can still carry a label. With the token gone the
+      // label has no binding left and would outlive the account, leaking to
+      // whoever binds that deviceId next. Drop it only when no notification
+      // config keeps the device bound.
+      const stillBound = await db
+        .select({ deviceId: deviceNotificationConfigs.deviceId })
+        .from(deviceNotificationConfigs)
+        .where(eq(deviceNotificationConfigs.deviceId, deviceId));
+      if (stillBound.length === 0) {
+        await db
+          .delete(deviceLabels)
+          .where(eq(deviceLabels.deviceId, deviceId));
+      }
     } else {
       memoryTokens.delete(deviceId);
     }

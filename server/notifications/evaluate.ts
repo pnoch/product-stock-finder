@@ -172,12 +172,16 @@ async function evaluateAnonMemory(
   );
   const drafts = await buildEvents(config, now, getPrice);
   const scopeKey = scopeKeyForDevice(deviceId);
-  if (holdForDigest(scopeKey, [config], drafts, now)) return;
+  const holdable = drafts.filter((d) => !blocked.has(d.dedupKey));
+  if (holdForDigest(scopeKey, [config], holdable, now)) return;
   const held = takeDigestHeld(scopeKey);
   let toDeliver = drafts;
   if (held.length > 0) {
+    const heldDrafts = [
+      ...new Map([...held, ...drafts].map((d) => [d.dedupKey, d])).values(),
+    ];
     const digest = buildDigestDraft(
-      [...held, ...drafts],
+      heldDrafts,
       scopeKey,
       now,
       config.quietHours?.utcOffsetMinutes,
@@ -217,11 +221,12 @@ async function evaluateUserMemory(
   );
   const drafts = await buildEvents(config, now, getPrice);
   const scopeKey = scopeKeyForUser(userId);
+  const holdable = drafts.filter((d) => !blocked.has(d.dedupKey));
   if (
     holdForDigest(
       scopeKey,
       devices.map((d) => d.config),
-      drafts,
+      holdable,
       now,
     )
   )
@@ -229,8 +234,11 @@ async function evaluateUserMemory(
   const held = takeDigestHeld(scopeKey);
   let toDeliver = drafts;
   if (held.length > 0) {
+    const heldDrafts = [
+      ...new Map([...held, ...drafts].map((d) => [d.dedupKey, d])).values(),
+    ];
     const digest = buildDigestDraft(
-      [...held, ...drafts],
+      heldDrafts,
       scopeKey,
       now,
       config.quietHours?.utcOffsetMinutes,
@@ -329,12 +337,22 @@ async function evaluateConfigDb(
   );
   const drafts = await buildEvents(config, now, getPrice);
   const scopeKey = scopeKeyForDevice(deviceId);
-  if (holdForDigest(scopeKey, [config], drafts, now)) return;
+  // Only hold conditions that are not already delivered/blocked: buffering them
+  // made the morning digest repeat an alert the user already received.
+  const holdable = drafts.filter((d) => !blocked.has(d.dedupKey));
+  if (holdForDigest(scopeKey, [config], holdable, now)) return;
   const held = takeDigestHeld(scopeKey);
   let combined = drafts;
   if (held.length > 0) {
+    // Held drafts from earlier ticks and the current tick can share a dedupKey;
+    // without deduping, the digest body listed the same condition twice.
+    const heldDrafts = [
+      ...new Map(
+        [...held, ...drafts].map((d) => [d.dedupKey, d]),
+      ).values(),
+    ];
     const digest = buildDigestDraft(
-      [...held, ...drafts],
+      heldDrafts,
       scopeKey,
       now,
       config.quietHours?.utcOffsetMinutes,
@@ -369,7 +387,14 @@ async function evaluateConfigDb(
     } catch (error) {
       if (!isDuplicateKeyError(error)) throw error;
     }
-    void sendPushForDevice(deviceId, toInsert);
+    // Flatten the drafts into events for the push payload, exactly like the
+    // memory path: PushableEvent exposes flat productId/distributorId, which
+    // only exist under draft.payload — without this a background push lost its
+    // deep-link target and tapping it fell back to Home.
+    void sendPushForDevice(
+      deviceId,
+      toInsert.map((d) => ({ ...draftToEvent(d), userId: null, deviceId })),
+    );
   }
 }
 
@@ -423,11 +448,12 @@ async function evaluateUserDb(
   );
   const drafts = await buildEvents(config, now, getPrice);
   const scopeKey = scopeKeyForUser(userId);
+  const holdable = drafts.filter((d) => !pending.has(d.dedupKey));
   if (
     holdForDigest(
       scopeKey,
       devices.map((d) => d.config),
-      drafts,
+      holdable,
       now,
     )
   )
@@ -435,8 +461,11 @@ async function evaluateUserDb(
   const held = takeDigestHeld(scopeKey);
   let combined = drafts;
   if (held.length > 0) {
+    const heldDrafts = [
+      ...new Map([...held, ...drafts].map((d) => [d.dedupKey, d])).values(),
+    ];
     const digest = buildDigestDraft(
-      [...held, ...drafts],
+      heldDrafts,
       scopeKey,
       now,
       config.quietHours?.utcOffsetMinutes,
@@ -466,6 +495,9 @@ async function evaluateUserDb(
     } catch (error) {
       if (!isDuplicateKeyError(error)) throw error;
     }
-    void sendPushForUser(userId, toInsert);
+    void sendPushForUser(
+      userId,
+      toInsert.map((d) => ({ ...draftToEvent(d), userId, deviceId: null })),
+    );
   }
 }

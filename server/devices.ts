@@ -10,7 +10,12 @@ import {
   revokedDevices,
 } from "../drizzle/schema";
 import { getDb } from "./db";
-import { listMemoryConfigDevices, removeMemoryDevice, clearDeviceDigestBuffer } from "./notifications";
+import {
+  listMemoryConfigDevices,
+  removeMemoryDevice,
+  clearDeviceDigestBuffer,
+  clearUserDigestBuffer,
+} from "./notifications";
 import {
   listMemoryTokenDevices,
   removeMemoryToken,
@@ -162,6 +167,11 @@ export async function unbindDevice(
     removeMemoryDevice(deviceId);
     removeMemoryToken(deviceId);
     memoryLabels.delete(deviceId);
+    // Last binding gone: the user-scoped held drafts must go with it.
+    const stillBound =
+      listMemoryConfigDevices().some((d) => d.userId === userId) ||
+      listMemoryTokenDevices().some((d) => d.userId === userId);
+    if (!stillBound) clearUserDigestBuffer(userId);
     return true;
   }
   const configRows = await db
@@ -192,6 +202,18 @@ export async function unbindDevice(
   // Held quiet-hours drafts live only in process memory even in DB mode, so
   // they must be dropped here too or a re-bound device flushes them.
   clearDeviceDigestBuffer(deviceId);
+  // Same for the user-scoped buffer once the last binding is gone.
+  const remainingConfigs = await db
+    .select({ deviceId: deviceNotificationConfigs.deviceId })
+    .from(deviceNotificationConfigs)
+    .where(eq(deviceNotificationConfigs.userId, userId));
+  const remainingTokens = await db
+    .select({ deviceId: devicePushTokens.deviceId })
+    .from(devicePushTokens)
+    .where(eq(devicePushTokens.userId, userId));
+  if (remainingConfigs.length === 0 && remainingTokens.length === 0) {
+    clearUserDigestBuffer(userId);
+  }
   return true;
 }
 
@@ -234,12 +256,21 @@ export async function signOutDevice(
 ): Promise<boolean> {
   const db = await getDb();
   if (!db) {
+    const config = listMemoryConfigDevices().find((d) => d.deviceId === deviceId);
+    const token = listMemoryTokenDevices().find((d) => d.deviceId === deviceId);
+    const boundTo = config?.userId ?? token?.userId ?? null;
+    // Ownership is verified before writing: revoking first let any caller
+    // create a (self, arbitrary deviceId) row, locking themselves out if they
+    // later bound that id.
+    if (boundTo !== userId) return false;
     // Revoke first so a crash between steps leaves the device unusable
     // rather than unbound-but-still-authenticated.
     memoryRevokedDevices.add(`${userId}:${deviceId}`);
     memoryLabels.delete(deviceId);
     return unbindDevice(userId, deviceId);
   }
+  const binding = await getDeviceBinding(deviceId);
+  if (binding.userId !== userId) return false;
   // Revoke before unbinding: if the process dies between these steps the
   // device stays revoked (safe) instead of unbound-but-token-valid (unsafe).
   await db

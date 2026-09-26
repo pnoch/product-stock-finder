@@ -44,6 +44,33 @@ function product(
 }
 
 describe("computeMovers", () => {
+  it("ignores a drop that happened entirely out of stock", () => {
+    const wl = [
+      product("p1", [
+        listing({
+          distributorId: "d1",
+          priceHistory: [
+            {
+              date: new Date(NOW - 3 * DAY).toISOString(),
+              price: 100,
+              currency: "USD",
+              stockStatus: "out_of_stock",
+            },
+            {
+              date: new Date(NOW).toISOString(),
+              price: 60,
+              currency: "USD",
+              stockStatus: "out_of_stock",
+            },
+          ],
+        }),
+      ]),
+    ];
+    const result = computeMovers(wl, "USD", 7, NOW);
+    expect(result.drops).toHaveLength(0);
+    expect(result.gainers).toHaveLength(0);
+  });
+
   it("ranks drops and gainers by magnitude within the window", () => {
     const wl = [
       product("p1", [

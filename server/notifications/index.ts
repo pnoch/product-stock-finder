@@ -21,6 +21,7 @@ export type { NotificationConfig, NotificationEvent } from "./types";
 export {
   clearNotificationsForTests,
   clearDeviceDigestBuffer,
+  clearUserDigestBuffer,
   listMemoryConfigDevices,
   removeMemoryDevice,
 } from "./memory-store";

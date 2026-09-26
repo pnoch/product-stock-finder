@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { devicePushTokens } from "../drizzle/schema";
+import { deviceLabels, devicePushTokens } from "../drizzle/schema";
 
 vi.mock("../server/db", () => ({
   getDb: vi.fn(async () => null),
@@ -216,6 +216,42 @@ describe("push-notifications", () => {
     await pruneDeviceToken("dev-1");
     await sendPushForDevice("dev-1", [event]);
     expect(sent).toHaveLength(0);
+  });
+
+  it("clears an orphaned device label when the token is pruned", async () => {
+    const deleted: unknown[] = [];
+    mockedGetDb.mockResolvedValue({
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          // No notification config binds the device: the label is orphaned.
+          where: vi.fn(async () => []),
+        })),
+      })),
+      delete: vi.fn((table: unknown) => {
+        deleted.push(table);
+        return { where: vi.fn(async () => undefined) };
+      }),
+    } as never);
+    await pruneDeviceToken("dev-1");
+    expect(deleted).toContain(devicePushTokens);
+    expect(deleted).toContain(deviceLabels);
+  });
+
+  it("keeps the label when a notification config still binds the device", async () => {
+    const deleted: unknown[] = [];
+    mockedGetDb.mockResolvedValue({
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(async () => [{ deviceId: "dev-1" }]),
+        })),
+      })),
+      delete: vi.fn((table: unknown) => {
+        deleted.push(table);
+        return { where: vi.fn(async () => undefined) };
+      }),
+    } as never);
+    await pruneDeviceToken("dev-1");
+    expect(deleted).not.toContain(deviceLabels);
   });
 
   it("pruneDeviceToken deletes the row through the database", async () => {

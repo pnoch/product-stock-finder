@@ -41,6 +41,34 @@ function product(id: string, listings: DistributorListing[]): Product {
 }
 
 describe("computeDropCalendar", () => {
+  it("ignores a drop that happened entirely out of stock", () => {
+    const oos = {
+      productId: "p",
+      distributorId: "a",
+      price: 60,
+      currency: "USD",
+      stockStatus: "out_of_stock",
+      url: "",
+      lastChecked: new Date(NOW - DAY).toISOString(),
+      priceHistory: [
+        {
+          date: new Date(NOW - 5 * DAY).toISOString(),
+          price: 100,
+          currency: "USD",
+          stockStatus: "out_of_stock" as const,
+        },
+        {
+          date: new Date(NOW - 2 * DAY).toISOString(),
+          price: 60,
+          currency: "USD",
+          stockStatus: "out_of_stock" as const,
+        },
+      ],
+    } as DistributorListing;
+    const result = computeDropCalendar([product("p1", [oos])], "USD", 30, NOW);
+    expect(result.totalDrops).toBe(0);
+  });
+
   it("attributes drops to the later point's day", () => {
     const result = computeDropCalendar(
       [product("p1", [listing("a", [[5, 100], [2, 80]])])],
