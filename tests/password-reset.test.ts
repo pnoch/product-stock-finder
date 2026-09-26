@@ -3,6 +3,12 @@ import { createHash } from "node:crypto";
 
 const sha256 = (s: string) => createHash("sha256").update(s, "utf8").digest("hex");
 
+const mockRevokeAllDevicesForUser = vi.hoisted(() => vi.fn(async () => 0));
+vi.mock("../server/devices", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../server/devices")>();
+  return { ...actual, revokeAllDevicesForUser: mockRevokeAllDevicesForUser };
+});
+
 vi.mock("../server/db", () => {
   const store = new Map<string, { userId: number; token: string; expiresAt: number; usedAt: number | null }>();
   const hashCalls: Array<{ userId: number; passwordHash: string }> = [];
@@ -22,11 +28,11 @@ vi.mock("../server/db", () => {
     }),
     resetPasswordWithToken: vi.fn(async (token: string, passwordHash: string) => {
       const r = store.get(token);
-      if (!r || r.usedAt !== null || r.expiresAt <= Date.now()) return false;
+      if (!r || r.usedAt !== null || r.expiresAt <= Date.now()) return null;
       r.usedAt = Date.now();
       store.set(token, r);
       hashCalls.push({ userId: r.userId, passwordHash });
-      return true;
+      return r.userId;
     }),
     updateUserPasswordHashById: vi.fn(),
     __hashCalls: hashCalls,
@@ -246,6 +252,34 @@ describe("POST /api/auth/reset", () => {
       res,
     );
     expect(res.status).toHaveBeenCalledWith(429);
+  });
+
+  it("revokes every device after a successful reset", async () => {
+    // A reset is the recovery path for a compromised account, so every session
+    // issued before it must stop working — they stay cryptographically valid
+    // until their 30-day expiry otherwise.
+    const handler = makeApp();
+    const store = (
+      db as unknown as {
+        __testStore: Map<
+          string,
+          { userId: number; token: string; expiresAt: number; usedAt: number | null }
+        >;
+      }
+    ).__testStore;
+    store.set(sha256("tok-123"), {
+      userId: 42,
+      token: sha256("tok-123"),
+      expiresAt: Date.now() + 10_000,
+      usedAt: null,
+    });
+    const res = makeRes();
+    await handler("POST", "/api/auth/reset")(
+      makeReq({ token: "tok-123", newPassword: "newpass123" }),
+      res,
+    );
+    expect(res.json).toHaveBeenCalledWith({ success: true });
+    expect(mockRevokeAllDevicesForUser).toHaveBeenCalledWith(42);
   });
 
   it("looks up the reset token by hash", async () => {

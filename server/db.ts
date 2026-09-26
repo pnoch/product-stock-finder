@@ -322,17 +322,17 @@ export function __clearPasswordResetTokensForTest() {
 export async function resetPasswordWithToken(
   token: string,
   passwordHash: string,
-): Promise<boolean> {
+): Promise<number | null> {
   type Row = { userId: number; token: string; expiresAt: number; usedAt: number | null };
   const now = Date.now();
   const db = await getDb();
   if (!db) {
     const row = memTokens.get(token);
-    if (!row || row.usedAt !== null || row.expiresAt <= now) return false;
+    if (!row || row.usedAt !== null || row.expiresAt <= now) return null;
     row.usedAt = now;
     memTokens.set(token, row);
     await updateUserPasswordHashById(row.userId, passwordHash);
-    return true;
+    return row.userId;
   }
   try {
     return await db.transaction(async (tx) => {
@@ -343,7 +343,7 @@ export async function resetPasswordWithToken(
         .limit(1)
         .for("update");
       const row = rows[0] as unknown as Row | undefined;
-      if (!row || row.usedAt !== null || row.expiresAt <= now) return false;
+      if (!row || row.usedAt !== null || row.expiresAt <= now) return null;
       await tx
         .update(passwordResetTokens)
         .set({ usedAt: now } as never)
@@ -352,10 +352,10 @@ export async function resetPasswordWithToken(
         .update(users)
         .set({ passwordHash } as never)
         .where(eq(users.id, row.userId));
-      return true;
+      return row.userId;
     });
   } catch {
-    return false;
+    return null;
   }
 }
 

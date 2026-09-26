@@ -5,7 +5,7 @@ import { getSessionCookieOptions } from "./cookies";
 import { randomUUID, createHash, createHmac } from "crypto";
 import bcrypt from "bcryptjs";
 import * as db from "../db";
-import { isDeviceRevoked, unrevokeDevice } from "../devices";
+import { isDeviceRevoked, revokeAllDevicesForUser, unrevokeDevice } from "../devices";
 import { sendEmail } from "../email";
 import { HttpError } from "../../shared/_core/errors.js";
 
@@ -346,6 +346,17 @@ export function registerOAuthRoutes(app: Express) {
   app.get("/api/auth/me", async (req: Request, res: Response) => {
     try {
       const user = await sdk.authenticateRequest(req);
+      // A revoked device must not keep refreshing its identity (the tRPC APIs
+      // already reject it, so a 200 here left the client half signed in).
+      if (
+        !(await assertDeviceAllowed(
+          res,
+          user.id,
+          deviceIdFromReq(req),
+          user.sessionDeviceId,
+        ))
+      )
+        return;
       res.json({ user: buildUserResponse(user) });
     } catch (error) {
       console.error("[Auth] /api/auth/me failed:", error);
@@ -804,11 +815,14 @@ export function registerOAuthRoutes(app: Express) {
       const hashed = hashFn ? await hashFn(newPassword, 10) : await (bcrypt as unknown as { hash: (p: string, r: number) => Promise<string> }).hash(newPassword, 10);
       // Consume + apply in one transaction: a failure after consumption would
       // otherwise burn the one-time token without changing the password.
-      const ok = await db.resetPasswordWithToken(tokenHash, hashed);
-      if (!ok) {
+      const resetUserId = await db.resetPasswordWithToken(tokenHash, hashed);
+      if (!resetUserId) {
         res.status(400).json({ error: "Invalid or expired token" });
         return;
       }
+      // A reset is the recovery path for a compromised account: sessions issued
+      // before it stay cryptographically valid otherwise.
+      await revokeAllDevicesForUser(resetUserId);
       res.json({ success: true });
     } catch (e: unknown) {
       console.error("[Auth] reset failed", e);
@@ -866,6 +880,8 @@ export function registerOAuthRoutes(app: Express) {
         ?? (bcrypt as unknown as { default?: { hash: (p: string, r: number) => Promise<string> } }).default?.hash;
       const hashed = hashFn ? await hashFn(newPassword, 10) : await (bcrypt as unknown as { hash: (p: string, r: number) => Promise<string> }).hash(newPassword, 10);
       await db.updateUserPasswordHashById(user.id, hashed);
+      // Sign out every other device; the current one keeps its session.
+      await revokeAllDevicesForUser(user.id, user.sessionDeviceId);
       res.json({ success: true });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);

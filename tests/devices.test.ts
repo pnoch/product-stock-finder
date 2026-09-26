@@ -25,6 +25,7 @@ import {
   renameDevice,
   unrevokeDevice,
   signOutDevice,
+  revokeAllDevicesForUser,
   cleanupStaleDevices,
   isDeviceRevoked,
   clearDevicesForTests,
@@ -88,6 +89,22 @@ describe("devices (memory backend)", () => {
     await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios", 7);
     expect(await getDeviceBinding("dev-1")).toEqual({ userId: 7 });
     expect(await getDeviceBinding("unknown")).toEqual({ userId: null });
+  });
+
+  it("revokeAllDevicesForUser revokes all but the kept device", async () => {
+    // Used after a credential change: the session token is still valid, so the
+    // devices have to be revoked or an attacker's session survives.
+    await upsertDeviceConfig("dev-1", baseConfig, 7);
+    await upsertDeviceConfig("dev-2", baseConfig, 7);
+    await upsertDeviceConfig("dev-3", baseConfig, 7);
+    expect(await revokeAllDevicesForUser(7, "dev-2")).toBe(2);
+    expect(await isDeviceRevoked(7, "dev-1")).toBe(true);
+    expect(await isDeviceRevoked(7, "dev-2")).toBe(false);
+    expect(await isDeviceRevoked(7, "dev-3")).toBe(true);
+    // Revoking everyone (a password reset) also takes the kept device.
+    await upsertDeviceConfig("dev-2", baseConfig, 7);
+    expect(await revokeAllDevicesForUser(7)).toBe(1);
+    expect(await isDeviceRevoked(7, "dev-2")).toBe(true);
   });
 
   it("unbinds a device bound to the user", async () => {

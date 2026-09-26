@@ -248,6 +248,27 @@ export async function signOutDevice(
   return true;
 }
 
+/**
+ * Revokes every device bound to the user, optionally keeping one.
+ *
+ * Used after a credential change: the session cookie/JWT issued before it is
+ * still otherwise valid, so a password reset — the recovery path for a
+ * compromised account — must revoke the devices or an attacker's session
+ * survives until the token expires.
+ */
+export async function revokeAllDevicesForUser(
+  userId: number,
+  exceptDeviceId?: string | null,
+): Promise<number> {
+  const devices = await listDevicesForUser(userId);
+  let revoked = 0;
+  for (const device of devices) {
+    if (!device.deviceId || device.deviceId === exceptDeviceId) continue;
+    if (await signOutDevice(userId, device.deviceId)) revoked += 1;
+  }
+  return revoked;
+}
+
 export async function unrevokeDevice(
   userId: number,
   deviceId: string,

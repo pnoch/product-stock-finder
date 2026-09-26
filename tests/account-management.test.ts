@@ -12,6 +12,12 @@ vi.mock("../server/db", () => ({
   __clearPasswordResetTokensForTest: vi.fn(),
 }));
 
+const mockRevokeAllDevicesForUser = vi.hoisted(() => vi.fn(async () => 0));
+vi.mock("../server/devices", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../server/devices")>();
+  return { ...actual, revokeAllDevicesForUser: mockRevokeAllDevicesForUser };
+});
+
 vi.mock("../server/_core/sdk", () => ({
   sdk: {
     register: vi.fn(),
@@ -64,6 +70,8 @@ describe("POST /api/auth/change-password", () => {
     const res = makeRes();
     await handler("POST", "/api/auth/change-password")(makeReq({ currentPassword: "oldpass", newPassword: "newpass123" }), res);
     expect(db.updateUserPasswordHashById).toHaveBeenCalledWith(1, "newhashed");
+    // Every other device is signed out; the current session is kept.
+    expect(mockRevokeAllDevicesForUser).toHaveBeenCalledWith(1, undefined);
     expect(res.json).toHaveBeenCalledWith({ success: true });
   });
 
