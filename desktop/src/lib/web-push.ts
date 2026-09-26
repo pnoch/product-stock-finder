@@ -69,7 +69,13 @@ export async function ensurePushSubscription(): Promise<boolean> {
   }
 }
 
-export async function disablePush(): Promise<void> {
+/**
+ * Drops this browser's subscription only (no server call). Extracted so the
+ * sign-out path can mirror mobile's `unregisterPushToken` on web: leaving the
+ * subscription made `getPushStatus()` report "on" after signing out, and web
+ * push stayed broken on the next sign-in until a manual disable/enable.
+ */
+export async function unsubscribeLocalWebPush(): Promise<void> {
   if (!isPushSupported()) return;
   try {
     const registration = await navigator.serviceWorker.getRegistration();
@@ -78,6 +84,10 @@ export async function disablePush(): Promise<void> {
   } catch (e) {
     console.error("[web-push] unsubscribe failed", e);
   }
+}
+
+export async function disablePush(): Promise<void> {
+  await unsubscribeLocalWebPush();
   const ok = await unregisterServerToken(createTRPCClient());
   localStorage.removeItem(PENDING_UNREGISTER_KEY);
   if (!ok) localStorage.setItem(PENDING_UNREGISTER_KEY, "1");

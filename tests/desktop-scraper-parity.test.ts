@@ -419,4 +419,15 @@ describe("desktop/mobile scraper parity", () => {
     expect(app).toContain('addEventListener("focus", onForeground)');
     expect(app).toContain('addEventListener("visibilitychange", onVisibility)');
   });
+
+  it("unsubscribes local web push on sign-out on both platforms", async () => {
+    // Mobile's unregisterPushToken (web branch) unsubscribes; leaving the
+    // subscription on the desktop made the push toggle lie after signing out.
+    const mobile = await readFile("lib/push-token.ts", "utf8");
+    const webPush = await readFile("desktop/src/lib/web-push.ts", "utf8");
+    const desktopAuth = await readFile("desktop/src/hooks/use-auth.ts", "utf8");
+    expect(mobile).toContain("unsubscribeWebPush()");
+    expect(webPush).toContain("export async function unsubscribeLocalWebPush");
+    expect(desktopAuth).toContain("unsubscribeLocalWebPush");
+  });
 });

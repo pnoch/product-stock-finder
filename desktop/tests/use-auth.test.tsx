@@ -12,6 +12,11 @@ vi.mock("../src/lib/trpc", () => ({
   }),
 }));
 
+const mockUnsubscribeLocalWebPush = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock("../src/lib/web-push", () => ({
+  unsubscribeLocalWebPush: mockUnsubscribeLocalWebPush,
+}));
+
 import { invoke } from "@tauri-apps/api/core";
 import { getSessionToken, setSessionToken, setUserInfo, getUserInfo, useAuth } from "../src/hooks/use-auth";
 import { PENDING_UNREGISTER_KEY } from "../src/lib/push-unregister";
@@ -59,6 +64,30 @@ describe("desktop auth malformed user", () => {
     expect(getSessionToken()).toBeNull();
     expect(getUserInfo()).toBeNull();
     expect(result.current.isAuthenticated).toBe(false);
+  });
+
+  it("drops the local web-push subscription on logout", async () => {
+    // Mobile's unregisterPushToken unsubscribes web push locally; the desktop
+    // kept the browser subscription, so the toggle reported "on" with no server
+    // token and web push stayed broken after the next sign-in.
+    mockUnregisterMutate.mockResolvedValue({ accepted: true });
+    setSessionToken("token-1");
+    setUserInfo({
+      id: 1,
+      openId: "o1",
+      name: "Test",
+      email: "t@example.com",
+      loginMethod: "email",
+      lastSignedIn: new Date().toISOString(),
+    });
+    const { result } = renderHook(() => useAuth());
+    act(() => {
+      result.current.logout();
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(mockUnsubscribeLocalWebPush).toHaveBeenCalledTimes(1);
   });
 
   it("still completes logout when unregister rejects", async () => {

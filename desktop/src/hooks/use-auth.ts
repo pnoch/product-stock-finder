@@ -326,6 +326,16 @@ export function useAuth() {
     } catch {
       localStorage.setItem(PENDING_UNREGISTER_KEY, "1");
     }
+    // Drop this browser's subscription as well, mirroring mobile's
+    // `unregisterPushToken` on web: keeping it made the push toggle report "on"
+    // after signing out while the server had no token, so web push stayed
+    // silently broken until a manual off/on.
+    try {
+      const { unsubscribeLocalWebPush } = await import("../lib/web-push");
+      await unsubscribeLocalWebPush();
+    } catch {
+      // best effort
+    }
     removeSessionToken();
     // Clear the previous account's synced collections and sync cursor, or the
     // next account signing in on this device inherits them (and can push them to

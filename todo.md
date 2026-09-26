@@ -4282,3 +4282,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Added `desktop/src/lib/sync-retry.ts` (`createForegroundSyncRetry`: signed-in plus last-error gate, 1s debounce, swallows storage failures) and wired it into App.tsx on `focus` and `visibilitychange`.
 - [x] Tests: `desktop/tests/sync-retry.test.ts` (6 cases — retry on failure, none when clean, none while signed out, debounce, retry after the window, metadata failure) and a parity guard in `tests/desktop-scraper-parity.test.ts` (now 17) tying the mobile handler to the desktop's. Non-vacuous: dropping the error gate fails a case; removing the focus wiring fails the guard.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2350 passed`; desktop `tsc 0`, `52 files / 257 passed`.
+
+## Phase 581: Device QA round 331 (desktop kept the web-push subscription after sign-out)
+
+- [x] **Compared the push registration lifecycles.** The mobile's web sign-out (`unregisterPushToken`'s web branch) unsubscribes the local browser subscription *and* prunes the server token; the desktop's logout only pruned the server token. The browser kept its `PushSubscription`, so `getPushStatus()` reported "on" with no server token — web push stayed silently broken after the next sign-in until a manual off/on.
+- [x] Extracted `unsubscribeLocalWebPush()` from `disablePush()` and called it from the desktop logout (dynamic import, matching the existing trpc-cycle workaround), best-effort.
+- [x] Tests: a new case in `desktop/tests/use-auth.test.tsx` asserts the local unsubscribe on logout (10 tests), and a parity guard in `tests/desktop-scraper-parity.test.ts` (now 18) ties mobile's web unregister to the desktop's. Non-vacuous: removing the call fails both.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2351 passed`; desktop `tsc 0`, `52 files / 258 passed`.
