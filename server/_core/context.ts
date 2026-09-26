@@ -38,8 +38,10 @@ export async function createContext(
   const claimDeviceId = user?.sessionDeviceId ?? null;
   const effectiveDeviceId = user ? (claimDeviceId ?? headerDeviceId) : null;
 
-  if (effectiveDeviceId && user) {
-    const revoked = await isDeviceRevoked(user.id, effectiveDeviceId);
+  if (user) {
+    // Fall back to the user's "*" revocation: a credential change writes one so
+    // a session that never sent a device id cannot outlive it.
+    const revoked = await isDeviceRevoked(user.id, effectiveDeviceId ?? "*");
     if (revoked) {
       throw new TRPCError({
         code: "FORBIDDEN",

@@ -107,6 +107,17 @@ describe("devices (memory backend)", () => {
     expect(await isDeviceRevoked(7, "dev-2")).toBe(true);
   });
 
+  it("revokeAllDevicesForUser blocks device-less sessions until the next sign-in", async () => {
+    // The enumeration only sees configured devices, so a credential change also
+    // writes a user-scoped wildcard for sessions that never sent a device id.
+    await revokeAllDevicesForUser(7);
+    expect(await isDeviceRevoked(7, "*")).toBe(true);
+    expect(await isDeviceRevoked(8, "*")).toBe(false);
+    // Signing in proves the current credentials, so it lifts the wildcard.
+    await unrevokeDevice(7, "any-device");
+    expect(await isDeviceRevoked(7, "*")).toBe(false);
+  });
+
   it("unbinds a device bound to the user", async () => {
     await upsertDeviceConfig("dev-1", baseConfig, 7);
     await upsertPushToken("dev-1", "ExponentPushToken[abc123]", "ios", 7);

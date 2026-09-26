@@ -78,11 +78,26 @@ describe("createContext revocation check", () => {
     expect(ctx.deviceId).toBe("dev-1");
   });
 
-  it("passes when no device header is present", async () => {
+  it("checks the user's wildcard revocation when no device is present", async () => {
     mockedAuth.mockResolvedValue({ id: 7 } as any);
+    mockedRevoked.mockResolvedValue(false);
     const ctx = await createContext({ req: makeReq(), res: makeRes() } as any);
     expect(ctx.deviceId).toBeNull();
-    expect(mockedRevoked).not.toHaveBeenCalled();
+    // A credential change writes a user-scoped "*" revocation, so a session
+    // that never carried a device id cannot outlive it.
+    expect(mockedRevoked).toHaveBeenCalledWith(7, "*");
+    expect(ctx.user?.id).toBe(7);
+  });
+
+  it("rejects a device-less session revoked by a credential change", async () => {
+    mockedAuth.mockResolvedValue({ id: 7 } as any);
+    mockedRevoked.mockResolvedValue(true);
+    await expect(
+      createContext({ req: makeReq(), res: makeRes() } as any),
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: DEVICE_REVOKED_ERR_MSG,
+    });
   });
 
   it("throws DEVICE_REVOKED based on the token claim even when the header is absent", async () => {

@@ -10,6 +10,9 @@ vi.mock("../server/_core/sdk", () => ({
 }));
 
 vi.mock("../server/db", () => ({
+  // Memory path: the request context now checks the user's "*" revocation,
+  // which needs the device store rather than the DB.
+  getDb: vi.fn(async () => null),
   getUserByOpenId: vi.fn(async () => null),
   upsertUser: vi.fn(async () => {}),
   getUserByEmail: vi.fn(async () => null),

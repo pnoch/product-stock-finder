@@ -266,6 +266,19 @@ export async function revokeAllDevicesForUser(
     if (!device.deviceId || device.deviceId === exceptDeviceId) continue;
     if (await signOutDevice(userId, device.deviceId)) revoked += 1;
   }
+  // A session that never carried a device id is invisible to the enumeration
+  // above, so credential changes also write a user-scoped wildcard that the
+  // request path checks for device-less sessions. A later successful sign-in
+  // clears it (proving the new password), so it cannot lock anyone out.
+  const db = await getDb();
+  if (!db) {
+    memoryRevokedDevices.add(`${userId}:*`);
+  } else {
+    await db
+      .insert(revokedDevices)
+      .values({ deviceId: "*", userId, revokedAt: Date.now() })
+      .onDuplicateKeyUpdate({ set: { revokedAt: Date.now() } });
+  }
   return revoked;
 }
 
@@ -277,13 +290,19 @@ export async function unrevokeDevice(
   if (!db) {
     memoryRevokedDevices.delete(`${userId}:${deviceId}`);
     memoryRevokedDevices.delete(`*:${deviceId}`);
+    // Signing in proves the current credentials, so lift the user's wildcard
+    // (it exists to kill sessions issued before a credential change).
+    memoryRevokedDevices.delete(`${userId}:*`);
     return;
   }
   await db
     .delete(revokedDevices)
     .where(
       and(
-        eq(revokedDevices.deviceId, deviceId),
+        or(
+          eq(revokedDevices.deviceId, deviceId),
+          eq(revokedDevices.deviceId, "*"),
+        ),
         or(eq(revokedDevices.userId, userId), isNull(revokedDevices.userId)),
       ),
     );

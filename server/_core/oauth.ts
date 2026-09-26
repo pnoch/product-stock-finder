@@ -237,8 +237,9 @@ async function assertDeviceAllowed(
 ): Promise<boolean> {
   // Prefer the device bound into the session token; the header is
   // client-controlled and a revoked client could simply omit or rotate it.
-  const effective = sessionDeviceId ?? deviceId;
-  if (effective && (await isDeviceRevoked(userId, effective))) {
+  // Fall back to the user's "*" revocation for a session with no device id.
+  const effective = sessionDeviceId ?? deviceId ?? "*";
+  if (await isDeviceRevoked(userId, effective)) {
     res.status(403).json({ error: "Device revoked" });
     return false;
   }

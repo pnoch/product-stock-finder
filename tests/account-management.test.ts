@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../server/db", () => ({
+  // Memory path: the request context now checks the user's "*" revocation,
+  // which needs the device store rather than the DB.
+  getDb: vi.fn(async () => null),
   getUserByEmail: vi.fn(),
   getUserById: vi.fn(),
   getUserByOpenId: vi.fn(),

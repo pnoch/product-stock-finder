@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("../server/db", () => {
   const store = new Map<string, { userId: number; token: string; expiresAt: number; usedAt: number | null }>();
   return {
+    // Memory path: the request context checks the user's "*" revocation.
+    getDb: vi.fn(async () => null),
     getUserByEmail: vi.fn(),
     createEmailVerificationToken: vi.fn(),
     getEmailVerificationToken: vi.fn(async (token: string) => store.get(token) ?? null),
