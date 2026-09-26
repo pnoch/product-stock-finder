@@ -41,6 +41,7 @@ import { SAMPLE_LISTINGS, freshenSampleListings } from "../../lib/sample-data";
 import { getApiBaseUrl } from "./lib/api-base";
 import { loadFxRates, maybeRefreshFxRates } from "../../lib/fx";
 import { runLaunchSequence } from "./lib/launch";
+import { createForegroundSyncRetry } from "./lib/sync-retry";
 import { cleanupStaleDevices } from "./lib/device-cleanup";
 import { backfillLocalHistory } from "./lib/history-sync";
 import { evaluateBasketAlert } from "./lib/basket-alert";
@@ -284,6 +285,25 @@ export default function App() {
       })();
     }
   }, [isAuthenticated, trpcClient]);
+
+  // Retry a failed sync when the window regains focus, mirroring mobile's
+  // foreground handler (app/_layout.tsx): the shared engine has no retry timer.
+  useEffect(() => {
+    const onForeground = createForegroundSyncRetry({
+      isSignedIn: () => isAuthenticatedRef.current,
+      getMeta: () => storage.getSyncMeta(),
+      syncNow: () => void syncRef.current?.syncNow(),
+    });
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void onForeground();
+    };
+    window.addEventListener("focus", onForeground);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", onForeground);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
 
   useEffect(() => {
     void runLaunchSequence({

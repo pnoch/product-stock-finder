@@ -4275,3 +4275,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Added `checkPricesOnce` to `runLaunchSequence` (called after the FX warm-up so the conversion uses live rates; best-effort) and wired it in App.tsx to the same Tauri command the manual refresh uses (`run_full_price_check`, skipped when the watchlist is empty or outside Tauri).
 - [x] Tests: `desktop/tests/app-launch.test.ts` gained "runs a launch price check like the mobile app" and "keeps launching when the launch price check fails" (7 tests); a parity guard in `tests/desktop-scraper-parity.test.ts` (now 16) ties the mobile's launch check to the desktop's. Non-vacuous: removing the call fails both.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2349 passed`; desktop `tsc 0`, `251 passed`; `cargo test` 49.
+
+## Phase 580: Device QA round 330 (desktop never retried a failed sync on focus)
+
+- [x] **Compared the mobile's foreground handler with the desktop's window-focus handlers.** The shared sync engine has no retry timer, and the mobile retries a failed sync when it returns to the foreground (`app/_layout.tsx`: retry when `getSyncMeta().lastSyncError`, debounced to once a second). The desktop's only focus hooks refreshed a queued-edit count / connection state — so a sync that failed while offline stayed failed until the next storage change or a manual "Sync now".
+- [x] Added `desktop/src/lib/sync-retry.ts` (`createForegroundSyncRetry`: signed-in plus last-error gate, 1s debounce, swallows storage failures) and wired it into App.tsx on `focus` and `visibilitychange`.
+- [x] Tests: `desktop/tests/sync-retry.test.ts` (6 cases — retry on failure, none when clean, none while signed out, debounce, retry after the window, metadata failure) and a parity guard in `tests/desktop-scraper-parity.test.ts` (now 17) tying the mobile handler to the desktop's. Non-vacuous: dropping the error gate fails a case; removing the focus wiring fails the guard.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2350 passed`; desktop `tsc 0`, `52 files / 257 passed`.

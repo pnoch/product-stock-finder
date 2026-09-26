@@ -403,4 +403,20 @@ describe("desktop/mobile scraper parity", () => {
     expect(app).toContain("checkPricesOnce:");
     expect(app).toContain('invoke("run_full_price_check"');
   });
+
+  it("retries a failed sync on foreground on both platforms", async () => {
+    // The shared engine has no retry timer; mobile retries from its foreground
+    // handler, so the desktop needed the equivalent or a failed sync stayed
+    // failed until the next storage change.
+    const mobileLayout = await readFile("app/_layout.tsx", "utf8");
+    const helper = await readFile("desktop/src/lib/sync-retry.ts", "utf8");
+    const app = await readFile("desktop/src/App.tsx", "utf8");
+    expect(mobileLayout).toContain("Retry a failed sync when the app returns to the foreground");
+    expect(mobileLayout).toContain("lastSyncError");
+    expect(helper).toContain("lastSyncError");
+    expect(helper).toContain("createForegroundSyncRetry");
+    expect(app).toContain("createForegroundSyncRetry");
+    expect(app).toContain('addEventListener("focus", onForeground)');
+    expect(app).toContain('addEventListener("visibilitychange", onVisibility)');
+  });
 });
