@@ -2093,6 +2093,14 @@ describe("desktop chart guard", () => {
       expect(allowed.has(key), `"${key}" is mirrored but not writable in Rust`).toBe(true);
     }
 
+    // Live FX rates: the poller must convert with the same overlay the UI and
+    // mobile use (lib/currency.ts effectiveRates), so the key is mirrored and
+    // the Rust reads it.
+    expect(mirrored).toContain("fx_rates");
+    expect(rust).toContain('| "fx_rates"');
+    expect(rust).toContain("fn refresh_live_rates");
+    expect(rust).toContain("fn rate_for");
+
     // Round-304 cleanup: these had a caller on neither side; they must not come
     // back without one.
     for (const gone of [

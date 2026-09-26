@@ -24,6 +24,9 @@ const TAURI_MIRRORED_KEYS = new Set([
   // Restock watches: the Rust tray badge counts them and the Rust poller reads
   // them, so UI-created watches must reach the file store (and vice versa).
   "back_in_stock_watches",
+  // Live FX rates: the Rust poller converts prices with the same overlay the UI
+  // applies (lib/currency.ts), or an alert could fire on one platform only.
+  "fx_rates",
 ]);
 
 async function mirrorToFile(key: string, value: unknown): Promise<void> {

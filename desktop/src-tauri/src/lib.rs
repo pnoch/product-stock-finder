@@ -1,5 +1,6 @@
 mod scrapers;
 
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -27,15 +28,51 @@ static EXCHANGE_RATES: [(&str, f64); 12] = [
     ("AED", 3.67),
 ];
 
+/// Live FX overlay, mirroring lib/currency.ts (`setExchangeRates` +
+/// `effectiveRates`): the mirrored `fx_rates` file overrides the static table.
+/// Without it the poller evaluated alerts against static rates while the UI and
+/// mobile used live ones, so the same alert could fire on one platform only.
+static LIVE_RATES: std::sync::LazyLock<std::sync::RwLock<HashMap<String, f64>>> =
+    std::sync::LazyLock::new(|| std::sync::RwLock::new(HashMap::new()));
+
+/// Reload the overlay from the mirrored `fx_rates` file. A missing/corrupt file
+/// or an empty rate set clears it, exactly like `setExchangeRates(null)`, and
+/// non-finite/non-positive entries are dropped like the shared filter does.
+fn refresh_live_rates(data_dir: &PathBuf) {
+    let mut parsed: HashMap<String, f64> = HashMap::new();
+    if let Ok(value) = read_json_file(data_dir, "fx_rates") {
+        if let Some(rates) = value.get("rates").and_then(|v| v.as_object()) {
+            for (code, rate) in rates {
+                if let Some(rate) = rate.as_f64() {
+                    if rate.is_finite() && rate > 0.0 {
+                        parsed.insert(code.clone(), rate);
+                    }
+                }
+            }
+        }
+    }
+    if let Ok(mut guard) = LIVE_RATES.write() {
+        *guard = parsed;
+    }
+}
+
+/// The live rate when present, else the static table's — the merge semantics of
+/// `effectiveRates()`.
+fn rate_for(currency: &str) -> Option<f64> {
+    if let Ok(guard) = LIVE_RATES.read() {
+        if let Some(rate) = guard.get(currency) {
+            return Some(*rate);
+        }
+    }
+    EXCHANGE_RATES
+        .iter()
+        .find(|(c, _)| *c == currency)
+        .map(|(_, r)| *r)
+}
+
 fn convert_price(amount: f64, from_currency: &str, to_currency: &str) -> Option<f64> {
-    let from_rate = EXCHANGE_RATES
-        .iter()
-        .find(|(c, _)| *c == from_currency)
-        .map(|(_, r)| *r)?;
-    let to_rate = EXCHANGE_RATES
-        .iter()
-        .find(|(c, _)| *c == to_currency)
-        .map(|(_, r)| *r)?;
+    let from_rate = rate_for(from_currency)?;
+    let to_rate = rate_for(to_currency)?;
     if !from_rate.is_finite() || !to_rate.is_finite() || from_rate <= 0.0 || to_rate <= 0.0 {
         return None;
     }
@@ -385,6 +422,9 @@ fn is_allowed_storage_key(key: &str) -> bool {
             | "back_order_reminders"
             | "app_settings"
             | "back_in_stock_watches"
+            // Live FX rates: mirrored so the poller converts with the same
+            // overlay the UI/mobile use (lib/currency.ts effectiveRates).
+            | "fx_rates"
     )
 }
 
@@ -636,6 +676,8 @@ async fn check_price_drops(app: tauri::AppHandle) -> Result<String, String> {
 }
 
 fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result<String, String> {
+    // Convert with the same live overlay the UI uses before comparing prices.
+    refresh_live_rates(data_dir);
     let alerts_val = read_json_file(data_dir, "price_alerts")?;
     let watchlist_val = read_json_file(data_dir, "watchlist_products")?;
     let settings_val = read_json_file(data_dir, "app_settings")?;
@@ -1708,6 +1750,25 @@ mod tests {
             "currency": "USD",
             "stockStatus": "in_stock",
         })
+    }
+
+    #[test]
+    fn live_fx_rates_override_the_static_table() {
+        // Mirrors lib/currency.ts effectiveRates(): the overlay wins, an absent
+        // currency falls back to the static table, and invalid entries are
+        // dropped. The poller used only the static table.
+        {
+            let mut guard = LIVE_RATES.write().unwrap();
+            *guard = HashMap::from([("EUR".to_string(), 1.0)]);
+        }
+        assert_eq!(convert_price(100.0, "USD", "EUR"), Some(100.0));
+        assert_eq!(convert_price(100.0, "USD", "GBP"), Some(79.0));
+        {
+            let mut guard = LIVE_RATES.write().unwrap();
+            *guard = HashMap::new();
+        }
+        assert_eq!(convert_price(100.0, "USD", "EUR"), Some(92.0));
+        assert_eq!(convert_price(100.0, "USD", "ZZZ"), None);
     }
 
     #[test]
