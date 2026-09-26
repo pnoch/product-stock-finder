@@ -126,7 +126,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <TextInput
-              accessibilityLabel="sk-..."
+              accessibilityLabel="API key"
               style={{
                 flex: 1,
                 backgroundColor: colors.surface,
@@ -160,7 +160,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
             Model
           </Text>
           <TextInput
-              accessibilityLabel="dall-e-3"
+              accessibilityLabel="Image model"
             style={{
               backgroundColor: colors.surface,
               borderWidth: 1,
@@ -186,7 +186,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <TextInput
-              accessibilityLabel="ollama_..."
+              accessibilityLabel="Ollama API key"
               style={{
                 flex: 1,
                 backgroundColor: colors.surface,
@@ -220,7 +220,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
             Ollama URL
           </Text>
           <TextInput
-              accessibilityLabel="https://ollama.com"
+              accessibilityLabel="Ollama base URL"
             style={{
               backgroundColor: colors.surface,
               borderWidth: 1,
@@ -243,7 +243,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
             Model (optional)
           </Text>
           <TextInput
-              accessibilityLabel="gemma4"
+              accessibilityLabel="Ollama chat model"
             style={{
               backgroundColor: colors.surface,
               borderWidth: 1,
@@ -270,7 +270,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
             Ollama URL
           </Text>
           <TextInput
-              accessibilityLabel="http://localhost:11434"
+              accessibilityLabel="Ollama local URL"
             style={{
               backgroundColor: colors.surface,
               borderWidth: 1,
@@ -293,7 +293,7 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
             Model (optional)
           </Text>
           <TextInput
-              accessibilityLabel="llava"
+              accessibilityLabel="Vision model"
             style={{
               backgroundColor: colors.surface,
               borderWidth: 1,

@@ -320,7 +320,13 @@ export default function SearchScreen() {
         tags: pending,
       };
       try {
-        await addToWatchlist(product);
+        const added = await addToWatchlist(product);
+        if (!added) {
+          // Already tracked (e.g. synced from another device after this screen
+          // loaded, or a fast re-add): report it instead of a false success.
+          showAlert("Already tracked", `"${item.name}" is already in your watchlist.`);
+          return;
+        }
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         loadData();
         setPendingTags((prev) => {

@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenContainer } from "@/components/screen-container";
 import { NotificationCenter } from "@/components/notification-center";
 import { useColors } from "@/hooks/use-colors";
+import { countActiveAlerts } from "@/lib/alert-state";
 import { formatPrice } from "@shared/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAlertsData } from "@/hooks/use-alerts-data";
@@ -226,7 +227,7 @@ export default function AlertsScreen() {
                   </TouchableOpacity>
                 </View>
               )}
-              {activeAlerts.length > 0 ? (
+              {countActiveAlerts(alerts) > 0 ? (
                 <View
                   style={{
                     backgroundColor: colors.primary + "15",

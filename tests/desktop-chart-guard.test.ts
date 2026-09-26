@@ -881,6 +881,25 @@ describe("desktop chart guard", () => {
   // check notification permission, so its "Alert created — watching for X" toast
   // promised notifications that could never be delivered (the other mobile
   // paths and the desktop all gate).
+  // QA audit: the in-flight guard was set *after* `await
+  // ensureNotificationPermission()`, so a double-tap (the button plus
+  // onSubmitEditing) passed the check twice and minted two identical alerts.
+  it("guards alert and reminder creation against double-submit", async () => {
+    const alert = await readFile("components/product/alert-section.tsx", "utf8");
+    const alertGuard = alert.indexOf("setAdding(true);");
+    const alertAwait = alert.indexOf("await ensureNotificationPermission()");
+    expect(alertGuard).toBeGreaterThan(-1);
+    expect(alertAwait).toBeGreaterThan(-1);
+    expect(alertGuard).toBeLessThan(alertAwait);
+
+    const reminder = await readFile("components/product/reminder-section.tsx", "utf8");
+    const reminderGuard = reminder.indexOf("setSaving(true);");
+    const reminderAwait = reminder.indexOf("await ensureNotificationPermission()");
+    expect(reminderGuard).toBeGreaterThan(-1);
+    expect(reminderAwait).toBeGreaterThan(-1);
+    expect(reminderGuard).toBeLessThan(reminderAwait);
+  });
+
   it("gates AlertSection on notification permission", async () => {
     const text = await readFile("components/product/alert-section.tsx", "utf8");
     const parseAt = text.indexOf("parseFloat(price)");

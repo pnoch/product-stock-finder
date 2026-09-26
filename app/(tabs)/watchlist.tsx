@@ -180,6 +180,10 @@ export default function WatchlistScreen() {
       defs = await getTagDefinitions();
     } catch (e) {
       console.error("[Watchlist] settings load failed", e);
+      // Keep the previous values and leave the loaded flag unset: marking it
+      // loaded would let the persist effect write these fallbacks over the
+      // user's saved filters.
+      return;
     }
     setDisplayCurrency(settings?.displayCurrency ?? "USD");
     setSortMode(settings?.watchlistSort ?? "recent");

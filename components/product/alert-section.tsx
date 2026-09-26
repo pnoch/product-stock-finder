@@ -20,24 +20,27 @@ export function AlertSection({ productId, productName, displayCurrency = "USD", 
     // Guard against double-submit: the button and onSubmitEditing both call
     // this, and each call would mint a new alert id.
     if (adding) return;
-    const targetPrice = parseFloat(price);
-    if (!Number.isFinite(targetPrice) || targetPrice <= 0) { showAlert("Invalid price", "Please enter a valid target price."); return; }
-    // Same gate as every other alert-creation path (product detail, compare,
-    // desktop): without notification permission the alert saves but can never
-    // notify, yet the toast below promises it will.
-    const granted = await ensureNotificationPermission();
-    if (!granted) {
-      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showAlert(
-        "Permission Denied",
-        Platform.OS === "web"
-          ? "Please allow notifications in your browser to receive price alerts."
-          : "Please enable notifications in your device settings to receive price alerts.",
-      );
-      return;
-    }
+    // Guard before the first await: setting it afterwards let a double-tap (or
+    // the button plus onSubmitEditing) through the check twice and mint two
+    // identical alerts.
     setAdding(true);
     try {
+      const targetPrice = parseFloat(price);
+      if (!Number.isFinite(targetPrice) || targetPrice <= 0) { showAlert("Invalid price", "Please enter a valid target price."); return; }
+      // Same gate as every other alert-creation path (product detail, compare,
+      // desktop): without notification permission the alert saves but can never
+      // notify, yet the toast below promises it will.
+      const granted = await ensureNotificationPermission();
+      if (!granted) {
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        showAlert(
+          "Permission Denied",
+          Platform.OS === "web"
+            ? "Please allow notifications in your browser to receive price alerts."
+            : "Please enable notifications in your device settings to receive price alerts.",
+        );
+        return;
+      }
       const alert = { id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, targetPrice, currency, isActive: true, createdAt: new Date().toISOString(), direction: "drop" as const };
       await addAlert(alert);
       // Let the parent refresh its alerts state so the Distributor Targets

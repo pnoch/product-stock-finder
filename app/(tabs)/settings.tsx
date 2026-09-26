@@ -578,7 +578,11 @@ export default function SettingsScreen() {
         const { clearDistributorBreaker } = await import("@/lib/scrapers/breaker-clear");
         await clearDistributorBreaker(distributorId);
         const nowIso = new Date().toISOString();
-        const tasks = products
+        // updateProductListings replaces the whole listings array, so building it
+        // from the mount-time `products` snapshot reverted every price/status/
+        // history change since Settings opened. Read the current list instead.
+        const fresh = await getWatchlist();
+        const tasks = fresh
           .filter((p) => p.listings?.some((l) => l.distributorId === distributorId))
           .map((product) => {
             const updatedListings: DistributorListing[] = product.listings.map((l) =>
@@ -587,8 +591,8 @@ export default function SettingsScreen() {
             return updateProductListings(product.id, updatedListings);
           });
         await Promise.all(tasks);
-        setProducts((prev) =>
-          prev.map((p) => ({
+        setProducts(
+          fresh.map((p) => ({
             ...p,
             listings: p.listings?.map((l) =>
               l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
@@ -602,7 +606,7 @@ export default function SettingsScreen() {
         setReenabling(false);
       }
     },
-    [products, reenabling],
+    [reenabling],
   );
 
   const currencies = [

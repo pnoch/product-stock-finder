@@ -103,10 +103,13 @@ export default function CompareScreen() {
     const key = `${id ?? ""}-${displayCurrency}`;
     if (!loaded || !id || selectionInitialized.current === key) return;
     if (selected.size > 0) return;
-    selectionInitialized.current = key;
     const withHistory = listings.filter(
       (l) => l.priceHistory && l.priceHistory.length >= 2,
     );
+    // Wait for history before latching: marking initialised with no eligible
+    // series left the chart unselected even after the history arrived.
+    if (withHistory.length === 0) return;
+    selectionInitialized.current = key;
     const sortedByPrice = [...withHistory].sort((a, b) => {
       const pa = convertPrice(a.price, a.currency, displayCurrency);
       const pb = convertPrice(b.price, b.currency, displayCurrency);

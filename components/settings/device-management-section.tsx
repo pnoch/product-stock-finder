@@ -104,7 +104,7 @@ export function DeviceManagementSection({
               device={device}
               isCurrent={device.deviceId === currentDeviceId}
               now={now}
-              isLast={idx < devices.length - 1}
+              isLast={idx === devices.length - 1}
               onRename={openRenameModal}
               onSignOut={handleSignOutDevice}
             />

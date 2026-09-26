@@ -128,12 +128,18 @@ export const DropCalendarCard = memo(function DropCalendarCard({
               style={{ width: cellSize, height: cellSize, marginBottom: 4 }}
             />
           ) : (
-            <TouchableOpacity activeOpacity={0.7}
+            <TouchableOpacity
+              activeOpacity={result.byDay.get(dateKey(ts)) ? 0.7 : 1}
               key={ts}
+              disabled={!result.byDay.get(dateKey(ts))}
               onPress={() => handleSelect(ts)}
               style={cellStyle(ts)}
-              accessibilityLabel={`Price drops on ${new Date(ts).toLocaleDateString()}`}
-              accessibilityRole="button"
+              accessibilityLabel={
+                result.byDay.get(dateKey(ts))
+                  ? `Price drops on ${new Date(ts).toLocaleDateString()}`
+                  : `${new Date(ts).toLocaleDateString()}, no price drops`
+              }
+              accessibilityRole={result.byDay.get(dateKey(ts)) ? "button" : "text"}
             >
               <Text style={{ color: colors.foreground, fontSize: 11 }}>
                 {new Date(ts).getDate()}
