@@ -1,9 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useFocusEffect } from "expo-router";
 import {
   getAlerts,
   getBackOrderReminders,
   getStockWatches,
+  subscribeToStorageChanges,
 } from "@/lib/storage";
 import { countActiveAlerts } from "@/lib/alert-state";
 
@@ -13,34 +14,48 @@ import { countActiveAlerts } from "@/lib/alert-state";
  * - Scheduled back-order date reminders
  * - Active back-in-stock watches
  *
- * Refreshes every time the tab comes into focus.
+ * Refreshes on tab focus and on any local storage change: this hook runs from
+ * the (tabs) layout, whose focus effect only fires when the parent route is
+ * entered, so an in-place delete/toggle on the Alerts tab would otherwise
+ * leave the badge stale until the user navigates to a pushed screen.
  */
 export function useAlertBadge(): number {
   const [count, setCount] = useState(0);
+  const mountedRef = useRef(true);
+
+  const load = useCallback(async () => {
+    // Guard the whole read: a rejected Promise.all was an unhandled
+    // rejection and silently stopped the badge from updating.
+    const [alerts, reminders, watches] = await Promise.all([
+      getAlerts().catch(() => []),
+      getBackOrderReminders().catch(() => []),
+      getStockWatches().catch(() => []),
+    ]);
+    // Shared predicate so the badge, the Home stat card, and the in-screen
+    // "N alerts" count always agree.
+    const activeAlerts = countActiveAlerts(alerts);
+    const activeReminders = reminders.length;
+    const activeWatches = watches.length;
+    if (mountedRef.current) {
+      setCount(activeAlerts + activeReminders + activeWatches);
+    }
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    const unsubscribe = subscribeToStorageChanges(() => {
+      void load();
+    });
+    return () => {
+      mountedRef.current = false;
+      unsubscribe();
+    };
+  }, [load]);
 
   useFocusEffect(
     useCallback(() => {
-      let active = true;
-      async function load() {
-        // Guard the whole read: a rejected Promise.all was an unhandled
-        // rejection and silently stopped the badge from updating.
-        const [alerts, reminders, watches] = await Promise.all([
-          getAlerts().catch(() => []),
-          getBackOrderReminders().catch(() => []),
-          getStockWatches().catch(() => []),
-        ]);
-        // Shared predicate so the badge, the Home stat card, and the in-screen
-        // "N alerts" count always agree.
-        const activeAlerts = countActiveAlerts(alerts);
-        const activeReminders = reminders.length;
-        const activeWatches = watches.length;
-        if (active) setCount(activeAlerts + activeReminders + activeWatches);
-      }
-      load();
-      return () => {
-        active = false;
-      };
-    }, []),
+      void load();
+    }, [load]),
   );
 
   return count;

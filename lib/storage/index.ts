@@ -195,6 +195,14 @@ export function createStorage(
     removeReminderById,
     removeStockWatchById,
     setOnChange: ctx.setOnChange,
+    // Additive observer: unlike setOnChange (single handler owned by the sync
+    // engine) this can be used by several consumers, e.g. the tab badge.
+    subscribeToStorageChanges: (
+      fn: (collection: Collection, itemId: string) => void,
+    ) => {
+      ctx.addChangeListener(fn);
+      return () => ctx.removeChangeListener(fn);
+    },
     setChangeSuppressed: ctx.setChangeSuppressed,
     clearAllData,
     clearAccountData,
@@ -308,6 +316,7 @@ export const {
   savePendingHealthEvents,
   clearPendingHealthEvents,
   setOnChange,
+  subscribeToStorageChanges,
   setChangeSuppressed,
   clearAllData,
   clearAccountData,

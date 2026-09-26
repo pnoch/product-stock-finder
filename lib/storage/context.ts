@@ -26,6 +26,13 @@ export interface StorageContext {
   setOnChange(
     fn: ((collection: Collection, itemId: string) => void) | null,
   ): void;
+  // Additional observers alongside the single sync-engine `onChange` handler
+  // (e.g. the tab badge, which must react to in-place mutations rather than
+  // route focus). Additive so `setOnChange` keeps its replace semantics.
+  addChangeListener(fn: (collection: Collection, itemId: string) => void): void;
+  removeChangeListener(
+    fn: (collection: Collection, itemId: string) => void,
+  ): void;
   setChangeSuppressed(flag: boolean, ignoreKeys?: Set<string>): void;
   enqueue<T>(key: string, fn: () => Promise<T>): Promise<T>;
   drainQueues(): Promise<void>;
@@ -71,20 +78,40 @@ export function createContext(adapter: StorageAdapter): StorageContext {
   // made during a sync was never marked dirty, so it was treated as
   // already-synced and never uploaded.
   const suppressedChanges: Array<[Collection, string]> = [];
+  const changeListeners = new Set<
+    (collection: Collection, itemId: string) => void
+  >();
+
+  function deliver(collection: Collection, itemId: string) {
+    onChange?.(collection, itemId);
+    for (const listener of changeListeners) listener(collection, itemId);
+  }
 
   function notify(collection: Collection, itemId: string) {
-    if (!onChange) return;
+    if (!onChange && changeListeners.size === 0) return;
     if (suppressChange) {
       suppressedChanges.push([collection, itemId]);
       return;
     }
-    onChange(collection, itemId);
+    deliver(collection, itemId);
   }
 
   function setOnChange(
     fn: ((collection: Collection, itemId: string) => void) | null,
   ) {
     onChange = fn;
+  }
+
+  function addChangeListener(
+    fn: (collection: Collection, itemId: string) => void,
+  ) {
+    changeListeners.add(fn);
+  }
+
+  function removeChangeListener(
+    fn: (collection: Collection, itemId: string) => void,
+  ) {
+    changeListeners.delete(fn);
   }
 
   function setChangeSuppressed(flag: boolean, ignoreKeys?: Set<string>) {
@@ -95,7 +122,7 @@ export function createContext(adapter: StorageAdapter): StorageContext {
     const pending = suppressedChanges.splice(0);
     for (const [collection, itemId] of pending) {
       if (ignoreKeys?.has(`${collection}:${itemId}`)) continue;
-      onChange?.(collection, itemId);
+      deliver(collection, itemId);
     }
   }
 
@@ -153,6 +180,8 @@ export function createContext(adapter: StorageAdapter): StorageContext {
     KEYS: STORAGE_KEYS,
     notify,
     setOnChange,
+    addChangeListener,
+    removeChangeListener,
     setChangeSuppressed,
     enqueue,
     drainQueues,
