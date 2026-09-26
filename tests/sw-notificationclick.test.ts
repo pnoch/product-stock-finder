@@ -8,6 +8,7 @@ interface SwHarness {
   openWindow: ReturnType<typeof vi.fn>;
   focus: ReturnType<typeof vi.fn>;
   close: ReturnType<typeof vi.fn>;
+  showNotification: ReturnType<typeof vi.fn>;
 }
 
 function loadSwNotificationClick(): SwHarness {
@@ -17,6 +18,7 @@ function loadSwNotificationClick(): SwHarness {
   const openWindow = vi.fn();
   const focus = vi.fn();
   const close = vi.fn();
+  const showNotification = vi.fn();
 
   const self = {
     addEventListener: (type: string, fn: (event: unknown) => void) => {
@@ -24,21 +26,25 @@ function loadSwNotificationClick(): SwHarness {
       listeners[type].push(fn);
     },
     clients: { matchAll, openWindow },
-    registration: { showNotification: vi.fn() },
+    registration: { showNotification },
   };
 
   // Evaluate the real public/sw.js in a sandboxed `self` scope.
   new Function("self", source)(self);
 
-  return { listeners, matchAll, openWindow, focus, close };
+  return { listeners, matchAll, openWindow, focus, close, showNotification };
 }
 
-function runClick(harness: SwHarness, clients: Array<{ focus?: () => void }>) {
+function runClick(
+  harness: SwHarness,
+  clients: Array<{ focus?: () => void }>,
+  data?: unknown,
+) {
   harness.matchAll.mockResolvedValue(clients);
   const handler = harness.listeners["notificationclick"][0];
   let waitPromise: Promise<unknown> | null = null;
   const event = {
-    notification: { close: harness.close },
+    notification: { close: harness.close, data },
     waitUntil: (p: Promise<unknown>) => {
       waitPromise = p;
     },
@@ -74,5 +80,41 @@ describe("public/sw.js notificationclick handler", () => {
 
     await promise;
     expect(harness.openWindow).toHaveBeenCalledWith("/");
+  });
+
+  it("deep-links a product push, and digest/health to their screens", async () => {
+    const product = loadSwNotificationClick();
+    await runClick(product, [], { productId: "crs804" });
+    expect(product.openWindow).toHaveBeenCalledWith("/product/crs804");
+
+    const digest = loadSwNotificationClick();
+    await runClick(digest, [], { type: "digest" });
+    expect(digest.openWindow).toHaveBeenCalledWith("/stats");
+
+    const health = loadSwNotificationClick();
+    await runClick(health, [], { type: "health_recovery" });
+    expect(health.openWindow).toHaveBeenCalledWith("/health");
+  });
+
+  it("carries the server's routing fields into the shown notification", async () => {
+    const harness = loadSwNotificationClick();
+    harness.matchAll.mockResolvedValue([]);
+    const handler = harness.listeners["push"][0];
+    let waitPromise: Promise<unknown> | null = null;
+    handler({
+      data: {
+        json: () => ({ title: "T", body: "B", eventId: "e1", type: "digest", productId: "p1" }),
+      },
+      waitUntil: (p: Promise<unknown>) => {
+        waitPromise = p;
+      },
+    });
+    await waitPromise;
+    expect(harness.showNotification).toHaveBeenCalledWith(
+      "T",
+      expect.objectContaining({
+        data: { eventId: "e1", type: "digest", productId: "p1" },
+      }),
+    );
   });
 });
