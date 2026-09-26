@@ -20,6 +20,7 @@ import { isDuplicateKeyError } from "../db-errors";
 export type { NotificationConfig, NotificationEvent } from "./types";
 export {
   clearNotificationsForTests,
+  clearDeviceDigestBuffer,
   listMemoryConfigDevices,
   removeMemoryDevice,
 } from "./memory-store";

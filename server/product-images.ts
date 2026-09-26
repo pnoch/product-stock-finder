@@ -49,12 +49,19 @@ async function readCached(productId: string): Promise<string | null> {
   if (!db) {
     return memoryImages.get(productId) ?? null;
   }
-  const rows = await db
-    .select()
-    .from(productImages)
-    .where(eq(productImages.productId, productId))
-    .limit(1);
-  return rows.length > 0 ? rows[0]!.imageUrl : null;
+  try {
+    const rows = await db
+      .select()
+      .from(productImages)
+      .where(eq(productImages.productId, productId))
+      .limit(1);
+    return rows.length > 0 ? rows[0]!.imageUrl : null;
+  } catch (e) {
+    // A DB blip must not turn a cache read into a 500: fall back to the
+    // in-process copy so the caller still gets an answer.
+    console.warn("[Images] DB read failed; using memory cache", e);
+    return memoryImages.get(productId) ?? null;
+  }
 }
 
 async function writeCached(productId: string, url: string): Promise<void> {
@@ -63,10 +70,16 @@ async function writeCached(productId: string, url: string): Promise<void> {
     memoryImages.set(productId, url);
     return;
   }
-  await db
-    .insert(productImages)
-    .values({ productId, imageUrl: url })
-    .onDuplicateKeyUpdate({ set: { imageUrl: url } });
+  try {
+    await db
+      .insert(productImages)
+      .values({ productId, imageUrl: url })
+      .onDuplicateKeyUpdate({ set: { imageUrl: url } });
+  } catch (e) {
+    // The image is already paid for; a failed write must not discard it.
+    console.warn("[Images] DB write failed; keeping memory copy", e);
+    memoryImages.set(productId, url);
+  }
 }
 
 function buildImagePrompt(product: { name: string; category: string }): string {
@@ -104,9 +117,18 @@ export async function listProductsMissingImage(): Promise<string[]> {
   return allIds.filter((id) => !existing.has(id));
 }
 
-export function clearImagesForTests(): void {
+export async function clearImagesForTests(): Promise<void> {
   memoryImages.clear();
   inFlight.clear();
+  // DB-backed test runs share one schema, so the memory clear alone would let
+  // a row written by an earlier test serve a later one.
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.delete(productImages);
+  } catch (e) {
+    console.warn("[Images] Failed to clear test rows", e);
+  }
 }
 
 // Rows are keyed by productId and bounded by the catalog, but a product removed
@@ -122,5 +144,10 @@ export async function purgeOrphanedImages(): Promise<void> {
     }
     return;
   }
-  await db.delete(productImages).where(notInArray(productImages.productId, ids));
+  try {
+    await db.delete(productImages).where(notInArray(productImages.productId, ids));
+  } catch (e) {
+    // A blip here must not abort the rest of the warmer tick.
+    console.warn("[Images] Failed to purge orphaned rows", e);
+  }
 }

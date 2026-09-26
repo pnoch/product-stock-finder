@@ -21,14 +21,20 @@ vi.mock("../server/_core/llm", () => ({
   invokeLLM: vi.fn(),
 }));
 
+vi.mock("../server/db", () => ({
+  getDb: vi.fn(),
+}));
+
 import { getCachedPrice } from "../server/price-cache";
 import { getHistory } from "../server/price-history";
 import { invokeLLM } from "../server/_core/llm";
+import { getDb } from "../server/db";
 import { getInsight, clearInsightsForTests } from "../server/price-insights";
 
 const mockedGetCached = vi.mocked(getCachedPrice);
 const mockedGetHistory = vi.mocked(getHistory);
 const mockedInvokeLLM = vi.mocked(invokeLLM);
+const mockedGetDb = vi.mocked(getDb);
 
 const snapshot: PriceSnapshot = {
   price: 88.5,
@@ -54,9 +60,9 @@ const history: PricePoint[] = [
 ];
 
 describe("getInsight", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    clearInsightsForTests();
+    await clearInsightsForTests();
     mockedGetCached.mockResolvedValue(snapshot);
     mockedGetHistory.mockResolvedValue(history);
     mockedInvokeLLM.mockResolvedValue({
@@ -104,9 +110,9 @@ describe("getInsight", () => {
 });
 
 describe("getInsight single-flight", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    clearInsightsForTests();
+    await clearInsightsForTests();
     mockedGetCached.mockResolvedValue(snapshot);
     mockedGetHistory.mockResolvedValue(history);
     mockedInvokeLLM.mockResolvedValue({
@@ -164,10 +170,10 @@ describe("getInsight single-flight", () => {
 });
 
 describe("getInsight BYO-LLM", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     vi.unstubAllGlobals();
-    clearInsightsForTests();
+    await clearInsightsForTests();
     mockedGetCached.mockResolvedValue(snapshot);
     mockedGetHistory.mockResolvedValue(history);
   });
@@ -200,9 +206,9 @@ describe("getInsight BYO-LLM", () => {
 });
 
 describe("getInsight deal score grounding", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    clearInsightsForTests();
+    await clearInsightsForTests();
     mockedGetCached.mockResolvedValue(snapshot);
     mockedGetHistory.mockResolvedValue(history);
     mockedInvokeLLM.mockResolvedValue({
@@ -287,5 +293,60 @@ describe("getInsight deal score grounding", () => {
     const systemMessage = args.messages.find((m) => m.role === "system");
     expect(systemMessage).toBeDefined();
     expect(systemMessage!.content).toContain("never contradict");
+  });
+});
+
+describe("getInsight DB resilience", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await clearInsightsForTests();
+    mockedGetCached.mockResolvedValue(snapshot);
+    mockedGetHistory.mockResolvedValue(history);
+    mockedInvokeLLM.mockResolvedValue({
+      id: "x",
+      created: 1,
+      model: "m",
+      choices: [
+        {
+          index: 0,
+          message: { role: "assistant", content: "Fresh insight." },
+          finish_reason: "stop",
+        },
+      ],
+    });
+    mockedGetDb.mockResolvedValue(null as never);
+  });
+
+  afterEach(() => {
+    mockedGetDb.mockReset();
+  });
+
+  it("falls back to the memory cache when a DB read fails", async () => {
+    const first = await getInsight("mikrotik-crs804-4ddq-hrm");
+    expect(first!.insight).toContain("Fresh insight");
+    mockedGetDb.mockResolvedValue({
+      select: () => {
+        throw new Error("db down");
+      },
+    } as never);
+    const second = await getInsight("mikrotik-crs804-4ddq-hrm");
+    expect(second).toEqual(first);
+  });
+
+  it("keeps a freshly generated insight when the DB write fails", async () => {
+    mockedGetDb.mockResolvedValue({
+      select: () => ({
+        from: () => ({ where: () => ({ limit: async () => [] }) }),
+      }),
+      insert: () => ({
+        values: () => ({
+          onDuplicateKeyUpdate: async () => {
+            throw new Error("db down");
+          },
+        }),
+      }),
+    } as never);
+    const result = await getInsight("mikrotik-crs804-4ddq-hrm");
+    expect(result!.insight).toContain("Fresh insight");
   });
 });

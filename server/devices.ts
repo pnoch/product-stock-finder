@@ -10,7 +10,7 @@ import {
   revokedDevices,
 } from "../drizzle/schema";
 import { getDb } from "./db";
-import { listMemoryConfigDevices, removeMemoryDevice } from "./notifications";
+import { listMemoryConfigDevices, removeMemoryDevice, clearDeviceDigestBuffer } from "./notifications";
 import {
   listMemoryTokenDevices,
   removeMemoryToken,
@@ -161,6 +161,7 @@ export async function unbindDevice(
     if (boundTo !== userId) return false;
     removeMemoryDevice(deviceId);
     removeMemoryToken(deviceId);
+    memoryLabels.delete(deviceId);
     return true;
   }
   const configRows = await db
@@ -188,6 +189,9 @@ export async function unbindDevice(
   // Labels have no FK to users, so they must be removed explicitly or a
   // re-bound deviceId would inherit the previous owner's label.
   await db.delete(deviceLabels).where(eq(deviceLabels.deviceId, deviceId));
+  // Held quiet-hours drafts live only in process memory even in DB mode, so
+  // they must be dropped here too or a re-bound device flushes them.
+  clearDeviceDigestBuffer(deviceId);
   return true;
 }
 

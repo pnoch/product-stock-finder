@@ -69,12 +69,19 @@ async function readCached(productId: string): Promise<PriceInsight | null> {
   if (!db) {
     return memoryInsights.get(productId) ?? null;
   }
-  const rows = await db
-    .select()
-    .from(priceInsights)
-    .where(eq(priceInsights.productId, productId))
-    .limit(1);
-  return rows.length > 0 ? rowToInsight(rows[0]) : null;
+  try {
+    const rows = await db
+      .select()
+      .from(priceInsights)
+      .where(eq(priceInsights.productId, productId))
+      .limit(1);
+    return rows.length > 0 ? rowToInsight(rows[0]) : null;
+  } catch (e) {
+    // A DB blip must not turn a cache read into a 500: fall back to the
+    // in-process copy so the caller still gets an answer.
+    console.warn("[Insights] DB read failed; using memory cache", e);
+    return memoryInsights.get(productId) ?? null;
+  }
 }
 
 async function writeCached(
@@ -86,16 +93,22 @@ async function writeCached(
     memoryInsights.set(productId, insight);
     return;
   }
-  await db
-    .insert(priceInsights)
-    .values({
-      productId,
-      insight: insight.insight,
-      generatedAt: insight.generatedAt,
-    })
-    .onDuplicateKeyUpdate({
-      set: { insight: insight.insight, generatedAt: insight.generatedAt },
-    });
+  try {
+    await db
+      .insert(priceInsights)
+      .values({
+        productId,
+        insight: insight.insight,
+        generatedAt: insight.generatedAt,
+      })
+      .onDuplicateKeyUpdate({
+        set: { insight: insight.insight, generatedAt: insight.generatedAt },
+      });
+  } catch (e) {
+    // The LLM call is already paid for; a failed write must not discard it.
+    console.warn("[Insights] DB write failed; keeping memory copy", e);
+    memoryInsights.set(productId, insight);
+  }
 }
 
 async function buildInsightContext(
@@ -177,8 +190,17 @@ async function generateInsight(
   }
 }
 
-export function clearInsightsForTests(): void {
+export async function clearInsightsForTests(): Promise<void> {
   memoryInsights.clear();
+  // DB-backed test runs share one schema, so the memory clear alone would let
+  // a row written by an earlier test serve a later one.
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.delete(priceInsights);
+  } catch (e) {
+    console.warn("[Insights] Failed to clear test rows", e);
+  }
 }
 
 // Rows are keyed by productId and bounded by the catalog, but a product removed
@@ -194,7 +216,12 @@ export async function purgeOrphanedInsights(): Promise<void> {
     }
     return;
   }
-  await db.delete(priceInsights).where(notInArray(priceInsights.productId, ids));
+  try {
+    await db.delete(priceInsights).where(notInArray(priceInsights.productId, ids));
+  } catch (e) {
+    // A blip here must not abort the rest of the warmer tick.
+    console.warn("[Insights] Failed to purge orphaned rows", e);
+  }
 }
 
 function rowToInsight(row: PriceInsightsRow): PriceInsight {

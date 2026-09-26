@@ -33,6 +33,11 @@ import {
   STALE_DEVICE_MS,
 } from "../server/devices";
 import {
+  holdForDigest,
+  scopeKeyForDevice,
+  takeDigestHeld,
+} from "../server/notifications/digest";
+import {
   upsertDeviceConfig,
   evaluateNotifications,
   pullPendingEvents,
@@ -173,6 +178,15 @@ describe("devices (memory backend)", () => {
     await upsertDeviceConfig("dev-1", baseConfig, 7);
     expect(await renameDevice(8, "dev-1", "Hijacked")).toBe(false);
     const devices = await listDevicesForUser(7);
+    expect(devices[0].label).toBeNull();
+  });
+
+  it("drops a device label when it is unbound so a later owner can't inherit it", async () => {
+    await upsertDeviceConfig("dev-1", baseConfig, 7);
+    await renameDevice(7, "dev-1", "Living Room");
+    expect(await unbindDevice(7, "dev-1")).toBe(true);
+    await upsertDeviceConfig("dev-1", baseConfig, 8);
+    const devices = await listDevicesForUser(8);
     expect(devices[0].label).toBeNull();
   });
 
@@ -378,6 +392,40 @@ describe("devices (database backend)", () => {
       notificationEvents,
       deviceLabels,
     ]);
+    mockedGetDb.mockResolvedValue(null);
+  });
+
+  it("drops the held quiet-hours digest buffer when unbinding in the database", async () => {
+    const scope = scopeKeyForDevice("dev-1");
+    const quietConfig: NotificationConfig = {
+      ...baseConfig,
+      quietHours: { start: "00:00", end: "23:59", utcOffsetMinutes: 0 },
+    };
+    const draft = { dedupKey: "held-1" } as unknown as Parameters<
+      typeof holdForDigest
+    >[2][number];
+    const held = (): number =>
+      holdForDigest(scope, [quietConfig], [draft], Date.now()) ? 1 : 0;
+    // Prove the scope actually holds under these params before asserting the
+    // clear; an empty buffer would make the assertion below vacuous.
+    expect(held()).toBe(1);
+    expect(takeDigestHeld(scope)).toHaveLength(1);
+
+    const dbStub = {
+      select: vi.fn(() => ({
+        from: vi.fn((table: unknown) => {
+          if (table === deviceNotificationConfigs) {
+            return { where: vi.fn(async () => [{ deviceId: "dev-1", userId: 7 }]) };
+          }
+          return { where: vi.fn(async () => []) };
+        }),
+      })),
+      delete: vi.fn(() => ({ where: vi.fn(async () => undefined) })),
+    };
+    mockedGetDb.mockResolvedValue(dbStub as never);
+    expect(held()).toBe(1);
+    expect(await unbindDevice(7, "dev-1")).toBe(true);
+    expect(takeDigestHeld(scope)).toEqual([]);
     mockedGetDb.mockResolvedValue(null);
   });
 

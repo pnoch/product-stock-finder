@@ -35,12 +35,17 @@ export function listMemoryConfigDevices(): Array<{
   }));
 }
 
+export function clearDeviceDigestBuffer(deviceId: string): void {
+  // Held quiet-hours drafts are always in-process memory, even when the config
+  // itself lives in the DB — so an unbind that only deletes rows would leave
+  // the previous owner's held events to flush on the next tick.
+  digestBuffers.delete(`d:${deviceId}`);
+}
+
 export function removeMemoryDevice(deviceId: string): void {
   memoryConfigs.delete(deviceId);
   memoryDeliveries.delete(deviceId);
-  // A held quiet-hours digest buffer would otherwise leak, and a re-registered
-  // device would flush stale held events.
-  digestBuffers.delete(`d:${deviceId}`);
+  clearDeviceDigestBuffer(deviceId);
   for (const [id, event] of memoryEvents) {
     if (event.deviceId === deviceId) memoryEvents.delete(id);
   }

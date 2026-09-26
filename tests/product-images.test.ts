@@ -1,10 +1,15 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("../server/_core/imageGeneration", () => ({
   generateImage: vi.fn(),
 }));
 
+vi.mock("../server/db", () => ({
+  getDb: vi.fn(),
+}));
+
 import { generateImage } from "../server/_core/imageGeneration";
+import { getDb } from "../server/db";
 import {
   getProductImage,
   listProductsMissingImage,
@@ -12,11 +17,12 @@ import {
 } from "../server/product-images";
 
 const mockedGenerateImage = vi.mocked(generateImage);
+const mockedGetDb = vi.mocked(getDb);
 
 describe("getProductImage", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    clearImagesForTests();
+    await clearImagesForTests();
     mockedGenerateImage.mockResolvedValue({
       url: "https://img.example.com/crs804.png",
     });
@@ -59,9 +65,9 @@ describe("getProductImage", () => {
 });
 
 describe("listProductsMissingImage", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    clearImagesForTests();
+    await clearImagesForTests();
   });
 
   it("returns all catalog products when none have images", async () => {
@@ -77,5 +83,49 @@ describe("listProductsMissingImage", () => {
     await getProductImage("mikrotik-crs804-4ddq-hrm");
     const missing = await listProductsMissingImage();
     expect(missing).not.toContain("mikrotik-crs804-4ddq-hrm");
+  });
+});
+
+describe("getProductImage DB resilience", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await clearImagesForTests();
+    mockedGenerateImage.mockResolvedValue({
+      url: "https://img.example.com/crs804.png",
+    });
+    mockedGetDb.mockResolvedValue(null as never);
+  });
+
+  afterEach(() => {
+    mockedGetDb.mockReset();
+  });
+
+  it("falls back to the memory cache when a DB read fails", async () => {
+    const first = await getProductImage("mikrotik-crs804-4ddq-hrm");
+    expect(first).toEqual({ imageUrl: "https://img.example.com/crs804.png" });
+    mockedGetDb.mockResolvedValue({
+      select: () => {
+        throw new Error("db down");
+      },
+    } as never);
+    const second = await getProductImage("mikrotik-crs804-4ddq-hrm");
+    expect(second).toEqual(first);
+  });
+
+  it("keeps a freshly generated image when the DB write fails", async () => {
+    mockedGetDb.mockResolvedValue({
+      select: () => ({
+        from: () => ({ where: () => ({ limit: async () => [] }) }),
+      }),
+      insert: () => ({
+        values: () => ({
+          onDuplicateKeyUpdate: async () => {
+            throw new Error("db down");
+          },
+        }),
+      }),
+    } as never);
+    const result = await getProductImage("mikrotik-crs804-4ddq-hrm");
+    expect(result).toEqual({ imageUrl: "https://img.example.com/crs804.png" });
   });
 });
