@@ -204,6 +204,55 @@ describe("resilientFetch", () => {
     expect(browserMock.fetchWithBrowser).toHaveBeenCalledTimes(1);
   });
 
+  it("does not share a deduped outcome across different breaker stores", async () => {
+    const fetchMock = vi.fn(
+      async () => new Response("<html>price</html>", { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const stateA = createMemoryBreakerStore();
+    const stateB = createMemoryBreakerStore();
+    const [a, b] = await Promise.all([
+      resilientFetch({
+        parser: makeParser(),
+        url: "https://example.com/search?q=CRS804",
+        state: stateA,
+      }),
+      resilientFetch({
+        parser: makeParser(),
+        url: "https://example.com/search?q=CRS804",
+        state: stateB,
+      }),
+    ]);
+    expect(a.status).toBe("ok");
+    expect(b.status).toBe("ok");
+    // Both stores must observe the outcome: sharing one store's result left the
+    // other unaware of a block/broken breaker state.
+    expect((await stateA.get("d1"))?.status).toBe("working");
+    expect((await stateB.get("d1"))?.status).toBe("working");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("still dedupes concurrent identical requests sharing a breaker store", async () => {
+    const fetchMock = vi.fn(
+      async () => new Response("<html>price</html>", { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const state = createMemoryBreakerStore();
+    await Promise.all([
+      resilientFetch({
+        parser: makeParser(),
+        url: "https://example.com/search?q=CRS804",
+        state,
+      }),
+      resilientFetch({
+        parser: makeParser(),
+        url: "https://example.com/search?q=CRS804",
+        state,
+      }),
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("does not retry a definitive browser block", async () => {
     const fetchMock = vi.fn(
       async () => new Response("403 Forbidden", { status: 403 }),

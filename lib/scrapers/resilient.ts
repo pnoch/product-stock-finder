@@ -341,6 +341,23 @@ async function attemptMethod(
 // same parser would otherwise stampede rate limits and the breaker store.
 const inFlight = new Map<string, Promise<FetchOutcome>>();
 
+// Breaker stores are per-caller (the server uses a memory store, the health
+// probe a storage-backed one, …). Deduping across them made every caller but
+// the first observe the shared outcome while only the first store recorded it,
+// so a store could miss a block it should have learned about. Identify stores
+// weakly so the dedup key separates them without leaking.
+const breakerStoreIds = new WeakMap<object, number>();
+let nextBreakerStoreId = 1;
+
+function breakerStoreIdOf(store: BreakerStateStore): number {
+  let id = breakerStoreIds.get(store as unknown as object);
+  if (id === undefined) {
+    id = nextBreakerStoreId++;
+    breakerStoreIds.set(store as unknown as object, id);
+  }
+  return id;
+}
+
 /**
  * Fetch a parser's search URL and parse it, following `resolveProductUrl` when
  * the parser needs a second hop (JS-rendered search pages). Returns the parsed
@@ -390,7 +407,7 @@ export async function fetchAndParse(
 export async function resilientFetch(
   opts: ResilientFetchOptions,
 ): Promise<FetchOutcome> {
-  const inFlightKey = `${opts.parser.id}:${(opts as unknown as { url?: string; model?: string }).url ?? (opts as unknown as { model?: string }).model ?? ""}`;
+  const inFlightKey = `${breakerStoreIdOf(opts.state)}:${opts.parser.id}:${opts.url}`;
   const existing = inFlight.get(inFlightKey);
   if (existing) return existing;
   const run = runResilientFetch(opts).finally(() => {

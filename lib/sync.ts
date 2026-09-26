@@ -641,16 +641,33 @@ async function applyLocalItem(
           const localOnly = existingListings.filter(
             (el) => !incomingIds.has(el.distributorId),
           );
-          // Tags are a per-device organizational edit that LWW on the whole
-          // product object would otherwise drop: union them so a tag added on
-          // this device survives an incoming copy that predates it.
-          const mergedTags = Array.from(
-            new Set([...(incoming.tags ?? []), ...(existing.tags ?? [])]),
-          );
+          // Tags carry their own timestamp: they must survive a listings-only
+          // refresh, but a plain union made a removal impossible to propagate
+          // (the newer side always re-added the tag). When neither side has a
+          // stamp (legacy data) fall back to the union, which at least keeps a
+          // local addition.
+          const incomingStamp = incoming.tagsUpdatedAt;
+          const existingStamp = existing.tagsUpdatedAt;
+          let tags: string[] | undefined;
+          let tagsUpdatedAt: string | undefined;
+          if (!incomingStamp && !existingStamp) {
+            const union = Array.from(
+              new Set([...(incoming.tags ?? []), ...(existing.tags ?? [])]),
+            );
+            tags = union.length > 0 ? union : undefined;
+          } else if ((incomingStamp ?? "") >= (existingStamp ?? "")) {
+            // ISO-8601 UTC strings compare lexicographically.
+            tags = incoming.tags;
+            tagsUpdatedAt = incomingStamp;
+          } else {
+            tags = existing.tags;
+            tagsUpdatedAt = existingStamp;
+          }
           return {
             ...incoming,
             listings: [...merged, ...localOnly],
-            ...(mergedTags.length > 0 ? { tags: mergedTags } : {}),
+            tags,
+            tagsUpdatedAt,
           };
         });
       });

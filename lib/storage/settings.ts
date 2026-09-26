@@ -117,8 +117,11 @@ export function createSettingsStorage(
     productId: string,
     tags: string[],
   ): Promise<void> {
+    const tagsUpdatedAt = new Date().toISOString();
     await updateWatchlist((list) =>
-      list.map((p) => (p.id === productId ? { ...p, tags } : p)),
+      list.map((p) =>
+        p.id === productId ? { ...p, tags, tagsUpdatedAt } : p,
+      ),
     );
     notify("watchlist", productId);
   }
@@ -127,11 +130,16 @@ export function createSettingsStorage(
     productIds: string[],
     tagIds: string[],
   ): Promise<void> {
+    const tagsUpdatedAt = new Date().toISOString();
     await updateWatchlist((list) => {
       const idSet = new Set(productIds);
       return list.map((p) =>
         idSet.has(p.id)
-          ? { ...p, tags: Array.from(new Set([...(p.tags ?? []), ...tagIds])) }
+          ? {
+              ...p,
+              tags: Array.from(new Set([...(p.tags ?? []), ...tagIds])),
+              tagsUpdatedAt,
+            }
           : p,
       );
     });

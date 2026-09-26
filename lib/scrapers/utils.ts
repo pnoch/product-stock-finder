@@ -205,8 +205,14 @@ export function matchesModel(text: string, model: string): boolean {
 // below, because a single <tr>/<li> can wrap SEVERAL product cards (Aerial puts
 // its whole results grid in one <tr>), in which case the row's text contains
 // every model and would validate any price inside it.
+// The bare `.item` alternative was removed: it is a generic list/grid wrapper on
+// many shops, so `closest` returned the wrapper (nearest ancestor matching any
+// alternative) instead of the per-product card. Because the wrapper's text
+// names every product in the list, `modelMismatch` then validated a decoy
+// price. Losing a parser that only marks its cards `.item` now yields a miss
+// rather than a wrong-product price, which is the intended trade-off.
 const CARD_SELECTORS =
-  "article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .product-card, .aerial-card, .ac-item, .item";
+  "article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .product-card, .aerial-card, .ac-item";
 // Generic row containers, used only when no specific card is found (e.g. a
 // table where each product is its own <tr>).
 const ROW_SELECTORS = "tr, li";
@@ -266,6 +272,18 @@ export function modelMismatch(
   return sawContent;
 }
 
+// True when an element's first digit run comes from the model token itself,
+// e.g. a cell holding "CRS804-4DDQ-hRM $480.00". parsePriceFromText reads that
+// first run ("804"), so such a candidate is only used when nothing else matches.
+function priceComesFromModel(text: string, model: string): boolean {
+  const m = text.match(/\d(?:[\d,. \u00a0\u202f]*\d)?/);
+  if (!m) return false;
+  const digits = m[0].replace(/\D/g, "");
+  if (digits.length < 2) return false;
+  const modelDigits = model.replace(/\D/g, "");
+  return modelDigits.length > 0 && modelDigits.includes(digits);
+}
+
 function matchDepth(
   $el: Cheerio<Element>,
   model: string,
@@ -310,13 +328,24 @@ export function findPriceElement(
     if (!model) return $prices.first();
     let best: Cheerio<Element> | null = null;
     let bestDepth = Infinity;
+    let cleanBest: Cheerio<Element> | null = null;
+    let cleanDepth = Infinity;
     $prices.each((index, _el) => {
-      const depth = matchDepth($prices.eq(index), model);
+      const el = $prices.eq(index);
+      const depth = matchDepth(el, model);
       if (depth < bestDepth) {
         bestDepth = depth;
-        best = $prices.eq(index);
+        best = el;
+      }
+      // Prefer a candidate that does not embed the model's own digits before
+      // its price; the plain depth order would otherwise pick the SKU-bearing
+      // cell and parse "CRS804-4DDQ-hRM $480.00" as 804.
+      if (depth < cleanDepth && !priceComesFromModel(el.text(), model)) {
+        cleanDepth = depth;
+        cleanBest = el;
       }
     });
+    if (cleanDepth !== Infinity) return cleanBest;
     if (bestDepth !== Infinity) return best;
   }
   return null;

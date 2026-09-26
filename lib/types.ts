@@ -87,6 +87,12 @@ export interface Product {
   isWatched: boolean;
   listings: DistributorListing[];
   tags?: string[];
+  /**
+   * ISO timestamp of the last tag change. Tags can't use the product's overall
+   * LWW stamp (a price refresh bumps that without touching tags), and a plain
+   * union made a removal device-local and impossible to propagate.
+   */
+  tagsUpdatedAt?: string;
 }
 
 export interface PriceAlert {

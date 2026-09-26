@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import * as cheerio from "cheerio";
 import {
+  findPriceElement,
   matchesModel,
+  parsePriceFromText,
   productRowContext,
   modelMismatch,
 } from "../../lib/scrapers/utils";
@@ -137,6 +139,19 @@ describe("modelMismatch", () => {
     expect(modelMismatch($("span.price").first(), "CRS326-24G-2S+")).toBe(true);
   });
 
+  it("does not treat a generic .item list wrapper as the product card", () => {
+    // A results grid whose wrapper is <ul class="item"> with bare <li> cards:
+    // the wrapper's text names every product, so using it as the boundary would
+    // validate the decoy's price for the requested model.
+    const $ = cheerio.load(`<ul class="item">
+      <li><h3>MikroTik CRS326-24G-2S+</h3><span class="price">$199.00</span></li>
+      <li><h3>MikroTik CRS804-4DDQ-hRM</h3><span class="price">$480.00</span></li>
+    </ul>`);
+    const prices = $(".price");
+    expect(modelMismatch(prices.eq(0), "CRS804-4DDQ-hRM")).toBe(true);
+    expect(modelMismatch(prices.eq(1), "CRS804-4DDQ-hRM")).toBe(false);
+  });
+
   it("accepts a Magento product-item-details row via closest()", () => {
     const $ = cheerio.load(`<li class="product-item">
       <div class="product details product-item-details">
@@ -209,5 +224,34 @@ describe("findPriceElement", () => {
     const { findPriceElement } = await import("../../lib/scrapers/utils");
     const $ = cheerio.load(TWO_PRODUCT_HTML);
     expect(findPriceElement($, ".nope", "TARGET-MODEL-9Z")).toBeNull();
+  });
+});
+
+describe("findPriceElement model-digit guard", () => {
+  it("prefers a candidate whose first digits are not the model's", () => {
+    const $ = cheerio.load(`<table><tr class="product">
+      <td><span class="sku">CRS804</span> <span class="price">$480.00</span></td>
+      <td><span class="price">$480.00</span></td>
+    </tr></table>`);
+    const el = findPriceElement(
+      $ as unknown as Parameters<typeof findPriceElement>[0],
+      'td:contains("$")',
+      "CRS804",
+    );
+    // Without the guard the first cell wins and its text parses as 804.
+    expect(el?.text()).toBe("$480.00");
+    expect(parsePriceFromText(el!.text())).toBe(480);
+  });
+
+  it("still falls back to a model-bearing candidate when it is the only one", () => {
+    const $ = cheerio.load(`<table><tr class="product">
+      <td>CRS804 <span class="price">$480.00</span></td>
+    </tr></table>`);
+    const el = findPriceElement(
+      $ as unknown as Parameters<typeof findPriceElement>[0],
+      'td:contains("$")',
+      "CRS804",
+    );
+    expect(el).not.toBeNull();
   });
 });
