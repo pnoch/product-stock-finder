@@ -292,7 +292,13 @@ export function useAuth(options?: UseAuthOptions) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Change password failed");
     }
-    return res.json();
+    const data = await res.json().catch(() => ({}));
+    // The server re-mints the caller's session under the new credential epoch;
+    // without persisting it the current device would be signed out too.
+    if (data?.sessionToken && Platform.OS !== "web") {
+      await Auth.setSessionToken(data.sessionToken);
+    }
+    return data;
   }, []);
 
   const deleteAccount = useCallback(async (confirm: string = "DELETE") => {

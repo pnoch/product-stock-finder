@@ -21,6 +21,13 @@ export type SessionPayload = {
   appId: string;
   name: string;
   deviceId?: string | null;
+  /**
+   * The account's `credentialsChangedAt` value at mint time. A token is
+   * rejected once the stored value advances past this, which invalidates every
+   * session issued before a password change — including device ids that were
+   * never registered and therefore cannot be enumerated for revocation.
+   */
+  credentialsChangedAt?: number;
 };
 
 const SALT_ROUNDS = 10;
@@ -66,6 +73,9 @@ class SDKServer {
       name: user.name || normalizedEmail,
       expiresInMs: SESSION_MS,
       deviceId: req.deviceId,
+      credentialsChangedAt: Number(
+        (user as { credentialsChangedAt?: number }).credentialsChangedAt ?? 0,
+      ),
     });
 
     return {
@@ -95,6 +105,9 @@ class SDKServer {
       name: user.name || normalizedEmail,
       expiresInMs: SESSION_MS,
       deviceId: req.deviceId,
+      credentialsChangedAt: Number(
+        (user as { credentialsChangedAt?: number }).credentialsChangedAt ?? 0,
+      ),
     });
 
     return {
@@ -105,7 +118,12 @@ class SDKServer {
 
   async createSessionToken(
     openId: string,
-    options: { expiresInMs?: number; name?: string; deviceId?: string } = {},
+    options: {
+      expiresInMs?: number;
+      name?: string;
+      deviceId?: string;
+      credentialsChangedAt?: number;
+    } = {},
   ): Promise<string> {
     return this.signSession(
       {
@@ -113,6 +131,7 @@ class SDKServer {
         appId: ENV.appId,
         name: options.name || "",
         deviceId: options.deviceId ?? null,
+        credentialsChangedAt: options.credentialsChangedAt ?? 0,
       },
       options,
     );
@@ -131,6 +150,7 @@ class SDKServer {
       openId: payload.openId,
       appId: payload.appId,
       name: payload.name,
+      cca: payload.credentialsChangedAt ?? 0,
       ...(payload.deviceId ? { deviceId: payload.deviceId } : {}),
     })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
@@ -143,6 +163,7 @@ class SDKServer {
     appId: string;
     name: string;
     deviceId: string | null;
+    credentialsChangedAt: number;
   } | null> {
     if (!cookieValue) {
       console.warn("[Auth] Missing session cookie");
@@ -170,6 +191,12 @@ class SDKServer {
         name: typeof name === "string" ? name : "",
         deviceId:
           typeof payload.deviceId === "string" ? payload.deviceId : null,
+        // Tokens minted before the claim existed carry no cca: treat them as
+        // epoch 0 so they are invalidated once an account changes credentials.
+        credentialsChangedAt:
+          typeof payload.cca === "number" && Number.isFinite(payload.cca)
+            ? payload.cca
+            : 0,
       };
     } catch (error) {
       console.warn("[Auth] Session verification failed", String(error));
@@ -199,6 +226,17 @@ class SDKServer {
 
     if (!user) {
       throw ForbiddenError("User not found");
+    }
+
+    // Credential-change epoch: a token minted before the account's last
+    // password change is invalid even though its signature and expiry are
+    // still valid. This is the only check that reaches sessions whose device
+    // id was never registered (they cannot be enumerated for revocation).
+    const userEpoch = Number(
+      (user as { credentialsChangedAt?: number }).credentialsChangedAt ?? 0,
+    );
+    if (session.credentialsChangedAt < userEpoch) {
+      throw ForbiddenError("Session expired");
     }
 
     const lastSignIn = user.lastSignedIn instanceof Date ? user.lastSignedIn : new Date(user.lastSignedIn ?? 0);

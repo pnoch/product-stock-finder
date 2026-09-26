@@ -208,11 +208,14 @@ export async function signUpWithEmail(email: string, password: string, name?: st
 }
 
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
-  await authedFetch<{ success?: boolean }>(
+  const data = await authedFetch<{ success?: boolean; sessionToken?: string }>(
     "/api/auth/change-password",
     { currentPassword, newPassword },
     { token: getSessionToken(), fallbackError: "Change password failed" },
   );
+  // The server re-mints the caller's session under the new credential epoch;
+  // without persisting it the current device would be signed out too.
+  if (data.sessionToken) setSessionToken(data.sessionToken);
 }
 
 export async function resetPassword(token: string, newPassword: string): Promise<void> {

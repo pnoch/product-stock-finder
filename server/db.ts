@@ -154,7 +154,10 @@ export async function linkUserOpenIdByEmail(
 export async function updateUserPasswordHash(openId: string, passwordHash: string) {
   const db = await getDb();
   if (!db) return;
-  await db.update(users).set({ passwordHash } as any).where(eq(users.openId, openId));
+  await db
+    .update(users)
+    .set({ passwordHash, credentialsChangedAt: Date.now() } as never)
+    .where(eq(users.openId, openId));
 }
 
 // Creates the user row and its password hash in one transaction. Doing these as
@@ -197,10 +200,18 @@ export async function getUserById(id: number) {
   return rows[0] ?? null;
 }
 
-export async function updateUserPasswordHashById(id: number, passwordHash: string) {
+export async function updateUserPasswordHashById(
+  id: number,
+  passwordHash: string,
+): Promise<number> {
+  const credentialsChangedAt = Date.now();
   const db = await getDb();
-  if (!db) return;
-  await db.update(users).set({ passwordHash } as any).where(eq(users.id, id));
+  if (!db) return credentialsChangedAt;
+  await db
+    .update(users)
+    .set({ passwordHash, credentialsChangedAt } as never)
+    .where(eq(users.id, id));
+  return credentialsChangedAt;
 }
 
 export async function deleteUserById(id: number) {
@@ -372,7 +383,7 @@ export async function resetPasswordWithToken(
         .where(eq(passwordResetTokens.token, token));
       await tx
         .update(users)
-        .set({ passwordHash } as never)
+        .set({ passwordHash, credentialsChangedAt: now } as never)
         .where(eq(users.id, row.userId));
       return row.userId;
     });

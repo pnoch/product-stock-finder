@@ -614,6 +614,9 @@ export function registerOAuthRoutes(app: Express) {
       const sessionToken = await sdk.createSessionToken(openId, {
         name: profile.name,
         deviceId: state.deviceId,
+        credentialsChangedAt: Number(
+          (user as { credentialsChangedAt?: number }).credentialsChangedAt ?? 0,
+        ),
       });
       const isNative =
         Boolean(state.deviceId) ||
@@ -669,6 +672,9 @@ export function registerOAuthRoutes(app: Express) {
       const sessionToken = await sdk.createSessionToken(redeemed.openId, {
         name: user.name ?? "",
         deviceId: typeof deviceId === "string" ? deviceId : undefined,
+        credentialsChangedAt: Number(
+          (user as { credentialsChangedAt?: number }).credentialsChangedAt ?? 0,
+        ),
       });
       res.json({ sessionToken, user: buildUserResponse(user) });
     } catch (error) {
@@ -880,10 +886,25 @@ export function registerOAuthRoutes(app: Express) {
       const hashFn = (bcrypt as unknown as { hash?: (p: string, r: number) => Promise<string>; default?: { hash: (p: string, r: number) => Promise<string> } }).hash
         ?? (bcrypt as unknown as { default?: { hash: (p: string, r: number) => Promise<string> } }).default?.hash;
       const hashed = hashFn ? await hashFn(newPassword, 10) : await (bcrypt as unknown as { hash: (p: string, r: number) => Promise<string> }).hash(newPassword, 10);
-      await db.updateUserPasswordHashById(user.id, hashed);
+      // Bumps credentialsChangedAt, so every session issued before this point
+      // is rejected — including device ids that were never registered and so
+      // cannot be enumerated by revokeAllDevicesForUser.
+      const credentialsChangedAt = await db.updateUserPasswordHashById(user.id, hashed);
       // Sign out every other device; the current one keeps its session.
       await revokeAllDevicesForUser(user.id, user.sessionDeviceId);
-      res.json({ success: true });
+      // Re-mint the caller's own session under the new epoch (their existing
+      // token predates the change and would otherwise be rejected), and hand
+      // it back so Bearer-token clients can persist it.
+      const freshToken = await sdk.createSessionToken(user.openId, {
+        name: user.name || "",
+        deviceId: user.sessionDeviceId ?? undefined,
+        credentialsChangedAt,
+      });
+      res.cookie(COOKIE_NAME, freshToken, {
+        ...getSessionCookieOptions(req),
+        maxAge: SESSION_MS,
+      });
+      res.json({ success: true, sessionToken: freshToken });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes("Invalid session") || msg.includes("User not found")) {

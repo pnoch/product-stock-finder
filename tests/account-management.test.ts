@@ -26,6 +26,7 @@ vi.mock("../server/_core/sdk", () => ({
     register: vi.fn(),
     login: vi.fn(),
     authenticateRequest: vi.fn(),
+    createSessionToken: vi.fn(async () => "fresh-token"),
   },
 }));
 
@@ -70,12 +71,19 @@ describe("POST /api/auth/change-password", () => {
     vi.mocked(db.getUserById).mockResolvedValue({ id: 1, passwordHash: "oldhash" } as any);
     vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
     vi.mocked(bcrypt.hash).mockResolvedValue("newhashed" as never);
+    vi.mocked(db.updateUserPasswordHashById).mockResolvedValue(1_700_000_000_000 as never);
     const res = makeRes();
     await handler("POST", "/api/auth/change-password")(makeReq({ currentPassword: "oldpass", newPassword: "newpass123" }), res);
     expect(db.updateUserPasswordHashById).toHaveBeenCalledWith(1, "newhashed");
     // Every other device is signed out; the current session is kept.
     expect(mockRevokeAllDevicesForUser).toHaveBeenCalledWith(1, undefined);
-    expect(res.json).toHaveBeenCalledWith({ success: true });
+    // The caller's own token is re-minted under the new credential epoch,
+    // otherwise the check in authenticateRequest would sign them out too.
+    expect(sdk.createSessionToken).toHaveBeenCalledWith(
+      "open_1",
+      expect.objectContaining({ credentialsChangedAt: 1_700_000_000_000 }),
+    );
+    expect(res.json).toHaveBeenCalledWith({ success: true, sessionToken: "fresh-token" });
   });
 
   it("rejects when current password is incorrect", async () => {

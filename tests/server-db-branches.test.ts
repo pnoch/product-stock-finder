@@ -6,7 +6,7 @@ import {
   trendingProducts,
   users,
 } from "../drizzle/schema";
-import { getDb } from "../server/db";
+import { getDb, updateUserPasswordHashById } from "../server/db";
 import { upsertDeviceConfig } from "../server/notifications";
 import { appRouter } from "../server/routers";
 import type { TrpcContext } from "../server/_core/context";
@@ -171,5 +171,24 @@ describe.skipIf(!runDbTests)("DB-only branches", () => {
     const rows = await db!.select().from(trendingProducts);
     expect(rows).toHaveLength(1);
     vi.unstubAllGlobals();
+  });
+
+  it("a password change advances credentialsChangedAt so old sessions are invalidated", async () => {
+    const db = await getDb();
+    await db!.insert(users).values({ openId: "epoch-user" });
+    const [user] = await db!
+      .select({ id: users.id, epoch: users.credentialsChangedAt })
+      .from(users)
+      .where(eq(users.openId, "epoch-user"));
+    expect(Number(user!.epoch)).toBe(0);
+
+    const epoch = await updateUserPasswordHashById(user!.id, "new-hash");
+    expect(epoch).toBeGreaterThan(0);
+
+    const [after] = await db!
+      .select({ epoch: users.credentialsChangedAt })
+      .from(users)
+      .where(eq(users.id, user!.id));
+    expect(Number(after!.epoch)).toBe(epoch);
   });
 });

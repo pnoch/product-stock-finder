@@ -34,6 +34,15 @@ export const users = mysqlTable("users", {
   passwordHash: varchar("passwordHash", { length: 256 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   emailVerified: int("emailVerified").default(0).notNull(),
+  /**
+   * Epoch (ms) of the last credential change (password set or reset). Each
+   * session token records the value it was minted under; a token older than
+   * this is rejected, so a password change invalidates every session — even
+   * ones whose device id was never registered and cannot be enumerated.
+   */
+  credentialsChangedAt: bigint("credentialsChangedAt", { mode: "number" })
+    .default(0)
+    .notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

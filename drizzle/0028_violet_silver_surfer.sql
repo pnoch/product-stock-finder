@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `credentialsChangedAt` bigint DEFAULT 0 NOT NULL;

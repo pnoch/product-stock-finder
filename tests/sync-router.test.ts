@@ -36,6 +36,7 @@ function createAuthContext(): TrpcContext {
     passwordHash: null,
     role: "user",
     emailVerified: 0,
+    credentialsChangedAt: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
     lastSignedIn: new Date(),
