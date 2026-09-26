@@ -34,7 +34,7 @@ import { findBestDeal } from "../../../lib/best-deal";
 import { computeDealScore, dealBandLabel } from "../../../lib/deal-score";
 import { composeLiveListings } from "../../../lib/live-prices";
 import { fetchListingsWithTimeout } from "../lib/server-prices";
-import { checkNotificationPermission as checkDesktopNotificationPermission } from "../lib/notification-permission";
+import { checkNotificationPermission } from "../lib/notification-permission";
 import { saveNodeAsPng } from "../lib/share";
 import { buildShareText } from "../../../lib/price-share";
 import { getProductNote, saveProductNote } from "../../../lib/product-notes";
@@ -96,9 +96,6 @@ const notesStore = {
   },
 };
 
-async function checkNotificationPermission(): Promise<boolean> {
-  return checkDesktopNotificationPermission();
-}
 async function createPriceAlert(input: {
   productId: string;
   distributorId: string;

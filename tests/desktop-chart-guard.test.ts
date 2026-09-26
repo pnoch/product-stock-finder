@@ -1759,6 +1759,21 @@ describe("desktop chart guard", () => {
   // `new Date(...).getTime()` directly, so a malformed product (missing name /
   // invalid date) threw or produced a NaN comparator (implementation-defined
   // order). Mobile's sortWatchlist guards both.
+  // QA round 343: one inline Copy button swallowed a clipboard failure while the
+  // other copy paths toast it, so a failed copy looked like a successful one.
+  it("never swallows a clipboard failure silently", async () => {
+    const settings = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const lines = settings
+      .split("\n")
+      .filter((line) => line.includes("navigator.clipboard.writeText"));
+    expect(lines.length).toBeGreaterThan(2);
+    for (const line of lines) {
+      expect(line, "clipboard failure must not be swallowed").not.toContain(
+        "catch(() => {})",
+      );
+    }
+  });
+
   // QA round 334: the Tauri webview has no host-side opener, so window.open and
   // target="_blank" never reached the browser (start_oauth already shells out
   // for the same reason). External links must go through the Rust command.

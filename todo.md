@@ -4325,3 +4325,18 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Fixed by reusing the app's existing per-device revocation (already enforced per request via `_core/context.ts` and already handled by both clients): added `revokeAllDevicesForUser(userId, exceptDeviceId?)`, called with **all** devices from the reset route and with **all but the current session's device** from change-password (`user.sessionDeviceId`). `resetPasswordWithToken` now returns the userId so the route can act on it. Also made `GET /api/auth/me` honour `assertDeviceAllowed`, so a revoked device can't keep refreshing its identity while the tRPC APIs already reject it.
 - [x] Tests: a unit test for `revokeAllDevicesForUser` (all-but-kept, then everyone; verified via `isDeviceRevoked`), route-level assertions that a reset revokes with the token's userId and that change-password keeps the current device — run against the real route handlers. Non-vacuous: removing either call fails its test; ignoring the `exceptDeviceId` fails the unit test.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2363 passed`; desktop `tsc 0`, `266 passed`; `cargo test` 50.
+
+## Phase 587: Device QA round 343 (consolidation: dead autostart plugin, polish, session summary)
+
+- [x] **Removed the dead autostart plugin** (found in round 337): it was installed and initialized with a `--autostart` argument nothing read, enabled by nothing, promised by no UI/docs, and not granted in `capabilities/default.json` — a Cargo dependency and init call doing nothing. Dropped both; `cargo check`/`cargo test` clean.
+- [x] **Two polish items** from the audit notes: dropped the pass-through `checkNotificationPermission` wrapper in `ProductDetail.tsx` (importing the real helper directly) and gave the inline share-link Copy button the same failure toast the other copy paths have (it swallowed a clipboard failure silently). A new guard in `tests/desktop-chart-guard.test.ts` (now 188) asserts no clipboard write silently swallows its error — non-vacuous.
+- [x] **Session summary — phases 579–586 each fixed a real bug the audit loop found:**
+  - 579: the desktop never ran a launch price check, so with the default `checkInterval: "manual"` price alerts, restock watches, the basket alert and the digest were dormant.
+  - 580: no focus-driven sync retry (the engine has no retry timer).
+  - 581: the web-push subscription survived sign-out, leaving the toggle reporting "on" with no server token.
+  - 582: health alerts never fired in manual mode (the interval-gated probe was the only path).
+  - 583: web-push notifications opened the app root — both service workers stored only `eventId`, so the routing data never reached the click handler.
+  - 584: desktop external links were dead in the packaged app (the Tauri webview has no host-side opener).
+  - 585: the cached `emailVerified` stayed false after verifying via an emailed link in a browser.
+  - 586: credential changes left old sessions valid (stateless 30-day JWTs); now other devices are revoked on reset, and all but the current one on password change.
+- [x] Final verification: root `tsc 0`, lint 0 errors (157 warnings), `2364 passed`; desktop `tsc 0`, `266 passed`; `cargo test` 50; `cargo clippy` and `cargo fmt` deltas unchanged.
