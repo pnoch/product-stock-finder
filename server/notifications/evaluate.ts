@@ -1,3 +1,4 @@
+import { isDuplicateKeyError } from "../db-errors";
 import { and, asc, eq, gt, inArray } from "drizzle-orm";
 import {
   deviceNotificationConfigs,
@@ -27,15 +28,6 @@ import {
   scopeKeyForUser,
   takeDigestHeld,
 } from "./digest";
-
-function isDuplicateKeyError(error: unknown): boolean {
-  const err = error as { code?: string; errno?: number; message?: string };
-  return (
-    err?.code === "ER_DUP_ENTRY" ||
-    err?.errno === 1062 ||
-    /Duplicate entry/i.test(err?.message ?? "")
-  );
-}
 
 // Once an event has been delivered everywhere its dedup key would otherwise
 // be released, and a persisting condition (price still below target, past-due

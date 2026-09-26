@@ -190,6 +190,8 @@ describe("uploadNotificationConfig with healthEvents", () => {
           distributorId: "winncom",
           distributorName: "Winncom",
           status: "blocked",
+          // Carried through so the server separates an alert from its recovery.
+          kind: "alert",
           title: "🟠 Distributor Blocked",
           body: "Winncom has been blocked for 3 consecutive probes",
           createdAt: 1234,
@@ -207,6 +209,8 @@ describe("uploadNotificationConfig with healthEvents", () => {
           distributorId: "winncom",
           distributorName: "Winncom",
           status: "blocked",
+          // Carried through so the server separates an alert from its recovery.
+          kind: "alert",
           title: "🟠 Distributor Blocked",
           body: "Winncom has been blocked for 3 consecutive probes",
           createdAt: 1234,

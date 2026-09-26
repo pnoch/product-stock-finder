@@ -8,6 +8,8 @@ export type PendingHealthEvent = {
   distributorId: string;
   distributorName: string;
   status: "blocked" | "error";
+  /** Separates an alert from its recovery in the server's health dedup key. */
+  kind?: "alert" | "recovery";
   title: string;
   body: string;
   createdAt: number;

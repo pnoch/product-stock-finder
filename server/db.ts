@@ -311,6 +311,19 @@ export async function consumePasswordResetToken(token: string) {
   } catch {
     // Fall through: the token may live in the in-memory store.
   }
+  // Only fall back when the DB has no row for this token at all. A row that
+  // exists but is used/expired must stay rejected: a token dual-stored by a
+  // post-commit error would otherwise be consumable a second time from memory.
+  try {
+    const present = await db
+      .select({ token: passwordResetTokens.token })
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.token, token))
+      .limit(1);
+    if (present.length > 0) return null;
+  } catch {
+    // If even the existence check fails, fall through to the memory store.
+  }
   // A transient DB error during creation put the token in the memory store
   // (getPasswordResetToken already falls back this way); without this the link
   // was permanently unusable once the DB recovered.
@@ -366,6 +379,16 @@ export async function resetPasswordWithToken(
     if (applied) return applied;
   } catch {
     // Fall through: the token may live in the in-memory store.
+  }
+  try {
+    const present = await db
+      .select({ token: passwordResetTokens.token })
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.token, token))
+      .limit(1);
+    if (present.length > 0) return null;
+  } catch {
+    // Fall through to the memory store.
   }
   const memRow = memTokens.get(token);
   if (!memRow || memRow.usedAt !== null || memRow.expiresAt <= now) return null;
@@ -439,8 +462,18 @@ export async function consumeEmailVerificationToken(token: string) {
   } catch {
     // Fall through: the token may live in the in-memory store.
   }
-  // See consumePasswordResetToken: getEmailVerificationToken already falls back,
-  // and without the same fallback here the emailed link was permanently dead.
+  // See consumePasswordResetToken: only fall back when the DB has no row, so a
+  // dual-stored token cannot be consumed twice.
+  try {
+    const present = await db
+      .select({ token: emailVerificationTokens.token })
+      .from(emailVerificationTokens)
+      .where(eq(emailVerificationTokens.token, token))
+      .limit(1);
+    if (present.length > 0) return null;
+  } catch {
+    // Fall through to the memory store.
+  }
   const memRow = memVerifyTokens.get(token);
   if (!memRow || memRow.usedAt !== null || memRow.expiresAt <= now) return null;
   memRow.usedAt = now;

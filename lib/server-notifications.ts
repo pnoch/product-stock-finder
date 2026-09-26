@@ -20,6 +20,8 @@ export async function uploadNotificationConfig(
     distributorId: string;
     distributorName: string;
     status: "blocked" | "error";
+    /** Separates an alert from its recovery in the server's health dedup key. */
+    kind?: "alert" | "recovery";
     title: string;
     body: string;
     createdAt: number;
@@ -188,7 +190,8 @@ async function runSyncServerNotifications(): Promise<void> {
               // hours in the user's timezone, not the server's.
               utcOffsetMinutes: new Date().getTimezoneOffset(),
             }
-          : undefined,
+          : // Explicitly clear: an absent field would preserve a stale setting.
+            null,
       },
       settings.healthAlerts && pendingHealthEvents.length > 0
         ? pendingHealthEvents
@@ -200,6 +203,9 @@ async function runSyncServerNotifications(): Promise<void> {
               distributorId: e.distributorId,
               distributorName: e.distributorName,
               status: e.status,
+              // Without `kind` the server keyed a recovery identically to its
+              // alert in the same hour bucket and silently dropped it.
+              kind: e.kind,
               title: e.title,
               body: e.body,
               createdAt: e.createdAt,

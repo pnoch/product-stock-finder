@@ -770,6 +770,13 @@ describe("user-scoped notifications (database)", () => {
           };
         }),
       })),
+      // The health-event path reads the preserved binding when the caller sends
+      // none (the duplicate-key update keeps the existing userId).
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({ limit: vi.fn(async () => [{ userId: 7 }]) })),
+        })),
+      })),
     };
     mockedGetDb.mockResolvedValue(dbStub as never);
     const config: NotificationConfig = { ...baseConfig };

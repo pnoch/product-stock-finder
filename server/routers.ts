@@ -25,6 +25,7 @@ import {
 import { sharedWatchlists, sharedWatchlistMembers, watchlistItems } from "../drizzle/schema";
 import { userLlmConfigFromHeaders } from "./user-llm";
 import { llmRouter } from "./routers/llm";
+import { isDuplicateKeyError, isForeignKeyError } from "./db-errors";
 
 const LOCAL_ORIGIN_FALLBACK = "http://localhost:8081";
 
@@ -550,6 +551,9 @@ export const appRouter = router({
               // Lets the server evaluate quiet hours in the user's timezone.
               utcOffsetMinutes: z.number().int().min(-840).max(840).optional(),
             })
+            // An explicit null clears the setting; an absent field (older
+            // clients) must not wipe a newer client's quiet hours.
+            .nullable()
             .optional(),
         }),
       )
@@ -718,9 +722,10 @@ export const appRouter = router({
             });
             inserted = true;
           } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : String(e);
-            const isDup = msg.includes("Duplicate entry") || msg.includes("UNIQUE") || msg.includes("unique");
-            if (isDup && attempt < 2) { token = randomUUID(); continue; }
+            // `isDuplicateKeyError` unwraps Drizzle's DrizzleQueryError, whose
+            // message is "Failed query: ..." — the old substring check never
+            // matched, so a (vanishingly unlikely) token collision threw.
+            if (isDuplicateKeyError(e) && attempt < 2) { token = randomUUID(); continue; }
             throw e;
           }
         }
@@ -922,7 +927,17 @@ export const appRouter = router({
         if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Share expired" });
         }
-        await db.insert(sharedWatchlistMembers).values({ token: input.token, userId: input.userId, role: input.role }).onDuplicateKeyUpdate({ set: { role: input.role } });
+        try {
+          await db.insert(sharedWatchlistMembers).values({ token: input.token, userId: input.userId, role: input.role }).onDuplicateKeyUpdate({ set: { role: input.role } });
+        } catch (e) {
+          // A stale/unknown user id is a normal validation case; the FK error
+          // used to surface as INTERNAL_SERVER_ERROR (inviteByEmail already
+          // returns NOT_FOUND for it).
+          if (isForeignKeyError(e)) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+          }
+          throw e;
+        }
         return { invited: true } as const;
       }),
     members: protectedProcedure

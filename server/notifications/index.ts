@@ -15,6 +15,7 @@ import type {
 } from "./types";
 import { memoryConfigs, memoryDeliveries, memoryEvents, stripScope } from "./memory-store";
 import { rowToEvent } from "./mappers";
+import { isDuplicateKeyError } from "../db-errors";
 
 export type { NotificationConfig, NotificationEvent } from "./types";
 export {
@@ -23,15 +24,6 @@ export {
   removeMemoryDevice,
 } from "./memory-store";
 export { evaluateNotifications } from "./evaluate";
-
-function isDuplicateKeyError(error: unknown): boolean {
-  const err = error as { code?: string; errno?: number; message?: string };
-  return (
-    err?.code === "ER_DUP_ENTRY" ||
-    err?.errno === 1062 ||
-    /Duplicate entry/i.test(err?.message ?? "")
-  );
-}
 
 async function processHealthEvents(
   deviceId: string,
@@ -156,8 +148,12 @@ export async function upsertDeviceConfig(
     updatedAt: Date.now(),
   };
   // Only overwrite prefs when the client sent them; older clients that never
-  // upload quiet hours must not wipe a newer client's setting.
-  if (config.quietHours !== undefined) set.quietHours = config.quietHours;
+  // upload quiet hours must not wipe a newer client's setting. An explicit null
+  // clears it — without that a user who disabled quiet hours stayed batched
+  // forever in DB mode (the memory branch replaces the whole config).
+  if (config.quietHours !== undefined) {
+    set.quietHours = config.quietHours ?? null;
+  }
   if (userId !== null) set.userId = userId;
   await db
     .insert(deviceNotificationConfigs)
@@ -168,12 +164,25 @@ export async function upsertDeviceConfig(
       stockWatches: config.stockWatches,
       dateReminders: config.dateReminders,
       ...(config.quietHours !== undefined
-        ? { quietHours: config.quietHours }
+        ? { quietHours: config.quietHours ?? null }
         : {}),
       updatedAt: Date.now(),
     })
     .onDuplicateKeyUpdate({ set });
-  await processHealthEvents(deviceId, config, userId);
+  // The upsert preserves an existing binding when the caller sends none; the
+  // health-event path needs it, or its events are dropped in DB mode while the
+  // memory branch keeps them.
+  const boundUserId =
+    userId ??
+    (
+      await db
+        .select({ userId: deviceNotificationConfigs.userId })
+        .from(deviceNotificationConfigs)
+        .where(eq(deviceNotificationConfigs.deviceId, deviceId))
+        .limit(1)
+    )[0]?.userId ??
+    null;
+  await processHealthEvents(deviceId, config, boundUserId);
 }
 
 // Max events returned (and marked delivered) per pull.

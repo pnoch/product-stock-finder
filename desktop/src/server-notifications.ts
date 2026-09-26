@@ -37,7 +37,8 @@ interface PushConfig {
     distributorId: string;
     reminderDate: string;
   }>;
-  quietHours?: { start: string; end: string; utcOffsetMinutes?: number };
+  /** `null` explicitly clears the setting; absent preserves it. */
+  quietHours?: { start: string; end: string; utcOffsetMinutes?: number } | null;
   healthEvents?: Array<{
     id: string;
     distributorId: string;
@@ -206,7 +207,8 @@ async function runSyncDesktopNotifications(): Promise<void> {
             ...settings.quietHours,
             utcOffsetMinutes: new Date().getTimezoneOffset(),
           }
-        : undefined,
+        : // Explicitly clear: an absent field would preserve a stale setting.
+          null,
       healthEvents:
         settings.healthAlerts && healthEvents.length > 0
           ? healthEvents.slice(0, MAX_UPLOAD_HEALTH_EVENTS)

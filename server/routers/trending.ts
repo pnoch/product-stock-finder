@@ -219,6 +219,11 @@ export const trendingRouter = router({
         expiresAt,
       }));
 
+    // A zero-row result (the model returned [] or all-empty names) must not
+    // replace the table: the delete below is unconditional, so it would empty
+    // trending for every user until the next successful refresh.
+    if (rows.length === 0) return { count: 0 };
+
     // Delete + insert in one transaction: a failed insert after the delete
     // would leave the trending list empty until the next successful refresh.
     await db.transaction(async (tx) => {
