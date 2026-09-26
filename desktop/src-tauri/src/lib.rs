@@ -1044,20 +1044,14 @@ async fn fetch_server_price(
 
 // ─── Distributor Health ──────────────────────────────────────────────────────
 
-static BLOCKED_MARKERS: &[&str] = &[
-    "403 Forbidden",
-    "Access Denied",
-    "cf-browser-verification",
-    "Checking your browser",
-    "Just a moment",
-    "Attention Required",
-    "challenge-platform",
-    "px-captcha",
-    "captcha-delivery.com",
-];
-
+/// One marker list for the whole desktop: the scrapers' copy (itself guarded
+/// against lib/scrapers/resilient.ts). This file used to keep a third, already
+/// drifted list (a bare `challenge-platform` instead of the full path).
 fn is_blocked_error(msg: &str) -> bool {
-    BLOCKED_MARKERS.iter().any(|m| msg.contains(m))
+    scrapers::is_blocked_error(msg)
+        || scrapers::BLOCKED_MARKERS
+            .iter()
+            .any(|marker| msg.contains(marker))
 }
 
 fn classify_fetch_status(msg: &str) -> &str {
@@ -1705,6 +1699,17 @@ mod tests {
             "currency": "USD",
             "stockStatus": "in_stock",
         })
+    }
+
+    #[test]
+    fn health_classifies_a_blocked_scrape_as_blocked() {
+        // Regression: the fetch error used to drop the HTTP reason phrase, so
+        // the health probe reported a blocked distributor as "error".
+        let message = format!("{} (HTTP 403 Forbidden)", scrapers::BLOCKED_ERROR_PREFIX);
+        assert!(is_blocked_error(&message));
+        assert_eq!(classify_fetch_status(&message), "blocked");
+        // A plain network failure stays an error.
+        assert_eq!(classify_fetch_status("error sending request"), "error");
     }
 
     #[test]

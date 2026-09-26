@@ -362,4 +362,18 @@ describe("desktop/mobile scraper parity", () => {
     expect(browserRs).toContain("add_cookies(&saved)");
     expect(browserRs).toContain("save_cookies(&domain, &cookies)");
   });
+
+  it("keeps a single blocked-marker list across the Rust sources", async () => {
+    // A third copy in lib.rs had already drifted (a bare "challenge-platform"
+    // instead of the full path) while the health probe classifies failures from
+    // the message, so both paths must read the same list.
+    const modRs = await readFile("desktop/src-tauri/src/scrapers/mod.rs", "utf8");
+    const libRs = await readFile("desktop/src-tauri/src/lib.rs", "utf8");
+    expect(modRs).toContain("pub const BLOCKED_MARKERS");
+    expect(libRs, "lib.rs must not keep its own marker list").not.toContain(
+      "BLOCKED_MARKERS: &[&str]",
+    );
+    expect(libRs).toContain("scrapers::BLOCKED_MARKERS");
+    expect(libRs).toContain("scrapers::is_blocked_error");
+  });
 });

@@ -111,7 +111,7 @@ pub fn classify_fetch_status(body: &str, http_status: Option<u16>) -> FetchClass
 
 /// One GET, returning the status alongside the body so the caller can classify
 /// an interstitial (an error page still carries the block markers).
-async fn fetch_once(url: &str) -> Result<(String, u16), reqwest::Error> {
+async fn fetch_once(url: &str) -> Result<(String, reqwest::StatusCode), reqwest::Error> {
     let resp = get_client()
         .get(url)
         .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
@@ -120,9 +120,19 @@ async fn fetch_once(url: &str) -> Result<(String, u16), reqwest::Error> {
         .header("Accept-Language", "en-US,en;q=0.9")
         .send()
         .await?;
-    let status = resp.status().as_u16();
+    let status = resp.status();
     let body = resp.text().await?;
     Ok((body, status))
+}
+
+/// The block error must keep the HTTP reason phrase: the health probe classifies
+/// a scrape failure from its message, and "403 Forbidden" is a marker the shared
+/// blocked list matches (dropping it made a blocked distributor report "error").
+fn blocked_error_message(status: reqwest::StatusCode) -> String {
+    match status.canonical_reason() {
+        Some(reason) => format!("{BLOCKED_ERROR_PREFIX} (HTTP {} {reason})", status.as_u16()),
+        None => format!("{BLOCKED_ERROR_PREFIX} (HTTP {})", status.as_u16()),
+    }
 }
 
 pub async fn fetch_html(url: &str, rate_limit_ms: u64) -> Result<String, String> {
@@ -139,12 +149,17 @@ pub async fn fetch_html(url: &str, rate_limit_ms: u64) -> Result<String, String>
         }
         tokio::time::sleep(tokio::time::Duration::from_millis(rate_limit_ms)).await;
         match fetch_once(url).await {
-            Ok((body, status)) => match classify_fetch_status(&body, Some(status)) {
+            Ok((body, status)) => match classify_fetch_status(&body, Some(status.as_u16())) {
                 FetchClassification::Ok => return Ok(body),
                 FetchClassification::Blocked => {
-                    return Err(format!("{BLOCKED_ERROR_PREFIX} (HTTP {status})"));
+                    return Err(blocked_error_message(status));
                 }
-                FetchClassification::Error => last_error = format!("HTTP {status}"),
+                FetchClassification::Error => {
+                    last_error = match status.canonical_reason() {
+                        Some(reason) => format!("HTTP {} {reason}", status.as_u16()),
+                        None => format!("HTTP {}", status.as_u16()),
+                    };
+                }
             },
             Err(e) => last_error = e.to_string(),
         }
@@ -553,6 +568,15 @@ pub fn parse_price_page(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn blocked_error_message_carries_the_http_reason() {
+        // The health probe classifies a scrape failure from its message, so the
+        // reason phrase (a marker the shared blocked list matches) must survive.
+        let message = blocked_error_message(reqwest::StatusCode::FORBIDDEN);
+        assert!(is_blocked_error(&message), "{message}");
+        assert!(message.contains("403 Forbidden"), "{message}");
+    }
 
     #[test]
     fn classify_fetch_status_agrees_with_the_shared_parser() {
