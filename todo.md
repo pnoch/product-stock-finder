@@ -4340,3 +4340,25 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
   - 585: the cached `emailVerified` stayed false after verifying via an emailed link in a browser.
   - 586: credential changes left old sessions valid (stateless 30-day JWTs); now other devices are revoked on reset, and all but the current one on password change.
 - [x] Final verification: root `tsc 0`, lint 0 errors (157 warnings), `2364 passed`; desktop `tsc 0`, `266 passed`; `cargo test` 50; `cargo clippy` and `cargo fmt` deltas unchanged.
+
+## Phase 588: Full-codebase audit (eight scope-bounded subsystem reviews)
+
+Method: eight parallel reviews (shared lib, storage+sync, server data/price, server notifications, mobile screens, mobile components, desktop renderer, Rust backend) reporting only evidence-backed defects; every claim was re-verified by reading the code and, where possible, reproducing it before any fix.
+
+### Fixed (23 defects, commits 356b7745 / 15b7ae71 / 50616bd6 / 211b8081 / 4167c9c5)
+- **Rust**: the same-day price-point merge overwrote a newer local point with an older server one; `start_oauth` bypassed the URL-scheme allowlist and the Windows `cmd /C start` argument was unquoted; the file store's fixed temp name let the renderer mirror and the poller clobber each other's atomic rename; export emitted `null` for never-written collections, so the app could not import its own export on a fresh profile; an unparseable `snoozedUntil` fired on the desktop where mobile suppresses it.
+- **Sync engine**: after a push, the item's meta stamp (server push time) always exceeded the pull cursor, so `collectDirty` re-pushed it on every sync and each re-push inflated the stamp until a peer device's genuine edit looked stale forever; `persistSyncMeta` overlaid a stale per-item snapshot and downgraded a concurrent writer's newer stamp (silent lost update).
+- **Shared lib**: `appendPricePoint` threw on a missing history (and the device-scrape branch then discarded its result); `priceDropPercent` and `suggestAlertPrices` used out-of-stock history (fake drops / unreachable alert targets); the `best_price` sort built a NaN comparator from a malformed `addedAt`.
+- **Server**: `sharedWatchlists.join` bypassed `membersOnly`; the price-cache rotation map held the oldest rows, so the freshest pairs were re-warmed and stale ones skipped; the DB consume paths for password-reset and verification tokens did not fall back to the in-memory store (a token created during a transient DB error was permanently unusable).
+- **Mobile UI**: Settings' "re-enable distributor" rebuilt the listings array from a mount-time snapshot, reverting every price/status/history change; alert and reminder creation set their in-flight guard after `await ensureNotificationPermission()`, so a double-tap created duplicates; the Alerts banner counted paused alerts; search reported a false "Added"; a failed settings read persisted fallbacks over saved filters; Compare latched "selection initialised" with no eligible series; BYO-LLM fields used placeholder accessibility labels; device rows had the separator flag inverted; empty drop-calendar days were buttons announcing drops.
+- **Robustness**: FX history validated only the outer shape (a non-array series threw in the Rates useMemo); `readList` treated a valid non-array as empty without quarantining (the next write destroyed it); `dedupKeyFor` rendered digest keys as `reminder:undefined`.
+
+### Verified, deliberately not fixed
+- A session that never carried a device id survives a credential-change revocation (`revokeAllDevicesForUser` enumerates configured devices only). `tests/device-revoked.test.ts` explicitly pins the current model ("passes when no device header is present"), so closing it is an auth-model change: derive a server-side device id at login when the header is absent and bind it.
+- In DB mode the notification dedup unique index plus `onDuplicateKeyUpdate id=id` silently drops a legitimate re-fire after the cooldown/grace (the in-memory path re-fires as intended). Needs a DB (`RUN_DB_TESTS`) to fix and test.
+- Products added from the search results get `listings: []` and nothing discovers listings for them (`lib/listing-discovery.ts` is wired only into the manual-add sheet), so non-seed catalog products never show prices.
+- `prices.uploadHistory` accepts dates up to +24h despite its "must not be in the future" message — accepted: the endpoint already trusts client-scraped data, and the tolerance protects a skewed client's backfill.
+- In-memory notification maps (`memoryDeliveries`, `digestBuffers`) grow for the process lifetime in the DB-less fallback (test/dev path only).
+
+### Verification
+Root `tsc 0`, lint 0 errors (157 warnings), `2375 passed`; desktop `tsc 0`, `266 passed`; `cargo test` 55; `cargo clippy` unchanged.
