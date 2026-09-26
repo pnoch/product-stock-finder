@@ -11,6 +11,7 @@ import type { StorageAdapter } from "../../../lib/storage/adapter";
 import type { PendingHealthEvent } from "../../../lib/storage/notifications";
 import { isInQuietHours } from "../../../lib/quiet-hours";
 import { MAX_UPLOAD_HEALTH_EVENTS } from "../../../shared/const";
+import { BLOCKED_MARKERS } from "../../../lib/scrapers/resilient";
 import { storage } from "../storage";
 import { createTRPCClient } from "./trpc";
 import { sendDesktopNotification } from "../notifications";
@@ -79,59 +80,125 @@ export async function runHealthProbeIfDue(now = Date.now()): Promise<void> {
     }
     localStorage.setItem(LAST_PROBE_KEY, String(now));
     if (isInQuietHours(settings)) return;
-    const history = await svc.getHealthHistory();
-    const pending: PendingHealthEvent[] = [];
-    for (const [distributorId, samples] of Object.entries(history)) {
-      const name = getDistributorById(distributorId)?.name ?? distributorId;
-      if (detectHealthAlert(samples)) {
-        const latest = latestOf(samples);
-        const title =
-          latest.status === "blocked" ? "🟠 Distributor Blocked" : "🔴 Distributor Down";
-        const body = `${name} has been ${latest.status} for 3 consecutive probes${latest.reason ? ` — ${latest.reason}` : ""}`;
-        const createdAt = Date.now();
-        await emitHealthEvent(
-          "alert",
-          distributorId,
-          name,
-          latest.status as "blocked" | "error",
-          title,
-          body,
-          createdAt,
-          pending,
-        );
-      }
-      if (detectHealthRecovery(samples)) {
-        const prev = samples[samples.length - 2] as HealthSample;
-        const title = "🟢 Distributor Recovered";
-        const body = `${name} is back online after being ${prev.status}`;
-        const createdAt = Date.now();
-        await emitHealthEvent(
-          "recovery",
-          distributorId,
-          name,
-          prev.status as "blocked" | "error",
-          title,
-          body,
-          createdAt,
-          pending,
-        );
-      }
-    }
-    if (pending.length > 0) {
-      const existing = await storage.getPendingHealthEvents();
-      const merged = [...existing, ...pending];
-      // Bound the persisted buffer at the upload cap (keep newest): the server
-      // rejects an oversized upload, so an uncapped buffer would grow forever
-      // and then never upload.
-      await storage.savePendingHealthEvents(
-        merged.length > MAX_UPLOAD_HEALTH_EVENTS
-          ? merged.slice(merged.length - MAX_UPLOAD_HEALTH_EVENTS)
-          : merged,
-      );
-    }
+    await evaluateHealthAlerts(svc, now);
     // Pending events upload on the next syncDesktopNotifications tick —
     // no direct call here to avoid coupling.
   } catch (e) {
     console.error("[health-probe] probe failed", e);
+  }
+}
+
+/**
+ * Detects and emits health alerts/recoveries from the stored history. Shared by
+ * the periodic probe and the price-check path (mobile evaluates health inside
+ * `runPriceCheckCore` through its health collector).
+ */
+async function evaluateHealthAlerts(
+  svc: ReturnType<typeof createHealthService>,
+  now: number,
+): Promise<void> {
+  const history = await svc.getHealthHistory();
+  const pending: PendingHealthEvent[] = [];
+  for (const [distributorId, samples] of Object.entries(history)) {
+    const name = getDistributorById(distributorId)?.name ?? distributorId;
+    if (detectHealthAlert(samples)) {
+      const latest = latestOf(samples);
+      const title =
+        latest.status === "blocked" ? "🟠 Distributor Blocked" : "🔴 Distributor Down";
+      const body = `${name} has been ${latest.status} for 3 consecutive probes${latest.reason ? ` — ${latest.reason}` : ""}`;
+      await emitHealthEvent(
+        "alert",
+        distributorId,
+        name,
+        latest.status as "blocked" | "error",
+        title,
+        body,
+        Date.now(),
+        pending,
+      );
+    }
+    if (detectHealthRecovery(samples)) {
+      const prev = samples[samples.length - 2] as HealthSample;
+      const title = "🟢 Distributor Recovered";
+      const body = `${name} is back online after being ${prev.status}`;
+      await emitHealthEvent(
+        "recovery",
+        distributorId,
+        name,
+        prev.status as "blocked" | "error",
+        title,
+        body,
+        Date.now(),
+        pending,
+      );
+    }
+  }
+  if (pending.length > 0) {
+    const existing = await storage.getPendingHealthEvents();
+    const merged = [...existing, ...pending];
+    // Bound the persisted buffer at the upload cap (keep newest): the server
+    // rejects an oversized upload, so an uncapped buffer would grow forever and
+    // then never upload.
+    await storage.savePendingHealthEvents(
+      merged.length > MAX_UPLOAD_HEALTH_EVENTS
+        ? merged.slice(merged.length - MAX_UPLOAD_HEALTH_EVENTS)
+        : merged,
+    );
+  }
+  void now;
+}
+
+interface PriceCheckOutcome {
+  distributor_id?: string;
+  distributorId?: string;
+  result?: unknown;
+  error?: string | null;
+  duration_ms?: number;
+  durationMs?: number;
+}
+
+function outcomeStatus(outcome: PriceCheckOutcome): "working" | "blocked" | "error" {
+  if (outcome.result) return "working";
+  const message = outcome.error ?? "";
+  if (
+    message.startsWith("Blocked by the site") ||
+    BLOCKED_MARKERS.some((marker) => message.includes(marker))
+  ) {
+    return "blocked";
+  }
+  return "error";
+}
+
+/**
+ * Records a Rust price check's per-distributor outcomes as health samples and
+ * evaluates alerts, mirroring mobile's `healthCollector.flush()` inside
+ * `runPriceCheckCore`. Without this the desktop only alerted from
+ * `runHealthProbeIfDue`, which skips the default "manual" interval — so a
+ * default desktop never fired a health alert.
+ */
+export async function recordHealthFromPriceCheck(
+  results: unknown[],
+  now = Date.now(),
+): Promise<void> {
+  if (results.length === 0) return;
+  try {
+    const settings = await storage.getSettings();
+    if (!settings.notificationsEnabled || !settings.healthAlerts) return;
+    const svc = createHealthService(localAdapter);
+    for (const raw of results) {
+      const outcome = raw as PriceCheckOutcome;
+      const distributorId = outcome.distributor_id ?? outcome.distributorId;
+      if (!distributorId) continue;
+      await svc.recordSample(
+        distributorId,
+        outcomeStatus(outcome),
+        outcome.error ?? undefined,
+        outcome.duration_ms ?? outcome.durationMs,
+      );
+    }
+    if (isInQuietHours(settings)) return;
+    await evaluateHealthAlerts(svc, now);
+  } catch (e) {
+    console.error("[health-probe] price-check health record failed", e);
   }
 }

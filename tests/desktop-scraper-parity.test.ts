@@ -430,4 +430,17 @@ describe("desktop/mobile scraper parity", () => {
     expect(webPush).toContain("export async function unsubscribeLocalWebPush");
     expect(desktopAuth).toContain("unsubscribeLocalWebPush");
   });
+
+  it("records price-check outcomes as health samples on both platforms", async () => {
+    // Mobile evaluates health inside runPriceCheckCore (healthCollector.flush);
+    // the desktop's probe skips the default "manual" interval, so the desktop
+    // must feed its price-check results into the same health service.
+    const mobileCheck = await readFile("lib/background-tasks/price-check.ts", "utf8");
+    const probe = await readFile("desktop/src/lib/health-probe.ts", "utf8");
+    const app = await readFile("desktop/src/App.tsx", "utf8");
+    expect(mobileCheck).toContain("healthCollector.flush()");
+    expect(probe).toContain("export async function recordHealthFromPriceCheck");
+    expect(probe).toContain("recordSample(");
+    expect(app).toContain("recordHealthFromPriceCheck");
+  });
 });

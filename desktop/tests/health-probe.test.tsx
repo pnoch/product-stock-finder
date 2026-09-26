@@ -33,7 +33,7 @@ vi.mock("../../lib/scrapers/health", async (importOriginal) => {
   return { ...actual, createHealthService: vi.fn(() => mockSvc) };
 });
 
-import { runHealthProbeIfDue } from "../src/lib/health-probe";
+import { recordHealthFromPriceCheck, runHealthProbeIfDue } from "../src/lib/health-probe";
 import { sendDesktopNotification } from "../src/notifications";
 
 const LAST_PROBE_KEY = "last_health_probe_at";
@@ -230,5 +230,65 @@ describe("runHealthProbeIfDue", () => {
     expect(sendDesktopNotification).toHaveBeenCalledTimes(2);
     expect(mockStorage.savePendingHealthEvents).toHaveBeenCalledTimes(1);
     expect(mockStorage.savePendingHealthEvents.mock.calls[0][0]).toHaveLength(2);
+  });
+});
+
+describe("recordHealthFromPriceCheck", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    mockStorage.getSettings.mockResolvedValue(baseSettings());
+    mockStorage.getPendingHealthEvents.mockResolvedValue([]);
+    mockStorage.savePendingHealthEvents.mockResolvedValue(undefined);
+    mockSvc.recordSample.mockResolvedValue(undefined);
+    mockSvc.getHealthHistory.mockResolvedValue({});
+  });
+
+  it("records each sweep outcome as a health sample", async () => {
+    // Mirrors mobile's healthCollector.flush() inside runPriceCheckCore.
+    mockStorage.getSettings.mockResolvedValue(baseSettings());
+    mockSvc.getHealthHistory.mockResolvedValue({});
+    await recordHealthFromPriceCheck([
+      { distributor_id: "server2u-my", result: { price: 10 }, duration_ms: 42 },
+      {
+        distributor_id: "linitx-uk",
+        error: "Blocked by the site (HTTP 403 Forbidden)",
+        duration_ms: 7,
+      },
+      { distributor_id: "neobits-us", error: "HTTP 500 Internal Server Error" },
+    ]);
+    expect(mockSvc.recordSample.mock.calls).toEqual([
+      ["server2u-my", "working", undefined, 42],
+      ["linitx-uk", "blocked", "Blocked by the site (HTTP 403 Forbidden)", 7],
+      ["neobits-us", "error", "HTTP 500 Internal Server Error", undefined],
+    ]);
+  });
+
+  it("emits an alert from the resulting history", async () => {
+    mockStorage.getSettings.mockResolvedValue(baseSettings());
+    mockStorage.getPendingHealthEvents.mockResolvedValue([]);
+    mockSvc.getHealthHistory.mockResolvedValue({
+      "server2u-my": [
+        sample("working"),
+        sample("blocked"),
+        sample("blocked"),
+        sample("blocked"),
+      ],
+    });
+    await recordHealthFromPriceCheck([{ distributor_id: "server2u-my", result: {} }]);
+    expect(sendDesktopNotification).toHaveBeenCalled();
+    expect(mockStorage.savePendingHealthEvents).toHaveBeenCalled();
+  });
+
+  it("does nothing when health alerts are disabled", async () => {
+    mockStorage.getSettings.mockResolvedValue(baseSettings({ healthAlerts: false }));
+    await recordHealthFromPriceCheck([{ distributor_id: "server2u-my", result: {} }]);
+    expect(mockSvc.recordSample).not.toHaveBeenCalled();
+    expect(mockSvc.getHealthHistory).not.toHaveBeenCalled();
+  });
+
+  it("ignores an empty sweep", async () => {
+    await recordHealthFromPriceCheck([]);
+    expect(mockStorage.getSettings).not.toHaveBeenCalled();
   });
 });

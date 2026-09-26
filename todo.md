@@ -4289,3 +4289,10 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Extracted `unsubscribeLocalWebPush()` from `disablePush()` and called it from the desktop logout (dynamic import, matching the existing trpc-cycle workaround), best-effort.
 - [x] Tests: a new case in `desktop/tests/use-auth.test.tsx` asserts the local unsubscribe on logout (10 tests), and a parity guard in `tests/desktop-scraper-parity.test.ts` (now 18) ties mobile's web unregister to the desktop's. Non-vacuous: removing the call fails both.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2351 passed`; desktop `tsc 0`, `52 files / 258 passed`.
+
+## Phase 582: Device QA round 332 (desktop never fired health alerts in manual mode)
+
+- [x] **Found while comparing the digest implementations** — the server's "digest" turned out to be quiet-hours batching rather than the client price digest, so that pair is not a drift (a useful negative result). The real gap: mobile evaluates **health** inside `runPriceCheckCore` (`healthCollector.flush()`), so health alerts fire from every price check, while the desktop's health alerts came only from `runHealthProbeIfDue`, which returns early when `checkInterval === "manual"` — the default. A default desktop therefore never fired a distributor down/blocked alert.
+- [x] Extracted `evaluateHealthAlerts` from the probe and added `recordHealthFromPriceCheck(results)`: records each Rust sweep outcome as a health sample (working / blocked via the shared `BLOCKED_MARKERS`, else error) and evaluates the alerts, with the same notifications/healthAlerts/quiet-hours gates. Wired into the `prices-checked` handler in App.tsx.
+- [x] Tests: four cases in `desktop/tests/health-probe.test.tsx` (sample mapping incl. block classification, alert emission from the resulting history, disabled setting, empty sweep) and a parity guard in `tests/desktop-scraper-parity.test.ts` (now 19). Non-vacuous: removing the App wiring fails the guard; breaking the status mapping fails a case.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2352 passed`; desktop `tsc 0`, `52 files / 262 passed`; `cargo test` 49.

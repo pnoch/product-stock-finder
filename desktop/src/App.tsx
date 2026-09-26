@@ -333,7 +333,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const unlistenPromise = onPricesChecked(async () => {
+    const unlistenPromise = onPricesChecked(async (results) => {
+      // Record this sweep's outcomes as health samples and evaluate health
+      // alerts, like mobile's health collector inside runPriceCheckCore: the
+      // interval-gated probe skips the default "manual" mode, so without this a
+      // default desktop never fired a health alert.
+      try {
+        const { recordHealthFromPriceCheck } = await import("./lib/health-probe");
+        await recordHealthFromPriceCheck(results ?? []);
+      } catch {
+        // health recording is non-fatal
+      }
       // Evaluate back-in-stock watches after every price sweep. The Rust poller
       // only handles price alerts, so without this a signed-out desktop user
       // with a restock watch never gets notified.
