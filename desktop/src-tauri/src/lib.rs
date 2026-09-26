@@ -32,6 +32,9 @@ static EXCHANGE_RATES: [(&str, f64); 12] = [
 /// `effectiveRates`): the mirrored `fx_rates` file overrides the static table.
 /// Without it the poller evaluated alerts against static rates while the UI and
 /// mobile used live ones, so the same alert could fire on one platform only.
+/// Distinguishes concurrent writers of the same file store key.
+static WRITE_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
 static LIVE_RATES: std::sync::LazyLock<std::sync::RwLock<HashMap<String, f64>>> =
     std::sync::LazyLock::new(|| std::sync::RwLock::new(HashMap::new()));
 
@@ -438,11 +441,14 @@ async fn export_watchlist(
         .app_data_dir()
         .map_err(|e| e.to_string())?;
 
-    let watchlist = read_json_file(&data_dir, "watchlist_products")?;
-    let alerts = read_json_file(&data_dir, "price_alerts")?;
-    let reminders = read_json_file(&data_dir, "back_order_reminders")?;
-    let settings = read_json_file(&data_dir, "app_settings")?;
-    let stock_watches = read_json_file(&data_dir, "back_in_stock_watches")?;
+    // A never-written collection reads as Null (the file is missing) and the
+    // importer requires the array/object shape, so the app could not restore its
+    // own export on a fresh profile.
+    let watchlist = array_or_empty(read_json_file(&data_dir, "watchlist_products")?);
+    let alerts = array_or_empty(read_json_file(&data_dir, "price_alerts")?);
+    let reminders = array_or_empty(read_json_file(&data_dir, "back_order_reminders")?);
+    let settings = object_or_empty(read_json_file(&data_dir, "app_settings")?);
+    let stock_watches = array_or_empty(read_json_file(&data_dir, "back_in_stock_watches")?);
 
     let export = ExportData {
         version: 1,
@@ -524,6 +530,11 @@ fn parse_query_params(query: &str) -> std::collections::HashMap<String, String> 
 }
 
 fn open_system_browser(url: &str) -> Result<(), String> {
+    // Validate here rather than only in `open_external`: `start_oauth` passes a
+    // renderer-supplied URL to this same helper.
+    if !is_allowed_external_url(url) {
+        return Err(format!("Refusing to open disallowed URL: {url}"));
+    }
     #[cfg(target_os = "linux")]
     {
         std::process::Command::new("xdg-open")
@@ -540,8 +551,11 @@ fn open_system_browser(url: &str) -> Result<(), String> {
     }
     #[cfg(target_os = "windows")]
     {
+        // Quoted: `cmd` re-parses its command line, so an unquoted `&` in the
+        // URL would start a second command.
+        let quoted = format!("\"{}\"", url.replace('"', "%22"));
         std::process::Command::new("cmd")
-            .args(["/C", "start", "", url])
+            .args(["/C", "start", "", quoted.as_str()])
             .spawn()
             .map_err(|e| e.to_string())?;
     }
@@ -741,15 +755,14 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
         if !is_active || triggered_at.is_some() {
             continue;
         }
-        if let Some(snoozed_until) = alert.get("snoozedUntil").and_then(|v| v.as_str()) {
-            // Parse rather than compare strings: JS writes millis
-            // ("...12:00:00.000Z") while current_iso_timestamp() omits them, so
-            // a lexicographic compare misfires at equal instants.
-            if let Some(snooze_ms) = parse_iso_to_epoch_ms(snoozed_until) {
-                if snooze_ms > now_epoch_ms() {
-                    continue;
-                }
-            }
+        // Parse rather than compare strings: JS writes millis
+        // ("...12:00:00.000Z") while current_iso_timestamp() omits them, so a
+        // lexicographic compare misfires at equal instants.
+        if snooze_blocks(
+            alert.get("snoozedUntil").and_then(|v| v.as_str()),
+            now_epoch_ms(),
+        ) {
+            continue;
         }
 
         let product_id = alert.get("productId").and_then(|v| v.as_str()).unwrap_or("");
@@ -1417,9 +1430,52 @@ fn write_json_file(
     // Atomic write: a crash mid-`fs::write` (truncate + write) would leave a
     // truncated file that `read_json_file` then fails to parse, aborting the
     // poller/alert/tray paths. Write to a temp file and rename over the target.
-    let tmp = data_dir.join(format!("{}.json.tmp", key));
+    // Unique per writer: a fixed `{key}.json.tmp` let the renderer mirror and
+    // the poller collide, installing each other's content or failing the rename
+    // (whose error the mirror swallows).
+    let tmp = data_dir.join(format!(
+        "{}.json.{}.{}.tmp",
+        key,
+        std::process::id(),
+        WRITE_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
     fs::write(&tmp, content).map_err(|e| e.to_string())?;
     fs::rename(&tmp, &path).map_err(|e| e.to_string())
+}
+
+fn array_or_empty(value: serde_json::Value) -> serde_json::Value {
+    if value.is_null() {
+        serde_json::json!([])
+    } else {
+        value
+    }
+}
+
+fn object_or_empty(value: serde_json::Value) -> serde_json::Value {
+    if value.is_null() {
+        serde_json::json!({})
+    } else {
+        value
+    }
+}
+
+/// Matches the mobile price-check predicate: a present-but-unparseable
+/// `snoozedUntil` still counts as snoozed (mobile `NaN <= now` is false, so the
+/// alert is filtered), while an absent/empty string does not.
+fn snooze_blocks(snoozed_until: Option<&str>, now_ms: i64) -> bool {
+    match snoozed_until {
+        None => false,
+        Some(raw) => {
+            let trimmed = raw.trim();
+            if trimmed.is_empty() {
+                return false;
+            }
+            match parse_iso_to_epoch_ms(trimmed) {
+                Some(until) => until > now_ms,
+                None => true,
+            }
+        }
+    }
 }
 
 fn export_to_csv(_export: &ExportData) -> Result<String, String> {
@@ -1566,7 +1622,23 @@ fn append_price_point_with_retention(
     });
 
     match same_day {
-        Some(existing) => *existing = point,
+        // Keep the newer observation, mirroring the mobile `appendPricePoint`
+        // (`point.date > existing.date`): overwriting unconditionally replaced a
+        // newer local point with an older server history point.
+        Some(existing) => {
+            let incoming = point.get("date").and_then(|d| d.as_str()).unwrap_or("");
+            let current = existing.get("date").and_then(|d| d.as_str()).unwrap_or("");
+            let newer = match (
+                parse_iso_to_epoch_ms(incoming),
+                parse_iso_to_epoch_ms(current),
+            ) {
+                (Some(a), Some(b)) => a > b,
+                _ => incoming > current,
+            };
+            if newer {
+                *existing = point;
+            }
+        }
         None => history.push(point),
     }
 
@@ -1832,6 +1904,81 @@ mod tests {
         assert_eq!(history.len(), 1);
         assert_eq!(history[0]["price"], 108.0);
         assert_eq!(history[0]["date"], "2026-08-11T20:00:00.000Z");
+    }
+
+    #[test]
+    fn keeps_the_newer_point_on_same_utc_day() {
+        // Mirror of the mobile appendPricePoint: an older incoming server point
+        // must not replace a newer local one.
+        let mut history = vec![point("2026-08-11T20:00:00.000Z", 108.0)];
+        append_price_point_with_retention(
+            &mut history,
+            point("2026-08-11T09:00:00.000Z", 100.0),
+            "2026-05-13",
+        );
+        assert_eq!(history.len(), 1);
+        assert_eq!(history[0]["price"], 108.0);
+        assert_eq!(history[0]["date"], "2026-08-11T20:00:00.000Z");
+    }
+
+    #[test]
+    fn rejects_disallowed_schemes_before_spawning() {
+        // start_oauth passes a renderer-supplied URL to open_system_browser too.
+        assert!(open_system_browser("file:///etc/passwd").is_err());
+        assert!(open_system_browser("javascript:alert(1)").is_err());
+    }
+
+    #[test]
+    fn concurrent_writers_all_succeed_on_one_key() {
+        // A fixed temp filename made two writers collide (rename ENOENT); the
+        // mirror swallowed that error and the write was lost.
+        let dir = std::env::temp_dir().join(format!("psf-write-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let handles: Vec<_> = (0..8)
+            .map(|i| {
+                let dir = dir.clone();
+                std::thread::spawn(move || {
+                    write_json_file(
+                        &dir,
+                        "watchlist_products",
+                        &serde_json::json!([{ "i": i }]),
+                    )
+                })
+            })
+            .collect();
+        for handle in handles {
+            assert!(handle.join().unwrap().is_ok());
+        }
+        let content = std::fs::read_to_string(dir.join("watchlist_products.json")).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
+        assert!(parsed.is_array());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn export_normalizes_never_written_collections() {
+        assert_eq!(
+            array_or_empty(serde_json::Value::Null),
+            serde_json::json!([])
+        );
+        assert_eq!(
+            object_or_empty(serde_json::Value::Null),
+            serde_json::json!({})
+        );
+        let arr = serde_json::json!([1]);
+        assert_eq!(array_or_empty(arr.clone()), arr);
+    }
+
+    #[test]
+    fn snooze_blocks_matches_the_mobile_predicate() {
+        let now = 1_700_000_000_000_i64; // 2023-11-14
+        assert!(!snooze_blocks(None, now));
+        assert!(!snooze_blocks(Some(""), now));
+        assert!(!snooze_blocks(Some("   "), now));
+        assert!(snooze_blocks(Some("2026-01-01T00:00:00.000Z"), now));
+        assert!(!snooze_blocks(Some("2020-01-01T00:00:00.000Z"), now));
+        // Present but unparseable: the mobile filters the alert out.
+        assert!(snooze_blocks(Some("not-a-date"), now));
     }
 
     #[test]
