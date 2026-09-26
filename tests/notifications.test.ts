@@ -186,6 +186,9 @@ describe("evaluateNotifications", () => {
           return { onDuplicateKeyUpdate: vi.fn(async () => undefined) };
         }),
       })),
+      // A released dedup key now replaces the stale row (so the re-fire gets a
+      // fresh event id) before re-inserting: the stub must model delete too.
+      delete: vi.fn(() => ({ where: vi.fn(async () => undefined) })),
     };
     mockedGetDb.mockResolvedValue(dbStub as never);
     await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
@@ -721,6 +724,9 @@ describe("user-scoped notifications (database)", () => {
           return { onDuplicateKeyUpdate: vi.fn(async () => undefined) };
         }),
       })),
+      // A released dedup key now replaces the stale row (so the re-fire gets a
+      // fresh event id) before re-inserting: the stub must model delete too.
+      delete: vi.fn(() => ({ where: vi.fn(async () => undefined) })),
     };
     mockedGetDb.mockResolvedValue(dbStub as never);
     await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
@@ -884,6 +890,9 @@ describe("upsertDeviceConfig with healthEvents", () => {
           return { onDuplicateKeyUpdate: vi.fn(async () => undefined) };
         }),
       })),
+      // A released dedup key now replaces the stale row (so the re-fire gets a
+      // fresh event id) before re-inserting: the stub must model delete too.
+      delete: vi.fn(() => ({ where: vi.fn(async () => undefined) })),
     };
     const dbStub = {
       // pullPendingEvents now runs select+insert in one transaction.
