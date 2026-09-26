@@ -1,15 +1,13 @@
 import { and, eq, lt, sql } from "drizzle-orm";
 import { priceHistory, type PriceHistoryRow } from "../drizzle/schema";
 import { getDb, affectedRowsOf } from "./db";
+import { storagePrice, storeKey } from "./store-keys";
 import type { PricePoint, PriceSnapshot, StockStatus } from "../lib/types";
 
 const HISTORY_DAYS = 90;
 
 const memoryHistory = new Map<string, PricePoint[]>();
 
-function cacheKey(distributorId: string, modelNumber: string): string {
-  return `${distributorId}:${modelNumber}`;
-}
 
 function dayOf(date: string): string {
   return date.slice(0, 10);
@@ -36,7 +34,7 @@ export async function getHistory(
   const db = await getDb();
   if (!db) {
     const points =
-      memoryHistory.get(cacheKey(distributorId, modelNumber)) ?? [];
+      memoryHistory.get(storeKey(distributorId, modelNumber)) ?? [];
     return [...points].sort((a, b) => a.date.localeCompare(b.date));
   }
   const rows = await db
@@ -59,13 +57,16 @@ export async function mergeHistory(
 ): Promise<void> {
   const db = await getDb();
   if (!db) {
-    const key = cacheKey(distributorId, modelNumber);
+    const key = storeKey(distributorId, modelNumber);
     const existing = memoryHistory.get(key) ?? [];
     const byDay = new Map<string, PricePoint>();
     for (const p of existing) byDay.set(dayOf(p.date), p);
     for (const p of points) {
       const current = byDay.get(dayOf(p.date));
-      if (!current || p.date > current.date) byDay.set(dayOf(p.date), p);
+      if (!current || p.date > current.date) {
+        // Match DECIMAL(12,4): the DB rounds on write, so memory must too.
+        byDay.set(dayOf(p.date), { ...p, price: storagePrice(p.price) });
+      }
     }
     memoryHistory.set(key, [...byDay.values()]);
     return;

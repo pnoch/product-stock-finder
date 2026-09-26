@@ -1,13 +1,19 @@
 import { and, asc, desc, eq, lt } from "drizzle-orm";
 import { priceCache, type PriceCacheRow } from "../drizzle/schema";
 import { getDb, affectedRowsOf } from "./db";
+import { storagePrice, storeKey } from "./store-keys";
 import type { PriceSnapshot, StockStatus } from "../lib/types";
 
-const memoryCache = new Map<string, PriceSnapshot>();
+type MemoryEntry = {
+  distributorId: string;
+  modelNumber: string;
+  snapshot: PriceSnapshot;
+};
 
-function cacheKey(distributorId: string, modelNumber: string): string {
-  return `${distributorId}:${modelNumber}`;
-}
+// Keyed by storeKey (case-folded), but the original spellings are kept on the
+// entry: getAllFetchedAt/listNearExpiry feed the warmer, which matches them
+// against the catalog's exact case, so the fold must not leak out.
+const memoryCache = new Map<string, MemoryEntry>();
 
 export async function getCachedPrice(
   distributorId: string,
@@ -15,7 +21,7 @@ export async function getCachedPrice(
 ): Promise<PriceSnapshot | null> {
   const db = await getDb();
   if (!db) {
-    return memoryCache.get(cacheKey(distributorId, modelNumber)) ?? null;
+    return memoryCache.get(storeKey(distributorId, modelNumber))?.snapshot ?? null;
   }
   const rows = await db
     .select()
@@ -48,7 +54,11 @@ export async function setCachedPrice(
   }
   const db = await getDb();
   if (!db) {
-    memoryCache.set(cacheKey(distributorId, modelNumber), snapshot);
+    memoryCache.set(storeKey(distributorId, modelNumber), {
+      distributorId,
+      modelNumber,
+      snapshot: { ...snapshot, price: storagePrice(snapshot.price) },
+    });
     return;
   }
   // Drizzle decimal columns expect string values to preserve precision
@@ -93,14 +103,13 @@ export async function listNearExpiry(
   const db = await getDb();
   if (!db) {
     const entries: Array<{ distributorId: string; modelNumber: string }> = [];
-    for (const [key, snap] of memoryCache) {
+    for (const entry of memoryCache.values()) {
       if (entries.length >= limit) break;
-      if (snap.fetchedAt < cutoff) {
-        const sep = key.indexOf(":");
-        if (sep === -1) continue;
-        const distributorId = key.slice(0, sep);
-        const modelNumber = key.slice(sep + 1);
-        entries.push({ distributorId, modelNumber });
+      if (entry.snapshot.fetchedAt < cutoff) {
+        entries.push({
+          distributorId: entry.distributorId,
+          modelNumber: entry.modelNumber,
+        });
       }
     }
     return entries;
@@ -135,13 +144,13 @@ export async function getAllFetchedAt(
       modelNumber: string;
       fetchedAt: number;
     }> = [];
-    for (const [key, snap] of memoryCache) {
+    for (const entry of memoryCache.values()) {
       if (entries.length >= limit) break;
-      const sep = key.indexOf(":");
-      if (sep === -1) continue;
-      const distributorId = key.slice(0, sep);
-      const modelNumber = key.slice(sep + 1);
-      entries.push({ distributorId, modelNumber, fetchedAt: snap.fetchedAt });
+      entries.push({
+        distributorId: entry.distributorId,
+        modelNumber: entry.modelNumber,
+        fetchedAt: entry.snapshot.fetchedAt,
+      });
     }
     return entries;
   }
@@ -176,8 +185,8 @@ export async function purgeStalePriceCache(now: number): Promise<void> {
   const cutoff = now - PRICE_CACHE_RETENTION_MS;
   const db = await getDb();
   if (!db) {
-    for (const [key, snap] of memoryCache) {
-      if (snap.fetchedAt < cutoff) memoryCache.delete(key);
+    for (const [key, entry] of memoryCache) {
+      if (entry.snapshot.fetchedAt < cutoff) memoryCache.delete(key);
     }
     return;
   }
