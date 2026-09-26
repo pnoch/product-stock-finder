@@ -1016,11 +1016,35 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
-        const joinRow = rows[0] as unknown as { expiresAt: Date | null } | undefined;
+        const joinRow = rows[0] as unknown as {
+          expiresAt: Date | null;
+          membersOnly?: boolean | null;
+        } | undefined;
         if (!joinRow) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
         // Expired shares must not be joinable (get already rejects them).
         if (joinRow.expiresAt && new Date(joinRow.expiresAt).getTime() < Date.now()) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Share expired" });
+        }
+        // A members-only share is invite-only: joining must not be a way around
+        // the invitation (get already gates on membership, so an unconditional
+        // insert here made the setting unenforceable for any token holder).
+        if (joinRow.membersOnly) {
+          const existing = await db
+            .select()
+            .from(sharedWatchlistMembers)
+            .where(
+              and(
+                eq(sharedWatchlistMembers.token, input.token),
+                eq(sharedWatchlistMembers.userId, ctx.user.id),
+              ),
+            )
+            .limit(1);
+          if (existing.length === 0) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "This share is invite-only. Ask the owner to invite you.",
+            });
+          }
         }
         await db.insert(sharedWatchlistMembers).values({ token: input.token, userId: ctx.user.id, role: "viewer" }).onDuplicateKeyUpdate({ set: { role: "viewer" } });
         return { joined: true } as const;

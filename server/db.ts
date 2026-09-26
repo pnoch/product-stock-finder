@@ -292,7 +292,7 @@ export async function consumePasswordResetToken(token: string) {
     return row as Row;
   }
   try {
-    return await db.transaction(async (tx) => {
+    const consumed = await db.transaction(async (tx) => {
       const rows = await tx
         .select()
         .from(passwordResetTokens)
@@ -307,9 +307,18 @@ export async function consumePasswordResetToken(token: string) {
         .where(eq(passwordResetTokens.token, token));
       return row;
     });
+    if (consumed) return consumed;
   } catch {
-    return null;
+    // Fall through: the token may live in the in-memory store.
   }
+  // A transient DB error during creation put the token in the memory store
+  // (getPasswordResetToken already falls back this way); without this the link
+  // was permanently unusable once the DB recovered.
+  const memRow = memTokens.get(token);
+  if (!memRow || memRow.usedAt !== null || memRow.expiresAt <= now) return null;
+  memRow.usedAt = now;
+  memTokens.set(token, memRow);
+  return memRow as Row;
 }
 
 export function __clearPasswordResetTokensForTest() {
@@ -335,7 +344,7 @@ export async function resetPasswordWithToken(
     return row.userId;
   }
   try {
-    return await db.transaction(async (tx) => {
+    const applied = await db.transaction(async (tx) => {
       const rows = await tx
         .select()
         .from(passwordResetTokens)
@@ -354,9 +363,16 @@ export async function resetPasswordWithToken(
         .where(eq(users.id, row.userId));
       return row.userId;
     });
+    if (applied) return applied;
   } catch {
-    return null;
+    // Fall through: the token may live in the in-memory store.
   }
+  const memRow = memTokens.get(token);
+  if (!memRow || memRow.usedAt !== null || memRow.expiresAt <= now) return null;
+  memRow.usedAt = now;
+  memTokens.set(token, memRow);
+  await updateUserPasswordHashById(memRow.userId, passwordHash);
+  return memRow.userId;
 }
 
 // ─── Email verification tokens (in-memory fallback when DB unavailable) ─────
@@ -404,7 +420,7 @@ export async function consumeEmailVerificationToken(token: string) {
     return row as Row;
   }
   try {
-    return await db.transaction(async (tx) => {
+    const consumed = await db.transaction(async (tx) => {
       const rows = await tx
         .select()
         .from(emailVerificationTokens)
@@ -419,9 +435,17 @@ export async function consumeEmailVerificationToken(token: string) {
         .where(eq(emailVerificationTokens.token, token));
       return row;
     });
+    if (consumed) return consumed;
   } catch {
-    return null;
+    // Fall through: the token may live in the in-memory store.
   }
+  // See consumePasswordResetToken: getEmailVerificationToken already falls back,
+  // and without the same fallback here the emailed link was permanently dead.
+  const memRow = memVerifyTokens.get(token);
+  if (!memRow || memRow.usedAt !== null || memRow.expiresAt <= now) return null;
+  memRow.usedAt = now;
+  memVerifyTokens.set(token, memRow);
+  return memRow as Row;
 }
 
 export async function setUserEmailVerified(id: number) {

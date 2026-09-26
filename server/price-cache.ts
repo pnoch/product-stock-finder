@@ -1,4 +1,4 @@
-import { and, asc, eq, lt } from "drizzle-orm";
+import { and, asc, desc, eq, lt } from "drizzle-orm";
 import { priceCache, type PriceCacheRow } from "../drizzle/schema";
 import { getDb, affectedRowsOf } from "./db";
 import type { PriceSnapshot, StockStatus } from "../lib/types";
@@ -152,7 +152,10 @@ export async function getAllFetchedAt(
       fetchedAt: priceCache.fetchedAt,
     })
     .from(priceCache)
-    .orderBy(asc(priceCache.fetchedAt))
+    // Newest rows: pickPairsToWarm treats a missing entry as "never fetched"
+    // (`?? 0`), so returning the oldest rows made the omitted newest pairs look
+    // stale and re-warm them while genuinely stale pairs were skipped.
+    .orderBy(desc(priceCache.fetchedAt))
     .limit(limit);
   return rows;
 }

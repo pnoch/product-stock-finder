@@ -228,6 +228,34 @@ describe("sharedWatchlists router", () => {
   // An expired share must not accept new members: get/members/join all reject
   // expired shares, so invite must too or it silently grants access to a dead
   // share.
+  it("refuses to join a members-only share without an invitation", async () => {
+    // get gates on membership, so an unconditional insert in join made the
+    // members-only setting unenforceable for anyone holding the link.
+    mockedGetDb.mockResolvedValue(
+      fakeDb({
+        sharedRows: [{ token: "tok-1", expiresAt: null, membersOnly: true }],
+        memberRows: [],
+      }) as never,
+    );
+    const caller = appRouter.createCaller(createAuthedContext(9));
+    await expect(
+      caller.sharedWatchlists.join({ token: "tok-1" }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("joins a members-only share when already invited", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({
+        sharedRows: [{ token: "tok-1", expiresAt: null, membersOnly: true }],
+        memberRows: [{ token: "tok-1", userId: 9, role: "viewer" }],
+      }) as never,
+    );
+    const caller = appRouter.createCaller(createAuthedContext(9));
+    await expect(
+      caller.sharedWatchlists.join({ token: "tok-1" }),
+    ).resolves.toEqual({ joined: true });
+  });
+
   it("invite rejects an expired share", async () => {
     mockedGetDb.mockResolvedValue(
       fakeDb({
