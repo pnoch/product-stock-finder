@@ -984,6 +984,15 @@ async fn scrape_distributor(
 // Matches PRICE_SNAPSHOT_TTL_MS in shared/const.ts (1 hour).
 const SERVER_SNAPSHOT_TTL_MS: i64 = 60 * 60 * 1000;
 
+/// Mirrors `isFreshPriceSnapshot`: fresh while the age is strictly under the
+/// TTL (a snapshot exactly at the TTL is stale) and never for a non-finite
+/// stamp. Compared in f64 so the arithmetic matches the JS client, and a
+/// fractional `fetchedAt` is accepted the way `Number.isFinite` accepts it —
+/// the previous `as_i64()` dropped a non-integer stamp entirely.
+fn is_fresh_snapshot(fetched_at: f64, now_ms: i64) -> bool {
+    fetched_at.is_finite() && (now_ms as f64) - fetched_at < SERVER_SNAPSHOT_TTL_MS as f64
+}
+
 async fn fetch_server_price(
     api_base_url: &str,
     distributor_id: &str,
@@ -1020,8 +1029,8 @@ async fn fetch_server_price(
     // only kicks off a background refresh, so accepting it would persist an
     // up-to-an-hour-old price as if just observed (and append a fake history
     // point). Mirrors mobile's isFreshPriceSnapshot.
-    let fetched_at = snapshot.get("fetchedAt").and_then(|v| v.as_i64())?;
-    if now_epoch_ms() - fetched_at > SERVER_SNAPSHOT_TTL_MS {
+    let fetched_at = snapshot.get("fetchedAt").and_then(|v| v.as_f64())?;
+    if !is_fresh_snapshot(fetched_at, now_epoch_ms()) {
         return None;
     }
     let price = snapshot.get("price")?.as_f64()?;
@@ -1699,6 +1708,23 @@ mod tests {
             "currency": "USD",
             "stockStatus": "in_stock",
         })
+    }
+
+    #[test]
+    fn is_fresh_snapshot_matches_the_shared_boundary() {
+        // Mirrors tests/price-freshness.test.ts, including "false exactly at the
+        // TTL boundary" — the old `>` comparison accepted that snapshot.
+        let now = 1_700_000_000_000_i64;
+        let ttl = SERVER_SNAPSHOT_TTL_MS as f64;
+        assert!(is_fresh_snapshot(now as f64 - 1_000.0, now));
+        assert!(!is_fresh_snapshot(now as f64 - ttl, now));
+        assert!(!is_fresh_snapshot(now as f64 - ttl - 1.0, now));
+        assert!(!is_fresh_snapshot(now as f64 - 2.0 * ttl, now));
+        assert!(is_fresh_snapshot(now as f64 + 1_000.0, now));
+        assert!(!is_fresh_snapshot(f64::NAN, now));
+        assert!(!is_fresh_snapshot(f64::INFINITY, now));
+        assert!(!is_fresh_snapshot(f64::NEG_INFINITY, now));
+        assert!(is_fresh_snapshot(now as f64 - 1_000.5, now));
     }
 
     #[test]

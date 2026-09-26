@@ -376,4 +376,18 @@ describe("desktop/mobile scraper parity", () => {
     expect(libRs).toContain("scrapers::BLOCKED_MARKERS");
     expect(libRs).toContain("scrapers::is_blocked_error");
   });
+
+  it("keeps the desktop snapshot-freshness boundary aligned with the shared parser", async () => {
+    // The Rust accepted a snapshot exactly at the TTL (">") where the shared
+    // isFreshPriceSnapshot rejects it, so the desktop could stamp an
+    // up-to-an-hour-old price as just-checked.
+    const ts = await readFile("lib/price-freshness.ts", "utf8");
+    const rust = await readFile("desktop/src-tauri/src/lib.rs", "utf8");
+    expect(ts).toContain("now - snapshot.fetchedAt < PRICE_SNAPSHOT_TTL_MS");
+    expect(rust).toContain("fn is_fresh_snapshot");
+    expect(rust).toContain("- fetched_at < SERVER_SNAPSHOT_TTL_MS as f64");
+    const tsTests = await readFile("tests/price-freshness.test.ts", "utf8");
+    expect(tsTests).toContain("returns false exactly at the TTL boundary");
+    expect(rust).toContain("is_fresh_snapshot(now as f64 - ttl, now)");
+  });
 });
