@@ -130,16 +130,27 @@ export async function scrapeMikrotikStore(
 ): Promise<ScrapeResult | null> {
   try {
     const searchUrl = mikrotikstoreParser.buildSearchUrl(model);
+    // Link extraction returns raw hrefs, usually relative. fetch() rejects a
+    // relative URL on native and resolves it against the app origin on web, so
+    // resolve every hop against the search URL first.
+    const absolute = (href: string): string => {
+      try {
+        return new URL(href, searchUrl).toString();
+      } catch {
+        return href;
+      }
+    };
     let url = parseSearchResults(
       await fetchWithRateLimit(searchUrl, mikrotikstoreParser.rateLimitMs),
       model,
     );
+    if (url) url = absolute(url);
     // Search may land on a category page — follow one more hop to find the
     // full-coverage product link there.
     if (url && !isProductPage(url)) {
       const catHtml = await fetchWithRateLimit(url, mikrotikstoreParser.rateLimitMs);
       const productLink = parseSearchResults(catHtml, model);
-      if (productLink) url = productLink;
+      if (productLink) url = absolute(productLink);
     }
     if (!url) return null;
     const productHtml = await fetchWithRateLimit(

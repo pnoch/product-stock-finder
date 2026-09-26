@@ -9,7 +9,6 @@ import {
   scheduleHealthAlert,
   scheduleHealthRecovery,
 } from "../notifications";
-import { isInQuietHours } from "../quiet-hours";
 import { healthService } from "./instances";
 
 export async function checkHealthAlerts(
@@ -18,7 +17,12 @@ export async function checkHealthAlerts(
   try {
     const settings = await getSettings();
     if (!settings.notificationsEnabled || !settings.healthAlerts) return;
-    if (isInQuietHours(settings)) return;
+    // Do NOT bail out during quiet hours: the working->down edge is detectable
+    // for only one run (after `threshold` more probes the "before" sample is no
+    // longer working), so returning here consumed the transition and the outage
+    // was never alerted. scheduleHealthAlert already suppresses the OS
+    // notification inside its own quiet-hours window, and the uploaded event is
+    // held server-side and flushed after the window.
     const history = await service.getHealthHistory();
     for (const [distributorId, samples] of Object.entries(history)) {
       const distributor = getDistributorById(distributorId);

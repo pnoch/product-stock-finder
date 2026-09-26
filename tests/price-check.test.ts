@@ -18,8 +18,12 @@ const state = vi.hoisted(() => ({
     stockAlerts: true,
     healthAlerts: true,
     basketAlertThreshold: null as number | null,
+    quietHours: undefined as
+      | { start: string; end: string; utcOffsetMinutes?: number }
+      | undefined,
   },
   recordedNotifications: [] as Array<Record<string, unknown>>,
+  uploadedHealthEvents: [] as Array<Record<string, unknown>>,
 }));
 
 // Mock storage + notifications so we can drive checkPriceDropsNow deterministically
@@ -77,6 +81,9 @@ vi.mock("../lib/restock", () => ({
 
 vi.mock("../lib/server-notifications", () => ({
   syncServerNotifications: vi.fn(async () => {}),
+  uploadHealthEventToServer: vi.fn(async (event: Record<string, unknown>) => {
+    state.uploadedHealthEvents.push(event);
+  }),
 }));
 
 vi.mock("expo-notifications", () => ({
@@ -492,6 +499,8 @@ describe("checkHealthAlerts", () => {
       ...state.settingsStore,
       notificationsEnabled: true,
       healthAlerts: true,
+      // Reset so the quiet-hours test cannot leak into its neighbours.
+      quietHours: undefined,
     };
   });
 
@@ -521,6 +530,32 @@ describe("checkHealthAlerts", () => {
     state.settingsStore = { ...state.settingsStore, healthAlerts: false };
     await checkHealthAlerts(mockHealthService({}));
     expect(scheduleHealthAlert).not.toHaveBeenCalled();
+  });
+
+  it("still detects and uploads a health transition during quiet hours", async () => {
+    // Offset the window so "now" is inside it regardless of when the suite
+    // runs, while the local OS notification stays suppressed inside
+    // scheduleHealthAlert.
+    const now = new Date();
+    state.settingsStore = {
+      ...state.settingsStore,
+      quietHours: {
+        start: "00:00",
+        end: "23:59",
+        utcOffsetMinutes: now.getUTCHours() * 60 + now.getUTCMinutes(),
+      },
+    };
+    state.uploadedHealthEvents = [];
+    const history: Record<string, HealthSample[]> = {
+      "winncom-us": [
+        { status: "working", at: "2026-08-01T00:00:00Z" },
+        { status: "error", at: "2026-08-01T01:00:00Z" },
+        { status: "error", at: "2026-08-01T02:00:00Z" },
+        { status: "error", at: "2026-08-01T03:00:00Z" },
+      ],
+    };
+    await checkHealthAlerts(mockHealthService(history));
+    expect(state.uploadedHealthEvents).toHaveLength(1);
   });
 
   it("does not fire when no distributor triggers", async () => {

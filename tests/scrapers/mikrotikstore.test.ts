@@ -102,8 +102,10 @@ describe("search result link extraction", () => {
     expect(result!.price).toBe(1181.67);
     expect(result!.currency).toBe("EUR");
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    // Resolved against the search URL: a raw relative href makes fetch throw on
+    // native and hit the app origin on web.
     expect(fetchMock).toHaveBeenLastCalledWith(
-      "/en/mikrotik-crs804-ddq",
+      "https://mikrotik-store.eu/en/mikrotik-crs804-ddq",
       expect.anything(),
     );
     fetchMock.mockReset();
