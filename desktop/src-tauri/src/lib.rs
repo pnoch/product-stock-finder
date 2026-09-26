@@ -548,6 +548,25 @@ fn open_system_browser(url: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// External URLs the app may hand to the system browser (http(s) and mailto).
+/// Restricting the scheme keeps a compromised renderer from launching arbitrary
+/// handlers.
+fn is_allowed_external_url(url: &str) -> bool {
+    let lower = url.trim().to_ascii_lowercase();
+    lower.starts_with("https://") || lower.starts_with("http://") || lower.starts_with("mailto:")
+}
+
+/// Opens an external URL in the user's browser. The webview cannot do this
+/// itself — `start_oauth` already shells out for the same reason — so links
+/// that used `window.open`/`target="_blank"` were dead in the packaged app.
+#[tauri::command]
+fn open_external(url: String) -> Result<(), String> {
+    if !is_allowed_external_url(&url) {
+        return Err(format!("Refusing to open disallowed URL: {url}"));
+    }
+    open_system_browser(&url)
+}
+
 #[tauri::command]
 async fn start_oauth(login_url: String) -> Result<serde_json::Value, String> {
     open_system_browser(&login_url)?;
@@ -1712,6 +1731,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             send_notification,
+            open_external,
             read_watchlist,
             set_value_for_key,
             export_watchlist,
@@ -1867,6 +1887,17 @@ mod tests {
         assert_eq!(v["bestPrice"], 88.5);
         assert_eq!(v["currency"], "USD");
         assert_eq!(v["targetPrice"], 100.0);
+    }
+
+    #[test]
+    fn only_http_and_mailto_urls_may_be_opened() {
+        assert!(is_allowed_external_url("https://example.com/p"));
+        assert!(is_allowed_external_url("http://example.com"));
+        assert!(is_allowed_external_url("mailto:support@example.com"));
+        assert!(is_allowed_external_url("  HTTPS://EXAMPLE.COM  "));
+        assert!(!is_allowed_external_url("file:///etc/passwd"));
+        assert!(!is_allowed_external_url("javascript:alert(1)"));
+        assert!(!is_allowed_external_url(""));
     }
 
     #[test]

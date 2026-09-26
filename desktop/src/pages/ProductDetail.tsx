@@ -44,6 +44,7 @@ import { Modal } from "../components/Modal";
 import { DistributorHistoryModal } from "../components/DistributorHistoryModal";
 import { ProductImage } from "../components/ProductImage";
 import { PriceHistoryChart } from "../components/PriceHistoryChart";
+import { externalLinkHandler } from "../lib/open-external";
 
 function PriceSparkline({ history, currency }: { history: { price: number }[]; currency: string }) {
   if (history.length < 2) {
@@ -1105,6 +1106,7 @@ export function ProductDetail() {
               href={bestListing.url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={externalLinkHandler(bestListing.url)}
               className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150 bg-gray-600 text-white hover:bg-gray-500 cursor-pointer"
               aria-label={`Buy ${product.name} at ${bestDistributor.name} (currently ${bestListing.stockStatus === "back_order" ? "on back order" : "out of stock"})`}
             >
@@ -1119,6 +1121,7 @@ export function ProductDetail() {
               href={bestListing.url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={externalLinkHandler(bestListing.url)}
               className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150 bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer"
               aria-label={`Buy ${product.name} at ${bestDistributor.name}`}
             >
@@ -1525,6 +1528,7 @@ export function ProductDetail() {
                           href={listing.url}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={externalLinkHandler(listing.url)}
                           className="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm hover:underline px-1.5 py-1"
                           aria-label={`Visit ${dist?.name ?? listing.distributorId}`}
                         >

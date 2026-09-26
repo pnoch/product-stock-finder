@@ -18,7 +18,10 @@ export const Alert = {
 };
 
 export const Linking = {
-  openURL: (url: string) => window.open(url, "_blank"),
+  openURL: (url: string) => {
+    // The webview cannot open external URLs itself; see open-external.ts.
+    void import("./open-external").then((m) => m.openExternal(url));
+  },
 };
 
 export const AsyncStorage = {};

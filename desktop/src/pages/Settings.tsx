@@ -50,6 +50,7 @@ import { requestWebNotificationPermission } from "../../../lib/web-notifications
 import { isPushSupported, ensurePushSubscription, disablePush, getPushStatus, hasVapidKey } from "../lib/web-push";
 import { getSupportMailtoUrl, getPrivacyPolicyUrl } from "../../../lib/legal-links";
 import packageJson from "../../package.json";
+import { externalLinkHandler } from "../lib/open-external";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -1476,7 +1477,7 @@ export function Settings() {
             {shareUrl && (
               <div className="mt-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 break-all">
                 <p className="text-xs text-gray-500 mb-1">Share link (expires in 30 days):</p>
-                <a href={shareUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-brand-600 hover:underline break-all">{shareUrl}</a>
+                <a href={shareUrl} target="_blank" rel="noopener noreferrer" onClick={externalLinkHandler(shareUrl)} className="text-sm text-brand-600 hover:underline break-all">{shareUrl}</a>
                 <button onClick={() => { navigator.clipboard.writeText(shareUrl).then(() => showToast("Copied")).catch(() => {}); }} className="ml-2 text-xs px-2 py-1 rounded border bg-white dark:bg-gray-800">Copy</button>
               </div>
             )}
@@ -2161,6 +2162,7 @@ export function Settings() {
             </div>
             <a
               href={getSupportMailtoUrl()}
+              onClick={externalLinkHandler(getSupportMailtoUrl())}
               className="ml-2 shrink-0 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
               aria-label="Contact support"
             >
@@ -2179,6 +2181,7 @@ export function Settings() {
                 href={getPrivacyPolicyUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={externalLinkHandler(getPrivacyPolicyUrl())}
                 className="ml-2 shrink-0 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
                 aria-label="Open privacy policy"
               >

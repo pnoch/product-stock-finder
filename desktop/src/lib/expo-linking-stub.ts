@@ -4,7 +4,8 @@ export async function getInitialURL(): Promise<string | null> {
   return window.location.href;
 }
 export async function openURL(url: string): Promise<void> {
-  window.open(url, "_blank");
+  const { openExternal } = await import("./open-external");
+  await openExternal(url);
 }
 export const addEventListener = () => ({ remove: () => {} });
 export const parse = (url: string) => ({ url, hostname: "", path: null });

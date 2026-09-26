@@ -1759,6 +1759,28 @@ describe("desktop chart guard", () => {
   // `new Date(...).getTime()` directly, so a malformed product (missing name /
   // invalid date) threw or produced a NaN comparator (implementation-defined
   // order). Mobile's sortWatchlist guards both.
+  // QA round 334: the Tauri webview has no host-side opener, so window.open and
+  // target="_blank" never reached the browser (start_oauth already shells out
+  // for the same reason). External links must go through the Rust command.
+  it("routes external links through the Rust opener", async () => {
+    const helper = await readFile("desktop/src/lib/open-external.ts", "utf8");
+    const rust = await readFile("desktop/src-tauri/src/lib.rs", "utf8");
+    const rnStub = await readFile("desktop/src/lib/react-native-stub.ts", "utf8");
+    const linkingStub = await readFile("desktop/src/lib/expo-linking-stub.ts", "utf8");
+    expect(rust).toContain("fn is_allowed_external_url");
+    expect(rust).toContain("fn open_external");
+    expect(rust).toContain("open_external,");
+    expect(helper).toContain('invoke("open_external"');
+    expect(rnStub).toContain("openExternal");
+    expect(linkingStub).toContain("openExternal");
+    for (const file of [
+      "desktop/src/pages/ProductDetail.tsx",
+      "desktop/src/pages/Settings.tsx",
+    ]) {
+      expect(await readFile(file, "utf8")).toContain("externalLinkHandler");
+    }
+  });
+
   // QA round 320: the desktop's price sort and row render called
   // getBestPrice(product.listings) directly, which dereferences its argument —
   // a product restored without `listings` (partial backup/sync payload) threw
