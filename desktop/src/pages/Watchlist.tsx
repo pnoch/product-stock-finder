@@ -360,8 +360,11 @@ export function Watchlist() {
           cmp = (a.name ?? "").localeCompare(b.name ?? "") || a.id.localeCompare(b.id);
           break;
         case "price": {
-          const aPrice = getBestPrice(a.listings, displayCurrency)?.price ?? null;
-          const bPrice = getBestPrice(b.listings, displayCurrency)?.price ?? null;
+          // `?? []` like the shared sort/mobile card: a product restored from a
+          // partial backup or sync payload has no listings, and getBestPrice
+          // dereferences its argument (it threw and blanked the table).
+          const aPrice = getBestPrice(a.listings ?? [], displayCurrency)?.price ?? null;
+          const bPrice = getBestPrice(b.listings ?? [], displayCurrency)?.price ?? null;
           if (aPrice === null && bPrice === null) cmp = 0;
           else if (aPrice === null) return 1;
           else if (bPrice === null) return -1;
@@ -832,7 +835,7 @@ export function Watchlist() {
   };
 
   const renderRow = (product: Product, virtual?: { ref: (el: HTMLTableRowElement | null) => void; index: number }) => {
-    const best = getBestPrice(product.listings, displayCurrency);
+    const best = getBestPrice(product.listings ?? [], displayCurrency);
     const trend = getTrend(product);
     const refreshed = product.lastRefreshed ?? product.addedAt;
 

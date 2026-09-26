@@ -1759,6 +1759,20 @@ describe("desktop chart guard", () => {
   // `new Date(...).getTime()` directly, so a malformed product (missing name /
   // invalid date) threw or produced a NaN comparator (implementation-defined
   // order). Mobile's sortWatchlist guards both.
+  // QA round 320: the desktop's price sort and row render called
+  // getBestPrice(product.listings) directly, which dereferences its argument —
+  // a product restored without `listings` (partial backup/sync payload) threw
+  // and blanked the table, while the shared sort and the mobile card guard
+  // `listings ?? []`.
+  it("guards missing listings in the desktop watchlist sort and row render", async () => {
+    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    expect(text).toContain("getBestPrice(a.listings ?? [], displayCurrency)");
+    expect(text).toContain("getBestPrice(b.listings ?? [], displayCurrency)");
+    expect(text).toContain("getBestPrice(product.listings ?? [], displayCurrency)");
+    expect(text).not.toContain("getBestPrice(product.listings, displayCurrency)");
+    expect(text).not.toContain("getBestPrice(a.listings, displayCurrency)");
+  });
+
   it("keeps desktop watchlist sort NaN-safe and name-guarded", async () => {
     const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
     const start = text.indexOf("const sorted = useMemo");
