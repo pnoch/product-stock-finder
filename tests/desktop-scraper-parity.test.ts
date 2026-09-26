@@ -338,4 +338,28 @@ describe("desktop/mobile scraper parity", () => {
     expect(browserRs).toContain("const MAX_RETRIES: u32 = 2;");
     expect(browserRs).toContain("super::is_blocked_error(&error)");
   });
+
+  it("keeps the desktop cookie jar in step with the shared browser path", async () => {
+    // Both browser paths save per-domain cookies and replay them, using the
+    // same hashed file name, so a Cloudflare clearance is reused instead of
+    // being challenged again on every fetch.
+    const sharedBrowser = await readFile("lib/scrapers/browser.ts", "utf8");
+    const browserRs = await readFile(
+      "desktop/src-tauri/src/scrapers/browser.rs",
+      "utf8",
+    );
+
+    expect(sharedBrowser).toContain("await context.addCookies(cookies)");
+    expect(sharedBrowser).toContain("await saveCookies(domain, cookies)");
+    // Same jar directory on both sides.
+    for (const part of ['".cache"', '"product-stock-finder"', '"cookies"']) {
+      expect(sharedBrowser, `shared jar lost ${part}`).toContain(`  ${part},\n`);
+      expect(browserRs, `Rust jar lost ${part}`).toContain(`.join(${part})`);
+    }
+
+    expect(browserRs).toContain("fn hash_domain");
+    expect(browserRs).toContain("load_cookies(&domain)");
+    expect(browserRs).toContain("add_cookies(&saved)");
+    expect(browserRs).toContain("save_cookies(&domain, &cookies)");
+  });
 });

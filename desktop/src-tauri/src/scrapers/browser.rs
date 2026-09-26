@@ -109,6 +109,66 @@ fn host_of(url: &str) -> String {
     host.trim_start_matches("www.").to_lowercase()
 }
 
+/// Cookie jar, mirroring the shared browser path: a store's Cloudflare
+/// clearance is saved and replayed so later fetches are not challenged again.
+/// The file names use the same `hashDomain` as lib/scrapers/browser.ts, so the
+/// desktop's Rust and TypeScript browser paths share one jar.
+fn cookie_dir() -> std::path::PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "~".to_string());
+    std::path::Path::new(&home)
+        .join(".cache")
+        .join("product-stock-finder")
+        .join("cookies")
+}
+
+fn cookie_file(domain: &str) -> std::path::PathBuf {
+    cookie_dir().join(format!("{}.json", hash_domain(domain)))
+}
+
+/// Port of the shared `hashDomain`: a 31x rolling hash over the UTF-16 units as
+/// a signed 32-bit integer, rendered in base 36.
+fn hash_domain(domain: &str) -> String {
+    let mut hash: i32 = 0;
+    for unit in domain.encode_utf16() {
+        hash = hash
+            .wrapping_shl(5)
+            .wrapping_sub(hash)
+            .wrapping_add(unit as i32);
+    }
+    to_base36((hash as i64).unsigned_abs())
+}
+
+fn to_base36(mut value: u64) -> String {
+    const DIGITS: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyz";
+    if value == 0 {
+        return "0".to_string();
+    }
+    let mut out = Vec::new();
+    while value > 0 {
+        out.push(DIGITS[(value % 36) as usize]);
+        value /= 36;
+    }
+    out.reverse();
+    String::from_utf8(out).unwrap_or_default()
+}
+
+fn load_cookies(domain: &str) -> Vec<playwright_rs::Cookie> {
+    std::fs::read_to_string(cookie_file(domain))
+        .ok()
+        .and_then(|text| serde_json::from_str::<Vec<playwright_rs::Cookie>>(&text).ok())
+        .unwrap_or_default()
+}
+
+fn save_cookies(domain: &str, cookies: &[playwright_rs::Cookie]) {
+    let path = cookie_file(domain);
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    if let Ok(text) = serde_json::to_string(cookies) {
+        let _ = std::fs::write(path, text);
+    }
+}
+
 pub fn region_signals_for(url: &str) -> RegionSignals {
     let host = host_of(url);
     HOST_REGIONS
@@ -259,9 +319,22 @@ async fn fetch_with_browser_inner(
         .add_init_script(STEALTH_INIT_SCRIPT)
         .await
         .map_err(|e| e.to_string())?;
+    // Replay this store's saved cookies (a Cloudflare clearance, a session)
+    // before loading the page.
+    let domain = host_of(url);
+    let saved = load_cookies(&domain);
+    if !saved.is_empty() {
+        let _ = context.add_cookies(&saved).await;
+    }
+
     let page = context.new_page().await.map_err(|e| e.to_string())?;
 
     let result = fetch_with_browser_page(&page, url, wait_for_selector, timeout_ms).await;
+    if result.is_ok() {
+        if let Ok(cookies) = context.cookies(None).await {
+            save_cookies(&domain, &cookies);
+        }
+    }
 
     let _ = page.close().await;
     let _ = context.close().await;
@@ -307,6 +380,28 @@ async fn fetch_with_browser_page(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hash_domain_matches_the_shared_hash() {
+        // Reference values from `hashDomain` in lib/scrapers/browser.ts — the
+        // file names must match so both browser paths share one cookie jar.
+        assert_eq!(hash_domain("server2u.com"), "fy9pqx");
+        assert_eq!(hash_domain("linitx.com"), "8r8r3");
+        assert_eq!(hash_domain("bhphotovideo.com"), "s9nr8e");
+        assert_eq!(hash_domain("miro.co.za"), "outyms");
+        assert_eq!(hash_domain("b2b.100mega.com"), "7yc2fu");
+        assert_eq!(hash_domain(""), "0");
+        assert_eq!(hash_domain("x"), "3c");
+    }
+
+    #[test]
+    fn cookie_files_are_per_domain_json_under_the_shared_dir() {
+        let path = cookie_file("server2u.com").to_string_lossy().to_string();
+        assert!(
+            path.ends_with(".cache/product-stock-finder/cookies/fy9pqx.json"),
+            "{path}"
+        );
+    }
 
     #[test]
     fn host_of_strips_scheme_www_port_and_path() {
