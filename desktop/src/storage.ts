@@ -33,6 +33,19 @@ async function mirrorToFile(key: string, value: unknown): Promise<void> {
   if (!isTauri || !TAURI_MIRRORED_KEYS.has(key)) return;
   try {
     const { invoke } = await import("@tauri-apps/api/core");
+    if (key === "watchlist_products") {
+      // Merge rather than overwrite: this array is built from React state and
+      // can predate a poller price update, which the wholesale write reverted
+      // (see merge_watchlist in the Rust side). The merged array is written back
+      // to localStorage so the two stores stay equal.
+      const merged = await invoke<string>("merge_watchlist", { value });
+      try {
+        localStorage.setItem(key, merged);
+      } catch {
+        // storage disabled/full — the file store is authoritative
+      }
+      return;
+    }
     await invoke("set_value_for_key", { key, value });
   } catch {
     // best-effort — localStorage still updated

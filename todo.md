@@ -4550,3 +4550,12 @@ Three parallel reviews of the desktop client (the one surface this session had n
 - [x] **The price check could revert a concurrent alert change.** `check_price_drops_inner` read `price_alerts` when the (minutes-long) check began and wrote that snapshot back at the end, so adding/snoozing/deleting an alert meanwhile was silently lost. Triggered alerts are now collected by **id** and the flags are applied to a copy re-read immediately before the write (new `deactivate_alerts_by_id`, unit-tested; `deactivate_after_notify` now pairs ids). The remaining window is the write itself rather than the whole check.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2446 passed`; desktop `274 passed`; `cargo test` 64, `cargo clippy` unchanged (4).
 - [ ] Noted for a future pass: the renderer mirror still saves whole collections from React state, so a UI write built from a stale snapshot can overwrite a poller update between the JS read and the write — eliminating that needs per-item upsert commands rather than whole-array saves.
+
+## Phase 608: Desktop watchlist writes merge instead of overwriting (lost-update fix)
+
+- [x] **The last desktop concurrency item.** The renderer mirrored `watchlist_products` as a whole-array overwrite built from React state, so a UI save (add/remove product, edit tags/notes) that predated a poller price update reverted prices, stock status and history for every listing. New Rust `merge_watchlist` command + `merge_watchlist_products`/`merge_listings`:
+  - the renderer owns the product set (a product absent is a deliberate removal and stays removed) and product-level fields;
+  - the poller owns listing data — a listing whose on-disk `lastChecked` is newer is kept, and listings only the poller knows about survive.
+  The renderer now mirrors the watchlist through `merge_watchlist` and writes the merged array back into localStorage so both stores agree. Other mirrored keys still use the plain setter.
+- [x] Tests: 3 Rust merge cases (poller price wins + disk-only listing survives + UI tags kept, no resurrection of a removed product, an incoming-only listing kept; non-vacuous) and 3 desktop cases (watchlist uses `merge_watchlist`, other keys unchanged, merged result written back to localStorage; non-vacuous).
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2446 passed`; desktop `277 passed`; `cargo test` 67, `cargo clippy` unchanged (4).

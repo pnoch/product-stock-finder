@@ -484,6 +484,113 @@ async fn set_value_for_key(app: tauri::AppHandle, key: String, value: serde_json
     write_json_file(&data_dir, &key, &value)
 }
 
+/// Merges a renderer-supplied watchlist into the on-disk one and returns the
+/// merged array. The renderer owns the product set and product-level fields
+/// (adds/removes/tags/notes), while the Rust poller owns listing price data.
+/// A listing whose on-disk `lastChecked` is newer than the incoming one is
+/// kept, and disk-only listings survive — otherwise a UI save built from a stale
+/// snapshot reverted every price the poller had recorded meanwhile. A product
+/// absent from the incoming array is a deliberate removal and stays removed.
+fn merge_watchlist_products(
+    disk: serde_json::Value,
+    incoming: serde_json::Value,
+) -> serde_json::Value {
+    let incoming = match incoming {
+        serde_json::Value::Array(items) => items,
+        other => return other,
+    };
+    let disk_by_id: std::collections::HashMap<String, serde_json::Value> = match disk {
+        serde_json::Value::Array(items) => items
+            .into_iter()
+            .filter_map(|p| {
+                // Take the id by value first: `(id.to_string(), p)` moved `p`
+                // while `id` still borrowed it.
+                let id = p
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+                id.map(|id| (id, p))
+            })
+            .collect(),
+        _ => std::collections::HashMap::new(),
+    };
+    let merged = incoming
+        .into_iter()
+        .map(|product| {
+            let id = product.get("id").and_then(|v| v.as_str()).unwrap_or("");
+            if let Some(disk_product) = disk_by_id.get(id) {
+                let listings = merge_listings(
+                    disk_product.get("listings").and_then(|v| v.as_array()),
+                    product.get("listings").and_then(|v| v.as_array()),
+                );
+                let mut out = product;
+                if let Some(obj) = out.as_object_mut() {
+                    obj.insert("listings".to_string(), serde_json::Value::Array(listings));
+                }
+                out
+            } else {
+                product
+            }
+        })
+        .collect();
+    serde_json::Value::Array(merged)
+}
+
+fn listing_distributor_id(listing: &serde_json::Value) -> &str {
+    listing
+        .get("distributorId")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+}
+
+fn listing_last_checked(listing: &serde_json::Value) -> &str {
+    listing
+        .get("lastChecked")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+}
+
+fn merge_listings(
+    disk: Option<&Vec<serde_json::Value>>,
+    incoming: Option<&Vec<serde_json::Value>>,
+) -> Vec<serde_json::Value> {
+    let empty = Vec::new();
+    let disk = disk.unwrap_or(&empty);
+    let incoming = incoming.unwrap_or(&empty);
+    let mut out: Vec<serde_json::Value> = Vec::with_capacity(disk.len().max(incoming.len()));
+    for inc in incoming {
+        let id = listing_distributor_id(inc);
+        match disk
+            .iter()
+            .find(|d| listing_distributor_id(d) == id)
+        {
+            // Newer on disk: the poller refreshed it after the UI snapshot.
+            Some(d) if listing_last_checked(d) > listing_last_checked(inc) => out.push(d.clone()),
+            _ => out.push(inc.clone()),
+        }
+    }
+    // Listings only the poller knows about (newly discovered) survive.
+    for d in disk {
+        let id = listing_distributor_id(d);
+        if !incoming.iter().any(|i| listing_distributor_id(i) == id) {
+            out.push(d.clone());
+        }
+    }
+    out
+}
+
+#[tauri::command]
+async fn merge_watchlist(
+    app: tauri::AppHandle,
+    value: serde_json::Value,
+) -> Result<String, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let disk = read_json_file(&data_dir, "watchlist_products")?;
+    let merged = merge_watchlist_products(disk, value);
+    write_json_file(&data_dir, "watchlist_products", &merged)?;
+    serde_json::to_string(&merged).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 async fn read_value_for_key(app: tauri::AppHandle, key: String) -> Result<serde_json::Value, String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
@@ -1956,6 +2063,7 @@ pub fn run() {
             open_external,
             read_watchlist,
             set_value_for_key,
+            merge_watchlist,
             export_watchlist,
             import_watchlist,
             start_price_poller,
@@ -2121,6 +2229,58 @@ mod tests {
         );
         let arr = serde_json::json!([1]);
         assert_eq!(array_or_empty(arr.clone()), arr);
+    }
+
+    #[test]
+    fn merge_watchlist_keeps_poller_price_updates() {
+        let disk = serde_json::json!([
+            { "id": "p1", "name": "P1", "listings": [
+                { "distributorId": "d1", "price": 480, "lastChecked": "2026-06-02T00:00:00.000Z" },
+                { "distributorId": "d2", "price": 99, "lastChecked": "2026-06-01T00:00:00.000Z" }
+            ]}
+        ]);
+        // The UI snapshot predates the poller's d1 update and lacks d2 entirely.
+        let incoming = serde_json::json!([
+            { "id": "p1", "name": "P1", "tags": ["a"], "listings": [
+                { "distributorId": "d1", "price": 500, "lastChecked": "2026-06-01T00:00:00.000Z" }
+            ]}
+        ]);
+        let merged = merge_watchlist_products(disk, incoming);
+        let product = &merged.as_array().unwrap()[0];
+        // Product-level field comes from the UI...
+        assert_eq!(product["tags"], serde_json::json!(["a"]));
+        let listings = product["listings"].as_array().unwrap();
+        // ...the poller's newer price wins...
+        assert_eq!(listings[0]["price"], serde_json::json!(480));
+        // ...and a listing only the poller knows about survives.
+        assert_eq!(listings[1]["distributorId"], serde_json::json!("d2"));
+    }
+
+    #[test]
+    fn merge_watchlist_does_not_resurrect_a_removed_product() {
+        let disk = serde_json::json!([{ "id": "p1" }, { "id": "gone" }]);
+        let incoming = serde_json::json!([{ "id": "p1", "listings": [] }]);
+        let merged = merge_watchlist_products(disk, incoming);
+        let ids: Vec<serde_json::Value> = merged
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| p["id"].clone())
+            .collect();
+        assert_eq!(ids, vec![serde_json::json!("p1")]);
+    }
+
+    #[test]
+    fn merge_watchlist_keeps_an_incoming_listing_the_disk_lacks() {
+        let disk = serde_json::json!([{ "id": "p1", "listings": [] }]);
+        let incoming = serde_json::json!([{ "id": "p1", "listings": [
+            { "distributorId": "d9", "price": 10, "lastChecked": "2026-06-01T00:00:00.000Z" }
+        ]}]);
+        let merged = merge_watchlist_products(disk, incoming);
+        assert_eq!(
+            merged[0]["listings"][0]["distributorId"],
+            serde_json::json!("d9")
+        );
     }
 
     #[test]
