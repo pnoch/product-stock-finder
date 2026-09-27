@@ -7,6 +7,7 @@ import { createWatchlistStorage } from "./watchlist";
 import { createAlertsStorage } from "./alerts";
 import { createRemindersStorage } from "./reminders";
 import { createSettingsStorage } from "./settings";
+import { stripDeviceLocalSettings } from "../settings-privacy";
 import { createDigestFxStorage } from "./digest-fx";
 import { createFxHistoryStorage } from "./fx-history";
 import { RECENT_SEARCHES_KEY } from "../recent-searches";
@@ -83,6 +84,21 @@ export function createStorage(
       "price_digest_snapshot",
       DISTRIBUTOR_BREAKER_KEY,
     ]);
+    // Settings are preserved as device preferences, but the BYO-LLM key is a
+    // credential, not a preference: left in place, the next account on this
+    // device could reveal it in Settings and every request they made would carry
+    // it (billing the previous user's provider account). Reset the whole
+    // device-scoped LLM config so the next user starts clean rather than with a
+    // provider that has no key.
+    const settingsStorage = createSettingsStorage(ctx, watchlist);
+    const preserved = await settingsStorage.getSettings();
+    if (preserved?.llmApiKey || preserved?.llmProvider !== "forge") {
+      const cleaned = stripDeviceLocalSettings(preserved);
+      cleaned.llmProvider = "forge";
+      delete cleaned.llmModel;
+      delete cleaned.llmOllamaUrl;
+      await settingsStorage.saveSettings(cleaned);
+    }
   }
 
   async function clearAllData(): Promise<void> {

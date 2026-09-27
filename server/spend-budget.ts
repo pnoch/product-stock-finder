@@ -33,6 +33,9 @@ export const BUDGETS = {
   "images.get": { name: "images.get", limit: envLimit("images.get", 200), windowMs: 60 * 60 * 1000 },
   "discovery.discover": { name: "discovery.discover", limit: envLimit("discovery.discover", 200), windowMs: 60 * 60 * 1000 },
   "trending.refresh": { name: "trending.refresh", limit: envLimit("trending.refresh", 20), windowMs: 60 * 60 * 1000 },
+  // Server-funded llm.test calls drive the host's own Ollama (a user-keyed
+  // provider consumes the owner's quota instead, so it skips the budget).
+  "llm.test": { name: "llm.test", limit: envLimit("llm.test", 120), windowMs: 60 * 60 * 1000 },
 } as const satisfies Record<string, BudgetSpec>;
 
 export type BudgetName = keyof typeof BUDGETS;

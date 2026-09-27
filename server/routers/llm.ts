@@ -3,8 +3,10 @@ import { checkRateLimit } from "../rate-limit";
 import {
   UserLlmAuthError,
   invokeUserLlm,
+  isServerFundedLlm,
   userLlmConfigFromHeaders,
 } from "../user-llm";
+import { tryConsumeBudget } from "../spend-budget";
 
 /**
  * Probes the caller's configured BYO-LLM provider with a minimal request so the
@@ -24,6 +26,15 @@ export const llmRouter = router({
     const userLlm = userLlmConfigFromHeaders(ctx.req.headers);
     if (!userLlm) {
       return { ok: true as const, provider: "forge" as const };
+    }
+    // `ollama-local` runs on this host, so testing it is server-funded and must
+    // still count against the process-wide budget.
+    if (isServerFundedLlm(userLlm) && !tryConsumeBudget("llm.test")) {
+      return {
+        ok: false as const,
+        provider: userLlm.provider,
+        reason: "error" as const,
+      };
     }
     try {
       await invokeUserLlm(userLlm, {

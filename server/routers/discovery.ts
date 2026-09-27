@@ -7,6 +7,7 @@ import {
   UserLlmAuthError,
   invokeUserLlm,
   userLlmConfigFromHeaders,
+  isServerFundedLlm,
 } from "../user-llm";
 import {
   BYO_LLM_AUTH_ERR_MSG,
@@ -51,7 +52,7 @@ export const discoveryRouter = router({
       // operator's paid provider) does not apply.
       const userLlm = userLlmConfigFromHeaders(ctx.req.headers);
       // Process-wide cap: per-user rate limits don't bound total provider spend.
-      if (!userLlm && !tryConsumeBudget("discovery.discover")) {
+      if (isServerFundedLlm(userLlm) && !tryConsumeBudget("discovery.discover")) {
         throw new TRPCError({
           code: "TOO_MANY_REQUESTS",
           message: "Discovery is temporarily unavailable. Try again later.",

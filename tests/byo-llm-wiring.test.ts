@@ -9,8 +9,12 @@ describe("BYO-LLM client wiring", () => {
       expect(src).toContain("byoLlmHeaders");
       expect(src).toContain('headers["x-llm-provider"] = provider');
       expect(src).toContain('headers["x-llm-key"] = settings.llmApiKey');
-      // Forge (or unreadable settings) must send nothing extra.
-      expect(src).toContain('if (!provider || provider === "forge") return {};');
+      // Forge (or unreadable settings, or an unrecognized provider value from
+      // persisted/imported settings) must send nothing extra.
+      expect(src).toContain('provider === "forge"');
+      expect(src).toContain(
+        '["openai", "ollama", "ollama-local"].includes(provider)',
+      );
     }
     expect(mobile).toContain("...llmHeaders");
     expect(desktop).toContain("...(await byoLlmHeaders())");
@@ -19,7 +23,9 @@ describe("BYO-LLM client wiring", () => {
   it("has the server consume the headers and skip the budget for BYO", async () => {
     const discovery = await readFile("server/routers/discovery.ts", "utf8");
     expect(discovery).toContain("userLlmConfigFromHeaders(ctx.req.headers)");
-    expect(discovery).toContain("if (!userLlm && !tryConsumeBudget(");
+    // The budget is skipped only for a user-funded provider: `ollama-local`
+    // drives this host's Ollama, so it must still consume the cap.
+    expect(discovery).toContain("isServerFundedLlm(userLlm) && !tryConsumeBudget(");
 
     const routers = await readFile("server/routers.ts", "utf8");
     expect(routers).toContain(
@@ -27,7 +33,7 @@ describe("BYO-LLM client wiring", () => {
     );
 
     const insights = await readFile("server/price-insights.ts", "utf8");
-    expect(insights).toContain("if (!userLlm && !tryConsumeBudget(");
+    expect(insights).toContain("isServerFundedLlm(userLlm) && !tryConsumeBudget(");
   });
 });
 

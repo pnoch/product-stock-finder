@@ -10,7 +10,13 @@ import { BYO_LLM_AUTH_ERR_MSG } from "../shared/const";
 vi.mock("../server/_core/llm", () => ({ invokeLLM: vi.fn() }));
 
 function okJson(payload: unknown) {
-  return { ok: true, status: 200, json: async () => payload };
+  // postJson reads the body as text (to bound its size), then parses it.
+  return {
+    ok: true,
+    status: 200,
+    json: async () => payload,
+    text: async () => JSON.stringify(payload),
+  };
 }
 
 describe("userLlmConfigFromHeaders", () => {
@@ -66,6 +72,16 @@ describe("resolveOllamaLocalUrl", () => {
     expect(resolveOllamaLocalUrl("http://169.254.169.254")).toBeNull();
     expect(resolveOllamaLocalUrl("https://ollama.com")).toBeNull();
     expect(resolveOllamaLocalUrl("file:///etc/passwd")).toBeNull();
+  });
+
+  it("pins the default port so it cannot target an arbitrary loopback service", () => {
+    // Without the port pin, a caller could aim the server's POST at any local
+    // service (sidecars, admin APIs) — a blind SSRF into loopback.
+    expect(resolveOllamaLocalUrl("http://localhost:8080")).toBeNull();
+    expect(resolveOllamaLocalUrl("http://127.0.0.1:2375")).toBeNull();
+    expect(resolveOllamaLocalUrl("http://localhost:11434")).toBe(
+      "http://localhost:11434/api/chat",
+    );
   });
 });
 
@@ -158,6 +174,7 @@ describe("invokeUserLlm", () => {
         ok: false,
         status: 500,
         json: async () => ({ error: { message: "bad key sk-1" } }),
+        text: async () => JSON.stringify({ error: { message: "bad key sk-1" } }),
       }),
     );
     await expect(
@@ -172,6 +189,7 @@ describe("invokeUserLlm", () => {
         ok: false,
         status: 401,
         json: async () => ({ error: { message: "bad key sk-1" } }),
+        text: async () => JSON.stringify({ error: { message: "bad key sk-1" } }),
       }),
     );
     await expect(
@@ -181,5 +199,49 @@ describe("invokeUserLlm", () => {
       status: 401,
       message: BYO_LLM_AUTH_ERR_MSG,
     });
+  });
+});
+
+describe("postJson hardening", () => {
+  it("refuses to follow redirects and bounds the response size", async () => {
+    const { invokeUserLlm } = await import("../server/user-llm");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ choices: [{ message: { content: "ok" } }] }),
+      text: async () => JSON.stringify({ choices: [{ message: { content: "ok" } }] }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      await invokeUserLlm(
+        { provider: "openai", apiKey: "sk-1" },
+        { messages: [{ role: "user", content: "hi" }] },
+      );
+      // A 3xx from a loopback service must not be followed to an unvalidated host.
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ redirect: "error" }),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+
+    const huge = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => "x".repeat(500_000),
+    });
+    vi.stubGlobal("fetch", huge);
+    try {
+      await expect(
+        invokeUserLlm(
+          { provider: "openai", apiKey: "sk-1" },
+          { messages: [{ role: "user", content: "hi" }] },
+        ),
+      ).rejects.toThrow(/too large/i);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

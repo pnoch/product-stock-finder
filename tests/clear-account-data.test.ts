@@ -57,6 +57,34 @@ describe("clearAccountData vs clearAllData", () => {
     expect(settings.displayCurrency).toBe("EUR");
   });
 
+  it("drops the BYO-LLM credential while keeping the other preferences", async () => {
+    const { storage } = makeStorage();
+    await storage.saveSettings({
+      theme: "dark",
+      displayCurrency: "EUR",
+      checkInterval: "manual",
+      notificationsEnabled: true,
+      stockAlerts: true,
+      priceAlerts: true,
+      healthAlerts: true,
+      llmProvider: "openai",
+      llmApiKey: "sk-previous-user",
+      llmModel: "gpt-4o",
+    });
+
+    await storage.clearAccountData();
+
+    const settings = await storage.getSettings();
+    // Device preferences still survive…
+    expect(settings.theme).toBe("dark");
+    expect(settings.displayCurrency).toBe("EUR");
+    // …but a credential must not: the next account could reveal it in Settings
+    // and every request they made would carry it, billing the previous user.
+    expect(settings.llmApiKey).toBeUndefined();
+    expect(settings.llmModel).toBeUndefined();
+    expect(settings.llmProvider).toBe("forge");
+  });
+
   // QA round 286: `recent_searches` had its own key outside STORAGE_KEYS, so
   // neither wipe removed it — "Clear all data" (and the next user on the
   // device) still saw the previous user's search terms.

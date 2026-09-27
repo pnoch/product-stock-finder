@@ -105,6 +105,11 @@ export function resolveOllamaLocalUrl(raw: string | undefined): string | null {
   const isLoopback =
     host === "localhost" || host === "127.0.0.1" || host === "::1";
   if (!isLoopback) return null;
+  // Pin the port: any loopback port let a caller aim the server's POST at an
+  // arbitrary local service (a blind SSRF into sidecars/admin APIs), not just
+  // Ollama.
+  const port = url.port || "11434";
+  if (port !== "11434") return null;
   return `${url.protocol}//${url.host}/api/chat`;
 }
 
@@ -124,12 +129,14 @@ function normalizeOllama(model: string, content: string): InvokeResult {
   };
 }
 
+// Bounded so a hostile/looping provider cannot buffer the process out of memory.
+const MAX_RESPONSE_CHARS = 200_000;
+
 async function postJson(url: string, body: unknown, apiKey?: string): Promise<unknown> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  let res: Response;
   try {
-    res = await fetch(url, {
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -137,20 +144,42 @@ async function postJson(url: string, body: unknown, apiKey?: string): Promise<un
       },
       body: JSON.stringify(body),
       signal: controller.signal,
+      // A 3xx from a loopback service must not be followed: the Location target
+      // was never validated against the loopback allowlist (SSRF escape).
+      redirect: "error",
     });
+    if (!res.ok) {
+      // A 401/403 from the user's provider means the key was rejected — surface a
+      // distinct, actionable error. Otherwise report only the status: the
+      // provider body can echo the key back.
+      if (res.status === 401 || res.status === 403) {
+        throw new UserLlmAuthError(res.status);
+      }
+      throw new Error(`LLM provider error (${res.status})`);
+    }
+    // The deadline must cover the body too: clearing it once headers arrived let
+    // a slow-dripping response outlive the timeout and buffer without bound.
+    const text = await res.text();
+    if (text.length > MAX_RESPONSE_CHARS) {
+      throw new Error("LLM provider response too large");
+    }
+    return JSON.parse(text);
   } finally {
     clearTimeout(timer);
   }
-  if (!res.ok) {
-    // A 401/403 from the user's provider means the key was rejected — surface a
-    // distinct, actionable error. Otherwise report only the status: the
-    // provider body can echo the key back.
-    if (res.status === 401 || res.status === 403) {
-      throw new UserLlmAuthError(res.status);
-    }
-    throw new Error(`LLM provider error (${res.status})`);
-  }
-  return res.json();
+}
+
+/**
+ * True when answering drives the operator's own compute (the built-in Forge
+ * service, or the Ollama running on this host) rather than the user's paid
+ * provider. Those calls must still consume the process-wide spend budget: a
+ * caller selecting `ollama-local` is not paying, so skipping the cap left the
+ * host's GPU/CPU with no global ceiling.
+ */
+export function isServerFundedLlm(
+  config: UserLlmConfig | null | undefined,
+): boolean {
+  return !config || config.provider === "forge" || config.provider === "ollama-local";
 }
 
 function messagesForProvider(params: InvokeParams): unknown {

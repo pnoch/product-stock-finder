@@ -182,13 +182,53 @@ describe("getInsight BYO-LLM", () => {
     vi.unstubAllGlobals();
   });
 
+  it("does not publish BYO provider output to the shared cache", async () => {
+    const body = { choices: [{ message: { content: "BYO insight." } }] };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      }),
+    );
+    mockedInvokeLLM.mockResolvedValue({
+      id: "x",
+      created: 1,
+      model: "m",
+      choices: [
+        {
+          index: 0,
+          message: { role: "assistant", content: "Operator insight." },
+          finish_reason: "stop",
+        },
+      ],
+    });
+    try {
+      const byo = await getInsight("mikrotik-crs804-4ddq-hrm", {
+        provider: "openai",
+        apiKey: "sk-1",
+      });
+      expect(byo!.insight).toBe("BYO insight.");
+
+      // A non-BYO caller must not be served the BYO user's text from cache.
+      const operator = await getInsight("mikrotik-crs804-4ddq-hrm");
+      expect(operator!.insight).toBe("Operator insight.");
+      expect(mockedInvokeLLM).toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("routes through the user's provider instead of the built-in LLM", async () => {
+    const body = { choices: [{ message: { content: "BYO insight." } }] };
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({
-        choices: [{ message: { content: "BYO insight." } }],
-      }),
+      json: async () => body,
+      // postJson reads the body as text (to bound its size), then parses it.
+      text: async () => JSON.stringify(body),
     });
     vi.stubGlobal("fetch", fetchMock);
     const result = await getInsight("mikrotik-crs804-4ddq-hrm", {

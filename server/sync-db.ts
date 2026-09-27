@@ -245,6 +245,13 @@ export async function listChangedItems(
  * is not newer than the existing row; updatedAt is the server-stamped value
  * on acceptance (or the existing row's timestamp on rejection).
  */
+/** Drops the device-local BYO-LLM key from a settings payload of unknown shape. */
+function stripSettingsSecret(data: unknown): unknown {
+  if (!data || typeof data !== "object") return data;
+  const { llmApiKey: _omit, ...rest } = data as Record<string, unknown>;
+  return rest;
+}
+
 export async function upsertSyncItem(
   userId: number,
   item: SyncItem,
@@ -403,7 +410,10 @@ export async function upsertSyncItem(
         .insert(appSettings)
         .values({
           userId,
-          data: item.data,
+          // The client strips the BYO-LLM key from outbound settings, but the
+          // contract is that it is never stored server-side — enforce it here too
+          // so an older or modified client cannot persist it at rest.
+          data: stripSettingsSecret(item.data),
           updatedAtMs: stampedAt,
           clientUpdatedAtMs: item.updatedAt,
           deletedAtMs: item.deletedAt,

@@ -35,6 +35,7 @@ describe("llm.test", () => {
         ok: true,
         status: 200,
         json: async () => ({ choices: [{ message: { content: "ok" } }] }),
+        text: async () => JSON.stringify({ choices: [{ message: { content: "ok" } }] }),
       }),
     );
     // no user → publicProcedure must still resolve rather than reject as 401
@@ -49,6 +50,7 @@ describe("llm.test", () => {
         ok: true,
         status: 200,
         json: async () => ({ choices: [{ message: { content: "ok" } }] }),
+        text: async () => JSON.stringify({ choices: [{ message: { content: "ok" } }] }),
       }),
     );
     const caller = llmRouter.createCaller(ctx(byo));

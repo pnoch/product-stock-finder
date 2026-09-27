@@ -57,22 +57,60 @@ describe("discovery.discover spend budget", () => {
     expect(invokeLLM).toHaveBeenCalledTimes(1);
   });
 
-  it("routes through the user's provider and skips the budget for BYO-LLM", async () => {
+  it("still consumes the budget for a server-funded ollama-local config", async () => {
+    // `ollama-local` runs on this host and uses no user key, so it is NOT
+    // user-funded: skipping the process-wide cap left the host's GPU with no
+    // global ceiling.
+    const { tryConsumeBudget } = await import("../server/spend-budget");
+    vi.mocked(tryConsumeBudget).mockReturnValue(true);
+    const body = {
+      message: {
+        content: JSON.stringify({
+          product: { name: "RTX 5090", modelNumber: "RTX5090" },
+          retailers: [],
+        }),
+      },
+    };
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify({
-                product: { name: "RTX 5090", modelNumber: "RTX5090" },
-                retailers: [],
-              }),
-            },
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const caller = discoveryRouter.createCaller(
+        ctx({
+          "x-llm-provider": "ollama-local",
+          "x-llm-url": "http://localhost:11434",
+        }),
+      );
+      await caller.discover({ query: "rtx 5090" });
+      expect(tryConsumeBudget).toHaveBeenCalledWith("discovery.discover");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("routes through the user's provider and skips the budget for BYO-LLM", async () => {
+    const body = {
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              product: { name: "RTX 5090", modelNumber: "RTX5090" },
+              retailers: [],
+            }),
           },
-        ],
-      }),
+        },
+      ],
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => body,
+      // postJson reads the body as text (to bound its size), then parses it.
+      text: async () => JSON.stringify(body),
     });
     vi.stubGlobal("fetch", fetchMock);
     const caller = discoveryRouter.createCaller(

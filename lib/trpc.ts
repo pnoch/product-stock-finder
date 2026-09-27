@@ -41,7 +41,15 @@ export async function byoLlmHeaders(): Promise<Record<string, string>> {
   try {
     const settings = await getSettings();
     const provider = settings?.llmProvider;
-    if (!provider || provider === "forge") return {};
+    // Clamp to the providers the server accepts: the value comes from persisted
+    // or imported settings, so it is not guaranteed to be one of the union.
+    if (
+      !provider ||
+      provider === "forge" ||
+      !["openai", "ollama", "ollama-local"].includes(provider)
+    ) {
+      return {};
+    }
     const headers: Record<string, string> = {};
     headers["x-llm-provider"] = provider;
     if (settings.llmApiKey) headers["x-llm-key"] = settings.llmApiKey;

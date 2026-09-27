@@ -8,6 +8,7 @@ import { getCachedPrice } from "./price-cache";
 import { getHistory } from "./price-history";
 import { getDb } from "./db";
 import { tryConsumeBudget } from "./spend-budget";
+import { isServerFundedLlm } from "./user-llm";
 import { invokeUserLlm, type UserLlmConfig } from "./user-llm";
 import type { DistributorListing } from "../lib/types";
 
@@ -53,14 +54,22 @@ async function generateFreshInsight(
   if (!context) return null;
   // Budget is checked only on the billable path (cache hits returned earlier).
   // A BYO-LLM call is user-funded, so the operator's spend budget doesn't apply.
-  if (!userLlm && !tryConsumeBudget("insights.get")) return stale;
+  if (isServerFundedLlm(userLlm) && !tryConsumeBudget("insights.get")) return stale;
   const text = await generateInsight(context, userLlm);
   if (!text) {
     // LLM failed: serve stale cache if available rather than null
     return stale;
   }
   const result: PriceInsight = { insight: text, generatedAt: Date.now() };
-  await writeCached(productId, result);
+  // Only the operator's own provider output goes into the shared cache: a BYO
+  // provider's text is that user's (possibly untrusted) content, and the cache
+  // is keyed by productId alone, so writing it served one user's output to every
+  // other user for the whole TTL.
+  // ...and not cached in the process-wide memory map either (same key space):
+  // a BYO result is simply returned to the caller.
+  if (!userLlm) {
+    await writeCached(productId, result);
+  }
   return result;
 }
 
