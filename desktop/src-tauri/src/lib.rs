@@ -157,14 +157,42 @@ fn poller_interval_secs(interval_minutes: u64) -> u64 {
 /// leaves the alert armed for a later retry.
 fn deactivate_after_notify(
     results: &[bool],
-    triggered: &[(usize, f64)],
-) -> Vec<(usize, f64)> {
+    triggered: &[(String, f64)],
+) -> Vec<(String, f64)> {
     triggered
         .iter()
         .enumerate()
         .filter(|(i, _)| results.get(*i).copied().unwrap_or(false))
-        .map(|(_, (idx, price))| (*idx, *price))
+        .map(|(_, (id, price))| (id.clone(), *price))
         .collect()
+}
+
+/// Marks the given alerts inactive/triggered, matched by id so the update can be
+/// applied to a freshly read copy of the file rather than the snapshot taken
+/// when the check started. A non-array value is returned unchanged.
+fn deactivate_alerts_by_id(
+    alerts: serde_json::Value,
+    triggered: &[(String, f64)],
+) -> serde_json::Value {
+    let mut list = match alerts {
+        serde_json::Value::Array(items) => items,
+        other => return other,
+    };
+    for (id, best_price) in triggered {
+        for alert in list.iter_mut() {
+            if alert.get("id").and_then(|v| v.as_str()) == Some(id.as_str()) {
+                if let Some(obj) = alert.as_object_mut() {
+                    obj.insert("isActive".to_string(), serde_json::Value::Bool(false));
+                    obj.insert(
+                        "triggeredAt".to_string(),
+                        serde_json::Value::String(current_iso_timestamp()),
+                    );
+                    obj.insert("triggeredPrice".to_string(), serde_json::json!(best_price));
+                }
+            }
+        }
+    }
+    serde_json::Value::Array(list)
 }
 
 fn show_notification(
@@ -554,17 +582,16 @@ async fn import_watchlist(
             // (mirrors applyLocalLlmKey): drop it before it reaches disk.
             let import_settings = strip_device_local_settings(import.settings.clone());
 
-            write_json_file(&data_dir, "watchlist_products", &import.watchlist)?;
-            write_json_file(&data_dir, "price_alerts", &import.alerts)?;
-            write_json_file(&data_dir, "back_order_reminders", &import.reminders)?;
-            write_json_file(&data_dir, "app_settings", &import_settings)?;
+            let mut entries: Vec<(&str, &serde_json::Value)> = vec![
+                ("watchlist_products", &import.watchlist),
+                ("price_alerts", &import.alerts),
+                ("back_order_reminders", &import.reminders),
+                ("app_settings", &import_settings),
+            ];
             if !import.stock_watches.is_null() {
-                write_json_file(
-                    &data_dir,
-                    "back_in_stock_watches",
-                    &import.stock_watches,
-                )?;
+                entries.push(("back_in_stock_watches", &import.stock_watches));
             }
+            write_json_files_atomically(&data_dir, &entries)?;
 
             Ok("Import successful".to_string())
         }
@@ -815,11 +842,13 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
 
     // Compute which alerts have dropped below target in a single pass.
     // Returns (alert_index, best_price) for each triggered alert.
-    let mut triggered: Vec<(usize, f64)> = Vec::new();
+    // (alert id, best price): ids, not indices, so the flags can be applied to
+    // a freshly read copy of the file (the check runs for minutes).
+    let mut triggered: Vec<(String, f64)> = Vec::new();
     let mut notifications: Vec<(String, String, Option<String>)> = Vec::new();
     let mut events: Vec<serde_json::Value> = Vec::new();
 
-    for (idx, alert) in alerts.iter().enumerate() {
+    for alert in alerts.iter() {
         let is_active = alert.get("isActive").and_then(|v| v.as_bool()).unwrap_or(false);
         let triggered_at = alert.get("triggeredAt").and_then(|v| v.as_str());
         if !is_active || triggered_at.is_some() {
@@ -902,7 +931,9 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
             ));
             let alert_id = alert.get("id").and_then(|v| v.as_str()).unwrap_or("");
             events.push(trigger_event_json(alert_id, product_id, product_name, best_price, alert_currency, target_price, is_rise));
-            triggered.push((idx, best_price));
+            if !alert_id.is_empty() {
+                triggered.push((alert_id.to_string(), best_price));
+            }
         }
     }
 
@@ -921,18 +952,12 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
         }
         let to_deactivate = deactivate_after_notify(&results, &triggered);
         if !to_deactivate.is_empty() {
-            let mut updated_alerts = alerts.clone();
-            for (idx, best_price) in &to_deactivate {
-                if let Some(alert) = updated_alerts.get_mut(*idx) {
-                    if let Some(obj) = alert.as_object_mut() {
-                        obj.insert("isActive".to_string(), serde_json::Value::Bool(false));
-                        obj.insert("triggeredAt".to_string(), serde_json::Value::String(current_iso_timestamp()));
-                        obj.insert("triggeredPrice".to_string(), serde_json::json!(best_price));
-                    }
-                }
-            }
+            // Re-read immediately before writing: the file may have changed
+            // while this (minutes-long) check ran, and writing the snapshot read
+            // at the start silently reverted a concurrent add/snooze/delete.
+            let fresh = array_or_empty(read_json_file(data_dir, "price_alerts")?);
+            let updated_val = deactivate_alerts_by_id(fresh, &to_deactivate);
             let _ = app.emit("price-drops-triggered", &events);
-            let updated_val = serde_json::Value::Array(updated_alerts);
             write_json_file(data_dir, "price_alerts", &updated_val)?;
         }
     }
@@ -1498,28 +1523,78 @@ fn read_json_file(data_dir: &PathBuf, key: &str) -> Result<serde_json::Value, St
     }
 }
 
+fn write_json_contents(path: &std::path::Path, value: &serde_json::Value) -> Result<(), String> {
+    let content = serde_json::to_string_pretty(value).map_err(|e| e.to_string())?;
+    fs::write(path, content).map_err(|e| e.to_string())
+}
+
+// Atomic write: a crash mid-`fs::write` (truncate + write) would leave a
+// truncated file that `read_json_file` then fails to parse, aborting the
+// poller/alert/tray paths. Write to a temp file and rename over the target.
+// Unique per writer: a fixed `{key}.json.tmp` let the renderer mirror and the
+// poller collide, installing each other's content or failing the rename
+// (whose error the mirror swallows).
+fn write_json_path(path: &std::path::Path, value: &serde_json::Value) -> Result<(), String> {
+    let file_name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("data.json");
+    let dir = path.parent().unwrap_or_else(|| std::path::Path::new("."));
+    let tmp = dir.join(format!(
+        "{}.{}.{}.tmp",
+        file_name,
+        std::process::id(),
+        WRITE_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
+    write_json_contents(&tmp, value)?;
+    fs::rename(&tmp, path).map_err(|e| e.to_string())
+}
+
 fn write_json_file(
     data_dir: &PathBuf,
     key: &str,
     value: &serde_json::Value,
 ) -> Result<(), String> {
     fs::create_dir_all(data_dir).map_err(|e| e.to_string())?;
-    let path = data_dir.join(format!("{}.json", key));
-    let content = serde_json::to_string_pretty(value).map_err(|e| e.to_string())?;
-    // Atomic write: a crash mid-`fs::write` (truncate + write) would leave a
-    // truncated file that `read_json_file` then fails to parse, aborting the
-    // poller/alert/tray paths. Write to a temp file and rename over the target.
-    // Unique per writer: a fixed `{key}.json.tmp` let the renderer mirror and
-    // the poller collide, installing each other's content or failing the rename
-    // (whose error the mirror swallows).
-    let tmp = data_dir.join(format!(
-        "{}.json.{}.{}.tmp",
-        key,
-        std::process::id(),
-        WRITE_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-    ));
-    fs::write(&tmp, content).map_err(|e| e.to_string())?;
-    fs::rename(&tmp, &path).map_err(|e| e.to_string())
+    write_json_path(&data_dir.join(format!("{}.json", key)), value)
+}
+
+/// Applies a multi-file import. Every value is staged to a sibling temp file
+/// first, and the temps are only renamed into place once *all* writes succeed:
+/// writing the finals one by one meant a failure part-way (disk full,
+/// permissions) replaced some collections and not others, while the UI still
+/// showed pre-import state.
+fn write_json_files_atomically(
+    data_dir: &PathBuf,
+    entries: &[(&str, &serde_json::Value)],
+) -> Result<(), String> {
+    fs::create_dir_all(data_dir).map_err(|e| e.to_string())?;
+    let pid = std::process::id();
+    let mut staged: Vec<(std::path::PathBuf, std::path::PathBuf)> = Vec::new();
+    for (key, value) in entries {
+        let final_path = data_dir.join(format!("{}.json", key));
+        let temp_path = data_dir.join(format!(
+            "{}.json.{}.{}.import.tmp",
+            key,
+            pid,
+            WRITE_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        ));
+        if let Err(e) = write_json_contents(&temp_path, value) {
+            for (temp, _) in &staged {
+                let _ = fs::remove_file(temp);
+            }
+            let _ = fs::remove_file(&temp_path);
+            return Err(e);
+        }
+        staged.push((temp_path, final_path));
+    }
+    for (temp, final_path) in staged {
+        if let Err(e) = fs::rename(&temp, &final_path) {
+            let _ = fs::remove_file(&temp);
+            return Err(e.to_string());
+        }
+    }
+    Ok(())
 }
 
 fn array_or_empty(value: serde_json::Value) -> serde_json::Value {
@@ -2049,6 +2124,61 @@ mod tests {
     }
 
     #[test]
+    fn import_stages_all_files_before_renaming_any() {
+        let dir = std::env::temp_dir().join(format!("psf-import-atomic-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        write_json_file(&dir, "watchlist_products", &serde_json::json!([{ "old": true }]))
+            .unwrap();
+
+        let err = write_json_files_atomically(
+            &dir,
+            &[
+                ("watchlist_products", &serde_json::json!([{ "new": true }])),
+                // A nested key cannot be staged (its parent dir does not exist),
+                // so the import must abort before renaming any file.
+                ("nested/bad", &serde_json::json!([])),
+            ],
+        );
+
+        assert!(err.is_err());
+        let content = std::fs::read_to_string(dir.join("watchlist_products.json")).unwrap();
+        assert!(content.contains("old"));
+        assert!(!content.contains("new"));
+        let leftovers = std::fs::read_dir(&dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().contains(".import.tmp"))
+            .count();
+        assert_eq!(leftovers, 0);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn import_writes_every_file_on_success() {
+        let dir = std::env::temp_dir().join(format!("psf-import-ok-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let watchlist = serde_json::json!([{ "id": "p1" }]);
+        let alerts = serde_json::json!([{ "id": "a1" }]);
+        write_json_files_atomically(
+            &dir,
+            &[
+                ("watchlist_products", &watchlist),
+                ("price_alerts", &alerts),
+            ],
+        )
+        .unwrap();
+        assert!(std::fs::read_to_string(dir.join("watchlist_products.json"))
+            .unwrap()
+            .contains("p1"));
+        assert!(std::fs::read_to_string(dir.join("price_alerts.json"))
+            .unwrap()
+            .contains("a1"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn export_data_round_trips_the_shared_backup_schema() {
         let value = serde_json::json!({
             "format": "product-stock-finder-backup",
@@ -2113,13 +2243,36 @@ mod tests {
 
     #[test]
     fn deactivate_after_notify_skips_failed_notifications() {
-        let triggered = vec![(0usize, 10.0f64), (2usize, 20.0f64)];
+        let triggered = vec![("a".to_string(), 10.0f64), ("b".to_string(), 20.0f64)];
         // First delivered, second failed: only the delivered alert is consumed.
-        assert_eq!(deactivate_after_notify(&[true, false], &triggered), vec![(0usize, 10.0f64)]);
+        assert_eq!(
+            deactivate_after_notify(&[true, false], &triggered),
+            vec![("a".to_string(), 10.0f64)]
+        );
         // All delivered.
         assert_eq!(deactivate_after_notify(&[true, true], &triggered), triggered);
         // A missing result is treated as not delivered.
         assert!(deactivate_after_notify(&[], &triggered).is_empty());
+    }
+
+    #[test]
+    fn deactivate_alerts_by_id_flags_only_the_named_alerts() {
+        let alerts = serde_json::json!([
+            { "id": "a", "isActive": true },
+            { "id": "other", "isActive": true }
+        ]);
+        let updated = deactivate_alerts_by_id(alerts, &[("a".to_string(), 12.5)]);
+        let list = updated.as_array().unwrap();
+        assert_eq!(list[0]["isActive"], serde_json::json!(false));
+        assert_eq!(list[0]["triggeredPrice"], serde_json::json!(12.5));
+        assert!(list[0]["triggeredAt"].is_string());
+        // An unrelated alert is untouched.
+        assert_eq!(list[1]["isActive"], serde_json::json!(true));
+        // A non-array is returned unchanged.
+        assert_eq!(
+            deactivate_alerts_by_id(serde_json::Value::Null, &[]),
+            serde_json::Value::Null
+        );
     }
 
     #[test]
