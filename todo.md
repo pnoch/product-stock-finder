@@ -4606,3 +4606,9 @@ Same method as Phase 610: semantic mutation per module, then its tests.
 - [x] **Startup has no serial waterfall:** every launch effect in `app/_layout.tsx` is fire-and-forget (`void …`), so fx, price check, history backfill, push token, notification pull, device cleanup and listing discovery run concurrently.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2459 passed` (24 skipped).
 - [ ] Reported, not changed: `/api/*` responses carry **no** `Cache-Control` (the SPA's `cacheControlFor` only covers the static shell), so a browser may heuristically cache a tRPC GET; the correct fix is a `no-store` middleware for `/api`, which means touching `server/_core/index.ts`. Observation only: the entry bundle is ~4.1 MB (minified, mostly react-native-web + charts), and launch fires ~7 concurrent requests.
+
+## Phase 613: /api responses are never cached
+
+- [x] **`/api/*` carried no `Cache-Control`.** The SPA's `cacheControlFor` only covers the static shell (`registerSpa` is mounted *after* the API routes), so a tRPC query — which is a GET — could be heuristically cached by the browser and a refresh could serve a stale price/alert. New app-level `server/api-cache.ts` (`registerApiNoStore` + a testable `apiNoStore` middleware) sets `Cache-Control: no-store` on `/api`, wired into `server/_core/index.ts` next to the other app-level registration hooks (like `registerSpa`).
+- [x] Tests: `tests/api-cache-headers.test.ts` — a real express server over a socket asserts `no-store` on `/api/thing` and *no* header on a non-api route, plus a source assertion that the entry wires the hook. Both proven non-vacuous (dropping the header, and dropping the wiring, each fail).
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2461 passed` (24 skipped); desktop `277 passed`; `cargo test` 67.

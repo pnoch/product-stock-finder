@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { registerApiNoStore } from "../api-cache";
 import { registerSpa, registerWellKnown } from "../spa";
 import { startWarmer } from "../prices";
 import { closeDb } from "../db";
@@ -67,6 +68,10 @@ async function startServer() {
     }
     next();
   });
+
+  // Per-session, time-sensitive responses must not be heuristically cached by
+  // the browser (tRPC queries are GETs); the static shell sets its own headers.
+  registerApiNoStore(app);
 
   // Sync pushes can legitimately carry a few MB (bounded by SYNC_PUSH_MAX_ITEMS
   // × ~100KB per item). This MUST be mounted BEFORE the global parser: Express
