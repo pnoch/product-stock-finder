@@ -8,6 +8,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { registerApiNoStore } from "../api-cache";
+import { registerBodyParsers, registerCors } from "../http-middleware";
 import { registerSpa, registerWellKnown } from "../spa";
 import { startWarmer } from "../prices";
 import { closeDb } from "../db";
@@ -46,44 +47,21 @@ async function startServer() {
       .map((s) => s.trim())
       .filter(Boolean),
   );
-  app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin && allowedOrigins.has(origin)) {
-      res.header("Access-Control-Allow-Origin", origin);
-      res.header("Access-Control-Allow-Credentials", "true");
-    }
-    res.header(
-      "Access-Control-Allow-Methods",
-      "GET, POST, PUT, DELETE, OPTIONS",
-    );
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Device-Id",
-    );
-
-    // Handle preflight requests
-    if (req.method === "OPTIONS") {
-      res.sendStatus(200);
-      return;
-    }
-    next();
-  });
+  // CORS + body parsers live in server/http-middleware.ts so their exact
+  // matching/ordering is unit-tested rather than only reachable through startup.
+  registerCors(app, allowedOrigins);
 
   // Per-session, time-sensitive responses must not be heuristically cached by
   // the browser (tRPC queries are GETs); the static shell sets its own headers.
   registerApiNoStore(app);
 
   // Sync pushes can legitimately carry a few MB (bounded by SYNC_PUSH_MAX_ITEMS
-  // × ~100KB per item). This MUST be mounted BEFORE the global parser: Express
-  // runs middleware in order, so a global 256kb parser would consume the stream
-  // and 413 the request before the path-scoped parser is ever reached.
-  app.use("/api/trpc/sync.push", express.json({ limit: "10mb" }));
-
+  // × ~100KB per item); registerBodyParsers mounts that limit for the exact
+  // sync.push procedure only, before the small default parser.
   // Small default for every other route. A global 50mb limit let a handful of
   // concurrent unauthenticated POSTs to /api/auth/* inflate memory before any
   // rate limit (which runs inside the handler, after the body is buffered).
-  app.use(express.json({ limit: "256kb" }));
-  app.use(express.urlencoded({ limit: "256kb", extended: true }));
+  registerBodyParsers(app);
 
   registerStorageProxy(app);
   registerOAuthRoutes(app);

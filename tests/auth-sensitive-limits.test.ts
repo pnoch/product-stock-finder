@@ -34,6 +34,7 @@ vi.mock("bcryptjs", () => ({
 }));
 
 import { registerOAuthRoutes } from "../server/_core/oauth";
+import { sdk } from "../server/_core/sdk";
 
 type Handler = (req: any, res: any) => Promise<void>;
 
@@ -88,6 +89,21 @@ describe("auth sensitive-route limits", () => {
       lastCode = res.statusCode;
     }
     expect(lastCode).toBe(429);
+  });
+
+  it("clamps an oversized x-device-id before it becomes a session claim", async () => {
+    const handler = routeHandler("/api/auth/login");
+    const { req, res } = reqRes("12.0.0.9", {
+      email: "someone@example.com",
+      password: "x",
+    });
+    req.headers = { "x-device-id": "d".repeat(5000) };
+    await handler(req, res);
+    const arg = vi.mocked(sdk.login).mock.calls[0]?.[0] as
+      | { deviceId?: string }
+      | undefined;
+    // Unbounded, the claim overflowed the varchar(128) device columns later.
+    expect(arg?.deviceId?.length).toBe(128);
   });
 
   it("throttles change-password brute force per IP", async () => {

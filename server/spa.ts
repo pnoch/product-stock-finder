@@ -152,7 +152,12 @@ export function registerSpa(app: Express, webDist = resolveWebDist()): boolean {
       next();
       return;
     }
-    if (req.path.startsWith("/api/") || req.path.startsWith("/storage/")) {
+    if (
+      req.path === "/api" ||
+      req.path.startsWith("/api/") ||
+      req.path === "/storage" ||
+      req.path.startsWith("/storage/")
+    ) {
       res.status(404).json({ error: "Not found" });
       return;
     }

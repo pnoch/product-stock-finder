@@ -6,6 +6,7 @@ import { randomUUID, randomBytes, createHash, createHmac } from "crypto";
 import bcrypt from "bcryptjs";
 import * as db from "../db";
 import { isDeviceRevoked, revokeAllDevicesForUser, unrevokeDevice } from "../devices";
+import { checkRateLimitByKey } from "../rate-limit";
 import { sendEmail } from "../email";
 import { HttpError } from "../../shared/_core/errors.js";
 
@@ -189,32 +190,24 @@ async function sendPasswordResetEmail(email: string, token: string): Promise<voi
       `<p>If you did not request this, you can ignore this email.</p>`,
   });
 }
-const authBuckets = new Map<string, number[]>();
 const AUTH_RATE_LIMIT = 10;
 const AUTH_RATE_WINDOW = 60_000;
 
 function checkAuthRateLimit(key: string): boolean {
   // Key is usually the client IP; pass a scoped key (e.g. `forgot:<email>`)
-  // for per-target buckets. An attacker rotating source addresses still
-  // hits the per-target budget.
-  const now = Date.now();
-  const windowStart = now - AUTH_RATE_WINDOW;
-  const timestamps = authBuckets.get(key) ?? [];
-  const recent = timestamps.filter((t) => t > windowStart);
-  if (recent.length >= AUTH_RATE_LIMIT) {
-    authBuckets.set(key, recent);
+  // for per-target buckets. An attacker rotating source addresses still hits
+  // the per-target budget.
+  //
+  // Delegates to the shared limiter so the bucket map is capped (MAX_BUCKETS +
+  // LRU). The previous local map was unbounded under a burst of unique keys
+  // (an attacker-supplied email on /forgot) and its prune scanned the whole map
+  // per request once it grew, amplifying the attack.
+  try {
+    checkRateLimitByKey(`auth:${key}`, AUTH_RATE_LIMIT, AUTH_RATE_WINDOW);
+    return true;
+  } catch {
     return false;
   }
-  recent.push(now);
-  authBuckets.set(key, recent);
-  // prune stale buckets to bound memory
-  if (authBuckets.size > 500) {
-    for (const [k, v] of authBuckets.entries()) {
-      if (v.length === 0 || v.every((t) => t <= windowStart)) authBuckets.delete(k);
-      if (authBuckets.size <= 300) break;
-    }
-  }
-  return true;
 }
 
 function getClientIp(req: Request): string {
@@ -229,9 +222,17 @@ function hashToken(token: string): string {
   return createHash("sha256").update(token, "utf8").digest("hex");
 }
 
+// Bounded here (not only on the request path) because the value is embedded in
+// the session JWT claim, which every later request trusts as `ctx.deviceId` —
+// an unbounded claim then overflows the varchar(128) device columns.
+const MAX_DEVICE_ID_LENGTH = 128;
+
 function deviceIdFromReq(req: Request): string | null {
   const raw = req.headers["x-device-id"];
-  return typeof raw === "string" && raw ? raw : null;
+  if (typeof raw !== "string" || !raw) return null;
+  return raw.length > MAX_DEVICE_ID_LENGTH
+    ? raw.slice(0, MAX_DEVICE_ID_LENGTH)
+    : raw;
 }
 
 // Revoked devices must not reach account mutations even though they present
@@ -530,6 +531,8 @@ export function registerOAuthRoutes(app: Express) {
       const { payload } = await jwtVerify(tokenData.id_token, jwks, {
         issuer: "https://appleid.apple.com",
         audience: config.clientId,
+        // Defense in depth: only Apple's RS256 key may sign this.
+        algorithms: ["RS256"],
       });
       const sub = payload.sub;
       const email = payload.email;

@@ -120,7 +120,9 @@ describe("spa http behavior", () => {
   });
 
   it("404s unmatched API and storage paths instead of serving the shell", async () => {
-    for (const path of ["/api/does-not-exist", "/storage/foo/bar"]) {
+    // The bare paths matter too: `/api` and `/storage` do not match a
+    // startsWith("/api/"), so they used to fall through to the HTML shell (200).
+    for (const path of ["/api", "/storage", "/api/does-not-exist", "/storage/foo/bar"]) {
       const res = await fetch(`${base}${path}`);
       expect(res.status).toBe(404);
       expect(await res.json()).toEqual({ error: "Not found" });
