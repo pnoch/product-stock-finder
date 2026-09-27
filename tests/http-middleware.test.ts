@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
 import express from "express";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { AddressInfo } from "node:net";
-import { registerBodyParsers, registerCors } from "../server/http-middleware";
+import {
+  registerBodyParsers,
+  registerCors,
+  resolveTrustProxy,
+} from "../server/http-middleware";
 
 let close: (() => void) | null = null;
 afterEach(() => {
@@ -85,5 +91,30 @@ describe("registerBodyParsers", () => {
       body: bigBody,
     });
     expect(other.status).toBe(413);
+  });
+});
+
+describe("resolveTrustProxy", () => {
+  it("defaults to one trusted hop and parses TRUST_PROXY overrides", () => {
+    // Undefined/empty keeps the current deployment assumption.
+    expect(resolveTrustProxy(undefined)).toBe(1);
+    expect(resolveTrustProxy("  ")).toBe(1);
+    // Direct exposure must not believe a client-sent X-Forwarded-For.
+    expect(resolveTrustProxy("false")).toBe(false);
+    expect(resolveTrustProxy("0")).toBe(false);
+    expect(resolveTrustProxy("true")).toBe(true);
+    expect(resolveTrustProxy("2")).toBe(2);
+    // A CIDR/IP list is passed through so only known proxies are trusted.
+    expect(resolveTrustProxy("10.0.0.0/8, 192.168.0.1")).toBe(
+      "10.0.0.0/8, 192.168.0.1",
+    );
+  });
+
+  it("is actually used by the server entry", () => {
+    const src = readFileSync(
+      join(__dirname, "..", "server", "_core", "index.ts"),
+      "utf8",
+    );
+    expect(src).toContain("resolveTrustProxy(process.env.TRUST_PROXY)");
   });
 });

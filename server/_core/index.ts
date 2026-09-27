@@ -8,7 +8,11 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { registerApiNoStore } from "../api-cache";
-import { registerBodyParsers, registerCors } from "../http-middleware";
+import {
+  registerBodyParsers,
+  registerCors,
+  resolveTrustProxy,
+} from "../http-middleware";
 import { registerSpa, registerWellKnown } from "../spa";
 import { startWarmer } from "../prices";
 import { closeDb } from "../db";
@@ -36,9 +40,10 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  // Trust first proxy (gateway/LB) so req.protocol/ip and
-  // X-Forwarded-* are honored for Secure cookies + rate-limit IP.
-  app.set("trust proxy", 1);
+  // Trust proxy setting drives req.protocol/ip and X-Forwarded-* (Secure
+  // cookies + rate-limit keys). Defaults to one hop; see resolveTrustProxy for
+  // the TRUST_PROXY overrides.
+  app.set("trust proxy", resolveTrustProxy(process.env.TRUST_PROXY));
 
   // Enable CORS for all routes - only allow known frontend origins to support credentials
   const allowedOrigins = new Set(

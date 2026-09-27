@@ -37,6 +37,31 @@ export function registerCors(app: Express, allowedOrigins: Set<string>): void {
 }
 
 /**
+ * Express's `trust proxy` value. Defaults to 1 (trust a single proxy hop), which
+ * is right behind one gateway/LB: `req.ip` and `X-Forwarded-Proto` then come
+ * from the hop the proxy added, so IP rate limits and the Secure-cookie decision
+ * cannot be spoofed by a client. If the app is ever exposed directly, or sits
+ * behind a longer chain, a hard-coded 1 is wrong in both directions — override
+ * with `TRUST_PROXY`:
+ *   - a number             → trust that many hops
+ *   - "false" / "0"        → trust nothing (direct connections: a client-sent
+ *                            X-Forwarded-For must not be believed)
+ *   - "true"               → trust everything (only when never directly reachable)
+ *   - IPs/CIDRs, comma-sep → trust exactly those proxies (the safest option)
+ */
+export function resolveTrustProxy(
+  raw: string | undefined,
+): boolean | number | string {
+  const value = (raw ?? "").trim();
+  if (!value) return 1;
+  const lower = value.toLowerCase();
+  if (lower === "false" || lower === "0") return false;
+  if (lower === "true") return true;
+  if (/^\d+$/.test(value)) return Number(value);
+  return value;
+}
+
+/**
  * Body parsers. The large limit is scoped to the sync.push procedure *exactly*:
  * `app.use(path, …)` is a prefix match, so mounting it on "/api/trpc/sync.push"
  * also granted unauthenticated 10 MB buffering to `/api/trpc/sync.pushX` — the

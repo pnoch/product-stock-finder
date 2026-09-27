@@ -4668,3 +4668,11 @@ Three parallel reviews of the auth routes, the session/middleware layer, and the
 - [x] Tests: the web callback rejects a request without the cookie (no session cookie set, `error=invalid_state`); `/start` sets the nonce cookie (so removing it would break every web login); the Apple flavor is `SameSite=None; Secure`. All three non-vacuous.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2501 passed` (26 skipped without a DB) / **`2527 passed`** with the DB; desktop `280 passed`; `cargo test` 67.
 - [ ] Still reported, not changed: registration reveals whether an email is taken (a test enshrines it — a product call); `trust proxy` is hard-coded to 1.
+
+## Phase 620: `trust proxy` is configurable instead of hard-coded
+
+- [x] **The gap.** `app.set("trust proxy", 1)` was hard-coded, so if the app is ever reached directly (no proxy) — or behind a longer chain (CDN + nginx) — `req.ip`/`req.protocol` become client- or intermediate-controlled: a client sending `X-Forwarded-For` rotates every rate-limit bucket at will, and `X-Forwarded-Proto` can influence the `Secure` cookie decision.
+- [x] **Fix.** New `resolveTrustProxy(raw)` in `server/http-middleware.ts`, wired as `app.set("trust proxy", resolveTrustProxy(process.env.TRUST_PROXY))`. Default stays 1 (one trusted hop — the current, correct-for-one-gateway assumption); `TRUST_PROXY` accepts a hop count, `false`/`0` (direct exposure — never believe a client header), `true`, or a comma-separated IP/CIDR list (the safest).
+- [x] Tests: each override parses as expected plus a source assertion that the entry actually uses the helper. Non-vacuous (making the resolver return a constant fails it).
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2503 passed` (26 skipped).
+- [ ] Still reported, not changed: registration reveals whether an email is taken (a product call — `tests/auth-error-leak.test.ts` enshrines it).
