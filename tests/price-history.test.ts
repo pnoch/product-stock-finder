@@ -115,4 +115,36 @@ describe("mergePriceHistory", () => {
       mergePriceHistory(server, undefined as unknown as PricePoint[]),
     ).toEqual(server);
   });
+
+  const NOW = "2026-08-11T12:00:00.000Z";
+
+  it("keeps the newer point for the same day (server copy is later)", () => {
+    // The sync path merges the server's history over the local one; a same-day
+    // pair must resolve to the later instant, not the first seen.
+    const local = [point("2026-08-11T08:00:00.000Z", 100)];
+    const server = [point("2026-08-11T20:00:00.000Z", 108)];
+    const merged = mergePriceHistory(local, server, 365, NOW);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].price).toBe(108);
+    expect(merged[0].date).toBe("2026-08-11T20:00:00.000Z");
+  });
+
+  it("keeps the newer point for the same day (local copy is later)", () => {
+    const local = [point("2026-08-11T20:00:00.000Z", 108)];
+    const server = [point("2026-08-11T08:00:00.000Z", 100)];
+    const merged = mergePriceHistory(local, server, 365, NOW);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].price).toBe(108);
+  });
+
+  it("drops invalid dates and prunes points outside the window", () => {
+    const invalid = { date: "not-a-date", price: 1, currency: "USD", stockStatus: "in_stock" } as PricePoint;
+    const merged = mergePriceHistory(
+      [point("2026-08-11T08:00:00.000Z", 100), invalid],
+      [point("2026-01-01T00:00:00.000Z", 50)],
+      30,
+      NOW,
+    );
+    expect(merged.map((p) => p.date)).toEqual(["2026-08-11T08:00:00.000Z"]);
+  });
 });

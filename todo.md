@@ -4577,3 +4577,14 @@ Four parallel reviews of the route screens and shared components (the largest su
 - [x] Guards: `tests/screen-fixes-source-guards.test.ts` (9, each reverted-fix-failing — spot-checked 3 mutations) plus the strengthened alert-ordering assertions in `tests/mobile-criticals.test.ts`.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2455 passed` (24 skipped); desktop `277 passed`; `cargo test` 67.
 - [ ] Reported, not changed: the Alerts tab count excludes snoozed/disabled alerts that still render as cards; region *filter* uses "any listing in region" while region *group/sort* uses the first listing's region (semantics call).
+
+## Phase 610: Guard-quality (mutation) pass — sampled the pre-existing suite
+
+Method: for a sample of critical helpers, apply a semantic mutation that a good
+guard should catch, run that module's tests, and report whether the suite fails
+(caught) or stays green (a false-confidence gap). Every mutation was restored.
+
+- [x] **Caught (guards discriminate):** quiet-hours window inversion (`isInQuietHours`); `isAlertActive` snooze branch removed; `convertPrice` multiply/divide swapped; `getTaxRate` own-property lookup replaced with `true`; `dedupKeyForHealth` `kind` dropped (caught by `tests/round10-guards.test.ts` — the bounds file alone does not cover it); `isDeviceRevoked`'s legacy-NULL global block dropped; resilient breaker error-threshold disabled; `syncNow` LWW comparison inverted. All produced failures in their existing tests.
+- [x] **Rejected as not-a-gap:** disabling `modelMismatch`'s nearest-row gate left the parser suite green, but that is correct — the walk-up fallback behind it also rejects a page-level model match, so the behaviour is still guarded (defence in depth).
+- [x] **Real gap found and closed:** `mergePriceHistory` (the merge used by `lib/sync.ts` to fold server history into local listings) had its own same-day last-write-wins logic but only a missing-array test — inverting its comparison (`p.date > existing.date` → `<`) left the whole suite green. Added three cases (server-later, local-later, invalid-date/window pruning) in `tests/price-history.test.ts`; each fails under the inverted comparison.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2458 passed`; desktop `277 passed`.
