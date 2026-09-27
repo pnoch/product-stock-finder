@@ -19,7 +19,7 @@ import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { BulkImportModal } from "@/components/search/bulk-import-modal";
 import { ManualAddSheet } from "@/components/search/manual-add-sheet";
 import { useColors } from "@/hooks/use-colors";
-import { searchCatalog, getAllCatalog, PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCatalogByPrice } from "@shared/catalog";
+import { searchCatalog, PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCatalogByPrice } from "@shared/catalog";
 import { PREVIEW_LIMIT, sortPreviewByStock } from "@/lib/search-preview";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
 import { RecentSearches } from "@/components/search/recent-searches";
@@ -31,7 +31,11 @@ import {
 } from "@/lib/recent-searches";
 import { SearchEmptyState } from "@/components/search/search-empty-state";
 import { CatalogProductCard } from "@/components/search/catalog-product-card";
-import { addToWatchlist, updateProductListings } from "@/lib/storage";
+import {
+  addToWatchlist,
+  getDiscoveredProducts,
+  updateProductListings,
+} from "@/lib/storage";
 import { rediscoverProduct } from "@/lib/manual-add";
 import { discoverListings } from "@/lib/listing-discovery";
 import { Product } from "@/lib/types";
@@ -183,8 +187,28 @@ export default function SearchScreen() {
           router.push(`/product/${result.product.id}`);
           return;
         }
+        // The AI product has no listings either, and without this it opened with
+        // zero distributor rows and no price (the catalog-add path discovers
+        // before navigating; the empty-listing backfill is best-effort and was
+        // itself starved).
+        let discovered = 0;
+        try {
+          ({ discovered } = await rediscoverProduct({
+            storage: { updateProductListings },
+            discover: discoverListings,
+            productId: result.product.id,
+            modelNumber: result.product.modelNumber,
+          }));
+        } catch (e) {
+          console.warn("[Search] AI listing discovery failed", e);
+        }
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showToast(`Added ${result.product.name} to watchlist`, "success");
+        showToast(
+          discovered > 0
+            ? `Added ${result.product.name} — prices at ${discovered} distributor${discovered === 1 ? "" : "s"}`
+            : `Added ${result.product.name} — no prices yet`,
+          "success",
+        );
         router.push(`/product/${result.product.id}`);
       } else {
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -218,27 +242,30 @@ export default function SearchScreen() {
     (typeof PRODUCT_CATALOG)[0][]
   >([]);
 
-  const refreshDiscovered = useCallback(async () => {
-    const all = await getAllCatalog();
+  // getAllCatalog() returns the static catalog only, so filtering it by its own
+  // ids always produced []: AI-discovered products were persisted by
+  // discoverProduct but never shown on mobile (desktop reads its store).
+  const collectDiscovered = useCallback(async () => {
     const staticIds = new Set(PRODUCT_CATALOG.map((p) => p.id));
-    let discovered = all.filter((p) => !staticIds.has(p.id));
-    if (discovered.length > 50) discovered = discovered.slice(-50);
-    setDiscoveredProducts(discovered);
+    const all = [...PRODUCT_CATALOG, ...(await getDiscoveredProducts())];
+    const discovered = all.filter((p) => !staticIds.has(p.id));
+    return discovered.length > 50 ? discovered.slice(-50) : discovered;
   }, []);
+
+  const refreshDiscovered = useCallback(async () => {
+    setDiscoveredProducts(await collectDiscovered());
+  }, [collectDiscovered]);
 
   useEffect(() => {
     let active = true;
-    void getAllCatalog().then((all) => {
+    void collectDiscovered().then((discovered) => {
       if (!active) return;
-      const staticIds = new Set(PRODUCT_CATALOG.map((p) => p.id));
-      let discovered = all.filter((p) => !staticIds.has(p.id));
-      if (discovered.length > 50) discovered = discovered.slice(-50);
       setDiscoveredProducts(discovered);
     });
     return () => {
       active = false;
     };
-  }, []);
+  }, [collectDiscovered]);
 
   const handleManualAdded = useCallback(() => {
     loadData();

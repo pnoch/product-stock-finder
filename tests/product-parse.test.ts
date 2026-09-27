@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { parseProductText } from "../server/product-parse";
+import { isBlockedUrl, parseProductText, readCapped } from "../server/product-parse";
 
 function llmReturning(content: string | null) {
   return vi.fn().mockResolvedValue({
@@ -74,5 +74,81 @@ describe("parseProductText", () => {
     expect(result.brand.length).toBe(100);
     expect(result.category.length).toBe(100);
     expect(result.description.length).toBe(1000);
+  });
+});
+
+describe("URL scrape hardening", () => {
+  function streamBody(chunks: string[]): ReadableStream<Uint8Array> {
+    const encoder = new TextEncoder();
+    let i = 0;
+    return new ReadableStream({
+      pull(controller) {
+        if (i >= chunks.length) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(encoder.encode(chunks[i++]!));
+      },
+    });
+  }
+
+  it("stops reading a response far past the size cap", async () => {
+    // The reader is what stops a huge/endless body from being buffered and
+    // exhausting the process (res.text() would read all of it first).
+    const chunks = Array.from({ length: 40 }, () => "x".repeat(100_000));
+    let pulls = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (pulls >= chunks.length) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(new TextEncoder().encode(chunks[pulls++]!));
+      },
+    });
+    const result = await readCapped(
+      { body } as unknown as Response,
+      1_000_000,
+    );
+    expect(result).toBeNull();
+    expect(pulls).toBeGreaterThan(0);
+    expect(pulls).toBeLessThan(chunks.length);
+  });
+
+  it("caps the free scrape branch with its own process-wide budget", async () => {
+    const budget = await import("../server/spend-budget");
+    const spy = vi.spyOn(budget, "tryConsumeBudget");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        body: streamBody(["<html><head><title>Router</title></head><body>ok</body></html>"]),
+      }),
+    );
+    try {
+      await parseProductText("http://93.184.216.34/routers");
+      expect(spy).toHaveBeenCalledWith("products.parseUrl");
+    } finally {
+      vi.unstubAllGlobals();
+      spy.mockRestore();
+    }
+  });
+});
+
+describe("IPv6 embedded IPv4 addresses", () => {
+  it("blocks the NAT64 and 6to4 forms that encode a private IPv4", () => {
+    // NAT64 64:ff9b::/96 and 6to4 2002::/16 route to the embedded IPv4 on hosts
+    // with that support, and the literal skipped the DNS re-check entirely.
+    for (const url of [
+      "http://[64:ff9b::a9fe:a9fe]/", // 169.254.169.254 (cloud metadata)
+      "http://[64:ff9b::7f00:1]/", // 127.0.0.1
+      "http://[2002:7f00:1::]/", // 6to4 -> 127.0.0.1
+      "http://[2002:a9fe:a9fe::]/", // 6to4 -> 169.254.169.254
+    ]) {
+      expect(isBlockedUrl(url), url).toBe(true);
+    }
+    // A public embedded address is still allowed.
+    expect(isBlockedUrl("http://[64:ff9b::5db8:d822]/")).toBe(false);
   });
 });

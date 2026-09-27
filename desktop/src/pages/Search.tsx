@@ -199,7 +199,13 @@ export function Search() {
       const results = await Promise.allSettled(
         bulkNew.map((it) => storage.addToWatchlist({ ...it, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] })),
       );
-      const added = bulkNew.filter((_, i) => results[i].status === "fulfilled");
+      // Only writes that landed: addToWatchlist resolves false for a
+      // duplicate, which the fulfilled-status check used to count as an import.
+      const added = bulkNew.filter(
+        (_, i) =>
+          results[i]!.status === "fulfilled" &&
+          (results[i] as PromiseFulfilledResult<boolean>).value === true,
+      );
       setTrackedIds((prev) => new Set([...prev, ...added.map((p) => p.id)]));
       setBulkText(""); setBulkOpen(false);
       const failed = bulkNew.length - added.length;

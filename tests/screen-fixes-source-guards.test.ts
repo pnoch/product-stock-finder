@@ -77,6 +77,38 @@ describe("screen-level fixes", () => {
     expect(read("components/notification-center.tsx")).toContain("loadGen");
   });
 
+  it("mobile search reads discovered products from the store, not the static catalog", () => {
+    const src = read("app/search.tsx");
+    // getAllCatalog() is static-only, so filtering it by its own ids always
+    // produced [] — discovered products were stored but never listed on mobile.
+    expect(src).toContain("getDiscoveredProducts()");
+    expect(src).toContain("PRODUCT_CATALOG, ...(await getDiscoveredProducts())");
+  });
+
+  it("AI discovery also discovers listings, like the catalog-add path", () => {
+    const src = read("app/search.tsx");
+    const start = src.indexOf("const handleDiscover");
+    const block = src.slice(start, src.indexOf("const handleAdd", start));
+    // Without this the product opened with no distributor rows and no price.
+    expect(block).toContain("rediscoverProduct({");
+  });
+
+  it("bulk-import summaries count only writes that landed", () => {
+    // addToWatchlist RESOLVES false for a duplicate, so a fulfilled-status check
+    // alone over-reported the import.
+    expect(read("components/search/bulk-import-modal.tsx")).toContain(
+      'r.status === "fulfilled" && r.value === true',
+    );
+    for (const file of [
+      "desktop/src/pages/Search.tsx",
+      "desktop/src/components/SearchModal.tsx",
+    ]) {
+      const src = read(file);
+      expect(src, file).toContain("PromiseFulfilledResult<boolean>");
+      expect(src, file).toContain(".value === true");
+    }
+  });
+
   it("AI discovery reports an already-tracked product instead of claiming success", () => {
     const src = read("app/search.tsx");
     const start = src.indexOf("const handleDiscover");

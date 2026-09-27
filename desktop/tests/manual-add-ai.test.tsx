@@ -85,7 +85,8 @@ beforeEach(() => {
   mockStorage.getWatchlist.mockResolvedValue([]);
   mockStorage.getSettings.mockResolvedValue({ displayCurrency: "USD" });
   mockStorage.getDiscoveredProducts.mockResolvedValue([]);
-  mockStorage.addToWatchlist.mockResolvedValue(undefined);
+  // The real API resolves true on a successful (non-duplicate) add.
+  mockStorage.addToWatchlist.mockResolvedValue(true);
   mockStorage.updateProductListings.mockResolvedValue(undefined);
   mockDiscoverProduct.mockResolvedValue(null);
   mockDiscoverListings.mockResolvedValue([]);

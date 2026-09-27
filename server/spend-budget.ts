@@ -36,6 +36,9 @@ export const BUDGETS = {
   // Server-funded llm.test calls drive the host's own Ollama (a user-keyed
   // provider consumes the owner's quota instead, so it skips the budget).
   "llm.test": { name: "llm.test", limit: envLimit("llm.test", 120), windowMs: 60 * 60 * 1000 },
+  // The URL-scrape branch of products.parse is unauthenticated and unbillable,
+  // so it needs a global ceiling of its own.
+  "products.parseUrl": { name: "products.parseUrl", limit: envLimit("products.parseUrl", 600), windowMs: 60 * 60 * 1000 },
 } as const satisfies Record<string, BudgetSpec>;
 
 export type BudgetName = keyof typeof BUDGETS;

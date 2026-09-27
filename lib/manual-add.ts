@@ -41,12 +41,16 @@ export async function manualAddProduct(deps: {
 }): Promise<ManualAddResult> {
   const { storage, trackedIds, discover, input, onProgress, timeoutMs = DISCOVER_TIMEOUT_MS } = deps;
   if (trackedIds.has(input.id)) return { status: "duplicate" };
-  await storage.addToWatchlist({
+  const added = await storage.addToWatchlist({
     ...input,
     isWatched: true,
     addedAt: new Date().toISOString(),
     listings: [],
   });
+  // `trackedIds` can be stale (a sync landing between the check and the write)
+  // and storage dedupes — do NOT run discovery then, or the existing product's
+  // listings and history get replaced with a fresh single-point array.
+  if (!added) return { status: "duplicate" };
   let listings: DistributorListing[];
   let timedOut = false;
   try {
@@ -69,6 +73,21 @@ export async function manualAddProduct(deps: {
 /** Products discovered per price-check run (each is a search across every distributor). */
 export const MISSING_LISTINGS_PER_RUN = 2;
 
+/**
+ * How long before a product that still has no listings is retried. The
+ * watchlist is newest-first, so without this the same first N products were
+ * re-scraped across every distributor on every launch while later products
+ * (and the whole bulk-import backlog) were never reached.
+ */
+export const MISSING_LISTINGS_RETRY_MS = 6 * 60 * 60 * 1000;
+
+// Per-process attempt record (each launch/sweep runs in one process).
+const lastListingAttemptAt = new Map<string, number>();
+
+export function clearListingAttemptsForTests(): void {
+  lastListingAttemptAt.clear();
+}
+
 export interface MissingListingsStorage extends RediscoverStorage {
   getWatchlist(): Promise<
     { id: string; modelNumber: string; listings?: DistributorListing[] }[]
@@ -87,13 +106,26 @@ export async function rediscoverMissingListings(deps: {
   storage: MissingListingsStorage;
   discover: DiscoverFn;
   limit?: number;
+  now?: number;
 }): Promise<{ scanned: number; discovered: number }> {
-  const { storage, discover, limit = MISSING_LISTINGS_PER_RUN } = deps;
+  const {
+    storage,
+    discover,
+    limit = MISSING_LISTINGS_PER_RUN,
+    now = Date.now(),
+  } = deps;
   const watchlist = await storage.getWatchlist();
   const missing = watchlist.filter(
-    (product) => !!product.modelNumber && (product.listings?.length ?? 0) === 0,
+    (product) =>
+      !!product.modelNumber &&
+      (product.listings?.length ?? 0) === 0 &&
+      // Rotate: a product attempted recently is skipped so permanently
+      // unfindable ones cannot occupy every run's slots.
+      now - (lastListingAttemptAt.get(product.id) ?? 0) >=
+        MISSING_LISTINGS_RETRY_MS,
   );
   const batch = missing.slice(0, Math.max(0, limit));
+  for (const product of batch) lastListingAttemptAt.set(product.id, now);
   let discovered = 0;
   for (const product of batch) {
     try {

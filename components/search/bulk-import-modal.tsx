@@ -53,6 +53,13 @@ export function BulkImportModal({
           }),
         ),
       );
+      // `addToWatchlist` RESOLVES false for an already-tracked product, so a
+      // rejected-status check alone reported more imports than actually landed.
+      // Count only fulfilled writes whose value is true.
+      const addedCount = results.filter(
+        (r) => r.status === "fulfilled" && r.value === true,
+      ).length;
+      const failedCount = results.length - addedCount;
       for (let i = 0; i < results.length; i++) {
         if (results[i].status === "rejected") {
           console.warn("[BulkImport] Skipping", newProducts[i].modelNumber, (results[i] as PromiseRejectedResult).reason);
@@ -66,7 +73,9 @@ export function BulkImportModal({
           : "";
       showAlert(
         "Import Complete",
-        `${newProducts.length} added · ${alreadyTracked} already tracked.${unmatchedNote}`,
+        `${addedCount} added · ${alreadyTracked} already tracked${
+          failedCount > 0 ? ` · ${failedCount} failed` : ""
+        }.${unmatchedNote}`,
       );
       setText("");
       onImported?.();

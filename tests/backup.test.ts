@@ -132,6 +132,85 @@ describe("parseBackup validation", () => {
   });
 });
 
+describe("applyBackup watchlist listing merge", () => {
+  const listing = (
+    distributorId: string,
+    price: number,
+    lastChecked: string,
+  ) => ({
+    distributorId,
+    productId: "p1",
+    price,
+    currency: "USD",
+    stockStatus: "in_stock" as const,
+    url: `https://example.com/${distributorId}`,
+    lastChecked,
+    priceHistory: [],
+  });
+
+  it("keeps the newer local price instead of resurrecting the backup's stale one", () => {
+    const local = product("p1");
+    local.listings = [listing("d1", 480, "2026-08-26T00:00:00.000Z")];
+    const backupProduct = product("p1");
+    backupProduct.listings = [listing("d1", 500, "2026-08-20T00:00:00.000Z")];
+
+    const result = applyBackup(
+      {
+        version: 1,
+        exportedAt: NOW,
+        watchlist: [backupProduct],
+        alerts: [],
+        reminders: [],
+        stockWatches: [],
+      } as never,
+      {
+        watchlist: [local],
+        alerts: [],
+        reminders: [],
+        stockWatches: [],
+        settings: undefined,
+      } as never,
+    );
+
+    const merged = result.watchlist.find((p) => p.id === "p1")!;
+    // A wholesale replace used to erase the fresher price and push it everywhere.
+    expect(merged.listings[0]!.price).toBe(480);
+    expect(merged.listings[0]!.lastChecked).toBe("2026-08-26T00:00:00.000Z");
+  });
+
+  it("takes the backup's newer price and keeps a device-only listing", () => {
+    const local = product("p1");
+    local.listings = [listing("d-only", 100, "2026-08-20T00:00:00.000Z")];
+    const backupProduct = product("p1");
+    backupProduct.listings = [listing("d1", 400, "2026-08-26T00:00:00.000Z")];
+
+    const result = applyBackup(
+      {
+        version: 1,
+        exportedAt: NOW,
+        watchlist: [backupProduct],
+        alerts: [],
+        reminders: [],
+        stockWatches: [],
+      } as never,
+      {
+        watchlist: [local],
+        alerts: [],
+        reminders: [],
+        stockWatches: [],
+        settings: undefined,
+      } as never,
+    );
+
+    const merged = result.watchlist.find((p) => p.id === "p1")!;
+    expect(merged.listings.map((l) => l.distributorId).sort()).toEqual([
+      "d-only",
+      "d1",
+    ]);
+    expect(merged.listings.find((l) => l.distributorId === "d1")!.price).toBe(400);
+  });
+});
+
 describe("applyBackup merge-by-id", () => {
   it("adds new, updates existing, preserves device-only items", () => {
     const backup = parseBackup(

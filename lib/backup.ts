@@ -1,6 +1,7 @@
 import type {
   AppSettings,
   BackOrderReminder,
+  DistributorListing,
   PriceAlert,
   Product,
 } from "./types";
@@ -152,6 +153,50 @@ function mergeById<T extends { id: string }>(
   return { merged: [...map.values()], added, updated, touched };
 }
 
+// The watchlist is merged per listing (like the sync engine) rather than
+// wholesale: a backup file can be days old, and replacing a product with it
+// erased the prices/status/history the device had recorded since — then stamped
+// the regression dirty and pushed it to every other device.
+function mergeProductListings(local: Product, incoming: Product): Product {
+  const byId = new Map<string, DistributorListing>();
+  for (const listing of incoming.listings ?? []) {
+    byId.set(listing.distributorId, listing);
+  }
+  for (const listing of local.listings ?? []) {
+    const fromBackup = byId.get(listing.distributorId);
+    // Keep whichever check is newer; a listing only the device has is kept too.
+    if (
+      !fromBackup ||
+      (listing.lastChecked ?? "") >= (fromBackup.lastChecked ?? "")
+    ) {
+      byId.set(listing.distributorId, listing);
+    }
+  }
+  return { ...incoming, listings: [...byId.values()] };
+}
+
+function mergeWatchlist(
+  current: Product[],
+  incoming: Product[],
+): MergeOutcome<Product> {
+  const map = new Map<string, Product>(current.map((p) => [p.id, p]));
+  let added = 0;
+  let updated = 0;
+  const touched: string[] = [];
+  for (const item of incoming) {
+    const local = map.get(item.id);
+    if (local) {
+      updated += 1;
+      map.set(item.id, mergeProductListings(local, item));
+    } else {
+      added += 1;
+      map.set(item.id, item);
+    }
+    touched.push(item.id);
+  }
+  return { merged: [...map.values()], added, updated, touched };
+}
+
 function mergeSettings(current: AppSettings, incoming: AppSettings): AppSettings {
   const merged = { ...current } as Record<string, unknown>;
   const incomingRecord = incoming as unknown as Record<string, unknown>;
@@ -180,7 +225,7 @@ export function applyBackup(
   backup: BackupData,
   current: BackupInput,
 ): ApplyResult {
-  const watchlist = mergeById(current.watchlist, backup.watchlist);
+  const watchlist = mergeWatchlist(current.watchlist, backup.watchlist);
   const alerts = mergeById(current.alerts, backup.alerts);
   const reminders = mergeById(current.reminders, backup.reminders);
   const stockWatches = mergeById(current.stockWatches, backup.stockWatches);

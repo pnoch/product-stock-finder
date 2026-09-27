@@ -72,7 +72,24 @@ function isPrivateHostname(hostname: string): boolean {
     if ((a & 0xffc0) === 0xfe80) return true;
     // Multicast (ff00::/8) and unspecified.
     if ((a & 0xff00) === 0xff00) return true;
-    void b; void c; void d; void e;
+    // NAT64 well-known prefix 64:ff9b::/96 — the low 32 bits are an IPv4
+    // address that a NAT64/DNS64 host routes to (e.g. ::a9fe:a9fe is
+    // 169.254.169.254).
+    if (a === 0x64 && b === 0xff9b && c === 0 && d === 0 && e === 0) {
+      // The embedded IPv4 is the low 32 bits (g:h), e.g. ::a9fe:a9fe.
+      const embedded = `${g >> 8}.${g & 0xff}.${h >> 8}.${h & 0xff}`;
+      if (isPrivateHostname(embedded)) return true;
+    }
+    // 6to4 (2002::/16) and Teredo (2001::/32) also embed an IPv4 address.
+    if (a === 0x2002) {
+      const embedded = `${b >> 8}.${b & 0xff}.${c >> 8}.${c & 0xff}`;
+      if (isPrivateHostname(embedded)) return true;
+    }
+    if (a === 0x2001 && b === 0) {
+      // Teredo's client IPv4 is the last 32 bits, obfuscated with 0xff.
+      const embedded = `${(g ^ 0xffff) >> 8}.${(g ^ 0xffff) & 0xff}.${(h ^ 0xffff) >> 8}.${(h ^ 0xffff) & 0xff}`;
+      if (isPrivateHostname(embedded)) return true;
+    }
   }
   return false;
 }
@@ -88,6 +105,30 @@ export function isBlockedUrl(raw: string): boolean {
   if (url.username || url.password) return true;
   if (isPrivateHostname(url.hostname)) return true;
   return false;
+}
+
+/** Reads a response body as text, stopping (and rejecting) past `maxChars`. */
+export async function readCapped(res: Response, maxChars: number): Promise<string | null> {
+  const body = res.body;
+  if (!body) {
+    // A response without a stream (a constructed Response or a test double):
+    // fall back to text(), still enforcing the cap. Real fetches always stream.
+    const text = await res.text();
+    return text.length > maxChars ? null : text;
+  }
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let out = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    out += decoder.decode(value, { stream: true });
+    if (out.length > maxChars) {
+      await reader.cancel().catch(() => {});
+      return null;
+    }
+  }
+  return out + decoder.decode();
 }
 
 function parseFromHtml(html: string, url: string): ParsedProduct | null {
@@ -157,6 +198,10 @@ async function tryParseUrl(raw: string): Promise<ParsedProduct | null> {
   const url = raw.trim();
   if (!/^https?:\/\/\S+/i.test(url)) return null;
   if (isBlockedUrl(url)) return null;
+  // The scrape branch is free to the caller but costs this process's bandwidth
+  // and sockets, so it shares a process-wide cap (rate limits are per-IP and a
+  // rotating caller bypasses them).
+  if (!tryConsumeBudget("products.parseUrl")) return null;
   try {
     const hostname = new URL(url).hostname;
     if (await resolvesToPrivate(hostname)) return null;
@@ -179,8 +224,11 @@ async function tryParseUrl(raw: string): Promise<ParsedProduct | null> {
         },
       });
       if (!res.ok) return null;
-      const html = await res.text();
-      if (!html || html.length < 200 || html.length > 1_000_000) return null;
+      // Stream with a hard cap: `res.text()` buffered the whole body before the
+      // length check, so an attacker could exhaust the process with one huge
+      // (or endless) response well inside the abort window.
+      const html = await readCapped(res, 1_000_000);
+      if (!html || html.length < 200) return null;
       return parseFromHtml(html, url);
     } finally {
       clearTimeout(timeout);
@@ -216,7 +264,8 @@ export async function parseProductText(
 ): Promise<ParsedProduct | null> {
   const urlResult = await tryParseUrl(raw);
   if (urlResult) return urlResult;
-  // Only the LLM path is billable; the deterministic URL scrape above is free.
+  // Only the LLM path is billable; the deterministic URL scrape above is capped
+  // by its own budget.
   if (!tryConsumeBudget("products.parse")) return null;
   try {
     const result = await invoke({

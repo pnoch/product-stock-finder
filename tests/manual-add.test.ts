@@ -1,8 +1,9 @@
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import {
   manualAddProduct,
   rediscoverProduct,
   rediscoverMissingListings,
+  clearListingAttemptsForTests,
   DISCOVER_TIMEOUT_MS,
   MISSING_LISTINGS_PER_RUN,
 } from "../lib/manual-add";
@@ -11,7 +12,8 @@ import type { DistributorListing } from "../lib/types";
 function deps(overrides = {}) {
   return {
     storage: {
-      addToWatchlist: vi.fn(async () => {}),
+      // The real API resolves true on a successful (non-duplicate) add.
+      addToWatchlist: vi.fn(async () => true),
       updateProductListings: vi.fn(async () => {}),
     },
     trackedIds: new Set<string>(),
@@ -95,6 +97,45 @@ describe("rediscoverProduct", () => {
 });
 
 describe("rediscoverMissingListings", () => {
+  beforeEach(() => {
+    // The attempt record is per-process; reset so tests are independent.
+    clearListingAttemptsForTests();
+  });
+
+  it("rotates past a product that keeps finding nothing", async () => {
+    const watch = async () => [
+      { id: "miss-1", modelNumber: "A", listings: [] },
+      { id: "miss-2", modelNumber: "B", listings: [] },
+    ];
+    const discover = vi.fn(async () => []); // nothing found anywhere
+    const run = (now: number) =>
+      rediscoverMissingListings({
+        storage: {
+          getWatchlist: watch,
+          updateProductListings: vi.fn(async () => {}),
+        } as never,
+        discover,
+        limit: 1,
+        now,
+      });
+
+    // Realistic timestamps: a never-attempted product must pass the freshness
+    // check (a tiny epoch value would look "too recent").
+    const t0 = Date.now();
+    expect((await run(t0)).scanned).toBe(1);
+    // A product attempted recently is skipped, so the next one is reached
+    // instead of the same first product being re-scraped forever.
+    expect((await run(t0 + 60_000)).scanned).toBe(1);
+    const attempted = discover.mock.calls.map(
+      (call) =>
+        ((call as unknown[])[1] as { productId?: string } | undefined)
+          ?.productId,
+    );
+    expect(new Set(attempted).size).toBe(2);
+    // Within the cooldown nothing is retried at all.
+    expect((await run(t0 + 120_000)).scanned).toBe(0);
+  });
+
   it("discovers only products without listings, up to the limit", async () => {
     const discover = vi.fn(async () => [
       { distributorId: "d1" } as unknown as DistributorListing,
