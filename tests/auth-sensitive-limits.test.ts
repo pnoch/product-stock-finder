@@ -74,6 +74,22 @@ describe("auth sensitive-route limits", () => {
     vi.clearAllMocks();
   });
 
+  it("throttles login per account, not only per source IP", async () => {
+    const handler = routeHandler("/api/auth/login");
+    let lastCode = 0;
+    for (let i = 0; i < 11; i++) {
+      // Distinct IPs: the per-IP bucket never trips, so only the per-account
+      // bucket can stop a distributed credential spray.
+      const { req, res } = reqRes(`10.1.0.${i}`, {
+        email: "victim@example.com",
+        password: "guess",
+      });
+      await handler(req, res);
+      lastCode = res.statusCode;
+    }
+    expect(lastCode).toBe(429);
+  });
+
   it("throttles change-password brute force per IP", async () => {
     const handler = routeHandler("/api/auth/change-password");
     let lastCode = 0;

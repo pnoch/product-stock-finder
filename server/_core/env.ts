@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 export const ENV = {
   appId: process.env.VITE_APP_ID ?? "stock-finder",
   cookieSecret: (() => {
@@ -5,7 +6,11 @@ export const ENV = {
     if (secret) return secret;
     if (process.env.NODE_ENV === "production")
       throw new Error("JWT_SECRET must be set in production");
-    return "dev-secret-change-in-production";
+    // Ephemeral per process. A hard-coded fallback secret let anyone forge a
+    // session token for any instance started without JWT_SECRET — e.g. a built
+    // server run with no NODE_ENV. Sessions simply do not survive a restart in
+    // this mode.
+    return randomBytes(32).toString("hex");
   })(),
   databaseUrl: process.env.DATABASE_URL ?? "",
   isProduction: process.env.NODE_ENV === "production",

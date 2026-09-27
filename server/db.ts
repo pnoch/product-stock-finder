@@ -145,9 +145,26 @@ export async function linkUserOpenIdByEmail(
 ): Promise<void> {
   const db = await getDb();
   if (!db) return;
+  const rows = await db
+    .select({ passwordHash: users.passwordHash })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+  const hadPassword = Boolean(rows[0]?.passwordHash);
   await db
     .update(users)
-    .set({ openId, lastSignedIn: new Date() } as never)
+    .set({
+      openId,
+      lastSignedIn: new Date(),
+      // A verified provider identity proves control of the mailbox, so it may
+      // take the account — but the password already on the row must die with
+      // it. Leaving it meant whoever set it (an attacker who pre-registered the
+      // address) kept a parallel login on the victim's account (pre-hijack).
+      // The epoch bump also invalidates any session minted with that password.
+      ...(hadPassword
+        ? { passwordHash: null, credentialsChangedAt: Date.now() }
+        : {}),
+    } as never)
     .where(eq(users.email, email));
 }
 

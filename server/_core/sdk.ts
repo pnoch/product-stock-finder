@@ -88,6 +88,9 @@ class SDKServer {
     const normalizedEmail = req.email.trim().toLowerCase();
     const user = await db.getUserByEmail(normalizedEmail);
     if (!user || !user.passwordHash) {
+      // Hash anyway: returning immediately made an unknown email measurably
+      // faster than a wrong password, a second account-existence oracle.
+      await bcrypt.compare(req.password, dummyPasswordHash());
       throw ForbiddenError("Invalid email or password");
     }
 
@@ -266,5 +269,14 @@ class SDKServer {
 export type AuthenticatedUser = User & {
   sessionDeviceId?: string | null;
 };
+
+// Lazily built once so the dummy comparison costs the same as a real one.
+let cachedDummyHash: string | null = null;
+function dummyPasswordHash(): string {
+  if (!cachedDummyHash) {
+    cachedDummyHash = bcrypt.hashSync("not-a-real-password", 10);
+  }
+  return cachedDummyHash;
+}
 
 export const sdk = new SDKServer();

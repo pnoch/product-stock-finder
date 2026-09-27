@@ -10,6 +10,8 @@ vi.mock("../server/_core/sdk", () => ({
 }));
 
 vi.mock("../server/db", () => ({
+  // unrevokeDevice (called on a successful OAuth sign-in) needs getDb.
+  getDb: vi.fn(async () => null),
   getUserByOpenId: vi.fn(async () => ({
     id: 1,
     openId: "open-1",

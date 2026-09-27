@@ -2,7 +2,7 @@ import { COOKIE_NAME, SESSION_MS } from "../../shared/const.js";
 import type { Express, Request, Response } from "express";
 import { sdk } from "./sdk";
 import { getSessionCookieOptions } from "./cookies";
-import { randomUUID, createHash, createHmac } from "crypto";
+import { randomUUID, randomBytes, createHash, createHmac } from "crypto";
 import bcrypt from "bcryptjs";
 import * as db from "../db";
 import { isDeviceRevoked, revokeAllDevicesForUser, unrevokeDevice } from "../devices";
@@ -37,12 +37,20 @@ export interface OAuthStatePayload {
 
 const usedStateNonces = new Map<string, number>();
 
-function stateSecret(): string {
+// Computed exactly once: a per-call secret could never verify its own
+// signature. Ephemeral per process, so local dev keeps working, but the key is
+// never the publicly-known constant, so nobody can forge a state or session
+// token against an instance started without JWT_SECRET.
+const STATE_SECRET = (() => {
   const secret = process.env.JWT_SECRET;
   if (secret) return secret;
   if (process.env.NODE_ENV === "production")
     throw new Error("JWT_SECRET must be set in production");
-  return "dev-secret-change-in-production";
+  return randomBytes(32).toString("hex");
+})();
+
+function stateSecret(): string {
+  return STATE_SECRET;
 }
 
 function pruneExpiring<K>(map: Map<K, number>, now: number) {
@@ -311,6 +319,13 @@ export function registerOAuthRoutes(app: Express) {
       const { email, password } = req.body;
       if (!email || !password) {
         res.status(400).json({ error: "email and password are required" });
+        return;
+      }
+      // Per-account bucket as well as per-IP: a distributed spray rotates IPs
+      // and every source stays under the per-IP limit, so the account itself
+      // must be throttled (forgot/change-password already do this).
+      if (!checkAuthRateLimit(`login:acct:${String(email).trim().toLowerCase()}`)) {
+        res.status(429).json({ error: "Too many requests. Try again shortly." });
         return;
       }
 
@@ -611,6 +626,12 @@ export function registerOAuthRoutes(app: Express) {
         errorRedirect(res, "provisioning_failed");
         return;
       }
+      // Signing in proves the current credentials, so lift the user's wildcard
+      // revocation (exactly as /api/auth/login does). Without this a fresh
+      // OAuth session was still rejected after a password change — the web
+      // callback is device-less, and /api/auth/me sends no device header, so the
+      // app appeared signed out while tRPC kept working.
+      await unrevokeDevice(user.id, state.deviceId ?? "*");
       const sessionToken = await sdk.createSessionToken(openId, {
         name: profile.name,
         deviceId: state.deviceId,
@@ -669,6 +690,10 @@ export function registerOAuthRoutes(app: Express) {
         res.status(400).json({ error: "Invalid or expired ticket" });
         return;
       }
+      await unrevokeDevice(
+        user.id,
+        typeof deviceId === "string" ? deviceId : "*",
+      );
       const sessionToken = await sdk.createSessionToken(redeemed.openId, {
         name: user.name ?? "",
         deviceId: typeof deviceId === "string" ? deviceId : undefined,

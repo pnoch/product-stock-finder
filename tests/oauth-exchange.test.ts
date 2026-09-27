@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../server/db", () => ({
+  // The OAuth callback/consume now lift the user's wildcard revocation via
+  // unrevokeDevice, which needs getDb (null -> the in-memory branch).
+  getDb: vi.fn(async () => null),
   getUserByEmail: vi.fn(),
   getUserByOpenId: vi.fn(),
   upsertUser: vi.fn(),
