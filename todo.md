@@ -4588,3 +4588,12 @@ guard should catch, run that module's tests, and report whether the suite fails
 - [x] **Rejected as not-a-gap:** disabling `modelMismatch`'s nearest-row gate left the parser suite green, but that is correct — the walk-up fallback behind it also rejects a page-level model match, so the behaviour is still guarded (defence in depth).
 - [x] **Real gap found and closed:** `mergePriceHistory` (the merge used by `lib/sync.ts` to fold server history into local listings) had its own same-day last-write-wins logic but only a missing-array test — inverting its comparison (`p.date > existing.date` → `<`) left the whole suite green. Added three cases (server-later, local-later, invalid-date/window pruning) in `tests/price-history.test.ts`; each fails under the inverted comparison.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2458 passed`; desktop `277 passed`.
+
+## Phase 611: Guard-quality (mutation) pass — second batch
+
+Same method as Phase 610: semantic mutation per module, then its tests.
+
+- [x] **Caught (guards discriminate):** `findBestDeal`/`findBestInStockListing` in-stock + positive-price gates dropped; `suggestAlertPrices` out-of-stock history filter dropped (`ignores out-of-stock history for near_low`); `tryConsumeBudget` never rejecting and its rolling window never expiring (both variants); `checkRestocks`'s `prevStatus !== "in_stock"` transition gate weakened; `DELIVERY_GRACE_MS` zeroed (dedup released early / blocked forever). Every mutation failed its module's tests.
+- [x] **No new gaps:** all sampled areas were already protected; no production or test change was needed.
+- [x] Tree unchanged from Phase 610 (`tsc 0`, lint 0 errors / 157 warnings, `2458 passed`; desktop `277 passed`).
+- [x] **Cumulative sample: 14 areas, 1 real gap** (the `mergePriceHistory` same-day LWW, closed in Phase 610). Note the recurring nuance: a guard may live in a *different* file than the one you'd guess (`dedupKeyForHealth`'s `kind` separation is asserted in `round10-guards.test.ts`, not `dedup-key-bounds.test.ts`), so a green run of one file is not evidence of coverage.
