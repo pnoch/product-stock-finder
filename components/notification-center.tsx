@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Platform,
@@ -25,6 +25,7 @@ import {
   getUnreadNotificationCount,
   markAllNotificationsRead,
   markNotificationRead,
+  subscribeToStorageChanges,
 } from "@/lib/storage";
 import type { NotificationHistoryEntry } from "@/lib/types";
 import { SkeletonList } from "@/components/ui/skeleton";
@@ -77,19 +78,25 @@ export function NotificationCenter({
     });
   }, [onUnreadChange]);
 
+  const loadGen = useRef(0);
+
   const load = useCallback(async () => {
+    // Generation guard: a focus load and a pull-to-refresh load can overlap, and
+    // the older one resolving last would overwrite the newer list/unread count.
+    const gen = ++loadGen.current;
     try {
       const [list, unread] = await Promise.all([
         getNotificationHistory(),
         getUnreadNotificationCount(),
       ]);
+      if (gen !== loadGen.current) return;
       setHistory(list);
       applyUnread(unread);
     } catch {
       // A storage failure must still clear the skeleton, or the tab hangs
       // forever with no error and no way to recover.
     } finally {
-      setLoading(false);
+      if (gen === loadGen.current) setLoading(false);
     }
   }, [applyUnread]);
 
@@ -98,6 +105,10 @@ export function NotificationCenter({
       load();
     }, [load]),
   );
+
+  // Local mutations (a notification marked read, an alert reconciled) must
+  // refresh the visible center, not just the tab badge.
+  useEffect(() => subscribeToStorageChanges(() => { void load(); }), [load]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

@@ -83,7 +83,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             duration: 200,
             useNativeDriver: true,
           }),
-        ]).start(() => setToast((prev) => ({ ...prev, visible: false })));
+        ]).start(({ finished }) => {
+          // Only hide when the exit completed: starting a new toast during the
+          // exit stops this animation (finished === false), and an
+          // unconditional hide then swallowed the new toast.
+          if (finished) setToast((prev) => ({ ...prev, visible: false }));
+        });
       }, 3000);
     },
     [opacity, translateY],

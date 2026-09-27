@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -19,6 +19,7 @@ import {
   rearmAlert,
   getUnreadNotificationCount,
   getSettings,
+  subscribeToStorageChanges,
 } from "@/lib/storage";
 import { PriceAlert, Product, BackOrderReminder } from "@/lib/types";
 import { computeTotalSaved } from "@/lib/alert-savings";
@@ -83,6 +84,10 @@ export function useAlertsData() {
       loadData();
     }, [loadData]),
   );
+
+  // Local mutations elsewhere (a price check firing, a server notification being
+  // reconciled) must refresh the visible list, not just the tab badge.
+  useEffect(() => subscribeToStorageChanges(() => { void loadData(); }), [loadData]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

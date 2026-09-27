@@ -121,12 +121,19 @@ export class RouteErrorBoundary extends React.Component<
   static getDerivedStateFromError(error: Error) {
     const msg = error.message ?? "";
     let truncated: string;
-    if (typeof Intl !== "undefined" && (Intl as unknown as { Segmenter?: unknown }).Segmenter) {
-      const segmenter = new (Intl as unknown as { Segmenter: new (opts: unknown, opts2: unknown) => { segment: (s: string) => Iterable<{ segment: string }> } }).Segmenter(undefined, { granularity: "grapheme" });
-      const graphemes = [...segmenter.segment(msg)].map((s) => s.segment);
-      truncated = graphemes.slice(0, 160).join("");
-    } else {
-      truncated = Array.from(msg).slice(0, 160).join("");
+    // getDerivedStateFromError must never throw: if it does the boundary itself
+    // crashes and the route shows a blank screen instead of the fallback (the
+    // sibling AppErrorBoundary already guards this).
+    try {
+      if (typeof Intl !== "undefined" && (Intl as unknown as { Segmenter?: unknown }).Segmenter) {
+        const segmenter = new (Intl as unknown as { Segmenter: new (opts: unknown, opts2: unknown) => { segment: (s: string) => Iterable<{ segment: string }> } }).Segmenter(undefined, { granularity: "grapheme" });
+        const graphemes = [...segmenter.segment(msg)].map((s) => s.segment);
+        truncated = graphemes.slice(0, 160).join("");
+      } else {
+        truncated = Array.from(msg).slice(0, 160).join("");
+      }
+    } catch {
+      truncated = Array.from(String(msg)).slice(0, 160).join("");
     }
     return { hasError: true, message: truncated };
   }

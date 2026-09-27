@@ -99,6 +99,11 @@ export default function CompareScreen() {
   }, []);
 
   const selectionInitialized = useRef<string | null>(null);
+  // Latching on any manual/param-driven selection stops the one-time seed below
+  // from re-seeding the top-3 after the user clears every distributor.
+  const latchSelection = useCallback(() => {
+    selectionInitialized.current = `${id ?? ""}-${displayCurrency}`;
+  }, [id, displayCurrency]);
   useEffect(() => {
     const key = `${id ?? ""}-${displayCurrency}`;
     if (!loaded || !id || selectionInitialized.current === key) return;
@@ -132,9 +137,10 @@ export default function CompareScreen() {
     if (!distributorParam) return;
     if (listings.some((l) => l.distributorId === distributorParam)) {
       lastAppliedDistributor.current = distributorParam;
+      latchSelection();
       setSelected(new Set([distributorParam]));
     }
-  }, [distributorParam, loaded, listings, id]);
+  }, [distributorParam, loaded, listings, id, latchSelection]);
 
   const toggleSelect = useCallback((distributorId: string) => {
     if (Platform.OS !== "web")
@@ -187,31 +193,33 @@ export default function CompareScreen() {
       showAlert("Unable to compare prices", "Currency conversion unavailable. Try switching display currency.");
       return;
     }
-    const targetPrice = parseFloat((bestPrice * 0.95).toFixed(2));
-    const granted = await ensureNotificationPermission();
-    if (!granted) {
-      showAlert(
-        "Permission Denied",
-        Platform.OS === "web"
-          ? "Please allow notifications in your browser to receive price alerts."
-          : "Please enable notifications in your device settings to receive price alerts.",
-      );
-      return;
-    }
     if (!id) return;
-    const alert: PriceAlert = {
-      id: `cross-${id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      productId: id,
-      // sentinel: watch any distributor (cross-distributor alert) rather than single best only
-      // per-distributor alternative would loop inStock and create one alert per distributorId
-      distributorId: undefined,
-      targetPrice,
-      currency: displayCurrency,
-      createdAt: new Date().toISOString(),
-      isActive: true,
-    };
+    const targetPrice = parseFloat((bestPrice * 0.95).toFixed(2));
+    // Claim the guard before the await (see product detail): the permission
+    // round-trip is async, so a double-tap could create two alerts.
     setCreatingAlert(true);
     try {
+      const granted = await ensureNotificationPermission();
+      if (!granted) {
+        showAlert(
+          "Permission Denied",
+          Platform.OS === "web"
+            ? "Please allow notifications in your browser to receive price alerts."
+            : "Please enable notifications in your device settings to receive price alerts.",
+        );
+        return;
+      }
+      const alert: PriceAlert = {
+        id: `cross-${id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        productId: id,
+        // sentinel: watch any distributor (cross-distributor alert) rather than single best only
+        // per-distributor alternative would loop inStock and create one alert per distributorId
+        distributorId: undefined,
+        targetPrice,
+        currency: displayCurrency,
+        createdAt: new Date().toISOString(),
+        isActive: true,
+      };
       await addAlert(alert);
       await schedulePriceAlert(productName || "Product", targetPrice, displayCurrency, id);
     } catch (e) {

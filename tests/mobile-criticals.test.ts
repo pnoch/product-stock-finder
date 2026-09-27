@@ -515,6 +515,11 @@ describe("product detail alert creation guards against double-submit", () => {
       expect(block).toContain("creatingAlert");
       expect(block).toContain("setCreatingAlert(true)");
       expect(block).toContain("setCreatingAlert(false)");
+      // The flag must be claimed before the async permission round-trip: set
+      // after it, a double-tap during the await still created two alerts.
+      expect(block.indexOf("setCreatingAlert(true)")).toBeLessThan(
+        block.indexOf("await ensureNotificationPermission"),
+      );
     }
   });
 });
@@ -530,6 +535,10 @@ describe("compare cross-alert guards against double-submit", () => {
     expect(block).toContain("if (creatingAlert) return;");
     expect(block).toContain("setCreatingAlert(true)");
     expect(block).toContain("setCreatingAlert(false)");
+    // Same ordering requirement as the product-detail handlers.
+    expect(block.indexOf("setCreatingAlert(true)")).toBeLessThan(
+      block.indexOf("await ensureNotificationPermission"),
+    );
   });
 });
 

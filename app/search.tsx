@@ -169,7 +169,7 @@ export default function SearchScreen() {
         // detail screen reads the watchlist, so without this the toast claimed
         // "Added to watchlist" and then showed "Product not found" (desktop
         // already adds explicitly).
-        await addToWatchlist({
+        const added = await addToWatchlist({
           ...result.product,
           addedAt: new Date().toISOString(),
           isWatched: true,
@@ -177,6 +177,12 @@ export default function SearchScreen() {
           tags: [],
         });
         loadData();
+        if (!added) {
+          // Already tracked: storage deduped, so don't claim it was added.
+          showAlert("Already tracked", `"${result.product.name}" is already in your watchlist.`);
+          router.push(`/product/${result.product.id}`);
+          return;
+        }
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showToast(`Added ${result.product.name} to watchlist`, "success");
         router.push(`/product/${result.product.id}`);

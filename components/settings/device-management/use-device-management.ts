@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { showAlert } from "@/lib/alert";
@@ -24,14 +24,20 @@ export function useDeviceManagement({
     userId: number | null;
   } | null>(null);
   const [devicesLoading, setDevicesLoading] = useState(true);
+  const [devicesRefreshing, setDevicesRefreshing] = useState(false);
   const [bindingAction, setBindingAction] = useState(false);
   const [renameTarget, setRenameTarget] = useState<DeviceInfo | null>(null);
   const [renameLabel, setRenameLabel] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
+  const devicesInitializedRef = useRef(false);
+
   const loadDevices = useCallback(async () => {
-    setDevicesLoading(true);
+    // Only the first load blanks the section; a rename/sign-out refresh replaced
+    // the whole list with a spinner until the network returned.
+    if (devicesInitializedRef.current) setDevicesRefreshing(true);
+    else setDevicesLoading(true);
     try {
       const [deviceList, binding, deviceId] = await Promise.all([
         fetchDevices(),
@@ -42,7 +48,9 @@ export function useDeviceManagement({
       setCurrentBinding(binding);
       setCurrentDeviceId(deviceId);
     } finally {
+      devicesInitializedRef.current = true;
       setDevicesLoading(false);
+      setDevicesRefreshing(false);
     }
   }, []);
 
@@ -141,6 +149,7 @@ export function useDeviceManagement({
     currentDeviceId,
     currentBinding,
     devicesLoading,
+    devicesRefreshing,
     bindingAction,
     loadDevices,
     handleBindCurrentDevice,

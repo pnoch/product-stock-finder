@@ -4559,3 +4559,21 @@ Three parallel reviews of the desktop client (the one surface this session had n
   The renderer now mirrors the watchlist through `merge_watchlist` and writes the merged array back into localStorage so both stores agree. Other mirrored keys still use the plain setter.
 - [x] Tests: 3 Rust merge cases (poller price wins + disk-only listing survives + UI tags kept, no resurrection of a removed product, an incoming-only listing kept; non-vacuous) and 3 desktop cases (watchlist uses `merge_watchlist`, other keys unchanged, merged result written back to localStorage; non-vacuous).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2446 passed`; desktop `277 passed`; `cargo test` 67, `cargo clippy` unchanged (4).
+
+## Phase 609: Screen/component audit (effects, guards, races)
+
+Four parallel reviews of the route screens and shared components (the largest surface not yet covered). Fixes:
+
+- [x] **Duplicate alerts on a double-tap.** In `handleSetBestAlert`/`handleSetAlert` (product detail) and `handleCrossAlert` (compare) the `creatingAlert` flag was set *after* `await ensureNotificationPermission()`, so a second tap during the permission round-trip created a second alert + notification. The guard is now claimed before the await (finally clears it), and the existing source guards assert the ordering.
+- [x] **Trending tag picker cleared the user's checks mid-edit.** The picker passed an inline product object, so its reset effect fired on every parent render (a `useToast` context update or a `useQuery` flip). The sheet now resyncs only when the product id changes (and on reopen).
+- [x] **AI discovery claimed success for an already-tracked product.** `handleDiscover` ignored `addToWatchlist`'s `false`; it now reports "Already tracked" (matching `handleAdd`).
+- [x] **A new toast could be swallowed.** The exit callback hid the toast unconditionally; starting a new toast during the 200 ms exit stops that animation (`finished === false`) and the stale hide dropped it. It now checks `finished`.
+- [x] **`RouteErrorBoundary.getDerivedStateFromError` could itself throw** (unguarded `Intl.Segmenter`), crashing the boundary instead of rendering the fallback; guarded like the sibling `AppErrorBoundary`.
+- [x] **`useLiveProduct` could persist the previous product's listings under the new id** on a same-instance id change (loaded never reset). `loaded` is now cleared at the start of each seed load.
+- [x] **Compare re-seeded the chart after the user cleared it.** The one-time selection seed latched only when history was already present, so a deep-link-param selection cleared to empty later re-triggered the top-3 seed. Manual/param selections now latch.
+- [x] **A failed settings write reverted unrelated changes.** `updateSetting` restored the whole render-time snapshot on failure, undoing a second change that had already committed; it now re-reads the store (falling back to reverting just the key).
+- [x] **The device list blanked on every rename/sign-out** (loading flag reset per refresh); it now spins only on first load (new `devicesRefreshing`).
+- [x] **The Alerts list and Notification Center never observed storage changes**, so a price check firing / a server event reconciling updated the badge but left the visible list stale. Both now subscribe (as the badge does); the Notification Center load also gained a generation guard against overlapping loads.
+- [x] Guards: `tests/screen-fixes-source-guards.test.ts` (9, each reverted-fix-failing — spot-checked 3 mutations) plus the strengthened alert-ordering assertions in `tests/mobile-criticals.test.ts`.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2455 passed` (24 skipped); desktop `277 passed`; `cargo test` 67.
+- [ ] Reported, not changed: the Alerts tab count excludes snoozed/disabled alerts that still render as cards; region *filter* uses "any listing in region" while region *group/sort* uses the first listing's region (semantics call).

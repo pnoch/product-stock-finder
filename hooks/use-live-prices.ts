@@ -27,6 +27,9 @@ export function useLiveProduct(productId: string) {
     if (gen !== generationRef.current) return;
     const found = watchlist.find((p) => p.id === productId);
     const sample = SAMPLE_LISTINGS[productId] ?? [];
+    // Reset first: the persist effect must not write the previous product's
+    // listings under the new id while this load is still in flight.
+    setLoaded(false);
     let seed: DistributorListing[];
     if (found) {
       const base = found.listings ?? [];

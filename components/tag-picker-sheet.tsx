@@ -49,8 +49,15 @@ export function TagPickerSheet({
   const sheetAnim = useRef(new Animated.Value(0)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
+  const syncedProductIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!visible || !product) return;
+    // Only re-sync when a different product is shown. Callers that build the
+    // product object inline (e.g. the trending picker) hand over a new identity
+    // on every parent render, which used to clear the user's checks mid-edit.
+    if (syncedProductIdRef.current === product.id) return;
+    syncedProductIdRef.current = product.id;
     setLoadFailed(false);
     void getTagDefinitions()
       .then(setDefs)
@@ -61,6 +68,11 @@ export function TagPickerSheet({
     setNewTagName("");
     setError(null);
   }, [visible, product]);
+
+  // A later open must resync (the product may have gained tags meanwhile).
+  useEffect(() => {
+    if (!visible) syncedProductIdRef.current = null;
+  }, [visible]);
 
   useEffect(() => {
     if (visible) {

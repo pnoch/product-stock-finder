@@ -541,7 +541,14 @@ export default function SettingsScreen() {
         setSettings(updated);
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {
-        setSettings(previous);
+        // Revert from the store, not the render-time snapshot: assigning
+        // `previous` undid a second change that had already committed while this
+        // write was in flight.
+        try {
+          setSettings(await getSettings());
+        } catch {
+          setSettings((prev) => ({ ...prev, [key]: previous[key] }));
+        }
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showAlert("Failed to save", "Could not save setting. Please try again.");
         return;

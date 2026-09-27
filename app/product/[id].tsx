@@ -163,14 +163,18 @@ export default function ProductDetailScreen() {
 
   const handleSetBestAlert = useCallback(async (listing: DistributorListing, targetPrice: number) => {
     if (!id || creatingAlert) return;
-    const granted = await ensureNotificationPermission();
-    if (!granted) {
-      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showAlert("Permission Denied", Platform.OS === "web" ? "Please allow notifications in your browser to receive price alerts." : "Please enable notifications in your device settings to receive price alerts.");
-      return;
-    }
+    // Claim the guard before the await: ensureNotificationPermission resolves
+    // asynchronously, so a double-tap could start two alert creations (the flag
+    // used to be set only after the permission round-trip). The finally below
+    // clears it on every path.
     setCreatingAlert(true);
     try {
+      const granted = await ensureNotificationPermission();
+      if (!granted) {
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        showAlert("Permission Denied", Platform.OS === "web" ? "Please allow notifications in your browser to receive price alerts." : "Please enable notifications in your device settings to receive price alerts.");
+        return;
+      }
       await schedulePriceAlert(product?.name ?? "Product", targetPrice, listing.currency, id);
       const alert: PriceAlert = {
         id: `alert-${id}-${listing.distributorId}-${Date.now()}`,
@@ -209,14 +213,14 @@ export default function ProductDetailScreen() {
       showAlert("Invalid Price", "Please enter a valid target price.");
       return;
     }
-    const granted = await ensureNotificationPermission();
-    if (!granted) {
-      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showAlert("Permission Denied", Platform.OS === "web" ? "Please allow notifications in your browser to receive price alerts." : "Please enable notifications in your device settings to receive price alerts.");
-      return;
-    }
     setCreatingAlert(true);
     try {
+      const granted = await ensureNotificationPermission();
+      if (!granted) {
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        showAlert("Permission Denied", Platform.OS === "web" ? "Please allow notifications in your browser to receive price alerts." : "Please enable notifications in your device settings to receive price alerts.");
+        return;
+      }
       await schedulePriceAlert(product?.name ?? "Product", price, alertCurrency, id);
       const newAlert: PriceAlert = {
         id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
