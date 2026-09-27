@@ -248,8 +248,20 @@ export async function deleteAccount(): Promise<void> {
  * without a re-login. Notifies subscribers like the other auth mutations.
  */
 export async function refreshCurrentUser(): Promise<void> {
-  if (!getSessionToken()) return;
-  const remote = await fetchCurrentUser(getApiBaseUrl());
+  const token = getSessionToken();
+  if (!token) return;
+  // The desktop session is a Bearer token: the device-bound ticket flow means
+  // no session cookie is set, and a cross-site cookie would not be sent anyway,
+  // so /api/auth/me 401s without this header and the banner never clears.
+  const remote = await fetchCurrentUser(getApiBaseUrl(), (input, init) =>
+    fetch(input, {
+      ...init,
+      headers: {
+        ...((init?.headers as Record<string, string> | undefined) ?? {}),
+        Authorization: `Bearer ${token}`,
+      },
+    }),
+  );
   if (!remote) return;
   setUserInfo(mapUser(remote));
   notify();

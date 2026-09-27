@@ -190,6 +190,8 @@ async function runSyncDesktopNotifications(): Promise<void> {
         distributorId: e.distributorId,
         distributorName: e.distributorName,
         status: e.status,
+        // Separates an alert from its recovery in the server's dedup key.
+        kind: e.kind,
         title: e.title,
         body: e.body,
         createdAt: e.createdAt,
@@ -221,6 +223,12 @@ async function runSyncDesktopNotifications(): Promise<void> {
     const events = await pullEvents();
     const { sendDesktopNotification } = await import("./notifications");
     const displayedIds = new Set(await storage.getDisplayedEventIds());
+    // The client's own check may have fired and removed the watch already; the
+    // server still holds the uploaded config and sends its own restock event,
+    // which would double-notify (mirrors mobile).
+    const currentWatchIds = new Set(
+      (await storage.getStockWatches()).map((w) => w.id),
+    );
     for (const event of events) {
       try {
         // Both directions: a stale price_rise event for an inactive alert must
@@ -229,7 +237,11 @@ async function runSyncDesktopNotifications(): Promise<void> {
           (event.type === "price_drop" || event.type === "price_rise") &&
           event.alertId &&
           !activeAlertIds.has(event.alertId);
-        if (!stalePriceEvent && !displayedIds.has(event.id)) {
+        const staleRestock =
+          event.type === "restock" &&
+          Boolean(event.watchId) &&
+          !currentWatchIds.has(event.watchId!);
+        if (!stalePriceEvent && !staleRestock && !displayedIds.has(event.id)) {
           const route = resolveEventRoute(event, activeAlerts, stockWatches, dateReminders);
           // Only mark displayed when something was actually shown; otherwise the
           // event would be dropped forever even after permissions are granted.

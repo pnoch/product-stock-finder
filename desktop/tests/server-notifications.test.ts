@@ -115,6 +115,23 @@ describe("syncDesktopNotifications", () => {
     ]);
   });
 
+  it("suppresses a restock event for a watch the client already removed", async () => {
+    // The client's own restock check fired and removed the watch; the server's
+    // copy of the config still produces its own event, which would double-notify.
+    state.pulled = [
+      {
+        id: "e-stale",
+        type: "restock",
+        title: "Back in stock!",
+        body: "CRS804 is back!",
+        watchId: "w-gone",
+        createdAt: Date.now(),
+      },
+    ];
+    await syncDesktopNotifications();
+    expect(state.notifications).toEqual([]);
+  });
+
   it("routes restock and reminder events to their watched product", async () => {
     await storage.addStockWatch({
       id: "w1",

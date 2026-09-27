@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { createTRPCClient } from "../lib/trpc";
@@ -85,8 +85,15 @@ export function Health() {
   const [progress, setProgress] = useState(0);
   const [healthError, setHealthError] = useState<string | null>(null);
   const [stats, setStats] = useState<Record<string, HealthStats>>({});
+  // Synchronous in-flight guard: the two "Test All" buttons and Retry could all
+  // start a run before the `testing` state re-rendered.
+  const testingRef = useRef(false);
 
   const runTest = useCallback(async () => {
+    // A second trigger (empty-state button, Retry) would run a concurrent probe
+    // and duplicate the recorded samples.
+    if (testingRef.current) return;
+    testingRef.current = true;
     setTesting(true);
     setProgress(0);
     setHealthError(null);
@@ -130,6 +137,7 @@ export function Health() {
       setHealthError(error instanceof Error ? error.message : "Health check failed");
     } finally {
       if (unlisten) unlisten();
+      testingRef.current = false;
       setTesting(false);
     }
   }, []);

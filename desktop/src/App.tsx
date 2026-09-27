@@ -33,6 +33,7 @@ import { useAuth } from "./hooks/use-auth";
 import { trpc, createTRPCClient, trpcHeaders } from "./lib/trpc";
 import { setDiscoveryHeadersProvider } from "../../lib/llm-discovery";
 import { setupSync, registerSyncSetup, type SyncSetup } from "../../lib/sync";
+import { setupWebNotifications } from "../../lib/web-notifications";
 import { storage } from "./storage";
 import { syncDesktopNotifications } from "./server-notifications";
 import { runHealthProbeIfDue } from "./lib/health-probe";
@@ -303,6 +304,13 @@ export default function App() {
       window.removeEventListener("focus", onForeground);
       document.removeEventListener("visibilitychange", onVisibility);
     };
+  }, []);
+
+  // Register the service-worker push-dedup listener (mirrors mobile): without
+  // it the SW's `web-push-shown` message is ignored, so the 60s pull shows the
+  // same pushed event a second time.
+  useEffect(() => {
+    return setupWebNotifications();
   }, []);
 
   useEffect(() => {

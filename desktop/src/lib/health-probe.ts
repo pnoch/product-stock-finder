@@ -61,7 +61,18 @@ async function emitHealthEvent(
     healthStatus: kind === "recovery" ? "recovered" : status,
     createdAt,
   });
-  pending.push({ distributorId, distributorName: name, status, title, body, createdAt });
+  // Carry `kind`: the server's health dedup key separates an alert from its
+  // recovery, so without it a recovery collapses onto its alert and is dropped
+  // (mobile sends this since the Phase-240 dedup fix).
+  pending.push({
+    distributorId,
+    distributorName: name,
+    status,
+    kind,
+    title,
+    body,
+    createdAt,
+  });
 }
 
 export async function runHealthProbeIfDue(now = Date.now()): Promise<void> {

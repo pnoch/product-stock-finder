@@ -775,7 +775,12 @@ export function Settings() {
     setReenabling(true);
     try {
       const nowIso = new Date().toISOString();
-      const tasks = products
+      // updateProductListings replaces the whole listings array, so building it
+      // from the mount-time `products` snapshot reverted every price, status and
+      // history change the poller recorded since Settings opened. Read the
+      // current list instead (mobile does the same).
+      const fresh = await storage.getWatchlist();
+      const tasks = fresh
         .filter((p) => p.listings?.some((l) => l.distributorId === distributorId))
         .map((product) => {
           const updatedListings: DistributorListing[] = (product.listings ?? []).map((l) =>
@@ -793,8 +798,8 @@ export function Settings() {
         setItem: async (k: string, v: string) => localStorage.setItem(k, v),
       };
       await clearDistributorBreaker(distributorId, breakerAdapter).catch(() => {});
-      setProducts((prev) =>
-        prev.map((p) => ({
+      setProducts(
+        fresh.map((p) => ({
           ...p,
           listings: p.listings?.map((l) =>
             l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
@@ -807,7 +812,7 @@ export function Settings() {
     } finally {
       setReenabling(false);
     }
-  }, [products, reenabling]);
+  }, [reenabling]);
 
   const loadDevices = async () => {
     if (!isAuthenticated) return;

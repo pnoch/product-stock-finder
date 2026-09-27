@@ -249,12 +249,12 @@ export function Alerts() {
     if (!editingAlert) return [];
     const productId = editingAlert.productId;
     return (
-      watchlistProducts
-        .find((p) => p.id === productId)
-        ?.listings.map((l) => {
+      (watchlistProducts.find((p) => p.id === productId)?.listings ?? []).map(
+        (l) => {
           const d = getDistributorById(l.distributorId);
           return { id: l.distributorId, name: d?.name ?? l.distributorId, countryFlag: d?.countryFlag ?? "" };
-        }) ?? []
+        },
+      )
     );
   }, [editingAlert, watchlistProducts]);
   const handleSaveEdit = async () => {

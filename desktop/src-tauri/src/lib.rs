@@ -145,6 +145,28 @@ fn send_notification(
     show_notification(&app, &title, &body, sound, route.as_deref())
 }
 
+/// Poller interval in seconds. A renderer-supplied minute count can overflow the
+/// multiply (debug panic / release wrap to a near-zero interval that never fires
+/// again), so saturate and keep a one-minute floor.
+fn poller_interval_secs(interval_minutes: u64) -> u64 {
+    interval_minutes.saturating_mul(60).max(60)
+}
+
+/// Pairs each triggered alert with its notification result: only alerts whose
+/// notification was actually delivered may be deactivated, so a failed toast
+/// leaves the alert armed for a later retry.
+fn deactivate_after_notify(
+    results: &[bool],
+    triggered: &[(usize, f64)],
+) -> Vec<(usize, f64)> {
+    triggered
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| results.get(*i).copied().unwrap_or(false))
+        .map(|(_, (idx, price))| (*idx, *price))
+        .collect()
+}
+
 fn show_notification(
     app: &tauri::AppHandle,
     title: &str,
@@ -155,32 +177,32 @@ fn show_notification(
     #[cfg(target_os = "linux")]
     if let Some(route) = route {
         let app_handle = app.clone();
-        let title = title.to_owned();
-        let body = body.to_owned();
+        // show() returns once the toast is handed to the daemon (a fast D-Bus
+        // round trip), unlike wait_for_response which blocks on the user. Its
+        // Result must propagate: swallowing it made a failed toast look
+        // delivered, so the caller consumed the alert while the user saw
+        // nothing.
+        let mut n = notify_rust::Notification::new();
+        n.summary(title).body(body);
+        if sound {
+            n.sound_name("default");
+        }
+        let handle = n.show().map_err(|e| e.to_string())?;
         let route = route.to_owned();
-        // Blocking wait is acceptable: alerts are rare (price/health transitions),
-        // and Tokio's blocking pool (512 threads) cannot be exhausted by notification
-        // bursts. No timeout — a late click still deep-links correctly.
+        // Blocking wait for the click is acceptable in the background pool:
+        // alerts are rare and Tokio's blocking pool (512 threads) cannot be
+        // exhausted by notification bursts. No timeout — a late click still
+        // deep-links correctly.
         tauri::async_runtime::spawn_blocking(move || {
-            let mut n = notify_rust::Notification::new();
-            n.summary(&title).body(&body);
-            if sound {
-                n.sound_name("default");
-            }
-            match n.show() {
-                Ok(handle) => {
-                    let _ = handle.wait_for_response(|response: &notify_rust::NotificationResponse| {
-                        if response.is_default_action() {
-                            let _ =
-                                app_handle.emit("notification-activated", activation_payload(&route));
-                            if let Some(w) = app_handle.get_webview_window("main") {
-                                let _ = w.set_focus();
-                            }
-                        }
-                    });
+            let _ = handle.wait_for_response(|response: &notify_rust::NotificationResponse| {
+                if response.is_default_action() {
+                    let _ =
+                        app_handle.emit("notification-activated", activation_payload(&route));
+                    if let Some(w) = app_handle.get_webview_window("main") {
+                        let _ = w.set_focus();
+                    }
                 }
-                Err(e) => eprintln!("[notify] show failed: {e}"),
-            }
+            });
         });
         return Ok(());
     }
@@ -205,6 +227,16 @@ fn show_notification(
 }
 
 // ─── Import/Export ───────────────────────────────────────────────────────────
+
+/// Removes the device-local BYO-LLM API key from a settings object. Mirrors
+/// lib/settings-privacy.ts: the key must never leave the device, and a
+/// shareable export file (or an inbound import) must not carry it.
+fn strip_device_local_settings(mut settings: serde_json::Value) -> serde_json::Value {
+    if let Some(obj) = settings.as_object_mut() {
+        obj.remove("llmApiKey");
+    }
+    settings
+}
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct ExportData {
@@ -447,7 +479,13 @@ async fn export_watchlist(
     let watchlist = array_or_empty(read_json_file(&data_dir, "watchlist_products")?);
     let alerts = array_or_empty(read_json_file(&data_dir, "price_alerts")?);
     let reminders = array_or_empty(read_json_file(&data_dir, "back_order_reminders")?);
-    let settings = object_or_empty(read_json_file(&data_dir, "app_settings")?);
+    // The BYO-LLM API key is device-local and must never leave the device (see
+    // lib/settings-privacy.ts); without stripping it the shareable export file
+    // contained the user's provider key in plaintext.
+    let settings = strip_device_local_settings(object_or_empty(read_json_file(
+        &data_dir,
+        "app_settings",
+    )?));
     let stock_watches = array_or_empty(read_json_file(&data_dir, "back_in_stock_watches")?);
 
     let export = ExportData {
@@ -494,10 +532,14 @@ async fn import_watchlist(
 
             validate_import_schema(&import)?;
 
+            // An inbound file must not replace this device's own key either
+            // (mirrors applyLocalLlmKey): drop it before it reaches disk.
+            let import_settings = strip_device_local_settings(import.settings.clone());
+
             write_json_file(&data_dir, "watchlist_products", &import.watchlist)?;
             write_json_file(&data_dir, "price_alerts", &import.alerts)?;
             write_json_file(&data_dir, "back_order_reminders", &import.reminders)?;
-            write_json_file(&data_dir, "app_settings", &import.settings)?;
+            write_json_file(&data_dir, "app_settings", &import_settings)?;
             if !import.stock_watches.is_null() {
                 write_json_file(
                     &data_dir,
@@ -673,7 +715,9 @@ async fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64, api_ba
     tauri::async_runtime::spawn(async move {
         // Backfill is handled by the renderer (lib/history-sync.ts), which has
         // the session token; the Rust path is a no-op without one.
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(interval_minutes * 60));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(
+            poller_interval_secs(interval_minutes),
+        ));
         interval.tick().await;
         loop {
             // Exit if stopped, or if a newer poller generation has started.
@@ -837,25 +881,34 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
     }
 
     if !notifications.is_empty() {
+        let mut results = Vec::with_capacity(notifications.len());
         for (title, body, route) in &notifications {
-            let _ = show_notification(app, title, body, true, route.as_deref());
-        }
-        let _ = app.emit("price-drops-triggered", &events);
-
-        // Deactivate the triggered alerts in a single pass
-        let mut updated_alerts = alerts.clone();
-        for (idx, best_price) in &triggered {
-            if let Some(alert) = updated_alerts.get_mut(*idx) {
-                if let Some(obj) = alert.as_object_mut() {
-                    obj.insert("isActive".to_string(), serde_json::Value::Bool(false));
-                    obj.insert("triggeredAt".to_string(), serde_json::Value::String(current_iso_timestamp()));
-                    obj.insert("triggeredPrice".to_string(), serde_json::json!(best_price));
+            match show_notification(app, title, body, true, route.as_deref()) {
+                Ok(()) => results.push(true),
+                Err(e) => {
+                    // Leave the alert armed: consuming it here would drop the
+                    // notification permanently even though the user saw nothing.
+                    eprintln!("[alerts] notification failed; alert left armed: {e}");
+                    results.push(false);
                 }
             }
         }
-
-        let updated_val = serde_json::Value::Array(updated_alerts);
-        write_json_file(data_dir, "price_alerts", &updated_val)?;
+        let to_deactivate = deactivate_after_notify(&results, &triggered);
+        if !to_deactivate.is_empty() {
+            let mut updated_alerts = alerts.clone();
+            for (idx, best_price) in &to_deactivate {
+                if let Some(alert) = updated_alerts.get_mut(*idx) {
+                    if let Some(obj) = alert.as_object_mut() {
+                        obj.insert("isActive".to_string(), serde_json::Value::Bool(false));
+                        obj.insert("triggeredAt".to_string(), serde_json::Value::String(current_iso_timestamp()));
+                        obj.insert("triggeredPrice".to_string(), serde_json::json!(best_price));
+                    }
+                }
+            }
+            let _ = app.emit("price-drops-triggered", &events);
+            let updated_val = serde_json::Value::Array(updated_alerts);
+            write_json_file(data_dir, "price_alerts", &updated_val)?;
+        }
     }
 
     Ok(format!("Price check completed. {} alerts triggered.", triggered.len()))
@@ -1967,6 +2020,40 @@ mod tests {
         );
         let arr = serde_json::json!([1]);
         assert_eq!(array_or_empty(arr.clone()), arr);
+    }
+
+    #[test]
+    fn poller_interval_saturates_instead_of_overflowing() {
+        assert_eq!(poller_interval_secs(0), 60);
+        assert_eq!(poller_interval_secs(15), 900);
+        assert_eq!(poller_interval_secs(u64::MAX), u64::MAX);
+    }
+
+    #[test]
+    fn strip_device_local_settings_removes_the_llm_key() {
+        let settings = serde_json::json!({
+            "llmApiKey": "sk-secret",
+            "displayCurrency": "EUR"
+        });
+        let stripped = strip_device_local_settings(settings);
+        assert!(stripped.get("llmApiKey").is_none());
+        assert_eq!(stripped.get("displayCurrency").unwrap(), "EUR");
+        // Non-object input is passed through unchanged.
+        assert_eq!(
+            strip_device_local_settings(serde_json::Value::Null),
+            serde_json::Value::Null
+        );
+    }
+
+    #[test]
+    fn deactivate_after_notify_skips_failed_notifications() {
+        let triggered = vec![(0usize, 10.0f64), (2usize, 20.0f64)];
+        // First delivered, second failed: only the delivered alert is consumed.
+        assert_eq!(deactivate_after_notify(&[true, false], &triggered), vec![(0usize, 10.0f64)]);
+        // All delivered.
+        assert_eq!(deactivate_after_notify(&[true, true], &triggered), triggered);
+        // A missing result is treated as not delivered.
+        assert!(deactivate_after_notify(&[], &triggered).is_empty());
     }
 
     #[test]

@@ -98,7 +98,11 @@ describe("desktop auth malformed user", () => {
     await refreshCurrentUser();
     expect(fetchSpy).toHaveBeenCalledWith(
       "https://api.example.com/api/auth/me",
-      { credentials: "include" },
+      expect.objectContaining({
+        credentials: "include",
+        // Bearer sessions get no cookie, so the header is what authenticates.
+        headers: expect.objectContaining({ Authorization: "Bearer token-1" }),
+      }),
     );
     expect(getUserInfo()?.emailVerified).toBe(true);
     vi.unstubAllGlobals();

@@ -90,6 +90,7 @@ describe("health-probe upload", () => {
         distributorId: "d1",
         distributorName: "D1",
         status: "blocked",
+        kind: "recovery",
         title: "t",
         body: "b",
         createdAt: 1,
@@ -103,6 +104,8 @@ describe("health-probe upload", () => {
           distributorId: "d1",
           distributorName: "D1",
           status: "blocked",
+          // Forwarded so the server can tell a recovery from its alert.
+          kind: "recovery",
           title: "t",
           body: "b",
           createdAt: 1,

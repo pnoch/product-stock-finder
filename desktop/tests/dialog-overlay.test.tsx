@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -27,6 +28,40 @@ describe("DialogOverlay", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "First" })).toHaveFocus(),
     );
+  });
+
+  it("does not steal focus from a later field on a parent re-render", async () => {
+    // Call sites pass an inline onClose; if the focus/scroll-lock effect keys on
+    // it, every keystroke re-runs it and jumps focus back to the first element,
+    // so a later field only ever receives one character.
+    function Harness() {
+      const [value, setValue] = useState("");
+      return (
+        <DialogOverlay open onClose={() => {}} label="Test dialog">
+          <button>First</button>
+          <input
+            aria-label="Second"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+          />
+        </DialogOverlay>
+      );
+    }
+    render(<Harness />);
+    // Let the open-time focus settle before moving focus ourselves.
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "First" })).toHaveFocus(),
+    );
+    const input = screen.getByLabelText("Second");
+    input.focus();
+    await userEvent.type(input, "ab");
+    // Flush any focus rAF the re-run would have scheduled, so a stolen focus
+    // has landed before the assertion.
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => resolve(null)),
+    );
+    expect(input).toHaveFocus();
+    expect(input).toHaveValue("ab");
   });
 
   it("closes on Escape", async () => {

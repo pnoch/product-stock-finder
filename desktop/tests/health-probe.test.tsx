@@ -230,6 +230,12 @@ describe("runHealthProbeIfDue", () => {
     expect(sendDesktopNotification).toHaveBeenCalledTimes(2);
     expect(mockStorage.savePendingHealthEvents).toHaveBeenCalledTimes(1);
     expect(mockStorage.savePendingHealthEvents.mock.calls[0][0]).toHaveLength(2);
+    // The server separates an alert from its recovery by `kind`; without it a
+    // recovery dedupes onto its alert and is silently dropped.
+    const pending = mockStorage.savePendingHealthEvents.mock.calls[0][0] as {
+      kind?: string;
+    }[];
+    expect(pending.every((e) => e.kind === "alert")).toBe(true);
   });
 });
 

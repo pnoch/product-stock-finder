@@ -32,6 +32,16 @@ export function DialogOverlay({
   const tokenRef = useRef<symbol | null>(null);
   if (tokenRef.current === null) tokenRef.current = Symbol("dialog");
 
+  // Call sites pass an inline `onClose`, so using it as an effect dependency
+  // re-ran the focus/scroll-lock effect on every parent render — each keystroke
+  // restored focus outside the dialog and then focused its first element, so
+  // typing in a later field jumped after one character. Keep the handler in a
+  // ref and key the effect on `open` only.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
     const token = tokenRef.current as symbol;
@@ -47,7 +57,7 @@ export function DialogOverlay({
     }
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isTopDialog(token)) {
-        onClose();
+        onCloseRef.current();
       } else if (e.key === "Tab") {
         const el = overlayRef.current;
         if (!el) return;
@@ -85,7 +95,7 @@ export function DialogOverlay({
         previousActiveRef.current = null;
       }
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
