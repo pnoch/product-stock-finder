@@ -4659,3 +4659,12 @@ Three parallel reviews of the auth routes, the session/middleware layer, and the
 - [x] **Login timing oracle** now guarded by a source assertion (the dummy-hash compare).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2498 passed` (26 skipped without a DB) / **`2524 passed`** with the DB; desktop `280 passed`; `cargo test` 67.
 - [ ] Reported, not changed: registration reveals whether an email is taken (`tests/auth-error-leak.test.ts` enshrines it — a product call); the OAuth `state` is signed/single-use but not bound to the initiating browser, so a captured callback URL is login-CSRF (needs a state cookie or PKCE); `trust proxy` is hard-coded to 1 (IP limiters are spoofable if the app is ever reached without exactly one trusted hop).
+
+## Phase 619: OAuth login-CSRF (state bound to the initiating browser)
+
+- [x] **The gap.** The OAuth `state` was HMAC-signed, expiring and single-use — replay-safe, but not bound to the browser that started the flow. An attacker could start the flow with their own account, capture the `/api/oauth/callback?code=…&state=…` URL before it was followed, and lure the victim into opening it; the callback then set the **attacker's** session cookie in the victim's browser (login CSRF / session fixation).
+- [x] **Fix.** `/api/auth/oauth/start` now also sets a 10-minute httpOnly cookie holding the state nonce (reusing `getSessionCookieOptions` for path/secure/domain), and the callback requires the request to echo it (constant-time compare, cleared afterwards). The signed single-use nonce still gates replay; the cookie gates *which browser* may complete.
+- [x] **Platform details that would otherwise break logins:** native flows skip the check (their protection is the device-scoped ticket, and the app's `/start` request cannot set a cookie in the system browser), and Apple — which posts the callback cross-site via `response_mode=form_post` — gets `SameSite=None; Secure` (a Lax cookie is not sent on a cross-site POST at all).
+- [x] Tests: the web callback rejects a request without the cookie (no session cookie set, `error=invalid_state`); `/start` sets the nonce cookie (so removing it would break every web login); the Apple flavor is `SameSite=None; Secure`. All three non-vacuous.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2501 passed` (26 skipped without a DB) / **`2527 passed`** with the DB; desktop `280 passed`; `cargo test` 67.
+- [ ] Still reported, not changed: registration reveals whether an email is taken (a test enshrines it — a product call); `trust proxy` is hard-coded to 1.

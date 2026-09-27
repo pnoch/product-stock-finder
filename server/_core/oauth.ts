@@ -2,7 +2,14 @@ import { COOKIE_NAME, SESSION_MS } from "../../shared/const.js";
 import type { Express, Request, Response } from "express";
 import { sdk } from "./sdk";
 import { getSessionCookieOptions } from "./cookies";
-import { randomUUID, randomBytes, createHash, createHmac } from "crypto";
+import {
+  randomUUID,
+  randomBytes,
+  createHash,
+  createHmac,
+  timingSafeEqual,
+} from "crypto";
+import { parse as parseCookieHeader } from "cookie";
 import bcrypt from "bcryptjs";
 import * as db from "../db";
 import { isDeviceRevoked, revokeAllDevicesForUser, unrevokeDevice } from "../devices";
@@ -52,6 +59,33 @@ const STATE_SECRET = (() => {
 
 function stateSecret(): string {
   return STATE_SECRET;
+}
+
+const OAUTH_STATE_COOKIE = "psf_oauth_state";
+
+/**
+ * Reads the nonce out of a signed state *without* verifying it. `/start` needs
+ * the value to bind the browser; the callback verifies the signature (and burns
+ * the nonce) before trusting anything in it.
+ */
+export function oauthStateNonce(state: string): string | null {
+  try {
+    const encoded = state.split(".")[0];
+    if (!encoded) return null;
+    const body = JSON.parse(
+      Buffer.from(encoded, "base64url").toString("utf8"),
+    ) as { nonce?: unknown };
+    return typeof body.nonce === "string" ? body.nonce : null;
+  } catch {
+    return null;
+  }
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a, "utf8");
+  const bb = Buffer.from(b, "utf8");
+  if (ab.length === 0 || ab.length !== bb.length) return false;
+  return timingSafeEqual(ab, bb);
 }
 
 function pruneExpiring<K>(map: Map<K, number>, now: number) {
@@ -574,6 +608,22 @@ export function registerOAuthRoutes(app: Express) {
         errorRedirect(res, "invalid_state");
         return;
       }
+      // Login-CSRF guard (see /start): the web flow must echo the nonce cookie.
+      // Native flows are bound by the device-scoped ticket instead.
+      const isNativeFlow =
+        Boolean(state.deviceId) ||
+        state.redirectUri.startsWith("productstockfinder:");
+      if (!isNativeFlow) {
+        const cookies = parseCookieHeader(req.headers.cookie ?? "");
+        if (
+          !constantTimeEqual(cookies[OAUTH_STATE_COOKIE] ?? "", state.nonce)
+        ) {
+          res.clearCookie(OAUTH_STATE_COOKIE, getSessionCookieOptions(req));
+          errorRedirect(res, "invalid_state");
+          return;
+        }
+      }
+      res.clearCookie(OAUTH_STATE_COOKIE, getSessionCookieOptions(req));
       if (providerError) {
         errorRedirect(res, providerError);
         return;
@@ -755,6 +805,22 @@ export function registerOAuthRoutes(app: Express) {
       deviceId,
       provider,
     });
+    // Bind the state to the initiating browser. The signature + single-use
+    // nonce stop replay but not login CSRF: an attacker could start the flow
+    // with their own account, capture the callback URL, and lure the victim to
+    // open it, installing the attacker's session in the victim's browser.
+    const stateNonce = oauthStateNonce(state);
+    if (stateNonce) {
+      res.cookie(OAUTH_STATE_COOKIE, stateNonce, {
+        ...getSessionCookieOptions(req),
+        // Apple posts the callback cross-site (response_mode=form_post), where a
+        // Lax cookie is not sent at all; Apple requires HTTPS, so None is safe.
+        ...(provider === "apple"
+          ? { sameSite: "none" as const, secure: true }
+          : {}),
+        maxAge: OAUTH_STATE_TTL_MS,
+      });
+    }
     const { apiBase, oauthRedirect } = oauthBases();
 
     const googleClientId = process.env.GOOGLE_CLIENT_ID ?? process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? "";

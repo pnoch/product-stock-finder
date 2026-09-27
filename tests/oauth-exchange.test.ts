@@ -25,6 +25,7 @@ import {
   registerOAuthRoutes,
   signOAuthState,
   verifyOAuthState,
+  oauthStateNonce,
 } from "../server/_core/oauth";
 import * as db from "../server/db";
 
@@ -89,6 +90,53 @@ describe("GET /api/auth/oauth/start", () => {
     expect(parsed!.redirectUri).toBe("/");
   });
 
+  it("binds the state nonce to the browser with a short-lived cookie", async () => {
+    const handler = makeApp();
+    const res = makeRes();
+    await handler("GET", "/api/auth/oauth/start")(
+      makeReq({ provider: "google" }),
+      res,
+    );
+    const url: string = res.json.mock.calls[0][0].url;
+    const state = new URL(url, "https://app.local").searchParams.get("state")!;
+    const nonce = oauthStateNonce(state);
+    expect(nonce).not.toBeNull();
+    // The callback requires this cookie (login-CSRF guard); if /start stops
+    // setting it, every web OAuth login breaks.
+    const cookieCall = vi.mocked(res.cookie).mock.calls.find(
+      (call: unknown[]) => call[0] === "psf_oauth_state",
+    );
+    expect(cookieCall?.[1]).toBe(nonce);
+    expect(vi.mocked(res.cookie).mock.calls[0]?.[2]).toMatchObject({
+      httpOnly: true,
+      maxAge: expect.any(Number),
+    });
+  });
+
+  it("uses a SameSite=None cookie for Apple, whose callback is a cross-site POST", async () => {
+    process.env.APPLE_CLIENT_ID = "test-apple-id";
+    process.env.APPLE_TEAM_ID = "TEAMID1234";
+    process.env.APPLE_KEY_ID = "KEYID12345";
+    try {
+      const handler = makeApp();
+      const res = makeRes();
+      await handler("GET", "/api/auth/oauth/start")(
+        makeReq({ provider: "apple" }),
+        res,
+      );
+      // Apple posts the authorization response cross-site, where a Lax cookie is
+      // not sent at all — the guard would reject every Apple web login.
+      expect(vi.mocked(res.cookie).mock.calls[0]?.[2]).toMatchObject({
+        sameSite: "none",
+        secure: true,
+      });
+    } finally {
+      delete process.env.APPLE_CLIENT_ID;
+      delete process.env.APPLE_TEAM_ID;
+      delete process.env.APPLE_KEY_ID;
+    }
+  });
+
   it("rate limits repeated start requests from one IP", async () => {
     const handler = makeApp();
     for (let i = 0; i < 10; i++) {
@@ -143,6 +191,25 @@ describe("GET /api/oauth/callback", () => {
     expect(db.upsertUser).not.toHaveBeenCalled();
   });
 
+  it("rejects a web callback that does not echo the state cookie", async () => {
+    process.env.GOOGLE_CLIENT_ID = "test-google-id";
+    process.env.GOOGLE_CLIENT_SECRET = "test-google-secret";
+    const handler = makeApp();
+    const state = signOAuthState({ redirectUri: "/", provider: "google" });
+    const res = makeRes();
+    await handler("GET", "/api/oauth/callback")(
+      makeReq({ code: "auth-code", state }),
+      res,
+    );
+    // Without the browser-bound nonce cookie, a captured callback URL must not
+    // be able to install the attacker's session in the victim's browser.
+    expect(res.cookie).not.toHaveBeenCalled();
+    expect(res.redirect).toHaveBeenCalledWith(
+      302,
+      expect.stringContaining("error=invalid_state"),
+    );
+  });
+
   it("exchanges a Google code and sets a session cookie for web", async () => {
     process.env.GOOGLE_CLIENT_ID = "test-google-id";
     process.env.GOOGLE_CLIENT_SECRET = "test-google-secret";
@@ -165,7 +232,12 @@ describe("GET /api/oauth/callback", () => {
       const state = signOAuthState({ redirectUri: "/", provider: "google" });
       const res = makeRes();
       await handler("GET", "/api/oauth/callback")(
-        makeReq({ code: "auth-code", state }),
+        // The state nonce must be echoed in the binding cookie (login-CSRF).
+        makeReq(
+          { code: "auth-code", state },
+          {},
+          { headers: { cookie: `psf_oauth_state=${oauthStateNonce(state)}` } },
+        ),
         res,
       );
       expect(db.upsertUser).toHaveBeenCalledWith(
