@@ -4597,3 +4597,12 @@ Same method as Phase 610: semantic mutation per module, then its tests.
 - [x] **No new gaps:** all sampled areas were already protected; no production or test change was needed.
 - [x] Tree unchanged from Phase 610 (`tsc 0`, lint 0 errors / 157 warnings, `2458 passed`; desktop `277 passed`).
 - [x] **Cumulative sample: 14 areas, 1 real gap** (the `mergePriceHistory` same-day LWW, closed in Phase 610). Note the recurring nuance: a guard may live in a *different* file than the one you'd guess (`dedupKeyForHealth`'s `kind` separation is asserted in `round10-guards.test.ts`, not `dedup-key-bounds.test.ts`), so a green run of one file is not evidence of coverage.
+
+## Phase 612: Web build / service-worker / startup audit
+
+- [x] **Bundle verified clean (empirical).** Ran `pnpm build:web` and inspected `dist-web`: the web stub is a 755-byte `browser-*.js` chunk and the entry bundle contains **no** `playwright`, `drizzle-orm`, `mysql2`, `express`, or server-secret markers (`DATABASE_URL`, `JWT_SECRET`, `RESEND_API_KEY`, `VAPID_PRIVATE_KEY`, `cookieSecret`) — the only `express` hits are "regular expression"/"Super expression". So server-only code and secrets do not reach the public bundle. (`dist-web/` is gitignored and was removed.)
+- [x] **Service worker kept a stale offline shell.** The navigation handler cached each response under the *navigated* URL (`/product/abc`) while the offline fallback reads `/index.html`, so the fallback always served the install-time copy (stale after a deploy unless `sw.js` itself changed) and the cache grew with entries nothing ever read. It now refreshes `/index.html` on every navigation. Guarded in `tests/sw-precache.test.ts` (non-vacuous).
+- [x] **Verified the desktop SW has no fetch handler** (push/click only), so the caching concern is mobile-web only.
+- [x] **Startup has no serial waterfall:** every launch effect in `app/_layout.tsx` is fire-and-forget (`void …`), so fx, price check, history backfill, push token, notification pull, device cleanup and listing discovery run concurrently.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2459 passed` (24 skipped).
+- [ ] Reported, not changed: `/api/*` responses carry **no** `Cache-Control` (the SPA's `cacheControlFor` only covers the static shell), so a browser may heuristically cache a tRPC GET; the correct fix is a `no-store` middleware for `/api`, which means touching `server/_core/index.ts`. Observation only: the entry bundle is ~4.1 MB (minified, mostly react-native-web + charts), and launch fires ~7 concurrent requests.

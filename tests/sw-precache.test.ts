@@ -19,6 +19,21 @@ describe("public/sw.js precache list", () => {
     }
   });
 
+  it("refreshes the offline shell under /index.html on a navigation", async () => {
+    const source = await readFile("public/sw.js", "utf8");
+    const navigateStart = source.indexOf('mode === "navigate"');
+    expect(navigateStart).toBeGreaterThan(-1);
+    // Bound the branch by the next handler so the assertion can see the whole
+    // cache.put call (slicing at the call itself excluded it).
+    const block = source.slice(
+      navigateStart,
+      source.indexOf("/_expo/static/", navigateStart),
+    );
+    // The fallback reads /index.html; storing the navigation under its own URL
+    // grew the cache and left the shell stale after a deploy.
+    expect(block).toContain('cache.put("/index.html", clone)');
+  });
+
   it("every precached URL resolves to a real file", async () => {
     const urls = await readPrecacheUrls();
     for (const url of urls) {

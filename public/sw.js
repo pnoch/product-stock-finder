@@ -33,9 +33,16 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          // Optionally cache successful navigations
+          // Refresh the offline shell under /index.html — the URL the fallback
+          // below actually reads. Storing it under the navigated URL (e.g.
+          // /product/abc) only grew the cache while the fallback kept serving
+          // the install-time copy, which goes stale after a deploy unless sw.js
+          // itself changes.
           const clone = response.clone();
-          caches.open(PRECACHE).then((cache) => cache.put(event.request, clone)).catch(() => {});
+          caches
+            .open(PRECACHE)
+            .then((cache) => cache.put("/index.html", clone))
+            .catch(() => {});
           return response;
         })
         .catch(() => caches.match("/index.html").then((cached) => cached ?? caches.match(event.request))),
