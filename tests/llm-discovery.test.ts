@@ -72,6 +72,52 @@ describe("discoverProduct", () => {
     expect(result!.retailers[0].name).toBe("Amazon");
   });
 
+  it("persists into the injected store instead of the shared default", async () => {
+    // The desktop reads discoveries from its own localStorage store, so writing
+    // them to the IDB-preferred shared default made them invisible there.
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        result: {
+          data: {
+            json: {
+              product: {
+                name: "Sony WH-1000XM5",
+                modelNumber: "WH-1000XM5",
+                brand: "Sony",
+                category: "Headphones",
+                description: "Noise-canceling headphones",
+              },
+              retailers: [
+                {
+                  name: "Amazon",
+                  website: "https://amazon.com",
+                  country: "US",
+                  currency: "USD",
+                },
+              ],
+            },
+          },
+        },
+      }),
+    });
+    const added: unknown[] = [];
+    const distributors: unknown[] = [];
+    const fakeStore = {
+      addDiscoveredProduct: async (p: unknown) => {
+        added.push(p);
+      },
+      addDiscoveredDistributor: async (d: unknown) => {
+        distributors.push(d);
+      },
+    } as never;
+
+    await discoverProduct("WH-1000XM5", fakeStore);
+
+    expect(added).toHaveLength(1);
+    expect(distributors).toHaveLength(1);
+  });
+
   it("bounds the query to the server's MAX_DISCOVERY_QUERY", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,

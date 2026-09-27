@@ -143,7 +143,7 @@ export function SearchModal({
     setDiscovering(true);
     setDiscoverError(null);
     try {
-      const result = await discoverProduct(query);
+      const result = await discoverProduct(query, storage);
       if (result) {
         await storage.addToWatchlist({
           ...result.product,

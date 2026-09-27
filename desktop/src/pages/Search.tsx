@@ -155,7 +155,7 @@ export function Search() {
     setDiscovering(true);
     setDiscoverError(null);
     try {
-      const res = await discoverProduct(query);
+      const res = await discoverProduct(query, storage);
       if (res) {
         await storage.addToWatchlist({ ...res.product, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] });
         // Mark it tracked so the catalog row stops offering "Add" (mobile
@@ -211,7 +211,7 @@ export function Search() {
     setManualParsing(true);
     setManualError(null);
     try {
-      const res = await discoverProduct(pasteText.trim());
+      const res = await discoverProduct(pasteText.trim(), storage);
       if (res) {
         setManualName(res.product.name ?? "");
         setManualModel(res.product.modelNumber ?? "");
@@ -233,7 +233,7 @@ export function Search() {
     setUrlParsing(true);
     setManualError(null);
     try {
-      const res = await discoverProduct(text);
+      const res = await discoverProduct(text, storage);
       if (res) {
         setManualName(res.product.name ?? "");
         setManualModel(res.product.modelNumber ?? "");

@@ -91,8 +91,20 @@ async function discoveryHeaders(): Promise<Record<string, string>> {
   }
 }
 
+/**
+ * Persistence surface for a discovered product. Injectable so a client whose
+ * UI reads from its own store (the desktop mirrors to localStorage) does not
+ * write discovered rows into the shared IDB-preferred default store, where its
+ * own `getDiscoveredProducts` would never see them.
+ */
+export type DiscoveryStore = Pick<
+  typeof defaultStorage,
+  "addDiscoveredProduct" | "addDiscoveredDistributor"
+>;
+
 export async function discoverProduct(
   query: string,
+  persist: DiscoveryStore = defaultStorage,
 ): Promise<{ product: Product; retailers: Distributor[] } | null> {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) throw new DiscoveryError("server", "Server not configured");
@@ -158,9 +170,9 @@ export async function discoverProduct(
     shippingCosts: r.shippingCosts ?? {},
   }));
 
-  await defaultStorage.addDiscoveredProduct(product);
+  await persist.addDiscoveredProduct(product);
   for (const retailer of retailers) {
-    await defaultStorage.addDiscoveredDistributor(retailer);
+    await persist.addDiscoveredDistributor(retailer);
   }
 
   return { product, retailers };

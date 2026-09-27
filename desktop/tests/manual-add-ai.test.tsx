@@ -7,6 +7,8 @@ const mockStorage = vi.hoisted(() => ({
   getWatchlist: vi.fn(),
   getSettings: vi.fn(),
   getDiscoveredProducts: vi.fn(),
+  addDiscoveredProduct: vi.fn(),
+  addDiscoveredDistributor: vi.fn(),
   addToWatchlist: vi.fn(),
   updateProductListings: vi.fn(),
 }));
@@ -236,7 +238,12 @@ describe("manual add AI assist", () => {
     fireEvent.click(screen.getByRole("button", { name: "Fetch from URL" }));
 
     await waitFor(() => {
-      expect(mockDiscoverProduct).toHaveBeenCalledWith("https://example.com/product/crs326");
+      // The desktop must persist through its own store, which the UI reads back
+      // (the shared default store is IndexedDB-backed and invisible to it).
+      expect(mockDiscoverProduct).toHaveBeenCalledWith(
+        "https://example.com/product/crs326",
+        expect.objectContaining({ addDiscoveredProduct: expect.any(Function) }),
+      );
     });
     expect(await screen.findByDisplayValue("CRS326 Switch")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Model number *")).toHaveValue("CRS326-24G");

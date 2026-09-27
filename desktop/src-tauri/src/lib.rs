@@ -238,9 +238,21 @@ fn strip_device_local_settings(mut settings: serde_json::Value) -> serde_json::V
     settings
 }
 
+fn default_backup_format() -> String {
+    "product-stock-finder-backup".to_string()
+}
+
+// Wire shape of lib/backup.ts's BackupData. The desktop export must be readable
+// by the shared parser (and a mobile backup readable here), so the field names
+// are camelCase and `format` is emitted; the snake_case aliases keep files
+// written by older desktop builds importable.
 #[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct ExportData {
+    #[serde(default = "default_backup_format")]
+    format: String,
     version: u32,
+    #[serde(alias = "exported_at")]
     exported_at: String,
     watchlist: serde_json::Value,
     alerts: serde_json::Value,
@@ -248,11 +260,16 @@ struct ExportData {
     settings: serde_json::Value,
     // Mobile's backup includes back-in-stock watches; omitting them silently
     // dropped restock watches from every desktop export/import round-trip.
-    #[serde(default)]
+    #[serde(default, alias = "stock_watches")]
     stock_watches: serde_json::Value,
 }
 
 fn validate_import_schema(data: &ExportData) -> Result<(), String> {
+    // Reject an unrelated JSON file that merely has the right keys. A missing
+    // `format` is allowed: older desktop exports predate the shared schema.
+    if data.format != default_backup_format() {
+        return Err(format!("Unsupported backup format: {}", data.format));
+    }
     // top-level shape
     let watchlist = data
         .watchlist
@@ -489,6 +506,7 @@ async fn export_watchlist(
     let stock_watches = array_or_empty(read_json_file(&data_dir, "back_in_stock_watches")?);
 
     let export = ExportData {
+        format: default_backup_format(),
         version: 1,
         exported_at: current_iso_timestamp(),
         watchlist,
@@ -579,28 +597,36 @@ fn open_system_browser(url: &str) -> Result<(), String> {
     }
     #[cfg(target_os = "linux")]
     {
-        std::process::Command::new("xdg-open")
-            .arg(url)
-            .spawn()
-            .map_err(|e| e.to_string())?;
+        let mut command = std::process::Command::new("xdg-open");
+        command.arg(url);
+        spawn_and_reap(command).map_err(|e| e.to_string())?;
     }
     #[cfg(target_os = "macos")]
     {
-        std::process::Command::new("open")
-            .arg(url)
-            .spawn()
-            .map_err(|e| e.to_string())?;
+        let mut command = std::process::Command::new("open");
+        command.arg(url);
+        spawn_and_reap(command).map_err(|e| e.to_string())?;
     }
     #[cfg(target_os = "windows")]
     {
         // Quoted: `cmd` re-parses its command line, so an unquoted `&` in the
         // URL would start a second command.
         let quoted = format!("\"{}\"", url.replace('"', "%22"));
-        std::process::Command::new("cmd")
-            .args(["/C", "start", "", quoted.as_str()])
-            .spawn()
-            .map_err(|e| e.to_string())?;
+        let mut command = std::process::Command::new("cmd");
+        command.args(["/C", "start", "", quoted.as_str()]);
+        spawn_and_reap(command).map_err(|e| e.to_string())?;
     }
+    Ok(())
+}
+
+/// Spawns an opener process and reaps it on a detached thread. Dropping the
+/// `Child` directly leaves a zombie until the app exits, and repeated opens
+/// accumulate them.
+fn spawn_and_reap(mut command: std::process::Command) -> std::io::Result<()> {
+    let mut child = command.spawn()?;
+    std::thread::spawn(move || {
+        let _ = child.wait();
+    });
     Ok(())
 }
 
@@ -2020,6 +2046,46 @@ mod tests {
         );
         let arr = serde_json::json!([1]);
         assert_eq!(array_or_empty(arr.clone()), arr);
+    }
+
+    #[test]
+    fn export_data_round_trips_the_shared_backup_schema() {
+        let value = serde_json::json!({
+            "format": "product-stock-finder-backup",
+            "version": 1,
+            "exportedAt": "2026-01-01T00:00:00.000Z",
+            "watchlist": [],
+            "alerts": [],
+            "reminders": [],
+            "stockWatches": [],
+            "settings": { "displayCurrency": "EUR" }
+        });
+        let parsed: ExportData = serde_json::from_value(value).unwrap();
+        assert_eq!(parsed.exported_at, "2026-01-01T00:00:00.000Z");
+        assert!(parsed.stock_watches.is_array());
+        // Serializes back with the shared (camelCase) names so lib/backup.ts can
+        // read a desktop export.
+        let out = serde_json::to_value(&parsed).unwrap();
+        assert_eq!(out["exportedAt"], "2026-01-01T00:00:00.000Z");
+        assert!(out.get("stockWatches").is_some());
+        assert_eq!(out["format"], "product-stock-finder-backup");
+    }
+
+    #[test]
+    fn export_data_accepts_legacy_snake_case_files() {
+        let legacy = serde_json::json!({
+            "version": 1,
+            "exported_at": "2026-01-01T00:00:00.000Z",
+            "watchlist": [],
+            "alerts": [],
+            "reminders": [],
+            "stock_watches": [],
+            "settings": {}
+        });
+        let parsed: ExportData = serde_json::from_value(legacy).unwrap();
+        assert_eq!(parsed.exported_at, "2026-01-01T00:00:00.000Z");
+        // A missing format defaults to the shared one.
+        assert_eq!(parsed.format, "product-stock-finder-backup");
     }
 
     #[test]

@@ -159,13 +159,40 @@ fn load_cookies(domain: &str) -> Vec<playwright_rs::Cookie> {
         .unwrap_or_default()
 }
 
+#[cfg(unix)]
+pub(crate) fn write_owner_only(path: &std::path::Path, text: &str) {
+    use std::io::Write;
+    use std::os::unix::fs::OpenOptionsExt;
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .mode(0o600)
+        .open(path)
+    {
+        let _ = file.write_all(text.as_bytes());
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn write_owner_only(path: &std::path::Path, text: &str) {
+    let _ = std::fs::write(path, text);
+}
+
 fn save_cookies(domain: &str, cookies: &[playwright_rs::Cookie]) {
     let path = cookie_file(domain);
     if let Some(dir) = path.parent() {
         let _ = std::fs::create_dir_all(dir);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            // The jar replays distributor session/clearance cookies, so keep it
+            // owner-only instead of the process umask default (commonly 0644).
+            let _ = std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700));
+        }
     }
     if let Ok(text) = serde_json::to_string(cookies) {
-        let _ = std::fs::write(path, text);
+        write_owner_only(&path, &text);
     }
 }
 
@@ -436,4 +463,17 @@ mod tests {
         // Unknown hosts fall back to the shared default, not to nothing.
         assert_eq!(region_signals_for("https://example.com/x"), NORTH_AMERICA);
     }
-}
+
+    #[cfg(unix)]
+    #[test]
+    fn cookie_jar_is_written_owner_only() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("psf-cookie-perm-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("jar.json");
+        write_owner_only(&path, "[]");
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        // The jar replays distributor session cookies: not world-readable.
+        assert_eq!(mode, 0o600);
+        let _ = std::fs::remove_dir_all(&dir);
+    }}

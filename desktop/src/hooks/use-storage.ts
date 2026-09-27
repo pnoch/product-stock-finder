@@ -5,15 +5,24 @@ import type { Product, PriceAlert, AppSettings } from "../../../lib/types";
 
 export function useWatchlist() {
   const [products, setProducts] = useState<Product[]>([]);
+  // `loading` is the first-load spinner only. The Rust poller emits
+  // `listing-updated` once per scraped listing, so refreshing the data with
+  // `loading` resetting each time blanked the page (resetting scroll and bulk
+  // selection) N times per sweep. Later refreshes raise `refreshing` instead.
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const loadedRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
+    if (loadedRef.current) setRefreshing(true);
+    else setLoading(true);
     try {
       const data = await storage.getWatchlist();
       setProducts(data);
     } finally {
+      loadedRef.current = true;
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -30,20 +39,27 @@ export function useWatchlist() {
     };
   }, [refresh]);
 
-  return { products, loading, refresh };
+  return { products, loading, refreshing, refresh };
 }
 
 export function useAlerts() {
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
+  // See useWatchlist: only the first load blanks the page; alert actions
+  // (toggle/delete/re-arm/snooze) raise `refreshing` instead.
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const loadedRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
+    if (loadedRef.current) setRefreshing(true);
+    else setLoading(true);
     try {
       const data = await storage.getAlerts();
       setAlerts(data);
     } finally {
+      loadedRef.current = true;
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -51,7 +67,7 @@ export function useAlerts() {
     refresh();
   }, [refresh]);
 
-  return { alerts, loading, refresh };
+  return { alerts, loading, refreshing, refresh };
 }
 
 export function useSettings() {
