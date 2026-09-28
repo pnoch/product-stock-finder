@@ -4865,3 +4865,12 @@ Audited the one user-facing, security-relevant surface not yet covered: a token 
 - [x] **`undici` 7.29.0 (added in Phase 624) is already patched** — every undici advisory targets `<6.28.0`; the audit's remaining undici hits are transitive 6.x copies nested inside other packages.
 - [x] **The 2 remaining criticals are dev-tooling only:** `shell-quote` and `tar` are pulled in by `@expo/cli` (Expo's build/dev CLI) via `react-devtools-core`/`expo-router` — never shipped to users and never run in production. Not upgradeable without an Expo SDK bump.
 - [ ] Remaining advisories (113) are transitive build/dev dependencies (Expo/Metro/RN tooling); clearing them needs upstream releases, not local pins.
+
+## Phase 640: Accessibility pass
+
+Scanned every `app/` and `components/` interactive element, image, and text input (plus the desktop's `<button>`s) for missing accessible names.
+
+- [x] **Icon-only buttons were already fully labelled** (0 gaps) — the earlier phases' a11y work holds.
+- [x] **Fixed 4 real gaps:** three product `<Image>`s had no accessible name (Home list, product info card, trending card) — each now carries `accessibilityLabel={`${product.name} image`}`; and the tag-rename `TextInput` in `tag-manage-sheet.tsx` had neither a label nor a placeholder — now `accessibilityLabel="Tag name"`.
+- [x] **Verified as false positives (no change needed):** `components/watchlist/product-card.tsx` (has a composed `accessibilityLabel`), `components/tag-picker-sheet.tsx` (the match was a `useRef<TextInput>` type, and the input has a placeholder), and the three desktop `<button>`s (each has both an `aria-label` and visible text).
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2544 passed`; desktop `281 passed`.

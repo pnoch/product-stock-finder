@@ -135,6 +135,7 @@ export function ProductInfoCard({
         >
           <Image
             source={{ uri: productImage }}
+            accessibilityLabel={`${product.name} image`}
             onError={handleImageError}
             style={{
               width: "100%",

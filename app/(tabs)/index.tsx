@@ -536,6 +536,7 @@ export default function HomeScreen() {
                   {images.get(product.id) ? (
                     <Image
                       source={{ uri: images.get(product.id)! }}
+                      accessibilityLabel={`${product.name} image`}
                       onError={() => setImages((prev) => { const n = new Map(prev); n.delete(product.id); return n; })}
                       style={{
                         width: 36,

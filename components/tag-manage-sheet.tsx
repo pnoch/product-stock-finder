@@ -203,6 +203,7 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
                     <TextInput
                       value={editName}
                       onChangeText={setEditName}
+                      accessibilityLabel="Tag name"
                       autoFocus
                       maxLength={24}
                       style={{

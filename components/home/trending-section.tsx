@@ -101,6 +101,7 @@ const TrendingProductRow = memo(function TrendingProductRow({
         {imageUrl ? (
           <Image
             source={{ uri: imageUrl }}
+            accessibilityLabel={`${product.name} image`}
             onError={() => {}}
             style={{
               width: 40,
