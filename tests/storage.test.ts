@@ -335,6 +335,42 @@ describe("alerts", () => {
     expect(alert.triggeredAt).toBeDefined();
   });
 
+  it("ignores a stale event that predates a re-armed alert", async () => {
+    // A server event older than the alert's current activation must not
+    // deactivate a freshly re-armed alert (which would immediately re-trigger
+    // it for a price drop that already happened).
+    const { createStorage } = await import("../lib/storage");
+    const store = new Map<string, string>();
+    const storage = createStorage({
+      getItem: async (key: string) => store.get(key) ?? null,
+      setItem: async (key: string, value: string) => {
+        store.set(key, value);
+      },
+      removeItem: async (key: string) => {
+        store.delete(key);
+      },
+      multiRemove: async (keys: string[]) => {
+        keys.forEach((key) => store.delete(key));
+      },
+    });
+    const activatedAt = Date.parse("2026-06-10T00:00:00.000Z");
+    await storage.saveAlerts([
+      { ...makeAlert("a1"), createdAt: "2026-06-10T00:00:00.000Z" },
+    ]);
+    // An event from before the alert was (re-)armed.
+    const transitioned = await storage.deactivateAlert(
+      "a1",
+      90,
+      activatedAt - 60_000,
+    );
+    expect(transitioned).toBe(false);
+    expect((await storage.getAlerts())[0]!.isActive).toBe(true);
+    // A current event does transition it.
+    expect(await storage.deactivateAlert("a1", 90, activatedAt + 60_000)).toBe(
+      true,
+    );
+  });
+
   it("serializes concurrent saveAlerts in call order", async () => {
     const { createStorage } = await import("../lib/storage");
     const store = new Map<string, string>();
@@ -1172,5 +1208,37 @@ describe("enqueued read-modify-write helpers", () => {
       watches.filter((w) => w.id !== "w1"),
     );
     expect(await getStockWatches()).toHaveLength(0);
+  });
+});
+
+describe("history cap keeps the newest points", () => {
+  it("trims a listing over the cap to its most recent points", async () => {
+    // The cap is 500 points per listing. Keeping the OLDEST instead of the
+    // newest would show stale prices and silently drop recent history.
+    const points = Array.from({ length: 520 }, (_, i) => ({
+      date: new Date(Date.UTC(2026, 0, 1) + i * 86_400_000).toISOString(),
+      price: 100 + i,
+      currency: "USD",
+      stockStatus: "in_stock" as const,
+    }));
+    const product = makeProduct("capped", [
+      {
+        distributorId: "d1",
+        productId: "capped",
+        price: 619,
+        currency: "USD",
+        stockStatus: "in_stock",
+        url: "https://example.com",
+        lastChecked: points[points.length - 1]!.date,
+        priceHistory: points,
+      },
+    ]);
+    await addToWatchlist(product);
+    const stored = (await getWatchlist())[0]!;
+    const history = stored.listings[0]!.priceHistory;
+    expect(history).toHaveLength(500);
+    // The newest point (price 619) must survive; the oldest (100) must not.
+    expect(history[history.length - 1]!.price).toBe(619);
+    expect(history[0]!.price).toBe(120);
   });
 });

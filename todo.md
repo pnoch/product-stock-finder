@@ -5152,3 +5152,14 @@ Mutation pass over the desktop Rust tests (70 → 71).
 - [x] **Also caught:** removing `withTimeout`'s timer cleanup fails the existing "leaves no pending timer after settle" test.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2600 passed` (27 skipped without a DB); desktop `282 passed`.
 - [x] Cumulative mutation sample: 53 areas, 7 real gaps (all closed).
+
+## Phase 674: Storage mutation pass (two real gaps closed)
+
+Mutation pass over the storage modules changed this session.
+
+- [x] **Gap 1 — the 500-point history cap was untested.** Keeping the *oldest* points instead of the newest (`slice(0, MAX)` vs `slice(-MAX)`) left the suite green, which would silently show stale prices and drop recent history. Added a case with 520 points asserting the newest survive and the oldest do not. Non-vacuous.
+- [x] **Gap 2 — `deactivateAlert`'s stale-event guard was untested.** Removing the "an event older than the alert's current activation must not deactivate a freshly re-armed alert" check left the suite green, which would immediately re-trigger a re-armed alert for a price drop that already happened. Added a case (a pre-activation event does not transition; a current one does). Non-vacuous.
+- [x] **Caught:** `deactivateAlert`'s compare-and-set guard (the double-fire protection) fails the existing "transitions exactly once under concurrent calls" test when removed.
+- [x] **Method note:** my first mutation run targeted the wrong test files (`tests/alerts*.test.ts` rather than `tests/storage.test.ts`, where `deactivateAlert` is actually exercised) and looked like a surviving mutation — re-ran against the right file.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2602 passed` (27 skipped without a DB); desktop `282 passed`.
+- [x] Cumulative mutation sample: 57 areas, 9 real gaps (all closed).
