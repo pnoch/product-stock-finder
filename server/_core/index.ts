@@ -11,6 +11,7 @@ import { registerApiNoStore } from "../api-cache";
 import {
   registerBodyParsers,
   registerCors,
+  registerSecurityHeaders,
   resolveTrustProxy,
 } from "../http-middleware";
 import { registerSpa, registerWellKnown } from "../spa";
@@ -54,6 +55,8 @@ async function startServer() {
   );
   // CORS + body parsers live in server/http-middleware.ts so their exact
   // matching/ordering is unit-tested rather than only reachable through startup.
+  // Baseline security headers for every response (API + SPA shell).
+  registerSecurityHeaders(app);
   registerCors(app, allowedOrigins);
 
   // Per-session, time-sensitive responses must not be heuristically cached by

@@ -6,6 +6,7 @@ import type { AddressInfo } from "node:net";
 import {
   registerBodyParsers,
   registerCors,
+  registerSecurityHeaders,
   resolveTrustProxy,
 } from "../server/http-middleware";
 
@@ -116,5 +117,48 @@ describe("resolveTrustProxy", () => {
       "utf8",
     );
     expect(src).toContain("resolveTrustProxy(process.env.TRUST_PROXY)");
+  });
+});
+
+describe("registerSecurityHeaders", () => {
+  it("sets the baseline headers and removes X-Powered-By", async () => {
+    const request = serve((app) => {
+      registerSecurityHeaders(app);
+      app.get("/api/thing", (_req, res) => res.json({ ok: true }));
+    });
+    const res = await request("/api/thing");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
+    expect(res.headers.get("referrer-policy")).toBe(
+      "strict-origin-when-cross-origin",
+    );
+    expect(res.headers.get("strict-transport-security")).toContain(
+      "max-age=31536000",
+    );
+    const csp = res.headers.get("content-security-policy") ?? "";
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("object-src 'none'");
+    // The framework must not be advertised.
+    expect(res.headers.get("x-powered-by")).toBeNull();
+  });
+
+  it("allows the configured API origin in connect-src", async () => {
+    const previous = process.env.EXPO_PUBLIC_API_BASE_URL;
+    process.env.EXPO_PUBLIC_API_BASE_URL = "https://api.example.com";
+    try {
+      const request = serve((app) => {
+        registerSecurityHeaders(app);
+        app.get("/api/thing", (_req, res) => res.json({ ok: true }));
+      });
+      const csp = (await request("/api/thing")).headers.get(
+        "content-security-policy",
+      );
+      // A separate API host would otherwise be blocked by `connect-src 'self'`.
+      expect(csp).toContain("connect-src 'self' https://api.example.com");
+    } finally {
+      if (previous === undefined) delete process.env.EXPO_PUBLIC_API_BASE_URL;
+      else process.env.EXPO_PUBLIC_API_BASE_URL = previous;
+    }
   });
 });

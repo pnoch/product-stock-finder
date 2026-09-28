@@ -37,6 +37,67 @@ export function registerCors(app: Express, allowedOrigins: Set<string>): void {
 }
 
 /**
+ * Baseline security headers. The server serves both the API and the SPA shell,
+ * so these apply to every response:
+ *   - `X-Content-Type-Options: nosniff` stops a browser from MIME-sniffing a
+ *     JSON/upload response into HTML/script.
+ *   - `X-Frame-Options: DENY` + `frame-ancestors 'none'` block clickjacking of
+ *     the app shell.
+ *   - `Referrer-Policy` keeps the share token in `/w/<token>` out of the
+ *     Referer header sent to third parties.
+ *   - `Strict-Transport-Security` pins HTTPS for a year once seen (only
+ *     meaningful over TLS; harmless on plain HTTP since browsers ignore it).
+ *   - A CSP for the shell: scripts/styles are same-origin (the export inlines
+ *     nothing executable), images may come from distributor hosts, and
+ *     connections are limited to same-origin + the configured API host.
+ * `X-Powered-By` is removed so the framework is not advertised.
+ */
+export function registerSecurityHeaders(app: Express): void {
+  app.disable("x-powered-by");
+  // The SPA may call an API on a different origin (EXPO_PUBLIC_API_BASE_URL, or
+  // a separate api host in production), so `connect-src 'self'` alone would
+  // block every request. Allow exactly that configured origin.
+  const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? "").trim();
+  let apiOrigin = "";
+  if (apiBase) {
+    try {
+      apiOrigin = new URL(apiBase).origin;
+    } catch {
+      // A malformed base is ignored; the client falls back to same-origin.
+    }
+  }
+  const connectSrc = ["'self'", apiOrigin].filter(Boolean).join(" ");
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains",
+    );
+    res.setHeader(
+      "Content-Security-Policy",
+      [
+        "default-src 'self'",
+        "script-src 'self'",
+        // NativeWind/react-native-web injects inline styles at runtime.
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: https: http:",
+        "font-src 'self' data:",
+        // Same-origin plus the configured API host; BYO-LLM providers are
+        // called server-side, so the browser never needs a third-party connect.
+        `connect-src ${connectSrc}`,
+        "frame-ancestors 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "object-src 'none'",
+      ].join("; "),
+    );
+    next();
+  });
+}
+
+/**
  * Express's `trust proxy` value. Defaults to 1 (trust a single proxy hop), which
  * is right behind one gateway/LB: `req.ip` and `X-Forwarded-Proto` then come
  * from the hop the proxy added, so IP rate limits and the Secure-cookie decision
