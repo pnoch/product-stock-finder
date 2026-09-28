@@ -2476,6 +2476,19 @@ mod tests {
     }
 
     #[test]
+    fn classify_fetch_status_marks_a_blocked_message_as_blocked() {
+        // The health path uses this wrapper (not scrapers::is_blocked_error
+        // directly), so a regression here would misreport a blocked distributor
+        // as a transient error — the health dashboard and the breaker both key
+        // off it.
+        assert_eq!(classify_fetch_status("403 Forbidden"), "blocked");
+        assert_eq!(classify_fetch_status("Just a moment"), "blocked");
+        assert_eq!(classify_fetch_status("captcha-delivery.com"), "blocked");
+        assert_eq!(classify_fetch_status("connection reset"), "error");
+        assert!(!is_blocked_error("timeout"));
+    }
+
+    #[test]
     fn delivered_events_excludes_undelivered_alerts() {
         let events = vec![
             serde_json::json!({ "alertId": "a", "bestPrice": 1.0 }),

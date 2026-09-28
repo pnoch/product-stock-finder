@@ -5108,3 +5108,13 @@ First mutation pass over the desktop tests (281 → 282), the analogue of the ro
 - [x] **Verified delegated logic is covered elsewhere:** `desktop/src/lib/health-probe.ts` calls the shared `detectHealthAlert`/`detectHealthRecovery`, which the root suite already mutation-tests.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2593 passed`; desktop `tsc 0`, `282 passed`.
 - [x] Cumulative mutation sample across all passes: 43 areas, 4 real gaps (all closed).
+
+## Phase 669: Guard-quality (mutation) pass on the Rust suite
+
+Mutation pass over the desktop Rust tests (70 → 71).
+
+- [x] **Caught (guards discriminate):** `is_allowed_storage_key` (disabling the allowlist fails the traversal test); `is_allowed_external_url` (allowing everything fails two scheme tests); `is_fresh_snapshot` (ignoring the TTL fails the boundary test).
+- [x] **Real gap found and closed:** the lib.rs wrapper `is_blocked_error`/`classify_fetch_status` had no test of its own — `scrapers::is_blocked_error` is tested, but the wrapper is what the health path calls, so replacing the wrapper body with `false` went unnoticed and would misreport a blocked distributor as a transient error (the health dashboard and the breaker both key off it). Added a test using real `BLOCKED_MARKERS` entries; it fails under the mutation.
+- [x] **Method note:** my first mutation attempt didn't compile (`#[allow(unreachable_code)]` on a statement), and cargo's stale binary made it look like the test passed. Re-ran with a compiling mutation to get a real signal — a reminder to confirm the mutation actually built before trusting a green run.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2593 passed`; desktop `tsc 0`, `282 passed`; `cargo test` 71, `cargo clippy` unchanged (4).
+- [x] Cumulative mutation sample across all passes: 47 areas, 5 real gaps (all closed).
