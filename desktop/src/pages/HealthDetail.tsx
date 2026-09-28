@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { getDistributorById } from "@shared/distributors";
 import {
@@ -37,20 +37,30 @@ export function HealthDetail() {
     error: "#EF4444",
   };
 
+  // Generation guard: `id` comes from the route, so navigating from one
+  // distributor's health page to another re-runs this while the previous load is
+  // still in flight — the older result could land last and show the wrong
+  // distributor's samples (the same bug fixed on mobile).
+  const loadGenRef = useRef(0);
+
   const load = useCallback(async () => {
     if (!id) return;
+    const gen = ++loadGenRef.current;
     setLoading(true);
     setLoadError(null);
     try {
       const history = await healthService.getHealthHistory();
+      if (gen !== loadGenRef.current) return;
       setSamples(history[id] ?? []);
       const health = await healthService.getDistributorHealth();
+      if (gen !== loadGenRef.current) return;
       const entry = health.find((h) => h.distributorId === id);
       setCurrentStatus((entry?.status as HealthStatus) ?? null);
     } catch (e) {
+      if (gen !== loadGenRef.current) return;
       setLoadError(e instanceof Error ? e.message : "Couldn't load health history");
     } finally {
-      setLoading(false);
+      if (gen === loadGenRef.current) setLoading(false);
     }
   }, [id]);
 

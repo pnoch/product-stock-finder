@@ -5309,3 +5309,11 @@ Reviewed the desktop components with real logic (beyond the `Modal` fix in Phase
 - [x] **`search-chrome`:** `loadRecent`/`saveRecent`/`recordRecent` reuse the shared `lib/recent-searches` helpers (cap + dedup can't drift from the storage wipe's key), and the read-modify-write is synchronous localStorage (no async race).
 - [x] **`ProductImage`:** correct `active` guard, module cache, and cleanup (verified in Phase 690's review).
 - [x] No code change; tree unchanged from Phase 690 (`tsc 0`, lint 0 errors / 157 warnings, `2614 passed`; desktop `284`).
+
+## Phase 692: Desktop HealthDetail had the same out-of-order load bug as mobile
+
+- [x] **Found: `desktop/src/pages/HealthDetail.tsx`'s `load` had no generation guard.** `id` comes from the route, so navigating from one distributor's health page to another re-runs the load while the previous one is still in flight — the older result could land last and show the **wrong distributor's samples** (and status). This is the exact bug fixed on mobile in Phase 663; the desktop page was missed.
+- [x] **Fix:** a `loadGenRef` generation guard checked after each await, with `setLoading(false)`/`setLoadError` only for the current generation.
+- [x] **Test:** `desktop/tests/health-detail-race.test.ts` asserts both awaits are guarded (count-based). Non-vacuous.
+- [x] **Audited the other untested desktop pages and found them correct:** `ResetPassword` (validation, `aria-*`, `disabled` double-submit guard, server-error surfacing), `SharedWatchlist` (uses the shared untrusted-data normalizer, dedup-aware add, mutation catches with toasts), `DistributorAnalysis`.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2614 passed`; desktop `tsc 0`, `285 passed`.
