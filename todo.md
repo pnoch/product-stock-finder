@@ -4788,3 +4788,13 @@ Ran the documented production path (`pnpm build` → `node dist/index.js`) and s
 - [x] **Smoke results on the built artifact (all as designed):** `/api/*` → `Cache-Control: no-store`; bare `/api` → 404 JSON (not the HTML shell); `/product/abc` → 200 HTML (SPA deep link); CORS preflight → the `X-LLM-*` headers allowed; `/api/trpc/sync.push` with a 300 KB body → 401 (body accepted, auth rejected — not 413); the look-alike `/api/trpc/sync.pushX` → 413; `/api/auth/login` → 413; `/.well-known/apple-app-site-association` → 404 when unconfigured; `/sw.js` → 200.
 - [x] **New guard:** `tests/server-bundle-purity.test.ts` asserts the server-reachable lib modules import leaf storage modules (not the barrel) and that `resilient.ts` does not. Non-vacuous (reverting the import fails it). `breaker-clear.ts` also imports the barrel but is client-only, so it is deliberately out of scope.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2536 passed` (27 skipped without a DB); desktop `280 passed`.
+
+## Phase 632: Web export smoke in a real browser (clean)
+
+Ran the built web export through the production server and drove it in headless Chromium (Playwright is already a dependency).
+
+- [x] **Boots clean:** the SPA loads, `#root` renders (4.6 KB of HTML), title is "Product Stock Finder", and there are **0 page errors and 0 console errors** (excluding the expected `ERR_CONNECTION_REFUSED`/`ERR_FAILED` from the dev `.env`'s `EXPO_PUBLIC_API_BASE_URL=http://localhost:3000`, which is a local dev value baked into this build — not a bug).
+- [x] **Onboarding → Skip → Home** renders real seeded data (7 tracked, 6 in stock, recent activity) — the launch seeding and sample history work in the browser.
+- [x] **Deep link** `/product/mikrotik-crs804-4ddq-hrm` boots the app and renders the full product detail (name, brand, category, region, stock status, description) — the SPA fallback + typed routes work.
+- [x] **0 errors across navigations**; the tab-bar clicks in my harness didn't register (a selector limitation of the smoke script, not an app fault).
+- [x] No code change; tree unchanged from Phase 631 (`tsc 0`, lint 0 errors / 157 warnings, `2536 passed`; desktop `280`).
