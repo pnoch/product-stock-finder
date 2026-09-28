@@ -4916,3 +4916,11 @@ Scanned every `app/` and `components/` interactive element, image, and text inpu
 - [x] **`server/storage.ts` (2%) deliberately left untested:** it is Forge/S3 infrastructure used only by `_core/imageGeneration.ts`, and the coverage config excludes `_core` for exactly this reason. Its two helpers are private and its protocol needs a Forge presign mock — low value.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2569 passed` (27 skipped without a DB); desktop `281 passed`.
 - [x] **Coverage sweep closed:** every app module flagged below 75% has now either been tested (devices, trpc headers, shared-watchlist, background-fetch) or audited and found correct (push-token) or out of scope (server/storage).
+
+## Phase 646: Dead-code audit
+
+- [x] **Dependencies: clean.** `dependency-analyzer` reports 0 unused, 0 outdated, 0 vulnerable across the 83 declared packages.
+- [x] **Dead framework files found (reported, not deleted):** `server/_core/heartbeat.ts` (215 lines) and `server/_core/dataApi.ts` (69 lines) are referenced nowhere — no static import, dynamic import, `require`, or config reference — so they are tree-shaken out of the built bundle. They are `_core/` (hands-off per AGENTS.md), so this is a note for the framework owner rather than a change.
+- [x] **Six unused exports in app code, left in place:** `getExchangeRate` (×2), `ONE_YEAR_MS`, `AXIOS_TIMEOUT_MS`, `getAllDistributors`, `CURRENCIES`. Each is a few lines of public-API surface (`shared/` is cross-platform API; `getAllDistributors` mirrors the used `getAllRegions`), so removing them is churn with no behavioural benefit — and a future feature would just re-add them.
+- [x] **False positives verified:** the 12 modules my reference scan flagged are all live — Expo Router file routes (`app/_layout.tsx`, `(tabs)/_layout.tsx`, `app/dev/theme-lab.tsx`), platform-suffixed files (`icon-symbol.ios.tsx`, `use-color-scheme.web.ts`), vite-aliased desktop stubs (`*-stub.ts`), and `best-distributor-card.tsx` (imported as `BestDistributorCard`).
+- [x] No code change; tree unchanged from Phase 645 (`tsc 0`, lint 0 errors / 157 warnings, `2569 passed`; desktop `281`).
