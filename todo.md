@@ -4889,3 +4889,13 @@ Scanned every `app/` and `components/` interactive element, image, and text inpu
 - [x] **Found a real break from Phase 641:** my trending response-cap change made `trending.refresh` read the body via `text()`, but `tests/server-db-branches.test.ts`'s OpenAI mock only provided `json()` — so a **DB-gated** test failed. The no-DB run was green, which is exactly the "a green no-DB run is not evidence for a DB-gated guard" lesson from Phase 628. Fixed the mock (and its return-type annotation).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2549 passed` (27 skipped without a DB) / **`2576 passed`** with the DB; desktop `281 passed`.
 - [ ] Remaining low-coverage app modules worth a future pass: `lib/trpc.ts` (0%, header building), `server/storage.ts` (2%, S3 helpers), `lib/background-fetch.ts` (7%, the XHR path needs a DOM/XHR harness), `lib/shared-watchlist.ts` (40%), `lib/push-token.ts` (44%).
+
+## Phase 643: tRPC header building tests (the 0%-covered transport layer)
+
+- [x] **`lib/trpc.ts` was 0% covered** despite every API call going through it. Added 8 tests for the two header builders:
+  - `byoLlmHeaders`: sends nothing for the built-in Forge provider; sends nothing for an **unrecognized** provider value (it comes from persisted/imported settings, so it is not guaranteed to be one of the union); forwards provider/key/model; forwards the `ollama-local` URL; returns nothing when settings are unreadable.
+  - `trpcHeaders`: carries the session token + device id; omits the token when signed out and **survives a device-id failure** (a rejection there would break header construction for every request); merges the BYO-LLM headers.
+- [x] **Non-vacuous:** removing the provider clamp and removing the `getDeviceId().catch()` each fail their test.
+- [x] **Audited the rest of the module and found it correct:** `getSessionToken` already catches internally (so the un-guarded call is safe), the background path swaps in the native-timeout XHR fetch, the foreground path has an `AbortController` deadline, and the `revokedDeviceLink` clears the session on the device-revoked error.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2557 passed` (27 skipped without a DB); desktop `281 passed`.
+- [ ] Remaining low-coverage app modules: `server/storage.ts` (2%, S3 helpers), `lib/background-fetch.ts` (7%, needs an XHR harness), `lib/shared-watchlist.ts` (40%), `lib/push-token.ts` (44%).
