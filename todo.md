@@ -5229,3 +5229,12 @@ Diffed the full `STORAGE_KEYS` list against what each wipe path removes — a ke
 - [x] **The four keys it keeps are all deliberate device-level state, none carrying user content:** `app_settings` (device preferences — with the BYO-LLM key stripped and the LLM config reset), `fx_rates` / `fx_rate_history` (public market data), and `background_task_interval` (a device registration marker).
 - [x] **`clearAllData` removes every key** (verified programmatically: no key in `STORAGE_KEYS` is missed).
 - [x] No code change; tree unchanged from Phase 681 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
+
+## Phase 683: Malformed server-response handling audit (clean)
+
+Checked how each client fetch handles a 200 with an unexpected body (a proxy HTML page, a truncated payload) — not just an error status.
+
+- [x] **`lib/server-prices.ts`:** the direct background path's `JSON.parse(html)` is outside its own try but inside `fetchServerPrice`'s `try/catch` (returns null), and the shape is read with optional chaining plus a `!json` guard and `history ?? []`. The foreground tRPC path validates `!result.snapshot && !result.history?.length` and defaults `history`.
+- [x] **`shared/src/fx.ts`'s `fetchFxRates`:** validates `typeof result.rates === "object" && result.rates !== null` and `fetchedAt` numeric, and catches everything (returns null). `lib/fx.ts` additionally guards `typeof result.fetchedAt !== "number" || result.fetchedAt <= 0`.
+- [x] **`lib/server-insights.ts` / `lib/server-images.ts` / `lib/server-notifications.ts`:** each has a `catch` on its fetch path.
+- [x] No code change; tree unchanged from Phase 682 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
