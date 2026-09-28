@@ -41,3 +41,36 @@ describe("withTimeoutReject", () => {
     vi.useRealTimers();
   });
 });
+
+describe("withTimeout while backgrounded", () => {
+  afterEach(async () => {
+    const { setBackgroundAppState } = await import(
+      "../lib/background-safe-timers"
+    );
+    setBackgroundAppState("foreground");
+  });
+
+  it("maps the background-safe timeout sentinel to null", async () => {
+    // The background branch's whole contract is "null means timeout": the
+    // background-safe race resolves `undefined`, so without the mapping a
+    // caller would receive `undefined` and mistake a timeout for a value.
+    const { setBackgroundAppState } = await import(
+      "../lib/background-safe-timers"
+    );
+    setBackgroundAppState("background");
+    await expect(withTimeout(Promise.resolve(7), 4000)).resolves.toBe(7);
+    await expect(
+      withTimeout(new Promise<number>(() => {}), 5),
+    ).resolves.toBeNull();
+  });
+
+  it("withTimeoutReject throws on the background timeout", async () => {
+    const { setBackgroundAppState } = await import(
+      "../lib/background-safe-timers"
+    );
+    setBackgroundAppState("background");
+    await expect(
+      withTimeoutReject(new Promise<number>(() => {}), 5),
+    ).rejects.toThrow(/timeout/);
+  });
+});

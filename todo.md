@@ -5144,3 +5144,11 @@ Mutation pass over the desktop Rust tests (70 → 71).
 - [x] **Investigated and correctly non-discriminating:** removing the `ms <= 0` short-circuit in `backgroundSafeDelay` does **not** fail any test — and that is right, not a gap: with the short-circuit gone the backgrounded poll loop's first tick sees `Date.now() >= deadline` and resolves immediately, so the branch is a pure optimization rather than a correctness guarantee. The existing "delay resolves immediately when duration is 0" test still passes because the behaviour is unchanged.
 - [x] No code change; tree unchanged from Phase 671 (`tsc 0`, lint 0 errors / 157 warnings, `2598 passed`; desktop `282`).
 - [x] Cumulative mutation sample: 51 areas, 6 real gaps (all closed); 2 mutations confirmed behaviourally equivalent rather than gaps.
+
+## Phase 673: withTimeout's background branch was untested
+
+- [x] **Found: `withTimeout`'s background branch had no test.** `tests/with-timeout.test.ts` only exercised the foreground path, so the branch's entire contract — mapping the background-safe race's `undefined` sentinel to `null` ("null means timeout") — was unverified. Removing the mapping left the suite green.
+- [x] **Added two cases** (`tests/with-timeout.test.ts`): while backgrounded, a fast value resolves and a hung promise resolves to `null`; `withTimeoutReject` throws on the background timeout. Non-vacuous (removing the mapping fails the first).
+- [x] **Also caught:** removing `withTimeout`'s timer cleanup fails the existing "leaves no pending timer after settle" test.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2600 passed` (27 skipped without a DB); desktop `282 passed`.
+- [x] Cumulative mutation sample: 53 areas, 7 real gaps (all closed).
