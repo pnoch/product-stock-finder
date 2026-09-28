@@ -4857,3 +4857,11 @@ Audited the one user-facing, security-relevant surface not yet covered: a token 
 - [x] Fixed the two consequences of the change: the `lazy(...)` consts sat between imports (12 `import/first` lint warnings → back to 157/0), and the modal test asserted the chart synchronously (now awaits the chunk).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2544 passed`; desktop `tsc 0`, `281 passed`.
 - [ ] Not done (larger, riskier): replacing recharts with the mobile app's hand-rolled SVG chart would remove the dependency entirely (~110 KB gzip) but means rewriting two chart components; the lazy split captures most of the win without that risk.
+
+## Phase 639: Dependency security audit
+
+- [x] **Upgraded four direct dependencies with known advisories** (`pnpm audit --prod`): `@trpc/server` 11.7.2 → 11.19.0 (prototype pollution, patched ≥11.8.0); `axios` ^1.13.2 → ^1.20.0 (NO_PROXY/SSRF bypasses + prototype-pollution gadgets, patched ≥1.15.2 — relevant because the server fetches user-supplied URLs); `drizzle-orm` ^0.44.7 → ^0.45.3 (SQL injection via unescaped identifiers, patched ≥0.45.2); `mysql2` ^3.16.0 → ^3.24.4 (patched ≥3.22.0). Audit count dropped **147 → 113**.
+- [x] **Verified the upgrades are safe:** root `tsc 0`, `2544 passed` (27 skipped) / **`2571 passed` with the DB** (the mysql2/drizzle bumps exercise the real SQL paths), desktop `281 passed`, lint 0 errors (157 warnings).
+- [x] **`undici` 7.29.0 (added in Phase 624) is already patched** — every undici advisory targets `<6.28.0`; the audit's remaining undici hits are transitive 6.x copies nested inside other packages.
+- [x] **The 2 remaining criticals are dev-tooling only:** `shell-quote` and `tar` are pulled in by `@expo/cli` (Expo's build/dev CLI) via `react-devtools-core`/`expo-router` — never shipped to users and never run in production. Not upgradeable without an Expo SDK bump.
+- [ ] Remaining advisories (113) are transitive build/dev dependencies (Expo/Metro/RN tooling); clearing them needs upstream releases, not local pins.
