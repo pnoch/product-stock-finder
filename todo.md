@@ -5186,3 +5186,10 @@ Mutation pass over `server/devices.ts` and `server/db.ts`.
 - [x] **Verified the drop calendar's local-time bucketing is intentional and correct.** `drop-calendar.ts` deliberately uses local date parts (a user-facing calendar buckets by the user's local day), with documented calendar-date arithmetic rather than fixed 24h steps; `tests/drop-calendar-dst.test.ts` pins `TZ=America/New_York` and covers spring-forward. I also checked fall-back empirically: the calendar-date arithmetic yields 30 unique keys including the 25-hour day (and the buggy fixed-24h version happens to pass fall-back too — it is the spring-forward direction that breaks, which the test covers).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2610 passed` (27 skipped without a DB); desktop `282 passed`.
 - [x] Cumulative mutation sample: 65 areas, 11 real gaps (all closed).
+
+## Phase 678: Notification digest/evaluator mutation pass (all guards discriminate)
+
+- [x] **Caught:** `shouldHoldScope`'s "every bound config must opt in" rule (changing `every` → `some` fails "delivers when any device lacks prefs" — one old client without quiet hours would otherwise delay every device's notifications); `mergeDigestHeld`'s dedup by `dedupKey` (defeating it fails "merges by dedupKey, latest wins"); `takeDigestHeld`'s consume-once (not deleting the buffer fails "resumes individual delivery on later ticks").
+- [x] **Investigated and correctly non-discriminating:** shifting the health dedup bucket by a constant (`Math.floor(now / BUCKET) + 1`) does not fail any test — and that is right: a constant shift preserves which events fall in the same window, so it is behaviourally equivalent, not a gap.
+- [x] No code change; tree unchanged from Phase 677 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
+- [x] Cumulative mutation sample: 69 areas, 11 real gaps (all closed); 4 mutations confirmed behaviourally equivalent.
