@@ -9,6 +9,7 @@
  */
 import { storagePut } from "../storage";
 import { ENV } from "./env";
+import { fetchWithTimeout } from "./fetch-timeout";
 
 const DEFAULT_IMAGE_MODEL = "MODEL_GPT_IMAGE_2";
 const DEFAULT_IMAGE_QUALITY = "medium";
@@ -49,7 +50,7 @@ async function generateWithForge(
   const model = options.model ?? DEFAULT_IMAGE_MODEL;
   const quality = options.quality ?? (model === DEFAULT_IMAGE_MODEL ? DEFAULT_IMAGE_QUALITY : undefined);
 
-  const response = await fetch(fullUrl, {
+  const response = await fetchWithTimeout(fullUrl, {
     method: "POST",
     headers: {
       accept: "application/json",
@@ -85,7 +86,7 @@ async function generateWithOllama(
     : (ENV.ollamaBaseUrl || "https://ollama.com");
   const model = options.model ?? "gemma4";
 
-  const response = await fetch(`${baseUrl}/v1/images/generations`, {
+  const response = await fetchWithTimeout(`${baseUrl}/v1/images/generations`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -126,7 +127,7 @@ async function generateWithOpenAI(
   const model = options.model ?? "dall-e-3";
   const size = "1024x1024";
 
-  const response = await fetch("https://api.openai.com/v1/images/generations", {
+  const response = await fetchWithTimeout("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -179,7 +180,7 @@ export async function listImageModels(): Promise<ListImageModelsResponse> {
       ? (ENV.ollamaBaseUrl || "http://localhost:11434")
       : (ENV.ollamaBaseUrl || "https://ollama.com");
     try {
-      const res = await fetch(`${baseUrl}/api/tags`);
+      const res = await fetchWithTimeout(`${baseUrl}/api/tags`);
       if (!res.ok) return { models: [] };
       const data = (await res.json()) as { models?: Array<{ name: string }> };
       return {
@@ -199,7 +200,7 @@ export async function listImageModels(): Promise<ListImageModelsResponse> {
   const baseUrl = ENV.forgeApiUrl.endsWith("/") ? ENV.forgeApiUrl : `${ENV.forgeApiUrl}/`;
   const fullUrl = new URL("images.v1.ImageService/ListModels", baseUrl).toString();
 
-  const response = await fetch(fullUrl, {
+  const response = await fetchWithTimeout(fullUrl, {
     method: "POST",
     headers: {
       accept: "application/json",

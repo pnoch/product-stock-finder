@@ -5264,3 +5264,11 @@ Verified the catalog, distributor list, seed list, and sample data are internall
 - [x] **Fix:** a per-attempt `AbortController` with a 30-second deadline, aborted and retried by the existing backoff loop (the caller's own signal still wins if supplied), cleared in a `finally`.
 - [x] **Tests:** `tests/llm-fetch-timeout.test.ts` (the request carries an abort signal; a network error retries the full budget and then throws). `invokeLLM` is mocked in 7 other suites, so this is the first test to exercise the real fetch path. Non-vacuous (removing the signal fails both).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2612 passed` (27 skipped without a DB); desktop `282 passed`.
+
+## Phase 687: The paid image-generation client had no request timeout
+
+- [x] **Found: `server/_core/imageGeneration.ts` had five `fetch` calls with no deadline** (the Forge image API, the local Ollama `/v1/images/generations` and `/api/tags`, the direct OpenAI API, and the model-list call). Node's `fetch` has no default timeout, so a hung provider held the request — and its socket — open indefinitely on the **paid** image path (`server/product-images.ts` → `generateImage`).
+- [x] **Fix:** new `server/_core/fetch-timeout.ts` (`fetchWithTimeout`, 60 s default, caller's own signal wins) applied to all five sites.
+- [x] **Tests:** `tests/core-fetch-timeout.test.ts` (the signal is passed; the deadline aborts). Non-vacuous.
+- [x] **Also noted:** `server/_core/voiceTranscription.ts` (288 lines) is unused, like `heartbeat.ts`/`dataApi.ts` — framework code, reported rather than removed.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2614 passed` (27 skipped without a DB); desktop `282 passed`.
