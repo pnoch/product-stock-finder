@@ -5004,3 +5004,10 @@ Audited every `... / x * 100` percentage computation in app code for an unguarde
   - `lib/price-change.ts` guards `oldest <= 0`; `lib/deal-score.ts`, `lib/fx-history.ts` (×2), and `lib/price-digest.ts` each guard their divisor; `lib/price-average.ts` divides by an average that is only computed from a non-empty series.
 - [x] **Method note:** both candidates looked like real bugs from the grep, but writing the test first showed the guard was either already present or unreachable. Reverted rather than shipping dead code plus a test that passes for the wrong reason.
 - [x] No net code change; tree unchanged from Phase 654 (`tsc 0`, lint 0 errors / 157 warnings, `2582 passed`; desktop `281`).
+
+## Phase 656: Timer/listener leak audit (clean)
+
+- [x] **Scanned every `useEffect` in `app/`, `components/`, and `hooks/`** for a block that registers a listener/timer/observer without a cleanup: **0 findings**. Every registration has a matching `return () => …` / `removeEventListener` / `clearInterval` / `clearTimeout` / `unsubscribe`.
+- [x] **Module-level timers are all bounded or cleared:** `lib/health.ts` and `lib/llm-discovery.ts` abort timers clear in `catch` *and* `finally`; `lib/background-safe-timers.ts` and `lib/server-prices.ts` clear their timers; `lib/device-revoked.ts`'s bare `setTimeout(…, 0)` is a deliberate one-shot coalescing reset, not a leak.
+- [x] **Module-level listeners are idempotent with matching teardown:** `lib/web-notifications.ts`'s `startPushDedupListener`/`stopPushDedupListener` and `startPolling`/`stopPolling` guard against double-registration and remove on stop; `lib/notifications.ts`'s `setupPushEventTracking` returns a disposer that removes both subscriptions; `app/_layout.tsx` and `desktop/src/App.tsx` call each setup inside an effect and return its disposer.
+- [x] No code change; tree unchanged from Phase 655 (`tsc 0`, lint 0 errors / 157 warnings, `2582 passed`; desktop `281`).
