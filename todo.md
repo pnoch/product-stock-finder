@@ -5163,3 +5163,10 @@ Mutation pass over the storage modules changed this session.
 - [x] **Method note:** my first mutation run targeted the wrong test files (`tests/alerts*.test.ts` rather than `tests/storage.test.ts`, where `deactivateAlert` is actually exercised) and looked like a surviving mutation — re-ran against the right file.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2602 passed` (27 skipped without a DB); desktop `282 passed`.
 - [x] Cumulative mutation sample: 57 areas, 9 real gaps (all closed).
+
+## Phase 675: sync-meta corruption tests (one real gap closed)
+
+- [x] **Gap — the sync-meta payload guards were untested.** No test exercised a corrupt `sync_meta` payload, so removing the `lastSyncedAt` type check (trusting a string as the cursor) left the suite green — a bogus cursor makes the next sync incremental and silently skips items. Added `tests/sync-meta-corrupt.test.ts` (5 cases): non-object payloads (`[]`, a string, a number, `null`), invalid JSON, a non-numeric `lastSyncedAt`, a non-object `items` map, and a valid payload round-trip. Non-vacuous (removing the `lastSyncedAt` check fails it).
+- [x] **Investigated and correctly non-discriminating:** removing the `Array.isArray(parsed)` check does not fail any test — and that is right, not a gap: an array payload has no `lastSyncedAt`/`items`, so the downstream type checks yield the same `0`/`{}` result. The array check is defensive (it makes the intent explicit) rather than behaviour-changing.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2607 passed` (27 skipped without a DB); desktop `282 passed`.
+- [x] Cumulative mutation sample: 59 areas, 10 real gaps (all closed); 3 mutations confirmed behaviourally equivalent.
