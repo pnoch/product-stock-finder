@@ -176,9 +176,13 @@ export async function scheduleHealthAlert(
   if (Platform.OS === "web") {
     try {
       const { displayWebNotification } = await import("./web-notifications");
-      displayWebNotification(title, body);
+      // Bail out when nothing was shown: the caller records the event as
+      // delivered (and the server dedups on it), so a failed display would
+      // silently consume the alert — the same class fixed in the price-check
+      // path. Returning null lets the caller re-arm.
+      if (!displayWebNotification(title, body)) return null;
     } catch {
-      // web display failures are non-fatal
+      return null;
     }
   } else {
     try {
@@ -229,9 +233,11 @@ export async function scheduleHealthRecovery(
   if (Platform.OS === "web") {
     try {
       const { displayWebNotification } = await import("./web-notifications");
-      displayWebNotification(title, body);
+      // See scheduleHealthAlert: a failed display must not be recorded as
+      // delivered.
+      if (!displayWebNotification(title, body)) return null;
     } catch {
-      // web display failures are non-fatal
+      return null;
     }
   } else {
     try {

@@ -36,6 +36,13 @@ vi.mock("../lib/web-notifications", () => ({
 }));
 
 import { scheduleHealthAlert, scheduleHealthRecovery } from "../lib/notifications";
+import { displayWebNotification } from "../lib/web-notifications";
+
+// The web branch now bails when nothing was shown, so the success-path tests
+// need the mock to report a shown notification.
+beforeEach(() => {
+  vi.mocked(displayWebNotification).mockReturnValue(true);
+});
 
 describe("scheduleHealthAlert history recording", () => {
   beforeEach(() => {
@@ -102,5 +109,37 @@ describe("scheduleHealthAlert records displayedEventId", () => {
     await scheduleHealthAlert("Winncom", "blocked");
     const recorded = state.recorded[0] as Record<string, unknown>;
     expect(recorded.id).toMatch(/^health-winncom-blocked-\d+$/);
+  });
+});
+
+describe("health notifications on web", () => {
+  beforeEach(() => {
+    state.platform = "web";
+    state.scheduled.length = 0;
+    state.recorded.length = 0;
+  });
+
+  it("does not record a delivery when the web notification cannot be shown", async () => {
+    const { displayWebNotification } = await import("../lib/web-notifications");
+    vi.mocked(displayWebNotification).mockReturnValue(false);
+    // The caller records the event as delivered (and the server dedups on it),
+    // so a failed display must return null rather than consume the alert.
+    expect(await scheduleHealthAlert("Winncom", "blocked")).toBeNull();
+    expect(state.recorded).toHaveLength(0);
+  });
+
+  it("records the delivery when the web notification is shown", async () => {
+    const { displayWebNotification } = await import("../lib/web-notifications");
+    vi.mocked(displayWebNotification).mockReturnValue(true);
+    const result = await scheduleHealthAlert("Winncom", "blocked");
+    expect(result?.eventId).toContain("health-winncom-blocked");
+    expect(state.recorded).toHaveLength(1);
+  });
+
+  it("does not record a recovery when the web notification cannot be shown", async () => {
+    const { displayWebNotification } = await import("../lib/web-notifications");
+    vi.mocked(displayWebNotification).mockReturnValue(false);
+    expect(await scheduleHealthRecovery("Winncom", "blocked")).toBeNull();
+    expect(state.recorded).toHaveLength(0);
   });
 });
