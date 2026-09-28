@@ -5211,3 +5211,12 @@ The earlier web smoke (Phase 632) had a dead API (a dev `.env` baked in). This r
 - [x] **The client↔server contract works end-to-end:** register → cookie session → authenticated `/api/auth/me` (200, user returned) → a tRPC query (`fx.get`, 200, 2.6 KB) all succeed. The app's own API calls reach the correct origin with **0 failed requests and 0 page errors**, and the shell renders the seeded watchlist.
 - [x] **Confirmed the AGENTS.md gotcha empirically:** the first export baked in the stale `EXPO_PUBLIC_API_BASE_URL` (`localhost:3000`) because Metro's transform cache missed the change — 13 `ERR_CONNECTION_REFUSED` requests to the wrong origin. Re-running `expo export -p web --clear` produced a bundle with 0 `localhost:3000` and 3 `127.0.0.1:4650` references, after which every request succeeded. The documented `--clear` requirement is real and load-bearing.
 - [x] No code change; tree unchanged from Phase 679 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
+
+## Phase 681: End-to-end desktop app against a live API + database (clean)
+
+The desktop analogue of Phase 680 — the desktop's own tRPC/header layer had never been exercised end-to-end.
+
+- [x] **Full stack up:** built the server bundle + desktop renderer (`VITE_API_BASE_URL` baked in — 3 references, no stale value), served the renderer, and started the API against MySQL.
+- [x] **The desktop client works end-to-end:** it boots (onboarding + full nav), register returns 200 with a session token, and a tRPC query (`fx.get`) returns 200 / 2.6 KB — **0 failed requests, 0 page errors**.
+- [x] **Verified the CORS boundary is correct, not broken:** the first attempt failed with `Failed to fetch` because the desktop renderer (`:4661`) calls the API (`:4660`) cross-origin and `CORS_ALLOWED_ORIGINS` was empty — the browser blocked it. Setting the origin produced `Access-Control-Allow-Origin` + `Access-Control-Allow-Credentials`, after which everything worked. That is the allowlist doing its job (a wildcard would have been the bug).
+- [x] No code change; tree unchanged from Phase 680 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
