@@ -179,18 +179,76 @@ function parseFromHtml(html: string, url: string): ParsedProduct | null {
 // Resolves the hostname and rejects if ANY resolved address is private. Blocks
 // DNS-rebinding hosts (e.g. 127.0.0.1.nip.io, localtest.me) that pass the
 // literal-IP check but resolve to loopback / cloud metadata.
-async function resolvesToPrivate(hostname: string): Promise<boolean> {
+/**
+ * Resolves a hostname once and returns the addresses it may connect to, or null
+ * when it is private/unresolvable. The result is *pinned* into the connection
+ * (see fetchPinned), because resolving here and letting `fetch` resolve again
+ * left a TOCTOU window: a rebinding name could answer public for this check and
+ * private for the connection.
+ */
+async function resolvePublicAddresses(
+  hostname: string,
+): Promise<{ address: string; family: number }[] | null> {
   // A literal IP was already checked by isBlockedUrl.
   if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname.includes(":")) {
-    return false;
+    return null;
   }
   try {
     const { lookup } = await import("node:dns/promises");
     const addrs = await lookup(hostname, { all: true });
-    return addrs.some((a) => isPrivateHostname(a.address));
+    if (addrs.length === 0) return null;
+    if (addrs.some((a) => isPrivateHostname(a.address))) return null;
+    return addrs.map((a) => ({ address: a.address, family: a.family }));
   } catch {
     // Unresolvable → treat as blocked (nothing legitimate to fetch).
-    return true;
+    return null;
+  }
+}
+
+/**
+ * `fetch` that can only connect to the addresses already vetted by
+ * resolvePublicAddresses. The custom `lookup` ignores the hostname and returns
+ * the pinned list, so the connection cannot re-resolve to a private address
+ * (DNS rebinding). A literal-IP URL passes `pinned: null` and connects normally
+ * — its address was validated by isBlockedUrl.
+ */
+/**
+ * A `dns.lookup`-shaped function that ignores the hostname and always answers
+ * with the already-vetted addresses. Exported so the pinning can be tested
+ * without a live connection.
+ */
+export function pinnedLookup(pinned: { address: string; family: number }[]) {
+  return (
+    _hostname: string,
+    options: { all?: boolean } | undefined,
+    callback: (...args: never[]) => void,
+  ): void => {
+    // undici may ask for all addresses or a single one.
+    if (options?.all) {
+      (callback as unknown as (e: unknown, a: unknown) => void)(null, pinned);
+      return;
+    }
+    (callback as unknown as (e: unknown, a: string, f: number) => void)(
+      null,
+      pinned[0]!.address,
+      pinned[0]!.family,
+    );
+  };
+}
+
+export async function fetchPinned(
+  url: string,
+  init: RequestInit,
+  pinned: { address: string; family: number }[] | null,
+): Promise<Response> {
+  if (!pinned) return fetch(url, init);
+  const { Agent } = await import("undici");
+  const agent = new Agent({ connect: { lookup: pinnedLookup(pinned) } });
+  try {
+    return await fetch(url, { ...init, dispatcher: agent } as RequestInit);
+  } finally {
+    // The connection is already established; the agent is not reused.
+    void agent.close();
   }
 }
 
@@ -202,9 +260,15 @@ async function tryParseUrl(raw: string): Promise<ParsedProduct | null> {
   // and sockets, so it shares a process-wide cap (rate limits are per-IP and a
   // rotating caller bypasses them).
   if (!tryConsumeBudget("products.parseUrl")) return null;
+  let pinned: { address: string; family: number }[] | null = null;
   try {
     const hostname = new URL(url).hostname;
-    if (await resolvesToPrivate(hostname)) return null;
+    const isLiteral =
+      /^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname.includes(":");
+    if (!isLiteral) {
+      pinned = await resolvePublicAddresses(hostname);
+      if (!pinned) return null;
+    }
   } catch {
     return null;
   }
@@ -215,14 +279,14 @@ async function tryParseUrl(raw: string): Promise<ParsedProduct | null> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 6000);
     try {
-      const res = await fetch(url, {
+      const res = await fetchPinned(url, {
         signal: controller.signal,
         redirect: "error",
         headers: {
           "User-Agent": "Mozilla/5.0 (compatible; ProductStockFinder/1.0)",
           Accept: "text/html,application/xhtml+xml",
         },
-      });
+      }, pinned);
       if (!res.ok) return null;
       // Stream with a hard cap: `res.text()` buffered the whole body before the
       // length check, so an attacker could exhaust the process with one huge

@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { isBlockedUrl, parseProductText, readCapped } from "../server/product-parse";
+import {
+  fetchPinned,
+  isBlockedUrl,
+  parseProductText,
+  pinnedLookup,
+  readCapped,
+} from "../server/product-parse";
 
 function llmReturning(content: string | null) {
   return vi.fn().mockResolvedValue({
@@ -150,5 +156,55 @@ describe("IPv6 embedded IPv4 addresses", () => {
     }
     // A public embedded address is still allowed.
     expect(isBlockedUrl("http://[64:ff9b::5db8:d822]/")).toBe(false);
+  });
+});
+
+describe("DNS pinning (rebinding guard)", () => {
+  it("answers with the vetted addresses regardless of the hostname", () => {
+    const lookup = pinnedLookup([{ address: "93.184.216.34", family: 4 }]);
+    // Single-address form.
+    let single: unknown[] = [];
+    (lookup as unknown as (
+      h: string,
+      o: unknown,
+      cb: (...a: unknown[]) => void,
+    ) => void)("rebind.example", undefined, (...args) => {
+      single = args;
+    });
+    expect(single).toEqual([null, "93.184.216.34", 4]);
+
+    // All-addresses form (undici uses this when it wants every candidate).
+    let all: unknown[] = [];
+    (lookup as unknown as (
+      h: string,
+      o: unknown,
+      cb: (...a: unknown[]) => void,
+    ) => void)("rebind.example", { all: true }, (...args) => {
+      all = args;
+    });
+    expect(all[0]).toBeNull();
+    expect(all[1]).toEqual([{ address: "93.184.216.34", family: 4 }]);
+  });
+
+  it("connects to the pinned address instead of re-resolving the hostname", async () => {
+    // The gate resolves once; the connection must reuse that answer, or a
+    // rebinding name could answer public for the check and private for the
+    // connection. The hostname here does not resolve at all, so only the pin
+    // can make the request succeed.
+    const http = await import("node:http");
+    const server = http.createServer((_req, res) => res.end("ok"));
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const port = (server.address() as { port: number }).port;
+    try {
+      const pinned = await fetchPinned(
+        `http://pinned-rebind.test:${port}/`,
+        {},
+        [{ address: "127.0.0.1", family: 4 }],
+      );
+      expect(pinned.status).toBe(200);
+      expect(await pinned.text()).toBe("ok");
+    } finally {
+      server.close();
+    }
   });
 });
