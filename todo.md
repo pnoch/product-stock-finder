@@ -5202,3 +5202,12 @@ Scanned every module-level `Map`/`Set` and the growing persisted collections for
 - [x] **The persisted collections are capped:** the discovery store at 200 products/distributors; the displayed-event-id list at 200 (oldest spliced off); the notification history at 200 (oldest truncated). The server purges old `notificationEvents` on the warmer tick.
 - [x] **Method note:** my first grep missed the `ids.length > 200` cap form (it looked for `size`), which briefly made the notification history look unbounded — reading the actual function showed the cap.
 - [x] No code change; tree unchanged from Phase 678 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
+
+## Phase 680: End-to-end web app against a live API + database (clean)
+
+The earlier web smoke (Phase 632) had a dead API (a dev `.env` baked in). This run served the export from the API server itself and exercised the real client↔server contract.
+
+- [x] **Full stack up:** built the server bundle + web export, started it against MySQL, and drove it in headless Chromium.
+- [x] **The client↔server contract works end-to-end:** register → cookie session → authenticated `/api/auth/me` (200, user returned) → a tRPC query (`fx.get`, 200, 2.6 KB) all succeed. The app's own API calls reach the correct origin with **0 failed requests and 0 page errors**, and the shell renders the seeded watchlist.
+- [x] **Confirmed the AGENTS.md gotcha empirically:** the first export baked in the stale `EXPO_PUBLIC_API_BASE_URL` (`localhost:3000`) because Metro's transform cache missed the change — 13 `ERR_CONNECTION_REFUSED` requests to the wrong origin. Re-running `expo export -p web --clear` produced a bundle with 0 `localhost:3000` and 3 `127.0.0.1:4650` references, after which every request succeeded. The documented `--clear` requirement is real and load-bearing.
+- [x] No code change; tree unchanged from Phase 679 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
