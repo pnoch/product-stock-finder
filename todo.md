@@ -4770,3 +4770,12 @@ Same method as Phases 610/611: a semantic mutation per module, then its tests.
 - [x] **Real gap found and closed:** `analyzeDistributors`'s "cheapest in-stock listing" reduce was untested — every existing case had a single listing per (product, distributor), so the reduce never had to choose and inverting the comparison (totalling the most expensive listing) went unnoticed. Added a two-listing case; it fails under the inversion.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2534 passed` (27 skipped without a DB) / **`2561 passed`** with the DB.
 - [x] Cumulative mutation sample: 30 areas, 3 real gaps (`mergePriceHistory` LWW, `productStatus` precedence, `analyzeDistributors` cheapest-selection). The recurring shape: a helper whose tests only ever exercise the single-item/one-branch case, so the comparison or precedence that matters is never forced.
+
+## Phase 630: Guard-quality (mutation) pass — fifth batch (comparison/precedence helpers)
+
+Targeted the heuristic from the last three gaps: helpers whose tests may only exercise the single-item/one-branch case.
+
+- [x] **Caught (guards discriminate):** `getBestPrice`'s cheapest reduce; `sortWatchlist`'s "recent" direction; `computePriceChange`'s percent sign; `checkRestocks`'s transition gate; `findBestDeal`/`findBestInStockListing`'s in-stock + positive-price gates; `suggestAlertPrices`' out-of-stock history filter; `computeDropCalendar`'s in-stock filter.
+- [x] **No new gaps:** every sampled comparison/precedence helper already had a case that forced the choice (the earlier phases' fixes are well covered).
+- [x] No code change; tree unchanged from Phase 629 (`tsc 0`, lint 0 errors / 157 warnings, `2534 passed`).
+- [x] Cumulative mutation sample: 37 areas, 3 real gaps.
