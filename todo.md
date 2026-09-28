@@ -5238,3 +5238,12 @@ Checked how each client fetch handles a 200 with an unexpected body (a proxy HTM
 - [x] **`shared/src/fx.ts`'s `fetchFxRates`:** validates `typeof result.rates === "object" && result.rates !== null` and `fetchedAt` numeric, and catches everything (returns null). `lib/fx.ts` additionally guards `typeof result.fetchedAt !== "number" || result.fetchedAt <= 0`.
 - [x] **`lib/server-insights.ts` / `lib/server-images.ts` / `lib/server-notifications.ts`:** each has a `catch` on its fetch path.
 - [x] No code change; tree unchanged from Phase 682 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
+
+## Phase 684: Error-message contract audit (clean)
+
+Checked every user-facing failure path for actionable messages and internal-detail leakage.
+
+- [x] **Server errors are redacted before they reach the UI:** `redactErrorShape` replaces an internal error's message with a generic one (and strips the stack, Phase 659), so a surfaced `data.error` is a deliberate, safe message.
+- [x] **Client fallbacks are generic:** every `showAlert`/`setError`/`setLoadError` site uses `err instanceof Error ? err.message : "<generic>"`, and the throwing helpers (e.g. `resetPassword` → `data.error || "Password reset failed"`) fall back to a generic string when the server sends none.
+- [x] **The error boundary's message display is a deliberate crash-screen aid** (truncated to 160 graphemes, grapheme-safe), showing the app's own error rather than server data.
+- [x] No code change; tree unchanged from Phase 683 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
