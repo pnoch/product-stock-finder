@@ -4939,3 +4939,13 @@ Continued the audit of the module that hid the Phase 647 bug, plus every caller 
 - [x] **Verified every caller of a boolean-returning notification function uses the result:** `lib/server-notifications.ts` (`const shown = …`), `lib/price-digest.ts` (`return sendPriceDigestNotification(...)`), `app/(tabs)/settings.tsx` (`const sent = …` → "Permission Required" alert). No remaining discarded-result sites — the pattern that caused the Phase 647 bug is gone from this module.
 - [x] **Verified the digest's subtle logic is tested:** the weekly interval compares *calendar days* rather than elapsed 24 h (a DST week is 167/169 h), and `tests/price-digest.test.ts` has an explicit "fires weekly across a DST transition (167h week)" case. The snapshot only advances when `send` reports delivery.
 - [x] No code change; tree unchanged from Phase 647 (`tsc 0`, lint 0 errors / 157 warnings, `2572 passed`; desktop `281`).
+
+## Phase 649: AGENTS.md claim verification (documentation drift)
+
+Verified the concrete, checkable claims in AGENTS.md against the code — doc drift causes systematic errors for future work.
+
+- [x] **Accurate:** 25 registered parsers (`registry.ts`) and 20 Drizzle tables (`schema.ts`); 7 `SEED_IDS`; `web.output: "single"`; the three `_core/` directories exist; `MAX_UPLOAD_*`/`SYNC_PUSH_*` caps live in `shared/const.ts`; `browser.web.ts` and `browser.ts` export the same 3 symbols; `playwright` is imported only by `browser.ts`; `dist/` and `dist-web/` are separate build outputs.
+- [x] **Clarified (not drift):** the distributor catalog has **30** entries but only **25** have parsers (`allasch-uk`, `apple-us`, `newegg-us`, `pimoroni-uk`, `valve-us` are catalog-only). AGENTS.md's "25 registered parsers" is correct, and the health service iterates `PARSERS` (25), so the dashboard is consistent. Every parser-less distributor degrades gracefully — `scrapePriceOnDevice` and `refreshListing` both `return null`/the listing unchanged when `getParserByDistributorId` misses.
+- [x] **Clarified (not a violation):** AGENTS.md says `lib/price-source.ts` is the sole *foreground* price entry point. `lib/background-tasks/refresh-listing.ts` does call `fetchServerPrice` directly, but it is the background path with a different contract (prefers the server snapshot, records health, uploads history) — the documented rule is scoped to foreground, so this is correct.
+- [x] **Stale but harmless:** AGENTS.md says "~277 test files"; there are now 361. A soft "~" claim, not a correctness issue.
+- [x] No code change; tree unchanged from Phase 648 (`tsc 0`, lint 0 errors / 157 warnings, `2572 passed`; desktop `281`).
