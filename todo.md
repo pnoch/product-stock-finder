@@ -5081,3 +5081,11 @@ Verified the remaining inbound concerns against the running built server, not ju
   - `app/(tabs)/index.tsx`'s `loadData` reads local storage idempotently; `app/search.tsx`'s recent-search handlers are sequential user actions.
 - [x] **Async-race sweep complete:** two real races found and fixed (health detail in Phase 663, rates in Phase 664); every other candidate is guarded by an in-flight flag, reads idempotent local data, or is a synchronous derivation of already-loaded state.
 - [x] No code change; tree unchanged from Phase 664 (`tsc 0`, lint 0 errors / 157 warnings, `2590 passed`; desktop `281`).
+
+## Phase 666: Pulled sync items were written to the local store unvalidated
+
+- [x] **Found: `applyLocalItem` cast pulled `data` straight to `Product`/`PriceAlert`/`BackOrderReminder`.** The server accepts `data` as `z.unknown()` (forward compatibility), so a buggy or malicious client can push a malformed item — `{id, name: 123, listings: "not-an-array"}` — that is then written into the local store and rendered on **every** device, and the local store is the source of truth so it persists.
+- [x] **Fix:** a `sanitizePulledItem(collection, data)` guard at the top of `applyLocalItem` drops items that cannot be salvaged (no object, no string id for id-keyed collections, a watchlist without a string name or with a non-array `listings`, an alert without a finite `targetPrice`, a reminder without a string `reminderDate`). Settings is a single row keyed by the collection, so it is passed through to the existing per-field merge.
+- [x] **Two mistakes caught by the existing suite while writing it:** reusing `normalizeSharedWatchlistProduct` dropped `tagsUpdatedAt` (breaking the tag-LWW merge), and requiring an `id` dropped every settings row (`AppSettings` has no `id`). Both fixed before committing — the sync suite (48 tests) passes.
+- [x] **Tests:** `tests/sync-pulled-item-validation.test.ts` (a malformed watchlist item is dropped while a valid sibling is kept; an alert without a finite price is dropped; a valid settings row still applies). Non-vacuous.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2593 passed` (27 skipped without a DB); desktop `281 passed`.

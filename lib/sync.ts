@@ -601,11 +601,58 @@ function serializeItem(collection: Collection, item: unknown): unknown {
   return serialized;
 }
 
+/**
+ * Shape-checks a pulled item before it is written to the local store. The
+ * server accepts `data` as arbitrary JSON (forward compatibility), so a buggy or
+ * malicious client can push a malformed product/alert/reminder that would then
+ * render on every device — and the local store is the source of truth, so it
+ * persists. Returns null when the item cannot be salvaged.
+ */
+function sanitizePulledItem(
+  collection: Collection,
+  data: unknown,
+): unknown | null {
+  if (!data || typeof data !== "object") return null;
+  const record = data as Record<string, unknown>;
+  // Settings is a single row keyed by the collection, not by an item id.
+  if (collection === "settings") return data;
+  const id = typeof record.id === "string" ? record.id : "";
+  if (!id) return null;
+  if (collection === "watchlist") {
+    // The share normalizer is NOT reused here: it rebuilds the product without
+    // `tagsUpdatedAt`, which the tag-LWW merge needs. Validate the core shape
+    // and the listings array instead, preserving every other field verbatim.
+    if (typeof record.name !== "string" || !record.name.trim()) return null;
+    if (record.listings !== undefined && !Array.isArray(record.listings)) {
+      return null;
+    }
+    return data;
+  }
+  if (collection === "alerts") {
+    if (typeof record.targetPrice !== "number" || !Number.isFinite(record.targetPrice)) {
+      return null;
+    }
+    return data;
+  }
+  if (collection === "reminders") {
+    if (typeof record.reminderDate !== "string") return null;
+    return data;
+  }
+  // settings: a single row merged field-by-field below; a non-object is dropped.
+  return data;
+}
+
 async function applyLocalItem(
   storage: Storage,
   collection: Collection,
   data: unknown,
 ): Promise<void> {
+  const sanitized = sanitizePulledItem(collection, data);
+  if (sanitized === null) {
+    console.warn(`[Sync] dropped malformed pulled ${collection} item`);
+    return;
+  }
+  data = sanitized;
   switch (collection) {
     case "watchlist": {
       const incoming = data as Product;
