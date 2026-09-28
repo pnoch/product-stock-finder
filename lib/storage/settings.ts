@@ -40,7 +40,9 @@ export function createSettingsStorage(
       console.warn("[storage] read failed for app_settings", error);
       throw error;
     }
-    if (!raw) return DEFAULT_SETTINGS;
+    // A copy: callers may mutate what they read (e.g. `s.displayCurrency = …`
+    // then save), which would corrupt the module constant for every user.
+    if (!raw) return { ...DEFAULT_SETTINGS };
     try {
       const parsed: unknown = JSON.parse(raw);
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
@@ -50,7 +52,7 @@ export function createSettingsStorage(
     } catch {
       await quarantinePayload(adapter, KEYS.SETTINGS, raw);
       console.warn("[storage] quarantined corrupt payload for app_settings");
-      return DEFAULT_SETTINGS;
+      return { ...DEFAULT_SETTINGS };
     }
   }
 
@@ -201,7 +203,13 @@ export function createSettingsStorage(
       list.map((p) => {
         if (!p.tags?.includes(id)) return p;
         touched.push(p.id);
-        return { ...p, tags: (p.tags ?? []).filter((t) => t !== id) };
+        // Stamp like setProductTags/addTagsToProducts: without it the tag-LWW
+        // merge on another device re-adds the deleted tag (or unions it back).
+        return {
+          ...p,
+          tags: (p.tags ?? []).filter((t) => t !== id),
+          tagsUpdatedAt: new Date().toISOString(),
+        };
       }),
     );
     for (const productId of touched) notify("watchlist", productId);

@@ -22,7 +22,16 @@ function openDB(): Promise<any> {
       }
     };
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject((req as any).error ?? new Error("indexedDB open failed"));
+    // A failed open (private mode, blocked storage, enterprise policy) means
+    // IDB is unusable here, not that this operation failed: without the marker
+    // setItem rethrew and every write rejected, while reads silently resolved
+    // null — the app appeared to lose all data on each launch.
+    req.onerror = () =>
+      reject(
+        new IdbUnavailableError(
+          String((req as { error?: unknown }).error ?? "indexedDB open failed"),
+        ),
+      );
   });
 }
 
@@ -104,8 +113,16 @@ export function createIDBAdapter(): StorageAdapter {
           s.get(key),
         );
         idbValue = result?.value ?? null;
-      } catch {
-        // IDB unavailable this call — fall back to localStorage only.
+      } catch (e) {
+        if (!(e instanceof IdbUnavailableError)) {
+          // A real read failure (aborted transaction, closing connection) must
+          // surface. Returning localStorage here (normally null, since it is
+          // cleared once IDB commits) looked like "missing key", so readList's
+          // anti-empty guard never fired and the next read-modify-write
+          // persisted an EMPTY collection — destroying it and syncing the wipe.
+          throw e;
+        }
+        // IDB genuinely unavailable: localStorage is the only store.
         return readLocalStorage(key);
       }
       if (idbValue !== null) return idbValue;

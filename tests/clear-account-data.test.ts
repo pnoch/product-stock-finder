@@ -118,3 +118,18 @@ describe("clearAccountData vs clearAllData", () => {
     expect(settings.displayCurrency).toBe("USD");
   });
 });
+
+describe("quarantine blobs", () => {
+  it("are removed by both wipes", async () => {
+    for (const wipe of ["clearAccountData", "clearAllData"] as const) {
+      const { storage, map } = makeStorage();
+      // Simulate a quarantined corrupt payload + its persisted index.
+      map.set("watchlist_products.corrupt-123", "raw user data");
+      map.set("quarantine_index", JSON.stringify(["watchlist_products.corrupt-123"]));
+      await storage[wipe]();
+      // They hold raw user payloads and must not outlive the account.
+      expect(map.has("watchlist_products.corrupt-123"), wipe).toBe(false);
+      expect(map.has("quarantine_index"), wipe).toBe(false);
+    }
+  });
+});

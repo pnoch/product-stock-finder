@@ -116,3 +116,70 @@ describe("idb-adapter localStorage migration", () => {
     expect(await adapter.getItem("missing")).toBeNull();
   });
 });
+
+describe("idb-adapter read + open failures", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("surfaces a real read failure instead of reporting a missing key", async () => {
+    // Returning localStorage here (normally null, since it is cleared once IDB
+    // commits) looked like "missing key", so readList's anti-empty guard never
+    // fired and the next read-modify-write persisted an EMPTY collection.
+    vi.stubGlobal("indexedDB", {
+      open: () => {
+        const req: Record<string, unknown> = {};
+        queueMicrotask(() => {
+          req.result = {
+            transaction: () => {
+              const tx: Record<string, unknown> = {};
+              const store = {
+                get: () => {
+                  const getReq: Record<string, unknown> = {};
+                  queueMicrotask(() => {
+                    getReq.error = new Error("transaction aborted");
+                    (getReq.onerror as (() => void) | undefined)?.();
+                  });
+                  return getReq;
+                },
+              };
+              tx.objectStore = () => store;
+              return tx;
+            },
+          };
+          (req.onsuccess as (() => void) | undefined)?.();
+        });
+        return req;
+      },
+    });
+    const { createIDBAdapter } = await import("../lib/storage/idb-adapter");
+    const adapter = createIDBAdapter();
+    await expect(adapter.getItem("watchlist_products")).rejects.toThrow();
+  });
+
+  it("falls back to localStorage when indexedDB exists but cannot open", async () => {
+    // Private mode / blocked storage: the global exists, so the old code
+    // rethrew and every write rejected (the app appeared to lose all data).
+    vi.stubGlobal("indexedDB", {
+      open: () => {
+        const req: Record<string, unknown> = {};
+        queueMicrotask(() => {
+          req.error = new Error("open blocked");
+          (req.onerror as (() => void) | undefined)?.();
+        });
+        return req;
+      },
+    });
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    });
+    const { createIDBAdapter } = await import("../lib/storage/idb-adapter");
+    const adapter = createIDBAdapter();
+    await expect(adapter.setItem("k", "v")).resolves.toBeUndefined();
+    expect(store.get("k")).toBe("v");
+  });
+});

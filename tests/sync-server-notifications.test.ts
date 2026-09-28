@@ -12,6 +12,7 @@ const state = vi.hoisted(() => ({
   rendered: [] as Array<Record<string, unknown>>,
   renderData: [] as Array<{ productId?: string; type?: string } | undefined>,
   deactivated: [] as Array<Record<string, unknown>>,
+  pendingHealth: [] as Array<Record<string, unknown>>,
 }));
 
 vi.mock("../lib/trpc", () => ({
@@ -44,7 +45,10 @@ vi.mock("../lib/storage", () => ({
   }),
   removeStockWatch: vi.fn(async () => {}),
   removeBackOrderReminder: vi.fn(async () => {}),
-  getPendingHealthEvents: vi.fn(async () => []),
+  getPendingHealthEvents: vi.fn(async () => state.pendingHealth),
+  savePendingHealthEvents: vi.fn(async (events: unknown[]) => {
+    state.pendingHealth = events as never;
+  }),
   clearPendingHealthEvents: vi.fn(async () => {}),
   getSettings: vi.fn(async () => ({
     notificationsEnabled: true,
@@ -101,6 +105,7 @@ beforeEach(() => {
   state.rendered = [];
   state.renderData = [];
   state.deactivated = [];
+  state.pendingHealth = [];
 });
 
 describe("syncServerNotifications dedup", () => {
@@ -112,6 +117,38 @@ describe("syncServerNotifications dedup", () => {
     expect(state.historyRecorded).toHaveLength(1);
     expect(state.historyRecorded[0]!.id).toBe("evt-1");
     expect(state.deactivated).toEqual([{ alertId: "a1", price: 480 }]);
+  });
+
+  it("keeps health events that arrive while the upload is in flight", async () => {
+    // A health sweep appends during the network upload; clearing the whole key
+    // discarded those un-uploaded events (other devices never received them).
+    state.pendingHealth = [
+      { id: "h1", distributorId: "d1", distributorName: "D1", status: "blocked", title: "t", body: "b", createdAt: 1 },
+    ];
+    const storage = await import("../lib/storage");
+    vi.mocked(storage.getPendingHealthEvents)
+      .mockResolvedValueOnce([
+        { id: "h1", distributorId: "d1", distributorName: "D1", status: "blocked", title: "t", body: "b", createdAt: 1 },
+      ] as never)
+      .mockResolvedValueOnce([
+        { id: "h1", distributorId: "d1", distributorName: "D1", status: "blocked", title: "t", body: "b", createdAt: 1 },
+        { id: "h2", distributorId: "d2", distributorName: "D2", status: "blocked", title: "t2", body: "b2", createdAt: 2 },
+      ] as never);
+    await syncServerNotifications();
+    expect(vi.mocked(storage.savePendingHealthEvents)).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "h2" }),
+    ]);
+  });
+
+  it("does not record a stale event the client already handled locally", async () => {
+    // The local check fired and deactivated the alert; the server's copy has a
+    // different id, so recording it too put two unread entries (and a doubled
+    // badge) in the Notification Center for one price drop.
+    state.pulledEvents = [priceDropEvent];
+    state.alerts = []; // alert already deactivated locally
+    await syncServerNotifications();
+    expect(state.rendered).toHaveLength(0);
+    expect(state.historyRecorded).toHaveLength(0);
   });
 
   it("passes the event type through so tap routing reaches /stats and /health", async () => {

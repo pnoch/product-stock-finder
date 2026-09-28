@@ -23,6 +23,8 @@ import {
   addDiscoveredProduct,
   getDiscoveredDistributors,
   addDiscoveredDistributor,
+  saveBackgroundTaskInterval,
+  getBackgroundTaskInterval,
 } from "../lib/storage";
 
 const mockProduct: Product = {
@@ -85,5 +87,19 @@ describe("discovery storage", () => {
     await addDiscoveredDistributor(mockDistributor);
     const distributors = await getDiscoveredDistributors();
     expect(distributors).toHaveLength(1);
+  });
+});
+
+describe("background task interval markers", () => {
+  it("keeps both markers when two tasks save concurrently", async () => {
+    // The two launch registrations run unawaited; an unserialized
+    // read-modify-write made the second overwrite the first, so that task
+    // re-registered on every launch (resetting the OS scheduling window).
+    await Promise.all([
+      saveBackgroundTaskInterval(60, "price-drop-check"),
+      saveBackgroundTaskInterval(60, "health-probe"),
+    ]);
+    expect(await getBackgroundTaskInterval("price-drop-check")).toBe(60);
+    expect(await getBackgroundTaskInterval("health-probe")).toBe(60);
   });
 });

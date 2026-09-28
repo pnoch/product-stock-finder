@@ -33,6 +33,10 @@ export interface StorageContext {
   removeChangeListener(
     fn: (collection: Collection, itemId: string) => void,
   ): void;
+  /** While true, writes enqueued are dropped (a wipe is in progress). */
+  setClearing(value: boolean): void;
+  /** Keys of quarantined corrupt payloads, so a wipe can remove them. */
+  listQuarantinedKeys(): Promise<string[]>;
   setChangeSuppressed(flag: boolean, ignoreKeys?: Set<string>): void;
   enqueue<T>(key: string, fn: () => Promise<T>): Promise<T>;
   drainQueues(): Promise<void>;
@@ -44,13 +48,19 @@ export interface StorageContext {
 // that no longer exists is a harmless no-op removeItem.
 const MAX_QUARANTINE_PER_KEY = 3;
 const quarantineKeys = new Map<string, string[]>();
+// Persisted index of every blob, so a wipe can remove them: they contain raw
+// watchlist/alerts/settings payloads and must not outlive the account.
+export const QUARANTINE_INDEX_KEY = "quarantine_index";
+
+/** Prefix of the quarantine keys, so the wipe paths can remove them. */
+export const QUARANTINE_SUFFIX = ".corrupt-";
 
 export async function quarantinePayload(
   adapter: StorageAdapter,
   key: string,
   raw: string,
 ): Promise<void> {
-  const name = `${key}.corrupt-${Date.now()}`;
+  const name = `${key}${QUARANTINE_SUFFIX}${Date.now()}`;
   try {
     await adapter.setItem(name, raw.slice(0, 100_000));
   } catch {
@@ -67,6 +77,31 @@ export async function quarantinePayload(
     }
   }
   quarantineKeys.set(key, keys);
+  // Persist the full list so clearAllData/clearAccountData can delete the blobs
+  // (the in-memory map is empty after a reload, so the cap alone let them
+  // accumulate forever).
+  try {
+    const all = [...quarantineKeys.values()].flat();
+    await adapter.setItem(QUARANTINE_INDEX_KEY, JSON.stringify(all));
+  } catch {
+    // best effort
+  }
+}
+
+/** Every quarantined blob key recorded so far (for the wipe paths). */
+export async function listQuarantinedKeys(
+  adapter: StorageAdapter,
+): Promise<string[]> {
+  try {
+    const raw = await adapter.getItem(QUARANTINE_INDEX_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((k): k is string => typeof k === "string")
+      : [];
+  } catch {
+    return [];
+  }
 }
 
 export function createContext(adapter: StorageAdapter): StorageContext {
@@ -83,8 +118,20 @@ export function createContext(adapter: StorageAdapter): StorageContext {
   >();
 
   function deliver(collection: Collection, itemId: string) {
-    onChange?.(collection, itemId);
-    for (const listener of changeListeners) listener(collection, itemId);
+    // Isolated: a throwing observer used to skip the remaining listeners and
+    // reject the caller's completed write (notify runs inside the queued fn).
+    try {
+      onChange?.(collection, itemId);
+    } catch (e) {
+      console.warn("[storage] change handler failed", e);
+    }
+    for (const listener of changeListeners) {
+      try {
+        listener(collection, itemId);
+      } catch (e) {
+        console.warn("[storage] change listener failed", e);
+      }
+    }
   }
 
   function notify(collection: Collection, itemId: string) {
@@ -129,7 +176,15 @@ export function createContext(adapter: StorageAdapter): StorageContext {
   // Serializes read-modify-write operations per key to prevent lost updates
   // when concurrent batches (e.g. background price checks) mutate the same list.
   const writeQueues = new Map<string, Promise<unknown>>();
+  let clearing = false;
+
   function enqueue<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    if (clearing) {
+      // A wipe is in progress: a write enqueued now (e.g. a background price
+      // check) would commit after multiRemove and resurrect the collection.
+      // Its data is being wiped anyway, so drop it.
+      return Promise.resolve(undefined as T);
+    }
     const prev = writeQueues.get(key) ?? Promise.resolve();
     const next = prev.then(fn, fn);
     writeQueues.set(
@@ -141,6 +196,10 @@ export function createContext(adapter: StorageAdapter): StorageContext {
 
   // Waits for all in-flight queued writes so operations like clearAllData
   // cannot be undone by a write that was already running.
+  function setClearing(value: boolean): void {
+    clearing = value;
+  }
+
   async function drainQueues(): Promise<void> {
     await Promise.all([...writeQueues.values()]);
   }
@@ -182,6 +241,8 @@ export function createContext(adapter: StorageAdapter): StorageContext {
     setOnChange,
     addChangeListener,
     removeChangeListener,
+    setClearing,
+    listQuarantinedKeys: () => listQuarantinedKeys(adapter),
     setChangeSuppressed,
     enqueue,
     drainQueues,

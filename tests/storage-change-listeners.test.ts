@@ -65,3 +65,20 @@ describe("subscribeToStorageChanges", () => {
     expect(observer).toHaveBeenCalledWith("watchlist", "p1");
   });
 });
+
+describe("change listener isolation", () => {
+  it("keeps delivering when one listener throws, and the write still resolves", async () => {
+    const storage = makeStorage();
+    const second = vi.fn();
+    storage.subscribeToStorageChanges(() => {
+      throw new Error("observer blew up");
+    });
+    storage.subscribeToStorageChanges(second);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    // notify runs inside the queued write fn, so an unguarded throw used to
+    // reject the caller's completed write and skip the remaining listeners.
+    await expect(storage.addToWatchlist(product("p1"))).resolves.toBe(true);
+    expect(second).toHaveBeenCalledWith("watchlist", "p1");
+    vi.restoreAllMocks();
+  });
+});

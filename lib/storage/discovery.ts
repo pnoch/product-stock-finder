@@ -98,7 +98,7 @@ export function createDiscoveryStorage(ctx: StorageContext) {
 // re-registering, staying on the old interval. A map keeps one key (so
 // clearAllData's wipe still covers it) while tracking each task separately.
 export function createBackgroundTaskStorage(ctx: StorageContext) {
-  const { adapter, KEYS } = ctx;
+  const { adapter, KEYS, enqueue } = ctx;
 
   async function readMap(): Promise<Record<string, number>> {
     try {
@@ -129,21 +129,30 @@ export function createBackgroundTaskStorage(ctx: StorageContext) {
     minutes: number | null,
     task: string,
   ): Promise<void> {
-    try {
-      const map = await readMap();
-      if (minutes === null) {
-        delete map[task];
-      } else {
-        map[task] = minutes;
+    // Serialized like every other read-modify-write store: the two launch
+    // registrations run unawaited, so without this both read `{}` and the
+    // second write dropped the first task's marker (making it re-register on
+    // every launch, which resets the OS scheduling window on iOS).
+    await enqueue(KEYS.BACKGROUND_TASK_INTERVAL, async () => {
+      try {
+        const map = await readMap();
+        if (minutes === null) {
+          delete map[task];
+        } else {
+          map[task] = minutes;
+        }
+        if (Object.keys(map).length === 0) {
+          await adapter.removeItem(KEYS.BACKGROUND_TASK_INTERVAL);
+        } else {
+          await adapter.setItem(
+            KEYS.BACKGROUND_TASK_INTERVAL,
+            JSON.stringify(map),
+          );
+        }
+      } catch {
+        // best effort
       }
-      if (Object.keys(map).length === 0) {
-        await adapter.removeItem(KEYS.BACKGROUND_TASK_INTERVAL);
-      } else {
-        await adapter.setItem(KEYS.BACKGROUND_TASK_INTERVAL, JSON.stringify(map));
-      }
-    } catch {
-      // best effort
-    }
+    });
   }
 
   return { getBackgroundTaskInterval, saveBackgroundTaskInterval };

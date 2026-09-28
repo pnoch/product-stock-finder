@@ -16,6 +16,7 @@ vi.mock("../lib/storage", () => ({
   getWatchlist: vi.fn().mockResolvedValue([]),
   getPendingHealthEvents: vi.fn().mockResolvedValue([]),
   clearPendingHealthEvents: vi.fn(),
+  savePendingHealthEvents: vi.fn(),
   getAlerts: vi.fn().mockResolvedValue([]),
   getStockWatches: vi.fn().mockResolvedValue([]),
   getBackOrderReminders: vi.fn().mockResolvedValue([]),

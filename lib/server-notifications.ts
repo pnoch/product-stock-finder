@@ -112,8 +112,11 @@ async function runSyncServerNotifications(): Promise<void> {
     } = await import("./storage");
     const { scheduleServerEventNotification } = await import("./notifications");
 
-    const { getPendingHealthEvents, clearPendingHealthEvents } =
-      await import("./storage");
+    const {
+      getPendingHealthEvents,
+      clearPendingHealthEvents,
+      savePendingHealthEvents,
+    } = await import("./storage");
     const pendingHealthEvents = await getPendingHealthEvents();
     const settings = await getSettings();
 
@@ -218,13 +221,22 @@ async function runSyncServerNotifications(): Promise<void> {
       pendingHealthEvents.length > 0 &&
       (uploadOk || !settings.healthAlerts)
     ) {
-      await clearPendingHealthEvents();
+      // A health sweep can append while the upload is in flight; clearing the
+      // whole key discarded those un-uploaded events (other devices never got
+      // them). Keep whatever arrived after the snapshot.
+      const remaining = await getPendingHealthEvents();
+      const uploaded = new Set(pendingHealthEvents.map((e) => e.id));
+      const arrived = remaining.filter((e) => !uploaded.has(e.id));
+      if (arrived.length > 0) {
+        await savePendingHealthEvents(arrived);
+      } else {
+        await clearPendingHealthEvents();
+      }
     }
 
     const displayedIds = new Set(await getDisplayedEventIds());
     const events = await pullNotificationEvents();
     for (const event of events) {
-      await recordNotificationEvent(event);
       const staleFired =
         ((event.type === "price_drop" || event.type === "price_rise") &&
           event.alertId &&
@@ -236,6 +248,13 @@ async function runSyncServerNotifications(): Promise<void> {
         (event.type === "restock" &&
           Boolean(event.watchId) &&
           !currentWatchIds.has(event.watchId!));
+      // Only record what we did not already handle locally: a locally-fired
+      // price drop/restock has a different id, so recording the server's copy
+      // too put two unread entries (and a doubled badge) in the Notification
+      // Center for one event.
+      if (!staleFired) {
+        await recordNotificationEvent(event);
+      }
       if (!staleFired && !displayedIds.has(event.id)) {
         // Only mark displayed when something was actually shown; otherwise the
         // event would be dropped forever even after permissions are granted.

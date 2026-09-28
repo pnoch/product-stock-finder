@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Collection } from "../types";
 import { StorageAdapter, DISTRIBUTOR_BREAKER_KEY } from "./adapter";
-import { createContext, STORAGE_KEYS } from "./context";
+import { createContext, QUARANTINE_INDEX_KEY, STORAGE_KEYS } from "./context";
 import { createIDBAdapter, isIndexedDBAvailable } from "./idb-adapter";
 import { createWatchlistStorage } from "./watchlist";
 import { createAlertsStorage } from "./alerts";
@@ -53,6 +53,10 @@ export function createStorage(
     // cannot re-apply the previous account's rows or recreate sync_meta after
     // the wipe (see lib/sync-gate.ts).
     bumpSyncGeneration();
+    // Drop writes enqueued while the wipe runs: one that commits after
+    // multiRemove would resurrect the collection (the sync gate only covers
+    // syncNow, not queued storage writes).
+    ctx.setClearing(true);
     await ctx.drainQueues();
     // Cancel scheduled notifications for the reminders/watches being wiped, or
     // they still fire after sign-out.
@@ -83,7 +87,12 @@ export function createStorage(
       "product_notes",
       "price_digest_snapshot",
       DISTRIBUTOR_BREAKER_KEY,
+      // Quarantined corrupt payloads hold raw user data and must not outlive the
+      // account on a shared device.
+      ...(await ctx.listQuarantinedKeys()),
+      QUARANTINE_INDEX_KEY,
     ]);
+    ctx.setClearing(false);
     // Settings are preserved as device preferences, but the BYO-LLM key is a
     // credential, not a preference: left in place, the next account on this
     // device could reveal it in Settings and every request they made would carry
@@ -103,7 +112,9 @@ export function createStorage(
 
   async function clearAllData(): Promise<void> {
     // Drain queued writes first: otherwise an in-flight save started before
-    // the clear would land afterwards and resurrect deleted data.
+    // the clear would land afterwards and resurrect deleted data. The clearing
+    // flag stops writes enqueued *during* the drain from doing the same.
+    ctx.setClearing(true);
     await ctx.drainQueues();
     // Cancel scheduled notifications for the reminders/watches being wiped, or
     // they still fire after the wipe.
@@ -139,7 +150,11 @@ export function createStorage(
       // Background-task interval marker: leaving it behind made a wiped app
       // skip a needed re-registration.
       STORAGE_KEYS.BACKGROUND_TASK_INTERVAL,
+      // Quarantined corrupt payloads hold raw user data.
+      ...(await ctx.listQuarantinedKeys()),
+      QUARANTINE_INDEX_KEY,
     ]);
+    ctx.setClearing(false);
   }
 
   // Removing a product must also remove everything scoped to it: an alert,

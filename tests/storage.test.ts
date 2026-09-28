@@ -1081,9 +1081,25 @@ describe("watchlist tags", () => {
     const tag = await createTag("A", "#00C896");
     await addToWatchlist(makeProduct("p1", []));
     await setProductTags("p1", [tag.id]);
+    // Backdate the stamp so a missing re-stamp is detectable (setProductTags
+    // already stamped it, so a truthiness check would pass either way).
+    await updateWatchlist((list) =>
+      list.map((p) => ({ ...p, tagsUpdatedAt: "2000-01-01T00:00:00.000Z" })),
+    );
     await deleteTag(tag.id);
     expect(await getTagDefinitions()).toEqual({});
-    expect((await getWatchlist())[0].tags ?? []).toEqual([]);
+    const product = (await getWatchlist())[0];
+    expect(product.tags ?? []).toEqual([]);
+    // Stamped like every other tag mutation: without it the tag-LWW merge on
+    // another device re-adds the deleted tag.
+    expect(product.tagsUpdatedAt).not.toBe("2000-01-01T00:00:00.000Z");
+  });
+
+  it("getSettings returns a copy, not the shared defaults object", async () => {
+    const first = await getSettings();
+    first.displayCurrency = "EUR";
+    // A caller mutating what it read must not corrupt the module constant.
+    expect((await getSettings()).displayCurrency).not.toBe("EUR");
   });
 
   it("saveTagDefinitions does not clobber other settings", async () => {
