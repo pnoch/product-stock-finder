@@ -4993,3 +4993,14 @@ Enumerated all 55 comment-only/empty `catch` blocks in app code (`lib/`, `server
 - [x] **Fix:** the sign is emitted before the symbol, and a magnitude ≥ 1e15 uses `toExponential(2)` (`$1.00e+21`). Verified `0`, `0.005`, `1234567.891`, and `NaN`/`Infinity` (→ `N/A`) are unchanged.
 - [x] **Tests:** three new cases (minus before the symbol, exponential for an absurd magnitude, `N/A` for non-finite). Non-vacuous (removing the sign handling fails two).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2582 passed` (27 skipped without a DB); desktop `281 passed`.
+
+## Phase 655: Divide-by-zero sweep in percentage math (no changes needed)
+
+Audited every `... / x * 100` percentage computation in app code for an unguarded zero divisor.
+
+- [x] **All already guarded — two candidate sites were false alarms, verified empirically:**
+  - `lib/alert-scope.ts`'s `alertDeltaPct` already returns null for `alert.targetPrice <= 0` at the top of the function (my added guard was redundant dead code, and the test passed via the existing guard — reverted).
+  - `lib/drop-calendar.ts` cannot divide by a zero prior price: a rise from 0 is filtered by `curr.v >= prev.v` (a "drop" requires `curr < prev`), so the zero-prior branch is unreachable. I confirmed this by running the computation with the guard removed — `totalDrops` was still 0. Reverted the guard and the non-discriminating test.
+  - `lib/price-change.ts` guards `oldest <= 0`; `lib/deal-score.ts`, `lib/fx-history.ts` (×2), and `lib/price-digest.ts` each guard their divisor; `lib/price-average.ts` divides by an average that is only computed from a non-empty series.
+- [x] **Method note:** both candidates looked like real bugs from the grep, but writing the test first showed the guard was either already present or unreachable. Reverted rather than shipping dead code plus a test that passes for the wrong reason.
+- [x] No net code change; tree unchanged from Phase 654 (`tsc 0`, lint 0 errors / 157 warnings, `2582 passed`; desktop `281`).
