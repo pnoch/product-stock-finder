@@ -68,6 +68,21 @@ describe("discovery storage", () => {
     expect(products[0].id).toBe("test-product-1");
   });
 
+  it("deduplicates the same product discovered under a new time-based id", async () => {
+    // The server mints `discovered-<ms>`, so a second discovery of the same
+    // product has a different id — deduping on it appended duplicates and could
+    // evict distinct entries at the cap.
+    await addDiscoveredProduct(mockProduct);
+    await addDiscoveredProduct({
+      ...mockProduct,
+      id: "discovered-999999",
+    });
+    const products = await getDiscoveredProducts();
+    expect(products).toHaveLength(1);
+    // The original id is kept so existing links keep working.
+    expect(products[0]!.id).toBe("test-product-1");
+  });
+
   it("deduplicates by product id", async () => {
     await addDiscoveredProduct(mockProduct);
     await addDiscoveredProduct(mockProduct);

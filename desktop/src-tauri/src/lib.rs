@@ -152,6 +152,26 @@ fn poller_interval_secs(interval_minutes: u64) -> u64 {
     interval_minutes.saturating_mul(60).max(60)
 }
 
+/// The subset of triggered events whose notification was actually delivered.
+/// The renderer deactivates every event it receives, so an undelivered one must
+/// not be emitted or the alert is consumed without the user being notified.
+fn delivered_events(
+    events: &[serde_json::Value],
+    delivered: &[(String, f64)],
+) -> Vec<serde_json::Value> {
+    let ids: std::collections::HashSet<&str> =
+        delivered.iter().map(|(id, _)| id.as_str()).collect();
+    events
+        .iter()
+        .filter(|e| {
+            e.get("alertId")
+                .and_then(|v| v.as_str())
+                .is_some_and(|id| ids.contains(id))
+        })
+        .cloned()
+        .collect()
+}
+
 /// Pairs each triggered alert with its notification result: only alerts whose
 /// notification was actually delivered may be deactivated, so a failed toast
 /// leaves the alert armed for a later retry.
@@ -536,18 +556,22 @@ fn merge_watchlist_products(
     serde_json::Value::Array(merged)
 }
 
-fn listing_distributor_id(listing: &serde_json::Value) -> &str {
+fn listing_distributor_id(listing: &serde_json::Value) -> Option<&str> {
+    // None (not "") for a missing id: two id-less listings otherwise collided on
+    // the same empty key and the "disk-only survives" pass dropped one.
     listing
         .get("distributorId")
         .and_then(|v| v.as_str())
-        .unwrap_or("")
+        .filter(|id| !id.is_empty())
 }
 
-fn listing_last_checked(listing: &serde_json::Value) -> &str {
+fn listing_last_checked_ms(listing: &serde_json::Value) -> Option<i64> {
+    // Parsed, not string-compared: two spellings of the same instant
+    // ("…T00:00:00.000Z" vs "…T00:00:00Z") compare unequal lexicographically.
     listing
         .get("lastChecked")
         .and_then(|v| v.as_str())
-        .unwrap_or("")
+        .and_then(parse_iso_to_epoch_ms)
 }
 
 fn merge_listings(
@@ -560,19 +584,32 @@ fn merge_listings(
     let mut out: Vec<serde_json::Value> = Vec::with_capacity(disk.len().max(incoming.len()));
     for inc in incoming {
         let id = listing_distributor_id(inc);
-        match disk
-            .iter()
-            .find(|d| listing_distributor_id(d) == id)
-        {
+        let disk_match = id.and_then(|id| {
+            disk.iter()
+                .find(|d| listing_distributor_id(d) == Some(id))
+        });
+        match disk_match {
             // Newer on disk: the poller refreshed it after the UI snapshot.
-            Some(d) if listing_last_checked(d) > listing_last_checked(inc) => out.push(d.clone()),
+            Some(d)
+                if listing_last_checked_ms(d).unwrap_or(0)
+                    > listing_last_checked_ms(inc).unwrap_or(0) =>
+            {
+                out.push(d.clone())
+            }
             _ => out.push(inc.clone()),
         }
     }
-    // Listings only the poller knows about (newly discovered) survive.
+    // Listings only the poller knows about (newly discovered) survive. An
+    // id-less listing cannot be matched, so it is always kept.
     for d in disk {
         let id = listing_distributor_id(d);
-        if !incoming.iter().any(|i| listing_distributor_id(i) == id) {
+        let present = match id {
+            Some(id) => incoming
+                .iter()
+                .any(|i| listing_distributor_id(i) == Some(id)),
+            None => false,
+        };
+        if !present {
             out.push(d.clone());
         }
     }
@@ -1038,9 +1075,11 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
             ));
             let alert_id = alert.get("id").and_then(|v| v.as_str()).unwrap_or("");
             events.push(trigger_event_json(alert_id, product_id, product_name, best_price, alert_currency, target_price, is_rise));
-            if !alert_id.is_empty() {
-                triggered.push((alert_id.to_string(), best_price));
-            }
+            // Pushed for every hit, even with an empty id, so `triggered` stays
+            // index-aligned with `notifications`: otherwise results[i] was read
+            // for the wrong alert and a failed toast could consume a different
+            // alert than the one that succeeded.
+            triggered.push((alert_id.to_string(), best_price));
         }
     }
 
@@ -1064,7 +1103,12 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
             // at the start silently reverted a concurrent add/snooze/delete.
             let fresh = array_or_empty(read_json_file(data_dir, "price_alerts")?);
             let updated_val = deactivate_alerts_by_id(fresh, &to_deactivate);
-            let _ = app.emit("price-drops-triggered", &events);
+            // Emit only the delivered alerts: the renderer deactivates every
+            // event it receives, so emitting an undelivered one consumed an
+            // alert the user was never notified about (undoing the file-store
+            // fix above).
+            let delivered_events = delivered_events(&events, &to_deactivate);
+            let _ = app.emit("price-drops-triggered", &delivered_events);
             write_json_file(data_dir, "price_alerts", &updated_val)?;
         }
     }
@@ -2271,6 +2315,36 @@ mod tests {
     }
 
     #[test]
+    fn merge_listings_compares_parsed_instants_not_strings() {
+        // Same instant, different spelling: a lexicographic compare said the
+        // disk copy was "newer" and kept the stale price.
+        let disk = serde_json::json!([{ "id": "p1", "listings": [
+            { "distributorId": "d1", "price": 480, "lastChecked": "2026-06-02T00:00:00Z" }
+        ]}]);
+        let incoming = serde_json::json!([{ "id": "p1", "listings": [
+            { "distributorId": "d1", "price": 500, "lastChecked": "2026-06-02T00:00:00.000Z" }
+        ]}]);
+        let merged = merge_watchlist_products(disk, incoming);
+        // Equal instants: the incoming (UI) copy wins, not the disk one.
+        assert_eq!(merged[0]["listings"][0]["price"], serde_json::json!(500));
+    }
+
+    #[test]
+    fn merge_listings_keeps_id_less_listings() {
+        // Two id-less listings used to collide on "" and one was dropped.
+        // Explicit empty strings (not missing fields): those are the ones that
+        // used to collide on the "" key.
+        let disk = serde_json::json!([{ "id": "p1", "listings": [
+            { "distributorId": "", "price": 1, "lastChecked": "2026-06-01T00:00:00Z" }
+        ]}]);
+        let incoming = serde_json::json!([{ "id": "p1", "listings": [
+            { "distributorId": "", "price": 2, "lastChecked": "2026-06-02T00:00:00Z" }
+        ]}]);
+        let merged = merge_watchlist_products(disk, incoming);
+        assert_eq!(merged[0]["listings"].as_array().unwrap().len(), 2);
+    }
+
+    #[test]
     fn merge_watchlist_keeps_an_incoming_listing_the_disk_lacks() {
         let disk = serde_json::json!([{ "id": "p1", "listings": [] }]);
         let incoming = serde_json::json!([{ "id": "p1", "listings": [
@@ -2399,6 +2473,20 @@ mod tests {
             strip_device_local_settings(serde_json::Value::Null),
             serde_json::Value::Null
         );
+    }
+
+    #[test]
+    fn delivered_events_excludes_undelivered_alerts() {
+        let events = vec![
+            serde_json::json!({ "alertId": "a", "bestPrice": 1.0 }),
+            serde_json::json!({ "alertId": "b", "bestPrice": 2.0 }),
+        ];
+        // Only "b" was delivered: emitting "a" would let the renderer consume an
+        // alert the user was never notified about.
+        let kept = delivered_events(&events, &[("b".to_string(), 2.0)]);
+        assert_eq!(kept.len(), 1);
+        assert_eq!(kept[0]["alertId"], serde_json::json!("b"));
+        assert!(delivered_events(&events, &[]).is_empty());
     }
 
     #[test]

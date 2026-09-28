@@ -25,10 +25,31 @@ export function createDiscoveryStorage(ctx: StorageContext) {
     );
   }
 
+  // The server mints `discovered-<Date.now()>`, so the id differs on every
+  // discovery of the same product: deduping on it appended duplicates and, at
+  // the cap, evicted genuinely distinct entries.
+  function productIdentity(p: Product): string | null {
+    const model = (p.modelNumber ?? "").trim().toLowerCase();
+    if (!model) return null;
+    return `${(p.brand ?? "").trim().toLowerCase()}|${model}`;
+  }
+
   async function addDiscoveredProduct(product: Product): Promise<void> {
     await enqueue(KEYS.DISCOVERED_PRODUCTS, async () => {
       const existing = await getDiscoveredProducts();
       if (existing.some((p) => p.id === product.id)) return;
+      const identity = productIdentity(product);
+      const idx = identity
+        ? existing.findIndex((p) => productIdentity(p) === identity)
+        : -1;
+      if (idx >= 0) {
+        // Same product: refresh in place, keeping the original id so existing
+        // links keep working.
+        const next = [...existing];
+        next[idx] = { ...product, id: existing[idx]!.id };
+        await persistDiscoveredProducts(next);
+        return;
+      }
       const next = [...existing, product];
       await persistDiscoveredProducts(
         next.length > MAX_DISCOVERED_PRODUCTS
