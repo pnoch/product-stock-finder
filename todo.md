@@ -4984,3 +4984,12 @@ Enumerated all 55 comment-only/empty `catch` blocks in app code (`lib/`, `server
   - `lib/background-tasks/tasks.ts` swallows registration failures deliberately (background tasks are unavailable on simulator/web) and the interval marker is written only after a successful register.
   - `lib/storage/context.ts` / `lib/scrapers/health.ts` / `lib/scrapers/browser.ts` swallow best-effort persistence (quarantine index, health samples, cookie jar) where the primary operation already succeeded.
 - [x] No code change; tree unchanged from Phase 652 (`tsc 0`, lint 0 errors / 157 warnings, `2579 passed`; desktop `281`).
+
+## Phase 654: formatPrice edge cases (negative sign, absurd magnitude)
+
+- [x] **Found two real formatting bugs in `shared/src/currency.ts`'s `formatPrice`** (the single formatter used by the mobile app, the desktop, CSV export, and the digest):
+  - A negative amount rendered as **`$-5.00`** — the minus landed after the symbol, reading as a malformed price. New prices are rejected by the plausibility guards, but a legacy/corrupt stored value reaches the formatter.
+  - A huge magnitude rendered as a **21-digit wall of text** (`$1,000,000,000,000,000,000,000.00`) because `toLocaleString` never uses exponential notation.
+- [x] **Fix:** the sign is emitted before the symbol, and a magnitude ≥ 1e15 uses `toExponential(2)` (`$1.00e+21`). Verified `0`, `0.005`, `1234567.891`, and `NaN`/`Infinity` (→ `N/A`) are unchanged.
+- [x] **Tests:** three new cases (minus before the symbol, exponential for an absurd magnitude, `N/A` for non-finite). Non-vacuous (removing the sign handling fails two).
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2582 passed` (27 skipped without a DB); desktop `281 passed`.

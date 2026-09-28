@@ -44,6 +44,24 @@ describe("formatPrice", () => {
   it("handles whole numbers with two decimals", () => {
     expect(formatPrice(42, "EUR")).toBe("€42.00");
   });
+
+  it("puts the minus sign before the symbol", () => {
+    // "$-5.00" reads as a malformed price; a legacy/corrupt stored value can
+    // still reach this.
+    expect(formatPrice(-5, "USD")).toBe("-$5.00");
+  });
+
+  it("uses exponential notation for an absurd magnitude", () => {
+    // toLocaleString never goes exponential, so this rendered as a 21-digit
+    // wall of text.
+    expect(formatPrice(1e21, "USD")).toBe("$1.00e+21");
+    expect(formatPrice(-1e21, "USD")).toBe("-$1.00e+21");
+  });
+
+  it("returns N/A for a non-finite amount", () => {
+    expect(formatPrice(Number.NaN, "USD")).toBe("N/A");
+    expect(formatPrice(Number.POSITIVE_INFINITY, "USD")).toBe("N/A");
+  });
 });
 
 describe("getBestPrice", () => {

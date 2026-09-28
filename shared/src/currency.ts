@@ -68,7 +68,19 @@ export function getCurrencySymbol(currency: string): string {
 export function formatPrice(amount: number, currency: string): string {
   if (!Number.isFinite(amount)) return "N/A";
   const symbol = CURRENCY_SYMBOLS[currency] ?? currency;
-  return `${symbol}${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // A negative amount (a legacy/corrupt stored value — the plausibility guards
+  // reject new ones) must read "-$5.00", not "$-5.00".
+  const sign = amount < 0 ? "-" : "";
+  const magnitude = Math.abs(amount);
+  // toLocaleString never uses exponential notation, so an absurd value rendered
+  // as a 21-digit wall of text. Beyond a sane price, show the compact form.
+  if (magnitude >= 1e15) {
+    return `${sign}${symbol}${magnitude.toExponential(2)}`;
+  }
+  return `${sign}${symbol}${magnitude.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 export function getBestPrice(
