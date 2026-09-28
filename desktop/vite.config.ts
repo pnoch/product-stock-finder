@@ -3,12 +3,15 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
-  // React Native globals used by shared lib modules. import.meta.env.DEV
-  // inlines to true/false per mode, matching Metro's __DEV__ semantics.
+  // React Native globals used by shared lib modules. `define` is a verbatim
+  // text substitution, so the value must be a literal: substituting
+  // `import.meta.env.DEV` emitted that expression into chunks where
+  // `import.meta.env` is undefined, and the app crashed on boot with
+  // "Cannot read properties of undefined (reading 'DEV')".
   define: {
-    __DEV__: "import.meta.env.DEV",
+    __DEV__: JSON.stringify(mode !== "production"),
     // Shared modules (lib/llm-discovery, lib/price-source, shared/src/trending)
     // read `process.env.EXPO_PUBLIC_*`; the desktop build only inlines VITE_*,
     // so without this bridge those modules see an empty API base and their
@@ -91,4 +94,4 @@ export default defineConfig({
     setupFiles: [path.resolve(__dirname, "tests/setup.ts")],
     globals: true,
   },
-});
+}));

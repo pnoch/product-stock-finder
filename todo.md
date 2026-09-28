@@ -4811,3 +4811,12 @@ Ran the built server against MySQL and drove the full API surface with curl — 
 - [x] **Rate limiting:** rapid logins return 429.
 - [x] **BYO-LLM SSRF port pin (Phase 621):** `products.parse` with `http://localhost:8080/admin` returns `product: null` (blocked, no fetch); a public URL returns null without crashing.
 - [x] No code change; tree unchanged from Phase 632 (`tsc 0`, lint 0 errors / 157 warnings, `2536 passed`; desktop `280`).
+
+## Phase 634: Desktop build smoke (found a boot crash in the built renderer)
+
+Built the desktop renderer (`pnpm build` in `desktop/`) and drove the built output in headless Chromium — the desktop analogue of Phase 631.
+
+- [x] **The built desktop app crashed on boot (High).** `vite.config.ts` set `define: { __DEV__: "import.meta.env.DEV" }`. `define` is a *verbatim text substitution*, so the emitted chunks contained `import.meta.env.DEV` in modules Vite does not transform, where `import.meta.env` is undefined — `#root` stayed empty and the page threw `TypeError: Cannot read properties of undefined (reading 'DEV')`. It now substitutes a literal (`JSON.stringify(mode !== "production")`), matching Metro's `__DEV__` semantics. After the fix the bundle has **0** `import.meta.env.DEV` occurrences and the app renders (23 KB of `#root` HTML, full nav, 0 page errors).
+- [x] **Bundle verified clean:** no `playwright`, `express`, `drizzle-orm`, `mysql2`, or server-secret markers; `browser.web` is the stub chunk (playwright stays out of the desktop bundle, as designed).
+- [x] **New guard:** `desktop/tests/vite-dev-define.test.ts` asserts the `__DEV__` define is a literal and not an `import.meta` expression. Non-vacuous (reverting fails it).
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2536 passed` (27 skipped without a DB); desktop `tsc 0`, `281 passed`; `cargo test` 70.
