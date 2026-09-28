@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { Link, useLocation } from "react-router";
 import { Share2, RefreshCw, Package, BarChart3 } from "lucide-react";
 import { copyTextWithFallback, saveNodeAsPng } from "../lib/share";
@@ -6,7 +6,6 @@ import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
 import { EmptyState } from "../components/EmptyState";
 import { DialogOverlay } from "../components/DialogOverlay";
-import { MultiLineChart } from "../components/MultiLineChart";
 import { distributorColor } from "@shared/compare-utils";
 import { formatPrice, CURRENCY_SYMBOLS } from "@shared/currency";
 import { convertPrice, getBestPrice } from "@/lib/currency";
@@ -24,6 +23,13 @@ import { computeDropCalendar, dateKey, buildGridCells } from "../../../lib/drop-
 import { computeProductInsights } from "../../../lib/product-insights";
 import { rankDeals, dealBandLabel } from "../../../lib/deal-score";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
+
+const MultiLineChart = lazy(() =>
+  import("../components/MultiLineChart").then((m) => ({
+    default: m.MultiLineChart,
+  })),
+);
+
 
 
 function StatSkeleton() {
@@ -728,12 +734,14 @@ export function Stats() {
           <p className="text-xs text-gray-400 mt-1 mb-2">Top 3 of {products.length} by value</p>
         )}
         {chartData.data.length > 0 ? (
-          <MultiLineChart
-            data={chartData.data}
-            distributors={chartData.distributors}
-            colors={chartData.distributorColors}
-            currencySymbol={CURRENCY_SYMBOLS[displayCurrency] ?? "$"}
-          />
+          <Suspense fallback={null}>
+            <MultiLineChart
+              data={chartData.data}
+              distributors={chartData.distributors}
+              colors={chartData.distributorColors}
+              currencySymbol={CURRENCY_SYMBOLS[displayCurrency] ?? "$"}
+            />
+          </Suspense>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/50">
             <BarChart3 className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-2" />

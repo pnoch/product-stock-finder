@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import {
   ArrowLeft,
@@ -43,8 +43,16 @@ import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
 import { DistributorHistoryModal } from "../components/DistributorHistoryModal";
 import { ProductImage } from "../components/ProductImage";
-import { PriceHistoryChart } from "../components/PriceHistoryChart";
+// Lazy: recharts is ~400 KB of the bundle and only this screen needs it, so it
+// is split into its own chunk instead of loading on every route.
 import { externalLinkHandler } from "../lib/open-external";
+
+const PriceHistoryChart = lazy(() =>
+  import("../components/PriceHistoryChart").then((m) => ({
+    default: m.PriceHistoryChart,
+  })),
+);
+
 
 function PriceSparkline({ history, currency }: { history: { price: number }[]; currency: string }) {
   if (history.length < 2) {
@@ -1285,7 +1293,9 @@ export function ProductDetail() {
         bestListing.priceHistory.length >= 2 && (
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 animate-fadeIn transition-opacity duration-200">
             <h2 className="text-lg font-semibold mb-3">Price History</h2>
-            <PriceHistoryChart history={bestListing.priceHistory} displayCurrency={displayCurrency} />
+            <Suspense fallback={null}>
+              <PriceHistoryChart history={bestListing.priceHistory} displayCurrency={displayCurrency} />
+            </Suspense>
           </div>
         )}
 

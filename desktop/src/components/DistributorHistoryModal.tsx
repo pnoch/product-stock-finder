@@ -1,9 +1,16 @@
+import { lazy, Suspense } from "react";
 import { Link } from "react-router";
 import { Download } from "lucide-react";
 import { Modal } from "./Modal";
 import { priceHistoryToCsv } from "../../../lib/csv";
 import type { DistributorListing } from "../../../lib/types";
-import { PriceHistoryChart } from "./PriceHistoryChart";
+
+const PriceHistoryChart = lazy(() =>
+  import("./PriceHistoryChart").then((m) => ({
+    default: m.PriceHistoryChart,
+  })),
+);
+
 
 export function DistributorHistoryModal({
   open,
@@ -47,7 +54,9 @@ export function DistributorHistoryModal({
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{productName}</p>
       ) : null}
       {history.length >= 2 ? (
-        <PriceHistoryChart history={history} displayCurrency={displayCurrency} />
+        <Suspense fallback={null}>
+          <PriceHistoryChart history={history} displayCurrency={displayCurrency} />
+        </Suspense>
       ) : (
         <p className="text-sm text-gray-500 dark:text-gray-400">No price history available.</p>
       )}

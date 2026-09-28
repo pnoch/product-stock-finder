@@ -86,7 +86,11 @@ describe("distributor history modal", () => {
         </MemoryRouter>,
       );
       expect(screen.getByText(/dist one/i)).toBeInTheDocument();
-      expect(document.querySelector("svg.recharts-surface")).not.toBeNull();
+      // The chart is lazy-loaded (recharts is split out of the main bundle), so
+      // its chunk resolves on a microtask.
+      await waitFor(() =>
+        expect(document.querySelector("svg.recharts-surface")).not.toBeNull(),
+      );
       await userEvent.click(screen.getByRole("button", { name: /download csv/i }));
       await waitFor(() => expect(clickSpy).toHaveBeenCalled());
       expect(clicked.length).toBeGreaterThan(0);

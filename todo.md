@@ -4847,3 +4847,13 @@ Audited the one user-facing, security-relevant surface not yet covered: a token 
 - [x] **Client (`app/w/[token].tsx`) is thorough:** missing-token state, an actionable error fallback (not the server's verbatim "Share not found"), the truncation flag surfaced, dedup-aware bulk add (reports "already tracked" rather than claiming adds), and join/leave wired to the membership endpoints.
 - [x] **Untrusted shared data is sanitised before it enters the local store:** `normalizeSharedWatchlistProduct` validates id/name, coerces stock status to the union, drops malformed listings/price points, and is already tested. A shared product whose id collides with a local one cannot overwrite it — `addToWatchlist` dedups by id and returns false.
 - [x] No code change; tree unchanged from Phase 636 (`tsc 0`, lint 0 errors / 157 warnings, `2544 passed`).
+
+## Phase 638: Desktop bundle split (recharts out of the initial chunk)
+
+- [x] **Measured the cost first.** The desktop bundle was a single 1,661 KB chunk (473 KB gzip). Stubbing `recharts` showed it accounts for **397 KB (110 KB gzip)** — 24% of the bundle — for just two chart components, while the mobile app deliberately hand-rolls SVG charts to avoid exactly this dependency.
+- [x] **Fix: lazy-load the two chart components** (`PriceHistoryChart`, `MultiLineChart`) at their three call sites, each wrapped in `<Suspense fallback={null}>`. recharts now builds to its own `LineChart-*.js` chunk fetched only when a chart actually renders.
+- [x] **Result: the initial chunk dropped 1,661 KB → 1,260 KB (gzip 473 KB → 363 KB)** — a **110 KB gzip reduction on every route**, with no change to what the charts render.
+- [x] **Verified in a real browser:** on Home the chart chunks are not requested (0); navigating to a product fetches `PriceHistoryChart-*.js` + `LineChart-*.js` on demand, the recharts SVG renders, and there are 0 page errors. (The desktop router is state-based, so a `/product/...` URL does not deep-link — a harness detail, not a bug.)
+- [x] Fixed the two consequences of the change: the `lazy(...)` consts sat between imports (12 `import/first` lint warnings → back to 157/0), and the modal test asserted the chart synchronously (now awaits the chunk).
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2544 passed`; desktop `tsc 0`, `281 passed`.
+- [ ] Not done (larger, riskier): replacing recharts with the mobile app's hand-rolled SVG chart would remove the dependency entirely (~110 KB gzip) but means rewriting two chart components; the lazy split captures most of the win without that risk.
