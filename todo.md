@@ -4908,3 +4908,11 @@ Scanned every `app/` and `components/` interactive element, image, and text inpu
 - [x] **Audited `lib/push-token.ts` (44%) and found it correct:** every path is best-effort with the right guards (web early-return, `Device.isDevice`, missing project id, timeouts), and `unregisterPushToken` handles the web subscription + server prune separately.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2563 passed` (27 skipped without a DB); desktop `281 passed`.
 - [ ] Remaining low-coverage app modules: `server/storage.ts` (2%, S3 helpers), `lib/background-fetch.ts` (7%, needs an XHR harness).
+
+## Phase 645: background-fetch tests; coverage sweep closed
+
+- [x] **`lib/background-fetch.ts` was 7% covered** despite being the fetch path for every tRPC call made while the app is backgrounded (where JS timers freeze, so the native XHR timeout is the only deadline). Added 6 tests with an `XMLHttpRequest` double covering all five terminal paths: load (body + status), a platform-rejected header being skipped, the typed `BackgroundFetchTimeoutError`, network error, abort, and a synchronous `send()` throw.
+- [x] **Non-vacuous where it can be:** changing the timeout error type fails its test. The `settled` guard is **not externally observable** (rejecting an already-resolved promise is a no-op in JS), so that test was rewritten to pin the outcome rather than pretend to prove the guard — noted in the test.
+- [x] **`server/storage.ts` (2%) deliberately left untested:** it is Forge/S3 infrastructure used only by `_core/imageGeneration.ts`, and the coverage config excludes `_core` for exactly this reason. Its two helpers are private and its protocol needs a Forge presign mock — low value.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2569 passed` (27 skipped without a DB); desktop `281 passed`.
+- [x] **Coverage sweep closed:** every app module flagged below 75% has now either been tested (devices, trpc headers, shared-watchlist, background-fetch) or audited and found correct (push-token) or out of scope (server/storage).
