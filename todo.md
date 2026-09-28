@@ -5299,3 +5299,13 @@ Reviewed every hook in `hooks/` (several had no direct test).
 - [x] **Tests:** added two `Modal` cases (it had none) — an accessible dialog that focuses into it, and Escape closing it exactly once. Non-vacuous for the behaviour they assert.
 - [x] **Honest note:** I tried to write a test that discriminates the *dependency* change specifically (a nested-dialog stack test and a listener-count test), but both were non-discriminating — React already cleans up the previous listener, and the nested-dialog harness did not reproduce the ordering. Removed them rather than keep tests that pass either way; the fix is the proven Phase-605 pattern.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2614 passed`; desktop `tsc 0`, `284 passed`.
+
+## Phase 691: Desktop components audit (clean)
+
+Reviewed the desktop components with real logic (beyond the `Modal` fix in Phase 690).
+
+- [x] **`Sidebar`:** the badge uses the shared `countActiveAlerts` predicate (matching mobile, after an earlier fix that had counted unread notifications instead), the load is best-effort with a `catch`, and the `window` focus listener has a proper `removeEventListener` cleanup.
+- [x] **`TrendingSection`:** `load` is a `useCallback` with `catch`/`finally`, the watchlist read has a `catch`, and `ensureWatchlistProduct` adds before navigating (so the detail screen can resolve a server-only trending product) with a failure toast.
+- [x] **`search-chrome`:** `loadRecent`/`saveRecent`/`recordRecent` reuse the shared `lib/recent-searches` helpers (cap + dedup can't drift from the storage wipe's key), and the read-modify-write is synchronous localStorage (no async race).
+- [x] **`ProductImage`:** correct `active` guard, module cache, and cleanup (verified in Phase 690's review).
+- [x] No code change; tree unchanged from Phase 690 (`tsc 0`, lint 0 errors / 157 warnings, `2614 passed`; desktop `284`).
