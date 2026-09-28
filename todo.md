@@ -5247,3 +5247,13 @@ Checked every user-facing failure path for actionable messages and internal-deta
 - [x] **Client fallbacks are generic:** every `showAlert`/`setError`/`setLoadError` site uses `err instanceof Error ? err.message : "<generic>"`, and the throwing helpers (e.g. `resetPassword` → `data.error || "Password reset failed"`) fall back to a generic string when the server sends none.
 - [x] **The error boundary's message display is a deliberate crash-screen aid** (truncated to 160 graphemes, grapheme-safe), showing the app's own error rather than server data.
 - [x] No code change; tree unchanged from Phase 683 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
+
+## Phase 685: Static data integrity audit (clean)
+
+Verified the catalog, distributor list, seed list, and sample data are internally consistent — a dangling reference would break rendering.
+
+- [x] **Catalog:** 42 products, all ids unique (no duplicates).
+- [x] **Seed list:** all 7 `SEED_IDS` exist in the catalog (a missing one would seed a product that cannot resolve).
+- [x] **Sample data:** all 7 keys exist in the catalog, and its 16 `distributorId` references all resolve to real distributors.
+- [x] **Catalog listings:** every `distributorId` reference resolves to a real distributor.
+- [x] No code change; tree unchanged from Phase 684 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
