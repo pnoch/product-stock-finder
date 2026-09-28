@@ -4798,3 +4798,16 @@ Ran the built web export through the production server and drove it in headless 
 - [x] **Deep link** `/product/mikrotik-crs804-4ddq-hrm` boots the app and renders the full product detail (name, brand, category, region, stock status, description) — the SPA fallback + typed routes work.
 - [x] **0 errors across navigations**; the tab-bar clicks in my harness didn't register (a selector limitation of the smoke script, not an app fault).
 - [x] No code change; tree unchanged from Phase 631 (`tsc 0`, lint 0 errors / 157 warnings, `2536 passed`; desktop `280`).
+
+## Phase 633: Server API smoke against a real database (clean)
+
+Ran the built server against MySQL and drove the full API surface with curl — the integration layer the unit tests mock.
+
+- [x] **Auth lifecycle:** register → cookie session → `/api/auth/me` → login → wrong password 401 → unauthenticated 401. All correct.
+- [x] **Sync lifecycle:** `sync.pull` (empty) → `sync.push` (1 item accepted, stamped) → `sync.pull` returns the item and advances `lastSyncedAt`. Correct.
+- [x] **Credential epoch (Phase 596) end-to-end:** a token works, `change-password` succeeds, then the **old token is rejected (401)**, the old password fails, the new one works. Correct.
+- [x] **Device revocation (Phase 592) end-to-end:** register a native push token → `devices.list` shows it → `devices.signOut` → the same session is rejected (403). Also verified the ownership guard: signing out a device with no binding returns `signedOut: false` and leaves the session valid.
+- [x] **OAuth login-CSRF guard (Phase 619) end-to-end:** `/api/auth/oauth/start` sets the `psf_oauth_state` httpOnly cookie, and a callback without it redirects with `error=invalid_state`.
+- [x] **Rate limiting:** rapid logins return 429.
+- [x] **BYO-LLM SSRF port pin (Phase 621):** `products.parse` with `http://localhost:8080/admin` returns `product: null` (blocked, no fetch); a public URL returns null without crashing.
+- [x] No code change; tree unchanged from Phase 632 (`tsc 0`, lint 0 errors / 157 warnings, `2536 passed`; desktop `280`).
