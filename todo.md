@@ -5072,3 +5072,12 @@ Verified the remaining inbound concerns against the running built server, not ju
 - [x] **Verified the other param-driven screens are already safe:** `app/product/[id].tsx` uses a `signal`-based cancellation; `app/compare/[id].tsx`'s effects are synchronous derivations of hook data, and its `useLiveProduct`/`useLiveWatchlist` hooks already carry generation guards (`generationRef`); `app/stats.tsx`, `app/restock-watches.tsx`, and `app/distributor-analysis.tsx` read local storage on focus (idempotent).
 - [x] **Test:** a source guard for the rates screen (non-vacuous — removing the check fails it).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2590 passed` (27 skipped without a DB); desktop `281 passed`.
+
+## Phase 665: Async-race sweep, part 3 (remaining loaders — clean)
+
+- [x] **Checked the rest of the 37 candidates and found them safe:**
+  - `app/search.tsx`'s `handleDiscover` and `app/(tabs)/settings.tsx`'s `handleShare` are guarded by an in-flight flag (`discovering` / `sharing`), so no concurrent run is possible.
+  - `app/(tabs)/watchlist.tsx`'s `loadData` reads settings (changed only by user action) on focus; a re-run re-reads the same values, and `hasLoadedSettingsRef` gates the persist effect so a fallback can never clobber saved filters.
+  - `app/(tabs)/index.tsx`'s `loadData` reads local storage idempotently; `app/search.tsx`'s recent-search handlers are sequential user actions.
+- [x] **Async-race sweep complete:** two real races found and fixed (health detail in Phase 663, rates in Phase 664); every other candidate is guarded by an in-flight flag, reads idempotent local data, or is a synchronous derivation of already-loaded state.
+- [x] No code change; tree unchanged from Phase 664 (`tsc 0`, lint 0 errors / 157 warnings, `2590 passed`; desktop `281`).
