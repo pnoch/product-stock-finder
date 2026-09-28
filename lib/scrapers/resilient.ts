@@ -1,4 +1,7 @@
-import { DISTRIBUTOR_BREAKER_KEY, type StorageAdapter } from "../storage";
+// Import the leaf module, not the storage barrel: the barrel pulls in
+// react-native/AsyncStorage, which the server bundle cannot load (the
+// production server crashed on startup with a Flow syntax error).
+import { DISTRIBUTOR_BREAKER_KEY, type StorageAdapter } from "../storage/adapter";
 import { getRandomUserAgent } from "./utils";
 import { backgroundSafeDelay, getBackgroundAppState } from "../background-safe-timers";
 import { backgroundFetch } from "../background-fetch";

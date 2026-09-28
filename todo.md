@@ -4779,3 +4779,12 @@ Targeted the heuristic from the last three gaps: helpers whose tests may only ex
 - [x] **No new gaps:** every sampled comparison/precedence helper already had a case that forced the choice (the earlier phases' fixes are well covered).
 - [x] No code change; tree unchanged from Phase 629 (`tsc 0`, lint 0 errors / 157 warnings, `2534 passed`).
 - [x] Cumulative mutation sample: 37 areas, 3 real gaps.
+
+## Phase 631: End-to-end smoke of the built server (found a production startup crash)
+
+Ran the documented production path (`pnpm build` → `node dist/index.js`) and smoked the endpoints that previously had only unit tests of the extracted middleware.
+
+- [x] **The production server crashed on startup (High).** `lib/scrapers/resilient.ts` imported the storage **barrel** (`../storage` → `index.ts`) for one constant and one type; the barrel imports `@react-native-async-storage/async-storage` and react-native-backed modules, so the esbuild server bundle contained `react-native` and Node died with `SyntaxError: Unexpected token 'typeof'` (Flow syntax) before listening. It now imports the leaf module `../storage/adapter`. The bundle went from containing react-native to **0** references.
+- [x] **Smoke results on the built artifact (all as designed):** `/api/*` → `Cache-Control: no-store`; bare `/api` → 404 JSON (not the HTML shell); `/product/abc` → 200 HTML (SPA deep link); CORS preflight → the `X-LLM-*` headers allowed; `/api/trpc/sync.push` with a 300 KB body → 401 (body accepted, auth rejected — not 413); the look-alike `/api/trpc/sync.pushX` → 413; `/api/auth/login` → 413; `/.well-known/apple-app-site-association` → 404 when unconfigured; `/sw.js` → 200.
+- [x] **New guard:** `tests/server-bundle-purity.test.ts` asserts the server-reachable lib modules import leaf storage modules (not the barrel) and that `resilient.ts` does not. Non-vacuous (reverting the import fails it). `breaker-clear.ts` also imports the barrel but is client-only, so it is deliberately out of scope.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2536 passed` (27 skipped without a DB); desktop `280 passed`.
