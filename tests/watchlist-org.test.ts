@@ -69,6 +69,17 @@ describe("productStatus", () => {
     expect(productStatus(p)).toBe("in_stock");
   });
 
+  it("prefers in_stock over back_order when both are present", () => {
+    // The existing cases never had both statuses, so swapping the precedence
+    // (back_order first) went unnoticed — it would show a purchasable product
+    // as merely back-ordered.
+    const p = makeProduct({}, [
+      makeListing("d1", { stockStatus: "back_order" }),
+      makeListing("d2", { stockStatus: "in_stock" }),
+    ]);
+    expect(productStatus(p)).toBe("in_stock");
+  });
+
   it("returns back_order when no listing is in stock but one is back-ordered", () => {
     const p = makeProduct({}, [
       makeListing("d1", { stockStatus: "out_of_stock" }),

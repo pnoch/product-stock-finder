@@ -4754,3 +4754,12 @@ Three parallel reviews of `lib/storage/*` — the local source of truth.
 - [x] Reviewed `app/stats.tsx`, `app/distributor-analysis.tsx`, `app/health.tsx`, `app/health/[id].tsx` and every `components/stats/*` card (basket, freshness, stock-health, movers, digest, insights, drop-calendar) for the component-level classes: wrong data slice, divide-by-zero/over-100 ratios, prop-array mutation, memo dep errors, single-point/all-equal chart scales, count-vs-list disagreement, timezone buckets, misleading zero states, index keys.
 - [x] **Result: clean — no changes needed.** The screens delegate to the already-audited helpers and the memos carry correct deps. The two divide-by-zero candidates are guarded: `HealthSparkline` returns early for `data.length < 2`, and `workingPct` divides by `groupSamplesByDay`'s samples, which only ever contains groups built from existing samples. The two `key={i}` uses are a static weekday header and positional timeline bars (order is the identity), so neither is a reorder bug. No prop-array mutation found.
 - [x] No code change; tree unchanged from Phase 626 (`tsc 0`, lint 0 errors / 157 warnings, `2532 passed`; desktop `280`; `cargo test` 70).
+
+## Phase 628: Guard-quality (mutation) pass — third batch
+
+Same method as Phases 610/611: a semantic mutation per module, then its tests.
+
+- [x] **Caught (guards discriminate):** `computeDealScore`'s range formula and trend band; `sync-db`'s stale-write detection (only when run with the DB — the guard is DB-gated, so the no-DB run is green by design); `region-filter`'s region match; `rate-limit`'s limit rejection; `alert-scope`'s scope filter.
+- [x] **Real gap found and closed:** `productStatus`'s precedence (in_stock before back_order) was untested — every existing case had only one of the two statuses, so swapping the order went unnoticed and would show a purchasable product as merely back-ordered. Added the both-present case; it fails under the swap.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2533 passed` (27 skipped without a DB) / **`2560 passed`** with the DB.
+- [x] Cumulative mutation sample: 25 areas, 2 real gaps (the `mergePriceHistory` same-day LWW in Phase 610, `productStatus` precedence here). Note again: a green no-DB run is not evidence for a DB-gated guard — the `sync-db` mutation only failed once `RUN_DB_TESTS` was set.
