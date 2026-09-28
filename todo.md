@@ -5257,3 +5257,10 @@ Verified the catalog, distributor list, seed list, and sample data are internall
 - [x] **Sample data:** all 7 keys exist in the catalog, and its 16 `distributorId` references all resolve to real distributors.
 - [x] **Catalog listings:** every `distributorId` reference resolves to a real distributor.
 - [x] No code change; tree unchanged from Phase 684 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
+
+## Phase 686: The Forge LLM client had no request timeout
+
+- [x] **Found: `server/_core/llm.ts`'s `fetchWithBackoff` had no deadline.** Node's `fetch` has no default timeout, so a hung Forge request held the caller — a **paid** insight/discovery/trending call — open indefinitely, tying up the socket and the handler. (`user-llm.ts` already had its own AbortController for the direct provider path; the Forge path did not.)
+- [x] **Fix:** a per-attempt `AbortController` with a 30-second deadline, aborted and retried by the existing backoff loop (the caller's own signal still wins if supplied), cleared in a `finally`.
+- [x] **Tests:** `tests/llm-fetch-timeout.test.ts` (the request carries an abort signal; a network error retries the full budget and then throws). `invokeLLM` is mocked in 7 other suites, so this is the first test to exercise the real fetch path. Non-vacuous (removing the signal fails both).
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2612 passed` (27 skipped without a DB); desktop `282 passed`.

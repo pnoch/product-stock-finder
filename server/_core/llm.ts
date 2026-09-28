@@ -274,6 +274,10 @@ const normalizeResponseFormat = ({
 };
 
 const RETRY_MAX_RETRIES = 4;
+// Per-attempt deadline. Node's fetch has no default timeout, so a hung Forge
+// request held the caller (a paid insight/discovery/trending call) open
+// indefinitely. A timeout aborts the attempt and lets the retry loop run.
+const REQUEST_TIMEOUT_MS = 30_000;
 const RETRY_BASE_DELAY_MS = 500;
 const RETRY_MAX_DELAY_MS = 30_000;
 
@@ -311,8 +315,13 @@ const fetchWithBackoff = async (
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= RETRY_MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
-      const response = await fetch(url, init);
+      const response = await fetch(url, {
+        ...init,
+        signal: init.signal ?? controller.signal,
+      });
       if (response.ok || attempt === RETRY_MAX_RETRIES) {
         return response;
       }
@@ -344,6 +353,8 @@ const fetchWithBackoff = async (
         `LLM request retry ${attempt + 1}/${RETRY_MAX_RETRIES} after network error`,
       );
       await sleep(computeBackoffDelay(attempt));
+    } finally {
+      clearTimeout(timer);
     }
   }
 
