@@ -4973,3 +4973,14 @@ New axis: what happens when the store holds data written by an older build — a
 - [x] **Test:** two overlapping calls issue exactly `PARSERS.length` `fetchAndParse` calls, not twice that. Non-vacuous (removing the guard doubles the count).
 - [x] **Swept the other async entry points and found them already safe:** `syncNow` has a per-storage `WeakMap` in-flight guard; `syncServerNotifications` has `syncInFlight`; `runPriceCheckCore` was fixed in Phase 651. `backfillLocalHistory` and `rediscoverMissingListings` are launch-only (the launch effect has `[]` deps and the app has no `StrictMode`), so concurrency is not reachable there.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2579 passed` (27 skipped without a DB); desktop `281 passed`.
+
+## Phase 653: Silent-catch (swallowed error) sweep (clean)
+
+Enumerated all 55 comment-only/empty `catch` blocks in app code (`lib/`, `server/`, `app/`, `components/`, `hooks/`, excluding `_core`) and judged each: does the swallow make a caller believe work succeeded?
+
+- [x] **Result: no new bugs.** Every silent catch is either documented as intentional (with a comment explaining why the failure is non-fatal) or correctly scoped so the caller cannot mistake a failure for success. Highlights verified:
+  - `lib/restock.ts` gates on `notified` and **keeps the watch** when the notification fails (permission revoked, web display false, or a throw) — the alert is retried next cycle rather than consumed silently.
+  - `server/db.ts`'s token-consume catches fall through to the in-memory store **only when the DB transaction returned no row** — a row that exists but is used/expired stays rejected, so a dual-stored token cannot be consumed twice (the Phase-594 fix, with the hazard documented in place).
+  - `lib/background-tasks/tasks.ts` swallows registration failures deliberately (background tasks are unavailable on simulator/web) and the interval marker is written only after a successful register.
+  - `lib/storage/context.ts` / `lib/scrapers/health.ts` / `lib/scrapers/browser.ts` swallow best-effort persistence (quarantine index, health samples, cookie jar) where the primary operation already succeeded.
+- [x] No code change; tree unchanged from Phase 652 (`tsc 0`, lint 0 errors / 157 warnings, `2579 passed`; desktop `281`).
