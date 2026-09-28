@@ -17,6 +17,33 @@ function fetchWithTimeout(url: string, init: RequestInit = {}): Promise<Response
   );
 }
 
+// Bounded so a hostile/looping feed or model reply cannot buffer the process
+// out of memory (the same class fixed in server/product-parse.ts).
+const MAX_FEED_CHARS = 2_000_000;
+const MAX_AI_CHARS = 200_000;
+
+/** Reads a response body as text, stopping (and rejecting) past `maxChars`. */
+export async function readCapped(res: Response, maxChars: number): Promise<string | null> {
+  const body = res.body;
+  if (!body) {
+    const text = await res.text();
+    return text.length > maxChars ? null : text;
+  }
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let out = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    out += decoder.decode(value, { stream: true });
+    if (out.length > maxChars) {
+      await reader.cancel().catch(() => {});
+      return null;
+    }
+  }
+  return out + decoder.decode();
+}
+
 const RSS_FEEDS = [
   { name: "r/buildapcsales", url: "https://www.reddit.com/r/buildapcsales/.rss", type: "xml" as const },
   { name: "r/hardwareswap", url: "https://www.reddit.com/r/hardwareswap/.rss", type: "xml" as const },
@@ -67,7 +94,8 @@ export async function fetchRssFeeds(): Promise<RssItem[]> {
         headers: { "User-Agent": "ProductStockFinder/1.0" },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const body = await res.text();
+      const body = await readCapped(res, MAX_FEED_CHARS);
+      if (body === null) throw new Error("Feed response too large");
       return feed.type === "json" ? parseJsonFeed(body, feed.name) : parseRssItems(body, feed.name);
     }),
   );
@@ -186,7 +214,14 @@ export const trendingRouter = router({
 
     if (!aiRes.ok) return { count: 0 };
 
-    const aiData = await aiRes.json();
+    const aiBody = await readCapped(aiRes, MAX_AI_CHARS);
+    if (aiBody === null) return { count: 0 };
+    let aiData: { choices?: { message?: { content?: string } }[] };
+    try {
+      aiData = JSON.parse(aiBody);
+    } catch {
+      return { count: 0 };
+    }
     const content = aiData.choices?.[0]?.message?.content ?? "[]";
 
     let products: TrendingLlmRow[];
