@@ -5089,3 +5089,12 @@ Verified the remaining inbound concerns against the running built server, not ju
 - [x] **Two mistakes caught by the existing suite while writing it:** reusing `normalizeSharedWatchlistProduct` dropped `tagsUpdatedAt` (breaking the tag-LWW merge), and requiring an `id` dropped every settings row (`AppSettings` has no `id`). Both fixed before committing — the sync suite (48 tests) passes.
 - [x] **Tests:** `tests/sync-pulled-item-validation.test.ts` (a malformed watchlist item is dropped while a valid sibling is kept; an alert without a finite price is dropped; a valid settings row still applies). Non-vacuous.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2593 passed` (27 skipped without a DB); desktop `281 passed`.
+
+## Phase 667: Other client-controlled stored inputs audit (clean)
+
+Applied the Phase-666 lens (client-controlled data the server stores and serves) to the remaining boundaries.
+
+- [x] **Notification config upload (`notifications.uploadConfig`) is thoroughly validated** — every array is a typed `z.object` with per-field caps (`id`/`productId` ≤191, `currency` ≤8, `distributorId` ≤64), `targetPrice` is `finite().positive()`, `direction` is an enum, `reminderDate` is length-capped *and* `Date.parse`-refined, and each array is `.max(MAX_UPLOAD_*)`. Nothing untyped reaches the JSON columns.
+- [x] **Shared-watchlist inputs are all bounded** (`token` ≤64, `title` ≤255, `email` ≤191, `role` an enum, `membersOnly` a boolean).
+- [x] **The shared payload has no separate untrusted input:** `sharedWatchlists.get` serves the *owner's* `watchlistItems` (already validated on `sync.push`), tombstone-filtered in SQL, capped with the `MAX + 1` trick. There is no client-supplied items payload to validate.
+- [x] No code change; tree unchanged from Phase 666 (`tsc 0`, lint 0 errors / 157 warnings, `2593 passed`; desktop `281`).
