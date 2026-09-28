@@ -157,6 +157,21 @@ describe("createHealthService", () => {
     }
   });
 
+  it("joins an in-flight probe instead of firing every request twice", async () => {
+    const adapter = createMockAdapter();
+    const service = createHealthService(adapter);
+    const { fetchAndParse } = await import("../../lib/scrapers/resilient");
+    vi.mocked(fetchAndParse).mockClear();
+    // The background probe task and the manual "Test All" button can overlap.
+    await Promise.all([
+      service.testAllDistributors(),
+      service.testAllDistributors(),
+    ]);
+    // One run: one fetchAndParse call per parser, not two.
+    const { PARSERS } = await import("../../lib/scrapers/registry");
+    expect(vi.mocked(fetchAndParse)).toHaveBeenCalledTimes(PARSERS.length);
+  });
+
   it("testAllDistributors records blocked status for blocked outcome", async () => {
     __resilientHolder.fn = async () => ({
       status: "blocked",

@@ -4965,3 +4965,11 @@ New axis: what happens when the store holds data written by an older build — a
 - [x] **Fix:** the exported `runPriceCheckCore` now returns the in-flight run when one exists (`runPriceCheckCoreInner` holds the body), clearing it in a `finally`. A second caller joins instead of starting another run.
 - [x] **Test:** a gated `getWatchlist` holds the first run inside its initial read so the second call is guaranteed to arrive mid-flight; the read count proves only one run proceeded. Non-vacuous (removing the guard raises the count and fails it).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2578 passed` (27 skipped without a DB); desktop `281 passed`.
+
+## Phase 652: Re-entrancy guard on the health probe
+
+- [x] **Found: `testAllDistributors` had no in-flight guard.** It is called by the background probe task **and** the manual "Test All" button (`app/health.tsx`), so a manual test during a background pass fired all 25 parser requests twice — doubling load on the distributors and the breaker store.
+- [x] **Fix:** the exported `testAllDistributors` returns the in-flight run when one exists (`testAllDistributorsInner` holds the body), cleared in a `finally`. The second caller's `onProgress` is dropped, which is correct — the running pass reports its own progress.
+- [x] **Test:** two overlapping calls issue exactly `PARSERS.length` `fetchAndParse` calls, not twice that. Non-vacuous (removing the guard doubles the count).
+- [x] **Swept the other async entry points and found them already safe:** `syncNow` has a per-storage `WeakMap` in-flight guard; `syncServerNotifications` has `syncInFlight`; `runPriceCheckCore` was fixed in Phase 651. `backfillLocalHistory` and `rediscoverMissingListings` are launch-only (the launch effect has `[]` deps and the app has no `StrictMode`), so concurrency is not reachable there.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2579 passed` (27 skipped without a DB); desktop `281 passed`.

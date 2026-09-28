@@ -370,7 +370,24 @@ export function createHealthService(adapter: StorageAdapter): HealthService {
     }
   }
 
+  // The background probe task and the manual "Test All" button can overlap, and
+  // each run fires one request per parser (25). The second caller joins the
+  // in-flight run instead of doubling the requests; its own onProgress is
+  // dropped, which is correct — the running pass reports its own progress.
+  let inFlightProbe: Promise<DistributorHealth[]> | null = null;
+
   async function testAllDistributors(
+    onProgress?: (current: number, total: number) => void,
+  ): Promise<DistributorHealth[]> {
+    if (inFlightProbe) return inFlightProbe;
+    const run = testAllDistributorsInner(onProgress).finally(() => {
+      inFlightProbe = null;
+    });
+    inFlightProbe = run;
+    return run;
+  }
+
+  async function testAllDistributorsInner(
     onProgress?: (current: number, total: number) => void,
   ): Promise<DistributorHealth[]> {
     const results: DistributorHealth[] = [];
