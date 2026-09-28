@@ -4763,3 +4763,10 @@ Same method as Phases 610/611: a semantic mutation per module, then its tests.
 - [x] **Real gap found and closed:** `productStatus`'s precedence (in_stock before back_order) was untested — every existing case had only one of the two statuses, so swapping the order went unnoticed and would show a purchasable product as merely back-ordered. Added the both-present case; it fails under the swap.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2533 passed` (27 skipped without a DB) / **`2560 passed`** with the DB.
 - [x] Cumulative mutation sample: 25 areas, 2 real gaps (the `mergePriceHistory` same-day LWW in Phase 610, `productStatus` precedence here). Note again: a green no-DB run is not evidence for a DB-gated guard — the `sync-db` mutation only failed once `RUN_DB_TESTS` was set.
+
+## Phase 629: Guard-quality (mutation) pass — fourth batch
+
+- [x] **Caught (guards discriminate):** `findNearestIndex`/`indexForLocationX` rounding; `notificationRouteFor`'s productId precedence; `dropStreak`'s direction; `computeWatchlistSummary`'s stock buckets.
+- [x] **Real gap found and closed:** `analyzeDistributors`'s "cheapest in-stock listing" reduce was untested — every existing case had a single listing per (product, distributor), so the reduce never had to choose and inverting the comparison (totalling the most expensive listing) went unnoticed. Added a two-listing case; it fails under the inversion.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2534 passed` (27 skipped without a DB) / **`2561 passed`** with the DB.
+- [x] Cumulative mutation sample: 30 areas, 3 real gaps (`mergePriceHistory` LWW, `productStatus` precedence, `analyzeDistributors` cheapest-selection). The recurring shape: a helper whose tests only ever exercise the single-item/one-branch case, so the comparison or precedence that matters is never forced.

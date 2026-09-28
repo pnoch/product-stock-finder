@@ -66,6 +66,21 @@ describe("analyzeDistributors", () => {
     expect(linitx!.averagePrice).toBeCloseTo(90, 2);
   });
 
+  it("uses the cheapest in-stock listing when a product has several for one distributor", () => {
+    // Every existing case had a single listing per (product, distributor), so
+    // the reduce never had to choose and inverting the comparison went
+    // unnoticed — it would total the most expensive listing instead.
+    const watchlist = [
+      makeProduct("p1", [
+        makeListing({ distributorId: "server2u-my", price: 100, currency: "USD" }),
+        makeListing({ distributorId: "server2u-my", price: 60, currency: "USD" }),
+      ]),
+    ];
+    const result = analyzeDistributors(watchlist, "USD");
+    const server2u = result.find((r) => r.distributorId === "server2u-my");
+    expect(server2u!.totalCost).toBeCloseTo(60, 2);
+  });
+
   it("converts to display currency", () => {
     const watchlist = [
       makeProduct("p1", [
