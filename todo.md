@@ -5026,3 +5026,10 @@ Audited every `... / x * 100` percentage computation in app code for an unguarde
 - [x] **Caught a real regression in my own first attempt:** `connect-src 'self'` blocked every API call when the app is served from a different origin than the API (the dev `.env`'s `localhost:3000`, and the real separate-host deployment). Verified in a real browser (4 CSP violations, API calls refused). The directive now includes the origin derived from `EXPO_PUBLIC_API_BASE_URL`; re-verified with **0 violations** and the app rendering.
 - [x] **Tests:** two cases in `tests/http-middleware.test.ts` (baseline headers + no `X-Powered-By`; the configured API origin appears in `connect-src`). Both non-vacuous.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2584 passed` (27 skipped without a DB); desktop `281 passed`.
+
+## Phase 659: tRPC error responses leaked the stack trace
+
+- [x] **Found: API error responses included `data.stack`** (validation internals, absolute file paths, the thrown error's text) whenever `NODE_ENV` was not exactly `"production"` — and this server is routinely run without `NODE_ENV` (the same condition that made the JWT-secret fallback dangerous in Phase 617). Verified against the running built server: a malformed `prices.get` returned `{"code":"BAD_REQUEST","httpStatus":400,"stack":"TRPCError: [ … /home/…/routers.ts …"}`.
+- [x] **Fix:** `redactErrorShape` now strips `data.stack` unconditionally (tRPC's default formatter adds it based on `NODE_ENV`, so relying on that is not enough). The message redaction for internal errors is unchanged; the real error is still logged server-side. Re-verified against the built server: the response keys are now `code`, `httpStatus`, `path` — no `stack`.
+- [x] **Tests:** two cases in `tests/trpc-error-redaction.test.ts` (the stack is stripped and the rest of the shape preserved; the generic message still replaces an internal error's). Non-vacuous.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2586 passed` (27 skipped without a DB); desktop `281 passed`.

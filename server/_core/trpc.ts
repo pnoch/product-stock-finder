@@ -14,8 +14,21 @@ export function redactErrorShape<T extends { message: string }>(
   shape: T,
   error: { cause?: unknown },
 ): T {
-  if (error.cause === undefined) return shape;
-  return { ...shape, message: GENERIC_ERR_MSG };
+  // tRPC's default formatter attaches `data.stack` unless NODE_ENV is exactly
+  // "production" — and this server is routinely run without NODE_ENV, so the
+  // stack (validation internals, file paths) reached the client. Strip it
+  // unconditionally; the real error is still logged server-side.
+  const withData = shape as T & { data?: Record<string, unknown> };
+  const redacted: T = withData.data
+    ? ({
+        ...withData,
+        data: Object.fromEntries(
+          Object.entries(withData.data).filter(([key]) => key !== "stack"),
+        ),
+      } as T)
+    : shape;
+  if (error.cause === undefined) return redacted;
+  return { ...redacted, message: GENERIC_ERR_MSG };
 }
 
 const t = initTRPC.context<TrpcContext>().create({

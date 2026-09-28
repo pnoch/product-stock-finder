@@ -32,3 +32,36 @@ describe("tRPC error shape redaction", () => {
     }
   });
 });
+
+describe("redactErrorShape strips the stack", () => {
+  it("removes data.stack even when NODE_ENV is not production", () => {
+    // tRPC's default formatter attaches the stack unless NODE_ENV is exactly
+    // "production"; this server is routinely run without it, so validation
+    // internals and file paths reached the client.
+    const shape = {
+      message: "Invalid input",
+      code: -32600,
+      data: {
+        code: "BAD_REQUEST",
+        httpStatus: 400,
+        path: "prices.get",
+        stack: "TRPCError: at /home/app/server/routers.ts:123",
+      },
+    };
+    const redacted = redactErrorShape(shape, {});
+    expect(redacted.data).not.toHaveProperty("stack");
+    expect(redacted.data).toMatchObject({
+      code: "BAD_REQUEST",
+      httpStatus: 400,
+      path: "prices.get",
+    });
+    // The rest of the shape is untouched.
+    expect(redacted.message).toBe("Invalid input");
+  });
+
+  it("still redacts the message for an internal error", () => {
+    const shape = { message: "connect ECONNREFUSED 127.0.0.1:3306", data: {} };
+    const redacted = redactErrorShape(shape, { cause: new Error("db") });
+    expect(redacted.message).toBe("Something went wrong. Please try again.");
+  });
+});
