@@ -2,6 +2,7 @@
 // Downloads return /storage/{key} paths served via 307 redirect.
 
 import { ENV } from "./_core/env";
+import { fetchWithTimeout } from "./fetch-timeout";
 
 function getForgeConfig() {
   const forgeUrl = ENV.forgeApiUrl;
@@ -38,7 +39,7 @@ export async function storagePut(
   const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
   presignUrl.searchParams.set("path", key);
 
-  const presignResp = await fetch(presignUrl, {
+  const presignResp = await fetchWithTimeout(presignUrl, {
     headers: { Authorization: `Bearer ${forgeKey}` },
   });
 
@@ -55,7 +56,7 @@ export async function storagePut(
       ? new Blob([data], { type: contentType })
       : new Blob([data as any], { type: contentType });
 
-  const uploadResp = await fetch(s3Url, {
+  const uploadResp = await fetchWithTimeout(s3Url, {
     method: "PUT",
     headers: { "Content-Type": contentType },
     body: blob,

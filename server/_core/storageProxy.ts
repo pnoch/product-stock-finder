@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { ENV } from "./env";
+import { fetchWithTimeout } from "../fetch-timeout";
 
 const MAX_STORAGE_KEY_LENGTH = 512;
 
@@ -37,7 +38,7 @@ export function registerStorageProxy(app: Express) {
       );
       forgeUrl.searchParams.set("path", key);
 
-      const forgeResp = await fetch(forgeUrl, {
+      const forgeResp = await fetchWithTimeout(forgeUrl, {
         headers: { Authorization: `Bearer ${ENV.forgeApiKey}` },
       });
 

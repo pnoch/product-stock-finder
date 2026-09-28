@@ -5,6 +5,8 @@
 // links, so production deployments must set both. Never log message bodies or
 // tokens; only the recipient and outcome.
 
+import { fetchWithTimeout } from "./fetch-timeout";
+
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
 export interface EmailMessage {
@@ -28,7 +30,7 @@ export async function sendEmail(message: EmailMessage): Promise<boolean> {
     return false;
   }
   try {
-    const res = await fetch(RESEND_ENDPOINT, {
+    const res = await fetchWithTimeout(RESEND_ENDPOINT, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,

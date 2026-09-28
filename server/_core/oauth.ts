@@ -13,6 +13,7 @@ import { parse as parseCookieHeader } from "cookie";
 import bcrypt from "bcryptjs";
 import * as db from "../db";
 import { isDeviceRevoked, revokeAllDevicesForUser, unrevokeDevice } from "../devices";
+import { fetchWithTimeout } from "../fetch-timeout";
 import { checkRateLimitByKey } from "../rate-limit";
 import { sendEmail } from "../email";
 import { HttpError } from "../../shared/_core/errors.js";
@@ -492,7 +493,7 @@ export function registerOAuthRoutes(app: Express) {
     const { clientId, clientSecret } = googleOAuthConfig();
     if (!clientId || !clientSecret) return null;
     try {
-      const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      const tokenRes = await fetchWithTimeout("https://oauth2.googleapis.com/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -506,7 +507,7 @@ export function registerOAuthRoutes(app: Express) {
       if (!tokenRes.ok) return null;
       const tokenData = (await tokenRes.json()) as { access_token?: string };
       if (!tokenData.access_token) return null;
-      const userRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      const userRes = await fetchWithTimeout("https://www.googleapis.com/oauth2/v3/userinfo", {
         headers: { Authorization: `Bearer ${tokenData.access_token}` },
       });
       if (!userRes.ok) return null;
@@ -548,7 +549,7 @@ export function registerOAuthRoutes(app: Express) {
         .setIssuedAt(now)
         .setExpirationTime(now + 300)
         .sign(privateKey);
-      const tokenRes = await fetch("https://appleid.apple.com/auth/token", {
+      const tokenRes = await fetchWithTimeout("https://appleid.apple.com/auth/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({

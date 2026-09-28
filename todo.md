@@ -5033,3 +5033,11 @@ Audited every `... / x * 100` percentage computation in app code for an unguarde
 - [x] **Fix:** `redactErrorShape` now strips `data.stack` unconditionally (tRPC's default formatter adds it based on `NODE_ENV`, so relying on that is not enough). The message redaction for internal errors is unchanged; the real error is still logged server-side. Re-verified against the built server: the response keys are now `code`, `httpStatus`, `path` — no `stack`.
 - [x] **Tests:** two cases in `tests/trpc-error-redaction.test.ts` (the stack is stripped and the rest of the shape preserved; the generic message still replaces an internal error's). Non-vacuous.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2586 passed` (27 skipped without a DB); desktop `281 passed`.
+
+## Phase 660: Outbound HTTP had no timeouts (hung upstreams held requests open)
+
+- [x] **Found: several server-side `fetch` calls had no deadline at all.** Node's `fetch` has no default timeout, so a stalled upstream held the request — and its socket — open indefinitely. The affected calls were the highest-impact ones: the **OAuth token/userinfo exchanges** (Google + Apple — a hung provider blocked the user's login), the **Resend email send**, the **S3 presign + upload** (`server/storage.ts`), and the **storage proxy's forge presign** (`server/_core/storageProxy.ts`).
+- [x] **Fix:** new `server/fetch-timeout.ts` (`fetchWithTimeout(url, init, ms = 15s)`) using an `AbortController`, applied to all six call sites. The server also still relies on Node's `headersTimeout`/`requestTimeout` defaults for inbound slowloris protection, which are reasonable (60s/300s).
+- [x] **Tests:** `tests/fetch-timeout.test.ts` (the signal is passed; the deadline aborts). Both non-vacuous.
+- [x] **Verified already-guarded:** `server/fx.ts`, `server/product-parse.ts`, `server/user-llm.ts`, and `server/routers/trending.ts` all set their own abort deadlines; the storage proxy's key validation already blocks traversal/URLs/control chars.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2588 passed` (27 skipped without a DB); desktop `281 passed`.
