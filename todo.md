@@ -5118,3 +5118,13 @@ Mutation pass over the desktop Rust tests (70 → 71).
 - [x] **Method note:** my first mutation attempt didn't compile (`#[allow(unreachable_code)]` on a statement), and cargo's stale binary made it look like the test passed. Re-ran with a compiling mutation to get a real signal — a reminder to confirm the mutation actually built before trusting a green run.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2593 passed`; desktop `tsc 0`, `282 passed`; `cargo test` 71, `cargo clippy` unchanged (4).
 - [x] Cumulative mutation sample across all passes: 47 areas, 5 real gaps (all closed).
+
+## Phase 670: Cross-fix interaction test (lib/sync.ts)
+
+`lib/sync.ts` was the most-modified app file this session (byte caps, generation gate, full-resync drop condition, tag LWW, pulled-item sanitizer). Each fix was tested in isolation; this exercises them **together in one sync run**.
+
+- [x] **Added `tests/sync-fixes-interaction.test.ts`:** one sync with a full resync (`fullResyncSince`), a malformed pulled item, a stale previously-synced item, a never-pushed local item, a newer remote tag removal, and a >5 MB dirty set. Asserts the malformed item never enters the store, the stale item is dropped, the never-pushed item survives, the remote tag removal wins, and the push is split into byte-bounded batches.
+- [x] **Result: the fixes interact correctly** — no regression from combining them.
+- [x] **Non-vacuous:** removing the sanitizer and reverting the drop condition each fail the combined test.
+- [x] **Two fixture mistakes I made and corrected** (both were my test, not the code): a never-pushed item's meta stamp must be *after* the last successful sync (a stamp equal to the cursor is indistinguishable from "synced"), and the dirty set needed price history to actually exceed the 5 MB cap.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2594 passed` (27 skipped without a DB); desktop `282 passed`.
