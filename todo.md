@@ -5193,3 +5193,12 @@ Mutation pass over `server/devices.ts` and `server/db.ts`.
 - [x] **Investigated and correctly non-discriminating:** shifting the health dedup bucket by a constant (`Math.floor(now / BUCKET) + 1`) does not fail any test — and that is right: a constant shift preserves which events fall in the same window, so it is behaviourally equivalent, not a gap.
 - [x] No code change; tree unchanged from Phase 677 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
 - [x] Cumulative mutation sample: 69 areas, 11 real gaps (all closed); 4 mutations confirmed behaviourally equivalent.
+
+## Phase 679: Memory-growth audit (clean)
+
+Scanned every module-level `Map`/`Set` and the growing persisted collections for unbounded accumulation.
+
+- [x] **All five module-level collections are bounded by a fixed key space:** `COMMERCE_SUFFIXES` (a constant set); `breakerQueues` (keyed by `distributorId:model`, bounded by the catalog × 25 distributors, and overwritten rather than appended); `quarantineKeys` (keyed by storage key, with a per-key cap of 3); `catalogWarmAttempts`/`imageGenerationAttempts` (keyed by the fixed catalog/product set).
+- [x] **The persisted collections are capped:** the discovery store at 200 products/distributors; the displayed-event-id list at 200 (oldest spliced off); the notification history at 200 (oldest truncated). The server purges old `notificationEvents` on the warmer tick.
+- [x] **Method note:** my first grep missed the `ids.length > 200` cap form (it looked for `size`), which briefly made the notification history look unbounded — reading the actual function showed the cap.
+- [x] No code change; tree unchanged from Phase 678 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
