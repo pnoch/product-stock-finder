@@ -5049,3 +5049,12 @@ Audited every `... / x * 100` percentage computation in app code for an unguarde
 - [x] **Verified against the real database:** the full DB-gated suite passes with the explicit config (**2615 passed**), confirming the `uri` + options form works with this mysql2 version.
 - [x] **Also verified:** 32 of 34 tRPC procedures are rate-limited; the two without (`me`, `logout`) are cheap and idempotent (no DB write, no paid call), so that is reasonable.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2588 passed` (27 skipped without a DB) / **`2615 passed`** with the DB; desktop `281 passed`.
+
+## Phase 662: Inbound request handling audit (clean)
+
+Verified the remaining inbound concerns against the running built server, not just the source.
+
+- [x] **Path traversal: safe.** `express.static` rejects escapes, and the SPA fallback serves the fixed `index.html`. Five traversal attempts (`/../package.json`, `/..%2fpackage.json`, `/%2e%2e/package.json`, `/....//package.json`, `/static/../../package.json`) all returned the SPA shell with **0 leak markers** — never the file.
+- [x] **SPA fallback boundaries: correct.** A non-GET to an unknown path → 404 (not the shell); `GET /api/nope` → `{"error":"Not found"}` 404 JSON; `GET /storage/foo` → the storage proxy's own "not configured" response (500), not the shell. The shell also revalidates (`Cache-Control` set explicitly, since `res.sendFile` bypasses `express.static`'s `setHeaders`).
+- [x] **Rate-limit coverage: 32 of 34 procedures** (verified in Phase 661); the two without (`me`, `logout`) are cheap and idempotent.
+- [x] No code change; tree unchanged from Phase 661 (`tsc 0`, lint 0 errors / 157 warnings, `2588 passed`; desktop `281`).
