@@ -153,14 +153,17 @@ describe.skipIf(!runDbTests)("DB-only branches", () => {
         if (url.includes("openai")) {
           return {
             ok: true,
+            // readCapped reads the body as text (to bound its size), then parses.
             json: async () => ({
               choices: [{ message: { content: "[]" } }],
             }),
+            text: async (): Promise<string> =>
+              JSON.stringify({ choices: [{ message: { content: "[]" } }] }),
           };
         }
         return {
           ok: true,
-          text: async () =>
+          text: async (): Promise<string> =>
             `<?xml version="1.0"?><rss><channel><item><title>RTX 5090 — $2000</title><link>https://example.com</link></item></channel></rss>`,
         };
       }),
