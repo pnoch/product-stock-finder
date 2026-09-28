@@ -4899,3 +4899,12 @@ Scanned every `app/` and `components/` interactive element, image, and text inpu
 - [x] **Audited the rest of the module and found it correct:** `getSessionToken` already catches internally (so the un-guarded call is safe), the background path swaps in the native-timeout XHR fetch, the foreground path has an `AbortController` deadline, and the `revokedDeviceLink` clears the session on the device-revoked error.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2557 passed` (27 skipped without a DB); desktop `281 passed`.
 - [ ] Remaining low-coverage app modules: `server/storage.ts` (2%, S3 helpers), `lib/background-fetch.ts` (7%, needs an XHR harness), `lib/shared-watchlist.ts` (40%), `lib/push-token.ts` (44%).
+
+## Phase 644: Shared-watchlist normalization tests (untrusted-input branches)
+
+- [x] **`lib/shared-watchlist.ts` was 40% statements / 17.6% branches** — only the reject path was tested, while the module's whole job is sanitising untrusted data from a public share link before it enters the local store. Added 6 tests for the branches that matter: an unknown stock status coerces to `unknown`; listings without a `distributorId` or with a non-finite price are dropped; malformed price points are dropped and a point without a currency defaults to USD; `modelNumber` defaults to the id and non-string brand/description coerce to `""`; only string tags survive; the product is always `isWatched` with a listings array.
+- [x] **Non-vacuous:** dropping the finite-price check and dropping the stock-status coercion each fail their test.
+- [x] **One cosmetic inconsistency noted, not changed:** `tags: []` yields `[]` rather than `undefined` (the code checks `Array.isArray`). Harmless — the tag rendering ignores an empty array and `addToWatchlist` treats it as absent — so the test documents the actual behaviour instead.
+- [x] **Audited `lib/push-token.ts` (44%) and found it correct:** every path is best-effort with the right guards (web early-return, `Device.isDevice`, missing project id, timeouts), and `unregisterPushToken` handles the web subscription + server prune separately.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2563 passed` (27 skipped without a DB); desktop `281 passed`.
+- [ ] Remaining low-coverage app modules: `server/storage.ts` (2%, S3 helpers), `lib/background-fetch.ts` (7%, needs an XHR harness).
