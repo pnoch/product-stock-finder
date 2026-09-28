@@ -59,3 +59,47 @@ describe("isInQuietHours", () => {
     expect(isInQuietHours(s, at(12, 0))).toBe(false);
   });
 });
+
+describe("isInQuietHours with a client utcOffsetMinutes", () => {
+  // The server evaluates the window in the user's local time using the offset
+  // the client sends (Date.getTimezoneOffset() semantics: minutes to add to
+  // local to get UTC), so local = utc - offset. A flipped sign would fire
+  // notifications during the user's quiet hours.
+  function withOffset(
+    start: string,
+    end: string,
+    utcOffsetMinutes: number,
+  ): any {
+    return { quietHours: { start, end, utcOffsetMinutes } } as any;
+  }
+
+  it("evaluates the window in the user's local time", () => {
+    // UTC 02:00 is 22:00 the previous day in UTC-4 (offset 240). A 21:00-07:00
+    // window is therefore active.
+    const utc2am = new Date(Date.UTC(2026, 0, 2, 2, 0));
+    expect(isInQuietHours(withOffset("21:00", "07:00", 240), utc2am)).toBe(true);
+    // UTC 18:00 is 14:00 local — outside the window.
+    const utc6pm = new Date(Date.UTC(2026, 0, 2, 18, 0));
+    expect(isInQuietHours(withOffset("21:00", "07:00", 240), utc6pm)).toBe(false);
+  });
+
+  it("handles a positive offset (east of UTC)", () => {
+    // UTC 22:00 is 06:00 the next day in UTC+8 (offset -480). A 21:00-07:00
+    // window is active.
+    const utc10pm = new Date(Date.UTC(2026, 0, 2, 22, 0));
+    expect(isInQuietHours(withOffset("21:00", "07:00", -480), utc10pm)).toBe(
+      true,
+    );
+  });
+
+  it("uses the offset for a daytime window too", () => {
+    // UTC 20:00 is 12:00 in UTC-8 (offset 480) — inside a 09:00-17:00 window.
+    const utc8pm = new Date(Date.UTC(2026, 0, 2, 20, 0));
+    expect(isInQuietHours(withOffset("09:00", "17:00", 480), utc8pm)).toBe(true);
+    // UTC 02:00 is 18:00 in UTC-8 — outside the same window.
+    const utc2am = new Date(Date.UTC(2026, 0, 2, 2, 0));
+    expect(isInQuietHours(withOffset("09:00", "17:00", 480), utc2am)).toBe(
+      false,
+    );
+  });
+});

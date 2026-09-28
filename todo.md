@@ -5179,3 +5179,10 @@ Mutation pass over `server/devices.ts` and `server/db.ts`.
 - [x] **Method note:** the token-consume patterns appear three times (password reset, email verification, and one more), so a `count == 1` assertion correctly refused to mutate — switched to a line-based edit that reported the real site count (3) before mutating.
 - [x] No code change; tree unchanged from Phase 675 (`tsc 0`, lint 0 errors / 157 warnings, `2607 passed`; desktop `282`).
 - [x] Cumulative mutation sample: 63 areas, 10 real gaps (all closed).
+
+## Phase 677: Timezone/DST audit — quiet-hours offset branch was untested
+
+- [x] **Found: `isInQuietHours`'s `utcOffsetMinutes` branch had no test.** The offset path is the *server-side* one (the client sends its offset so the server evaluates the window in the user's local time); flipping the sign (`utc - offset` → `utc + offset`) left the suite green, which would fire notifications during the user's quiet hours. Added three cases (UTC-4 overnight, UTC+8 positive offset, and a UTC-8 daytime window with both an inside and an outside instant). Non-vacuous — the sign flip now fails three tests.
+- [x] **Verified the drop calendar's local-time bucketing is intentional and correct.** `drop-calendar.ts` deliberately uses local date parts (a user-facing calendar buckets by the user's local day), with documented calendar-date arithmetic rather than fixed 24h steps; `tests/drop-calendar-dst.test.ts` pins `TZ=America/New_York` and covers spring-forward. I also checked fall-back empirically: the calendar-date arithmetic yields 30 unique keys including the 25-hour day (and the buggy fixed-24h version happens to pass fall-back too — it is the spring-forward direction that breaks, which the test covers).
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2610 passed` (27 skipped without a DB); desktop `282 passed`.
+- [x] Cumulative mutation sample: 65 areas, 11 real gaps (all closed).
