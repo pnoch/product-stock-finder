@@ -76,6 +76,19 @@ describe("resolvePrice", () => {
     expect(r?.snapshot?.price).toBe(200);
   });
 
+  it("scrapes on device when the server snapshot is stale", async () => {
+    // A stale snapshot used to be returned as-is, so discovery rejected it and
+    // the distributor was silently missed even though a scrape would succeed.
+    state.serverResult = {
+      snapshot: { price: 200, currency: "USD", stockStatus: "in_stock", fetchedAt: 1 },
+      history: [],
+    };
+    state.scrapeResult = { price: 199, currency: "USD", stockStatus: "in_stock" };
+    const r = await resolvePrice("linitx-uk", "CRS326");
+    expect(r?.source).toBe("device");
+    expect(r?.snapshot?.price).toBe(199);
+  });
+
   it("falls back to device scrape when the server misses", async () => {
     state.scrapeResult = { price: 199, currency: "USD", stockStatus: "in_stock" };
     const r = await resolvePrice("linitx-uk", "CRS326");

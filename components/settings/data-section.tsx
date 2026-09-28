@@ -156,22 +156,48 @@ export function DataSection() {
           onPress: async () => {
             setBusy(true);
             try {
-              await saveWatchlist(result.watchlist);
-              await saveAlerts(result.alerts);
-              await saveBackOrderReminders(result.reminders);
-              await saveStockWatches(result.stockWatches);
-              if (result.settingsApplied) await saveSettings(result.settings);
+              // Re-read and merge at save time: the snapshot above was taken
+              // before this confirmation dialog, and a price check or a sync
+              // pull can write the watchlist while the user decides — saving the
+              // stale snapshot reverted those changes.
+              const [
+                freshWatchlist,
+                freshAlerts,
+                freshReminders,
+                freshWatches,
+                freshSettings,
+              ] = await Promise.all([
+                getWatchlist(),
+                getAlerts(),
+                getBackOrderReminders(),
+                getStockWatches(),
+                getSettings(),
+              ]);
+              const fresh = applyBackup(backup, {
+                watchlist: freshWatchlist,
+                alerts: freshAlerts,
+                reminders: freshReminders,
+                stockWatches: freshWatches,
+                settings: freshSettings,
+              });
               const now = Date.now();
-              for (const id of result.touchedIds.watchlist)
+              // Stamp each collection's sync meta immediately after its save, so
+              // a later failure cannot leave imported data that never syncs.
+              await saveWatchlist(fresh.watchlist);
+              for (const id of fresh.touchedIds.watchlist)
                 await setItemSyncMeta("watchlist", id, now);
-              for (const id of result.touchedIds.alerts)
+              await saveAlerts(fresh.alerts);
+              for (const id of fresh.touchedIds.alerts)
                 await setItemSyncMeta("alerts", id, now);
-              for (const id of result.touchedIds.reminders)
+              await saveBackOrderReminders(fresh.reminders);
+              for (const id of fresh.touchedIds.reminders)
                 await setItemSyncMeta("reminders", id, now);
+              await saveStockWatches(fresh.stockWatches);
               // Stock watches share the reminders sync collection
-              for (const id of result.touchedIds.stockWatches)
+              for (const id of fresh.touchedIds.stockWatches)
                 await setItemSyncMeta("reminders", id, now);
-              showAlert("Backup Imported", summary);
+              if (fresh.settingsApplied) await saveSettings(fresh.settings);
+              showAlert("Backup Imported", mergeSummary(fresh.counts));
             } catch (e) {
               // A storage write failure must not reject unhandled.
               console.error("[DataSection] import save failed", e);

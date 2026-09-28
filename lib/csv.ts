@@ -318,11 +318,15 @@ export type BulkImportRow = {
   tags: string[];
 };
 
-const BULK_MAX_ROWS = 500;
+export const BULK_MAX_ROWS = 500;
 
-export function parseBulkImportCsv(csv: string): BulkImportRow[] {
+export function parseBulkImportCsv(csv: string): {
+  rows: BulkImportRow[];
+  /** True when the file had more rows than BULK_MAX_ROWS and was cut short. */
+  truncated: boolean;
+} {
   const rows = parseCsvRows(csv);
-  if (rows.length === 0) return [];
+  if (rows.length === 0) return { rows: [], truncated: false };
   const header = rows[0].map((h) => h.trim().toLowerCase());
   const hasHeader = header.includes("model") || header.includes("modelnumber");
   const dataRows = hasHeader ? rows.slice(1) : rows;
@@ -334,8 +338,14 @@ export function parseBulkImportCsv(csv: string): BulkImportRow[] {
   const tagsIdx = hasHeader ? header.indexOf("tags") : 3;
 
   const out: BulkImportRow[] = [];
+  let truncated = false;
   for (const cols of dataRows) {
-    if (out.length >= BULK_MAX_ROWS) break;
+    if (out.length >= BULK_MAX_ROWS) {
+      // Rows past the cap used to vanish silently while the summary implied a
+      // complete import.
+      truncated = true;
+      break;
+    }
     const get = (idx: number) => (idx >= 0 && idx < cols.length ? (cols[idx] ?? "") : "");
     const rawModel = get(effectiveModelIdx).trim();
     if (!rawModel) continue;
@@ -354,7 +364,7 @@ export function parseBulkImportCsv(csv: string): BulkImportRow[] {
       : [];
     out.push({ model: rawModel, targetPrice, currency, tags });
   }
-  return out;
+  return { rows: out, truncated };
 }
 
 // Unified per-distributor import entry point: handles BOM, share deep-link header,

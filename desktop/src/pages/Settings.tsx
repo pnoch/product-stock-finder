@@ -1045,16 +1045,36 @@ export function Settings() {
         `Stock watches: +${result.counts.stockWatchesAdded} new, ${result.counts.stockWatchesUpdated} updated`,
       ].join("\n");
       if (!confirm(`Import Backup?\n\n${summary}`)) return;
-      await storage.saveWatchlist(result.watchlist);
-      await storage.saveAlerts(result.alerts);
-      await storage.saveBackOrderReminders(result.reminders);
-      await storage.saveStockWatches(result.stockWatches);
-      if (result.settingsApplied) await storage.saveSettings(result.settings);
+      // Re-read and merge at save time: the snapshot above predates the confirm
+      // dialog, and a price sweep or sync pull can write the watchlist while the
+      // user decides — saving the stale snapshot reverted those changes.
+      const [freshWatchlist, freshAlerts, freshReminders, freshWatches, freshSettings] =
+        await Promise.all([
+          storage.getWatchlist(),
+          storage.getAlerts(),
+          storage.getBackOrderReminders(),
+          storage.getStockWatches(),
+          storage.getSettings(),
+        ]);
+      const fresh = applyBackup(backup, {
+        watchlist: freshWatchlist,
+        alerts: freshAlerts,
+        reminders: freshReminders,
+        stockWatches: freshWatches,
+        settings: freshSettings,
+      });
       const now = Date.now();
-      for (const idc of result.touchedIds.watchlist) await storage.setItemSyncMeta("watchlist", idc, now);
-      for (const idc of result.touchedIds.alerts) await storage.setItemSyncMeta("alerts", idc, now);
-      for (const idc of result.touchedIds.reminders) await storage.setItemSyncMeta("reminders", idc, now);
-      for (const idc of result.touchedIds.stockWatches) await storage.setItemSyncMeta("reminders", idc, now);
+      // Stamp each collection's meta right after its save, so a later failure
+      // cannot leave imported data that never syncs.
+      await storage.saveWatchlist(fresh.watchlist);
+      for (const idc of fresh.touchedIds.watchlist) await storage.setItemSyncMeta("watchlist", idc, now);
+      await storage.saveAlerts(fresh.alerts);
+      for (const idc of fresh.touchedIds.alerts) await storage.setItemSyncMeta("alerts", idc, now);
+      await storage.saveBackOrderReminders(fresh.reminders);
+      for (const idc of fresh.touchedIds.reminders) await storage.setItemSyncMeta("reminders", idc, now);
+      await storage.saveStockWatches(fresh.stockWatches);
+      for (const idc of fresh.touchedIds.stockWatches) await storage.setItemSyncMeta("reminders", idc, now);
+      if (fresh.settingsApplied) await storage.saveSettings(fresh.settings);
       setImportExportMessage("Backup imported. Reloading…");
       window.location.reload();
     } catch (e) {

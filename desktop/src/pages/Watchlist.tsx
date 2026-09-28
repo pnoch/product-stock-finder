@@ -483,10 +483,15 @@ export function Watchlist() {
     if (!file) return;
     try {
       const text = await file.text();
-      const rows = parseBulkImportCsv(text);
+      const { rows, truncated } = parseBulkImportCsv(text);
       if (rows.length === 0) {
         showToast("No valid rows — expected header: model,targetPrice,currency,tags");
         return;
+      }
+      if (truncated) {
+        showToast(
+          `Only the first ${rows.length} rows were imported — split the file for the rest`,
+        );
       }
       const byModel = new Map(PRODUCT_CATALOG.map((p) => [p.modelNumber.toLowerCase(), p] as const));
       let added = 0;

@@ -7,7 +7,7 @@ describe("parseBulkImportCsv", () => {
 CRS326,100,USD,core;lab
 CRS804,200,EUR,core
 "CRS 305",,USD,`;
-    const rows = parseBulkImportCsv(csv);
+    const { rows } = parseBulkImportCsv(csv);
     expect(rows).toHaveLength(3);
     expect(rows[0]).toEqual({ model: "CRS326", targetPrice: 100, currency: "USD", tags: ["core", "lab"] });
     expect(rows[1]).toEqual({ model: "CRS804", targetPrice: 200, currency: "EUR", tags: ["core"] });
@@ -19,7 +19,7 @@ CRS804,200,EUR,core
 
 CRS326,100,USD,"core, lab"
 `;
-    const rows = parseBulkImportCsv(csv);
+    const { rows } = parseBulkImportCsv(csv);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.tags).toEqual(["core", "lab"]);
   });
@@ -27,8 +27,21 @@ CRS326,100,USD,"core, lab"
   it("rejects rows without model and caps at 500 rows", () => {
     const many = Array.from({ length: 600 }, (_, i) => `M${i},100,USD,`).join("\n");
     const csv = `model,targetPrice,currency,tags\n${many}\n,100,USD,`;
-    const rows = parseBulkImportCsv(csv);
+    const { rows } = parseBulkImportCsv(csv);
     expect(rows.length).toBe(500);
     expect(rows.every((r) => r.model.length > 0)).toBe(true);
+  });
+});
+
+describe("parseBulkImportCsv truncation", () => {
+  it("reports truncation instead of silently dropping rows past the cap", () => {
+    const body = Array.from({ length: 520 }, (_, i) => `M${i},10,USD,`).join("\n");
+    const { rows, truncated } = parseBulkImportCsv(
+      `model,targetPrice,currency,tags\n${body}`,
+    );
+    expect(rows).toHaveLength(500);
+    // The summary used to imply a complete import while 20 rows vanished.
+    expect(truncated).toBe(true);
+    expect(parseBulkImportCsv("model\nM1").truncated).toBe(false);
   });
 });

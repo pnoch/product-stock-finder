@@ -15,7 +15,7 @@ import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { showAlert } from "@/lib/alert";
 import { addToWatchlist } from "@/lib/storage";
-import { matchModels, parseModelInput } from "@/lib/bulk-import";
+import { matchModels, parseModelInputDetailed } from "@/lib/bulk-import";
 
 const PREVIEW_LIMIT = 5;
 
@@ -34,7 +34,11 @@ export function BulkImportModal({
   const [text, setText] = useState("");
   const [importing, setImporting] = useState(false);
 
-  const preview = useMemo(() => matchModels(parseModelInput(text)), [text]);
+  const parsedInput = useMemo(() => parseModelInputDetailed(text), [text]);
+  const preview = useMemo(
+    () => matchModels(parsedInput.models),
+    [parsedInput.models],
+  );
   const newProducts = preview.matched.filter((p) => !trackedIds.has(p.id));
   const alreadyTracked = preview.matched.length - newProducts.length;
   const canImport = !importing && newProducts.length > 0;
@@ -43,16 +47,24 @@ export function BulkImportModal({
     if (!canImport) return;
     setImporting(true);
     try {
-      const results = await Promise.allSettled(
-        newProducts.map((item) =>
-          addToWatchlist({
-            ...item,
-            addedAt: new Date().toISOString(),
-            isWatched: true,
-            listings: [],
-          }),
-        ),
-      );
+      // Chunked with yields, like the CSV import: firing one full-list rewrite
+      // per product at once janked the UI and spiked memory on a big paste.
+      const results: PromiseSettledResult<boolean>[] = [];
+      for (let i = 0; i < newProducts.length; i += 50) {
+        const chunk = newProducts.slice(i, i + 50);
+        const settled = await Promise.allSettled(
+          chunk.map((item) =>
+            addToWatchlist({
+              ...item,
+              addedAt: new Date().toISOString(),
+              isWatched: true,
+              listings: [],
+            }),
+          ),
+        );
+        results.push(...settled);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
       // `addToWatchlist` RESOLVES false for an already-tracked product, so a
       // rejected-status check alone reported more imports than actually landed.
       // Count only fulfilled writes whose value is true.
@@ -71,11 +83,14 @@ export function BulkImportModal({
         preview.unmatched.length > 0
           ? `\n${preview.unmatched.length} not found in catalog.`
           : "";
+      const truncatedNote = parsedInput.truncated
+        ? `\nOnly the first ${parsedInput.models.length} models were imported.`
+        : "";
       showAlert(
         "Import Complete",
         `${addedCount} added · ${alreadyTracked} already tracked${
           failedCount > 0 ? ` · ${failedCount} failed` : ""
-        }.${unmatchedNote}`,
+        }.${unmatchedNote}${truncatedNote}`,
       );
       setText("");
       onImported?.();
@@ -158,7 +173,7 @@ export function BulkImportModal({
               marginBottom: 12,
             }}
           />
-          {parseModelInput(text).length > 0 && (
+          {parsedInput.models.length > 0 && (
             <View style={{ marginBottom: 12 }}>
               <Text
                 style={{

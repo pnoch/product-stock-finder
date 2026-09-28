@@ -581,10 +581,17 @@ export default function WatchlistScreen() {
         showAlert("Import failed", "CSV file is empty.");
         return;
       }
-      const rows = parseBulkImportCsv(csv);
+      const { rows, truncated } = parseBulkImportCsv(csv);
       if (rows.length === 0) {
         showAlert("Import failed", "No valid rows found. Expected header: model,targetPrice,currency,tags");
         return;
+      }
+      if (truncated) {
+        // Don't let the summary imply a complete import.
+        showAlert(
+          "Large file",
+          `Only the first ${rows.length} rows were imported. Split the file and import the rest separately.`,
+        );
       }
       const byModel = new Map(PRODUCT_CATALOG.map((p) => [p.modelNumber.toLowerCase(), p] as const));
       let added = 0;

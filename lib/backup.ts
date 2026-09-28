@@ -72,6 +72,22 @@ function asArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
 
+/**
+ * Like asArray, but drops entries without a usable string id. A malformed row
+ * otherwise collides on the same `undefined` map key, writes a bogus
+ * `"undefined"` sync-meta entry, and retries forever as a server validation
+ * rejection.
+ */
+function asIdArray<T extends { id?: unknown }>(value: unknown): T[] {
+  return asArray<T>(value).filter(
+    (item) =>
+      !!item &&
+      typeof item === "object" &&
+      typeof (item as { id?: unknown }).id === "string" &&
+      (item as { id: string }).id.length > 0,
+  );
+}
+
 export function parseBackup(json: string): BackupData | null {
   let parsed: unknown;
   try {
@@ -89,10 +105,10 @@ export function parseBackup(json: string): BackupData | null {
     format: BACKUP_FORMAT,
     version: obj.version,
     exportedAt: typeof obj.exportedAt === "string" ? obj.exportedAt : "",
-    watchlist: asArray<Product>(obj.watchlist),
-    alerts: asArray<PriceAlert>(obj.alerts),
-    reminders: asArray<BackOrderReminder>(obj.reminders),
-    stockWatches: asArray<BackOrderReminder>(obj.stockWatches),
+    watchlist: asIdArray<Product>(obj.watchlist),
+    alerts: asIdArray<PriceAlert>(obj.alerts),
+    reminders: asIdArray<BackOrderReminder>(obj.reminders),
+    stockWatches: asIdArray<BackOrderReminder>(obj.stockWatches),
     settings:
       obj.settings && typeof obj.settings === "object"
         ? stripDeviceLocalSettings(obj.settings as AppSettings)

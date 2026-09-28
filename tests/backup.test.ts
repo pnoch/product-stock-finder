@@ -3,6 +3,7 @@ import {
   applyBackup,
   buildBackup,
   parseBackup,
+  BACKUP_FORMAT,
 } from "../lib/backup";
 import type {
   AppSettings,
@@ -377,5 +378,24 @@ describe("BYO-LLM key is device-local", () => {
       settings: { ...DEFAULT_SETTINGS, llmApiKey: "sk-local" },
     });
     expect(result.settings.llmApiKey).toBe("sk-local");
+  });
+});
+
+describe("parseBackup item validation", () => {
+  it("drops items without a usable string id", () => {
+    const json = JSON.stringify({
+      format: BACKUP_FORMAT,
+      version: 1,
+      exportedAt: NOW,
+      watchlist: [{ id: "ok", name: "P" }, { name: "no-id" }, { id: 42 }],
+      alerts: [],
+      reminders: [],
+      stockWatches: [],
+      settings: {},
+    });
+    const parsed = parseBackup(json)!;
+    // An id-less row used to collide on one `undefined` key, write a bogus
+    // sync-meta entry, and retry forever as a server validation rejection.
+    expect(parsed.watchlist.map((p) => p.id)).toEqual(["ok"]);
   });
 });

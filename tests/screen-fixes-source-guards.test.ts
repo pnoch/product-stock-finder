@@ -93,6 +93,24 @@ describe("screen-level fixes", () => {
     expect(block).toContain("rediscoverProduct({");
   });
 
+  it("backup import re-reads and merges at save time, stamping per collection", () => {
+    for (const file of [
+      "components/settings/data-section.tsx",
+      "desktop/src/pages/Settings.tsx",
+    ]) {
+      const src = read(file);
+      // The snapshot taken before the confirm dialog is stale by the time the
+      // user accepts; saving it reverted a concurrent price check / sync pull.
+      expect(src, file).toContain("const fresh = applyBackup(backup, {");
+      expect(src, file).toContain("fresh.touchedIds.watchlist");
+      // Per-collection stamping: a later failure must not leave imported data
+      // that never syncs.
+      expect(src, file).toMatch(
+        /saveWatchlist\(fresh\.watchlist\);[\s\S]{0,200}setItemSyncMeta\("watchlist"/,
+      );
+    }
+  });
+
   it("bulk-import summaries count only writes that landed", () => {
     // addToWatchlist RESOLVES false for a duplicate, so a fulfilled-status check
     // alone over-reported the import.

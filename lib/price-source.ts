@@ -1,4 +1,5 @@
 import { isServerConfigured } from "@/constants/oauth";
+import { isFreshPriceSnapshot } from "@/lib/price-freshness";
 import { fetchServerPrice } from "@/lib/server-prices";
 import { getParserByDistributorId } from "@/lib/scrapers/registry";
 import {
@@ -45,9 +46,22 @@ export async function resolvePrice(
   distributorId: string,
   modelNumber: string,
 ): Promise<ResolvedPrice | null> {
+  let server: ServerPriceResult | null = null;
   if (isServerConfigured()) {
-    const server = await fetchServerPrice(distributorId, modelNumber);
-    if (server) return { ...server, source: "server" };
+    server = await fetchServerPrice(distributorId, modelNumber);
+    // A fresh server snapshot is authoritative.
+    if (server && isFreshPriceSnapshot(server.snapshot)) {
+      return { ...server, source: "server" };
+    }
   }
-  return scrapePriceOnDevice(distributorId, modelNumber);
+  // Stale or absent server data: an on-device scrape may still succeed. Returning
+  // the stale snapshot here meant the distributor was silently missed — the
+  // discovery layer rejects stale snapshots, and the server only *triggers* a
+  // background refresh, so the fresh price never arrived in time.
+  const device = await scrapePriceOnDevice(distributorId, modelNumber);
+  if (device) {
+    return server?.history?.length ? { ...device, history: server.history } : device;
+  }
+  // Nothing fresh on device: a stale server snapshot still beats nothing.
+  return server ? { ...server, source: "server" } : null;
 }

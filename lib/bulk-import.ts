@@ -1,15 +1,33 @@
 import Fuse from "fuse.js";
 import { PRODUCT_CATALOG } from "@shared/catalog";
+import { BULK_MAX_ROWS } from "./csv";
 
 export type CatalogProduct = (typeof PRODUCT_CATALOG)[0];
 
 // Splits pasted input on newlines/commas/semicolons, trims whitespace,
 // strips one layer of wrapping quotes, drops empties, dedupes case-insensitively.
 export function parseModelInput(text: string): string[] {
+  return parseModelInputDetailed(text).models;
+}
+
+/**
+ * Same as parseModelInput, plus whether the input exceeded the cap. A paste of
+ * thousands of models used to be accepted whole and fired one full-list rewrite
+ * per product (O(N²)); the CSV path has always capped at BULK_MAX_ROWS.
+ */
+export function parseModelInputDetailed(text: string): {
+  models: string[];
+  truncated: boolean;
+} {
   const seen = new Set<string>();
   const result: string[] = [];
   const parts = text.split(/[\n,;]+/);
+  let truncated = false;
   for (const raw of parts) {
+    if (result.length >= BULK_MAX_ROWS) {
+      truncated = true;
+      break;
+    }
     let entry = raw.trim();
     if (
       (entry.startsWith('"') && entry.endsWith('"') && entry.length >= 2) ||
@@ -24,7 +42,7 @@ export function parseModelInput(text: string): string[] {
     seen.add(key);
     result.push(entry);
   }
-  return result;
+  return { models: result, truncated };
 }
 
 export interface MatchConfidence {
