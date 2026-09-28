@@ -93,6 +93,17 @@ describe("screen-level fixes", () => {
     expect(block).toContain("rediscoverProduct({");
   });
 
+  it("the health detail screen guards against an out-of-order load", () => {
+    const src = read("app/health/[id].tsx");
+    // `id` comes from the route params, so navigating between two distributors
+    // re-runs the load while the previous one is in flight; the older result
+    // could land last and show the wrong distributor's samples.
+    expect(src).toContain("loadGenRef");
+    // Both awaits must be guarded (the samples read and the status read), so
+    // count the checks rather than merely finding the string once.
+    expect(src.split("if (gen !== loadGenRef.current) return;").length - 1).toBe(2);
+  });
+
   it("backup import re-reads and merges at save time, stamping per collection", () => {
     for (const file of [
       "components/settings/data-section.tsx",

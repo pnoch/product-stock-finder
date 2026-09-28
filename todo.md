@@ -5058,3 +5058,10 @@ Verified the remaining inbound concerns against the running built server, not ju
 - [x] **SPA fallback boundaries: correct.** A non-GET to an unknown path → 404 (not the shell); `GET /api/nope` → `{"error":"Not found"}` 404 JSON; `GET /storage/foo` → the storage proxy's own "not configured" response (500), not the shell. The shell also revalidates (`Cache-Control` set explicitly, since `res.sendFile` bypasses `express.static`'s `setHeaders`).
 - [x] **Rate-limit coverage: 32 of 34 procedures** (verified in Phase 661); the two without (`me`, `logout`) are cheap and idempotent.
 - [x] No code change; tree unchanged from Phase 661 (`tsc 0`, lint 0 errors / 157 warnings, `2588 passed`; desktop `281`).
+
+## Phase 663: Async-race sweep (found an out-of-order load on the health detail screen)
+
+- [x] **Scanned every `useEffect` and `useCallback` async load for an unguarded `setState` after an `await`.** Zero unguarded effects; of the 37 callback candidates, most are one-at-a-time user mutations, and Home's `loadData` reads local storage idempotently (a focus + pull-to-refresh overlap just re-reads the same data).
+- [x] **Found a real race in `app/health/[id].tsx`.** `id` comes from `useLocalSearchParams`, so navigating from one distributor's health page to another re-runs the load while the previous one is still in flight — the older result could land last and show the **wrong distributor's samples** (and status). Added a generation guard (`loadGenRef`) checked after each await, with `setLoading(false)` only for the current generation.
+- [x] **Test:** a source guard asserting both awaits are guarded (count-based, so removing either fails). Non-vacuous — my first version only checked the string once and did *not* discriminate; strengthened after the mutation survived.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2589 passed` (27 skipped without a DB); desktop `281 passed`.

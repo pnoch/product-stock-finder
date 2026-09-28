@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -39,17 +39,26 @@ export default function HealthDetailScreen() {
     error: colors.error,
   };
 
+  // Generation guard: `id` comes from the route params, so navigating from one
+  // distributor's health page to another re-runs this while the previous load is
+  // still in flight — the older result could land last and show the wrong
+  // distributor's samples.
+  const loadGenRef = useRef(0);
+
   const load = useCallback(async () => {
     if (!id) return;
+    const gen = ++loadGenRef.current;
     setLoading(true);
     try {
       const history = await healthService.getHealthHistory();
+      if (gen !== loadGenRef.current) return;
       setSamples(history[id] ?? []);
       const health = await healthService.getDistributorHealth();
+      if (gen !== loadGenRef.current) return;
       const entry = health.find((h) => h.distributorId === id);
       setCurrentStatus(entry?.status ?? null);
     } finally {
-      setLoading(false);
+      if (gen === loadGenRef.current) setLoading(false);
     }
   }, [id]);
 
