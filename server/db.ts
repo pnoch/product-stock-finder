@@ -29,7 +29,20 @@ export async function getDb() {
   if (!_pool) {
     if (!creatingPool) {
       creatingPool = (async () => {
-        const pool = mysql.createPool(url);
+        // Explicit pool bounds. mysql2's defaults are connectionLimit 10 with
+        // an UNBOUNDED wait queue (queueLimit 0), so a burst of slow queries
+        // piles up in memory without limit. Cap the queue so excess requests
+        // fail fast instead of exhausting the process, and recycle idle
+        // connections so a long-lived server does not hold stale ones.
+        const pool = mysql.createPool({
+          uri: url,
+          connectionLimit: Number(process.env.DB_POOL_LIMIT ?? 10),
+          queueLimit: Number(process.env.DB_QUEUE_LIMIT ?? 200),
+          waitForConnections: true,
+          maxIdle: Number(process.env.DB_POOL_LIMIT ?? 10),
+          idleTimeout: 60_000,
+          enableKeepAlive: true,
+        });
         _pool = pool;
         return pool;
       })().finally(() => {

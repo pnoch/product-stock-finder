@@ -5041,3 +5041,11 @@ Audited every `... / x * 100` percentage computation in app code for an unguarde
 - [x] **Tests:** `tests/fetch-timeout.test.ts` (the signal is passed; the deadline aborts). Both non-vacuous.
 - [x] **Verified already-guarded:** `server/fx.ts`, `server/product-parse.ts`, `server/user-llm.ts`, and `server/routers/trending.ts` all set their own abort deadlines; the storage proxy's key validation already blocks traversal/URLs/control chars.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2588 passed` (27 skipped without a DB); desktop `281 passed`.
+
+## Phase 661: Bounded the MySQL connection pool
+
+- [x] **Found: `mysql.createPool(url)` used mysql2's defaults** — `connectionLimit: 10` with an **unbounded wait queue** (`queueLimit: 0`). A burst of slow queries (a large sync push, a warmer tick, a catalog refresh) piles up in memory without limit instead of failing fast, and idle connections were never recycled on a long-lived server.
+- [x] **Fix:** an explicit pool config — `connectionLimit` (default 10), `queueLimit` (default 200, so excess requests fail fast), `waitForConnections`, `maxIdle`, `idleTimeout: 60s`, `enableKeepAlive` — each overridable via `DB_POOL_LIMIT`/`DB_QUEUE_LIMIT`.
+- [x] **Verified against the real database:** the full DB-gated suite passes with the explicit config (**2615 passed**), confirming the `uri` + options form works with this mysql2 version.
+- [x] **Also verified:** 32 of 34 tRPC procedures are rate-limited; the two without (`me`, `logout`) are cheap and idempotent (no DB write, no paid call), so that is reasonable.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2588 passed` (27 skipped without a DB) / **`2615 passed`** with the DB; desktop `281 passed`.
