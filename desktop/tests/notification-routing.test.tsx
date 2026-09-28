@@ -21,6 +21,19 @@ describe("resolveEventRoute", () => {
     ).toBe("/product/crs804");
   });
 
+  it("prefers the alert's product when an event carries both an alertId and a watchId", () => {
+    // Every existing case passed only one id, so the precedence was untested —
+    // swapping the alert/watch checks went unnoticed.
+    expect(
+      resolveEventRoute(
+        { type: "price_drop", alertId: "a1", watchId: "w1" },
+        alerts,
+        watches,
+        reminders,
+      ),
+    ).toBe("/product/crs804");
+  });
+
   it("resolves watchId to the watch's product", () => {
     expect(
       resolveEventRoute({ type: "restock", watchId: "w1" }, alerts, watches, reminders),

@@ -5098,3 +5098,13 @@ Applied the Phase-666 lens (client-controlled data the server stores and serves)
 - [x] **Shared-watchlist inputs are all bounded** (`token` ≤64, `title` ≤255, `email` ≤191, `role` an enum, `membersOnly` a boolean).
 - [x] **The shared payload has no separate untrusted input:** `sharedWatchlists.get` serves the *owner's* `watchlistItems` (already validated on `sync.push`), tombstone-filtered in SQL, capped with the `MAX + 1` trick. There is no client-supplied items payload to validate.
 - [x] No code change; tree unchanged from Phase 666 (`tsc 0`, lint 0 errors / 157 warnings, `2593 passed`; desktop `281`).
+
+## Phase 668: Guard-quality (mutation) pass on the desktop suite
+
+First mutation pass over the desktop tests (281 → 282), the analogue of the root-suite passes that found real gaps.
+
+- [x] **Caught (guards discriminate):** `evaluateBasketAlert`'s threshold comparison and its "clear the threshold only after a successful send" logic; `createForegroundSyncRetry`'s "retry only when a sync error is recorded" and its 1-second debounce.
+- [x] **Real gap found and closed:** `resolveEventRoute`'s precedence (alert before watch before reminder) was untested — every existing case passed a single id, so swapping the alert/watch checks went unnoticed. Added a case with **both** an `alertId` and a `watchId`; it fails under the swap.
+- [x] **Verified delegated logic is covered elsewhere:** `desktop/src/lib/health-probe.ts` calls the shared `detectHealthAlert`/`detectHealthRecovery`, which the root suite already mutation-tests.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2593 passed`; desktop `tsc 0`, `282 passed`.
+- [x] Cumulative mutation sample across all passes: 43 areas, 4 real gaps (all closed).
