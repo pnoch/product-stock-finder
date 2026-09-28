@@ -5317,3 +5317,12 @@ Reviewed the desktop components with real logic (beyond the `Modal` fix in Phase
 - [x] **Test:** `desktop/tests/health-detail-race.test.ts` asserts both awaits are guarded (count-based). Non-vacuous.
 - [x] **Audited the other untested desktop pages and found them correct:** `ResetPassword` (validation, `aria-*`, `disabled` double-submit guard, server-error surfacing), `SharedWatchlist` (uses the shared untrusted-data normalizer, dedup-aware add, mutation catches with toasts), `DistributorAnalysis`.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2614 passed`; desktop `tsc 0`, `285 passed`.
+
+## Phase 693: Mobile↔desktop parity audit of this session's fixes (clean)
+
+Checked whether each mobile fix from this session has a desktop counterpart, and whether the desktop has the same bug.
+
+- [x] **Already mirrored:** compare's selection latch (`latchSelection`/`selectionInitialized`), search reading `getDiscoveredProducts`, the AI-discovery `rediscoverProduct` step, and the product-detail alert in-flight guard (`creatingAlert`) are all present on desktop.
+- [x] **No desktop counterpart (nothing to fix):** the mobile tag-picker's synced-id reset — the desktop has no tag-picker component.
+- [x] **Not applicable by architecture:** the mobile undo bug (restoring a cascade-cancelled `notificationId`) — the desktop has **no local notification scheduling** at all (it relies on server push and the notification pull), so there is no local id to restore. Its undo correctly restores the product, alerts, reminders, and watches.
+- [x] No code change; tree unchanged from Phase 692 (`tsc 0`, lint 0 errors / 157 warnings, `2614 passed`; desktop `285`).
