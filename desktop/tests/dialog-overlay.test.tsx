@@ -170,3 +170,31 @@ describe("DialogOverlay", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
+
+describe("Modal", () => {
+  it("renders an accessible dialog and focuses into it", async () => {
+    render(
+      <Modal open onClose={() => {}} title="Test modal">
+        <button>Inside</button>
+      </Modal>,
+    );
+    expect(screen.getByRole("dialog")).toHaveAttribute("aria-modal", "true");
+    // The first focusable is the Close button (it precedes the children).
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Close dialog" }),
+      ).toHaveFocus(),
+    );
+  });
+
+  it("closes on Escape", async () => {
+    const onClose = vi.fn();
+    render(
+      <Modal open onClose={onClose} title="Test modal">
+        <button>Inside</button>
+      </Modal>,
+    );
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});

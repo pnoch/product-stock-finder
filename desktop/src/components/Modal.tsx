@@ -52,13 +52,22 @@ export function Modal({
     };
   }, [open]);
 
+  // Call sites pass an inline `onClose`, so using it as an effect dependency
+  // re-ran this on every parent render — re-adding the keydown listener and
+  // re-pushing the dialog token each time (corrupting the dialog stack). Keep
+  // the handler in a ref and key the effect on `open` only.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
     const id = tokenRef.current as symbol;
     pushDialog(id);
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isTopDialog(id)) {
-        onClose();
+        onCloseRef.current();
       }
       if (e.key === "Tab") {
         const dialog = dialogRef.current;
@@ -92,7 +101,7 @@ export function Modal({
       window.removeEventListener("keydown", handler);
       popDialog(id);
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

@@ -5291,3 +5291,11 @@ Reviewed every hook in `hooks/` (several had no direct test).
 - [x] **`use-alert-badge`:** carries the Phase-601 storage subscription and the mounted guard. Correct.
 - [x] **`use-auth`, `use-alerts-data`, `use-live-prices`, `use-colors`:** already covered by tests and audited in earlier phases.
 - [x] No code change; tree unchanged from Phase 688 (`tsc 0`, lint 0 errors / 157 warnings, `2614 passed`; desktop `282`).
+
+## Phase 690: Desktop Modal had the same inline-onClose effect bug as DialogOverlay
+
+- [x] **Found: `desktop/src/components/Modal.tsx`'s keydown/focus-trap effect depended on `[open, onClose]`.** `ProductDetail.tsx` passes an inline `onClose` at four sites, so the effect re-ran on every parent render — re-adding the keydown listener and popping/re-pushing the dialog token each time (corrupting the shared dialog stack so Escape could close the wrong dialog). This is the exact bug fixed in `DialogOverlay` in Phase 605; `Modal.tsx` was missed.
+- [x] **Fix:** the handler now lives in an `onCloseRef` and the effect is keyed on `[open]` only, matching `DialogOverlay`.
+- [x] **Tests:** added two `Modal` cases (it had none) — an accessible dialog that focuses into it, and Escape closing it exactly once. Non-vacuous for the behaviour they assert.
+- [x] **Honest note:** I tried to write a test that discriminates the *dependency* change specifically (a nested-dialog stack test and a listener-count test), but both were non-discriminating — React already cleans up the previous listener, and the nested-dialog harness did not reproduce the ordering. Removed them rather than keep tests that pass either way; the fix is the proven Phase-605 pattern.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2614 passed`; desktop `tsc 0`, `284 passed`.
