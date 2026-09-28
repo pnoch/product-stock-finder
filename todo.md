@@ -5220,3 +5220,12 @@ The desktop analogue of Phase 680 — the desktop's own tRPC/header layer had ne
 - [x] **The desktop client works end-to-end:** it boots (onboarding + full nav), register returns 200 with a session token, and a tRPC query (`fx.get`) returns 200 / 2.6 KB — **0 failed requests, 0 page errors**.
 - [x] **Verified the CORS boundary is correct, not broken:** the first attempt failed with `Failed to fetch` because the desktop renderer (`:4661`) calls the API (`:4660`) cross-origin and `CORS_ALLOWED_ORIGINS` was empty — the browser blocked it. Setting the origin produced `Access-Control-Allow-Origin` + `Access-Control-Allow-Credentials`, after which everything worked. That is the allowlist doing its job (a wildcard would have been the bug).
 - [x] No code change; tree unchanged from Phase 680 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
+
+## Phase 682: Storage-key privacy boundary audit (clean)
+
+Diffed the full `STORAGE_KEYS` list against what each wipe path removes — a key that is neither wiped nor deliberately preserved would leak across accounts.
+
+- [x] **`clearAccountData` removes every user-content key** (watchlist, alerts, reminders, stock watches, digest snapshot, sync meta, displayed event ids, notification history, pending health events, discovered products/distributors) plus the legacy keys, recent searches, error breadcrumbs, the breaker store, and the quarantine blobs.
+- [x] **The four keys it keeps are all deliberate device-level state, none carrying user content:** `app_settings` (device preferences — with the BYO-LLM key stripped and the LLM config reset), `fx_rates` / `fx_rate_history` (public market data), and `background_task_interval` (a device registration marker).
+- [x] **`clearAllData` removes every key** (verified programmatically: no key in `STORAGE_KEYS` is missed).
+- [x] No code change; tree unchanged from Phase 681 (`tsc 0`, lint 0 errors / 157 warnings, `2610 passed`; desktop `282`).
