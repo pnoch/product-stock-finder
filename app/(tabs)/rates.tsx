@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, Text, RefreshControl, Platform, TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
@@ -17,8 +17,15 @@ export default function RatesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [range, setRange] = useState<FxWindow>("All");
 
+  // Generation guard: the mount effect fires loadData() immediately and again
+  // after maybeRefreshFxRates() resolves. Both await a storage read, so the
+  // earlier (pre-refresh) read could land last and show stale rates.
+  const loadGenRef = useRef(0);
+
   const loadData = useCallback(async () => {
+    const gen = ++loadGenRef.current;
     const h = await getFxHistory();
+    if (gen !== loadGenRef.current) return;
     setHistory(h);
   }, []);
 

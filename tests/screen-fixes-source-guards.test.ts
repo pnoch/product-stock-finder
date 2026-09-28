@@ -93,6 +93,14 @@ describe("screen-level fixes", () => {
     expect(block).toContain("rediscoverProduct({");
   });
 
+  it("the rates screen guards against an out-of-order load", () => {
+    const src = read("app/(tabs)/rates.tsx");
+    // The mount effect calls loadData twice concurrently (immediately and after
+    // maybeRefreshFxRates), so the earlier read could land last with stale rates.
+    expect(src).toContain("loadGenRef");
+    expect(src).toContain("if (gen !== loadGenRef.current) return;");
+  });
+
   it("the health detail screen guards against an out-of-order load", () => {
     const src = read("app/health/[id].tsx");
     // `id` comes from the route params, so navigating between two distributors
