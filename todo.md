@@ -5137,3 +5137,10 @@ Mutation pass over the desktop Rust tests (70 → 71).
 - [x] **Method note:** my first race test asserted the wrong invariant and failed on *correct* code; the second version asserts "exactly one of the two acquires is admitted", which is the actual guarantee and discriminates the mutation.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2598 passed` (27 skipped without a DB); desktop `282 passed`.
 - [x] Cumulative mutation sample: 49 areas, 6 real gaps (all closed).
+
+## Phase 672: background-safe-timers mutation pass (one non-discriminating mutation, correctly so)
+
+- [x] **Caught:** removing the "returned to foreground mid-wait" branch (which hands the remainder to a plain `setTimeout`) fails the corresponding test.
+- [x] **Investigated and correctly non-discriminating:** removing the `ms <= 0` short-circuit in `backgroundSafeDelay` does **not** fail any test — and that is right, not a gap: with the short-circuit gone the backgrounded poll loop's first tick sees `Date.now() >= deadline` and resolves immediately, so the branch is a pure optimization rather than a correctness guarantee. The existing "delay resolves immediately when duration is 0" test still passes because the behaviour is unchanged.
+- [x] No code change; tree unchanged from Phase 671 (`tsc 0`, lint 0 errors / 157 warnings, `2598 passed`; desktop `282`).
+- [x] Cumulative mutation sample: 51 areas, 6 real gaps (all closed); 2 mutations confirmed behaviourally equivalent rather than gaps.
