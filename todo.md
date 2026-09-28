@@ -5272,3 +5272,10 @@ Verified the catalog, distributor list, seed list, and sample data are internall
 - [x] **Tests:** `tests/core-fetch-timeout.test.ts` (the signal is passed; the deadline aborts). Non-vacuous.
 - [x] **Also noted:** `server/_core/voiceTranscription.ts` (288 lines) is unused, like `heartbeat.ts`/`dataApi.ts` — framework code, reported rather than removed.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2614 passed` (27 skipped without a DB); desktop `282 passed`.
+
+## Phase 688: The owner-notification helper had no request timeout (outbound-timeout class closed)
+
+- [x] **Found: `server/_core/notification.ts`'s `notifyOwner` had a `fetch` with no deadline** — reachable via the admin `systemRouter.notifyOwner` procedure. A hung notification service held the request open indefinitely.
+- [x] **Fix:** wrapped with the `_core` `fetchWithTimeout` (60 s).
+- [x] **Closed the class:** every *reachable* `_core` fetch now has a deadline. The remaining unwrapped ones are in `llm.ts` (already wrapped by its own `AbortController`, Phase 686) and in `dataApi.ts` / `heartbeat.ts` / `voiceTranscription.ts`, which are **dead code** (no callers — reported, not removed, as framework files).
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2614 passed` (27 skipped without a DB); desktop `282 passed`.
