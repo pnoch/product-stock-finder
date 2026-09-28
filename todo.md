@@ -5170,3 +5170,12 @@ Mutation pass over the storage modules changed this session.
 - [x] **Investigated and correctly non-discriminating:** removing the `Array.isArray(parsed)` check does not fail any test — and that is right, not a gap: an array payload has no `lastSyncedAt`/`items`, so the downstream type checks yield the same `0`/`{}` result. The array check is defensive (it makes the intent explicit) rather than behaviour-changing.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2607 passed` (27 skipped without a DB); desktop `282 passed`.
 - [x] Cumulative mutation sample: 59 areas, 10 real gaps (all closed); 3 mutations confirmed behaviourally equivalent.
+
+## Phase 676: Server data-module mutation pass (all guards discriminate)
+
+Mutation pass over `server/devices.ts` and `server/db.ts`.
+
+- [x] **Caught:** `isDeviceRevoked`'s global `*:<deviceId>` wildcard (memory) and its legacy-NULL global block (DB, both sites) — removing either fails the device-revocation tests. The token-consume existence check (the Phase-594 double-consume protection) and the memory used/expired checks (3 sites each) — disabling either fails "rejects a second consume even when an in-memory copy exists".
+- [x] **Method note:** the token-consume patterns appear three times (password reset, email verification, and one more), so a `count == 1` assertion correctly refused to mutate — switched to a line-based edit that reported the real site count (3) before mutating.
+- [x] No code change; tree unchanged from Phase 675 (`tsc 0`, lint 0 errors / 157 warnings, `2607 passed`; desktop `282`).
+- [x] Cumulative mutation sample: 63 areas, 10 real gaps (all closed).
