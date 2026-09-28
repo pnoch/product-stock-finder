@@ -5128,3 +5128,12 @@ Mutation pass over the desktop Rust tests (70 → 71).
 - [x] **Non-vacuous:** removing the sanitizer and reverting the drop condition each fail the combined test.
 - [x] **Two fixture mistakes I made and corrected** (both were my test, not the code): a never-pushed item's meta stamp must be *after* the last successful sync (a stamp equal to the cursor is indistinguishable from "synced"), and the dirty set needed price history to actually exceed the 5 MB cap.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2594 passed` (27 skipped without a DB); desktop `282 passed`.
+
+## Phase 671: The semaphore had no test (over-admission race unverified)
+
+- [x] **Found: `lib/concurrency.ts`'s `createSemaphore` had no test of its own.** `tests/concurrency.test.ts` covers `server/concurrency.ts`'s `mapWithConcurrency` instead — a different module — so neither the over-admission race the file's own comment describes nor the `maxQueue` bound was verified.
+- [x] **Added `tests/semaphore.test.ts`** (4 cases): the limit is never exceeded; a released slot is handed straight to a waiter (a second acquire while held queues); the queue bound sheds load with "queue full"; a non-positive limit is treated as 1.
+- [x] **Non-vacuous, including the subtle one:** removing the `maxQueue` check fails the queue test, and replacing the slot-transfer release with the naive decrement-then-wake fails the race test (which forces the interleaving by releasing and synchronously acquiring before the waiter's continuation runs).
+- [x] **Method note:** my first race test asserted the wrong invariant and failed on *correct* code; the second version asserts "exactly one of the two acquires is admitted", which is the actual guarantee and discriminates the mutation.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2598 passed` (27 skipped without a DB); desktop `282 passed`.
+- [x] Cumulative mutation sample: 49 areas, 6 real gaps (all closed).
