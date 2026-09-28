@@ -172,6 +172,36 @@ beforeEach(() => {
 });
 
 describe("checkPriceDropsNow", () => {
+  it("joins an in-flight run instead of scraping everything twice", async () => {
+    // A launch check, the background task and a foreground refresh can fire
+    // close together; overlapping runs scraped every listing twice.
+    state.alertsStore.push(makeAlert());
+    state.watchlistStore = [
+      {
+        id: "p1",
+        listings: [makeListing(50, "USD", "in_stock")],
+      } as unknown as Product,
+    ];
+    // Gate the first run inside its initial watchlist read, so the second call
+    // is guaranteed to arrive while the first is still in flight.
+    const { getWatchlist } = await import("../lib/storage");
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    vi.mocked(getWatchlist).mockImplementationOnce(async () => {
+      await gate;
+      return state.watchlistStore as never;
+    });
+    const first = checkPriceDropsNow();
+    const second = checkPriceDropsNow();
+    release();
+    await Promise.all([first, second]);
+    // The second call joined the first instead of starting its own run, so the
+    // gated first read is the only one that ran the gate.
+    expect(vi.mocked(getWatchlist)).toHaveBeenCalledTimes(3);
+  });
+
   it("does nothing when there are no active alerts", async () => {
     await checkPriceDropsNow();
     expect(state.scheduledNotifications).toHaveLength(0);

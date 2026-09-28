@@ -4958,3 +4958,10 @@ New axis: what happens when the store holds data written by an older build — a
 - [x] **Added `tests/storage-old-payloads.test.ts`** (5 cases) simulating an upgrade: a pre-`tags` product with a listing that has no `priceHistory`; a pre-snooze alert; pre-`tagDefinitions`/`llmProvider` settings (with the old display currency still applying); a pre-`reminderType` reminder; and a payload of the **wrong JSON type** (an object where an array is expected) — which must be quarantined, not silently replaced.
 - [x] **Non-vacuous:** removing the quarantine call fails the wrong-type test (the original payload would be lost on the next write).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2577 passed` (27 skipped without a DB); desktop `281 passed`.
+
+## Phase 651: Re-entrancy guard on the price check
+
+- [x] **Found: `runPriceCheckCore` had no in-flight guard.** It can be invoked from three places that fire close together — the launch effect (`checkPriceDropsNow`), the background task, and a foreground refresh — so overlapping runs scraped every listing twice (wasted requests and needless rate-limit/breaker pressure). The notification path was already idempotent (`deactivateAlert` returns false for an already-triggered alert and the caller checks it before notifying), so this was wasted work rather than duplicate alerts.
+- [x] **Fix:** the exported `runPriceCheckCore` now returns the in-flight run when one exists (`runPriceCheckCoreInner` holds the body), clearing it in a `finally`. A second caller joins instead of starting another run.
+- [x] **Test:** a gated `getWatchlist` holds the first run inside its initial read so the second call is guaranteed to arrive mid-flight; the read count proves only one run proceeded. Non-vacuous (removing the guard raises the count and fails it).
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2578 passed` (27 skipped without a DB); desktop `281 passed`.

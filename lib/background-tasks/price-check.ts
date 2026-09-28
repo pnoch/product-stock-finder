@@ -46,7 +46,25 @@ export async function refreshListingsWithinBudget(
   return out;
 }
 
+// A launch check, the background task and a foreground refresh can all fire
+// close together. The notification path is idempotent (deactivateAlert returns
+// false for an already-triggered alert), but overlapping runs still scrape every
+// listing twice — wasted requests and needless rate-limit pressure. The second
+// caller joins the in-flight run instead of starting another.
+let inFlightPriceCheck: Promise<void> | null = null;
+
 export async function runPriceCheckCore(opts?: {
+  onProgress?: (current: number, total: number) => void;
+}): Promise<void> {
+  if (inFlightPriceCheck) return inFlightPriceCheck;
+  const run = runPriceCheckCoreInner(opts).finally(() => {
+    inFlightPriceCheck = null;
+  });
+  inFlightPriceCheck = run;
+  return run;
+}
+
+async function runPriceCheckCoreInner(opts?: {
   onProgress?: (current: number, total: number) => void;
 }): Promise<void> {
   const { onProgress } = opts ?? {};
