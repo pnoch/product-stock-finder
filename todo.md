@@ -5279,3 +5279,15 @@ Verified the catalog, distributor list, seed list, and sample data are internall
 - [x] **Fix:** wrapped with the `_core` `fetchWithTimeout` (60 s).
 - [x] **Closed the class:** every *reachable* `_core` fetch now has a deadline. The remaining unwrapped ones are in `llm.ts` (already wrapped by its own `AbortController`, Phase 686) and in `dataApi.ts` / `heartbeat.ts` / `voiceTranscription.ts`, which are **dead code** (no callers — reported, not removed, as framework files).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2614 passed` (27 skipped without a DB); desktop `282 passed`.
+
+## Phase 689: Hooks audit (clean)
+
+Reviewed every hook in `hooks/` (several had no direct test).
+
+- [x] **`use-search-data`:** parallel `getWatchlist`/`getTagDefinitions` loads, each with a `.catch`, and the selected tag ids are filtered against the loaded definitions (dropping orphaned ids). Correct.
+- [x] **`use-connection`:** a React Query poll (60 s) with `retry: 1`, an AppState listener that refetches on foreground **with a proper `sub.remove()` cleanup**, and a status derived from `reachable`/`isAuthenticated`/`configured`. Correct.
+- [x] **`use-server-config`:** a trivial memo over `isServerConfigured()`. Correct.
+- [x] **`use-color-scheme` / `.web`:** the web variant handles the SSR hydration case (returns "light" until hydrated, then the real scheme), avoiding a hydration mismatch. Correct.
+- [x] **`use-alert-badge`:** carries the Phase-601 storage subscription and the mounted guard. Correct.
+- [x] **`use-auth`, `use-alerts-data`, `use-live-prices`, `use-colors`:** already covered by tests and audited in earlier phases.
+- [x] No code change; tree unchanged from Phase 688 (`tsc 0`, lint 0 errors / 157 warnings, `2614 passed`; desktop `282`).
