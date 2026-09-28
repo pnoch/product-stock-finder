@@ -4949,3 +4949,12 @@ Verified the concrete, checkable claims in AGENTS.md against the code — doc dr
 - [x] **Clarified (not a violation):** AGENTS.md says `lib/price-source.ts` is the sole *foreground* price entry point. `lib/background-tasks/refresh-listing.ts` does call `fetchServerPrice` directly, but it is the background path with a different contract (prefers the server snapshot, records health, uploads history) — the documented rule is scoped to foreground, so this is correct.
 - [x] **Stale but harmless:** AGENTS.md says "~277 test files"; there are now 361. A soft "~" claim, not a correctness issue.
 - [x] No code change; tree unchanged from Phase 648 (`tsc 0`, lint 0 errors / 157 warnings, `2572 passed`; desktop `281`).
+
+## Phase 650: Upgrade/migration robustness (older stored payloads)
+
+New axis: what happens when the store holds data written by an older build — a class that only manifests on app update and that no existing test covered.
+
+- [x] **No storage schema versioning exists** (no `SCHEMA_VERSION` key); the protection is defensive reads plus the quarantine path. Verified the codebase consistently defaults newer fields (`?? {}`, `?? ""`, truthiness guards) rather than assuming they exist — including `tagDefinitions`, `snoozedUntil`, `reminderType`, `lastKnownStatus`, `tagsUpdatedAt`.
+- [x] **Added `tests/storage-old-payloads.test.ts`** (5 cases) simulating an upgrade: a pre-`tags` product with a listing that has no `priceHistory`; a pre-snooze alert; pre-`tagDefinitions`/`llmProvider` settings (with the old display currency still applying); a pre-`reminderType` reminder; and a payload of the **wrong JSON type** (an object where an array is expected) — which must be quarantined, not silently replaced.
+- [x] **Non-vacuous:** removing the quarantine call fails the wrong-type test (the original payload would be lost on the next write).
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2577 passed` (27 skipped without a DB); desktop `281 passed`.
