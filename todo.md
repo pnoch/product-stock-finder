@@ -4820,3 +4820,11 @@ Built the desktop renderer (`pnpm build` in `desktop/`) and drove the built outp
 - [x] **Bundle verified clean:** no `playwright`, `express`, `drizzle-orm`, `mysql2`, or server-secret markers; `browser.web` is the stub chunk (playwright stays out of the desktop bundle, as designed).
 - [x] **New guard:** `desktop/tests/vite-dev-define.test.ts` asserts the `__DEV__` define is a literal and not an `import.meta` expression. Non-vacuous (reverting fails it).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2536 passed` (27 skipped without a DB); desktop `tsc 0`, `281 passed`; `cargo test` 70.
+
+## Phase 635: Tauri release-build smoke (clean, with a deployment note)
+
+Built the desktop app in **release** mode (different codegen from the debug/test builds) and launched the binary under a virtual display.
+
+- [x] **Release build compiles and runs clean.** `cargo build --release` succeeds; the binary launches under `xvfb-run` and stays up (killed by my timeout, exit 124) with **0 panics and 0 errors** — only GPU/EGL warnings from the headless display (no DRI3/hardware acceleration), which are environmental. It creates its WebKit data dirs. The `windows_subsystem = "windows"` release-only attribute (main.rs) is the only `debug_assertions`-gated code and is Windows-only.
+- [x] **Deployment hazard recorded (not a code bug):** `frontendDist: "../dist"` is embedded at *compile* time, and `beforeBuildCommand: "pnpm build"` is what builds it. Running `cargo build --release` directly (bypassing the Tauri CLI) embeds whatever is in `desktop/dist` — nothing, if the frontend was not built first — producing a blank-window app with no error. The Tauri CLI is not installed in this environment, so the documented `tauri build` path could not be exercised here; the correct sequence is `pnpm build` (frontend) then `cargo build --release`, which I verified produces a working binary.
+- [x] No code change; tree unchanged from Phase 634 (`tsc 0`, lint 0 errors / 157 warnings, `2536 passed`; desktop `281`; `cargo test` 70).
