@@ -6403,3 +6403,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Byte caps:** the server sums `JSON.stringify(item.data).length` and rejects >5MB with a `BAD_REQUEST`; a cyclic payload throws and is caught → `"Unserializable sync data"`.
 - [x] **Client:** `itemBytes` returns `Infinity` on a cyclic payload (forces a trim rather than aborting sync); `batchSyncItems` batches on both item count and bytes; `serializeItem` progressively trims history (`[20,10,5,2,1,0]`) until the item fits, never touching the local copy.
 - [x] No code change; tree unchanged from Phase 840 (`tsc 0`, lint 0 errors / 157 warnings, `2675 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 842: Scraper positive-path coverage audit (clean, one tightened)
+
+- [x] Verified all 25 parsers have a positive-path test (a non-null result with a price assertion) and that the 25 fixtures are negative (404) fixtures — returning null from them is correct.
+- [x] 24 parsers assert the **exact** parsed price; `balticnetworks` only asserted `> 0`. Tightened it to the exact fixture price (1195) — a parser that grabbed the wrong number (shipping figure, crossed-out MSRP) would have passed a `>0` check. Proven non-vacuous: perturbing the parsed price by +1 fails the assertion.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2675 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.

@@ -27,7 +27,9 @@ describe("Baltic Networks Parser", () => {
     const html = fs.readFileSync(fixturePath, "utf-8");
     const result = balticnetworksParser.parsePrice(html);
     expect(result).not.toBeNull();
-    expect(result!.price).toBeGreaterThan(0);
+    // Exact price, not just >0: a parser that grabbed the wrong number (a
+    // shipping figure, a crossed-out MSRP) would still pass a `>0` check.
+    expect(result!.price).toBe(1195);
     expect(result!.currency).toBe("USD");
   });
 
