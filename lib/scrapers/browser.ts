@@ -40,9 +40,9 @@ function isCookieArray(value: unknown): value is any[] {
       (c) =>
         c &&
         typeof c === "object" &&
-        typeof (c as any).name === "string" &&
-        typeof (c as any).value === "string" &&
-        typeof (c as any).domain === "string",
+        typeof c.name === "string" &&
+        typeof c.value === "string" &&
+        typeof c.domain === "string",
     )
   );
 }

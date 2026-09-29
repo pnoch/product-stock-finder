@@ -56,7 +56,7 @@ function withStore<T>(mode: string, fn: (store: any) => any): Promise<T> {
         };
         req.onerror = () => {
           settled = true;
-          reject((req as any).error ?? new Error("indexedDB request failed"));
+          reject(req.error ?? new Error("indexedDB request failed"));
         };
         tx.oncomplete = () => {
           db.close();
@@ -66,14 +66,14 @@ function withStore<T>(mode: string, fn: (store: any) => any): Promise<T> {
           db.close();
           if (!settled) {
             settled = true;
-            reject((tx as any).error ?? new Error("indexedDB transaction failed"));
+            reject(tx.error ?? new Error("indexedDB transaction failed"));
           }
         };
         tx.onabort = () => {
           db.close();
           if (!settled) {
             settled = true;
-            reject((tx as any).error ?? new Error("indexedDB transaction aborted"));
+            reject(tx.error ?? new Error("indexedDB transaction aborted"));
           }
         };
       }),
@@ -182,11 +182,11 @@ export function createIDBAdapter(): StorageAdapter {
           };
           tx.onerror = () => {
             db.close();
-            reject((tx as any).error ?? new Error("multiRemove failed"));
+            reject(tx.error ?? new Error("multiRemove failed"));
           };
           tx.onabort = () => {
             db.close();
-            reject((tx as any).error ?? new Error("multiRemove aborted"));
+            reject(tx.error ?? new Error("multiRemove aborted"));
           };
         });
       } catch (e) {

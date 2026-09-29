@@ -344,7 +344,7 @@ export async function consumePasswordResetToken(token: string) {
       if (!row || row.usedAt !== null || row.expiresAt <= now) return null;
       await tx
         .update(passwordResetTokens)
-        .set({ usedAt: now } as any)
+        .set({ usedAt: now })
         .where(eq(passwordResetTokens.token, token));
       return row;
     });
@@ -495,7 +495,7 @@ export async function consumeEmailVerificationToken(token: string) {
       if (!row || row.usedAt !== null || row.expiresAt <= now) return null;
       await tx
         .update(emailVerificationTokens)
-        .set({ usedAt: now } as any)
+        .set({ usedAt: now })
         .where(eq(emailVerificationTokens.token, token));
       return row;
     });
@@ -525,7 +525,7 @@ export async function consumeEmailVerificationToken(token: string) {
 export async function setUserEmailVerified(id: number) {
   const db = await getDb();
   if (!db) return;
-  await db.update(users).set({ emailVerified: 1 } as any).where(eq(users.id, id));
+  await db.update(users).set({ emailVerified: 1 }).where(eq(users.id, id));
 }
 
 export function __clearEmailVerificationTokensForTest() {

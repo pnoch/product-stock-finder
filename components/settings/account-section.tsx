@@ -63,7 +63,7 @@ export function AccountSection({
   const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
   const [resending, setResending] = useState(false);
 
-  const emailVerified = (user as any)?.emailVerified ?? false;
+  const emailVerified = user?.emailVerified ?? false;
   const showVerificationBadge = Boolean(isAuthenticated && user?.email);
   const needsVerification = Boolean(isAuthenticated && user?.email && !emailVerified);
 
