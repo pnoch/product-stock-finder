@@ -6293,3 +6293,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`app/search.tsx`:** double-submit guards (`adding`/`discovering`), dedup handling (reports "already tracked" instead of a false success), discovery-before-navigate.
 - [x] **`app/stats.tsx` / `app/health.tsx`:** memoized derivations; `health.tsx` uses `isMountedRef` for its progress loop.
 - [x] No code change; tree unchanged from Phase 826 (`tsc 0`, lint 0 errors / 157 warnings, `2666 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 828: Desktop components audit (clean)
+
+- [x] **`ErrorBoundary.tsx`:** class boundary wrapping `<App/>` (outside the router), state-reset retry, `role="alert"`.
+- [x] **`Modal.tsx` / `DialogOverlay.tsx` / `lib/dialog-stack.ts`:** shared LIFO token stack (Escape closes only the topmost, even when a picker is layered over a modal), ref-counted body-scroll lock, focus trap + restore, `onCloseRef` pattern (an inline `onClose` dependency re-ran the effect per keystroke and jumped focus).
+- [x] **`ProductImage.tsx`:** `active` guard, module-level cache, error fallback.
+- [x] **`SearchModal.tsx`:** `wasOpenRef` (loads only on open), memoized Fuse index, deferred query, catalog merge dedup.
+- [x] No code change; tree unchanged from Phase 827 (`tsc 0`, lint 0 errors / 157 warnings, `2666 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
