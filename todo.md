@@ -6242,3 +6242,13 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `device-cleanup`: removed-count return, timer clear.
   - `history-sync`: upload cap.
 - [x] No code change; tree unchanged from Phase 820 (`tsc 0`, lint 0 errors / 157 warnings, `2665 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 822: Adversarial input against the live server (clean)
+
+- [x] Started the real server bundle + MySQL and fired hostile payloads at every reachable tRPC endpoint. **39/39 checks passed — no 5xx, no crash:**
+  - `sync.push` / `sharedWatchlists.create`: `null`/array/string JSON, 200-deep nesting, a 200 KB string, unicode + NUL, `__proto__`/`constructor` pollution, `NaN`/`Infinity`, SQL-injection strings, `<script>` — all rejected cleanly.
+  - `sync.pull`: malformed/empty/`%`/`null`/`undefined`/`[]`/`{` input, `since` as a string/`-1`/`1e308` — all handled.
+  - `sharedWatchlists.get`: empty, path-traversal, SQL-injection, 5000-char, and `%00` tokens.
+  - Oversized body (1000 items × 1 KB) and a wrong content-type.
+- [x] The server stayed healthy (`/api/health` 200) after the whole barrage.
+- [x] No code change; tree unchanged from Phase 821 (`tsc 0`, lint 0 errors / 157 warnings, `2665 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
