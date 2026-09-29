@@ -5621,3 +5621,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`create`:** `randomUUID()` tokens (122-bit entropy) with a duplicate-key retry; 30-day expiry; `isDuplicateKeyError` unwraps the Drizzle error (Phase 594).
 - [x] **Client (`lib/watchlist-share.ts`, `app/w/[token].tsx`):** builds the share message/summary; the screen handles join/leave, expiry, and CSV export.
 - [x] No code change; tree unchanged from Phase 732 (`tsc 0`, lint 0 errors / 157 warnings, `2637 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 734: Price-source/freshness audit (clean)
+
+- [x] **`lib/price-source.ts`:** server-first with a freshness gate, device-scrape fallback bounded by a 3-slot semaphore, and stale-server-snapshot fallback — the documented sole foreground entry point.
+- [x] **`lib/price-freshness.ts`:** rejects non-finite `fetchedAt`; the server stamps `fetchedAt: Date.now()` server-side, so a client cannot inject a far-future value that would make a stale snapshot look fresh.
+- [x] No code change; tree unchanged from Phase 733 (`tsc 0`, lint 0 errors / 157 warnings, `2637 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
