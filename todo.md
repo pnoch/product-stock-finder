@@ -5830,3 +5830,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`server/db-errors.ts`:** unwraps the Drizzle error chain (`.cause`) for duplicate-key/FK classification.
 - [x] **`server/fetch-timeout.ts` / `server/store-keys.ts` / `server/api-cache.ts`:** outbound deadline; case-folded store keys + DECIMAL(12,4) rounding for memory/DB parity; `/api` `no-store`.
 - [x] No code change; tree unchanged from Phase 763 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 765: Server insights/images/push/storage audit (clean)
+
+- [x] **`server/price-insights.ts` / `server/product-images.ts`:** single-flight per product (a burst shares one paid call), TTL-cached, budget-gated.
+- [x] **`server/web-push.ts`:** `isAllowedPushEndpoint` requires HTTPS and an allowlisted push-service host suffix — push endpoints are attacker-supplied, so without this the VAPID-signed request is an SSRF primitive that leaks the JWT.
+- [x] **`server/push-notifications.ts`:** memory/DB parity for token ownership.
+- [x] **`server/storage.ts`:** Forge presign with a fetch timeout; key normalization + hash suffix.
+- [x] No code change; tree unchanged from Phase 764 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
