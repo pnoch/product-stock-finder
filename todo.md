@@ -5811,3 +5811,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`server/email.ts`:** Resend HTTP API with a fetch timeout; never logs bodies/tokens; skips + logs when unconfigured.
 - [x] **`server/product-parse.ts`:** exhaustive SSRF guard (IPv4, IPv6, IPv4-mapped/compatible, NAT64, 6to4, Teredo, unique-local/link-local/multicast), rejects credentials-in-URL, resolves the hostname and rejects if any address is private (DNS-rebinding), and `readCapped` bounds the body.
 - [x] No code change; tree unchanged from Phase 760 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 762: BYO-LLM proxy audit (clean)
+
+- [x] **`server/user-llm.ts`:** fixed provider hosts (no user-supplied URL → no SSRF); `ollama-local` restricted to loopback **and** port 11434 (any port would aim the server's POST at an arbitrary local service); header values bounded; the API key is used per-request and never persisted; `postJson` uses `redirect: "error"` (a 3xx from loopback isn't followed), a 20s deadline covering the body, a 200k response cap, and never echoes the provider body (which can contain the key).
+- [x] No code change; tree unchanged from Phase 761 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
