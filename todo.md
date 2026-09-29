@@ -5544,3 +5544,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/history-sync.ts` ↔ `desktop/src/lib/history-sync.ts`:** both use the shared `sanitizeHistoryPoints`; the mobile counts only confirmed uploads and desktop counts non-throwing mutations — equivalent, since `uploadServerHistory` returns `true` exactly when `mutate` resolves.
 - [x] **`formatPrice`:** single implementation in `shared/src/currency.ts`.
 - [x] No code change; tree unchanged from Phase 721 (`tsc 0`, lint 0 errors / 157 warnings, `2632 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 723: Pure-logic module audit (clean)
+
+- [x] **`lib/restock.ts`:** the `lastKnownStatus ?? "back_order"` default can't fire a spurious restock — watches are created with `lastKnownStatus: listing.stockStatus`, so an already-in-stock watch has `prevStatus === "in_stock"`. The watch is consumed only after a confirmed notification, and the injected store/notifier keep desktop and mobile from diverging.
+- [x] **`lib/tax.ts` / `lib/best-deal.ts` / `lib/distributor-analysis.ts`:** prototype-key (`hasOwnProperty`) and NaN (`Number.isFinite`) guards are in place; free shipping (0) bypasses conversion; the single-in-stock fallback doesn't fabricate free shipping.
+- [x] **`lib/region-filter.ts`, `lib/currency.ts` (`effectiveRates`/`convertPrice`/`roundMoney`), `formatPrice`:** guarded and well-tested (negatives, unknown currency, exponential, NaN/Infinity, round-trip).
+- [x] No code change; tree unchanged from Phase 722 (`tsc 0`, lint 0 errors / 157 warnings, `2632 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
