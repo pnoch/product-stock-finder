@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { watchlistToCsv } from "../lib/csv";
+import { watchlistToCsv, parseWatchlistCsv } from "../lib/csv";
 import type { Product } from "../lib/types";
 
 function product(name: string): Product {
@@ -30,5 +30,30 @@ describe("CSV formula injection", () => {
     const csv = watchlistToCsv([product("MikroTik CRS804")], "USD");
     expect(csv).toContain("MikroTik CRS804");
     expect(csv).not.toContain("'MikroTik");
+  });
+});
+
+describe("CSV export/import round-trip", () => {
+  it("strips the formula-injection prefix on re-import", () => {
+    // The `'` prefix is a spreadsheet text-marker, not part of the value, so a
+    // round-trip of our own export must not turn "=-" into "'=-".
+    for (const value of ["=1+1", "+SUM(A1)", "-2+3", "@cmd"]) {
+      const csv = watchlistToCsv([product(value)], "USD");
+      const back = parseWatchlistCsv(csv);
+      expect(back[0]?.name, value).toBe(value);
+    }
+  });
+
+  it("round-trips a value containing a bare carriage return", () => {
+    // escapeCsv quoted on `\n` but not `\r`, and the tokenizer treats a bare CR
+    // as a row break, so "1-2\rb" was re-imported as "b".
+    const name = "1-2_1b\rb";
+    const back = parseWatchlistCsv(watchlistToCsv([product(name)], "USD"));
+    expect(back[0]?.name).toBe(name);
+  });
+
+  it("preserves a genuine leading apostrophe", () => {
+    const back = parseWatchlistCsv(watchlistToCsv([product("'quoted")], "USD"));
+    expect(back[0]?.name).toBe("'quoted");
   });
 });

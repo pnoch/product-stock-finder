@@ -14,10 +14,20 @@ function escapeCsv(value: string): string {
   // tab, or CR is executed as a formula by Excel/Sheets. Prefix with a single
   // quote (the standard mitigation) before quoting.
   const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
-  if (/[",\n]/.test(safe)) {
+  // Quote on CR too: the tokenizer treats a bare CR as a row break, so an
+  // unquoted value containing one was split into two rows on re-import.
+  if (/[",\n\r]/.test(safe)) {
     return `"${safe.replace(/"/g, '""')}"`;
   }
   return safe;
+}
+
+// Reverse escapeCsv's formula-injection prefix. A leading apostrophe before a
+// formula character is a spreadsheet text-marker, not part of the value, so a
+// round-trip of our own export must strip it (`=-` was re-imported as `'=-`).
+// A genuine apostrophe not followed by a formula character is preserved.
+function unescapeCsv(value: string): string {
+  return /^'[=+\-@\t\r]/.test(value) ? value.slice(1) : value;
 }
 
 function resolveStockStatus(product: Product): string {
@@ -253,15 +263,15 @@ export function parseDetailedCsv(csv: string): DetailedCsvRow[] {
     const padded = [...cols];
     while (padded.length < 9) padded.push("");
     out.push({
-      product: padded[0] ?? "",
-      model: padded[1] ?? "",
-      brand: padded[2] ?? "",
-      category: padded[3] ?? "",
-      distributor: padded[4] ?? "",
+      product: unescapeCsv(padded[0] ?? ""),
+      model: unescapeCsv(padded[1] ?? ""),
+      brand: unescapeCsv(padded[2] ?? ""),
+      category: unescapeCsv(padded[3] ?? ""),
+      distributor: unescapeCsv(padded[4] ?? ""),
       price: padded[5] ?? "",
       currency: padded[6] ?? "",
       stockStatus: padded[7] ?? "unknown",
-      url: padded[8] ?? "",
+      url: unescapeCsv(padded[8] ?? ""),
     });
   }
   return out;
@@ -351,7 +361,7 @@ export function parseBulkImportCsv(csv: string): {
       break;
     }
     const get = (idx: number) => (idx >= 0 && idx < cols.length ? (cols[idx] ?? "") : "");
-    const rawModel = get(effectiveModelIdx).trim();
+    const rawModel = unescapeCsv(get(effectiveModelIdx).trim());
     if (!rawModel) continue;
     const rawPrice = get(priceIdx).trim();
     const num = rawPrice ? Number(rawPrice) : NaN;
@@ -388,8 +398,8 @@ export function parseWatchlistCsv(csv: string): Product[] {
   for (const cols of dataRows) {
     const padded = [...cols];
     while (padded.length < 6) padded.push("");
-    const model = (padded[1] ?? "").trim();
-    const name = (padded[0] ?? "").trim();
+    const model = unescapeCsv((padded[1] ?? "").trim());
+    const name = unescapeCsv((padded[0] ?? "").trim());
     const key = model || name;
     if (!key || seen.has(key)) continue;
     seen.add(key);
@@ -397,8 +407,8 @@ export function parseWatchlistCsv(csv: string): Product[] {
       id: key,
       name: name || key,
       modelNumber: model || undefined,
-      brand: (padded[2] ?? "").trim() || undefined,
-      category: (padded[3] ?? "").trim() || undefined,
+      brand: unescapeCsv((padded[2] ?? "").trim()) || undefined,
+      category: unescapeCsv((padded[3] ?? "").trim()) || undefined,
       description: "",
       isWatched: true,
       addedAt: new Date().toISOString(),

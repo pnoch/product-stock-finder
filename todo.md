@@ -5889,3 +5889,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] **`app/product/[id].tsx`:** cancellation signal on the async load, per-read `.catch` (a storage failure doesn't hang the skeleton), the alert-creation guard is claimed *before* the async permission round-trip (double-tap safe), and reminder creation cancels the notification it replaced.
 - [x] No code change; tree unchanged from Phase 773 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 775: CSV round-trip bugs found by fuzzing
+
+- [x] **Gap 1 — formula prefix leaked:** `escapeCsv` prefixes `'` to a value starting with `= + - @ \t \r` (spreadsheet text-marker), but the import paths never stripped it, so exporting `=-` and re-importing produced `'=-`. Added `unescapeCsv` (strips a leading `'` only when followed by a formula char, preserving a genuine apostrophe) and applied it in `parseDetailedCsv`, `parseWatchlistCsv`, and `parseBulkImportCsv`.
+- [x] **Gap 2 — bare CR split the row:** `escapeCsv` quoted on `[",\n]` but not `\r`, and the tokenizer treats a bare CR as a row break, so a value containing `\r` (e.g. `1-2_1b\rb`) was re-imported as just `b`. Added `\r` to the quote condition.
+- [x] Found by a deterministic property-based fuzzer (50k random names/models through export→import); added 3 non-vacuous guards to `tests/csv-injection.test.ts`. Reverting either fix fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2646 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
