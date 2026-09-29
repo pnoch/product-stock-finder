@@ -1,10 +1,19 @@
-use super::{ScrapeResult, fetch_html, parse_price_page};
+use super::{fetch_html, parse_price_page, ScrapeResult};
 use crate::scrapers::browser::fetch_with_browser;
 
 pub async fn scrape(model: &str, use_browser: bool) -> Result<ScrapeResult, String> {
-    let url = format!("https://linitx.com/search.php?keywords={}", urlencoding::encode(model));
+    let url = format!(
+        "https://linitx.com/search.php?keywords={}",
+        urlencoding::encode(model)
+    );
     let html = if use_browser {
-        match fetch_with_browser(&url, Some(".product__price, .price--main, .price"), Some(30000)).await {
+        match fetch_with_browser(
+            &url,
+            Some(".product__price, .price--main, .price"),
+            Some(30000),
+        )
+        .await
+        {
             Ok(html) => html,
             Err(_) => fetch_html(&url, 3000)
                 .await

@@ -5420,3 +5420,11 @@ Reviewed the components with effects/state in the two largest groups.
 - [x] **Verified:** `pnpm test:db` now runs **8 files / 30 tests** (was 3 files) and passes against the test database.
 - [x] **Also verified:** every other CI script reference exists (`check`, `check:desktop`, `lint`, `test`, `build`, `smoke:web`, `db:push`), and `scripts/smoke-web.mjs` exists.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2615 passed` (27 skipped without a DB); desktop `285 passed`.
+
+## Phase 705: CI never compiled the Rust backend (and clippy had 4 warnings)
+
+- [x] **Found: nothing in CI compiled the desktop Rust backend.** The 71 `cargo test` cases and clippy ran only on developer machines, so a Rust regression could merge unchecked.
+- [x] **Fix:** a new `rust` CI job (stable toolchain + clippy + `Swatinem/rust-cache`, GTK/WebKit dev headers for tauri/wry) running `cargo test`, `cargo fmt --check`, and `cargo clippy --all-targets -- -D warnings`.
+- [x] **Fixed the 4 clippy warnings so `-D warnings` passes:** `parts[0].len() >= 1` → `!parts[0].is_empty()`; a redundant `as u32`; two `&PathBuf` params → `&Path` (adding the `Path` import); and `parse_html` moved above the `#[cfg(test)]` module in `mikrotikstore.rs` ("items after a test module"). `cargo fmt` applied.
+- [x] **Fixed a test that depended on formatting:** `cargo fmt` wrapped the parsers' `format!`/`parse_price_page` calls across lines, breaking the parity scanner's single-line regex (it found 3 of 25 parsers). The scanner is now tolerant of wrapped calls.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2615 passed`; desktop `285 passed`; `cargo test` 71, `cargo clippy` **0**, `cargo fmt --check` clean.

@@ -1,34 +1,34 @@
 pub mod aerial;
-pub mod bhphoto;
 pub mod balticnetworks;
+pub mod bhphoto;
 pub mod breaker;
 pub mod browser;
 pub mod duxtel;
 pub mod flytec;
+pub mod gearup;
 pub mod getic;
 pub mod gowifi;
-pub mod gearup;
 pub mod hellascom;
 pub mod interprojekt;
 pub mod linitx;
 pub mod linktechs;
-pub mod miro;
-pub mod multilink;
 pub mod mbsiwav;
 pub mod mega;
 pub mod mikrotikstore;
+pub mod miro;
+pub mod multilink;
 pub mod nasstore;
 pub mod neobits;
 pub mod networkdevices;
 pub mod pbtech;
 pub mod rocnoc;
 pub mod server2u;
-pub mod wisp;
 pub mod winncom;
+pub mod wisp;
 
-use serde::{Deserialize, Serialize};
 use regex::Regex;
 use scraper::{ElementRef, Html, Selector};
+use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 
 fn get_client() -> &'static reqwest::Client {
@@ -114,7 +114,10 @@ pub fn classify_fetch_status(body: &str, http_status: Option<u16>) -> FetchClass
 async fn fetch_once(url: &str) -> Result<(String, reqwest::StatusCode), reqwest::Error> {
     let resp = get_client()
         .get(url)
-        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        .header(
+            "Accept",
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        )
         // Same Accept-Language as the shared fetch: without it a store may
         // render a different language (and currency) than the parser expects.
         .header("Accept-Language", "en-US,en;q=0.9")
@@ -234,7 +237,7 @@ pub fn parse_price_from_text(text: &str) -> Option<f64> {
     let groups_of_three = |s: &str, sep: char| {
         let parts: Vec<&str> = s.split(sep).collect();
         parts.len() > 1
-            && parts[0].len() >= 1
+            && !parts[0].is_empty()
             && parts[0].len() <= 3
             && parts[1..].iter().all(|p| p.len() == 3)
     };
@@ -606,13 +609,22 @@ mod tests {
 
     #[test]
     fn text_mentions_model_matches_with_separators() {
-        assert!(text_mentions_model("MikroTik CRS804-4DDQ-hRM", "CRS804-4DDQ-hRM"));
-        assert!(text_mentions_model("crs804 4ddq hrm switch", "CRS804-4DDQ-hRM"));
+        assert!(text_mentions_model(
+            "MikroTik CRS804-4DDQ-hRM",
+            "CRS804-4DDQ-hRM"
+        ));
+        assert!(text_mentions_model(
+            "crs804 4ddq hrm switch",
+            "CRS804-4DDQ-hRM"
+        ));
     }
 
     #[test]
     fn text_mentions_model_rejects_other_products() {
-        assert!(!text_mentions_model("MikroTik CRS326-24G-2S+", "CRS804-4DDQ-hRM"));
+        assert!(!text_mentions_model(
+            "MikroTik CRS326-24G-2S+",
+            "CRS804-4DDQ-hRM"
+        ));
         assert!(!text_mentions_model("", "CRS804-4DDQ-hRM"));
         assert!(!text_mentions_model("anything", ""));
     }
@@ -710,7 +722,11 @@ mod tests {
     /// price found" for pages the server-side parser handles.
     fn shared_matches_model_cases() -> Vec<(&'static str, &'static str, bool)> {
         vec![
-            ("MikroTik CRS804-4DDQ-hRM RouterOS7", "CRS804-4DDQ-hRM", true),
+            (
+                "MikroTik CRS804-4DDQ-hRM RouterOS7",
+                "CRS804-4DDQ-hRM",
+                true,
+            ),
             ("hEX-S (RouterOS L4)", "hEX S", true),
             ("crs326 24g 2s+ rack switch", "CRS326-24G-2S+", true),
             ("RB5009UG+S+IN", "RB5009", false),

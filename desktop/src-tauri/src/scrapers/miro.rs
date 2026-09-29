@@ -1,4 +1,4 @@
-use super::{ScrapeResult, fetch_html, parse_price_page};
+use super::{fetch_html, parse_price_page, ScrapeResult};
 use crate::scrapers::browser::fetch_with_browser;
 
 pub async fn scrape(model: &str, use_browser: bool) -> Result<ScrapeResult, String> {

@@ -1,4 +1,4 @@
-use super::{ScrapeResult, fetch_html, parse_price_page};
+use super::{fetch_html, parse_price_page, ScrapeResult};
 use crate::scrapers::browser::fetch_with_browser;
 use scraper::{Html, Selector};
 
@@ -81,8 +81,8 @@ pub fn resolve_product_url(html: &str, model: &str) -> Option<String> {
         }
         let lower_slug = slug.to_lowercase();
         let accessory = ACCESSORY_MARKERS.iter().any(|m| lower_slug.contains(m));
-        let score = coverage * 1000.0 - if accessory { 500.0 } else { 0.0 }
-            - normalized.len() as f64 * 0.1;
+        let score =
+            coverage * 1000.0 - if accessory { 500.0 } else { 0.0 } - normalized.len() as f64 * 0.1;
         if score > best_score {
             best_score = score;
             best = Some(href.to_string());
@@ -136,6 +136,17 @@ fn is_product_page(url: &str) -> bool {
     !(segments.len() == 5 && segments[2] == "en" && segments[3] == "switches")
 }
 
+fn parse_html(html: &str, url: &str, model: &str) -> Result<ScrapeResult, String> {
+    parse_price_page(
+        html,
+        url,
+        model,
+        "EUR",
+        ".price-tag, .product-price, .product-detail-price, [itemprop='price']",
+        ".product-detail-delivery-status, .delivery-status, .availability, .stock-status",
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -152,18 +163,11 @@ mod tests {
 
     #[test]
     fn is_product_page_distinguishes_category_pages() {
-        assert!(!is_product_page("https://mikrotik-store.eu/en/switches/ethernet"));
-        assert!(is_product_page("https://mikrotik-store.eu/en/mikrotik-crs326-24s2qrm"));
+        assert!(!is_product_page(
+            "https://mikrotik-store.eu/en/switches/ethernet"
+        ));
+        assert!(is_product_page(
+            "https://mikrotik-store.eu/en/mikrotik-crs326-24s2qrm"
+        ));
     }
-}
-
-fn parse_html(html: &str, url: &str, model: &str) -> Result<ScrapeResult, String> {
-    parse_price_page(
-        html,
-        url,
-        model,
-        "EUR",
-        ".price-tag, .product-price, .product-detail-price, [itemprop='price']",
-        ".product-detail-delivery-status, .delivery-status, .availability, .stock-status",
-    )
 }

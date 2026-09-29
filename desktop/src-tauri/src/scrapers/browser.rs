@@ -476,4 +476,5 @@ mod tests {
         // The jar replays distributor session cookies: not world-readable.
         assert_eq!(mode, 0o600);
         let _ = std::fs::remove_dir_all(&dir);
-    }}
+    }
+}

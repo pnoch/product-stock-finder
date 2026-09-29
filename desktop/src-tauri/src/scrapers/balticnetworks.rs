@@ -1,8 +1,11 @@
-use super::{ScrapeResult, fetch_html, parse_price_page};
+use super::{fetch_html, parse_price_page, ScrapeResult};
 use crate::scrapers::browser::fetch_with_browser;
 
 pub async fn scrape(model: &str, use_browser: bool) -> Result<ScrapeResult, String> {
-    let url = format!("https://balticnetworks.com/search?q={}", urlencoding::encode(model));
+    let url = format!(
+        "https://balticnetworks.com/search?q={}",
+        urlencoding::encode(model)
+    );
     // Browser-first with a plain fallback (mirrors mobile's resilient.ts
     // escalation): a browser failure must not lose the plain-HTML path.
     let html = if use_browser {

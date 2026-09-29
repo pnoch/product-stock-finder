@@ -31,9 +31,10 @@ async function rustParsers(): Promise<Map<string, { url: string; selector: strin
     if (!file.endsWith(".rs") || file === "mod.rs" || file === "browser.rs") continue;
     const name = file.slice(0, -3);
     const src = await readFile(path.join(dir, file), "utf8");
-    const url = src.match(/let url = format!\("([^"]+)"/)?.[1];
+    // Tolerant of rustfmt wrapping the call across lines.
+    const url = src.match(/let url = format!\(\s*"([^"]+)"/)?.[1];
     const selector = src.match(
-      /parse_price_page\(\s*html,\s*url,\s*model,\s*"[A-Z]{3}",\s*"([^"]+)"/,
+      /parse_price_page\([\s\S]{0,200}?"[A-Z]{3}",\s*"([^"]+)"/,
     )?.[1];
     if (url) out.set(name, { url: url.replace("{}", ""), selector: selector ?? "" });
   }

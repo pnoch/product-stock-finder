@@ -2,12 +2,12 @@ mod scrapers;
 
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use tauri::Emitter;
-use tauri::Manager;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::Emitter;
+use tauri::Manager;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
@@ -41,7 +41,7 @@ static LIVE_RATES: std::sync::LazyLock<std::sync::RwLock<HashMap<String, f64>>> 
 /// Reload the overlay from the mirrored `fx_rates` file. A missing/corrupt file
 /// or an empty rate set clears it, exactly like `setExchangeRates(null)`, and
 /// non-finite/non-positive entries are dropped like the shared filter does.
-fn refresh_live_rates(data_dir: &PathBuf) {
+fn refresh_live_rates(data_dir: &Path) {
     let mut parsed: HashMap<String, f64> = HashMap::new();
     if let Ok(value) = read_json_file(data_dir, "fx_rates") {
         if let Some(rates) = value.get("rates").and_then(|v| v.as_object()) {
@@ -80,7 +80,11 @@ fn convert_price(amount: f64, from_currency: &str, to_currency: &str) -> Option<
         return None;
     }
     let v = (amount / from_rate) * to_rate;
-    if v.is_finite() { Some(v) } else { None }
+    if v.is_finite() {
+        Some(v)
+    } else {
+        None
+    }
 }
 
 fn format_price(amount: f64, currency: &str) -> String {
@@ -102,7 +106,15 @@ fn format_price(amount: f64, currency: &str) -> String {
     format!("{}{:.2}", symbol, amount)
 }
 
-fn trigger_event_json(alert_id: &str, product_id: &str, product_name: &str, best_price: f64, currency: &str, target_price: f64, is_rise: bool) -> serde_json::Value {
+fn trigger_event_json(
+    alert_id: &str,
+    product_id: &str,
+    product_name: &str,
+    best_price: f64,
+    currency: &str,
+    target_price: f64,
+    is_rise: bool,
+) -> serde_json::Value {
     serde_json::json!({ "alertId": alert_id, "productId": product_id, "productName": product_name, "bestPrice": best_price, "currency": currency, "targetPrice": target_price, "isRise": is_rise })
 }
 
@@ -121,8 +133,7 @@ static POLLER_RUNNING: Mutex<bool> = Mutex::new(false);
 // as soon as it changes, so a stop+start cannot leave the old loop running
 // alongside the new one (the old loop may be parked in `interval.tick()` for
 // up to the full interval before it would otherwise notice).
-static POLLER_GENERATION: std::sync::atomic::AtomicU64 =
-    std::sync::atomic::AtomicU64::new(0);
+static POLLER_GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 // Last API base URL the renderer passed (poller start / price check). The tray
 // menu has no renderer context, so "Check Now" reads it from here instead of
 // passing an empty base (which forced the local scrapers).
@@ -175,10 +186,7 @@ fn delivered_events(
 /// Pairs each triggered alert with its notification result: only alerts whose
 /// notification was actually delivered may be deactivated, so a failed toast
 /// leaves the alert armed for a later retry.
-fn deactivate_after_notify(
-    results: &[bool],
-    triggered: &[(String, f64)],
-) -> Vec<(String, f64)> {
+fn deactivate_after_notify(results: &[bool], triggered: &[(String, f64)]) -> Vec<(String, f64)> {
     triggered
         .iter()
         .enumerate()
@@ -244,8 +252,7 @@ fn show_notification(
         tauri::async_runtime::spawn_blocking(move || {
             let _ = handle.wait_for_response(|response: &notify_rust::NotificationResponse| {
                 if response.is_default_action() {
-                    let _ =
-                        app_handle.emit("notification-activated", activation_payload(&route));
+                    let _ = app_handle.emit("notification-activated", activation_payload(&route));
                     if let Some(w) = app_handle.get_webview_window("main") {
                         let _ = w.set_focus();
                     }
@@ -261,11 +268,7 @@ fn show_notification(
     let _ = route;
     use tauri_plugin_notification::NotificationExt;
 
-    let mut notification = app
-        .notification()
-        .builder()
-        .title(title)
-        .body(body);
+    let mut notification = app.notification().builder().title(title).body(body);
 
     if sound {
         notification = notification.sound("default".to_string());
@@ -364,9 +367,10 @@ fn validate_import_schema(data: &ExportData) -> Result<(), String> {
                 .as_array()
                 .ok_or(format!("watchlist[{}].listings must be an array", i))?;
             for (j, l) in arr.iter().enumerate() {
-                let lo = l
-                    .as_object()
-                    .ok_or(format!("watchlist[{}].listings[{}] must be an object", i, j))?;
+                let lo = l.as_object().ok_or(format!(
+                    "watchlist[{}].listings[{}] must be an object",
+                    i, j
+                ))?;
                 let did = lo
                     .get("distributorId")
                     .and_then(|v| v.as_str())
@@ -381,9 +385,10 @@ fn validate_import_schema(data: &ExportData) -> Result<(), String> {
                     ));
                 }
                 if let Some(price) = lo.get("price") {
-                    let p = price
-                        .as_f64()
-                        .ok_or(format!("watchlist[{}].listings[{}].price must be a number", i, j))?;
+                    let p = price.as_f64().ok_or(format!(
+                        "watchlist[{}].listings[{}].price must be a number",
+                        i, j
+                    ))?;
                     if !p.is_finite() || p < 0.0 {
                         return Err(format!(
                             "watchlist[{}].listings[{}].price must be a finite non-negative number",
@@ -492,7 +497,11 @@ async fn read_watchlist(app: tauri::AppHandle) -> Result<serde_json::Value, Stri
 // Previously `setValueForKey` (camelCase) which Tauri does not expose; corrected
 // to `set_value_for_key`. Uses string key directly (not object wrapper).
 #[tauri::command]
-async fn set_value_for_key(app: tauri::AppHandle, key: String, value: serde_json::Value) -> Result<(), String> {
+async fn set_value_for_key(
+    app: tauri::AppHandle,
+    key: String,
+    value: serde_json::Value,
+) -> Result<(), String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     // key is a plain string (e.g. "watchlist_products"), not an object like `{ key: "..." }`.
     // Allowlist it: `PathBuf::join` with an absolute key discards data_dir
@@ -525,10 +534,7 @@ fn merge_watchlist_products(
             .filter_map(|p| {
                 // Take the id by value first: `(id.to_string(), p)` moved `p`
                 // while `id` still borrowed it.
-                let id = p
-                    .get("id")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string());
+                let id = p.get("id").and_then(|v| v.as_str()).map(|s| s.to_string());
                 id.map(|id| (id, p))
             })
             .collect(),
@@ -584,10 +590,8 @@ fn merge_listings(
     let mut out: Vec<serde_json::Value> = Vec::with_capacity(disk.len().max(incoming.len()));
     for inc in incoming {
         let id = listing_distributor_id(inc);
-        let disk_match = id.and_then(|id| {
-            disk.iter()
-                .find(|d| listing_distributor_id(d) == Some(id))
-        });
+        let disk_match =
+            id.and_then(|id| disk.iter().find(|d| listing_distributor_id(d) == Some(id)));
         match disk_match {
             // Newer on disk: the poller refreshed it after the UI snapshot.
             Some(d)
@@ -629,7 +633,10 @@ async fn merge_watchlist(
 }
 
 #[tauri::command]
-async fn read_value_for_key(app: tauri::AppHandle, key: String) -> Result<serde_json::Value, String> {
+async fn read_value_for_key(
+    app: tauri::AppHandle,
+    key: String,
+) -> Result<serde_json::Value, String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     if !is_allowed_storage_key(&key) {
         return Err(format!("Refusing to read disallowed key: {key}"));
@@ -653,14 +660,8 @@ fn is_allowed_storage_key(key: &str) -> bool {
 }
 
 #[tauri::command]
-async fn export_watchlist(
-    app: tauri::AppHandle,
-    format: String,
-) -> Result<String, String> {
-    let data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
+async fn export_watchlist(app: tauri::AppHandle, format: String) -> Result<String, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
 
     // A never-written collection reads as Null (the file is missing) and the
     // importer requires the array/object shape, so the app could not restore its
@@ -671,10 +672,8 @@ async fn export_watchlist(
     // The BYO-LLM API key is device-local and must never leave the device (see
     // lib/settings-privacy.ts); without stripping it the shareable export file
     // contained the user's provider key in plaintext.
-    let settings = strip_device_local_settings(object_or_empty(read_json_file(
-        &data_dir,
-        "app_settings",
-    )?));
+    let settings =
+        strip_device_local_settings(object_or_empty(read_json_file(&data_dir, "app_settings")?));
     let stock_watches = array_or_empty(read_json_file(&data_dir, "back_in_stock_watches")?);
 
     let export = ExportData {
@@ -703,10 +702,7 @@ async fn import_watchlist(
     content: String,
     format: String,
 ) -> Result<String, String> {
-    let data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
 
     match format.as_str() {
         "json" => {
@@ -846,11 +842,8 @@ async fn start_oauth(login_url: String) -> Result<serde_json::Value, String> {
         // Bound the read: an unbounded read lets a stray local process that
         // connects and sends nothing wedge the login loop forever (the accept
         // deadline is only checked at the top of the loop).
-        let n = match tokio::time::timeout(
-            std::time::Duration::from_secs(5),
-            socket.read(&mut buf),
-        )
-        .await
+        let n = match tokio::time::timeout(std::time::Duration::from_secs(5), socket.read(&mut buf))
+            .await
         {
             Ok(Ok(n)) => n,
             _ => continue,
@@ -864,7 +857,9 @@ async fn start_oauth(login_url: String) -> Result<serde_json::Value, String> {
         let ticket = params.get("ticket").cloned().unwrap_or_default();
         if !path.starts_with("/callback") || ticket.is_empty() {
             let _ = socket
-                .write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                .write_all(
+                    b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                )
                 .await;
             continue;
         }
@@ -890,7 +885,11 @@ async fn start_oauth(login_url: String) -> Result<serde_json::Value, String> {
 // ─── Background Polling ──────────────────────────────────────────────────────
 
 #[tauri::command]
-async fn start_price_poller(app: tauri::AppHandle, interval_minutes: u64, api_base_url: String) -> Result<String, String> {
+async fn start_price_poller(
+    app: tauri::AppHandle,
+    interval_minutes: u64,
+    api_base_url: String,
+) -> Result<String, String> {
     // A zero interval would panic `tokio::time::interval`.
     if interval_minutes == 0 {
         return Err("interval_minutes must be greater than 0".to_string());
@@ -975,14 +974,8 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
     // price-check.ts), and skipping here would permanently miss a drop that
     // occurred and recovered during the window.
 
-    let alerts: Vec<serde_json::Value> = alerts_val
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
-    let watchlist: Vec<serde_json::Value> = watchlist_val
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
+    let alerts: Vec<serde_json::Value> = alerts_val.as_array().cloned().unwrap_or_default();
+    let watchlist: Vec<serde_json::Value> = watchlist_val.as_array().cloned().unwrap_or_default();
 
     // Compute which alerts have dropped below target in a single pass.
     // Returns (alert_index, best_price) for each triggered alert.
@@ -993,7 +986,10 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
     let mut events: Vec<serde_json::Value> = Vec::new();
 
     for alert in alerts.iter() {
-        let is_active = alert.get("isActive").and_then(|v| v.as_bool()).unwrap_or(false);
+        let is_active = alert
+            .get("isActive")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
         let triggered_at = alert.get("triggeredAt").and_then(|v| v.as_str());
         if !is_active || triggered_at.is_some() {
             continue;
@@ -1008,46 +1004,69 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
             continue;
         }
 
-        let product_id = alert.get("productId").and_then(|v| v.as_str()).unwrap_or("");
-        let target_price = alert.get("targetPrice").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let alert_currency = alert.get("currency").and_then(|v| v.as_str()).unwrap_or("USD");
+        let product_id = alert
+            .get("productId")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let target_price = alert
+            .get("targetPrice")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
+        let alert_currency = alert
+            .get("currency")
+            .and_then(|v| v.as_str())
+            .unwrap_or("USD");
         // "rise" alerts fire when the price goes ABOVE the target.
         let is_rise = alert.get("direction").and_then(|v| v.as_str()) == Some("rise");
         // Per-distributor alerts only consider that distributor's listing.
         let scoped_distributor = alert.get("distributorId").and_then(|v| v.as_str());
 
-        let product = watchlist.iter().find(|p| {
-            p.get("id").and_then(|v| v.as_str()) == Some(product_id)
-        });
+        let product = watchlist
+            .iter()
+            .find(|p| p.get("id").and_then(|v| v.as_str()) == Some(product_id));
         let product = match product {
             Some(p) => p,
             None => continue,
         };
 
-        let listings = product.get("listings").and_then(|v| v.as_array()).cloned().unwrap_or_default();
-        let best_price = listings.iter().filter(|l| {
-            // Only in-stock listings can anchor a price alert (matches mobile).
-            if l.get("stockStatus").and_then(|v| v.as_str()) != Some("in_stock") {
-                return false;
-            }
-            if let Some(dist) = scoped_distributor {
-                if l.get("distributorId").and_then(|v| v.as_str()) != Some(dist) {
+        let listings = product
+            .get("listings")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+        let best_price = listings
+            .iter()
+            .filter(|l| {
+                // Only in-stock listings can anchor a price alert (matches mobile).
+                if l.get("stockStatus").and_then(|v| v.as_str()) != Some("in_stock") {
                     return false;
                 }
-            }
-            true
-        }).fold(f64::INFINITY, |best, listing| {
-            let price = listing.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0);
-            if price <= 0.0 {
-                return best;
-            }
-            let currency = listing.get("currency").and_then(|v| v.as_str()).unwrap_or("USD");
-            let converted = match convert_price(price, currency, alert_currency) {
-                Some(v) => v,
-                None => return best,
-            };
-            if converted < best { converted } else { best }
-        });
+                if let Some(dist) = scoped_distributor {
+                    if l.get("distributorId").and_then(|v| v.as_str()) != Some(dist) {
+                        return false;
+                    }
+                }
+                true
+            })
+            .fold(f64::INFINITY, |best, listing| {
+                let price = listing.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                if price <= 0.0 {
+                    return best;
+                }
+                let currency = listing
+                    .get("currency")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("USD");
+                let converted = match convert_price(price, currency, alert_currency) {
+                    Some(v) => v,
+                    None => return best,
+                };
+                if converted < best {
+                    converted
+                } else {
+                    best
+                }
+            });
 
         let hit = best_price.is_finite()
             && if is_rise {
@@ -1056,7 +1075,10 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
                 best_price <= target_price
             };
         if hit {
-            let product_name = product.get("name").and_then(|v| v.as_str()).unwrap_or("Unknown Product");
+            let product_name = product
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("Unknown Product");
             let body = format!(
                 "{} is now {} — {} your target of {}!",
                 product_name,
@@ -1074,7 +1096,15 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
                 Some(notification_route_for_product(product_id)),
             ));
             let alert_id = alert.get("id").and_then(|v| v.as_str()).unwrap_or("");
-            events.push(trigger_event_json(alert_id, product_id, product_name, best_price, alert_currency, target_price, is_rise));
+            events.push(trigger_event_json(
+                alert_id,
+                product_id,
+                product_name,
+                best_price,
+                alert_currency,
+                target_price,
+                is_rise,
+            ));
             // Pushed for every hit, even with an empty id, so `triggered` stays
             // index-aligned with `notifications`: otherwise results[i] was read
             // for the wrong alert and a failed toast could consume a different
@@ -1113,7 +1143,10 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
         }
     }
 
-    Ok(format!("Price check completed. {} alerts triggered.", triggered.len()))
+    Ok(format!(
+        "Price check completed. {} alerts triggered.",
+        triggered.len()
+    ))
 }
 
 #[tauri::command]
@@ -1136,7 +1169,10 @@ struct WatchedProduct {
 }
 
 #[tauri::command]
-async fn check_all_prices(products: Vec<WatchedProduct>, api_base_url: String) -> Result<Vec<scrapers::ScrapeJobResult>, String> {
+async fn check_all_prices(
+    products: Vec<WatchedProduct>,
+    api_base_url: String,
+) -> Result<Vec<scrapers::ScrapeJobResult>, String> {
     use futures::StreamExt as _;
     use std::sync::Arc;
 
@@ -1153,10 +1189,11 @@ async fn check_all_prices(products: Vec<WatchedProduct>, api_base_url: String) -
             futures.push(async move {
                 let _permit = sem.acquire_owned().await.map_err(|e| e.to_string())?;
                 let start = std::time::Instant::now();
-                let (scrape_result, history) = match fetch_server_price(&api_url, &dist, &model).await {
-                    Some((r, h)) => (Ok(r), h),
-                    None => (scrape_distributor(&dist, &model).await, Vec::new()),
-                };
+                let (scrape_result, history) =
+                    match fetch_server_price(&api_url, &dist, &model).await {
+                        Some((r, h)) => (Ok(r), h),
+                        None => (scrape_distributor(&dist, &model).await, Vec::new()),
+                    };
                 let duration_ms = start.elapsed().as_millis() as u64;
                 let (result, error) = match scrape_result {
                     Ok(r) => (Some(r), None),
@@ -1199,9 +1236,7 @@ async fn fetch_price_insight(
         urlencoding::encode(&input.to_string())
     );
     let client = reqwest::Client::new();
-    let mut req = client
-        .get(&url)
-        .timeout(std::time::Duration::from_secs(8));
+    let mut req = client.get(&url).timeout(std::time::Duration::from_secs(8));
     // The app's BYO-LLM config (x-llm-* headers from the renderer). Without them
     // the server could not route this insight through the user's own provider,
     // so a configured provider was silently ignored here (the browser path goes
@@ -1216,10 +1251,7 @@ async fn fetch_price_insight(
             }
         }
     }
-    let resp = req
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+    let resp = req.send().await.map_err(|e| e.to_string())?;
     if !resp.status().is_success() {
         return Ok(None);
     }
@@ -1232,7 +1264,10 @@ async fn fetch_price_insight(
 }
 
 #[tauri::command]
-async fn fetch_product_image(api_base_url: String, product_id: String) -> Result<Option<serde_json::Value>, String> {
+async fn fetch_product_image(
+    api_base_url: String,
+    product_id: String,
+) -> Result<Option<serde_json::Value>, String> {
     if api_base_url.is_empty() {
         return Ok(None);
     }
@@ -1303,10 +1338,7 @@ async fn scrape_distributor(
         "neobits-us" => scrapers::neobits::scrape(model, true).await,
         _ => Err(format!("No scraper for distributor: {}", distributor_id)),
     };
-    scrapers::breaker::record(
-        distributor_id,
-        scrapers::breaker::outcome_for(&result),
-    );
+    scrapers::breaker::record(distributor_id, scrapers::breaker::outcome_for(&result));
     result
 }
 
@@ -1364,10 +1396,25 @@ async fn fetch_server_price(
     }
     let price = snapshot.get("price")?.as_f64()?;
     let currency = snapshot.get("currency")?.as_str()?.to_string();
-    let stock_status = snapshot.get("stockStatus").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
-    let expected_date = snapshot.get("expectedDate").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let url = snapshot.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let history = data.get("history").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    let stock_status = snapshot
+        .get("stockStatus")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let expected_date = snapshot
+        .get("expectedDate")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let url = snapshot
+        .get("url")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let history = data
+        .get("history")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
     Some((
         scrapers::ScrapeResult {
             price,
@@ -1415,17 +1462,8 @@ struct DistributorHealth {
 // gate reject the price for the 12 that stock CRS804, reporting them as errors.
 fn probe_model_for(distributor_id: &str) -> &'static str {
     match distributor_id {
-        "server2u-my"
-        | "interprojekt-pl"
-        | "aerial-gr"
-        | "miro-za"
-        | "linktechs-us"
-        | "bhphoto-us"
-        | "wisp-au"
-        | "gowifi-nz"
-        | "100mega-cz"
-        | "rocnoc-us"
-        | "flytec-us"
+        "server2u-my" | "interprojekt-pl" | "aerial-gr" | "miro-za" | "linktechs-us"
+        | "bhphoto-us" | "wisp-au" | "gowifi-nz" | "100mega-cz" | "rocnoc-us" | "flytec-us"
         | "multilink-us" => "CRS804-4DDQ-hRM",
         _ => "CRS326-24S+2Q+RM",
     }
@@ -1483,7 +1521,7 @@ async fn check_distributor_health(app: tauri::AppHandle) -> Result<Vec<Distribut
             response_time_ms: Some(duration_ms),
             last_checked: current_iso_timestamp(),
         });
-        let progress = (((idx as u32 + 1) * 100) / total) as u32;
+        let progress = ((idx as u32 + 1) * 100) / total;
         let _ = app.emit(
             "health-check-progress",
             serde_json::json!({ "progress": progress, "distributorId": distributor_id }),
@@ -1496,15 +1534,15 @@ async fn check_distributor_health(app: tauri::AppHandle) -> Result<Vec<Distribut
 // ─── Full Price Check (scrape → compare → notify → update tray) ─────────────
 
 #[tauri::command]
-async fn run_full_price_check(app: tauri::AppHandle, api_base_url: String) -> Result<String, String> {
+async fn run_full_price_check(
+    app: tauri::AppHandle,
+    api_base_url: String,
+) -> Result<String, String> {
     let _guard = PRICE_CHECK_LOCK.lock().await;
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
 
     let watchlist_val = read_json_file(&data_dir, "watchlist_products")?;
-    let watchlist: Vec<serde_json::Value> = watchlist_val
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
+    let watchlist: Vec<serde_json::Value> = watchlist_val.as_array().cloned().unwrap_or_default();
 
     if watchlist.is_empty() {
         return Ok("No products in watchlist".to_string());
@@ -1541,16 +1579,25 @@ async fn run_full_price_check(app: tauri::AppHandle, api_base_url: String) -> Re
 
     for job_result in &results {
         if let Some(scrape) = &job_result.result {
-            update_listing_price(&data_dir, &job_result.product_id, &job_result.distributor_id, scrape, &job_result.history)?;
-            let _ = app.emit("listing-updated", serde_json::json!({
-                "productId": job_result.product_id,
-                "distributorId": job_result.distributor_id,
-                "price": scrape.price,
-                "currency": scrape.currency,
-                "stockStatus": scrape.stock_status,
-                "expectedDate": scrape.expected_date,
-                "lastChecked": current_iso_timestamp(),
-            }));
+            update_listing_price(
+                &data_dir,
+                &job_result.product_id,
+                &job_result.distributor_id,
+                scrape,
+                &job_result.history,
+            )?;
+            let _ = app.emit(
+                "listing-updated",
+                serde_json::json!({
+                    "productId": job_result.product_id,
+                    "distributorId": job_result.distributor_id,
+                    "price": scrape.price,
+                    "currency": scrape.currency,
+                    "stockStatus": scrape.stock_status,
+                    "expectedDate": scrape.expected_date,
+                    "lastChecked": current_iso_timestamp(),
+                }),
+            );
         }
     }
 
@@ -1573,10 +1620,8 @@ fn update_listing_price(
     server_history: &[serde_json::Value],
 ) -> Result<(), String> {
     let watchlist_val = read_json_file(data_dir, "watchlist_products")?;
-    let mut watchlist: Vec<serde_json::Value> = watchlist_val
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
+    let mut watchlist: Vec<serde_json::Value> =
+        watchlist_val.as_array().cloned().unwrap_or_default();
 
     let mut updated = false;
     for product in watchlist.iter_mut() {
@@ -1594,13 +1639,19 @@ fn update_listing_price(
             if let Some(obj) = listing.as_object_mut() {
                 obj.insert("price".to_string(), serde_json::json!(scrape.price));
                 obj.insert("currency".to_string(), serde_json::json!(scrape.currency));
-                obj.insert("stockStatus".to_string(), serde_json::json!(scrape.stock_status));
+                obj.insert(
+                    "stockStatus".to_string(),
+                    serde_json::json!(scrape.stock_status),
+                );
                 if let Some(expected) = &scrape.expected_date {
                     obj.insert("expectedDate".to_string(), serde_json::json!(expected));
                 } else {
                     obj.remove("expectedDate");
                 }
-                obj.insert("lastChecked".to_string(), serde_json::json!(current_iso_timestamp()));
+                obj.insert(
+                    "lastChecked".to_string(),
+                    serde_json::json!(current_iso_timestamp()),
+                );
                 // Persist the URL actually scraped (mobile's refreshListing does
                 // the same); without it the listing link stays at the stale
                 // seeded/sample URL.
@@ -1651,7 +1702,7 @@ fn update_listing_price(
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-fn read_json_file(data_dir: &PathBuf, key: &str) -> Result<serde_json::Value, String> {
+fn read_json_file(data_dir: &Path, key: &str) -> Result<serde_json::Value, String> {
     let path = data_dir.join(format!("{}.json", key));
     if !path.exists() {
         return Ok(serde_json::Value::Null);
@@ -1701,11 +1752,7 @@ fn write_json_path(path: &std::path::Path, value: &serde_json::Value) -> Result<
     fs::rename(&tmp, path).map_err(|e| e.to_string())
 }
 
-fn write_json_file(
-    data_dir: &PathBuf,
-    key: &str,
-    value: &serde_json::Value,
-) -> Result<(), String> {
+fn write_json_file(data_dir: &PathBuf, key: &str, value: &serde_json::Value) -> Result<(), String> {
     fs::create_dir_all(data_dir).map_err(|e| e.to_string())?;
     write_json_path(&data_dir.join(format!("{}.json", key)), value)
 }
@@ -1821,7 +1868,8 @@ fn parse_iso_to_epoch_ms(value: &str) -> Option<i64> {
     Some(((days * 86400) + hour * 3600 + minute * 60 + second) * 1000)
 }
 
-fn current_iso_timestamp() -> String {    let now = std::time::SystemTime::now()
+fn current_iso_timestamp() -> String {
+    let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default();
     let secs = now.as_secs();
@@ -1920,10 +1968,7 @@ fn append_price_point_with_retention(
         .to_string();
 
     let same_day = history.iter_mut().find(|p| {
-        p.get("date")
-            .and_then(|d| d.as_str())
-            .map(iso_date_prefix)
-            == Some(today.as_str())
+        p.get("date").and_then(|d| d.as_str()).map(iso_date_prefix) == Some(today.as_str())
     });
 
     match same_day {
@@ -1968,10 +2013,7 @@ fn update_tray_badge(app: tauri::AppHandle) -> Result<String, String> {
         .map(|a| {
             a.iter()
                 .filter(|a| {
-                    let active = a
-                        .get("isActive")
-                        .and_then(|v| v.as_bool())
-                        .unwrap_or(false)
+                    let active = a.get("isActive").and_then(|v| v.as_bool()).unwrap_or(false)
                         && a.get("triggeredAt").and_then(|v| v.as_str()).is_none();
                     if !active {
                         return false;
@@ -1992,9 +2034,7 @@ fn update_tray_badge(app: tauri::AppHandle) -> Result<String, String> {
         .as_array()
         .map(|r| {
             r.iter()
-                .filter(|r| {
-                    r.get("reminderType").and_then(|v| v.as_str()) != Some("back_in_stock")
-                })
+                .filter(|r| r.get("reminderType").and_then(|v| v.as_str()) != Some("back_in_stock"))
                 .count()
         })
         .unwrap_or(0);
@@ -2244,11 +2284,7 @@ mod tests {
             .map(|i| {
                 let dir = dir.clone();
                 std::thread::spawn(move || {
-                    write_json_file(
-                        &dir,
-                        "watchlist_products",
-                        &serde_json::json!([{ "i": i }]),
-                    )
+                    write_json_file(&dir, "watchlist_products", &serde_json::json!([{ "i": i }]))
                 })
             })
             .collect();
@@ -2362,8 +2398,12 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("psf-import-atomic-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
-        write_json_file(&dir, "watchlist_products", &serde_json::json!([{ "old": true }]))
-            .unwrap();
+        write_json_file(
+            &dir,
+            "watchlist_products",
+            &serde_json::json!([{ "old": true }]),
+        )
+        .unwrap();
 
         let err = write_json_files_atomically(
             &dir,
@@ -2511,7 +2551,10 @@ mod tests {
             vec![("a".to_string(), 10.0f64)]
         );
         // All delivered.
-        assert_eq!(deactivate_after_notify(&[true, true], &triggered), triggered);
+        assert_eq!(
+            deactivate_after_notify(&[true, true], &triggered),
+            triggered
+        );
         // A missing result is treated as not delivered.
         assert!(deactivate_after_notify(&[], &triggered).is_empty());
     }
@@ -2612,7 +2655,10 @@ mod tests {
 
     #[test]
     fn notification_route_for_product() {
-        assert_eq!(super::notification_route_for_product("crs804"), "/product/crs804");
+        assert_eq!(
+            super::notification_route_for_product("crs804"),
+            "/product/crs804"
+        );
     }
 
     #[test]
