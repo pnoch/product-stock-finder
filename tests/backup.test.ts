@@ -431,3 +431,25 @@ describe("parseBackup item validation", () => {
     expect(parsed.watchlist.map((p) => p.id)).toEqual(["ok"]);
   });
 });
+
+describe("SETTING_DEFAULTS coverage", () => {
+  it("lists every defaulted AppSettings field", async () => {
+    // A field in DEFAULT_SETTINGS but not SETTING_DEFAULTS is always taken from
+    // the backup, silently overwriting the local value with the exporter's
+    // default. This is a manual-sync invariant, so pin it.
+    const { readFile } = await import("node:fs/promises");
+    const settingsSrc = await readFile("lib/storage/settings.ts", "utf8");
+    const backupSrc = await readFile("lib/backup.ts", "utf8");
+    const keysIn = (src: string, marker: string): string[] => {
+      const start = src.indexOf(marker);
+      const block = src.slice(start, src.indexOf("};", start));
+      return [...block.matchAll(/^\s*([a-zA-Z]+):/gm)].map((m) => m[1]!);
+    };
+    const defaults = keysIn(settingsSrc, "const DEFAULT_SETTINGS");
+    const settingDefaults = keysIn(backupSrc, "const SETTING_DEFAULTS");
+    expect(defaults.length).toBeGreaterThan(5);
+    for (const key of defaults) {
+      expect(settingDefaults, `missing SETTING_DEFAULTS.${key}`).toContain(key);
+    }
+  });
+});

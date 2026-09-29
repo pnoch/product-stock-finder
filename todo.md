@@ -5724,3 +5724,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/background-safe-timers.ts`:** the Android timer-freeze behavior is documented; `backgroundSafeDelay`/`backgroundSafeRace` poll via `setImmediate` while backgrounded and self-terminate back to a real timer when the app returns to the foreground; the module stays react-native-import-free (server-bundle purity).
 - [x] **`lib/background-fetch.ts`:** XHR with a native `timeout` (enforced by OkHttp, fires while backgrounded); a `settled` guard prevents double-settle.
 - [x] No code change; tree unchanged from Phase 747 (`tsc 0`, lint 0 errors / 157 warnings, `2642 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 749: Guard SETTING_DEFAULTS coverage
+
+- [x] **Gap found:** `lib/backup.ts`'s `SETTING_DEFAULTS` must list every defaulted `AppSettings` field — a field missing there is always taken from the backup, silently overwriting the local value with the exporter's default. It currently covers all 11 fields, but nothing guarded the invariant.
+- [x] **Fix:** added a `SETTING_DEFAULTS coverage` case to `tests/backup.test.ts` asserting every `DEFAULT_SETTINGS` key appears in `SETTING_DEFAULTS`. Proven non-vacuous: removing a key fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2643 passed**; desktop `286`; `cargo test` 71, clippy 0, fmt clean.
