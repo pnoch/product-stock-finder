@@ -5919,3 +5919,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Tag helpers:** 100k trials — `tagColor`/`nextTagColor` always return a palette color; `matchesTagFilterMode` never throws.
 - [x] **Storage quarantine:** 2k trials with corrupt/non-array JSON pre-seeded — `getWatchlist` returns an array and a subsequent write is not lost.
 - [x] No code change; tree unchanged from Phase 777 (`tsc 0`, lint 0 errors / 157 warnings, `2646 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 779: Property-based fuzzing (analysis/currency)
+
+- [x] 30k trials across `computeBasketValue` (finite total, counts partition), `computeStockHealth` (0–100%), `computeDataFreshness` (finite avg), `buildShareRows` (≤5 rows, finite prices), `findBestDeal`, `getTaxRate`, `analyzeDistributors`, `computePriceChange`, `getBestPrice` (finite), `formatPrice` — all invariants held, no throws.
+- [x] No code change; tree unchanged from Phase 778 (`tsc 0`, lint 0 errors / 157 warnings, `2646 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
