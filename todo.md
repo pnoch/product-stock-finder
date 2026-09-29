@@ -5627,3 +5627,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/price-source.ts`:** server-first with a freshness gate, device-scrape fallback bounded by a 3-slot semaphore, and stale-server-snapshot fallback — the documented sole foreground entry point.
 - [x] **`lib/price-freshness.ts`:** rejects non-finite `fetchedAt`; the server stamps `fetchedAt: Date.now()` server-side, so a client cannot inject a far-future value that would make a stale snapshot look fresh.
 - [x] No code change; tree unchanged from Phase 733 (`tsc 0`, lint 0 errors / 157 warnings, `2637 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 735: Trending/LLM-discovery audit (clean)
+
+- [x] **`shared/src/trending.ts`:** falls back to `FALLBACK_TRENDING` on non-ok/error/empty; `formatPrice` renders `N/A` for a malformed `estimatedPrice`, so a bad server item degrades gracefully rather than crashing the card.
+- [x] **`lib/llm-discovery.ts`:** 15s abort timeout, classified errors (`timeout`/`network`/`server`/`parse`/`byo-auth`), query bounded to `MAX_DISCOVERY_QUERY`, injectable store/header providers, and a distinct BYO-LLM auth token surfaced as "check your API key".
+- [x] No code change; tree unchanged from Phase 734 (`tsc 0`, lint 0 errors / 157 warnings, `2637 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
