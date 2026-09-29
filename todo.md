@@ -6448,3 +6448,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `infer_stock_status` keyword lists — byte-identical, with a shared-corpus test (`infer_stock_status_agrees_with_the_shared_parser`).
   - `parse_price_from_text` / `matchesModel` — shared-corpus tests on both sides.
 - [x] No code change; tree unchanged from Phase 846 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 848: Rust browser-pool/breaker audit (clean)
+
+- [x] **`browser.rs` pool:** `in_use` counts checked-out browsers (so concurrent acquires can't exceed the cap); `acquire` only increments on success; `release` decrements and re-idles a connected browser; `PooledBrowser` keeps the `Playwright` driver alive (dropping it SIGKILLs the driver). No outer `tokio::time::timeout` wraps `fetch_with_browser`, so a scrape runs to completion and `release` always executes (no `in_use` leak).
+- [x] **`breaker.rs`:** constants and the `1.5^(n-1)` growth formula are byte-identical to `lib/scrapers/resilient.ts` (30min block / 15min failure / threshold 3 / 2h cap); the 6 Rust tests assert the same values as the TS tests (30min, 45min, 15min-at-threshold).
+- [x] No code change; tree unchanged from Phase 847 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
