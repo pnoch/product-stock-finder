@@ -6071,3 +6071,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Delete account:** requires typing the account email, deletes server-side, then logs out and wipes local data; `deleting` guard prevents double-submit.
 - [x] **Test notification:** exercises the real Tauri-native path (the old handler called the web-only no-op).
 - [x] No code change; tree unchanged from Phase 797 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 799: Root layout orchestration audit (clean)
+
+- [x] **Notification routing:** bounded dedup map (TTL 10s, cap 100), defers navigation until the `Stack` has mounted (gated on `onboardingState === "app"`), flushes a buffered route on a tick.
+- [x] **Launch setup:** `setupAndroidNotificationChannel().then(...)` chain with a final `.catch` so a storage failure can't skip task registration / price check / push registration; each async step has its own catch.
+- [x] **Sync:** `isAuthenticatedRef` avoids stale closures; retries a failed sync on foreground (1s throttle); resets device-revoked on sign-in.
+- [x] **Seeding:** `seedWatchlistProducts` runs once on mount with a catch.
+- [x] **Background timers:** `setBackgroundAppState` wired to Android `AppState` (the timer-freeze workaround).
+- [x] No code change; tree unchanged from Phase 798 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
