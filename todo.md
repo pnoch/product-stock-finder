@@ -6168,3 +6168,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`HealthDetail.tsx`:** generation guard on the async load.
 - [x] **`Compare.tsx`:** `ResizeObserver` cleanup, hooks run unconditionally (documented), currency-convertible-only cheapest, sorted series.
 - [x] No code change; tree unchanged from Phase 810 (`tsc 0`, lint 0 errors / 157 warnings, `2660 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 812: Listener/timer-cleanup audit (clean)
+
+- [x] Every `addEventListener`/`addListener`/`setInterval` in `app/`, `components/`, `hooks/` is paired with a cleanup in the effect return (`watchlist`, `_layout`, `about-section`, `use-connection`, `settings`, `use-device-management`).
+- [x] `components/search/product-image.tsx`: the concurrency-limited image queue releases its slot even when the component unmounts before the idle callback fires (`run` checks `active` and calls `dequeueImageFetchOnComplete`); a queued-but-unstarted task is spliced out.
+- [x] Debounce timers (`llm-settings-section`, tag sheets, `toast`, `use-live-prices`) clear in their effect cleanup; `undoTimer` is cleared on each new undo.
+- [x] No code change; tree unchanged from Phase 811 (`tsc 0`, lint 0 errors / 157 warnings, `2660 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
