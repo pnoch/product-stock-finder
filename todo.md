@@ -6426,3 +6426,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `.catch()`-guarded fire-and-forget (`_layout`'s `seedWatchlistProducts`, `product/[id]`'s reads).
   - The desktop `use-auth.ts` `setSessionToken`/`setUserInfo` are its **own synchronous localStorage** helpers, not the async `_core/auth` versions — the calls are correct.
 - [x] No code change; tree unchanged from Phase 843 (`tsc 0`, lint 0 errors / 157 warnings, `2675 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 845: Rust/mobile scraper currency parity guarded
+
+- [x] **Gap found:** `tests/desktop-scraper-parity.test.ts` guarded search URLs, price selectors, the model matcher, and browser wait selectors — but **not currency**. A Rust parser declaring the wrong currency (e.g. `"USD"` where mobile says `"GBP"`) would show the wrong price on desktop and pass every existing check.
+- [x] **Fix:** added a currency-parity case (verified all 25 parsers currently match). Proven non-vacuous: changing `linitx`'s Rust currency to `"USD"` fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2676 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.

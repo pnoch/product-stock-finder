@@ -73,6 +73,28 @@ describe("desktop/mobile scraper parity", () => {
     }
   });
 
+  it("every Rust parser declares the same currency as mobile", async () => {
+    // A currency mismatch shows the wrong price on desktop (e.g. a GBP figure
+    // labelled USD). The URL/selector parity tests did not cover this.
+    const dir = "desktop/src-tauri/src/scrapers";
+    let checked = 0;
+    for (const file of await readdir(dir)) {
+      if (!file.endsWith(".rs") || file === "mod.rs" || file === "browser.rs") continue;
+      const name = file.slice(0, -3);
+      const rust = await readFile(path.join(dir, file), "utf8");
+      const rustCurrency = rust.match(
+        /parse_price_page\([\s\S]{0,200}?"([A-Z]{3})"/,
+      )?.[1];
+      if (!rustCurrency) continue;
+      const ts = await readFile(`lib/scrapers/${name}.ts`, "utf8");
+      const tsCurrency = ts.match(/currency:\s*"([A-Z]{3})"/)?.[1];
+      if (!tsCurrency) continue;
+      checked++;
+      expect(rustCurrency, `${name} currency drifted`).toBe(tsCurrency);
+    }
+    expect(checked).toBeGreaterThan(20);
+  });
+
   it("keeps the Rust model matcher aligned with the shared parser rules", async () => {
     // The shared `matchesModel` rules the Rust port must mirror: a preceding
     // LETTER is a brand concatenation (allowed), a preceding DIGIT is not, and a
