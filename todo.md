@@ -6454,3 +6454,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`browser.rs` pool:** `in_use` counts checked-out browsers (so concurrent acquires can't exceed the cap); `acquire` only increments on success; `release` decrements and re-idles a connected browser; `PooledBrowser` keeps the `Playwright` driver alive (dropping it SIGKILLs the driver). No outer `tokio::time::timeout` wraps `fetch_with_browser`, so a scrape runs to completion and `release` always executes (no `in_use` leak).
 - [x] **`breaker.rs`:** constants and the `1.5^(n-1)` growth formula are byte-identical to `lib/scrapers/resilient.ts` (30min block / 15min failure / threshold 3 / 2h cap); the 6 Rust tests assert the same values as the TS tests (30min, 45min, 15min-at-threshold).
 - [x] No code change; tree unchanged from Phase 847 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 849: Tauri command-surface validation audit (clean)
+
+- [x] **`set_value_for_key` / `read_value_for_key`:** both allowlist the key (an absolute/`../` key would escape the data dir).
+- [x] **`export_watchlist`:** validates `format` (`json`/`csv`, else error) and strips the device-local BYO-LLM key from the export.
+- [x] **`start_price_poller`:** rejects a zero interval (would panic `tokio::time::interval`); `poller_interval_secs` uses `saturating_mul(60).max(60)` (no overflow, 1-minute floor); a generation counter + running flag stop stale pollers.
+- [x] **`fetch_price_insight`:** builds the URL from `api_base_url` (renderer-supplied, same trust boundary as the session token), validates each `x-llm-*` header via `HeaderName::from_bytes`/`HeaderValue::from_str`, and has an 8s timeout.
+- [x] **`open_external` / `start_oauth` / `import_watchlist`:** scheme allowlist / loopback listener with a single-use ticket / size+version+schema validation (audited in Phases 800–801).
+- [x] No code change; tree unchanged from Phase 848 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
