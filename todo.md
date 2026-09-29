@@ -6509,3 +6509,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Scanned every `.map()` in `app/`, `components/`, `desktop/src/`. No JSX-returning map is missing a `key`.
 - [x] The `key={i}`/`key={idx}` sites are all static or render-only lists where an index key is correct: weekday labels, skeleton placeholders, chart points/ticks/legend, timeline segments, onboarding dots. No dynamic reorderable list uses an index key.
 - [x] No code change; tree unchanged from Phase 854 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 856: Settings screen audit (clean)
+
+- [x] **Sync-status effect:** cancellation + 30s interval, gated on `isAuthenticated`.
+- [x] **`updateSetting`:** optimistic update with a revert **from the store** (assigning the render-time snapshot undid a second change that had committed while the write was in flight), serialized `updateSettings`, and a background-task resync on `checkInterval`.
+- [x] **`handleReenableDistributor`:** clears the circuit breaker (updating `lastChecked` alone left the distributor in cooldown while the UI showed "OK"), and re-reads the watchlist before `updateProductListings` (building from the mount-time snapshot reverted every price/status/history change since Settings opened).
+- [x] **Load effect:** cancellation, `Promise.all`, error handling.
+- [x] No code change; tree unchanged from Phase 855 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
