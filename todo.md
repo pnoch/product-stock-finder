@@ -5673,3 +5673,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Fix:** compare `Date.parse(...)`. Added a mixed-format case to `tests/price-digest.test.ts`. Proven non-vacuous: reverting fails the guard.
 - [x] **Also:** fixed a flaky assertion in the Phase-739 `refresh-listing` test (it called `listing()` twice, so the two timestamps differed by a millisecond).
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2641 passed**; desktop `286`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 742: Analysis/backup module audit (clean)
+
+- [x] **`lib/drop-calendar.ts`:** DST-safe calendar-date arithmetic (`setDate`, not fixed 24h steps); in-stock-only history; one entry per product/distributor/day keeping the largest drop.
+- [x] **`lib/price-events.ts`:** sorts by parsed time, guards NaN, and the `index` field indexes the caller's already-sorted array.
+- [x] **`lib/alert-savings.ts` / `lib/deal-score.ts` / `lib/product-insights.ts` / `lib/price-average.ts` / `lib/alert-suggestions.ts`:** all filter to in-stock history, guard NaN/non-finite, and use `bestPricePoints` (minimum) where a like-for-like comparison is needed.
+- [x] **`lib/settings-privacy.ts` / `lib/backup-files.ts`:** the BYO-LLM key is stripped from outbound settings and never adopted on inbound merge; file export/import handles web and native.
+- [x] No code change; tree unchanged from Phase 741 (`tsc 0`, lint 0 errors / 157 warnings, `2641 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
