@@ -6524,3 +6524,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Derived cards:** all memoized with correct deps; `digestPlaceholder` handles the "enabled but no snapshot yet" case (the card used to vanish).
 - [x] **`handleSaveBasketAlert`:** optimistic update with revert on failure (leaving the new threshold on screen after a failed save showed a setting that was never persisted).
 - [x] No code change; tree unchanged from Phase 856 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 858: React hooks-rules audit (clean)
+
+- [x] Ran ESLint's `react-hooks/rules-of-hooks` across `app/`, `components/`, `hooks/`, `desktop/src/`: **0 errors** — no conditional/early-return hook violations.
+- [x] Manually verified the 13 early-return sites (loading gates, `!open`/`!product` guards) have **no hooks after** the return.
+- [x] The 36 `exhaustive-deps` warnings are benign: the "missing" deps in `use-auth.ts` are module-level `useCallback`-wrapped setters (`setUser`/`setLoading`/`setError`, stable); the `use-live-prices` ref-cleanup warnings are the documented generation-guard pattern.
+- [x] No code change; tree unchanged from Phase 857 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
