@@ -5896,3 +5896,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap 2 — bare CR split the row:** `escapeCsv` quoted on `[",\n]` but not `\r`, and the tokenizer treats a bare CR as a row break, so a value containing `\r` (e.g. `1-2_1b\rb`) was re-imported as just `b`. Added `\r` to the quote condition.
 - [x] Found by a deterministic property-based fuzzer (50k random names/models through export→import); added 3 non-vacuous guards to `tests/csv-injection.test.ts`. Reverting either fix fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2646 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 776: Property-based fuzzing (sync/analysis invariants)
+
+- [x] Fuzzed `syncNow` with 3000 random pulled payloads (malformed data, unknown collections, tombstones, non-object values): never threw, malformed items dropped safely.
+- [x] Fuzzed `mergePriceHistory` (sorted ascending, no duplicate days), `matchesModel` (never throws), `computeMovers`/`computeDropCalendar`/`computeDigest`/`computePriceVsAverage` (finite outputs), `parsePriceFromText`/`convertPrice`/`roundMoney` (finite/null, idempotent), `addRecentSearch` (bounded, deduped), `isPublicRoute` (never throws) — all clean.
+- [x] The CSV round-trip fuzzer found the two Phase-775 bugs; the remaining functions held their invariants.
+- [x] No code change; tree unchanged from Phase 775 (`tsc 0`, lint 0 errors / 157 warnings, `2646 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
