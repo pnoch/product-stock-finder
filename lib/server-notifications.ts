@@ -199,7 +199,10 @@ async function runSyncServerNotifications(): Promise<void> {
       },
       settings.healthAlerts && pendingHealthEvents.length > 0
         ? pendingHealthEvents
-            .slice(0, MAX_UPLOAD_HEALTH_EVENTS)
+            // Keep the newest, matching the buffer's own cap: `slice(0, N)`
+            // would upload the OLDEST events if a legacy store held an
+            // over-cap array.
+            .slice(-MAX_UPLOAD_HEALTH_EVENTS)
             .map((e) => ({
               // Prefer the id shared with the local notification event so the
               // server event dedupes against it; fall back to a derived id.

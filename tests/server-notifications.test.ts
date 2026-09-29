@@ -11,6 +11,7 @@ import {
   syncServerNotifications,
 } from "../lib/server-notifications";
 import type { AppSettings } from "../lib/types";
+import { MAX_UPLOAD_HEALTH_EVENTS } from "../shared/const";
 
 vi.mock("../lib/storage", () => ({
   getWatchlist: vi.fn().mockResolvedValue([]),
@@ -218,6 +219,41 @@ describe("uploadNotificationConfig with healthEvents", () => {
         },
       ],
     });
+  });
+});
+
+describe("syncServerNotifications healthEvents cap", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("keeps the newest events when over the cap", async () => {
+    const mutate = vi.fn().mockResolvedValue({ accepted: true });
+    const query = vi.fn().mockResolvedValue({ events: [] });
+    mockClient({ uploadConfig: mutate, pull: query });
+
+    const storage = await import("../lib/storage");
+    // A legacy store could hold an over-cap array; the upload must keep the
+    // newest (matching the buffer's own cap), not the oldest.
+    const events = Array.from(
+      { length: MAX_UPLOAD_HEALTH_EVENTS + 10 },
+      (_, i) => ({
+        distributorId: "d1",
+        distributorName: "D1",
+        status: "blocked" as const,
+        kind: "alert" as const,
+        title: "t",
+        body: "b",
+        createdAt: i,
+      }),
+    );
+    vi.mocked(storage.getPendingHealthEvents).mockResolvedValue(events as never);
+    vi.mocked(storage.clearPendingHealthEvents).mockResolvedValue(undefined);
+
+    await syncServerNotifications();
+
+    const sent = mutate.mock.calls[0][0].healthEvents as { createdAt: number }[];
+    expect(sent).toHaveLength(MAX_UPLOAD_HEALTH_EVENTS);
+    expect(sent[0]!.createdAt).toBe(10);
+    expect(sent[sent.length - 1]!.createdAt).toBe(MAX_UPLOAD_HEALTH_EVENTS + 9);
   });
 });
 

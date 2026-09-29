@@ -213,7 +213,8 @@ async function runSyncDesktopNotifications(): Promise<void> {
           null,
       healthEvents:
         settings.healthAlerts && healthEvents.length > 0
-          ? healthEvents.slice(0, MAX_UPLOAD_HEALTH_EVENTS)
+          ? // Keep the newest, matching the buffer's own cap (mirrors mobile).
+            healthEvents.slice(-MAX_UPLOAD_HEALTH_EVENTS)
           : undefined,
     });
     if (uploadOk && pendingHealthEvents.length > 0) {

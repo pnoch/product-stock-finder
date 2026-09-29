@@ -5945,3 +5945,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** the same ordering bug as Phase 781, in `lib/storage/watchlist.ts`'s `trimHistory`. Its `slice(-MAX_HISTORY_PER_LISTING)` cap and its `shift()` eviction loop both assume oldest-first, but a history restored from a backup or a server pull is adopted verbatim and may be descending — so the cap kept the **oldest** 500 points and the eviction loop dropped the **newest**. Verified: 600 descending points → newest dropped, oldest kept.
 - [x] **Fix:** sort each history by parsed time before trimming (skipping the sort when already ascending, to avoid needless array copies). Added a non-vacuous guard to `tests/storage-old-payloads.test.ts`. The Rust side doesn't cap history, so no parity change.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2648 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 783: Health-event upload kept the OLDEST events
+
+- [x] **Gap found:** the pending-health-event buffer caps at `MAX_UPLOAD_HEALTH_EVENTS` keeping the **newest** (`slice(pending.length - N)`), but the upload in `syncServerNotifications` used `slice(0, MAX_UPLOAD_HEALTH_EVENTS)` — the **oldest**. A legacy store holding an over-cap array would upload stale events and drop the recent ones. Desktop had the same `slice(0, N)`.
+- [x] **Fix:** use `slice(-MAX_UPLOAD_HEALTH_EVENTS)` in both mobile and desktop. Added a non-vacuous guard to `tests/server-notifications.test.ts`. Proven non-vacuous: reverting fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2649 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
