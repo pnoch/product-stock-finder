@@ -6285,3 +6285,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `merge_listings` tie-break (`>` → `>=`), id-less-listing retention, disk-only-listing retention.
   - `deactivate_alerts_by_id` (renamed → compile/test failure).
 - [x] No code change; tree unchanged from Phase 825 (`tsc 0`, lint 0 errors / 157 warnings, `2666 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 827: Mobile auth/legal screens audit (clean)
+
+- [x] **`app/oauth/callback.tsx`:** cancellation flag, ticket-only redemption, validates the returned user (`id` finite + `openId`), publishes the shared auth state so sync/backfill/push start without a restart. `emailVerified: rawUser.emailVerified === true` is correct — every server auth response goes through `buildUserResponse`, which coerces to `Boolean`.
+- [x] **`app/verify-email.tsx` / `app/reset-password.tsx`:** token extraction handles string/array, cancellation flag, Bearer token on native (cookie unavailable), refreshes `emailVerified` after verification.
+- [x] **`app/search.tsx`:** double-submit guards (`adding`/`discovering`), dedup handling (reports "already tracked" instead of a false success), discovery-before-navigate.
+- [x] **`app/stats.tsx` / `app/health.tsx`:** memoized derivations; `health.tsx` uses `isMountedRef` for its progress loop.
+- [x] No code change; tree unchanged from Phase 826 (`tsc 0`, lint 0 errors / 157 warnings, `2666 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
