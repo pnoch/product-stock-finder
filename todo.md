@@ -6553,3 +6553,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Rejections:** `stale_write` is not retried (re-pushing would beat the remote edit in LWW); validation/transient rejections are tracked in `retryKeys` (their stamp is `<= cursor`, so the normal freshness check would skip them forever).
 - [x] **Generation gate:** a wipe during the push aborts before saving the cursor (otherwise the next account's first sync is incremental and skips rows).
 - [x] No code change; tree unchanged from Phase 860 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 862: Notifications scheduling audit (clean)
+
+- [x] **`immediateTrigger`:** works around the Android trigger-channel quirk (channelId must be on the trigger, not `content`); returns `null` on non-Android.
+- [x] **`ensureNotificationPermission`:** cross-platform entry point (web uses the Notification API); callers must not use `requestNotificationPermissions` directly (always false on web).
+- [x] **Health alerts/recovery:** bail when the web display failed (the caller records the event as delivered, so a failed display would silently consume the alert); return the same `eventId` the caller uploads (otherwise the server mints a different one and the event is delivered twice); quiet-hours gated.
+- [x] **`scheduleServerEventNotification`:** returns whether a notification was shown (non-fatal on failure).
+- [x] **`setupPushEventTracking`:** records eventIds from received/tapped/last-response listeners, cleans up subscriptions, and documents the accepted background-push gap (pull is the correctness guarantee).
+- [x] No code change; tree unchanged from Phase 861 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
