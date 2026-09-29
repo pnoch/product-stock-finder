@@ -5491,3 +5491,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`desktop/vite.config.ts`** `define` uses `JSON.stringify(mode !== "production")` (not the verbatim `import.meta.env.DEV` that crashed the built app), bridges the `EXPO_PUBLIC_*` vars, and aliases the native-only modules to stubs.
 - [x] **`tsconfig.json` includes exist** (`expo-env.d.ts`, `nativewind-env.d.ts`, `.expo/types/router.d.ts`); `tsconfig.node.json` is absent and unreferenced.
 - [x] No code change; tree unchanged from Phase 713 (`tsc 0`, lint 0 errors / 157 warnings, `2621 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 715: Test the Android release-signing plugin
+
+- [x] **Gap found:** `plugins/with-android-cleartext-traffic.js` had a thorough behavioral test, but `plugins/with-android-release-signing.js` — the plugin that prevents shipping a debug-signed build the Play Store rejects — had **no test at all**, despite containing a subtle regex fix (a loose pattern had rewritten the *debug* build type).
+- [x] **Fix:** added `tests/android-release-signing.test.ts` (5 cases): adds the release signingConfig + points the release build type at it; does **not** rewrite the debug build type; is idempotent; throws on a non-Groovy file; is registered in `app.config.ts`. Proven non-vacuous: reverting to the loose regex fails 2 cases.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2626 passed**; desktop `285`; `cargo test` 71, clippy 0, fmt clean.
