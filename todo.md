@@ -5633,3 +5633,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`shared/src/trending.ts`:** falls back to `FALLBACK_TRENDING` on non-ok/error/empty; `formatPrice` renders `N/A` for a malformed `estimatedPrice`, so a bad server item degrades gracefully rather than crashing the card.
 - [x] **`lib/llm-discovery.ts`:** 15s abort timeout, classified errors (`timeout`/`network`/`server`/`parse`/`byo-auth`), query bounded to `MAX_DISCOVERY_QUERY`, injectable store/header providers, and a distinct BYO-LLM auth token surfaced as "check your API key".
 - [x] No code change; tree unchanged from Phase 734 (`tsc 0`, lint 0 errors / 157 warnings, `2637 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 736: Blocked-detection audit (clean)
+
+- [x] **`classifyFetchStatus`:** 403/429 → blocked, other 4xx/5xx → error, marker match → blocked; `BLOCKED_MARKERS` is byte-identical to the Rust `BLOCKED_MARKERS` (guarded by `tests/desktop-scraper-parity.test.ts`). Matching is case-sensitive on both platforms — a deliberate choice (the markers are the exact strings Cloudflare/PerimeterX/DataDome emit), and a miss degrades to "no price found" rather than a false positive.
+- [x] **Breaker stores:** `serializeByKey` serializes read-modify-write per storage key across the several breaker stores sharing `distributor_breaker`.
+- [x] No code change; tree unchanged from Phase 735 (`tsc 0`, lint 0 errors / 157 warnings, `2637 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
