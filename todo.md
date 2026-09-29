@@ -6301,3 +6301,14 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`ProductImage.tsx`:** `active` guard, module-level cache, error fallback.
 - [x] **`SearchModal.tsx`:** `wasOpenRef` (loads only on open), memoized Fuse index, deferred query, catalog merge dedup.
 - [x] No code change; tree unchanged from Phase 827 (`tsc 0`, lint 0 errors / 157 warnings, `2666 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 829: Dead-export audit (clean — minor dead code, no bugs)
+
+- [x] Scanned every exported symbol in `lib/`, `app/`, `components/`, `hooks/`, `server/`, `shared/`, `desktop/src/` for production usage. Most "unused" hits are false positives (scrapers referenced via `registry.ts`, `_core/` hands-off, `*ForTests` resets).
+- [x] A few genuinely dead-but-tested helpers exist — **not bugs**, just superseded API surface:
+  - `lib/fx-history.ts` `getFxChange` (superseded by `getFxWindowChange`, which the Rates screens use).
+  - `lib/price-chart.ts` `indexForLocationX` (production uses `nearestByX`).
+  - `lib/tags.ts` `tagColor` (production uses `getTagById(...)?.color`) and `matchesTagFilter` (an "any"-mode wrapper over `matchesTagFilterMode`).
+  - `lib/csv.ts` `parseWatchlistCsv` (test-only; the live import is JSON backup + bulk import).
+- [x] Left in place: they are small, tested, and removing them is churn without a correctness benefit.
+- [x] No code change; tree unchanged from Phase 828 (`tsc 0`, lint 0 errors / 157 warnings, `2666 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
