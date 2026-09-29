@@ -5343,3 +5343,12 @@ Checked whether each mobile fix from this session has a desktop counterpart, and
   - "we do not send your watchlist or account details to those sites — only the product model being looked up" — scrapers fetch by model number only.
   - "we do not use third-party advertising or tracking SDKs" — no analytics/tracking dependency in `package.json`.
 - [x] No code change; tree unchanged from Phase 694 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
+
+## Phase 696: Database schema index audit (clean)
+
+Checked all 20 tables for missing indexes on FK columns and hot query paths.
+
+- [x] **Every hot query path has a supporting index:** `device_notification_configs` (userId), `notification_events` (userId+dedupKey unique, deviceId+dedupKey unique, createdAt for purges, deviceId), `price_history` (composite PK + a `date` index for the purge), `shared_watchlist_members` (composite PK + token + user), `device_push_tokens` (userId), and the rest.
+- [x] **The three FK columns my static scan flagged are all indexed — verified against the live schema, not the source:** `app_settings.userId` is the primary key; `password_reset_tokens.userId` and `email_verification_tokens.userId` have InnoDB's **auto-created FK indexes** (`*_userId_users_id_fk`), confirmed via `SHOW INDEX` on the migrated test database.
+- [x] **Method note:** the static scan produced false positives because it did not model InnoDB's automatic FK indexing; querying the real schema settled it.
+- [x] No code change; tree unchanged from Phase 695 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
