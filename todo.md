@@ -5975,3 +5975,14 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `desktop/src/pages/Watchlist.tsx`'s `getTrend` read `history[history.length - 1]` (newest) and `history[length - 3]` (older) positionally without sorting. A history restored from a backup or a server pull can be newest-first, so a **dropping** price was reported as **"up"** (verified: `[50, 75, 100]` descending → "up" instead of "down"). Mobile has no equivalent function, so this was desktop-only.
 - [x] **Fix:** sort by parsed time before reading; exported `getTrend` and added `desktop/tests/watchlist-trend.test.ts` (ascending/descending/reversed all agree). Proven non-vacuous: reverting fails 2 cases.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2652 passed**; desktop `tsc 0`, **289 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 788: Positional-history-read sweep (clean)
+
+- [x] Swept every `history[0]`/`history[length-1]`/`sorted[0]` read on a history-like array. All remaining sites sort first:
+  - `lib/price-change.ts` uses `bestPricePoints` (sorts by time).
+  - `server/price-insights.ts` reads `getHistory` (sorts by date).
+  - `desktop/src/pages/Compare.tsx` (both sites) and `app/compare/[id].tsx` sort explicitly.
+  - `desktop/src/pages/ProductDetail.tsx` sorts explicitly.
+  - `desktop/src/pages/Home.tsx` / `app/(tabs)/index.tsx` sort listings by status order.
+  - `lib/scrapers/health.ts` `timelineSegments` receives already-sorted samples.
+- [x] No code change; tree unchanged from Phase 787 (`tsc 0`, lint 0 errors / 157 warnings, `2652 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
