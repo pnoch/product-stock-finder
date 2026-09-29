@@ -44,6 +44,19 @@ describe("findBestDeal", () => {
     expect(deal!.total).toBeCloseTo(deal!.price + (deal!.shipping ?? 0), 2);
   });
 
+  it("keeps the first listing on an equal landed cost", () => {
+    // The comparison is strict (`total < best.total`), so an exact tie keeps
+    // the earlier listing. A `<=` would flip the winner to the later one.
+    // balticnetworks-us and rocnoc-us share the same Asia-Pacific shipping, so
+    // equal prices give an identical landed cost.
+    const listings = [
+      makeListing({ distributorId: "balticnetworks-us", price: 100, currency: "USD" }),
+      makeListing({ distributorId: "rocnoc-us", price: 100, currency: "USD" }),
+    ];
+    const deal = findBestDeal(listings, "Asia-Pacific", "USD");
+    expect(deal?.distributorId).toBe("balticnetworks-us");
+  });
+
   it("skips out-of-stock listings", () => {
     const listings = [
       makeListing({

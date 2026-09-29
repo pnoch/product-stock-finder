@@ -6137,3 +6137,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] A fourth mutation batch found `shared/const.ts`'s `isPlausiblePrice` had **no direct test**: both `price <= MAX_PLAUSIBLE_PRICE` → `<` and `price > 0` → `>= 0` survived (the price-cache test only used `5e9` and `-5`, far from the boundary). The helper is shared by the server cache and the client device-scrape paths.
 - [x] Added `tests/plausible-price.test.ts` (boundary + zero/negative/non-finite/over-cap); both mutations now fail. The health-dedup `kind`/bucket mutations were killed — well-tested.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2658 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 808: Mutation pass — relative-time 7d + best-deal tie gaps
+
+- [x] A fifth mutation batch found two more gaps:
+  - `lib/relative-time.ts`: the 7-day boundary (`days < 7` → `< 30`) survived — no test used 6d/7d.
+  - `lib/best-deal.ts`: the strict `total < best.total` tie-break survived — no test had two listings with an identical landed cost.
+- [x] Added a 6d/7d case to `tests/relative-time.test.ts` and a tie case to `tests/best-deal.test.ts` using two distributors that share Asia-Pacific shipping (`balticnetworks-us`/`rocnoc-us`). Both mutations now fail. (`price-chart` `count <= 1` → `<= 0` is behaviorally equivalent — both return 0 — so no test needed.)
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2659 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.

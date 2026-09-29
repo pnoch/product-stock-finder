@@ -13,6 +13,9 @@ describe("formatRelativeTime", () => {
     expect(formatRelativeTime(t - 45 * 60000)).toBe("45m ago");
     expect(formatRelativeTime(t - 3 * 3600000)).toBe("3h ago");
     expect(formatRelativeTime(t - 3 * 86400000)).toBe("3d ago");
+    // 6d is still relative; 7d switches to an absolute date.
+    expect(formatRelativeTime(t - 6 * 86400000)).toBe("6d ago");
+    expect(formatRelativeTime(t - 7 * 86400000)).toBe(new Date(t - 7 * 86400000).toLocaleDateString());
     expect(formatRelativeTime(t - 30 * 86400000)).toBe(new Date(t - 30 * 86400000).toLocaleDateString());
   });
   it("clamps future and guards non-finite", () => {
