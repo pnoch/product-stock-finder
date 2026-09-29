@@ -6486,3 +6486,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Rates screen:** generation guard (the mount effect fires `loadData` twice, so an earlier read could land last), fallback to static `EXCHANGE_RATES` for a missing/non-finite rate.
 - [x] **Desktop** imports the shared `lib/fx-history.ts` (no duplication).
 - [x] No code change; tree unchanged from Phase 851 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 853: Watchlist screen audit (clean)
+
+- [x] **Queued-count effect:** cancellation flag, 30s interval, web focus/visibility listeners, all cleaned up; re-subscribes on `watchlist.length` change.
+- [x] **`loadData`:** a storage failure keeps previous values and leaves the loaded gate unset (marking it loaded would let the persist effect write fallbacks over the user's saved filters).
+- [x] **Price-range filter:** real-time, validates `min <= max` and non-negative, skips the write when unchanged.
+- [x] **Persist:** serialized `updateSettings` (a whole-object save raced the sort/group persist).
+- [x] **Undo:** captures the full removal cascade (alerts, reminders, watches), restores all of them, and re-schedules the reminder notification (a restored dead id would never fire).
+- [x] No code change; tree unchanged from Phase 852 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
