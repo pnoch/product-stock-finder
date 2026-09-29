@@ -5688,3 +5688,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/storage/idb-adapter.ts`:** distinguishes "IDB unavailable" (fall back) from "operation failed" (surface); waits for the transaction commit on writes so a commit-time abort isn't a silent lost write.
 - [x] **`lib/storage/adapter.ts`:** history caps documented.
 - [x] No code change; tree unchanged from Phase 742 (`tsc 0`, lint 0 errors / 157 warnings, `2641 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 744: Tag-LWW compared tagsUpdatedAt as strings
+
+- [x] **Gap found:** the tag-LWW merge in `lib/sync.ts` used `(incomingStamp ?? "") >= (existingStamp ?? "")` with the comment "ISO-8601 UTC strings compare lexicographically". But `tagsUpdatedAt` is preserved verbatim from an arbitrary client via sync, so it is not guaranteed canonical — and `"…:00.500Z" >= "…:00Z"` is false lexically though chronologically later, so a newer remote tag edit lost to an older local one.
+- [x] **Fix:** compare `Date.parse(...)`. Added a mixed-format case to `tests/sync-tags-lww.test.ts`. Proven non-vacuous: reverting fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2642 passed**; desktop `286`; `cargo test` 71, clippy 0, fmt clean.

@@ -702,8 +702,13 @@ async function applyLocalItem(
               new Set([...(incoming.tags ?? []), ...(existing.tags ?? [])]),
             );
             tags = union.length > 0 ? union : undefined;
-          } else if ((incomingStamp ?? "") >= (existingStamp ?? "")) {
-            // ISO-8601 UTC strings compare lexicographically.
+          } else if (
+            // Parsed-time comparison: a stamp can arrive from an arbitrary
+            // client via sync, so it is not guaranteed canonical — and
+            // `"…:00.500Z" >= "…:00Z"` is false lexically though later.
+            (Date.parse(incomingStamp ?? "") || 0) >=
+            (Date.parse(existingStamp ?? "") || 0)
+          ) {
             tags = incoming.tags;
             tagsUpdatedAt = incomingStamp;
           } else {

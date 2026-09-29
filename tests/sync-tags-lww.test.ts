@@ -87,6 +87,16 @@ describe("tag merge across devices", () => {
     expect(result.tags).toEqual(["a", "b"]);
   });
 
+  it("compares tag stamps by parsed time across ISO formats", async () => {
+    // `"…:00.500Z" >= "…:00Z"` is false lexically though chronologically later,
+    // so a mixed-format remote stamp lost to the older local one.
+    const result = await mergeIntoTags(
+      { tags: ["a"], tagsUpdatedAt: "2026-08-01T00:00:00Z" },
+      { tags: ["a", "b"], tagsUpdatedAt: "2026-08-01T00:00:00.500Z" },
+    );
+    expect(result.tags).toEqual(["a", "b"]);
+  });
+
   it("carries the winning stamp forward so it keeps propagating", async () => {
     const result = await mergeIntoTags(
       { tags: ["a"], tagsUpdatedAt: "2026-08-01T00:00:00.000Z" },
