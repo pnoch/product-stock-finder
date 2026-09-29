@@ -5551,3 +5551,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/tax.ts` / `lib/best-deal.ts` / `lib/distributor-analysis.ts`:** prototype-key (`hasOwnProperty`) and NaN (`Number.isFinite`) guards are in place; free shipping (0) bypasses conversion; the single-in-stock fallback doesn't fabricate free shipping.
 - [x] **`lib/region-filter.ts`, `lib/currency.ts` (`effectiveRates`/`convertPrice`/`roundMoney`), `formatPrice`:** guarded and well-tested (negatives, unknown currency, exponential, NaN/Infinity, round-trip).
 - [x] No code change; tree unchanged from Phase 722 (`tsc 0`, lint 0 errors / 157 warnings, `2632 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 724: Same-day price-point selection used string comparison
+
+- [x] **Gap found:** `appendPricePoint` and `mergePriceHistory` chose the newer same-day point with `p.date > existing.date` (string compare). `"…T00:00:00Z" > "…T00:00:00.500Z"` lexically, but the `.500Z` point is chronologically later — so a mixed-format history (a hand-edited backup, a legacy export, or a server row) kept the **older** point. Internal writers all use `toISOString()`, but the Rust import validates structure without normalizing `priceHistory` dates, so the invariant wasn't enforced.
+- [x] **Fix:** compare `Date.parse(...)` in both functions. Added a `same-day point selection across ISO formats` case to `tests/price-history-order.test.ts` (both directions, both functions). Proven non-vacuous: reverting to string comparison fails 2 cases.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2634 passed**; desktop `285`; `cargo test` 71, clippy 0, fmt clean.

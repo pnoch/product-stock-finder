@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendPricePoint } from "../lib/price-history";
+import { appendPricePoint, mergePriceHistory } from "../lib/price-history";
 import { getBestPrice, roundMoney } from "../lib/currency";
 import type { PricePoint } from "../lib/types";
 
@@ -41,6 +41,26 @@ describe("appendPricePoint ordering", () => {
     expect(result[0]!.date.slice(0, 10)).toBe("2026-01-01");
     // 500 points from 2026-01-01 inclusive ends 2027-05-15.
     expect(result[result.length - 1]!.date.slice(0, 10)).toBe("2027-05-15");
+  });
+});
+
+describe("same-day point selection across ISO formats", () => {
+  // `"…T00:00:00Z" > "…T00:00:00.500Z"` lexically, but the .500Z point is
+  // chronologically later. A hand-edited backup or a legacy export can mix the
+  // two forms, so the winner must be chosen by parsed time, not string order.
+  const noMillis = point("2026-01-01T00:00:00Z", 100);
+  const withMillis = point("2026-01-01T00:00:00.500Z", 200);
+  const now = "2026-06-01T00:00:00.000Z";
+
+  it("appendPricePoint keeps the chronologically newer same-day point", () => {
+    expect(appendPricePoint([noMillis], withMillis, 3650, now)[0]!.price).toBe(200);
+    // And the reverse: an older incoming point must not overwrite the newer one.
+    expect(appendPricePoint([withMillis], noMillis, 3650, now)[0]!.price).toBe(200);
+  });
+
+  it("mergePriceHistory keeps the chronologically newer same-day point", () => {
+    expect(mergePriceHistory([noMillis], [withMillis], 3650, now)[0]!.price).toBe(200);
+    expect(mergePriceHistory([withMillis], [noMillis], 3650, now)[0]!.price).toBe(200);
   });
 });
 

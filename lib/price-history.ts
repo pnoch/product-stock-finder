@@ -23,9 +23,12 @@ export function appendPricePoint(
   let result: PricePoint[];
   if (existingIdx >= 0) {
     const existing = validHistory[existingIdx];
-    // Keep the newer point for the same day (full timestamp, not just day)
+    // Keep the newer point for the same day (full timestamp, not just day).
+    // Compare parsed times, not strings: `"…:00Z" > "…:00.500Z"` lexically but
+    // is chronologically earlier, so a mixed-format history (e.g. a hand-edited
+    // backup) kept the older point.
     result =
-      point.date > existing.date
+      Date.parse(point.date) > Date.parse(existing.date)
         ? validHistory.map((p, i) => (i === existingIdx ? point : p))
         : validHistory;
   } else {
@@ -60,7 +63,10 @@ export function mergePriceHistory(
     if (Number.isNaN(Date.parse(p.date))) continue;
     const day = p.date.slice(0, 10);
     const existing = byDay.get(day);
-    if (!existing || p.date > existing.date) byDay.set(day, p);
+    // Parsed-time comparison (see appendPricePoint): string comparison picks
+    // the wrong point when the ISO formats differ.
+    if (!existing || Date.parse(p.date) > Date.parse(existing.date))
+      byDay.set(day, p);
   }
   const merged = [...byDay.values()].sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
   const cutoff = new Date(now);
