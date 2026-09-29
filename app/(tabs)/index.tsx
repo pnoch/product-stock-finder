@@ -25,7 +25,7 @@ import { formatPrice } from "@shared/currency";
 import { getBestPrice } from "@/lib/currency";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { StockBadge } from "@/components/stock-badge";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { IconSymbol, type IconSymbolName } from "@/components/ui/icon-symbol";
 import { ConnectionBadge } from "@/components/connection-badge";
 import { TrendingSection } from "@/components/home/trending-section";
 import { useConnection } from "@/hooks/use-connection";
@@ -77,7 +77,7 @@ function SummaryCard({
   label: string;
   value: string | number;
   color: string;
-  icon: string;
+  icon: IconSymbolName;
 }) {
   const colors = useColors();
   const numericValue = typeof value === "number" ? value : 0;
@@ -100,7 +100,7 @@ function SummaryCard({
       style={{ borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border }}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-        <IconSymbol name={icon as never} size={20} color={colors.muted} />
+        <IconSymbol name={icon} size={20} color={colors.muted} />
         <Animated.Text style={{ color, fontSize: 24, fontWeight: "700", transform: [{ scale: pop }] }}>{numeric}</Animated.Text>
       </View>
       <Text className="text-muted text-xs mt-1">{label}</Text>

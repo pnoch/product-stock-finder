@@ -13,7 +13,7 @@ import {
   View,
   Platform,
 } from "react-native";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { IconSymbol, type IconSymbolName } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import {
   resolveToastColors,
@@ -101,7 +101,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const { bg: bgColor, text: textColor } = resolveToastColors(colors, toast.type);
-  const iconName =
+  const iconName: IconSymbolName =
     toast.type === "success"
       ? "checkmark.circle.fill"
       : toast.type === "error"
@@ -144,7 +144,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               maxWidth: 480,
             }}
           >
-            <IconSymbol name={iconName as never} size={20} color={textColor} />
+            <IconSymbol name={iconName} size={20} color={textColor} />
             <Text
               style={{ color: textColor, fontSize: 14, fontWeight: "600", flexShrink: 1 }}
               numberOfLines={2}

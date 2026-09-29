@@ -10,7 +10,7 @@ type IconMapping = Partial<
     ComponentProps<typeof MaterialIcons>["name"]
   >
 >;
-type IconSymbolName = keyof typeof MAPPING;
+export type IconSymbolName = keyof typeof MAPPING;
 
 /**
  * Add your SF Symbols to Material Icons mappings here.

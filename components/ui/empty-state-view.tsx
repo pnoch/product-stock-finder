@@ -1,7 +1,7 @@
 import { Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { IconSymbol, type IconSymbolName } from "@/components/ui/icon-symbol";
 
 export function EmptyStateView({
   icon,
@@ -14,7 +14,7 @@ export function EmptyStateView({
   onSecondaryPress,
   compact,
 }: {
-  icon: string;
+  icon: IconSymbolName;
   iconColor?: string;
   title: string;
   subtitle: string;
@@ -49,7 +49,7 @@ export function EmptyStateView({
         }}
       >
         <IconSymbol
-          name={icon as never}
+          name={icon}
           size={compact ? 22 : 30}
           color={primaryIconColor}
         />

@@ -5503,3 +5503,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `desktop/index.html` referenced `/vite.svg` (the stock Vite-template favicon), but no such file existed anywhere in `desktop/` — the built app requested a 404 favicon. Same class as the Phase-712 PWA icon.
 - [x] **Fix:** shipped `desktop/public/icon.png` (512×512, from the Tauri icon set) and pointed `index.html` at it. Added a guard to `desktop/tests/tauri-capabilities.test.ts` asserting every non-`/src/` asset `index.html` references exists in `public/`. Proven non-vacuous: removing the icon fails the guard.
 - [x] Verified the icon lands in `desktop/dist/`. Root `tsc 0`, lint 0 errors / 157 warnings, **2626 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 717: IconSymbol `as never` casts defeated the mapping guard
+
+- [x] **Gap found:** AGENTS.md requires every `<IconSymbol name="...">` to have an Android/web mapping, and `components/ui/icon-symbol.tsx` deliberately does **not** widen its key type so tsc rejects unmapped names. But three call sites cast `name={x as never}` (`EmptyStateView`, `Toast`, the Home `SummaryCard`) with `string`-typed props — defeating the compile-time guard, so a typo would silently render the `help-outline` fallback glyph on Android/web.
+- [x] **Fix:** exported `IconSymbolName`, typed those three props/values with it, and removed the casts. Added `tests/icon-symbol-mapping.test.ts` (3 cases): every literal `name=` is mapped; every ternary-result literal in a dynamic `name={...}` is mapped; the mapping is not widened via `as IconMapping`. Proven non-vacuous: a bogus literal in `name=` and a bogus ternary result each fail the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2629 passed**; desktop `285`; `cargo test` 71, clippy 0, fmt clean.
