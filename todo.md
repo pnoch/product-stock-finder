@@ -5587,3 +5587,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Stamps:** pushed stamps are capped at the cursor (`Math.min(stampedAt, nextCursor)`) so `collectDirty` doesn't re-collect every sync; partial-batch stamps are persisted on a mid-push failure; `stale_write` rejections are not retried (would revert the remote edit), while validation/transient ones are.
 - [x] **`serializeItem`:** trims history to fit `SYNC_PUSH_ITEM_MAX_BYTES` (never the local copy) with a defensive `?? []`.
 - [x] No code change; tree unchanged from Phase 727 (`tsc 0`, lint 0 errors / 157 warnings, `2635 passed`; DB 8/30; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 729: Digest/quiet-hours audit (clean)
+
+- [x] **`lib/quiet-hours.ts`:** `parseQuietTime` validates `HH:MM` ranges; the `utcOffsetMinutes` math (`(utc - offset) mod 1440`) evaluates the window in the user's local time; `start === end` is treated as "no window"; the wrap-around branch (`cur >= start || cur < end`) is correct. Four test files cover it.
+- [x] **`lib/price-digest.ts`:** honours the master `notificationsEnabled` toggle and quiet hours; the weekly branch compares calendar days (DST-safe) and gates on `digestDayOfWeek`; an invalid `lastDigestAt` skips the interval check but still respects the weekly day gate; the snapshot is not advanced when delivery fails.
+- [x] **`computeDigest`:** detects a display-currency change (legacy snapshots without the stamp are trusted), and guards a zero/sub-cent baseline.
+- [x] No code change; tree unchanged from Phase 728 (`tsc 0`, lint 0 errors / 157 warnings, `2635 passed`; DB 8/30; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
