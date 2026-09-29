@@ -6119,3 +6119,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `lib/relative-time.ts`: the 60-minute boundary was untested (only 5m and 3h).
 - [x] Added boundary cases to `tests/price-change.test.ts`, `tests/best-deal.test.ts`, `tests/relative-time.test.ts`; each mutation now fails the suite (verified by re-running the harness).
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2654 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 805: Mutation pass — alert-suggestion rounding gap
+
+- [x] A second mutation batch found `lib/alert-suggestions.ts`'s `round2` untested: every test value was already 2-decimal, so `Math.round` → `Math.floor` survived.
+- [x] Added a case using `0.03 * 0.95 = 0.0285` (rounds to 0.03, floors to 0.02); the mutation now fails the suite.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2655 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.

@@ -103,4 +103,18 @@ describe("suggestAlertPrices", () => {
   it("returns empty for no listings", () => {
     expect(suggestAlertPrices([], "USD", now)).toEqual([]);
   });
+
+  it("rounds suggested prices to 2 decimals", () => {
+    // `under_current` is 95% of the current price; 0.03 * 0.95 = 0.0285,
+    // which rounds to 0.03 (a floor would give 0.02, and no round would
+    // surface the raw float).
+    const result = suggestAlertPrices(
+      [listing({ price: 0.03, priceHistory: [] })],
+      "USD",
+      now,
+    );
+    const under = result.find((s) => s.key === "under_current");
+    expect(under?.price).toBe(0.03);
+    expect(Number.isInteger(Math.round((under?.price ?? 0) * 100))).toBe(true);
+  });
 });
