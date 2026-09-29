@@ -5535,3 +5535,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `shared/src/currency.ts`'s `getBestPrice` carries the comment "Must match lib/currency.ts", but it omitted the `roundMoney` step, so a cross-currency conversion returned `102.80999999999999` where the live-rate `lib/currency.ts` version returns `102.81`. The shared version is exported and exercised by tests (desktop imports the live-rate one), so the two could silently drift.
 - [x] **Fix:** added `roundMoney` to the shared module and applied it in `getBestPrice`, matching `lib/currency.ts` exactly. Added a parity case to `tests/best-price-status.test.ts` asserting the two implementations agree across a set of prices and that the result satisfies the roundMoney invariant. Proven non-vacuous: reverting the shared rounding fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2632 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 722: Duplicated-implementation audit (clean)
+
+- [x] **`lib/fx.ts` ↔ `shared/src/fx.ts`:** intentional layering — the shared module is pure (fetch/TTL/stubs), the lib wrapper adds AsyncStorage persistence + the live overlay. `deterministicJitter` is duplicated verbatim, but both copies are identical and the shared stub is unused in production (low risk; left as-is).
+- [x] **`lib/notification-routing.ts` ↔ `desktop/src/lib/notification-routing.ts`:** desktop *imports* the shared `notificationRouteFor` (no duplication) and layers `resolveEventRoute` on top.
+- [x] **`lib/device-id.ts` ↔ `desktop/src/lib/device-id.ts`:** intentional platform variants (AsyncStorage vs localStorage) with identical logic.
+- [x] **`lib/history-sync.ts` ↔ `desktop/src/lib/history-sync.ts`:** both use the shared `sanitizeHistoryPoints`; the mobile counts only confirmed uploads and desktop counts non-throwing mutations — equivalent, since `uploadServerHistory` returns `true` exactly when `mutate` resolves.
+- [x] **`formatPrice`:** single implementation in `shared/src/currency.ts`.
+- [x] No code change; tree unchanged from Phase 721 (`tsc 0`, lint 0 errors / 157 warnings, `2632 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
