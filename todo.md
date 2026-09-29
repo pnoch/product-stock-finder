@@ -6409,3 +6409,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Verified all 25 parsers have a positive-path test (a non-null result with a price assertion) and that the 25 fixtures are negative (404) fixtures — returning null from them is correct.
 - [x] 24 parsers assert the **exact** parsed price; `balticnetworks` only asserted `> 0`. Tightened it to the exact fixture price (1195) — a parser that grabbed the wrong number (shipping figure, crossed-out MSRP) would have passed a `>0` check. Proven non-vacuous: perturbing the parsed price by +1 fails the assertion.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2675 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 843: In-place array-mutation audit (clean)
+
+- [x] Reviewed every `.sort()`/`.reverse()`/`.splice()` in `lib/`, `app/`, `components/`, `server/`, `shared/`, `desktop/src/`. Every sort operates on a freshly-created array (a `.map()`/`.filter()` result, an explicit `[...x]` copy, or a local accumulator), so no caller's array is mutated:
+  - `distributor-analysis` (`results` local), `price-digest` (`priceChanges` from `.map`), `app/compare/[id]` (`[...listings]`), `app/(tabs)/index` (`withTime` from `.map`), `drop-calendar`/`watchlist-stats`/`product-insights`/`health` (mapped points), `price-share`/`deal-score` (mapped candidates).
+  - `watchlist-org` sorts `copy` (an explicit clone).
+  - `splice` sites are intentional: `storage/context` drains the suppressed-change buffer, `storage/notifications` trims the displayed-id list.
+- [x] No code change; tree unchanged from Phase 842 (`tsc 0`, lint 0 errors / 157 warnings, `2675 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
