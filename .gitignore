@@ -37,6 +37,10 @@ yarn-error.*
 # local env files
 .env
 .env*.local
+# Any per-environment file (.env.production, .env.development, …) can hold real
+# credentials; only the committed .env.example is allowed through.
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo

@@ -6320,3 +6320,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **tRPC routers:** every `TRPCError` message is a static string (e.g. `"Database not available"`) — no raw `error.message` is ever forwarded.
 - [x] Client `String(e)`/`e.message` fallbacks therefore only ever surface the sanitized server message or a local storage error, never a stack or internal path.
 - [x] No code change; tree unchanged from Phase 829 (`tsc 0`, lint 0 errors / 157 warnings, `2666 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 831: `.gitignore` missed per-environment env files
+
+- [x] **Gap found:** `.gitignore` listed only `.env` and `.env*.local`, so `.env.production`, `.env.development`, `.env.staging`, and `.env.test` were **committable** — a developer creating one with real credentials could leak them. (The Android keystore script and its `credentials/` output were already covered.)
+- [x] **Fix:** added `.env.*` with `!.env.example` (so the template stays committable). Added `tests/gitignore-secrets.test.ts` (4 cases: per-env files ignored, signing material ignored, `.env.example` allowed, no tracked `.env`). Proven non-vacuous: reverting fails the guard.
+- [x] Also confirmed no committed secrets: the only `AIza…` hits are distributors' own public Google Maps keys inside scraped HTML fixtures, not referenced by our code.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2670 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
