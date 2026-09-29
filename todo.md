@@ -6372,3 +6372,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `design.md` (referenced by AGENTS.md as the live UI/UX spec) said "25 global electronics distributors (15 live parsers + 10 degraded)" and "Pre-loaded Distributor Database (25 sites)", and its catalog list stopped at 20 — omitting the 10 newer distributors. Two names were also wrong (`Allasch`→Allied Electronics, `Valve`→Steam).
 - [x] **Fix:** corrected the counts (30 distributors / 25 parsers), completed the catalog list to all 30, fixed the two names, and extended `tests/agents-doc-drift.test.ts` to pin design.md's distributor count and catalog-list length. Proven non-vacuous: reverting a count fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2674 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 838: Deep-link/SW/web-serving audit (clean)
+
+- [x] **Universal links (`server/spa.ts`):** `UNIVERSAL_LINK_PATHS` covers every routable path (`/product/*`, `/compare/*`, `/w/*`, `/stats`, `/health/*`, `/restock-watches`, `/search`, `/reset-password`, `/verify-email`, `/oauth/*`), and `tests/universal-link-paths.test.ts` derives the expected set from the filesystem so a new route without an association fails the test.
+- [x] **Android intent filters (`app.config.ts`):** custom scheme + `autoVerify` https filter for the configured host (standard app-link behavior captures all paths).
+- [x] **Service worker (`public/sw.js`):** navigation is network-first and refreshes `/index.html` (the URL the offline fallback reads); hashed `/_expo/static/*` bundles are runtime cache-first (not precached, since `addAll` rejects on a 404); `skipWaiting`/`clients.claim` + old-cache purge on activate.
+- [x] **`registerSpa`:** unmatched `/api/*` and `/storage/*` return JSON 404 (not the HTML shell); the shell is `no-store`; hashed bundles are `immutable`.
+- [x] No code change; tree unchanged from Phase 837 (`tsc 0`, lint 0 errors / 157 warnings, `2674 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
