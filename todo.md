@@ -5803,3 +5803,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`server/catalog-warmer.ts`:** `pickPairsToWarm` ranks by `max(fetchedAt, attemptedAt)` so a pair that never yields a result rotates out instead of monopolizing every tick.
 - [x] **`pLimit`:** a synchronous throw doesn't leak the slot or wedge the queue.
 - [x] No code change; tree unchanged from Phase 759 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 761: Rate-limit/spend/email/SSRF audit (clean)
+
+- [x] **`server/rate-limit.ts`:** per-bucket windows (a short-window call can't truncate a long-window bucket), LRU eviction capped at `MAX_BUCKETS` on both prune and insert, and `req.ip` (trust-proxy-aware) rather than raw XFF (spoof-resistant).
+- [x] **`server/spend-budget.ts`:** rolling-window caps with env overrides; callers degrade rather than error.
+- [x] **`server/email.ts`:** Resend HTTP API with a fetch timeout; never logs bodies/tokens; skips + logs when unconfigured.
+- [x] **`server/product-parse.ts`:** exhaustive SSRF guard (IPv4, IPv6, IPv4-mapped/compatible, NAT64, 6to4, Teredo, unique-local/link-local/multicast), rejects credentials-in-URL, resolves the hostname and rejects if any address is private (DNS-rebinding), and `readCapped` bounds the body.
+- [x] No code change; tree unchanged from Phase 760 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
