@@ -6417,3 +6417,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `watchlist-org` sorts `copy` (an explicit clone).
   - `splice` sites are intentional: `storage/context` drains the suppressed-change buffer, `storage/notifications` trims the displayed-id list.
 - [x] No code change; tree unchanged from Phase 842 (`tsc 0`, lint 0 errors / 157 warnings, `2675 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 844: Missing-await audit (clean)
+
+- [x] Scanned every call to a known-async storage/auth/sync function for a missing `await`. All 43 raw hits resolved to false positives:
+  - Interface declarations (`getWatchlist(): Promise<...>`).
+  - Members of `Promise.all`/`Promise.allSettled` (e.g. `bulk-import-modal`'s chunked import).
+  - `.catch()`-guarded fire-and-forget (`_layout`'s `seedWatchlistProducts`, `product/[id]`'s reads).
+  - The desktop `use-auth.ts` `setSessionToken`/`setUserInfo` are its **own synchronous localStorage** helpers, not the async `_core/auth` versions — the calls are correct.
+- [x] No code change; tree unchanged from Phase 843 (`tsc 0`, lint 0 errors / 157 warnings, `2675 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
