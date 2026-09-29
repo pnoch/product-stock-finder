@@ -5352,3 +5352,10 @@ Checked all 20 tables for missing indexes on FK columns and hot query paths.
 - [x] **The three FK columns my static scan flagged are all indexed — verified against the live schema, not the source:** `app_settings.userId` is the primary key; `password_reset_tokens.userId` and `email_verification_tokens.userId` have InnoDB's **auto-created FK indexes** (`*_userId_users_id_fk`), confirmed via `SHOW INDEX` on the migrated test database.
 - [x] **Method note:** the static scan produced false positives because it did not model InnoDB's automatic FK indexing; querying the real schema settled it.
 - [x] No code change; tree unchanged from Phase 695 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
+
+## Phase 697: Desktop Rust scrapers audit (clean)
+
+- [x] **`breaker.rs` mirrors the shared resilient-fetch semantics** (30-min block cooldown growing 1.5× to a 2-hour cap; hard errors cool down only at the 3-failure threshold for a flat 15 min; any success resets) and has tests.
+- [x] **All 25 Rust parsers delegate to the shared `parse_price_page`**, which gates on `model_mismatch` and returns an error for a wrong-product result — the same architecture as mobile, so the AGENTS.md "thread the model and gate on mismatch" rule holds. The gate itself has tests (`mismatch_of` cases).
+- [x] **`parse_price_from_text` mirrors the mobile fix** (first number run only, with space/NBSP thousands separators kept), so "Was $100 Now $80" cannot parse as 10080.
+- [x] No code change; tree unchanged from Phase 696 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`; `cargo test` 71).
