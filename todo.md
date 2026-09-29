@@ -6517,3 +6517,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`handleReenableDistributor`:** clears the circuit breaker (updating `lastChecked` alone left the distributor in cooldown while the UI showed "OK"), and re-reads the watchlist before `updateProductListings` (building from the mount-time snapshot reverted every price/status/history change since Settings opened).
 - [x] **Load effect:** cancellation, `Promise.all`, error handling.
 - [x] No code change; tree unchanged from Phase 855 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 857: Stats screen audit (clean)
+
+- [x] **`load`:** `loadedRef` distinguishes first load (spinner) from refresh; `Promise.all` of the four reads; explicit `loadError`.
+- [x] **Derived cards:** all memoized with correct deps; `digestPlaceholder` handles the "enabled but no snapshot yet" case (the card used to vanish).
+- [x] **`handleSaveBasketAlert`:** optimistic update with revert on failure (leaving the new threshold on screen after a failed save showed a setting that was never persisted).
+- [x] No code change; tree unchanged from Phase 856 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
