@@ -5790,3 +5790,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`server/routers/trending.ts`:** feed/LLM fetches are timeout-bounded and `readCapped` (a hostile/looping feed can't OOM the process); LLM rows are sanitized to the column limits (name 255, brand/category 100, price decimal(10,2), source 255); `get` uses SQL `LIMIT`/`ORDER BY`. Feed URLs are hardcoded constants (no SSRF surface).
 - [x] **`server/routers/discovery.ts`:** rate-limited + spend-budgeted (skipped for user-funded BYO-LLM), query bounded to `MAX_DISCOVERY_QUERY`, LLM output field-bounded, retailer URLs validated (`^https?://`), retailer array capped at 4, and a rejected BYO key mapped to a non-auth status the client shows as "check your API key".
 - [x] No code change; tree unchanged from Phase 757 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 759: Server notification digest/evaluate audit (clean)
+
+- [x] **`server/notifications/digest.ts`:** `digestId` hashes the scope to fit the `varchar(128)` id while the readable `dedupKey` fits `varchar(255)`; the digest day bucket uses the client's UTC offset; `shouldHoldScope` requires *every* bound config to opt in (an old client without quiet hours isn't delayed).
+- [x] **`server/notifications/evaluate.ts`:** paged device rows (bounded tick), one memoized price lookup per tick, and `isEventBlocking` bounds the delivery-grace wait so a stale binding can't suppress a condition forever.
+- [x] No code change; tree unchanged from Phase 758 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
