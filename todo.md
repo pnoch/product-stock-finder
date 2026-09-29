@@ -6360,3 +6360,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`image-size` high:** the patched version (2.0.3) is a major jump that breaks Metro's web bundling (Phase 834), so it awaits a coordinated Expo upgrade. It is a build-time image-dimension reader, not a runtime request path.
 - [x] Upgrading vitest to 4.x would require vite ^6/^7/^8 and a major test-config migration for zero reachable risk; deferred deliberately.
 - [x] Verified both vitest runners still pass with the current overrides; root `tsc 0`, lint 0 errors / 157 warnings, **2670 passed**; desktop `tsc 0`, **289 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 836: AGENTS.md drift fixed + guarded
+
+- [x] **Gap found:** AGENTS.md (the entry point for every agent) had stale counts: "25 global electronics distributors" (actually **30**), "25 entries" in the distributors.ts description (30), and "~277 test files / ~1734 tests" (actually **~376 / ~2670**).
+- [x] **Fix:** corrected the distributor, parser, and test counts. Added `tests/agents-doc-drift.test.ts` pinning the distributor count (30), parser count (25), schema table count (20), and a 5%-tolerance test-file count. Proven non-vacuous: reverting a count fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2673 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.

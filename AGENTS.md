@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository. Read this before touch
 
 ## Project Overview
 
-**Product Stock Finder** (formerly "Stock Tracker Pro") is an Expo/React Native mobile + web app for tracking product availability and prices across 25 global electronics distributors (25 registered parsers — health dashboard/classifyFetchStatus shows live status; MikroTik/Ubiquiti focus). Users maintain a watchlist, set price alerts, schedule back-order reminders, watch for restocks, and compare price history across distributors.
+**Product Stock Finder** (formerly "Stock Tracker Pro") is an Expo/React Native mobile + web app for tracking product availability and prices across 30 global electronics distributors (25 have registered parsers — health dashboard/classifyFetchStatus shows live status; MikroTik/Ubiquiti focus). Users maintain a watchlist, set price alerts, schedule back-order reminders, watch for restocks, and compare price history across distributors.
 
 - **App name in UI:** "Product Stock Finder" (see git log — was renamed from "Stock Tracker Pro"; do not revert)
 - **Bundle ID:** `com.app.stocktrackerpro`
@@ -75,7 +75,7 @@ lib/                   App logic
                        browser.ts = node Playwright escalation; browser.web.ts = web stub with the
                        same export surface (keeps playwright out of the web bundle — guarded by
                        tests/scrapers/browser-web.test.ts)
-  distributors.ts      Static distributor database (25 entries — 25 live parsers; health UI shows live status via classifyFetchStatus)
+  distributors.ts      Static distributor database (30 entries — 25 live parsers; health UI shows live status via classifyFetchStatus)
   catalog.ts           Pre-loaded product catalog
   sample-data.ts       Seeded 10-point 90-day price history per distributor (CRS804, CRS326)
   currency.ts          Static exchange rates, convertPrice, formatPrice, getBestPrice
@@ -129,7 +129,7 @@ desktop/              Tauri desktop app (Vite + React 19 + Tailwind 4) — versi
                       lockstep with root package.json; `desktop/src/` mirrors mobile
                       surfaces (Watchlist, Settings, Rates), `desktop/tests/` vitest suite
 shared/               Cross-platform types/consts; shared/_core/ — don't modify
-tests/                vitest (~277 files: ~246 root + 31 scrapers, ~1734 tests, incl. per-scraper tests under tests/scrapers/)
+tests/                vitest (~376 files: ~344 root + 32 scrapers, ~2670 tests, incl. per-scraper tests under tests/scrapers/)
 docs/superpowers/     Design specs (specs/) + implementation plans (plans/)
 scripts/              load-env.js, generate_qr.mjs, reset-project.js
 references/           periodic-updates.md (reference docs)
@@ -177,7 +177,7 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 - **No comments** unless explaining non-obvious logic. Existing code uses `// ─── Section ───` banners in storage/notifications — match that style for section dividers.
 - **Client/server payload caps:** Any server-side `.max()`/limit on a payload the client sends must live in `shared/const.ts` (e.g. `MAX_UPLOAD_ALERTS`, `SYNC_PUSH_MAX_ITEMS`) and the client must trim/batch to it before sending. A server cap the client doesn't respect rejects the whole payload, silently disabling the feature (see Phases 211/213).
 - **Commit style:** Checkpoint commits follow `Checkpoint: vX.Y: <features>. TypeScript: 0 errors.` — match this when committing.
-- **Tests:** vitest. ~277 test files under `tests/` (~246 root + 31 scrapers, ~1734 tests). DB-backed tests are gated on `RUN_DB_TESTS` + `TEST_DATABASE_URL`. Add new tests mirroring existing `*.test.ts`.
+- **Tests:** vitest. ~376 test files under `tests/` (~344 root + 32 scrapers, ~2670 tests). DB-backed tests are gated on `RUN_DB_TESTS` + `TEST_DATABASE_URL`. Add new tests mirroring existing `*.test.ts`.
 
 ## Brand / Theme (theme.config.js)
 
