@@ -6012,3 +6012,13 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `server/prices.ts` `catalogWarmAttempts`/`imageGenerationAttempts`: bounded by the fixed catalog size.
   - `lib/scrapers/resilient.ts` `inFlight`/`breakerQueues`: deleted on settle.
 - [x] No code change; tree unchanged from Phase 790 (`tsc 0`, lint 0 errors / 157 warnings, `2652 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 792: Async-UI-state race audit (clean)
+
+- [x] Reviewed the async `useEffect` loads across `app/` and `components/`. The screens use the right guards:
+  - `app/(tabs)/rates.tsx`: generation counter (`loadGenRef`).
+  - `app/product/[id].tsx`, `app/health/[id].tsx`, `app/w/[token].tsx`, `app/search.tsx`: cancellation signal / `active` flag.
+  - `app/(tabs)/settings.tsx`: `cancelled` flag.
+  - `app/compare/[id].tsx`: `selectionInitialized`/`lastAppliedDistributor` refs + latching.
+  - `app/health.tsx`: `isMountedRef` for the interactive path; the one-shot mount load is benign (runs once, ref starts true).
+- [x] No code change; tree unchanged from Phase 791 (`tsc 0`, lint 0 errors / 157 warnings, `2652 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
