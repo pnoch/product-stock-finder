@@ -5703,3 +5703,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `server/db.ts` token `expiresAt <= now` compares epoch numbers.
   - `server/price-history.ts` / `server/sync-db.ts` use SQL `fetchedAt`/`updatedAtMs` integer columns.
 - [x] No code change; tree unchanged from Phase 744 (`tsc 0`, lint 0 errors / 157 warnings, `2642 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 746: Web-notifications/push audit (clean)
+
+- [x] **`lib/web-notifications.ts`:** guards secure-context/Notification support, returns whether a notification was actually shown (so callers don't consume state on a no-op), dedups pushes via the SW `web-push-shown` message, and polls only when authenticated + enabled.
+- [x] **`lib/web-push.ts`:** `urlBase64ToUint8Array` correctly decodes a 65-byte P-256 VAPID key (verified); subscribe/unsubscribe are best-effort with the server token pruned on sign-out.
+- [x] **`lib/push-token.ts`:** web/non-device/project-id guards, 4s timeout, and `unregisterPushToken` prunes both the web subscription and the server token on sign-out.
+- [x] No code change; tree unchanged from Phase 745 (`tsc 0`, lint 0 errors / 157 warnings, `2642 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
