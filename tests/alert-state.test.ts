@@ -36,6 +36,14 @@ describe("isAlertActive", () => {
     expect(isAlertActive(alert({ snoozedUntil: "2026-09-20T00:00:00.000Z" }), NOW)).toBe(true);
   });
 
+  it("treats a snooze expiring exactly now as elapsed", () => {
+    // The guard is `until > now`, so at exactly `now` the alert is active
+    // again (a `>=` would keep it snoozed one instant too long).
+    expect(
+      isAlertActive(alert({ snoozedUntil: "2026-09-23T12:00:00.000Z" }), NOW),
+    ).toBe(true);
+  });
+
   it("counts only active alerts", () => {
     const alerts = [
       alert({ id: "active" }),

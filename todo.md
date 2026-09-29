@@ -6175,3 +6175,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `components/search/product-image.tsx`: the concurrency-limited image queue releases its slot even when the component unmounts before the idle callback fires (`run` checks `active` and calls `dequeueImageFetchOnComplete`); a queued-but-unstarted task is spliced out.
 - [x] Debounce timers (`llm-settings-section`, tag sheets, `toast`, `use-live-prices`) clear in their effect cleanup; `undoTimer` is cleared on each new undo.
 - [x] No code change; tree unchanged from Phase 811 (`tsc 0`, lint 0 errors / 157 warnings, `2660 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 813: Mutation pass — snooze boundary gap
+
+- [x] An eighth mutation batch found `lib/alert-state.ts`'s snooze guard (`until > now` → `>= now`) survived: no test used a `snoozedUntil` exactly equal to `now`. Added that case; the mutation now fails.
+- [x] Confirmed `server/db-errors.ts` (dup-entry code), `server/store-keys.ts` (case fold), `server/rate-limit.ts` (`>= limit`), `lib/price-freshness.ts` (`< TTL`), and the history cap are all killed — well-tested.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2661 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
