@@ -6327,3 +6327,14 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Fix:** added `.env.*` with `!.env.example` (so the template stays committable). Added `tests/gitignore-secrets.test.ts` (4 cases: per-env files ignored, signing material ignored, `.env.example` allowed, no tracked `.env`). Proven non-vacuous: reverting fails the guard.
 - [x] Also confirmed no committed secrets: the only `AIza…` hits are distributors' own public Google Maps keys inside scraped HTML fixtures, not referenced by our code.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2670 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 832: Dependency security audit — production-reachable advisories fixed
+
+- [x] `pnpm audit` reported **133 vulnerabilities (4 critical, 80 high)** — the `dependency-analyzer` tool's "0 vulnerable" was wrong. Most are build/dev-time transitive deps (Expo CLI, metro, vitest, eslint), but several were **production-reachable**.
+- [x] **Fixed production-reachable advisories:**
+  - `undici` 7.29.0 → 7.30.0 (direct dep; used by the server's DNS-rebinding pin).
+  - `path-to-regexp` 0.1.12 → 0.1.13 (via express) — ReDoS.
+  - `@trpc/server` 11.7.2 → 11.19.0 (root + desktop) — prototype pollution.
+  - pnpm overrides: `undici@>=7 <7.29.1` → 7.30.0, `undici@>=6 <6.28.1` → 6.28.1 (Expo CLI's bundled copy), `path-to-regexp@<0.1.13` → 0.1.13.
+- [x] **Production-reachable advisories remaining: 0.** The remaining 108 are build/dev-only (Expo CLI/metro/vitest/eslint trees) and are left to their own release cadence.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2670 passed**; desktop `tsc 0`, **289 passed**; `pnpm build` (server + web) succeeds; `cargo test` 71, clippy 0, fmt clean.
