@@ -5594,3 +5594,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/price-digest.ts`:** honours the master `notificationsEnabled` toggle and quiet hours; the weekly branch compares calendar days (DST-safe) and gates on `digestDayOfWeek`; an invalid `lastDigestAt` skips the interval check but still respects the weekly day gate; the snapshot is not advanced when delivery fails.
 - [x] **`computeDigest`:** detects a display-currency change (legacy snapshots without the stamp are trusted), and guards a zero/sub-cent baseline.
 - [x] No code change; tree unchanged from Phase 728 (`tsc 0`, lint 0 errors / 157 warnings, `2635 passed`; DB 8/30; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 730: Notification dedup audit (clean)
+
+- [x] **Client (`lib/storage/notifications.ts`):** `recordDisplayedEventId` and `recordNotificationEvent` are id-checked and bounded at 200, so the launch pull skips already-seen events without unbounded growth.
+- [x] **Client (`lib/notifications.ts` `setupPushEventTracking`):** guards web, records eventIds from received/tapped/last-response listeners, and documents the accepted best-effort gap (background pushes never tapped) with the pull as the correctness guarantee.
+- [x] **Server (`server/notifications/build-events.ts`):** `clampDedupKey` keeps keys within `varchar(255)` (an over-long key would throw "Data too long" and abort the whole warmer tick); health keys bucket on **server** time (not the attacker-controlled `createdAt`) and separate `alert`/`recovery`; `dedupKeyFor` prefers the builder-assigned key so a digest isn't re-pushed on re-entering quiet hours.
+- [x] No code change; tree unchanged from Phase 729 (`tsc 0`, lint 0 errors / 157 warnings, `2635 passed`; DB 8/30; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
