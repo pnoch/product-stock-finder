@@ -6044,3 +6044,13 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `discovered-<ts>` / `retailer-<ts>-<i>`: now canonicalized by `addDiscoveredProduct` (Phase 793).
   - Quarantine keys (`<key>.corrupt-<ts>`): intentionally unique per quarantine.
 - [x] No code change; tree unchanged from Phase 794 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 796: Unit/precision-mismatch audit (clean)
+
+- [x] Reviewed time conversions (`ms`/`s`/`min`/`hour`/`day`), percent-vs-fraction, and currency minor units:
+  - `formatRelativeTime`/`formatLastSeen`/`formatLastRefreshed`/`formatSyncStatus`: consistent `Math.floor(diff / 60000)` → minutes → hours → days.
+  - Tax rates are **fractions** (`0.1` = 10%) everywhere: `getTaxRate`, `findBestDeal` (`price * taxRate`), `analyzeDistributors`, and both listing cards. All 25 parsers use the shared `getTaxRate`.
+  - `parsePriceFromText` handles both separator styles and rejects malformed runs (fails closed, matching Rust).
+  - `computePriceChange`/`computeDigest`/`computeMovers` all use `(new - old) / old * 100` with a zero-baseline guard.
+- [x] Desktop reads `taxRate` from the server snapshot (`{ ...result }` spreads the parser's value); the Rust parsers don't emit one, but desktop uses server prices, so no parity gap.
+- [x] No code change; tree unchanged from Phase 795 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
