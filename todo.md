@@ -6495,3 +6495,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Persist:** serialized `updateSettings` (a whole-object save raced the sort/group persist).
 - [x] **Undo:** captures the full removal cascade (alerts, reminders, watches), restores all of them, and re-schedules the reminder notification (a restored dead id would never fire).
 - [x] No code change; tree unchanged from Phase 852 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 854: Alerts data hook audit (clean)
+
+- [x] **`loadData`:** generation guard (a stale read can't overwrite a newer one), `Promise.all` of all six reads, explicit `loadError` state, `loading` cleared only for the current generation.
+- [x] **Refresh triggers:** focus effect + `subscribeToStorageChanges` (a price check firing or a server notification reconciling refreshes the visible list, not just the badge).
+- [x] **`handleReschedule`:** rejects a past date; double-tap guard; schedules the new notification **before** cancelling the old (a scheduling failure leaves the user with a reminder); keeps the old notification id when the new schedule failed (so the still-scheduled one stays cancellable); storage-write failure shows an error instead of leaving the modal stuck.
+- [x] **`handleRearmAlert` / deletes:** try/catch with a user-facing error and a reload.
+- [x] No code change; tree unchanged from Phase 853 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
