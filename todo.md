@@ -5756,3 +5756,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/watchlist-stats.ts`:** `computeMovers` parses dates, filters to in-stock history, skips unrated-currency points, and uses a deterministic tie-break; `computeBasketValue`/`computeStockHealth`/`computeDataFreshness` are guarded.
 - [x] **`lib/live-prices.ts`:** a stale server snapshot merges history but never overwrites the presented price; `deriveConnectionStatus` is a clean precedence chain.
 - [x] No code change; tree unchanged from Phase 752 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 754: Alerts/reminders storage audit (clean)
+
+- [x] **`lib/storage/alerts.ts`:** every mutation is an enqueued read-modify-write; `deactivateAlert` is a compare-and-set (only the first runner transitions) with a stale-event guard (`eventAt < createdAt`); `rearmAlert`/`updateAlert` re-stamp `createdAt` so a stale server event can't immediately re-deactivate.
+- [x] **`lib/storage/reminders.ts`:** dedups by `(productId, distributorId)` as well as id and returns the replaced `notificationId` so the caller can cancel the orphaned schedule.
+- [x] No code change; tree unchanged from Phase 753 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
