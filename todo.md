@@ -5660,3 +5660,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** the server's `setCachedPrice` rejects a price `> 1e7` as implausible (a misparsed barcode/SKU/shipping figure), but the **client device-scrape paths** (`refreshListing`, `scrapePriceOnDevice`) stored any positive finite price. A page whose price element held a 13-digit barcode (`4006381333931`) would show a bogus price and could fire a spurious price-rise alert.
 - [x] **Fix:** added `MAX_PLAUSIBLE_PRICE` + `isPlausiblePrice` to `shared/const.ts`, applied it in both device paths, and refactored `server/price-cache.ts` to use the shared helper (one source of truth). Added non-vacuous guards to `tests/refresh-listing.test.ts` and `tests/price-source.test.ts`.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2639 passed**; DB suite **8 files / 30 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 740: Backup listing merge compared lastChecked as strings
+
+- [x] **Gap found:** `lib/backup.ts`'s `mergeProductListings` kept the newer listing with `(listing.lastChecked ?? "") >= (fromBackup.lastChecked ?? "")` — a string compare. `"…T00:00:00Z" >= "…T00:00:00.500Z"` lexically but is chronologically earlier, so a mixed-format backup kept the older listing. The Rust `merge_listings` already parses via `listing_last_checked_ms`, so this was also a parity gap.
+- [x] **Fix:** compare `Date.parse(...)`. Added a mixed-format case to `tests/backup.test.ts`. Proven non-vacuous: reverting fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2640 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.

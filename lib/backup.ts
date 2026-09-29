@@ -181,9 +181,13 @@ function mergeProductListings(local: Product, incoming: Product): Product {
   for (const listing of local.listings ?? []) {
     const fromBackup = byId.get(listing.distributorId);
     // Keep whichever check is newer; a listing only the device has is kept too.
+    // Compare parsed times, not strings: `"…:00Z" >= "…:00.500Z"` lexically but
+    // is chronologically earlier, so a mixed-format backup kept the older
+    // listing. Mirrors the Rust `listing_last_checked_ms`.
     if (
       !fromBackup ||
-      (listing.lastChecked ?? "") >= (fromBackup.lastChecked ?? "")
+      Date.parse(listing.lastChecked ?? "") >=
+        Date.parse(fromBackup.lastChecked ?? "")
     ) {
       byId.set(listing.distributorId, listing);
     }

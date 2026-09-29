@@ -179,6 +179,38 @@ describe("applyBackup watchlist listing merge", () => {
     expect(merged.listings[0]!.lastChecked).toBe("2026-08-26T00:00:00.000Z");
   });
 
+  it("compares lastChecked by parsed time across ISO formats", () => {
+    // `"…T00:00:00Z" >= "…T00:00:00.500Z"` lexically, but the .500Z listing is
+    // chronologically newer, so the string comparison kept the older local one.
+    const local = product("p1");
+    local.listings = [listing("d1", 100, "2026-08-26T00:00:00Z")];
+    const backupProduct = product("p1");
+    backupProduct.listings = [
+      listing("d1", 200, "2026-08-26T00:00:00.500Z"),
+    ];
+
+    const result = applyBackup(
+      {
+        version: 1,
+        exportedAt: NOW,
+        watchlist: [backupProduct],
+        alerts: [],
+        reminders: [],
+        stockWatches: [],
+      } as never,
+      {
+        watchlist: [local],
+        alerts: [],
+        reminders: [],
+        stockWatches: [],
+        settings: undefined,
+      } as never,
+    );
+
+    const merged = result.watchlist.find((p) => p.id === "p1")!;
+    expect(merged.listings[0]!.price).toBe(200);
+  });
+
   it("takes the backup's newer price and keeps a device-only listing", () => {
     const local = product("p1");
     local.listings = [listing("d-only", 100, "2026-08-20T00:00:00.000Z")];
