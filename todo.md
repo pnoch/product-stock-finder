@@ -6089,3 +6089,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Poller:** zero-interval guard, generation counter, single-flight `PRICE_CHECK_LOCK`, semaphore-bounded (3) scrapes, server-first with local fallback, stale-snapshot rejection.
 - [x] **`spawn_and_reap`:** reaps opener children on a detached thread (no zombies).
 - [x] No code change; tree unchanged from Phase 799 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 801: Rust price-check/tray audit (clean)
+
+- [x] **`check_price_drops_inner`:** gates on `notificationsEnabled` + `priceAlerts` (quiet hours deliberately do NOT gate price alerts, matching mobile); parses timestamps rather than string-comparing; scopes per-distributor alerts; only in-stock listings anchor; converts with the live overlay; boundary semantics match mobile exactly (`>=` rise, `<=` drop).
+- [x] **`update_tray_badge`:** excludes snoozed alerts, excludes `back_in_stock` from the reminder count (they live in their own file and are counted separately), matching the in-app badge.
+- [x] No code change; tree unchanged from Phase 800 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
