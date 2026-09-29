@@ -104,6 +104,21 @@ describe("price history (memory backend)", () => {
     });
   });
 
+  it("mergeHistory picks the newer same-day point across ISO formats", async () => {
+    // The schema accepts both `…:00Z` and `…:00.500Z`; the former sorts
+    // lexically greater though it is chronologically earlier, so string
+    // comparison kept the older point in the memory fallback.
+    await mergeHistory("server2u-my", "CRS804", [
+      point({ date: "2026-08-01T00:00:00Z", price: 100 }),
+    ]);
+    await mergeHistory("server2u-my", "CRS804", [
+      point({ date: "2026-08-01T00:00:00.500Z", price: 200 }),
+    ]);
+    const history = await getHistory("server2u-my", "CRS804");
+    expect(history).toHaveLength(1);
+    expect(history[0]!.price).toBe(200);
+  });
+
   it("purgeOldHistory removes rows older than 90 days", async () => {
     const now = Date.parse("2026-08-12T00:00:00Z");
     await recordHistoryPoint(

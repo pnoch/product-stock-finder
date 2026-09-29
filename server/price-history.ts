@@ -63,7 +63,11 @@ export async function mergeHistory(
     for (const p of existing) byDay.set(dayOf(p.date), p);
     for (const p of points) {
       const current = byDay.get(dayOf(p.date));
-      if (!current || p.date > current.date) {
+      // Parsed-time comparison: the schema accepts both `…:00Z` and `…:00.500Z`,
+      // and the former sorts lexically greater though it is chronologically
+      // earlier — string comparison kept the older point. The DB path already
+      // compares the numeric `fetchedAt`.
+      if (!current || Date.parse(p.date) > Date.parse(current.date)) {
         // Match DECIMAL(12,4): the DB rounds on write, so memory must too.
         byDay.set(dayOf(p.date), { ...p, price: storagePrice(p.price) });
       }

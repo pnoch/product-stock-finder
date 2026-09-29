@@ -5557,3 +5557,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `appendPricePoint` and `mergePriceHistory` chose the newer same-day point with `p.date > existing.date` (string compare). `"…T00:00:00Z" > "…T00:00:00.500Z"` lexically, but the `.500Z` point is chronologically later — so a mixed-format history (a hand-edited backup, a legacy export, or a server row) kept the **older** point. Internal writers all use `toISOString()`, but the Rust import validates structure without normalizing `priceHistory` dates, so the invariant wasn't enforced.
 - [x] **Fix:** compare `Date.parse(...)` in both functions. Added a `same-day point selection across ISO formats` case to `tests/price-history-order.test.ts` (both directions, both functions). Proven non-vacuous: reverting to string comparison fails 2 cases.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2634 passed**; desktop `285`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 725: Same string-date bug in the server memory history path
+
+- [x] **Gap found:** `server/price-history.ts`'s `mergeHistory` memory fallback used `p.date > current.date` (string compare) — the same bug as Phase 724. The `uploadHistory` zod schema accepts both `…:00Z` and `…:00.500Z`, so a mixed-format payload kept the older same-day point. The DB path already compares the numeric `fetchedAt`; only the memory fallback (no `DATABASE_URL`) was wrong.
+- [x] **Fix:** compare `Date.parse(...)`. Added a case to `tests/server-price-history.test.ts`. Proven non-vacuous: reverting fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2635 passed**; DB suite **8 files / 30 passed**; desktop `285`; `cargo test` 71, clippy 0, fmt clean.
