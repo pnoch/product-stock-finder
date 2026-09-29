@@ -6034,3 +6034,13 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Investigated whether the CSV import path has the same duplicate bug as Phase 793: `detailedCsvToProducts`/`parseWatchlistCsv` build `id: r.model` (raw, e.g. `CRS326-24G-2S+RM`) while the catalog uses `mikrotik-<slug>`, so importing an already-tracked catalog product *would* create a duplicate.
 - [x] **Not reachable:** `parseWatchlistCsv`/`detailedCsvToProducts` are used only by tests — the live import path is the JSON backup (`parseBackup` + `applyBackup`, which merges by id and preserves the existing product) and the bulk import (`parseBulkImportCsv` → catalog lookup by `modelNumber`). No production caller builds a watchlist product from CSV.
 - [x] No code change; tree unchanged from Phase 793 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 795: Time-based-id collision/dedup audit (clean)
+
+- [x] Reviewed every `Date.now()`-derived id. All are either collision-safe or dedup by a stable key:
+  - `newEventId` (server) / `generateTagId` / `generateId` (device): prefer `crypto.randomUUID()`, with a random-suffixed fallback.
+  - `local-price-<alertId>-<ts>` / `local-restock-<watchId>-<ts>`: unique per fire; `recordNotificationEvent` dedups by id and caps at 200.
+  - Health events: the client id is unique per fire, but the server dedups by its own bucketed `health:<dist>:<status>:<kind>:<bucket>` key; the alert/recovery edge detection fires once per transition.
+  - `discovered-<ts>` / `retailer-<ts>-<i>`: now canonicalized by `addDiscoveredProduct` (Phase 793).
+  - Quarantine keys (`<key>.corrupt-<ts>`): intentionally unique per quarantine.
+- [x] No code change; tree unchanged from Phase 794 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
