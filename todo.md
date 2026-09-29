@@ -6080,3 +6080,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Seeding:** `seedWatchlistProducts` runs once on mount with a catch.
 - [x] **Background timers:** `setBackgroundAppState` wired to Android `AppState` (the timer-freeze workaround).
 - [x] No code change; tree unchanged from Phase 798 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 800: Rust backend command-surface audit (clean)
+
+- [x] **`set_value_for_key`:** allowlists the key (an absolute/`../` key would escape the data dir); `open_external`/`open_system_browser` restrict the scheme (http/https/mailto) and use arg-array spawning (no shell injection; Windows quoting for `cmd`).
+- [x] **`start_oauth`:** loopback listener that ignores stray connections, bounds the read (5s) and the whole flow (120s), accepts only `/callback` with a single-use server ticket (never a raw session token).
+- [x] **`import_watchlist`:** 10MB cap, version + schema validation, strips the device-local LLM key, atomic stage-all-then-rename write.
+- [x] **Poller:** zero-interval guard, generation counter, single-flight `PRICE_CHECK_LOCK`, semaphore-bounded (3) scrapes, server-first with local fallback, stale-snapshot rejection.
+- [x] **`spawn_and_reap`:** reaps opener children on a detached thread (no zombies).
+- [x] No code change; tree unchanged from Phase 799 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
