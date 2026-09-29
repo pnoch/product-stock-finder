@@ -5963,3 +5963,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** the fourth instance of the ordering bug. `refreshListing`'s best-effort history upload trims `localHistory.slice(-MAX_UPLOAD_HISTORY_POINTS)` assuming ascending order — a descending history (from a backup/restore) uploaded the **oldest** 200 points. `uploadServerHistory` does not sanitize, so the trim is what the server receives.
 - [x] **Fix:** sort by parsed time before trimming. Added a non-vacuous guard to `tests/refresh-listing.test.ts`. Proven non-vacuous: reverting fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2651 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 786: Health history read unsorted
+
+- [x] **Gap found:** `getHealthHistory` returned stored samples in stored order, but `detectHealthAlert`/`detectHealthRecovery` and the timeline read positionally (`slice(-threshold)`, `samples[length-1]`). `recordSample` sorts on write, so this is only reachable via a hand-edited/legacy payload — but the read boundary is the right place to enforce it.
+- [x] **Fix:** sort each distributor's samples by parsed time on read. Added a non-vacuous guard to `tests/price-check.test.ts`. Proven non-vacuous: reverting fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2652 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.

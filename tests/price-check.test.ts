@@ -388,6 +388,30 @@ describe("createHealthCollector", () => {
     await collector.flush();
     expect(await service.getHealthHistory()).toEqual({});
   });
+
+  it("sorts samples by time on read", async () => {
+    // The alert/recovery detectors read positionally (`slice(-threshold)`), so
+    // an unsorted store (a hand-edited/legacy payload) would misread the newest
+    // samples.
+    const { adapter, store } = makeAdapter();
+    store.set(
+      "distributor_health_history",
+      JSON.stringify({
+        d1: [
+          { status: "blocked", at: "2026-01-03T00:00:00.000Z" },
+          { status: "working", at: "2026-01-01T00:00:00.000Z" },
+          { status: "blocked", at: "2026-01-02T00:00:00.000Z" },
+        ],
+      }),
+    );
+    const service = createHealthService(adapter);
+    const history = await service.getHealthHistory();
+    expect(history["d1"]!.map((s) => s.at)).toEqual([
+      "2026-01-01T00:00:00.000Z",
+      "2026-01-02T00:00:00.000Z",
+      "2026-01-03T00:00:00.000Z",
+    ]);
+  });
 });
 
 describe("registerHealthProbeTask", () => {

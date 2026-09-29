@@ -339,7 +339,13 @@ export function createHealthService(adapter: StorageAdapter): HealthService {
       const history: HealthHistory = {};
       for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
         if (Array.isArray(value)) {
-          history[key] = value as HealthSample[];
+          // Sort by parsed time: `detectHealthAlert`/`detectHealthRecovery` and
+          // the timeline read positionally (`slice(-threshold)`), so an
+          // unsorted store (a hand-edited/legacy payload) would misread the
+          // newest samples.
+          history[key] = [...(value as HealthSample[])].sort(
+            (a, b) => new Date(a.at).getTime() - new Date(b.at).getTime(),
+          );
         }
       }
       return history;
