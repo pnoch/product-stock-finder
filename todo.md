@@ -6102,3 +6102,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] The 13 files whose only assertions are `toHaveBeenCalled*` are legitimate — `toHaveBeenCalledWith` verifies the exact arguments (e.g. `product-parse-ssrf.test.ts` asserts the SSRF guard returns null **and** that `fetch` was never called).
 - [x] All `describe.skipIf` skips are DB-gated (`runDbTests`), not silently disabled.
 - [x] No code change; tree unchanged from Phase 801 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 803: Schema/constraint audit (clean)
+
+- [x] **Composite PKs** on the sync tables (`userId`+`productId`/`alertId`/`reminderId`) and `price_cache`/`price_history`; targeted indexes with rationale comments (`idx_price_cache_fetched`, `idx_price_history_date`, `idx_*_user_updated`/`_deleted`).
+- [x] **`notification_events`:** `id` PK + two unique dedup indexes (`user`+`dedupKey`, `device`+`dedupKey`); the insert path also dedups in-batch (`seen` set) and catches `isDuplicateKeyError`, so a NULL `userId`/`deviceId` (which MySQL treats as distinct) can't cause a duplicate.
+- [x] **`price_history`:** `date` (varchar(10)) is part of the PK and separately indexed for the purge `DELETE ... WHERE date < ?`.
+- [x] All FKs cascade on user delete.
+- [x] No code change; tree unchanged from Phase 802 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
