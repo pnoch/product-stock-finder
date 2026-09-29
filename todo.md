@@ -5471,3 +5471,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** CI ran `check:desktop` (tsc) and desktop vitest, but never `pnpm build:desktop` (the Vite production build). That is exactly the class of the Phase-634 `__DEV__` `define` boot crash — it compiles and unit-tests clean, then crashes the built app. Nothing in CI would have caught it.
 - [x] **Fix:** added `pnpm build:desktop` to the `check` job, and a new `tests/ci-workflow.test.ts` guard asserting the workflow keeps the build/test/smoke steps, the Rust job, and that `playwright install` precedes `smoke:web`. Proven non-vacuous: deleting the `build:desktop` step fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2619 passed**; desktop `tsc 0`, **285 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 712: PWA manifest icon 404
+
+- [x] **Gap found:** `public/manifest.json` declares a 512×512 `/icon.png`, but no such file existed in `public/` (only `manifest.json` + `sw.js`). `expo export` copies `public/` verbatim, so `dist-web/icon.png` 404'd and the PWA installed with no icon. The existing `tests/pwa-precache.test.ts` only asserted the manifest *mentions* `icon.png`, never that the file exists.
+- [x] **Fix:** generated `public/icon.png` (512×512, scaled from `assets/images/icon.png`), and strengthened the guard to assert every declared manifest icon exists in `public/` **and** its PNG dimensions match the declared `sizes`. Proven non-vacuous: removing `public/icon.png` fails the guard.
+- [x] Verified the icon now lands in `dist-web/` at 512×512. Root `tsc 0`, lint 0 errors / 157 warnings, **2620 passed**; desktop `285`; `cargo test` 71, clippy 0, fmt clean.

@@ -17,6 +17,27 @@ describe("PWA precache", () => {
     expect(iconSrcs.some((s: string) => s.includes("icon.png"))).toBe(true);
   });
 
+  it("every declared manifest icon is actually shipped in public/", () => {
+    // `expo export` copies public/ verbatim, so a manifest icon with no
+    // matching file 404s and the PWA installs with no icon.
+    const json = JSON.parse(
+      fs.readFileSync(path.resolve("public/manifest.json"), "utf-8"),
+    );
+    for (const icon of json.icons as { src: string; sizes?: string }[]) {
+      const file = path.resolve("public", icon.src.replace(/^\//, ""));
+      expect(fs.existsSync(file), `missing manifest icon: ${icon.src}`).toBe(
+        true,
+      );
+      if (icon.sizes) {
+        const [w, h] = icon.sizes.split("x").map(Number);
+        const buf = fs.readFileSync(file);
+        // PNG IHDR width/height are big-endian at offsets 16/20.
+        expect(buf.readUInt32BE(16), `${icon.src} width`).toBe(w);
+        expect(buf.readUInt32BE(20), `${icon.src} height`).toBe(h);
+      }
+    }
+  });
+
   it("public/sw.js contains precache logic beyond push", () => {
     const p = path.resolve("public/sw.js");
     const content = fs.readFileSync(p, "utf-8");
