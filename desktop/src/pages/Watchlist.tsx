@@ -62,14 +62,19 @@ const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
 
 
 
-function getTrend(product: Product): "up" | "down" | "flat" {
+export function getTrend(product: Product): "up" | "down" | "flat" {
   const listings = (product.listings ?? []).filter((l) => (l.priceHistory ?? []).length >= 2);
   if (!listings.length) return "flat";
 
   let totalPct = 0;
   let count = 0;
   for (const listing of listings) {
-    const history = listing.priceHistory ?? [];
+    // Sort by parsed time: the trend reads positionally (newest last), and a
+    // history restored from a backup or a server pull is not guaranteed
+    // ascending — an unsorted history reported "up" for a dropping price.
+    const history = [...(listing.priceHistory ?? [])].sort(
+      (a, b) => Date.parse(a.date) - Date.parse(b.date),
+    );
     const recent = history[history.length - 1].price;
     const older = history[Math.max(0, history.length - 3)].price;
     if (!Number.isFinite(recent) || !Number.isFinite(older) || older <= 0) continue;

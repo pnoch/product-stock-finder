@@ -5969,3 +5969,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `getHealthHistory` returned stored samples in stored order, but `detectHealthAlert`/`detectHealthRecovery` and the timeline read positionally (`slice(-threshold)`, `samples[length-1]`). `recordSample` sorts on write, so this is only reachable via a hand-edited/legacy payload — but the read boundary is the right place to enforce it.
 - [x] **Fix:** sort each distributor's samples by parsed time on read. Added a non-vacuous guard to `tests/price-check.test.ts`. Proven non-vacuous: reverting fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2652 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 787: Desktop watchlist trend read history positionally
+
+- [x] **Gap found:** `desktop/src/pages/Watchlist.tsx`'s `getTrend` read `history[history.length - 1]` (newest) and `history[length - 3]` (older) positionally without sorting. A history restored from a backup or a server pull can be newest-first, so a **dropping** price was reported as **"up"** (verified: `[50, 75, 100]` descending → "up" instead of "down"). Mobile has no equivalent function, so this was desktop-only.
+- [x] **Fix:** sort by parsed time before reading; exported `getTrend` and added `desktop/tests/watchlist-trend.test.ts` (ascending/descending/reversed all agree). Proven non-vacuous: reverting fails 2 cases.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2652 passed**; desktop `tsc 0`, **289 passed**; `cargo test` 71, clippy 0, fmt clean.
