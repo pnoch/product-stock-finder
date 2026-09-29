@@ -6471,3 +6471,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`deactivate_alerts_by_id`:** re-reads the file immediately before writing (a minutes-long check must not revert a concurrent add/snooze/delete) and matches by id.
 - [x] **Basket alert:** implemented in the renderer (`desktop/src/App.tsx` → `lib/basket-alert.ts`), matching mobile's semantics (audited in Phase 821).
 - [x] No code change; tree unchanged from Phase 849 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 851: Resilient-fetch audit (clean)
+
+- [x] **`attemptMethod`:** a definitive block is never retried (breaks immediately); a transient browser failure retries; `BrowserUnavailableError` breaks (no point retrying an absent browser).
+- [x] **`resilientFetch`:** single-flight per `(breaker-store, parser, url)` with `.finally` cleanup; a cooldown returns `skipped`; tries the other method after a block (a browser block ≠ a plain block); records success/blocked/error with the correct cooldown (30min block growth, 15min at the failure threshold).
+- [x] **`fetchAndParse`:** resolves a relative `resolveProductUrl` href against the search URL (fetch/Playwright reject relative URLs), falls back to the search page when the second hop fails, and threads the model through `parsePrice`.
+- [x] No code change; tree unchanged from Phase 850 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
