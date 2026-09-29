@@ -5370,3 +5370,14 @@ Reviewed the desktop `lib/` modules that had no direct test.
 - [x] **`device-cleanup.ts` / `push-unregister.ts`:** both race the call against a timeout and clear the timer in a `finally`, returning a safe fallback on failure. Correct.
 - [x] **`notification-permission.ts`:** gates on `Notification.permission`, requests when `default`, and falls through to granted for Tauri. Correct.
 - [x] No code change; tree unchanged from Phase 697 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
+
+## Phase 699: Root layout launch sequence audit (clean)
+
+Reviewed `app/_layout.tsx` (458 lines) — the app's entry point.
+
+- [x] **Launch effect:** the notification-channel chain has a `.catch` so a storage read failure cannot skip task registration, the launch price check, push registration, or the server-notification pull; each async step is individually caught. The missing-listings discovery is bounded per run.
+- [x] **Notification-tap effect:** dedups responses with a 2-second TTL, prunes entries older than 10 s, caps the map at 100, and defers navigation until the root tree is ready (cold start) via `rootNavigationReadyRef`/`pendingRouteRef`.
+- [x] **Sync-retry effect:** debounced (1 s), catches the storage read, and registers/removes the correct listener for web (`focus` + `visibilitychange`) and native (`AppState`).
+- [x] **Sign-in effect:** resets the device-revoked flag and kicks off sync, history backfill, and stale-device cleanup.
+- [x] **FX effect:** both `loadFxRates` and `maybeRefreshFxRates` are caught.
+- [x] No code change; tree unchanged from Phase 698 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
