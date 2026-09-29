@@ -5846,3 +5846,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`use-live-prices.ts`:** generation guards on async loads, debounced persist, refs to avoid stale closures, and a fresh read in `refreshAll` (a product added since the last render isn't missed).
 - [x] **`use-alerts-data.ts`:** generation guard, storage-change subscription, and reschedule schedules the new notification **before** cancelling the old (keeping the old id when scheduling fails so it stays cancellable) with a double-tap guard.
 - [x] No code change; tree unchanged from Phase 765 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 767: use-auth audit (clean)
+
+- [x] **`hooks/use-auth.ts`:** module-level shared snapshot (so every `useAuth()` agrees), device header on every auth request, platform-specific fetch, `logout` retracts the push binding and calls `clearAccountData`, and `changePassword` persists the re-minted session token (credential epoch). `deleteAccount` leaves the local wipe to its caller (`account-section` calls `clearAllData()`), which is correct.
+- [x] No code change; tree unchanged from Phase 766 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
