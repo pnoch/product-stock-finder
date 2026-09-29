@@ -6562,3 +6562,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`scheduleServerEventNotification`:** returns whether a notification was shown (non-fatal on failure).
 - [x] **`setupPushEventTracking`:** records eventIds from received/tapped/last-response listeners, cleans up subscriptions, and documents the accepted background-push gap (pull is the correctness guarantee).
 - [x] No code change; tree unchanged from Phase 861 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 863: Price-check basket/alert audit (clean)
+
+- [x] **Basket alert:** computes the total in the display currency (the sheet says the threshold is in that currency); does **not** `return` on a web-display failure (that would skip the price-alert evaluation below); clears the threshold only after the alert actually fired (permission denied / scheduling throw leaves it set to retry); uses the serialized `updateSettings` patch.
+- [x] **Price alerts:** scoped via `listingsForAlert`; only in-stock, finite, positive listings anchor; converts to the alert currency; re-reads alerts before firing (dedup); **claims the transition with `deactivateAlert` before notifying** (a concurrent runner that already triggered returns false, so no double-notify); re-arms on a post-claim display/scheduling failure.
+- [x] No code change; tree unchanged from Phase 862 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
