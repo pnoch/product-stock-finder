@@ -5452,3 +5452,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Root `tests/setup.ts`** sets `__DEV__ = true` so `shared/src/log.ts`'s guard and any dev-only branch behave as in development.
 - [x] **Desktop `tests/setup.ts`** adds jest-dom matchers, the same `__DEV__` global (with a comment explaining why the vite `define` doesn't reliably reach `../lib/*` under vitest), `matchMedia`, a `ResizeObserver` mock that reports a fixed size (so Recharts' `ResponsiveContainer` renders in jsdom), and the Tauri `__TAURI_INTERNALS__`/`__TAURI_EVENT_PLUGIN_INTERNALS__` stubs so pages calling `invoke()`/`listen()` don't throw.
 - [x] No code change; tree unchanged from Phase 707 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 709: Scaffolding-artifact audit (clean)
+
+- [x] **`template.json`** contains the old app name, `web.output: "static"`, and old dependency versions — but it is *not* live code. `docs/superpowers/specs/2026-08-16-v48-cleanup-design.md` explicitly states: "Do not touch `template.json` (it is the original template snapshot, not live code)." Nothing in the repo references it. Left untouched per that documented decision (verified before acting).
+- [x] **`constants/` (`oauth.ts`, `theme.ts`)** and **`server/_core/types/`** are small re-export/type modules with no drift.
+- [x] **`scripts/`** (`generate-vapid-keys.js`, `load-env.js`, `metro-resolver.js`, `reset-project.js`, `generate_qr.mjs`, `smoke-web.mjs`, `test-db.mjs`) all lint clean and are referenced by `package.json`/CI where expected.
+- [x] No code change; tree unchanged from Phase 708 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
