@@ -6181,3 +6181,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] An eighth mutation batch found `lib/alert-state.ts`'s snooze guard (`until > now` → `>= now`) survived: no test used a `snoozedUntil` exactly equal to `now`. Added that case; the mutation now fails.
 - [x] Confirmed `server/db-errors.ts` (dup-entry code), `server/store-keys.ts` (case fold), `server/rate-limit.ts` (`>= limit`), `lib/price-freshness.ts` (`< TTL`), and the history cap are all killed — well-tested.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2661 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 814: Mutation pass — no new gaps (runtime mutations all killed)
+
+- [x] A ninth batch targeted `lib/price-digest.ts`, `lib/watchlist-stats.ts`, `lib/price-events.ts`, `lib/price-share.ts`, `lib/notification-routing.ts`, `lib/restock.ts`. The runtime mutations (stats pct, event type) were all **killed**.
+- [x] Three apparent survivors were **type-annotation-only** mutations (e.g. `const x: DigestResult["alertTargetsHit"] = ...` → a different key type) — stripped at runtime, so they have no behavioral effect and are not real gaps.
+- [x] No code change; tree unchanged from Phase 813 (`tsc 0`, lint 0 errors / 157 warnings, `2661 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
