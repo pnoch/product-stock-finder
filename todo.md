@@ -6159,3 +6159,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] A seventh mutation batch found `lib/alert-savings.ts`'s `savingAlerts` delta guard (`> 0` → `>= 0`) survived: no test used an alert triggered **exactly** at target (zero saving). Added an `exact` case; the mutation now fails.
 - [x] Confirmed the rise-exclusion and `computeTotalSaved` sign mutations are killed — well-tested.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2660 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 811: Desktop secondary-pages audit (clean)
+
+- [x] **`OAuthCallback.tsx`:** cancellation flag, ticket-only redemption (never a raw token), validates the returned user (`id` finite + `openId` present) before persisting.
+- [x] **`ResetPassword.tsx`:** token presence, both fields, min length, match; guards an unconfigured base URL; a11y (`aria-invalid`/`aria-describedby`/`role="alert"`).
+- [x] **`RestockWatches.tsx`:** per-load error state, named confirm, optimistic removal with a friendly toast on failure.
+- [x] **`HealthDetail.tsx`:** generation guard on the async load.
+- [x] **`Compare.tsx`:** `ResizeObserver` cleanup, hooks run unconditionally (documented), currency-convertible-only cheapest, sorted series.
+- [x] No code change; tree unchanged from Phase 810 (`tsc 0`, lint 0 errors / 157 warnings, `2660 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
