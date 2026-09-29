@@ -6276,3 +6276,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] A thirteenth batch mutated the server notification/sync logic and client sync/restock. Most were killed (digest hold, dedup bucket, evaluate blocking, tombstone window, rate limit, client LWW, dirty cursor, stamp cap, restock condition).
 - [x] One survived: `lib/restock.ts`'s `watch.lastKnownStatus ?? "back_order"` → `?? "in_stock"`. No test covered a legacy watch with `lastKnownStatus` **undefined**; defaulting to `"in_stock"` would silently never fire for pre-existing watches. Added a guard; the mutation now fails.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2666 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 826: Mutation pass — Rust backend (no new gaps)
+
+- [x] Mutated the Rust security guards and merge logic; **all killed:**
+  - `is_allowed_storage_key` / `is_allowed_external_url` (return-true stubs).
+  - `parse_price_from_text` / `classify_fetch_status` (constant-return stubs).
+  - `merge_listings` tie-break (`>` → `>=`), id-less-listing retention, disk-only-listing retention.
+  - `deactivate_alerts_by_id` (renamed → compile/test failure).
+- [x] No code change; tree unchanged from Phase 825 (`tsc 0`, lint 0 errors / 157 warnings, `2666 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
