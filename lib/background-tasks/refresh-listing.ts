@@ -35,9 +35,14 @@ export async function refreshListing(
     const mergedHistory = mergePriceHistory(localHistory, serverResult.history);
     if (serverResult.history.length < localHistory.length) {
       // Trim to the server cap (newest first) or the upload is rejected whole.
+      // Sort by parsed time first: a history restored from a backup is not
+      // guaranteed ascending, and `slice(-N)` on a descending array kept the
+      // OLDEST points.
       const points =
         localHistory.length > MAX_UPLOAD_HISTORY_POINTS
-          ? localHistory.slice(-MAX_UPLOAD_HISTORY_POINTS)
+          ? [...localHistory]
+              .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
+              .slice(-MAX_UPLOAD_HISTORY_POINTS)
           : localHistory;
       void uploadServerHistory(
         listing.distributorId,

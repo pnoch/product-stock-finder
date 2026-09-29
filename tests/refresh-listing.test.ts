@@ -180,3 +180,47 @@ describe("refreshListing server snapshot freshness", () => {
     expect(result.price).toBe(100);
   });
 });
+
+describe("refreshListing history upload cap", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("uploads the newest points when trimming a descending local history", async () => {
+    // A history restored from a backup is not guaranteed ascending; the cap's
+    // `slice(-N)` assumed oldest-first and uploaded the OLDEST points.
+    const { uploadServerHistory } = await import("../lib/server-prices");
+    const mockedUpload = vi.mocked(uploadServerHistory);
+    mockedFetchServerPrice.mockResolvedValue({
+      snapshot: {
+        price: 100,
+        currency: "USD",
+        stockStatus: "in_stock",
+        url: "https://example.com/p1",
+        fetchedAt: Date.now(),
+      },
+      // A shorter server history triggers the local upload branch.
+      history: [
+        {
+          date: new Date().toISOString(),
+          price: 50,
+          currency: "USD",
+          stockStatus: "in_stock",
+        },
+      ],
+    });
+    const l = listing();
+    l.priceHistory = Array.from({ length: 600 }, (_, i) => ({
+      date: new Date(Date.now() - i * 86_400_000).toISOString(),
+      price: 100 + i,
+      currency: "USD",
+      stockStatus: "in_stock" as const,
+    }));
+
+    await refreshListing(product(), l, healthCollector);
+
+    expect(mockedUpload).toHaveBeenCalled();
+    const points = mockedUpload.mock.calls[0]![2] as { price: number }[];
+    expect(points).toHaveLength(200);
+    expect(points.some((p) => p.price === 100)).toBe(true);
+    expect(points.some((p) => p.price === 699)).toBe(false);
+  });
+});

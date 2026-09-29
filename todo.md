@@ -5957,3 +5957,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** the third instance of the ordering bug. `serializeItem`'s byte-cap fallback trims pushed history with `withinWindow.slice(-maxPointsPerListing)`, assuming ascending order — but a history restored from a backup or a server pull reaches the sync path unsorted, so the trim sent the **oldest** points (verified: a descending 700-point history trimmed to 20 sent the oldest 20).
 - [x] **Fix:** sort `withinWindow` by parsed time before the fallback. Added a non-vacuous guard to `tests/sync-push-batching.test.ts` that seeds the raw store directly (bypassing the write-path sort from Phase 782). Proven non-vacuous: reverting fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2650 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 785: refresh-listing history upload kept the OLDEST points
+
+- [x] **Gap found:** the fourth instance of the ordering bug. `refreshListing`'s best-effort history upload trims `localHistory.slice(-MAX_UPLOAD_HISTORY_POINTS)` assuming ascending order — a descending history (from a backup/restore) uploaded the **oldest** 200 points. `uploadServerHistory` does not sanitize, so the trim is what the server receives.
+- [x] **Fix:** sort by parsed time before trimming. Added a non-vacuous guard to `tests/refresh-listing.test.ts`. Proven non-vacuous: reverting fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2651 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
