@@ -6352,3 +6352,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`pnpm audit` high: 80 → 2, critical: 4 → 1, moderate: 43 → 11.** The two remaining highs are `image-size` — its patched version (2.0.3) is a major jump that **breaks Metro's web bundling** (`TypeError: The "list" argument must be an instance of SharedArrayBuffer…`), so it is left for a coordinated Expo upgrade. The last critical is `vitest` (dev-only, needs a major upgrade).
 - [x] Caught the breakage by running `pnpm build:web` after the overrides and bisecting to the culprit (`image-size`); confirmed the final set builds cleanly.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2670 passed**; desktop `tsc 0`, **289 passed**; `pnpm build` (server + web) succeeds; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 835: Remaining advisories assessed (dev-only, not reachable)
+
+- [x] **`vitest` critical (GHSA-5xrq-8626-4rwp):** requires the **Vitest UI server** to be listening. The project only ever runs `vitest run` (headless) and `vitest` (watch) — never `--ui`. Not reachable.
+- [x] **`vitest` moderate (GHSA-82fw-gwwq-j7x9):** requires a malicious test file (path traversal via `@vitest/mocker`). We author our own tests. Not reachable.
+- [x] **`image-size` high:** the patched version (2.0.3) is a major jump that breaks Metro's web bundling (Phase 834), so it awaits a coordinated Expo upgrade. It is a build-time image-dimension reader, not a runtime request path.
+- [x] Upgrading vitest to 4.x would require vite ^6/^7/^8 and a major test-config migration for zero reachable risk; deferred deliberately.
+- [x] Verified both vitest runners still pass with the current overrides; root `tsc 0`, lint 0 errors / 157 warnings, **2670 passed**; desktop `tsc 0`, **289 passed**; `cargo test` 71, clippy 0, fmt clean.
