@@ -5838,3 +5838,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`server/push-notifications.ts`:** memory/DB parity for token ownership.
 - [x] **`server/storage.ts`:** Forge presign with a fetch timeout; key normalization + hash suffix.
 - [x] No code change; tree unchanged from Phase 764 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 766: Hooks audit (clean)
+
+- [x] **`use-alert-badge.ts`:** mounted guard, per-read `.catch`, shared `countActiveAlerts` predicate, and refreshes on both focus and storage changes.
+- [x] **`use-connection.ts`:** 60s refetch, foreground refetch, `deriveConnectionStatus` precedence.
+- [x] **`use-live-prices.ts`:** generation guards on async loads, debounced persist, refs to avoid stale closures, and a fresh read in `refreshAll` (a product added since the last render isn't missed).
+- [x] **`use-alerts-data.ts`:** generation guard, storage-change subscription, and reschedule schedules the new notification **before** cancelling the old (keeping the old id when scheduling fails so it stays cancellable) with a double-tap guard.
+- [x] No code change; tree unchanged from Phase 765 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
