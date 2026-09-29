@@ -5821,3 +5821,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] **`server/devices.ts`:** `assertDeviceAccess` enforces per-user ownership; label lookup is scoped to the user's own device ids (no full scan); `unrevokeDevice` lifts the user's wildcard on sign-in (proving current credentials); `purgeOldRevokedDevices` drains in batches.
 - [x] No code change; tree unchanged from Phase 762 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 764: Server utility-module audit (clean)
+
+- [x] **`server/health.ts`:** stateless (fresh in-memory adapter per call).
+- [x] **`server/fx.ts`:** single-flight refresh, stale-while-revalidate, static-rate fallback, and finite/positive rate filtering.
+- [x] **`server/concurrency.ts`:** `mapWithConcurrency` preserves input order and bounds in-flight work.
+- [x] **`server/db-errors.ts`:** unwraps the Drizzle error chain (`.cause`) for duplicate-key/FK classification.
+- [x] **`server/fetch-timeout.ts` / `server/store-keys.ts` / `server/api-cache.ts`:** outbound deadline; case-folded store keys + DECIMAL(12,4) rounding for memory/DB parity; `/api` `no-store`.
+- [x] No code change; tree unchanged from Phase 763 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
