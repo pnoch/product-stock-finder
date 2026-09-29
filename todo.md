@@ -5521,3 +5521,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** several `as any` casts were unnecessary and only disabled the checker — `(user as any)?.emailVerified` (account-section; `User` already declares it), `deliveries as any[]` + `(d as any).eventId` (notification evaluate), the three `.set({...} as any)` writes in `server/db.ts`, the `(req|tx as any).error` reads in `idb-adapter.ts`, and the `(c as any).name/value/domain` reads in `browser.ts`'s cookie guard.
 - [x] **Fix:** removed all of them; `tsc` passes with 0 errors, proving they were well-typed. Kept the four genuinely load-bearing casts (`window as any` browser globals, the `_core` `Api.getMe` return-type gap, and `Buffer`→`BlobPart` variance). No new guard: the compile-time check is the guard, and it now covers these sites.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2631 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 720: Platform-guard and cast audit (clean)
+
+- [x] **Notifications:** every scheduling/cancel function in `lib/notifications.ts` guards `Platform.OS === "web"` (14 guards); `setupAndroidNotificationChannel` guards `!== "android"` (web included). No unguarded `scheduleNotificationAsync`/`cancelScheduledNotificationAsync`.
+- [x] **Background tasks:** `TaskManager.defineTask` runs at module scope (outside any component) per AGENTS.md, and `registerTaskAsync`/`unregisterTaskAsync` guard web.
+- [x] **`eslint-disable` comments:** only four, all `react-hooks/exhaustive-deps`, each documented and legitimate (stable `Animated.Value` refs, intentional one-time selection init, a `series`/`displayCurrency`-keyed a11y label).
+- [x] **`as any`:** down to four genuinely load-bearing casts (browser globals, the `_core` `Api.getMe` return-type gap, `Buffer`→`BlobPart` variance).
+- [x] No code change; tree unchanged from Phase 719 (`tsc 0`, lint 0 errors / 157 warnings, `2631 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
