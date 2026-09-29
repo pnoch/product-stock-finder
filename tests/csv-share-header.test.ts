@@ -53,4 +53,21 @@ describe("detailed CSV share header", () => {
     expect(csv).not.toContain("/w/");
     expect(csv.split("\n")[0]).toContain("product,model");
   });
+
+  // The skip predicate matched any "#"-prefixed line, so a product named
+  // "#1 Router" was silently dropped on re-import (round-trip data loss).
+  it("round-trips a product whose name starts with #", () => {
+    const p = { ...product(), name: "#1 Router", modelNumber: "#1 Router" };
+    const parsed = parseWatchlistCsv(watchlistToDetailedCsv([p]));
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]?.name).toBe("#1 Router");
+  });
+
+  it("still skips the emitted '# Share:' header", () => {
+    const csv = watchlistToDetailedCsv([product()], {
+      shareUrl: "https://example.com/w/tok123",
+    });
+    expect(csv.split("\n")[0]).toMatch(/^#\s*Share:/i);
+    expect(parseWatchlistCsv(csv)).toHaveLength(1);
+  });
 });

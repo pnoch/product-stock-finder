@@ -5601,3 +5601,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Client (`lib/notifications.ts` `setupPushEventTracking`):** guards web, records eventIds from received/tapped/last-response listeners, and documents the accepted best-effort gap (background pushes never tapped) with the pull as the correctness guarantee.
 - [x] **Server (`server/notifications/build-events.ts`):** `clampDedupKey` keeps keys within `varchar(255)` (an over-long key would throw "Data too long" and abort the whole warmer tick); health keys bucket on **server** time (not the attacker-controlled `createdAt`) and separate `alert`/`recovery`; `dedupKeyFor` prefers the builder-assigned key so a digest isn't re-pushed on re-entering quiet hours.
 - [x] No code change; tree unchanged from Phase 729 (`tsc 0`, lint 0 errors / 157 warnings, `2635 passed`; DB 8/30; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 731: CSV import dropped products whose name starts with `#`
+
+- [x] **Gap found:** `isShareDeepLinkLine` skipped *any* `#`-prefixed line as a share header, but the exporter only ever emits `# Share: <url>`. So a legitimate product named `#1 Router` was silently dropped on re-import — a round-trip data-loss bug (`watchlistToDetailedCsv` → `parseWatchlistCsv` returned 0 products).
+- [x] **Fix:** match the exact `^#\s*share\s*:` form (plus legacy `//` and `shareUrl,`). Added two cases to `tests/csv-share-header.test.ts` (round-trip a `#`-named product; still skip the emitted header). Proven non-vacuous: reverting to `startsWith("#")` fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2637 passed**; desktop `285`; `cargo test` 71, clippy 0, fmt clean.

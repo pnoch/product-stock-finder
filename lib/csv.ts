@@ -160,9 +160,13 @@ function stripBom(s: string): string {
 function isShareDeepLinkLine(line: string): boolean {
   const t = line.trim();
   if (!t) return true;
-  if (t.startsWith("#") || t.startsWith("//")) return true;
-  // watchlist header share deep-link: e.g. "# Share: https://app.example/w/<token>" or header row containing shareUrl
-  if (t.includes("/w/") && t.includes("http")) return true;
+  // The deep-link header watchlistToDetailedCsv emits is exactly
+  // "# Share: <url>". Matching any "#"-prefixed line dropped a legitimate
+  // product whose name starts with "#" (e.g. "#1 Router") on re-import.
+  if (/^#\s*share\s*:/i.test(t)) return true;
+  // Legacy "//" comment lines.
+  if (t.startsWith("//")) return true;
+  // A header row carrying the share URL column.
   if (/^shareUrl,/i.test(t)) return true;
   return false;
 }
