@@ -5399,3 +5399,9 @@ Reviewed the components with effects/state in the two largest groups.
 - [x] **`settings/llm-settings-section`:** three debounced autosaves (API key, model, Ollama URL), each with a `clearTimeout` cleanup and a no-op guard when unchanged; the key is masked behind a show/hide toggle.
 - [x] **`alerts/*`:** no async effects (pure cards/modals).
 - [x] No code change; tree unchanged from Phase 700 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
+
+## Phase 702: Remaining mobile component groups audit (clean)
+
+- [x] **`search/product-image`:** a carefully-built bounded loader — LRU cache capped at 200, max 3 concurrent fetches, `requestIdleCallback` deferral with a `setTimeout` fallback, and a cleanup that removes a still-queued task. The in-flight counter is incremented only on the immediate path and decremented on every terminal path (including the not-active early return), so it cannot leak; the cleanup splices a queued task (never counted) without touching the counter.
+- [x] **`ui/toast`, `ui/skeleton`, `search/catalog-search-bar`, `search/manual-add-sheet`, `home/trending-section`:** reviewed; each has a proper cleanup or is a pure render.
+- [x] No code change; tree unchanged from Phase 701 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
