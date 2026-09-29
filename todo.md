@@ -6345,3 +6345,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `pnpm audit` criticals: **4 → 1**. The last is `vitest` (<3.2.6, a UI-server file-read that requires a major vitest upgrade); it is a dev-only tool and is left for a dedicated upgrade.
 - [x] Verified `concurrently --version` still works, `pnpm build` (server + web) succeeds, and all tests pass.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2670 passed**; desktop `tsc 0`, **289 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 834: Dependency audit — high-severity advisories eliminated
+
+- [x] Extended the pnpm overrides to the transitive high-severity advisories with safe patch/minor bumps: `flatted`, `node-forge`, `ws`, `form-data`, `fast-uri`, `js-yaml`, `nanoid`, `postcss`, `rollup`, `vite`, `@xmldom/xmldom`, `browserslist`, `shell-quote`.
+- [x] **`pnpm audit` high: 80 → 2, critical: 4 → 1, moderate: 43 → 11.** The two remaining highs are `image-size` — its patched version (2.0.3) is a major jump that **breaks Metro's web bundling** (`TypeError: The "list" argument must be an instance of SharedArrayBuffer…`), so it is left for a coordinated Expo upgrade. The last critical is `vitest` (dev-only, needs a major upgrade).
+- [x] Caught the breakage by running `pnpm build:web` after the overrides and bisecting to the culprit (`image-size`); confirmed the final set builds cleanly.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2670 passed**; desktop `tsc 0`, **289 passed**; `pnpm build` (server + web) succeeds; `cargo test` 71, clippy 0, fmt clean.
