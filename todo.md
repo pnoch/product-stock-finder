@@ -5768,3 +5768,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `fetchParsedProduct` raced a bare `new Promise((resolve) => setTimeout(...))` without clearing the timer, so a fast response still kept the event loop alive up to the 8s deadline (and the race used a plain `setTimeout`, which freezes while backgrounded). `lib/server-prices.ts` already cleared its timer in `finally`.
 - [x] **Fix:** use the shared `withTimeout` (clears its timer on settle; background-safe poll loop). Behavior-preserving; existing tests pass.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2643 passed**; desktop `286`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 756: Health/digest-fx/barrel audit (clean)
+
+- [x] **`lib/health.ts`:** 3s abort timeout cleared in `finally`.
+- [x] **`lib/storage/digest-fx.ts`:** validates the digest-snapshot shape (a non-array `products` would throw in `computeDigest`'s `.map`) and filters FX rates to finite numbers.
+- [x] **`lib/background-price-check.ts`:** a clean re-export barrel.
+- [x] **`lib/storage/index.ts`:** the barrel is the only AsyncStorage importer; `tests/server-bundle-purity.test.ts` guards that server-reachable modules import leaf storage modules, not the barrel.
+- [x] No code change; tree unchanged from Phase 755 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
