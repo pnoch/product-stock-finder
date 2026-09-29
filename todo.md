@@ -5868,3 +5868,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] **`components/settings/login-modal.tsx`:** validates required fields and register password length; the client doesn't trim the email, but the server normalizes (`trim().toLowerCase()`) before lookup, so it's harmless.
 - [x] No code change; tree unchanged from Phase 769 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 771: Manual-add sheet audit (clean)
+
+- [x] **`components/search/manual-add-sheet.tsx`:** trims inputs, dedupes on the slug, guards against unmount (`activeRef`) so a late discovery result doesn't set state on an unmounted component, and reports the discovered count.
+- [x] No code change; tree unchanged from Phase 770 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
