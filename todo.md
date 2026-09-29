@@ -5666,3 +5666,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `lib/backup.ts`'s `mergeProductListings` kept the newer listing with `(listing.lastChecked ?? "") >= (fromBackup.lastChecked ?? "")` — a string compare. `"…T00:00:00Z" >= "…T00:00:00.500Z"` lexically but is chronologically earlier, so a mixed-format backup kept the older listing. The Rust `merge_listings` already parses via `listing_last_checked_ms`, so this was also a parity gap.
 - [x] **Fix:** compare `Date.parse(...)`. Added a mixed-format case to `tests/backup.test.ts`. Proven non-vacuous: reverting fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2640 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 741: Digest alert-window compared triggeredAt as strings
+
+- [x] **Gap found:** `computeDigest` filtered triggered alerts with `a.triggeredAt >= lastDigestAt` (string compare). `"…:00.500Z" >= "…:00Z"` is false lexically though chronologically later, so a mixed-format pair dropped a freshly triggered alert from the digest. `triggeredAt` can arrive via server sync (only `targetPrice` is validated in `sanitizePulledItem`).
+- [x] **Fix:** compare `Date.parse(...)`. Added a mixed-format case to `tests/price-digest.test.ts`. Proven non-vacuous: reverting fails the guard.
+- [x] **Also:** fixed a flaky assertion in the Phase-739 `refresh-listing` test (it called `listing()` twice, so the two timestamps differed by a millisecond).
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2641 passed**; desktop `286`; `cargo test` 71, clippy 0, fmt clean.

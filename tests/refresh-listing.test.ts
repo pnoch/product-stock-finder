@@ -156,9 +156,11 @@ describe("refreshListing server snapshot freshness", () => {
       html: "<html>price</html>",
     } as never);
 
-    const result = await refreshListing(product(), listing(), healthCollector);
-    expect(result.price).toBe(listing().price);
-    expect(result.lastChecked).toBe(listing().lastChecked);
+    const original = listing();
+    const result = await refreshListing(product(), original, healthCollector);
+    // The listing is returned unchanged (same price and lastChecked).
+    expect(result.price).toBe(original.price);
+    expect(result.lastChecked).toBe(original.lastChecked);
   });
 
   it("accepts a fresh server snapshot without a local scrape", async () => {

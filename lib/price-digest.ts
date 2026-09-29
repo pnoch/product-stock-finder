@@ -160,12 +160,17 @@ export function computeDigest(
   }
 
   const lastDigestAt = previous?.lastDigestAt;
+  const lastDigestMs = lastDigestAt ? Date.parse(lastDigestAt) : NaN;
   const alertTargetsHit: DigestResult["alertTargetsHit"] = alerts
     .filter(
       (a) =>
         !a.isActive &&
         a.triggeredAt &&
-        (!lastDigestAt || a.triggeredAt >= lastDigestAt),
+        // Parsed-time comparison: `"…:00.500Z" >= "…:00Z"` is false lexically
+        // though it is chronologically later, so a mixed-format pair dropped a
+        // freshly triggered alert from the digest.
+        (Number.isNaN(lastDigestMs) ||
+          Date.parse(a.triggeredAt) >= lastDigestMs),
     )
     .map((a) => {
       const product = watchlist.find((p) => p.id === a.productId);

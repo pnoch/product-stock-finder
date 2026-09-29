@@ -167,6 +167,25 @@ describe("computeDigest", () => {
     expect(result.alertTargetsHit[0].productId).toBe("p1");
   });
 
+  it("compares triggeredAt to lastDigestAt by parsed time across ISO formats", () => {
+    // `"…:00.500Z" >= "…:00Z"` is false lexically though it is chronologically
+    // later, so a mixed-format pair dropped a freshly triggered alert.
+    const previous: DigestSnapshot = {
+      lastDigestAt: "2026-08-10T12:00:00Z",
+      products: [],
+    };
+    const watchlist = [
+      makeProduct("p1", "CRS804", [
+        { price: 85, currency: "USD", stockStatus: "in_stock" },
+      ]),
+    ];
+    const alerts = [
+      makeAlert({ triggeredAt: "2026-08-10T12:00:00.500Z" }),
+    ];
+    const result = computeDigest(previous, watchlist, makeSettings(), alerts);
+    expect(result.alertTargetsHit).toHaveLength(1);
+  });
+
   // A product can have several triggered alerts, so the entry needs a unique id
   // (alertId) — keying the render on productId produced duplicate React keys.
   it("gives each triggered alert a unique alertId", () => {
