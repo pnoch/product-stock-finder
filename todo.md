@@ -6233,3 +6233,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] An eleventh mutation batch found `shared/src/currency.ts`'s `roundMoney` had no direct test: `* 100 / 100` → `* 1000 / 1000` survived (the only callers are the two `getBestPrice` implementations, whose tests use already-2-decimal values). Added a direct test (1.2345 → 1.23, 102.80999999999999 → 102.81); the mutation now fails.
 - [x] Confirmed `shared/src/fx.ts` TTL and `server/notifications/build-events.ts` dedup-key clamp are killed — well-tested.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2665 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 821: Mutation pass — desktop lib (no new gaps)
+
+- [x] A twelfth batch mutated the desktop TS lib functions (`basket-alert`, `sync-retry`, `device-cleanup`, `history-sync`). **All runtime mutations were killed:**
+  - `basket-alert`: threshold boundary (`<=`), `threshold <= 0` guard, clear-on-fire.
+  - `sync-retry`: 1s throttle, retry-only-on-error.
+  - `device-cleanup`: removed-count return, timer clear.
+  - `history-sync`: upload cap.
+- [x] No code change; tree unchanged from Phase 820 (`tsc 0`, lint 0 errors / 157 warnings, `2665 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
