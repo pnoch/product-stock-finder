@@ -48,5 +48,9 @@ describe("drop calendar grid across DST", () => {
     expect(keys).toHaveLength(30);
     expect(new Set(keys).size).toBe(30);
     expect(keys).toContain("2026-03-08");
+    // The loop runs `i >= 0`, so the grid ends on today (i=0). A `> 0` bound
+    // would drop today's cell.
+    expect(keys[keys.length - 1]).toBe("2026-03-20");
+    expect(keys[0]).toBe("2026-02-19");
   });
 });

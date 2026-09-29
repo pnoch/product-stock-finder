@@ -44,8 +44,21 @@ describe("computePriceVsAverage", () => {
     expect(result).not.toBeNull();
     expect(result!.average).toBe(95);
     expect(result!.current).toBe(90);
-    expect(result!.percentVsAvg).toBeCloseTo(-5.3, 0);
+    // (90 - 95) / 95 * 100 = -5.263..., rounded to 1 decimal = -5.3 exactly.
+    expect(result!.percentVsAvg).toBe(-5.3);
     expect(result!.verdict).toBe("below");
+  });
+
+  it("rounds the percent to one decimal (not floor)", () => {
+    // avg 3, current 2 => -33.333...% which rounds to -33.3 (a floor gives
+    // -33.4). Pins `Math.round`, not `Math.floor`.
+    const result = computePriceVsAverage(
+      [listing("a", [[10, 3], [5, 3]], 2)],
+      "USD",
+      30,
+      NOW,
+    );
+    expect(result!.percentVsAvg).toBe(-33.3);
   });
 
   it("applies verdict thresholds at ±3%", () => {

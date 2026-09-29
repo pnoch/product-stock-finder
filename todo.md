@@ -6145,3 +6145,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `lib/best-deal.ts`: the strict `total < best.total` tie-break survived — no test had two listings with an identical landed cost.
 - [x] Added a 6d/7d case to `tests/relative-time.test.ts` and a tie case to `tests/best-deal.test.ts` using two distributors that share Asia-Pacific shipping (`balticnetworks-us`/`rocnoc-us`). Both mutations now fail. (`price-chart` `count <= 1` → `<= 0` is behaviorally equivalent — both return 0 — so no test needed.)
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2659 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 809: Mutation pass — drop-calendar boundary + price-average rounding
+
+- [x] A sixth mutation batch found two more gaps:
+  - `lib/drop-calendar.ts`: the `for (let i = days - 1; i >= 0; i--)` bound (`>= 0` → `> 0`) survived — the DST test checked length/uniqueness but not that the grid ends on **today**. Added assertions for the first and last key.
+  - `lib/price-average.ts`: `Math.round(... * 1000) / 10` → `Math.floor` survived (the existing `toBeCloseTo(-5.3, 0)` was too loose). Added a case (avg 3, current 2 → -33.3, floor would give -33.4) and tightened the exact value.
+- [x] Both mutations now fail. (`price-change` `pct < 0` → `<= 0` is behaviorally equivalent — pct 0 is suppressed by the 0.5% floor — so no test needed.)
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2660 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
