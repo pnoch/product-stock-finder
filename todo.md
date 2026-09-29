@@ -6531,3 +6531,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Manually verified the 13 early-return sites (loading gates, `!open`/`!product` guards) have **no hooks after** the return.
 - [x] The 36 `exhaustive-deps` warnings are benign: the "missing" deps in `use-auth.ts` are module-level `useCallback`-wrapped setters (`setUser`/`setLoading`/`setError`, stable); the `use-live-prices` ref-cleanup warnings are the documented generation-guard pattern.
 - [x] No code change; tree unchanged from Phase 857 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 859: Quarantine index orphaned blobs across sessions
+
+- [x] **Gap found:** `quarantinePayload` persisted the index as `[...quarantineKeys.values()].flat()` — but `quarantineKeys` is module memory, empty after a reload. So the first quarantine of a new session **overwrote** the persisted index with only the new keys, orphaning every blob from earlier sessions. Those blobs contain raw watchlist/alerts/settings payloads and would survive a wipe (`clearAllData`/`clearAccountData` only remove what the index lists). Verified with a reload simulation.
+- [x] **Fix:** merge with the on-disk index (`listQuarantinedKeys`) before writing, and cap the merged list (`MAX_QUARANTINE_INDEX = 30`, newest by timestamp suffix) so it can't grow one entry per quarantine forever. Added `tests/storage-quarantine-index.test.ts` (reload-orphan + bound) using `vi.resetModules()` to simulate a real reload. Proven non-vacuous: reverting the merge fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2679 passed**; desktop `tsc 0`, **289 passed**; `cargo test` 72, clippy 0, fmt clean.

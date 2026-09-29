@@ -47,6 +47,9 @@ export interface StorageContext {
 // cannot exhaust storage quota. Tracked in module memory; evicting a key
 // that no longer exists is a harmless no-op removeItem.
 const MAX_QUARANTINE_PER_KEY = 3;
+// Cap the persisted index too: evicted blobs stay listed (a wipe's removeItem
+// on them is a no-op), so it would otherwise grow one entry per quarantine.
+const MAX_QUARANTINE_INDEX = 30;
 const quarantineKeys = new Map<string, string[]>();
 // Persisted index of every blob, so a wipe can remove them: they contain raw
 // watchlist/alerts/settings payloads and must not outlive the account.
@@ -79,13 +82,32 @@ export async function quarantinePayload(
   quarantineKeys.set(key, keys);
   // Persist the full list so clearAllData/clearAccountData can delete the blobs
   // (the in-memory map is empty after a reload, so the cap alone let them
-  // accumulate forever).
+  // accumulate forever). Merge with the on-disk index first: after a reload
+  // `quarantineKeys` starts empty, so writing only the in-memory list dropped
+  // every blob quarantined in a previous session — those orphaned blobs (raw
+  // watchlist/alerts/settings payloads) then survived a wipe.
   try {
-    const all = [...quarantineKeys.values()].flat();
+    const existing = await listQuarantinedKeys(adapter);
+    const merged = [
+      ...new Set([...existing, ...[...quarantineKeys.values()].flat()]),
+    ];
+    // Bound the index: evicted blobs stay in the on-disk list (a wipe's
+    // removeItem on them is a harmless no-op), so without a cap the list would
+    // grow one entry per quarantine forever. Keep the newest by the timestamp
+    // suffix.
+    const all = merged
+      .sort((a, b) => timestampOf(a) - timestampOf(b))
+      .slice(-MAX_QUARANTINE_INDEX);
     await adapter.setItem(QUARANTINE_INDEX_KEY, JSON.stringify(all));
   } catch {
     // best effort
   }
+}
+
+function timestampOf(quarantineKey: string): number {
+  const idx = quarantineKey.lastIndexOf(QUARANTINE_SUFFIX);
+  const n = idx >= 0 ? Number(quarantineKey.slice(idx + QUARANTINE_SUFFIX.length)) : NaN;
+  return Number.isFinite(n) ? n : 0;
 }
 
 /** Every quarantined blob key recorded so far (for the wipe paths). */
