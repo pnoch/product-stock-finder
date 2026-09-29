@@ -6503,3 +6503,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`handleReschedule`:** rejects a past date; double-tap guard; schedules the new notification **before** cancelling the old (a scheduling failure leaves the user with a reminder); keeps the old notification id when the new schedule failed (so the still-scheduled one stays cancellable); storage-write failure shows an error instead of leaving the modal stuck.
 - [x] **`handleRearmAlert` / deletes:** try/catch with a user-facing error and a reload.
 - [x] No code change; tree unchanged from Phase 853 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 855: React key-prop audit (clean)
+
+- [x] Scanned every `.map()` in `app/`, `components/`, `desktop/src/`. No JSX-returning map is missing a `key`.
+- [x] The `key={i}`/`key={idx}` sites are all static or render-only lists where an index key is correct: weekday labels, skeleton placeholders, chart points/ticks/legend, timeline segments, onboarding dots. No dynamic reorderable list uses an index key.
+- [x] No code change; tree unchanged from Phase 854 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
