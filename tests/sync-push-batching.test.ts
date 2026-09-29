@@ -138,4 +138,49 @@ describe("sync push batching respects the server byte caps", () => {
     const localPoints = local[0].listings.flatMap((l) => l.priceHistory).length;
     expect(localPoints).toBeGreaterThan(pushedPoints);
   });
+
+  it("keeps the newest points when the byte cap trims a descending history", async () => {
+    // `history()` is newest-first (d=0 is newest). The byte-cap fallback's
+    // `slice(-N)` assumes ascending order, so on a descending history it kept
+    // the OLDEST points. Seed the raw store directly: `addToWatchlist` sorts on
+    // write, but a history restored from a backup or a server pull reaches the
+    // sync path unsorted.
+    const store = new Map<string, string>();
+    store.set(
+      "watchlist_products",
+      JSON.stringify([product("heavy", 40, 2000)]),
+    );
+    const storage = createStorage({
+      getItem: async (k: string) => store.get(k) ?? null,
+      setItem: async (k: string, v: string) => {
+        store.set(k, v);
+      },
+      removeItem: async (k: string) => {
+        store.delete(k);
+      },
+      multiRemove: async (keys: string[]) => {
+        keys.forEach((k) => store.delete(k));
+      },
+    });
+    const push = vi.fn(async (_items: SyncItem[]) => ({
+      accepted: 0,
+      stamped: [],
+    }));
+
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull: async () => ({ lastSyncedAt: 5000, items: [] as SyncItem[] }),
+      push,
+      now: () => Date.now(),
+    });
+
+    const pushed = pushedBatches(push).flat();
+    const data = pushed[0].data as Product;
+    const pushedHistory = data.listings.flatMap((l) => l.priceHistory);
+    // The newest point (price 1234.5678, d=0) must survive the trim.
+    expect(pushedHistory.some((p) => p.price === 1234.5678)).toBe(true);
+    // The oldest point (d=29) must not.
+    expect(pushedHistory.some((p) => p.price === 1234.5678 + 29)).toBe(false);
+  });
 });

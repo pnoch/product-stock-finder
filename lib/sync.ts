@@ -570,9 +570,12 @@ function serializeItem(collection: Collection, item: unknown): unknown {
   const withHistory = (maxPointsPerListing: number | null) => ({
     ...product,
     listings: (product.listings ?? []).map((l) => {
-      const withinWindow = (l.priceHistory ?? []).filter(
-        (p) => p.date.slice(0, 10) >= cutoffDay,
-      );
+      const withinWindow = (l.priceHistory ?? [])
+        .filter((p) => p.date.slice(0, 10) >= cutoffDay)
+        // Sort by parsed time so the `slice(-N)` byte-cap fallback below keeps
+        // the newest points: a history restored from a backup is not guaranteed
+        // ascending, and on a descending array it kept the OLDEST.
+        .sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
       return {
         distributorId: l.distributorId,
         productId: l.productId,
