@@ -5428,3 +5428,12 @@ Reviewed the components with effects/state in the two largest groups.
 - [x] **Fixed the 4 clippy warnings so `-D warnings` passes:** `parts[0].len() >= 1` → `!parts[0].is_empty()`; a redundant `as u32`; two `&PathBuf` params → `&Path` (adding the `Path` import); and `parse_html` moved above the `#[cfg(test)]` module in `mikrotikstore.rs` ("items after a test module"). `cargo fmt` applied.
 - [x] **Fixed a test that depended on formatting:** `cargo fmt` wrapped the parsers' `format!`/`parse_price_page` calls across lines, breaking the parity scanner's single-line regex (it found 3 of 25 parsers). The scanner is now tolerant of wrapped calls.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2615 passed`; desktop `285 passed`; `cargo test` 71, `cargo clippy` **0**, `cargo fmt --check` clean.
+
+## Phase 706: Build/config files audit (clean)
+
+- [x] **`vitest.config.ts`:** alias ordering is deliberate (`@shared/const` before the `@shared` prefix), `desktop/**` is excluded (it has its own config), and `fileParallelism` is disabled for DB runs.
+- [x] **`tsconfig.json`:** strict, includes `.expo/types` + the env declarations, excludes `desktop`.
+- [x] **`eslint.config.js`:** ignores the build outputs, and the node-side override (server/scripts/shared) turns off the RN dynamic-env rule and adds the Node globals. `.mjs` scripts lint clean.
+- [x] **`metro.config.js` + `scripts/metro-resolver.js`:** the resolver redirects `lib/scrapers/browser` → the playwright-free `browser.web.ts` stub and `cheerio` → its browser build on native, and the config pre-creates the NativeWind CSS cache file so a clean install (CI/Railway) doesn't fail the web export. The resolver has tests (`tests/metro-resolver.test.ts`).
+- [x] **`eas.json` / `drizzle.config.ts` / `babel.config.js`:** correct (build profiles, a required `DATABASE_URL`, the NativeWind/worklets presets).
+- [x] No code change; tree unchanged from Phase 705 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
