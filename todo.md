@@ -6338,3 +6338,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - pnpm overrides: `undici@>=7 <7.29.1` → 7.30.0, `undici@>=6 <6.28.1` → 6.28.1 (Expo CLI's bundled copy), `path-to-regexp@<0.1.13` → 0.1.13.
 - [x] **Production-reachable advisories remaining: 0.** The remaining 108 are build/dev-only (Expo CLI/metro/vitest/eslint trees) and are left to their own release cadence.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2670 passed**; desktop `tsc 0`, **289 passed**; `pnpm build` (server + web) succeeds; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 833: Dependency audit — dev-tree criticals reduced
+
+- [x] Extended the overrides to the two simple dev-tree criticals: `tar` → 7.5.22 (node-tar decompression DoS) and `shell-quote` → 1.8.4 (newline-escape, the minimal patched version so `concurrently`'s `^1.8.3` range stays satisfied).
+- [x] `pnpm audit` criticals: **4 → 1**. The last is `vitest` (<3.2.6, a UI-server file-read that requires a major vitest upgrade); it is a dev-only tool and is left for a dedicated upgrade.
+- [x] Verified `concurrently --version` still works, `pnpm build` (server + web) succeeds, and all tests pass.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2670 passed**; desktop `tsc 0`, **289 passed**; `cargo test` 71, clippy 0, fmt clean.
