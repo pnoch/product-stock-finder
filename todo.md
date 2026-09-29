@@ -5607,3 +5607,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `isShareDeepLinkLine` skipped *any* `#`-prefixed line as a share header, but the exporter only ever emits `# Share: <url>`. So a legitimate product named `#1 Router` was silently dropped on re-import — a round-trip data-loss bug (`watchlistToDetailedCsv` → `parseWatchlistCsv` returned 0 products).
 - [x] **Fix:** match the exact `^#\s*share\s*:` form (plus legacy `//` and `shareUrl,`). Added two cases to `tests/csv-share-header.test.ts` (round-trip a `#`-named product; still skip the emitted header). Proven non-vacuous: reverting to `startsWith("#")` fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2637 passed**; desktop `285`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 732: CSV parser audit (clean)
+
+- [x] **`parseBulkImportCsv`:** handles a `#`-prefixed model and surrounding whitespace; caps at `BULK_MAX_ROWS` and reports `truncated` instead of silently dropping rows; clamps currency length and tag count.
+- [x] **Headerless detailed/summary parsing:** a first product named `#1 Router` now parses (the Phase-731 fix covers both paths).
+- [x] **`escapeCsv`:** neutralizes `= + - @ \t \r` formula injection (guarded by `tests/csv-injection.test.ts`); RFC-4180 tokenizer handles quoted commas/newlines (`tests/csv-quoted-newline.test.ts`).
+- [x] No code change; tree unchanged from Phase 731 (`tsc 0`, lint 0 errors / 157 warnings, `2637 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
