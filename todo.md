@@ -5717,3 +5717,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/manual-add.ts`:** dedupes on the storage return value (not just the stale `trackedIds`), handles the discovery timeout as an empty result, and `rediscoverMissingListings` rotates attempts (`MISSING_LISTINGS_RETRY_MS`) so permanently-unfindable products can't occupy every run's slots.
 - [x] **`lib/onboarding.ts` / `lib/recent-searches.ts` / `lib/legal-links.ts`:** `isPublicRoute` handles trailing slash/query/hash and rejects non-public routes (verified); recent searches are deduped case-insensitively and capped; the support email uses `||` so an empty override can't produce a bare `mailto:`.
 - [x] No code change; tree unchanged from Phase 746 (`tsc 0`, lint 0 errors / 157 warnings, `2642 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 748: Timing-primitive audit (clean)
+
+- [x] **`lib/with-timeout.ts`:** documents the "null = timeout" contract; uses the background-safe poll loop while backgrounded (a plain `setTimeout` race would freeze) and clears the timer in `finally`.
+- [x] **`lib/background-safe-timers.ts`:** the Android timer-freeze behavior is documented; `backgroundSafeDelay`/`backgroundSafeRace` poll via `setImmediate` while backgrounded and self-terminate back to a real timer when the app returns to the foreground; the module stays react-native-import-free (server-bundle purity).
+- [x] **`lib/background-fetch.ts`:** XHR with a native `timeout` (enforced by OkHttp, fires while backgrounded); a `settled` guard prevents double-settle.
+- [x] No code change; tree unchanged from Phase 747 (`tsc 0`, lint 0 errors / 157 warnings, `2642 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
