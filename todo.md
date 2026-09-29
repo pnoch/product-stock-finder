@@ -5851,3 +5851,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] **`hooks/use-auth.ts`:** module-level shared snapshot (so every `useAuth()` agrees), device header on every auth request, platform-specific fetch, `logout` retracts the push binding and calls `clearAccountData`, and `changePassword` persists the re-minted session token (credential epoch). `deleteAccount` leaves the local wipe to its caller (`account-section` calls `clearAllData()`), which is correct.
 - [x] No code change; tree unchanged from Phase 766 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 768: Components audit (clean)
+
+- [x] **`components/compare/multi-line-chart.tsx`:** converts every point to the display currency, guards empty/flat ranges, sorts by parsed time, and the scrubber picks the globally nearest point.
+- [x] **`components/best-distributor-card.tsx`:** converts to the display currency (not hardcoded USD); `isLowestEver` sorts explicitly and filters to in-stock history.
+- [x] **`components/watchlist/product-card.tsx`:** converts each listing's history before flattening (no mixed-currency sparkline), memoizes derivations, and uses `Animated` refs.
+- [x] No code change; tree unchanged from Phase 767 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
