@@ -5405,3 +5405,10 @@ Reviewed the components with effects/state in the two largest groups.
 - [x] **`search/product-image`:** a carefully-built bounded loader — LRU cache capped at 200, max 3 concurrent fetches, `requestIdleCallback` deferral with a `setTimeout` fallback, and a cleanup that removes a still-queued task. The in-flight counter is incremented only on the immediate path and decremented on every terminal path (including the not-active early return), so it cannot leak; the cleanup splices a queued task (never counted) without touching the counter.
 - [x] **`ui/toast`, `ui/skeleton`, `search/catalog-search-bar`, `search/manual-add-sheet`, `home/trending-section`:** reviewed; each has a proper cleanup or is a pure render.
 - [x] No code change; tree unchanged from Phase 701 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
+
+## Phase 703: shared/src modules audit (clean)
+
+- [x] **`compare-utils`:** `filterByRange` anchors the window on `min(now, maxDate)` so a future-dated point cannot shift the cutoff; `cheapestByRegion` prefers in-stock over back-order per region, skips non-orderable/non-positive prices, guards non-finite conversions, and takes an injectable converter so it agrees with the live-rate prices beside it; `distributorColor` is a deterministic hash shared by mobile + desktop (fixing the desktop's selection-order recoloring).
+- [x] **`log.ts`:** a dev-only logger guarded with `typeof __DEV__ !== "undefined"` (the safe form — unlike the Phase-634 `import.meta.env.DEV` bug), and it is used only in `lib/_core/api.ts`, which the server bundle never imports.
+- [x] **`catalog` / `distributors` / `currency` / `fx` / `history-upload` / `trending`:** all have tests and were audited in earlier phases.
+- [x] No code change; tree unchanged from Phase 702 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
