@@ -5858,3 +5858,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`components/best-distributor-card.tsx`:** converts to the display currency (not hardcoded USD); `isLowestEver` sorts explicitly and filters to in-stock history.
 - [x] **`components/watchlist/product-card.tsx`:** converts each listing's history before flattening (no mixed-currency sparkline), memoizes derivations, and uses `Animated` refs.
 - [x] No code change; tree unchanged from Phase 767 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 769: LLM settings section audit (clean)
+
+- [x] **`components/settings/llm-settings-section.tsx`:** debounced (500ms) settings updates, the API key is `secureTextEntry` by default with an explicit Show toggle, and the test-connection result distinguishes auth failure from unreachable.
+- [x] No code change; tree unchanged from Phase 768 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
